@@ -125,8 +125,8 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 
 PyObject *BUILTIN_CHR( unsigned char c )
 {
-    // TODO: A switch statement might be faster, because no object needs to be created at
-    // all, this here is how CPython does it.
+    // TODO: A switch statement might be faster, because no object needs to be
+    // created at all, this here is how CPython does it.
     char s[1];
     s[0] = (char)c;
 
@@ -148,8 +148,8 @@ PyObject *BUILTIN_CHR( PyObject *value )
         throw PythonException();
     }
 
-    // TODO: A switch statement might be faster, because no object needs to be created at
-    // all, this is how CPython does it.
+    // TODO: A switch statement might be faster, because no object needs to be
+    // created at all, this is how CPython does it.
     char s[1];
     s[0] = (char)x;
 

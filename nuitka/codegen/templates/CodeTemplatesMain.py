@@ -336,9 +336,10 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // puts( "in init%(module_identifier)s" );
 
-    // Create the module object first. There are no methods initially, all are added
-    // dynamically in actual code only.  Also no __doc__ is initially set, as it could not
-    // contain 0 this way, added early in actual code.  No self for modules, we have no
+    // Create the module object first. There are no methods initially, all are
+    // added dynamically in actual code only.  Also no "__doc__" is initially
+    // set at this time, as it could not contain NUL characters this way, they
+    // are instead set in early module code.  No "self" for modules, we have no
     // use for it.
 #if PYTHON_VERSION < 300
     _module_%(module_identifier)s = Py_InitModule4(
@@ -357,8 +358,9 @@ MOD_INIT_DECL( %(module_identifier)s )
     assertObject( _module_%(module_identifier)s );
 
 #ifndef _NUITKA_MODULE
-// Seems to work for Python2.7 out of the box, but for Python3.2, the module doesn't automatically enter
-// "sys.modules" with the object that it should, so do it manually.
+// Seems to work for Python2.7 out of the box, but for Python3.2, the module
+// doesn't automatically enter "sys.modules" with the object that it should, so
+// do it manually.
 #if PYTHON_VERSION >= 300
     {
         int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, _module_%(module_identifier)s );

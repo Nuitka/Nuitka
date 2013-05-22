@@ -15,20 +15,25 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+// This implements the loading of modules embedded. This is achieved mainly by
+// registered a "sys.meta_path" loader, that gets asked for module names, and
+// responds if it is an embedded one.
 
 #include "nuitka/prelude.hpp"
 
-// For Python3.3, the loader is a module attribute, that it will access from this
-// variable.
+// For Python3.3, the loader is a module attribute, that it will access from
+// this variable.
 #if PYTHON_VERSION < 330
-static PyObject *loader_frozen_modules = NULL;
-#else
-PyObject *loader_frozen_modules = NULL;
+static
 #endif
+PyObject *loader_frozen_modules = NULL;
 
 static struct _inittab *frozen_modules = NULL;
 
-static char *_kwlist[] = { (char *)"fullname", (char *)"unused", NULL };
+static char *_kwlist[] = {
+    (char *)"fullname",
+    (char *)"unused", NULL
+};
 
 static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, PyObject *kwds )
 {
@@ -166,22 +171,33 @@ void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules )
 
     frozen_modules = _frozen_modules;
 
-    // Register the initialization functions for modules included in the traditional way.
+    // Register the initialization functions for modules included in the
+    // traditional way. TODO: Find out, if that is needed at all, maybe the meta
+    // path approach alone is already perfect.
     int res = PyImport_ExtendInittab( _frozen_modules );
     assert( res != -1 );
 
+    // Build the dictionary of the "loader" object, which needs to have two
+    // methods "find_module" where we acknowledge that we are capable of loading
+    // the module, and "load_module" that does the actual thing.
     PyObject *method_dict = PyDict_New();
-
     assertObject( method_dict );
 
-    PyObject *loader_find_module = PyCFunction_New( &_method_def_loader_find_module, NULL );
+    PyObject *loader_find_module = PyCFunction_New(
+        &_method_def_loader_find_module,
+        NULL
+    );
     assertObject( loader_find_module );
     PyDict_SetItemString( method_dict, "find_module", loader_find_module );
 
-    PyObject *loader_load_module = PyCFunction_New( &_method_def_loader_load_module, NULL );
+    PyObject *loader_load_module = PyCFunction_New(
+        &_method_def_loader_load_module,
+        NULL
+    );
     assertObject( loader_load_module );
     PyDict_SetItemString( method_dict, "load_module", loader_load_module );
 
+    // Build the actual class.
     loader_frozen_modules = PyObject_CallFunctionObjArgs(
         (PyObject *)&PyType_Type,
 #if PYTHON_VERSION < 300

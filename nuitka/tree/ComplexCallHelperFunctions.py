@@ -291,9 +291,13 @@ def getCallableNameDescBody():
         )
 
     if python_version < 300:
-        normal_cases = ( "function", "builtin_function_or_method", "instancemethod" )
+        normal_cases = (
+            "function", "builtin_function_or_method", "instancemethod"
+        )
     else:
-        normal_cases = ( "function", "builtin_function_or_method" )
+        normal_cases = (
+            "function", "builtin_function_or_method"
+        )
 
     statements = (
         StatementConditional(
@@ -650,7 +654,8 @@ def _makeStarDictArgumentToDictStatement( called_variable_ref,
 
 
 def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
-                                             kw_target_variable_ref, kw_variable_ref,
+                                             kw_target_variable_ref,
+                                             kw_variable_ref,
                                              star_dict_variable_ref ):
     # This is plain terribly complex, pylint: disable=R0914
 
@@ -829,9 +834,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
     )
 
     statements = (
-        # Initializing the temp variable outside of try/except, because code generation
-        # does not yet detect that case properly. TODO: Can be removed once code
-        # generation is apt enough.
+        # Initializing the temp variable outside of try/except, because code
+        # generation does not yet detect that case properly. TODO: Can be
+        # removed once code generation is apt enough.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_keys_variable.makeReference( mapping_case ),
@@ -1024,7 +1029,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 value = ExpressionCallEmpty(
                     called = ExpressionAttributeLookup(
                         expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
-                        attribute_name = "iteritems" if python_version < 300 else "items",
+                        attribute_name = "iteritems"
+                                           if python_version < 300 else
+                                         "items",
                         source_ref     = source_ref
                     ),
                     source_ref     = source_ref
@@ -1130,7 +1137,8 @@ def getFunctionCallHelperStarList():
 
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_list, tuple ):
     #     try:
@@ -1163,8 +1171,9 @@ def getFunctionCallHelperStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual exceptions for the
-    # TypeError caught immediately and then unused, then the frame will be unnecessary.
+    # TODO: Code generation should become capable of not generating actual
+    # exceptions for the TypeError caught immediately and then unused, then the
+    # frame will be unnecessary.
     result.setBody(
         StatementsFrame(
             code_name     = "unused",
@@ -1236,7 +1245,8 @@ def getFunctionCallHelperKeywordsStarList():
 
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_list, tuple ):
     #     try:
@@ -1270,8 +1280,9 @@ def getFunctionCallHelperKeywordsStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual exceptions for the
-    # TypeError caught immediately and then unused, then the frame will be unnecessary.
+    # TODO: Code generation should become capable of not generating actual
+    # exceptions for the TypeError caught immediately and then unused, then the
+    # frame will be unnecessary.
     result.setBody(
         StatementsFrame(
             code_name     = "unused",
@@ -1343,7 +1354,8 @@ def getFunctionCallHelperPosStarList():
 
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_list, tuple ):
     #     try:
@@ -1381,8 +1393,9 @@ def getFunctionCallHelperPosStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual exceptions for the
-    # TypeError caught immediately and then unused, then the frame will be unnecessary.
+    # TODO: Code generation should become capable of not generating actual
+    # exceptions for the TypeError caught immediately and then unused, then the
+    # frame will be unnecessary.
     result.setBody(
         StatementsFrame(
             code_name     = "unused",
@@ -1463,7 +1476,8 @@ def getFunctionCallHelperPosKeywordsStarList():
 
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_list, tuple ):
     #     try:
@@ -1502,8 +1516,9 @@ def getFunctionCallHelperPosKeywordsStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual exceptions for the
-    # TypeError caught immediately and then unused, then the frame will be unnecessary.
+    # TODO: Code generation should become capable of not generating actual
+    # exceptions for the TypeError caught immediately and then unused, then the
+    # frame will be unnecessary.
     result.setBody(
         StatementsFrame(
             code_name     = "unused",
@@ -1565,8 +1580,8 @@ def getFunctionCallHelperStarDict():
 
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to
-    # PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_dict, dict ):
     #     try:
@@ -1683,8 +1698,8 @@ def getFunctionCallHelperPosStarDict():
 
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to
-    # PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_dict, dict ):
     #     try:
@@ -1806,9 +1821,9 @@ def getFunctionCallHelperKeywordsStarDict():
 
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to
-    # PyObject_Call. One goal is to avoid copying "kw" unless really necessary, and
-    # to take the slow route only for non-dictionaries.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call. One goal is to avoid copying "kw" unless really
+    # necessary, and to take the slow route only for non-dictionaries.
     #
     # if not isinstance( star_arg_dict, dict ):
     #     try:
@@ -1960,9 +1975,9 @@ def getFunctionCallHelperPosKeywordsStarDict():
 
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to
-    # PyObject_Call. One goal is to avoid copying "kw" unless really necessary, and
-    # to take the slow route only for non-dictionaries.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call. One goal is to avoid copying "kw" unless really
+    # necessary, and to take the slow route only for non-dictionaries.
     #
     # if not isinstance( star_arg_dict, dict ):
     #     try:
@@ -2274,7 +2289,8 @@ def getFunctionCallHelperPosStarListStarDict():
 def getFunctionCallHelperKeywordsStarListStarDict():
     helper_name = "complex_call_helper_keywords_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
         provider   = getInternalModule(),
         name       = helper_name,

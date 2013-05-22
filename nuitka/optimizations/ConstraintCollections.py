@@ -17,10 +17,10 @@
 #
 """ Constraint collection
 
-At the core of value propagation there is the collection of constraints that allow
-to propagate knowledge forward or not. This is about collecting these constraints
-and to manage them.
+At the core of value propagation there is the collection of constraints that
+allow to propagate knowledge forward or not.
 
+This is about collecting these constraints and to manage them.
 """
 
 # Python3 compatibility.

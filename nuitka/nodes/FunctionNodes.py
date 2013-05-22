@@ -17,8 +17,8 @@
 #
 """ Nodes for functions and their creations.
 
-Lambdas are functions too. The functions are at the core of the language and have their
-complexities.
+Lambdas are functions too. The functions are at the core of the language and
+have their complexities.
 
 """
 
@@ -274,7 +274,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         # The class bodies provide no closure, except under CPython3,
         # "__class__" and nothing else.
 
-        if self.isClassDictCreation() and ( variable_name != "__class__" or Utils.python_version < 300 ):
+        if self.isClassDictCreation() and \
+           ( variable_name != "__class__" or Utils.python_version < 300 ):
             return self.provider.getVariableForReference( variable_name )
 
         if self.hasProvidedVariable( variable_name ):
@@ -317,7 +318,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
     setBody = ChildrenHavingMixin.childSetter( "body" )
 
     def needsCreation( self ):
-        # TODO: This looks kind of arbitrary, the users should decide, if they need it.
+        # TODO: This looks kind of arbitrary, the users should decide, if they
+        # need it.
         return self.needs_creation
 
     def markAsNeedsCreation( self ):

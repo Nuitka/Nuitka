@@ -48,9 +48,10 @@
 // Include the C header files most often used.
 #include <stdio.h>
 
-// An idea I first saw used with Cython, hint the compiler about branches that are more or
-// less likely to be taken. And hint the compiler about things that we assume to be
-// normally true. If other compilers can do similar, I would be grateful for howtos.
+// An idea I first saw used with Cython, hint the compiler about branches that
+// are more or less likely to be taken. And hint the compiler about things that
+// we assume to be normally true. If other compilers can do similar, I would be
+// grateful for howtos.
 
 #ifdef __GNUC__
 #define likely(x) __builtin_expect(!!(x), 1)
@@ -60,8 +61,9 @@
 #define unlikely(x) (x)
 #endif
 
-// A way to not give warnings about things that are declared, but might not be used like
-// inline helper functions in headers or static per module variables from headers.
+// A way to not give warnings about things that are declared, but might not be
+// used like inline helper functions in headers or static per module variables
+// from headers.
 
 #ifdef __GNUC__
 #define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
@@ -100,7 +102,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #define Nuitka_StringIntern PyString_InternInPlace
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
-// Note: There seems to be no variant that does it without checks, so rolled our own.
+// Note: There seems to be no variant that does it without checks, so rolled our
+// own.
 #define Nuitka_String_AsString_Unchecked _PyUnicode_AS_STRING
 #define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_StringObject PyUnicodeObject
@@ -110,8 +113,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 
 #if PYTHON_VERSION < 300
 
-// With the idea to reduce the amount of exported symbols, make it clear that the module
-// init function should of course be exported.
+// With the idea to reduce the amount of exported symbols, make it clear that
+// the module init function should of course be exported.
 #if defined( _NUITKA_EXE )
 #define NUITKA_MODULE_INIT_FUNCTION void
 #elif defined( __GNUC__ )

@@ -92,14 +92,14 @@ public:
         return INCREASE_REFCOUNT( this->object );
     }
 
-    PyObject *asObject0()
+    inline PyObject *asObject0()
     {
         assertObject( this->object );
 
         return this->object;
     }
 
-    PyObject *assign( PyObject *value )
+    inline PyObject *assign( PyObject *value )
     {
         assertObject( value );
 
@@ -138,14 +138,14 @@ public:
         return this->object;
     }
 
-    PyObject *asObject()
+    inline PyObject *asObject()
     {
         assertObject( this->object );
 
         return INCREASE_REFCOUNT( this->object );
     }
 
-    PyObject *assign( PyObject *value )
+    inline PyObject *assign( PyObject *value )
     {
         assertObject( value );
 

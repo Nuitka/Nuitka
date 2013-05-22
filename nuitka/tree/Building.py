@@ -181,9 +181,9 @@ def buildVariableReferenceNode( provider, node, source_ref ):
 
 
 def buildSequenceCreationNode( provider, node, source_ref ):
-    # Sequence creation. Tries to avoid creations with only constant elements. Would be
-    # caught by optimization, but would be useless churn. For mutable constants we cannot
-    # do it though.
+    # Sequence creation. Tries to avoid creations with only constant
+    # elements. Would be caught by optimization, but would be useless churn. For
+    # mutable constants we cannot do it though.
 
     elements = buildNodeList( provider, node.elts, source_ref )
 
@@ -196,8 +196,8 @@ def buildSequenceCreationNode( provider, node, source_ref ):
 
     sequence_kind = getKind( node ).upper()
 
-    # Note: This would happen in optimization instead, but lets just do it immediately to
-    # save some time.
+    # Note: This would happen in optimization instead, but lets just do it
+    # immediately to save some time.
     if constant:
         if sequence_kind == "TUPLE":
             const_type = tuple
@@ -252,14 +252,16 @@ def buildDictionaryNode( provider, node, source_ref ):
         keys.append( key_node )
         values.append( value_node )
 
-        constant = constant and key_node.isExpressionConstantRef()
-        constant = constant and value_node.isExpressionConstantRef() and not value_node.isMutable()
+        constant = constant and \
+          key_node.isExpressionConstantRef() and \
+          value_node.isExpressionConstantRef() and \
+          not value_node.isMutable()
 
-    # Note: This would happen in optimization instead, but lets just do it immediately to
-    # save some time.
+    # Note: This would happen in optimization instead, but lets just do it
+    # immediately to save some time.
     if constant:
-        # Create the dictionary in its full size, so that no growing occurs and the
-        # constant becomes as similar as possible before being marshalled.
+        # Create the dictionary in its full size, so that no growing occurs and
+        # the constant becomes as similar as possible before being marshalled.
         constant_value = dict.fromkeys(
             [ key.getConstant() for key in keys ],
             None
@@ -284,9 +286,9 @@ def buildDictionaryNode( provider, node, source_ref ):
         )
 
 def buildConditionNode( provider, node, source_ref ):
-    # Conditional statements may have one or two branches. We will never see an "elif",
-    # because that's already dealt with by module "ast", which turns it into nested
-    # conditional statements.
+    # Conditional statements may have one or two branches. We will never see an
+    # "elif", because that's already dealt with by module "ast", which turns it
+    # into nested conditional statements.
 
     return StatementConditional(
         condition  = buildNode( provider, node.test, source_ref ),
@@ -321,9 +323,9 @@ def buildTryFinallyNode( provider, node, source_ref ):
     )
 
 def buildTryNode( provider, node, source_ref ):
-    # Note: This variant is used for Python3.3 or higher only, older stuff uses the above
-    # ones, this one merges try/except with try/finally in the "ast". We split it up
-    # again, as it's logically separated of course.
+    # Note: This variant is used for Python3.3 or higher only, older stuff uses
+    # the above ones, this one merges try/except with try/finally in the
+    # "ast". We split it up again, as it's logically separated of course.
     return StatementTryFinally(
         tried      = StatementsSequence(
             statements = (
@@ -344,8 +346,8 @@ def buildTryNode( provider, node, source_ref ):
     )
 
 def buildRaiseNode( provider, node, source_ref ):
-    # Raise statements. Under Python2 they may have type, value and traceback attached,
-    # for Python3, you can only give type (actually value) and cause.
+    # Raise statements. Under Python2 they may have type, value and traceback
+    # attached, for Python3, you can only give type (actually value) and cause.
 
     if Utils.python_version < 300:
         return StatementRaiseException(
@@ -369,13 +371,14 @@ def buildSubscriptNode( provider, node, source_ref ):
 
     assert getKind( node.ctx ) == "Load", source_ref
 
-    # The subscribt "[]" operator is one of many different things. This is expressed by
-    # this kind, there are "slice" lookups (two values, even if one is using default), and
-    # then "index" lookups. The form with three argument is really an "index" lookup, with
-    # a slice object. And the "..." lookup is also an index loopup, with it as the
-    # argument. So this splits things into two different operations, "subscript" with a
-    # single "subscript" object. Or a slice lookup with a lower and higher boundary. These
-    # things should behave similar, but they are different slots.
+    # The subscribt "[]" operator is one of many different things. This is
+    # expressed by this kind, there are "slice" lookups (two values, even if one
+    # is using default), and then "index" lookups. The form with three argument
+    # is really an "index" lookup, with a slice object. And the "..." lookup is
+    # also an index loopup, with it as the argument. So this splits things into
+    # two different operations, "subscript" with a single "subscript" object. Or
+    # a slice lookup with a lower and higher boundary. These things should
+    # behave similar, but they are different slots.
     kind = getKind( node.slice )
 
     if kind == "Index":
@@ -427,8 +430,8 @@ def buildSubscriptNode( provider, node, source_ref ):
         assert False, kind
 
 def buildImportModulesNode( node, source_ref ):
-    # Import modules statement. As described in the developer manual, these statements can
-    # be treated as several ones.
+    # Import modules statement. As described in the developer manual, these
+    # statements can be treated as several ones.
 
     import_names   = [
         ( import_desc.name, import_desc.asname )
@@ -443,7 +446,8 @@ def buildImportModulesNode( node, source_ref ):
 
         module_topname = module_name.split(".")[0]
 
-        # Note: The "level" of import is influenced by the future absolute imports.
+        # Note: The "level" of import is influenced by the future absolute
+        # imports.
         level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
 
         if local_name:
@@ -468,13 +472,16 @@ def buildImportModulesNode( node, source_ref ):
                 source_ref  = source_ref
             )
 
-        # If a name was given, use the one provided, otherwise the import gives the top
-        # level package name given for assignment of the imported module.
+        # If a name was given, use the one provided, otherwise the import gives
+        # the top level package name given for assignment of the imported
+        # module.
 
         import_nodes.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
-                    variable_name = local_name if local_name is not None else module_topname,
+                    variable_name = local_name
+                                      if local_name is not None else
+                                    module_topname,
                     source_ref    = source_ref
                 ),
                 source     = import_node,
@@ -482,9 +489,9 @@ def buildImportModulesNode( node, source_ref ):
             )
         )
 
-    # Note: Each import is sequential. It can succeed, and the failure of a later one is
-    # not changing one. We can therefore have a sequence of imports that only import one
-    # thing therefore.
+    # Note: Each import is sequential. It will potentially succeed, and the
+    # failure of a later one is not changing that one bit . We can therefore
+    # have a sequence of imports that only import one thing therefore.
     return makeStatementsSequenceOrStatement(
         statements = import_nodes,
         source_ref = source_ref
@@ -519,8 +526,8 @@ def enableFutureFeature( object_name, future_spec, source_ref ):
 _future_import_nodes = []
 
 def buildImportFromNode( provider, node, source_ref ):
-    # "from .. import .." statements. This may trigger a star import, or multiple names
-    # being looked up from the given module variable name.
+    # "from .. import .." statements. This may trigger a star import, or
+    # multiple names being looked up from the given module variable name.
 
     module_name = node.module if node.module is not None else ""
     level = node.level
@@ -529,8 +536,12 @@ def buildImportFromNode( provider, node, source_ref ):
     if module_name == "__future__":
         if not provider.isPythonModule() and not source_ref.isExecReference():
             SyntaxErrors.raiseSyntaxError(
-                reason     = "from __future__ imports must occur at the beginning of the file",
-                col_offset = 8 if Utils.python_version >= 300 or not Options.isFullCompat() else None,
+                reason     = """\
+from __future__ imports must occur at the beginning of the file""",
+                col_offset = 8
+                  if Utils.python_version >= 300 or \
+                  not Options.isFullCompat()
+                else None,
                 source_ref = source_ref
             )
 
@@ -557,7 +568,11 @@ def buildImportFromNode( provider, node, source_ref ):
         if object_name == "*":
             target_names.append( None )
         else:
-            target_names.append( local_name if local_name is not None else object_name )
+            target_names.append(
+                local_name
+                  if local_name is not None else
+                object_name
+            )
 
         import_names.append( object_name )
 
@@ -609,9 +624,9 @@ def buildImportFromNode( provider, node, source_ref ):
                 )
             )
 
-        # Note: Each import is sequential. It can succeed, and the failure of a later one is
-        # not changing one. We can therefore have a sequence of imports that only import one
-        # thing therefore.
+        # Note: Each import is sequential. It can succeed, and the failure of a
+        # later one is not changing one. We can therefore have a sequence of
+        # imports that only import one thing therefore.
         return StatementsSequence(
             statements = import_nodes,
             source_ref = source_ref
@@ -625,8 +640,8 @@ def handleGlobalDeclarationNode( provider, node, source_ref ):
         if provider.isPythonModule():
             return None
 
-        # Need to catch the error of declaring a parameter variable as global ourselves
-        # here. The AST parsing doesn't catch it.
+        # Need to catch the error of declaring a parameter variable as global
+        # ourselves here. The AST parsing doesn't catch it.
         try:
             parameters = provider.getParameters()
 
@@ -635,7 +650,9 @@ def handleGlobalDeclarationNode( provider, node, source_ref ):
                     SyntaxErrors.raiseSyntaxError(
                         reason     = "name '%s' is %s and global" % (
                             variable_name,
-                            "local" if Utils.python_version < 300 else "parameter"
+                            "local"
+                              if Utils.python_version < 300 else
+                            "parameter"
                         ),
                         source_ref = provider.getSourceReference()
                     )
@@ -679,10 +696,11 @@ def handleGlobalDeclarationNode( provider, node, source_ref ):
     return None
 
 def handleNonlocalDeclarationNode( provider, node, source_ref ):
-    # The source reference of the nonlocal really doesn't matter, pylint: disable=W0613
+    # The source reference of the nonlocal really doesn't matter.
+    # pylint: disable=W0613
 
-    # Need to catch the error of declaring a parameter variable as global ourselves
-    # here. The AST parsing doesn't catch it, but we can do it here.
+    # Need to catch the error of declaring a parameter variable as global
+    # ourselves here. The AST parsing doesn't catch it, but we can do it here.
     parameters = provider.getParameters()
 
     for variable_name in node.names:
@@ -903,8 +921,8 @@ setBuildDispatchers(
 )
 
 def buildParseTree( provider, source_code, source_ref, is_module ):
-    # Workaround: ast.parse cannot cope with some situations where a file is not terminated
-    # by a new line.
+    # Workaround: ast.parse cannot cope with some situations where a file is not
+    # terminated by a new line.
     if not source_code.endswith( "\n" ):
         source_code = source_code + "\n"
 
@@ -934,8 +952,12 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
         else:
             if _future_import_nodes:
                 SyntaxErrors.raiseSyntaxError(
-                    reason     = "from __future__ imports must occur at the beginning of the file",
-                    col_offset = 1 if Utils.python_version >= 300 or not Options.isFullCompat() else None,
+                    reason     = """\
+from __future__ imports must occur at the beginning of the file""",
+                    col_offset = 1
+                      if Utils.python_version >= 300 or \
+                      not Options.isFullCompat() else
+                    None,
                     source_ref = _future_import_nodes[0].source_ref
                 )
 
@@ -1082,7 +1104,9 @@ imported_modules = {}
 
 def addImportedModule( module_relpath, imported_module ):
     if ( module_relpath, "__main__" ) in imported_modules:
-        warning( "Re-importing __main__ module via its filename duplicates the module." )
+        warning( """\
+Re-importing __main__ module via its filename duplicates the module."""
+        )
 
     key = module_relpath, imported_module.getName()
 
@@ -1170,7 +1194,8 @@ def buildModuleTree( filename, package, is_top, is_main ):
                 package    = package,
                 source_ref = source_ref
             )
-    elif Utils.isDir( filename ) and Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
+    elif Utils.isDir( filename ) and \
+         Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
         source_filename = Utils.joinpath( filename, "__init__.py" )
 
         if is_top:

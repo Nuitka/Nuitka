@@ -20,11 +20,6 @@
 
 #include "__helpers.hpp"
 
-// Note: We do the reversal for function call arguments completely ourselves and here, so
-// we don't have to do it in generated code. For each CALL_FUNCTION variant there is a
-// define that includes a use of EVAL_ORDERED_x and a _CALL_FUNCTION implementation that
-// does the actual work.
-
 extern PyObject *_python_tuple_empty;
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, PyObject *positional_args, PyObject *named_args )

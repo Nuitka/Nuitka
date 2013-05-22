@@ -146,8 +146,9 @@ class StatementConditional( StatementChildrenHavingBase ):
     def computeStatement( self, constraint_collection ):
         # This is rather complex stuff, pylint: disable=R0912
 
-        # Query the truth value before the expression is evaluated, once it is evaluated
-        # in onExpression, it may change.
+        # Query the truth value before the expression is evaluated, once it is
+        # evaluated in onExpression, it may change. TODO: That is non-sense of
+        # course, will be stable.
         condition = self.getCondition()
         truth_value = condition.getTruthValue()
 

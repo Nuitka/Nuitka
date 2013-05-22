@@ -35,8 +35,10 @@ from nuitka.__past__ import iterItems
 from .ConstantRefNodes import ExpressionConstantRef
 
 def _isReadOnlyModuleVariable( variable ):
-    return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or \
-           variable.isMaybeLocalVariable()
+    return (
+        variable.isModuleVariable() and \
+        variable.getReadOnlyIndicator() is True
+    ) or variable.isMaybeLocalVariable()
 
 
 class ExpressionVariableRef( NodeBase, ExpressionMixin ):

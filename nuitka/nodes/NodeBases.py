@@ -698,8 +698,8 @@ class ClosureTakerMixin:
         # There is no maybe with closures. It means, it is closure variable in
         # this case.
         if result.isMaybeLocalVariable():
-            # This mixin is used with nodes only, but doesn't want to inherit from
-            # it, pylint: disable=E1101
+            # This mixin is used with nodes only, but doesn't want to inherit
+            # from it, pylint: disable=E1101
             result = self.getParentModule().getVariableForClosure(
                 variable_name = variable_name
             )
@@ -736,11 +736,13 @@ class ClosureTakerMixin:
             return None
 
     def isEarlyClosure( self ):
-        """ Normally it's good to lookup name references immediately, but not for functions.
+        """ Early closure taking means immediate binding of references.
 
-        in case of a function body it is not allowed to do that, because a later
-        assignment needs to be queried first. Nodes need to indicate via this if they
-        would like to resolve references at the same time as assignments.
+        Normally it's good to lookup name references immediately, but not for
+        functions. In case of a function body it is not allowed to do that,
+        because a later assignment needs to be queried first. Nodes need to
+        indicate via this if they would like to resolve references at the same
+        time as assignments.
         """
 
         return self.early_closure

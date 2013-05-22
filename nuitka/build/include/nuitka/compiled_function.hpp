@@ -23,8 +23,8 @@
 
 // Compiled function type.
 
-// The backbone of the integration into CPython. Try to behave as well as normal functions
-// and builtin functions, or even better.
+// The backbone of the integration into CPython. Try to behave as well as normal
+// functions and builtin functions, or even better.
 
 // Cleanup function to be called when the function object is released.
 typedef void (*releaser)( void * );
@@ -37,8 +37,8 @@ typedef PyObject *(*function_arg_parser)( Nuitka_FunctionObject *, PyObject *, P
 
 typedef PyObject *(*argless_code)(PyObject *);
 
-// The Nuitka_FunctionObject is the storage associated with a compiled function instance
-// of which there can be many for each code.
+// The Nuitka_FunctionObject is the storage associated with a compiled function
+// instance of which there can be many for each code.
 struct Nuitka_FunctionObject {
     PyObject_HEAD
 

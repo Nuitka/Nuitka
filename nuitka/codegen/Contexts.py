@@ -382,7 +382,7 @@ class PythonModuleContext( PythonContextBase ):
         )
 
     def addHelperCode( self, key, code ):
-        assert key not in self.helper_codes
+        assert key not in self.helper_codes, key
 
         self.helper_codes[ key ] = code
 

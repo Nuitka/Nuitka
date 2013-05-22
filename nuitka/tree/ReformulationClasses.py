@@ -87,7 +87,8 @@ from .Helpers import (
 
 from nuitka import Utils
 
-# TODO: Once we start to modify these, we should make sure, the copy is not shared.
+# TODO: Once we start to modify these, we should make sure, the copy is not
+# shared.
 make_class_parameters = ParameterSpec(
     name          = "class",
     normal_args   = (),
@@ -99,11 +100,11 @@ make_class_parameters = ParameterSpec(
 
 
 def _buildClassNode3( provider, node, source_ref ):
-    # Many variables, due to the huge re-formulation that is going on here, which just has
-    # the complexity, pylint: disable=R0914
+    # Many variables, due to the huge re-formulation that is going on here,
+    # which just has the complexity, pylint: disable=R0914
 
-    # This function is the Python3 special case with special re-formulation as according
-    # to developer manual.
+    # This function is the Python3 special case with special re-formulation as
+    # according to developer manual.
     class_statements, class_doc = extractDocFromBody( node )
 
     # The result will be a temp block that holds the temporary variables.
@@ -250,13 +251,14 @@ def _buildClassNode3( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    # The class body is basically a function that implicitely, at the end returns its
-    # locals and cannot have other return statements contained.
+    # The class body is basically a function that implicitely, at the end
+    # returns its locals and cannot have other return statements contained.
 
     class_creation_function.setBody( body )
 
-    # The class body is basically a function that implicitely, at the end returns its
-    # created class and cannot have other return statements contained.
+    # The class body is basically a function that implicitely, at the end
+    # returns its created class and cannot have other return statements
+    # contained.
 
     decorated_body = ExpressionFunctionCall(
         function   = ExpressionFunctionCreation(
@@ -496,8 +498,8 @@ def _buildClassNode3( provider, node, source_ref ):
 def _buildClassNode2( provider, node, source_ref ):
     class_statements, class_doc = extractDocFromBody( node )
 
-    # This function is the Python3 special case with special re-formulation as according
-    # to developer manual.
+    # This function is the Python3 special case with special re-formulation as
+    # according to developer manual.
 
     # The result will be a temp block that holds the temporary variables.
     result = StatementTempBlock(

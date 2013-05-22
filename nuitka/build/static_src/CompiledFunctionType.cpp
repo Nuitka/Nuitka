@@ -74,10 +74,11 @@ static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObj
 
 static long Nuitka_Function_tp_traverse( PyObject *function, visitproc visit, void *arg )
 {
-    // TODO: Identify the impact of not visiting owned objects and/or if it could be NULL
-    // instead. The methodobject visits its self and module. I understand this is probably
-    // so that back references of this function to its upper do not make it stay in the
-    // memory. A specific test if that works might be needed.
+    // TODO: Identify the impact of not visiting owned objects and/or if it
+    // could be NULL instead. The methodobject visits its self and module. I
+    // understand this is probably so that back references of this function to
+    // its upper do not make it stay in the memory. A specific test if that
+    // works might be needed.
     return 0;
 }
 
