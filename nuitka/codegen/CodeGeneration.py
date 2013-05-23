@@ -805,6 +805,9 @@ def generateExpressionCode( expression, context, allow_none = False ):
     if expression is None and allow_none:
         return None
 
+    assert not hasattr( expression, "code_generated" ), expression
+    expression.code_generated = True
+
     def makeExpressionCode( expression, allow_none = False ):
         if allow_none and expression is None:
             return None
