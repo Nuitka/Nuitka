@@ -1408,4 +1408,16 @@ extern void _initPortableEnvironment( char *binary_path );
 
 #include <nuitka/threading.hpp>
 
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE( PyObject **elements, Py_ssize_t size )
+{
+    PyObject *result = PyTuple_New( size );
+
+    for( Py_ssize_t i = 0; i < size; i++ )
+    {
+        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( elements[i] ) );
+    }
+
+    return result;
+}
+
 #endif

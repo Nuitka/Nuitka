@@ -20,12 +20,10 @@
 """
 
 template_parameter_function_entry_point = """\
-static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *args, PyObject *kw )
+static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject **args, Py_ssize_t args_size, PyObject *kw )
 {
-    assert( PyTuple_Check( args ) );
     assert( kw == NULL || PyDict_Check( kw ) );
 
-    Py_ssize_t args_size = PyTuple_GET_SIZE( args );
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_only_found = 0;
@@ -42,11 +40,10 @@ error_exit:;
 """
 
 template_parameter_method_entry_point = """\
-static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *_python_par_self, PyObject *args, PyObject *kw )
+static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *_python_par_self, PyObject **args, Py_ssize_t args_size, PyObject *kw )
 {
     Py_INCREF( _python_par_self );
 
-    Py_ssize_t args_size = PyTuple_GET_SIZE( args );
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_only_found = 0;
@@ -207,14 +204,14 @@ if (likely( %(parameter_position)d < args_usable_count ))
          goto error_exit;
      }
 
-    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( args, %(parameter_args_index)d ) );
+    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( args[ %(parameter_args_index)d ] );
 }
 """
 
 argparse_template_nested_argument = """\
 if (likely( %(parameter_position)d < args_usable_count ))
 {
-    _python_par_%(parameter_name)s = PyTuple_GET_ITEM( args, %(parameter_args_index)d );
+    _python_par_%(parameter_name)s = args[ %(parameter_args_index)d ];
 }
 """
 
@@ -222,7 +219,12 @@ parse_argument_template_copy_list_star_args = """
 // Copy left over argument values to the star list parameter given.
 if ( args_given > %(top_level_parameter_count)d )
 {
-    _python_par_%(list_star_parameter_name)s = PyTuple_GetSlice( args, %(top_level_max_index)d, args_size );
+    _python_par_%(list_star_parameter_name)s = PyTuple_New( args_size - %(top_level_parameter_count)d );
+
+    for( Py_ssize_t i = 0; i < args_size - %(top_level_parameter_count)d; i++ )
+    {
+       PyTuple_SET_ITEM( _python_par_%(list_star_parameter_name)s, i, INCREASE_REFCOUNT( args[%(top_level_max_index)d+i] ) );
+    }
 }
 else
 {
@@ -534,4 +536,21 @@ template_kwonly_argument_default = """
 
         Py_INCREF( _python_par_%(parameter_name)s );
     }
+"""
+
+template_dparser = """
+static PyObject *dparse_%(function_identifier)s( Nuitka_FunctionObject *self, PyObject **args, int size )
+{
+    if ( size == %(arg_count)d)
+    {
+        return impl_%(function_identifier)s( self%(args_forward)s );
+    }
+    else
+    {
+        PyObject *result = fparse_%(function_identifier)s( self, args, size, NULL );
+        return result;
+    }
+
+}
+
 """

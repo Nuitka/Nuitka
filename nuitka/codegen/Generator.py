@@ -61,6 +61,14 @@ from .DictCodes import (
     getMakeDictsCode
 )
 from .SetCodes import getSetCreationCode
+
+from .CallCodes import (
+    getCallCodeNoArgs,
+    getCallCodePosArgs,
+    getCallCodeKeywordArgs,
+    getCallCodePosArgsQuick,
+    getCallCodePosKeywordArgs,
+)
 # imported from here pylint: enable=W0611
 
 from .ConstantCodes import (
@@ -83,7 +91,7 @@ from .VariableCodes import (
 from .ParameterParsing import (
     getDirectFunctionEntryPointIdentifier,
     getParameterEntryPointIdentifier,
-    getMethodEntryPointIdentifier,
+    getQuickEntryPointIdentifier,
     getParameterParsingCode,
 )
 
@@ -289,53 +297,6 @@ def getDirectionFunctionCallCode( function_identifier, arguments,
         context         = context
     )
 
-
-def getCallCodeNoArgs( called_identifier ):
-    return Identifier(
-        "CALL_FUNCTION_NO_ARGS( %(function)s )" % {
-            "function" : called_identifier.getCodeTemporaryRef(),
-        },
-        1
-    )
-
-def getCallCodePosArgs( context, order_relevance, called_identifier,
-                        argument_tuple ):
-    return getOrderRelevanceEnforcedArgsCode(
-        helper          = "CALL_FUNCTION_WITH_POSARGS",
-        export_ref      = 0,
-        ref_count       = 1,
-        tmp_scope       = "call",
-        order_relevance = order_relevance,
-        args            = ( called_identifier, argument_tuple ),
-        context         = context
-    )
-
-def getCallCodeKeywordArgs( context, order_relevance, called_identifier,
-                            argument_dictionary ):
-
-    return getOrderRelevanceEnforcedArgsCode(
-        helper          = "CALL_FUNCTION_WITH_KEYARGS",
-        export_ref      = 0,
-        ref_count       = 1,
-        tmp_scope       = "call",
-        order_relevance = order_relevance,
-        args            = ( called_identifier, argument_dictionary ),
-        context         = context
-    )
-
-def getCallCodePosKeywordArgs( context, order_relevance, called_identifier,
-                               argument_tuple, argument_dictionary ):
-
-    return getOrderRelevanceEnforcedArgsCode(
-        helper          = "CALL_FUNCTION",
-        export_ref      = 0,
-        ref_count       = 1,
-        tmp_scope       = "call",
-        order_relevance = order_relevance,
-        args            = ( called_identifier, argument_tuple,
-                            argument_dictionary ),
-        context         = context
-    )
 
 def getUnpackNextCode( iterator_identifier, count ):
     return Identifier(
@@ -2344,9 +2305,8 @@ def getFunctionMakerCode( context, function_name, function_qualname,
             "function_identifier"        : function_identifier,
             "fparse_function_identifier" : getParameterEntryPointIdentifier(
                 function_identifier = function_identifier,
-                is_method           = False
             ),
-            "mparse_function_identifier" : getMethodEntryPointIdentifier(
+            "dparse_function_identifier" : getQuickEntryPointIdentifier(
                 function_identifier = function_identifier,
                 parameters          = parameters
             ),
@@ -2378,9 +2338,8 @@ def getFunctionMakerCode( context, function_name, function_qualname,
             "function_identifier"        : function_identifier,
             "fparse_function_identifier" : getParameterEntryPointIdentifier(
                 function_identifier = function_identifier,
-                is_method           = False
             ),
-            "mparse_function_identifier" : getMethodEntryPointIdentifier(
+            "dparse_function_identifier" : getQuickEntryPointIdentifier(
                 function_identifier = function_identifier,
                 parameters          = parameters
             ),

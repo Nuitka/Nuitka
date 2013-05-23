@@ -673,16 +673,6 @@ def generateCallCode( call_node, context ):
         context    = context
     )
 
-    argument_tuple = generateExpressionCode(
-        expression = call_node.getCallArgs(),
-        context    = context
-    )
-
-    if argument_tuple is not None and \
-       argument_tuple.isConstantIdentifier() and \
-       argument_tuple.getConstant() == ():
-        argument_tuple = None
-
     argument_dictionary  = generateExpressionCode(
         expression = call_node.getCallKw(),
         context    = context
@@ -695,21 +685,64 @@ def generateCallCode( call_node, context ):
        argument_dictionary.getConstant() == {}:
         argument_dictionary = None
 
+    call_args = call_node.getCallArgs()
+
     if argument_dictionary is None:
-        if argument_tuple is None:
+        if call_args.isExpressionConstantRef() and \
+           call_args.getConstant() == ():
             return Generator.getCallCodeNoArgs(
                 called_identifier = called_identifier
             )
+        elif call_args.isExpressionMakeTuple() and \
+             call_args.getIterationLength() <= 5:
+            return Generator.getCallCodePosArgsQuick(
+               order_relevance   = getOrderRelevance(
+                   ( call_node.getCalled(), ) + call_args.getElements(),
+                ),
+                called_identifier = called_identifier,
+                arguments         = generateExpressionsCode(
+                    expressions = call_args.getElements(),
+                    context     = context
+                ),
+                context           = context
+            )
+        elif call_args.isExpressionConstantRef() and \
+             len( call_args.getConstant() ) <= 5:
+
+            return Generator.getCallCodePosArgsQuick(
+                order_relevance   =
+                   ( call_node.isOrderRelevant(), ) + ( None, ) * len( call_args.getConstant() ),
+
+                called_identifier = called_identifier,
+                arguments         = [
+                    Generator.getConstantHandle(
+                        constant = element,
+                        context  = context
+                    )
+                    for element in
+                    call_args.getConstant()
+                ],
+                context           = context
+            )
+
         else:
             return Generator.getCallCodePosArgs(
                 order_relevance   = getOrderRelevance(
                     ( call_node.getCalled(), call_node.getCallArgs() ),
                 ),
                 called_identifier = called_identifier,
-                argument_tuple    = argument_tuple,
+                argument_tuple    = generateExpressionCode(
+                    expression = call_args,
+                    context    = context
+                ),
                 context           = context
             )
     else:
+        argument_tuple = generateExpressionCode(
+            expression = call_args,
+            context    = context
+        )
+
         if argument_tuple is None:
             return Generator.getCallCodeKeywordArgs(
                 order_relevance     = getOrderRelevance(

@@ -21,8 +21,10 @@
 static inline bool IS_SANE_TYPE( PyTypeObject *type )
 {
     return
+#if PYTHON_VERSION < 300
         type == &PyString_Type ||
         type == &PyInt_Type ||
+#endif
         type == &PyLong_Type ||
         type == &PyList_Type ||
         type == &PyTuple_Type;

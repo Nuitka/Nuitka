@@ -96,6 +96,13 @@ class ParameterSpecTuple:
 
         return result
 
+    def hasNestedParameterVariables( self ):
+        for variable in self.normal_variables:
+            if variable.isNestedParameterVariable():
+                return True
+        else:
+            return False
+
     def getAllVariables( self ):
         result = self.normal_variables[:]
 

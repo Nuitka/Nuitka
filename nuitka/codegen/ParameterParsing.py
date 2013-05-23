@@ -25,15 +25,18 @@ from .ConstantCodes import getConstantCode
 from .Identifiers import Identifier, DefaultValueIdentifier
 from .Indentation import indented
 
-def getParameterEntryPointIdentifier( function_identifier, is_method ):
-    if is_method:
-        return "_mparse_" + function_identifier
+def getParameterEntryPointIdentifier( function_identifier ):
+    return "fparse_" + function_identifier
+
+def getQuickEntryPointIdentifier( function_identifier, parameters ):
+    if parameters.hasNestedParameterVariables() or \
+       parameters.getKwOnlyParameterCount() > 0:
+        return "NULL"
     else:
-        return "_fparse_" + function_identifier
+        return "dparse_" + function_identifier
 
 def getDirectFunctionEntryPointIdentifier( function_identifier ):
     return "impl_" + function_identifier
-
 
 def _getParameterParsingCode( context, parameters, function_name, is_method ):
     # There is really no way this could be any less complex.
@@ -295,7 +298,6 @@ def getParameterParsingCode( context, function_identifier, function_name,
         ),
         "parse_function_identifier" : getParameterEntryPointIdentifier(
             function_identifier = function_identifier,
-            is_method           = False
         ),
         "impl_function_identifier"  : getDirectFunctionEntryPointIdentifier(
             function_identifier = function_identifier
@@ -304,23 +306,37 @@ def getParameterParsingCode( context, function_identifier, function_name,
         "parameter_release_code"    : parameter_release_code,
     }
 
-    if parameters.mightBeClassMethod():
-        parameter_entry_point_code += CodeTemplates.template_parameter_method_entry_point % {
-            "parameter_parsing_code"    : _getParameterParsingCode(
-                context             = context,
-                function_name       = function_name,
-                parameters          = parameters,
-                is_method           = True
-            ),
-            "parse_function_identifier" : getMethodEntryPointIdentifier(
-                parameters          = parameters,
-                function_identifier = function_identifier
-            ),
-            "impl_function_identifier"  : getDirectFunctionEntryPointIdentifier(
-                function_identifier = function_identifier
-            ),
-            "parameter_objects_list"    : ", ".join( parameter_objects_list ),
-            "parameter_release_code"    : parameter_release_code
+    if not parameters.hasNestedParameterVariables() and \
+       not parameters.getKwOnlyParameterCount() > 0:
+        args_forward = []
+
+        count = -1
+        for count, variable in enumerate( parameters.getTopLevelVariables() ):
+            args_forward.append(
+                ", INCREASE_REFCOUNT( args[ %d ] )" % count
+            )
+
+        if parameters.getListStarArgVariable() is not None:
+            count += 1
+
+            args_forward.append(
+                ", MAKE_TUPLE( &args[ %d ], size > %d ? size-%d : 0 )" % (
+                    count, count, count
+                )
+            )
+
+        if parameters.getDictStarArgVariable() is not None:
+            args_forward.append(
+                ", PyDict_New()"
+            )
+
+        # print args_forward
+
+        parameter_entry_point_code += CodeTemplates.template_dparser % {
+            "function_identifier" : function_identifier,
+            "arg_count"           : len( function_parameter_variables ),
+            "args_forward"        : "".join( args_forward )
+
         }
 
     return (
@@ -328,20 +344,3 @@ def getParameterParsingCode( context, function_identifier, function_name,
         parameter_entry_point_code,
         parameter_objects_decl
     )
-
-def getMethodEntryPointIdentifier( function_identifier, parameters ):
-    # Note: It's only a convention, but one generally adhered, so use the
-    # presence of a "self" to detect of a "method" entry point makes sense.
-
-    parameter_variables = parameters.getVariables()
-
-    might_be_method = parameter_variables and \
-                      parameter_variables[0].getName() == "self"
-
-    if might_be_method:
-        return getParameterEntryPointIdentifier(
-            function_identifier = function_identifier,
-            is_method           = True
-        )
-    else:
-        return "NULL"

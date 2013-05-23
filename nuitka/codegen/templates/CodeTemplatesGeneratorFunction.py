@@ -90,7 +90,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 
     return Nuitka_Function_New(
         %(fparse_function_identifier)s,
-        %(mparse_function_identifier)s,
+        %(dparse_function_identifier)s,
         %(function_name_obj)s,
 #if PYTHON_VERSION >= 330
         %(function_qualname_obj)s,
@@ -114,7 +114,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 {
     return Nuitka_Function_New(
         %(fparse_function_identifier)s,
-        %(mparse_function_identifier)s,
+        %(dparse_function_identifier)s,
         %(function_name_obj)s,
 #if PYTHON_VERSION >= 330
         %(function_qualname_obj)s,
