@@ -18,6 +18,16 @@
 #ifndef __NUITKA_HELPER_RICHCOMPARISONS_H__
 #define __NUITKA_HELPER_RICHCOMPARISONS_H__
 
+static inline bool IS_SANE_TYPE( PyTypeObject *type )
+{
+    return
+        type == &PyString_Type ||
+        type == &PyInt_Type ||
+        type == &PyLong_Type ||
+        type == &PyList_Type ||
+        type == &PyTuple_Type;
+}
+
 NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LT( PyObject *operand1, PyObject *operand2 )
 {
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_LT );
@@ -32,6 +42,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LT( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LE( PyObject *operand1, PyObject *operand2 )
 {
+    // Quick path for avoidable checks, compatible with CPython.
+    if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
+    {
+        return INCREASE_REFCOUNT( Py_True );
+    }
+
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_LE );
 
     if (unlikely( result == NULL ))
@@ -44,6 +60,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LE( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_EQ( PyObject *operand1, PyObject *operand2 )
 {
+    // Quick path for avoidable checks, compatible with CPython.
+    if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
+    {
+        return INCREASE_REFCOUNT( Py_True );
+    }
+
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_EQ );
 
     if (unlikely( result == NULL ))
@@ -56,6 +78,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_EQ( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_NE( PyObject *operand1, PyObject *operand2 )
 {
+    // Quick path for avoidable checks, compatible with CPython.
+    if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
+    {
+        return INCREASE_REFCOUNT( Py_False );
+    }
+
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_NE );
 
     if (unlikely( result == NULL ))
@@ -123,6 +151,12 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LT( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LE( PyObject *operand1, PyObject *operand2 )
 {
+    // Quick path for avoidable checks, compatible with CPython.
+    if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
+    {
+        return true;
+    }
+
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_LE );
 
     if (unlikely( rich_result == NULL ))
@@ -186,6 +220,12 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *oper
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ( PyObject *operand1, PyObject *operand2 )
 {
+    // Quick path for avoidable checks, compatible with CPython.
+    if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
+    {
+        return true;
+    }
+
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
 
     if (unlikely( rich_result == NULL ))
@@ -217,6 +257,12 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_NE( PyObject *operand1, PyObject *operand2 )
 {
+    // Quick path for avoidable checks, compatible with CPython.
+    if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
+    {
+        return false;
+    }
+
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_NE );
 
     if (unlikely( rich_result == NULL ))
@@ -279,8 +325,8 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_GT( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_GE( PyObject *operand1, PyObject *operand2 )
 {
-    // Quick path for avoidable checks.
-    if ( operand1 == operand2 )
+    // Quick path for avoidable checks, compatible with CPython.
+    if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
     {
         return true;
     }
