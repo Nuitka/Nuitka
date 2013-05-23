@@ -209,8 +209,13 @@ def buildSequenceCreationNode( provider, node, source_ref ):
             assert False, sequence_kind
 
         return ExpressionConstantRef(
-            constant   = const_type( element.getConstant() for element in elements ),
-            source_ref = source_ref
+            constant      = const_type(
+                element.getConstant()
+                for element in
+                elements
+            ),
+            source_ref    = source_ref,
+            user_provided = True
         )
     else:
         if sequence_kind == "TUPLE":
@@ -264,8 +269,9 @@ def buildDictionaryNode( provider, node, source_ref ):
             constant_value[ key.getConstant() ] = value.getConstant()
 
         return ExpressionConstantRef(
-            constant   = constant_value,
-            source_ref = source_ref
+            constant      = constant_value,
+            source_ref    = source_ref,
+            user_provided = True
         )
     else:
         return ExpressionMakeDict(
@@ -699,28 +705,32 @@ def buildStringNode( node, source_ref ):
     assert type( node.s ) in ( str, unicode )
 
     return ExpressionConstantRef(
-        constant   = node.s,
-        source_ref = source_ref
+        constant      = node.s,
+        source_ref    = source_ref,
+        user_provided = True
     )
 
 def buildNumberNode( node, source_ref ):
     assert type( node.n ) in ( int, long, float, complex ), type( node.n )
 
     return ExpressionConstantRef(
-        constant   = node.n,
-        source_ref = source_ref
+        constant      = node.n,
+        source_ref    = source_ref,
+        user_provided = True
     )
 
 def buildBytesNode( node, source_ref ):
     return ExpressionConstantRef(
-        constant   = node.s,
-        source_ref = source_ref
+        constant      = node.s,
+        source_ref    = source_ref,
+        user_provided = True
     )
 
 def buildEllipsisNode( source_ref ):
     return ExpressionConstantRef(
-        constant   = Ellipsis,
-        source_ref = source_ref
+        constant      = Ellipsis,
+        source_ref    = source_ref,
+        user_provided = True
     )
 
 def buildAttributeNode( provider, node, source_ref ):
@@ -731,12 +741,15 @@ def buildAttributeNode( provider, node, source_ref ):
     )
 
 def buildReturnNode( provider, node, source_ref ):
-    if not provider.isExpressionFunctionBody() or provider.isClassDictCreation():
+    if not provider.isExpressionFunctionBody() or \
+       provider.isClassDictCreation():
         SyntaxErrors.raiseSyntaxError(
             "'return' outside function",
             source_ref,
             None if Utils.python_version < 300 else (
-                node.col_offset if provider.isPythonModule() else node.col_offset+4
+                node.col_offset
+                  if provider.isPythonModule() else
+                node.col_offset+4
             )
         )
 
@@ -748,8 +761,9 @@ def buildReturnNode( provider, node, source_ref ):
     else:
         return StatementReturn(
             expression = ExpressionConstantRef(
-                constant   = None,
-                source_ref = source_ref
+                constant      = None,
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         )
@@ -773,8 +787,9 @@ def buildYieldNode( provider, node, source_ref ):
     else:
         return ExpressionYield(
             expression = ExpressionConstantRef(
-                constant   = None,
-                source_ref = source_ref
+                constant      = None,
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         )
@@ -936,8 +951,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = doc,
-                    source_ref = internal_source_ref
+                    constant      = doc,
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
@@ -950,16 +966,17 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = source_ref.getFilename(),
-                    source_ref = internal_source_ref
+                    constant      = source_ref.getFilename(),
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
         )
 
         if provider.isPythonPackage():
-            # TODO: __package__ is not set here, but automatically, which makes it invisible
-            # though
+            # TODO: __package__ is not set here, but automatically, which makes
+            # it invisible though
             statements.append(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetVariableRef(
@@ -967,8 +984,11 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                         source_ref    = internal_source_ref
                     ),
                     source       = ExpressionConstantRef(
-                        constant   = [ Utils.dirname( source_ref.getFilename() ) ],
-                        source_ref = internal_source_ref
+                        constant      = [
+                            Utils.dirname( source_ref.getFilename() )
+                        ],
+                        source_ref    = internal_source_ref,
+                        user_provided = True
                     ),
                     source_ref   = internal_source_ref
                 )
@@ -982,8 +1002,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = None,
-                    source_ref = internal_source_ref
+                    constant      = None,
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
@@ -999,8 +1020,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = provider.getPackage(),
-                    source_ref = internal_source_ref
+                    constant      = provider.getPackage(),
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
@@ -1015,8 +1037,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = True,
-                    source_ref = internal_source_ref
+                    constant      = True,
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
@@ -1036,8 +1059,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = False,
-                    source_ref = internal_source_ref
+                    constant      = False,
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )

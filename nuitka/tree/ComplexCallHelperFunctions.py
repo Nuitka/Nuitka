@@ -182,8 +182,9 @@ def getCallableNameDescBody():
                 expression = ExpressionOperationBinary(
                     operator   = "Add",
                     right      = ExpressionConstantRef(
-                        constant = "()",
-                        source_ref = source_ref
+                        constant      = "()",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     left       = makeNameAttributeLookup(
                         makeCalledVariableRef()
@@ -201,8 +202,9 @@ def getCallableNameDescBody():
             expression = ExpressionOperationBinary(
                 operator   = "Add",
                 right      = ExpressionConstantRef(
-                    constant = " object",
-                    source_ref = source_ref
+                    constant      = " object",
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 left       = makeNameAttributeLookup(
                     ExpressionBuiltinType1(
@@ -222,8 +224,9 @@ def getCallableNameDescBody():
                 expression = ExpressionOperationBinary(
                     operator   = "Add",
                     right      = ExpressionConstantRef(
-                        constant = " instance",
-                        source_ref = source_ref
+                        constant      = " instance",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     left       = makeNameAttributeLookup(
                         makeNameAttributeLookup(
@@ -258,8 +261,9 @@ def getCallableNameDescBody():
                 expression = ExpressionOperationBinary(
                     operator   = "Add",
                     right      = ExpressionConstantRef(
-                        constant = " constructor",
-                        source_ref = source_ref
+                        constant      = " constructor",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     left       = makeNameAttributeLookup(
                         makeCalledVariableRef(),
@@ -340,8 +344,10 @@ def _makeStarListArgumentToTupleStatement( called_variable_ref,
                 ExpressionOperationBinary(
                     operator = "Mod",
                     left     =  ExpressionConstantRef(
-                        constant   = "%s argument after * must be a sequence, not %s",
-                        source_ref = source_ref
+                        constant      = """\
+%s argument after * must be a sequence, not %s""",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     right = ExpressionMakeTuple(
                         elements = (
@@ -428,8 +434,10 @@ def _makeStarDictArgumentToDictStatement( called_variable_ref,
                 ExpressionOperationBinary(
                     operator = "Mod",
                     left     =  ExpressionConstantRef(
-                        constant   = "%s argument after ** must be a mapping, not %s",
-                        source_ref = source_ref
+                        constant      = """\
+%s argument after ** must be a mapping, not %s""",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     right = ExpressionMakeTuple(
                         elements = (
@@ -542,8 +550,9 @@ def _makeStarDictArgumentToDictStatement( called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
-                constant   = None,
-                source_ref = source_ref
+                constant      = None,
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         ),
@@ -591,8 +600,9 @@ def _makeStarDictArgumentToDictStatement( called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
-                constant   = {},
-                source_ref = source_ref
+                constant      = {},
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         ),
@@ -651,8 +661,10 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 ExpressionOperationBinary(
                     operator = "Mod",
                     left     =  ExpressionConstantRef(
-                        constant   = "%s argument after ** must be a mapping, not %s",
-                        source_ref = source_ref
+                        constant      = """\
+%s argument after ** must be a mapping, not %s""",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     right = ExpressionMakeTuple(
                         elements = (
@@ -710,8 +722,10 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 ExpressionOperationBinary(
                     operator = "Mod",
                     left     =  ExpressionConstantRef(
-                        constant   = "%s got multiple values for keyword argument '%s'",
-                        source_ref = source_ref
+                        constant      = """\
+%s got multiple values for keyword argument '%s'""",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     right = ExpressionMakeTuple(
                         elements = (
@@ -786,7 +800,7 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 source_ref = source_ref
             ),
             yes_branch = makeStatementsSequenceFromStatement(
-                statement = raise_duplicate
+                statement = raise_duplicate.makeCloneAt( source_ref )
             ),
             no_branch  = None,
             source_ref = source_ref
@@ -824,8 +838,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
-                constant   = None,
-                source_ref = source_ref
+                constant      = None,
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         ),
@@ -873,8 +888,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
-                constant   = {},
-                source_ref = source_ref
+                constant      = {},
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         ),
@@ -938,8 +954,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                     source_ref = source_ref
                 ),
                 subscript  = ExpressionConstantRef(
-                    constant    = 0,
-                    source_ref = source_ref
+                    constant      = 0,
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 source_ref = source_ref
             ),
@@ -973,8 +990,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                     source_ref = source_ref
                 ),
                 subscript  = ExpressionConstantRef(
-                    constant   = 1,
-                    source_ref = source_ref
+                    constant      = 1,
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 source_ref = source_ref
             ),

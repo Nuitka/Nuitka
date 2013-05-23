@@ -41,7 +41,7 @@ from logging import warning
 class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
     kind = "EXPRESSION_CONSTANT_REF"
 
-    def __init__( self, constant, source_ref ):
+    def __init__( self, constant, source_ref, user_provided = False ):
         NodeBase.__init__( self, source_ref = source_ref )
         CompileTimeConstantExpressionMixin.__init__( self )
 
@@ -49,12 +49,12 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
 
         self.constant = constant
 
-        if isDebug():
+        if not user_provided and isDebug():
             try:
                 size = len( constant )
 
                 if type( constant ) in ( str, unicode ):
-                    max_size = 20000
+                    max_size = 1000
                 else:
                     max_size = 256
 
