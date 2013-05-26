@@ -320,6 +320,9 @@ class StatementDelVariable( StatementChildrenHavingBase ):
         else:
             return "to variable %s" % self.getTargetVariableRef()
 
+    def getDetails( self ):
+        return { "tolerant" : self.tolerant }
+
     # TODO: Value propagation needs to make a difference based on this.
     def isTolerant( self ):
         return self.tolerant
@@ -334,6 +337,15 @@ class StatementDelVariable( StatementChildrenHavingBase ):
             del constraint_collection.variables[ variable ]
 
         return self, None, None
+
+    def mayHaveSideEffects( self ):
+        return True
+
+    def mayRaiseException( self, exception_type ):
+        if self.tolerant:
+            return False
+        else:
+            return True
 
 
 class StatementDelAttribute( StatementChildrenHavingBase ):
