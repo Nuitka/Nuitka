@@ -332,11 +332,21 @@ class StatementDelVariable( StatementChildrenHavingBase ):
         variable = self.getTargetVariableRef()
 
         if variable in constraint_collection.variables:
+            assert False # TODO: This must be dead code obviously.
+
             constraint_collection.variables[ variable ].onRelease( constraint_collection )
 
             del constraint_collection.variables[ variable ]
 
+        constraint_collection.onVariableDel(
+            del_node = self
+        )
+
         return self, None, None
+
+        constraint_collection.onVariableDel(
+            del_node = self,
+        )
 
     def mayHaveSideEffects( self ):
         return True

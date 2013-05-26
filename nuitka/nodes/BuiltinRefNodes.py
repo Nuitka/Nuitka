@@ -102,10 +102,16 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
     def computeExpressionCall( self, call_node, constraint_collection ):
         from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
-        return computeBuiltinCall(
+        new_node, tags, message = computeBuiltinCall(
             call_node = call_node,
             called    = self
         )
+
+        if new_node.isExpressionBuiltinLocals() or \
+           new_node.isExpressionBuiltinEval():
+            constraint_collection.assumeUnclearLocals()
+
+        return new_node, tags, message
 
     def getStringValue( self ):
         return repr( self.getCompileTimeConstant() )

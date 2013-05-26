@@ -344,6 +344,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         return self.is_used
 
     def computeExpression( self, constraint_collection ):
+        assert False
+
         # Function body is quite irreplacable.
         return self, None, None
 
@@ -536,7 +538,12 @@ class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
     def getFunctionBody( self ):
         return self.function_body
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpressionRaw( self, constraint_collection ):
+        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionFunction
+
+        collector = ConstraintCollectionFunction( constraint_collection )
+        collector.process( self.getFunctionBody() )
+
         # TODO: Function body may know something.
         return self, None, None
 

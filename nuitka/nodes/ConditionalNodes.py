@@ -162,6 +162,11 @@ class StatementConditional( StatementChildrenHavingBase ):
 
         yes_branch = self.getBranchYes()
 
+        # Handle branches that became empty behind our back
+        if yes_branch is not None:
+            if not yes_branch.getStatements():
+                yes_branch = None
+
         if yes_branch is not None:
             branch_yes_collection = ConstraintCollectionBranch( constraint_collection )
 
@@ -177,6 +182,10 @@ class StatementConditional( StatementChildrenHavingBase ):
             branch_yes_collection = None
 
         no_branch = self.getBranchNo()
+
+        if no_branch is not None:
+            if not no_branch.getStatements():
+                no_branch = None
 
         if no_branch is not None:
             branch_no_collection = ConstraintCollectionBranch( constraint_collection )

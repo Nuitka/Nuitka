@@ -49,6 +49,9 @@ class ExpressionBuiltinLocals( NodeBase, ExpressionMixin ):
         NodeBase.__init__( self, source_ref = source_ref )
 
     def computeExpression( self, constraint_collection ):
+        # Just inform the collection that all escaped.
+        constraint_collection.onLocalsAccess( self )
+
         return self, None, None
 
     def needsLocalsDict( self ):
