@@ -72,6 +72,7 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
         # The list functions contained in that module.
         self.functions = OrderedSet()
 
+
     def getDetails( self ):
         return {
             "filename" : self.source_ref.getFilename(),

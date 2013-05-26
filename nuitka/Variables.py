@@ -435,32 +435,26 @@ def makeParameterVariables( owner, parameter_names ):
         parameter_names
     ]
 
-class ModuleVariable( Variable ):
-    module_variables = {}
 
+class ModuleVariable( Variable ):
     reference_class = ModuleVariableReference
 
     def __init__( self, module, variable_name ):
         assert type( variable_name ) is str, repr( variable_name )
 
-        Variable.__init__( self, owner = module, variable_name = variable_name )
+        Variable.__init__(
+            self,
+            owner         = module,
+            variable_name = variable_name
+        )
+
         self.module = module
-
-        key = self._getKey()
-
-        assert key not in self.module_variables, key
-        self.module_variables[ key ] = self
 
     def __repr__( self ):
         return "<ModuleVariable '%s' of '%s'>" % (
             self.variable_name,
             self.getModuleName()
         )
-
-    def _getKey( self ):
-        """ The module name and the variable name form the key."""
-
-        return self.getModule(), self.getName()
 
     def isModuleVariable( self ):
         return True
@@ -473,16 +467,6 @@ class ModuleVariable( Variable ):
 
     def _checkShared( self, variable ):
         assert False, variable
-
-
-def getModuleVariables( module ):
-    result = []
-
-    for key, variable in iterItems( ModuleVariable.module_variables ):
-        if key[0] is module:
-            result.append( variable )
-
-    return result
 
 
 class TempVariableReference2( VariableReferenceBase ):

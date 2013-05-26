@@ -49,7 +49,7 @@ def _optimizeModulePass( module, tag_set ):
 
     written_variables = constraint_collection.getWrittenVariables()
 
-    for variable in Variables.getModuleVariables( module = module ):
+    for variable in module.getVariables():
         old_value = variable.getReadOnlyIndicator()
         new_value = variable not in written_variables
 
