@@ -139,16 +139,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 
 #endif
 
-// These two express if a directly called function should be exported (C++ level) or if it
-// can be local to the file.
-#ifdef _MSC_VER
-#define NUITKA_CROSS_MODULE __declspec(noinline)
-#define NUITKA_LOCAL_MODULE static __declspec(noinline)
-// static
-#else
+// These two express if a directly called function should be exported (C++
+// level) or if it can be local to the file.
 #define NUITKA_CROSS_MODULE
 #define NUITKA_LOCAL_MODULE static
-#endif
 
 #include "nuitka/helpers.hpp"
 
