@@ -55,6 +55,12 @@ class StatementsSequence( StatementChildrenHavingBase ):
     getStatements = StatementChildrenHavingBase.childGetter( "statements" )
     setStatements = StatementChildrenHavingBase.childSetterNotNone( "statements" )
 
+    def getDetails( self ):
+        if self.getStatements():
+            return { "statement_count" : len( self.getStatements() ) }
+        else:
+            return { "statement_count" : 0 }
+
     def setChild( self, name, value ):
         assert name == "statements"
 
