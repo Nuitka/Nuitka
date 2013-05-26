@@ -53,20 +53,12 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.SliceNodes import (
     ExpressionSliceLookup,
     ExpressionSliceObject
-)
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeTuple,
-    ExpressionMakeList,
-    ExpressionMakeDict,
-    ExpressionMakeSet
 )
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
@@ -153,6 +145,8 @@ from .ReformulationExecStatements import buildExecNode
 # Some helpers.
 from .Helpers import (
     makeStatementsSequenceOrStatement,
+    makeSequenceCreationOrConstant,
+    makeDictCreationOrConstant,
     makeStatementsSequence,
     buildStatementsNode,
     setBuildDispatchers,
@@ -181,109 +175,19 @@ def buildVariableReferenceNode( provider, node, source_ref ):
 
 
 def buildSequenceCreationNode( provider, node, source_ref ):
-    # Sequence creation. Tries to avoid creations with only constant
-    # elements. Would be caught by optimization, but would be useless churn. For
-    # mutable constants we cannot do it though.
-
-    elements = buildNodeList( provider, node.elts, source_ref )
-
-    for element in elements:
-        if not element.isExpressionConstantRef() or element.isMutable():
-            constant = False
-            break
-    else:
-        constant = True
-
-    sequence_kind = getKind( node ).upper()
-
-    # Note: This would happen in optimization instead, but lets just do it
-    # immediately to save some time.
-    if constant:
-        if sequence_kind == "TUPLE":
-            const_type = tuple
-        elif sequence_kind == "LIST":
-            const_type = list
-        elif sequence_kind == "SET":
-            const_type = set
-        else:
-            assert False, sequence_kind
-
-        return ExpressionConstantRef(
-            constant      = const_type(
-                element.getConstant()
-                for element in
-                elements
-            ),
-            source_ref    = source_ref,
-            user_provided = True
-        )
-    else:
-        if sequence_kind == "TUPLE":
-            return ExpressionMakeTuple(
-                elements   = elements,
-                source_ref = source_ref
-            )
-        elif sequence_kind == "LIST":
-            return ExpressionMakeList(
-                elements   = elements,
-                source_ref = source_ref
-            )
-        elif sequence_kind == "SET":
-            return ExpressionMakeSet(
-                elements   = elements,
-                source_ref = source_ref
-            )
-        else:
-            assert False, sequence_kind
+    return makeSequenceCreationOrConstant(
+        sequence_kind = getKind( node ).upper(),
+        elements      = buildNodeList( provider, node.elts, source_ref ),
+        source_ref    = source_ref
+    )
 
 
 def buildDictionaryNode( provider, node, source_ref ):
-    # Create dictionary node. Tries to avoid it for constant values that are not mutable.
-
-    keys = []
-    values = []
-
-    constant = True
-
-    for key, value in zip( node.keys, node.values ):
-        key_node = buildNode( provider, key, source_ref )
-        value_node = buildNode( provider, value, source_ref )
-
-        keys.append( key_node )
-        values.append( value_node )
-
-        constant = constant and \
-          key_node.isExpressionConstantRef() and \
-          value_node.isExpressionConstantRef() and \
-          not value_node.isMutable()
-
-    # Note: This would happen in optimization instead, but lets just do it
-    # immediately to save some time.
-    if constant:
-        # Create the dictionary in its full size, so that no growing occurs and
-        # the constant becomes as similar as possible before being marshalled.
-        constant_value = dict.fromkeys(
-            [ key.getConstant() for key in keys ],
-            None
-        )
-
-        for key, value in zip( keys, values ):
-            constant_value[ key.getConstant() ] = value.getConstant()
-
-        return ExpressionConstantRef(
-            constant      = constant_value,
-            source_ref    = source_ref,
-            user_provided = True
-        )
-    else:
-        return ExpressionMakeDict(
-            pairs      = [
-                ExpressionKeyValuePair( key, value, key.getSourceReference() )
-                for key, value in
-                zip( keys, values )
-            ],
-            source_ref = source_ref
-        )
+    return makeDictCreationOrConstant(
+        keys          = buildNodeList( provider, node.keys, source_ref ),
+        values        = buildNodeList( provider, node.values, source_ref ),
+        source_ref    = source_ref
+    )
 
 def buildConditionNode( provider, node, source_ref ):
     # Conditional statements may have one or two branches. We will never see an

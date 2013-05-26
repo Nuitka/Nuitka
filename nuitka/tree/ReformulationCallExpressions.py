@@ -29,6 +29,8 @@ from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeDict,
 )
 from .Helpers import (
+    makeSequenceCreationOrConstant,
+    makeDictCreationOrConstant,
     buildNodeList,
     buildNode
 )
@@ -36,20 +38,21 @@ from .Helpers import (
 def buildCallNode( provider, node, source_ref ):
     positional_args = buildNodeList( provider, node.args, source_ref )
 
-    # Only the values of keyword pairs have a real source ref, and those only really
-    # matter, so that makes sense.
-    pairs = [
-        ExpressionKeyValuePair(
-            key        = ExpressionConstantRef(
+    # Only the values of keyword pairs have a real source ref, and those only
+    # really matter, so that makes sense.
+    keys = []
+    values = []
+
+    for keyword in node.keywords:
+        keys.append(
+            ExpressionConstantRef(
                 constant   = keyword.arg,
                 source_ref = source_ref
-            ),
-            value      = buildNode( provider, keyword.value, source_ref ),
-            source_ref = source_ref
+            )
         )
-        for keyword in
-        node.keywords
-    ]
+        values.append(
+            buildNode( provider, keyword.value, source_ref )
+        )
 
     list_star_arg   = buildNode( provider, node.starargs, source_ref, True )
     dict_star_arg   = buildNode( provider, node.kwargs, source_ref, True )
@@ -58,26 +61,29 @@ def buildCallNode( provider, node, source_ref ):
         provider        = provider,
         called          = buildNode( provider, node.func, source_ref ),
         positional_args = positional_args,
-        pairs           = pairs,
+        keys            = keys,
+        values          = values,
         list_star_arg   = list_star_arg,
         dict_star_arg   = dict_star_arg,
         source_ref      = source_ref,
     )
 
-def _makeCallNode( provider, called, positional_args, pairs, list_star_arg,
-                   dict_star_arg, source_ref ):
+def _makeCallNode( provider, called, positional_args, keys, values,
+                   list_star_arg, dict_star_arg, source_ref ):
     # Many variables, but only to cover the many complex call cases.
     # pylint: disable=R0914
 
     if list_star_arg is None and dict_star_arg is None:
         return ExpressionCall(
             called  = called,
-            args    = ExpressionMakeTuple(
-                elements   = positional_args,
-                source_ref = source_ref
+            args    = makeSequenceCreationOrConstant(
+                sequence_kind = "tuple",
+                elements      = positional_args,
+                source_ref    = source_ref
             ),
-            kw      = ExpressionMakeDict(
-                pairs      = pairs,
+            kw      = makeDictCreationOrConstant(
+                keys       = keys,
+                values     = values,
                 source_ref = source_ref
             ),
             source_ref      = source_ref,
@@ -86,7 +92,12 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg,
         # Dispatch to complex helper function for each case. These do
         # re-formulation of complex calls according to developer manual.
 
-        key = len( positional_args ) > 0, len( pairs ) > 0, list_star_arg is not None, dict_star_arg is not None
+        key = (
+            len( positional_args ) > 0,
+            len( keys ) > 0,
+            list_star_arg is not None,
+            dict_star_arg is not None
+        )
 
         from .ComplexCallHelperFunctions import (
             getFunctionCallHelperPosKeywordsStarList,
@@ -130,10 +141,11 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg,
                 )
             )
 
-        if pairs:
+        if keys:
             helper_args.append(
-                ExpressionMakeDict(
-                    pairs      = pairs,
+                makeDictCreationOrConstant(
+                    keys       = keys,
+                    values     = values,
                     source_ref = source_ref
                 )
             )

@@ -27,6 +27,14 @@ from nuitka.nodes.StatementNodes import (
 )
 
 from nuitka.nodes.NodeBases import NodeBase
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import (
+    ExpressionKeyValuePair,
+    ExpressionMakeTuple,
+    ExpressionMakeList,
+    ExpressionMakeDict,
+    ExpressionMakeSet
+)
 
 from nuitka import Tracing
 
@@ -197,3 +205,99 @@ def makeStatementsSequenceFromStatement( statement ):
         statements = ( statement, ),
         source_ref = statement.getSourceReference()
     )
+
+def makeSequenceCreationOrConstant( sequence_kind, elements, source_ref ):
+    # Sequence creation. Tries to avoid creations with only constant
+    # elements. Would be caught by optimization, but would be useless churn. For
+    # mutable constants we cannot do it though.
+    for element in elements:
+        if not element.isExpressionConstantRef() or element.isMutable():
+            constant = False
+            break
+    else:
+        constant = True
+
+    sequence_kind = sequence_kind.upper()
+
+    # Note: This would happen in optimization instead, but lets just do it
+    # immediately to save some time.
+    if constant:
+        if sequence_kind == "TUPLE":
+            const_type = tuple
+        elif sequence_kind == "LIST":
+            const_type = list
+        elif sequence_kind == "SET":
+            const_type = set
+        else:
+            assert False, sequence_kind
+
+        return ExpressionConstantRef(
+            constant      = const_type(
+                element.getConstant()
+                for element in
+                elements
+            ),
+            source_ref    = source_ref,
+            user_provided = True
+        )
+    else:
+        if sequence_kind == "TUPLE":
+            return ExpressionMakeTuple(
+                elements   = elements,
+                source_ref = source_ref
+            )
+        elif sequence_kind == "LIST":
+            return ExpressionMakeList(
+                elements   = elements,
+                source_ref = source_ref
+            )
+        elif sequence_kind == "SET":
+            return ExpressionMakeSet(
+                elements   = elements,
+                source_ref = source_ref
+            )
+        else:
+            assert False, sequence_kind
+
+
+def makeDictCreationOrConstant( keys, values, source_ref ):
+    # Create dictionary node. Tries to avoid it for constant values that are not
+    # mutable.
+
+    assert len( keys ) == len( values )
+    for key, value in zip( keys, values ):
+        if not key.isExpressionConstantRef() or \
+           not value.isExpressionConstantRef() or \
+           not value.isMutable():
+            constant = False
+            break
+    else:
+        constant = True
+
+    # Note: This would happen in optimization instead, but lets just do it
+    # immediately to save some time.
+    if constant:
+        # Create the dictionary in its full size, so that no growing occurs and
+        # the constant becomes as similar as possible before being marshalled.
+        constant_value = dict.fromkeys(
+            [ key.getConstant() for key in keys ],
+            None
+        )
+
+        for key, value in zip( keys, values ):
+            constant_value[ key.getConstant() ] = value.getConstant()
+
+        return ExpressionConstantRef(
+            constant      = constant_value,
+            source_ref    = source_ref,
+            user_provided = True
+        )
+    else:
+        return ExpressionMakeDict(
+            pairs      = [
+                ExpressionKeyValuePair( key, value, key.getSourceReference() )
+                for key, value in
+                zip( keys, values )
+            ],
+            source_ref = source_ref
+        )
