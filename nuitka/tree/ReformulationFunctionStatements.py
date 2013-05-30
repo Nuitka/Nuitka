@@ -68,7 +68,9 @@ def buildFunctionNode( provider, node, source_ref ):
     decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
 
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
-    kw_defaults = buildParameterKwDefaults( provider, node, function_body, source_ref )
+    kw_defaults = buildParameterKwDefaults(
+        provider, node, function_body, source_ref
+    )
 
     function_statements_body = buildStatementsNode(
         provider   = function_body,
@@ -121,8 +123,8 @@ def buildFunctionNode( provider, node, source_ref ):
 
     # Add the staticmethod decorator to __new__ methods if not provided.
 
-    # CPython made these optional, but applies them to every class __new__. We add them
-    # early, so our optimization will see it.
+    # CPython made these optional, but applies them to every class __new__. We
+    # add them early, so our optimization will see it.
     if node.name == "__new__" and not decorators and \
          provider.isExpressionFunctionBody() and provider.isClassDictCreation():
 
@@ -153,8 +155,8 @@ def buildFunctionNode( provider, node, source_ref ):
     )
 
 def buildParameterKwDefaults( provider, node, function_body, source_ref ):
-    # Build keyword only arguments default values. We are hiding here, that it is a
-    # Python3 only feature.
+    # Build keyword only arguments default values. We are hiding here, that it
+    # is a Python3 only feature.
 
     if Utils.python_version >= 300:
         kw_only_names = function_body.getParameters().getKwOnlyParameterNames()
@@ -205,7 +207,9 @@ def buildParameterAnnotations( provider, node, source_ref ):
                             constant   = arg.arg,
                             source_ref = source_ref
                         ),
-                        value      = buildNode( provider, arg.annotation, source_ref ),
+                        value      = buildNode(
+                            provider, arg.annotation, source_ref
+                        ),
                         source_ref = source_ref
                     )
                 )
@@ -240,7 +244,9 @@ def buildParameterAnnotations( provider, node, source_ref ):
                     constant   = node.args.kwarg,
                     source_ref = source_ref
                 ),
-                value      = buildNode( provider, node.args.kwargannotation, source_ref ),
+                value      = buildNode(
+                    provider, node.args.kwargannotation, source_ref
+                ),
                 source_ref = source_ref
             )
         )
@@ -284,7 +290,9 @@ def buildParameterSpec( name, node, source_ref ):
     result = ParameterSpec(
         name           = name,
         normal_args    = [ extractArg( arg ) for arg in node.args.args ],
-        kw_only_args   = [ extractArg( arg ) for arg in node.args.kwonlyargs ] if Utils.python_version >= 300 else [],
+        kw_only_args   = [ extractArg( arg ) for arg in node.args.kwonlyargs ]
+                           if Utils.python_version >= 300 else
+                         [],
         list_star_arg  = node.args.vararg,
         dict_star_arg  = node.args.kwarg,
         default_count  = len( node.args.defaults )

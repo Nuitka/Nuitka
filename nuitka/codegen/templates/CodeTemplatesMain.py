@@ -23,7 +23,7 @@ global_copyright = """\
 // Generated code for Python source for module '%(name)s'
 // created by Nuitka version %(version)s
 
-// This code is in part copyright 2012 Kay Hayen.
+// This code is in part copyright 2013 Kay Hayen.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -239,9 +239,9 @@ module_body_template = """
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
 
-// Note: For full compatability with CPython, every module variable access needs to go
-// through it except for cases where the module cannot possibly have changed in the mean
-// time.
+// Note: For full compatability with CPython, every module variable access
+// needs to go through it except for cases where the module cannot possibly
+// have changed in the mean time.
 
 PyObject *_module_%(module_identifier)s;
 PyDictObject *_moduledict_%(module_identifier)s;

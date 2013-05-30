@@ -235,8 +235,8 @@ class StatementTryExcept( StatementChildrenHavingBase ):
         # The tried block can be processed normally.
         tried_statement_sequence = self.getBlockTry()
 
-        # May be None from the outset, so guard against that, later we are going to remove
-        # it.
+        # May be "None" from the outset, so guard against that, later we are
+        # going to remove it.
         if tried_statement_sequence is not None:
             result = constraint_collection.onStatementsSequence( tried_statement_sequence )
 
@@ -249,21 +249,21 @@ class StatementTryExcept( StatementChildrenHavingBase ):
             return None, "new_statements", "Removed try/except with empty tried block."
 
         from nuitka.optimizations.ConstraintCollections import ConstraintCollectionHandler
-        # The exception branches triggers in unknown state, any amount of tried code
-        # may have happened. A similar approach to loops should be taken to invalidate
-        # the state before.
+        # The exception branches triggers in unknown state, any amount of tried
+        # code may have happened. A similar approach to loops should be taken to
+        # invalidate the state before.
         for handler in self.getExceptionHandlers():
             exception_branch = ConstraintCollectionHandler( constraint_collection )
             exception_branch.process( handler )
 
-        # Without exception handlers remaining, nothing else to do. They may e.g. be
-        # removed as only re-raising.
+        # Without exception handlers remaining, nothing else to do. They may
+        # e.g. be removed as only re-raising.
         if not self.getExceptionHandlers():
             return tried_statement_sequence, "new_statements", "Removed try/except without any remaing handlers"
 
-        # Give up, merging this is too hard for now, any amount of the tried sequence may
-        # have executed together with one of the handlers, or all of tried and no
-        # handlers.
+        # Give up, merging this is too hard for now, any amount of the tried
+        # sequence may have executed together with one of the handlers, or all
+        # of tried and no handlers.
         constraint_collection.removeAllKnowledge()
 
         return self, None, None

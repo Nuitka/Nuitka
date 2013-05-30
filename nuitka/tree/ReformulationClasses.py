@@ -17,8 +17,8 @@
 #
 """ Reformulation of classes
 
-Consult the developmer manual for information. TODO: Add ability to sync source code
-comments with developer manual sections.
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
 
 """
 

@@ -153,7 +153,8 @@ class Variable:
     reference_class = None
 
     def makeReference( self, owner ):
-        # Need to provider a reference class, or else making references cannot work.
+        # Need to provider a reference class, or else making references cannot
+        # work.
         assert self.reference_class, self
 
         # Search for existing references to be re-used before making a new one.
@@ -161,7 +162,8 @@ class Variable:
             if reference.getOwner() is owner:
                 return reference
         else:
-            # The reference_class will be overloaded with something callable, pylint: disable=E1102
+            # The reference_class will be overloaded with something callable,
+            # pylint: disable=E1102
             return self.reference_class(
                 owner    = owner,
                 variable = self
@@ -270,8 +272,8 @@ class ClosureVariableReference( VariableReferenceBase ):
 class ModuleVariableReference( VariableReferenceBase ):
     def __init__( self, owner, variable ):
 
-        # Module variable access are direct pass-through, so de-reference them if
-        # possible.
+        # Module variable access are direct pass-through, so de-reference them
+        # if possible.
         while variable.isModuleVariableReference():
             variable = variable.getReferenced()
 
@@ -427,13 +429,6 @@ class NestedParameterVariable( ParameterVariable ):
 
     def getParameterNames( self ):
         return self.parameter_spec.getParameterNames()
-
-def makeParameterVariables( owner, parameter_names ):
-    return [
-        ParameterVariable( owner = owner, parameter_name = parameter_name )
-        for parameter_name in
-        parameter_names
-    ]
 
 
 class ModuleVariable( Variable ):
