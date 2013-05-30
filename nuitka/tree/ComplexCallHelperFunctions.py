@@ -87,7 +87,7 @@ from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.SourceCodeReferences import fromFilename
 
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-
+from .VariableClosure import completeVariableClosures
 from .Helpers import makeStatementsSequenceFromStatement
 
 source_ref = fromFilename( "internal", FutureSpec() ).atInternal()
@@ -117,6 +117,57 @@ def getInternalModule():
         internal_module = PythonInternalModule()
 
     return internal_module
+
+def makeCalledVariableRef():
+    variable_ref = ExpressionVariableRef(
+        variable_name = "called",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
+def makeArgsVariableRef():
+    variable_ref = ExpressionVariableRef(
+        variable_name = "args",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
+def makeKwVariableRef( assign ):
+    variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
+
+    variable_ref = variable_ref_class(
+        variable_name = "kw",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
+def makeStarListArgVariableRef( assign ):
+    variable_ref_class = ( ExpressionTargetVariableRef
+                             if assign else
+                           ExpressionVariableRef )
+
+    variable_ref = variable_ref_class(
+        variable_name = "star_arg_list",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
+def makeStarDictArgVariableRef( assign ):
+    variable_ref_class = ( ExpressionTargetVariableRef
+                             if assign else
+                           ExpressionVariableRef )
+
+    variable_ref = variable_ref_class(
+        variable_name = "star_arg_dict",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
 
 @once_decorator
 def getCallableNameDescBody():
@@ -152,18 +203,6 @@ def getCallableNameDescBody():
     #     return called_type.__name__ + " instance"
     # else:
     #     return called_type.__name__ + " object"
-
-    called_variable, = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
 
     def makeNameAttributeLookup( node, attribute_name = "__name__" ):
         return ExpressionAttributeLookup(
@@ -335,8 +374,9 @@ def getCallableNameDescBody():
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 def _makeStarListArgumentToTupleStatement( called_variable_ref,
                                            star_list_target_variable_ref,
@@ -1111,30 +1151,6 @@ def getFunctionCallHelperStarList():
         is_class   = False
     )
 
-    called_variable, star_arg_list_variable = result.getParameters().getAllVariables()
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
     # Equivalent of:
     #
     # Note: Call in here is not the same, as it can go without checks directly
@@ -1178,12 +1194,14 @@ def getFunctionCallHelperStarList():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1209,40 +1227,6 @@ def getFunctionCallHelperKeywordsStarList():
         is_class   = False
     )
 
-    called_variable, kw_variable, star_arg_list_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
     # Equivalent of:
     #
     # Note: Call in here is not the same, as it can go without checks directly
@@ -1273,7 +1257,7 @@ def getFunctionCallHelperKeywordsStarList():
             expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
                 args       = makeStarListArgVariableRef( assign = False ),
-                kw         = makeKwVariableRef(),
+                kw         = makeKwVariableRef( assign = False),
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -1287,12 +1271,14 @@ def getFunctionCallHelperKeywordsStarList():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1317,40 +1303,6 @@ def getFunctionCallHelperPosStarList():
         source_ref = source_ref,
         is_class   = False
     )
-
-    called_variable, args_variable, star_arg_list_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
 
     # Equivalent of:
     #
@@ -1400,15 +1352,18 @@ def getFunctionCallHelperPosStarList():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
 
+    completeVariableClosures( result )
+
     return result
 
+@once_decorator
 def getFunctionCallHelperPosKeywordsStarList():
     helper_name = "complex_call_helper_pos_keywords_star_list"
 
@@ -1429,50 +1384,6 @@ def getFunctionCallHelperPosKeywordsStarList():
         source_ref = source_ref,
         is_class   = False
     )
-
-    called_variable, args_variable, kw_variable, star_arg_list_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
 
     # Equivalent of:
     #
@@ -1509,7 +1420,7 @@ def getFunctionCallHelperPosKeywordsStarList():
                     right      = makeStarListArgVariableRef( assign = False ),
                     source_ref = source_ref
                 ),
-                kw         = makeKwVariableRef(),
+                kw         = makeKwVariableRef( assign = False ),
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -1523,12 +1434,14 @@ def getFunctionCallHelperPosKeywordsStarList():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1553,30 +1466,6 @@ def getFunctionCallHelperStarDict():
         source_ref = source_ref,
         is_class   = False
     )
-
-    called_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
 
     # Equivalent of:
     #
@@ -1631,12 +1520,14 @@ def getFunctionCallHelperStarDict():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1661,40 +1552,6 @@ def getFunctionCallHelperPosStarDict():
         source_ref = source_ref,
         is_class   = False
     )
-
-    called_variable, args_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
 
     # Equivalent of:
     #
@@ -1750,15 +1607,16 @@ def getFunctionCallHelperPosStarDict():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 @once_decorator
 def getFunctionCallHelperKeywordsStarDict():
@@ -1781,43 +1639,6 @@ def getFunctionCallHelperKeywordsStarDict():
         source_ref = source_ref,
         is_class   = False
     )
-
-    called_variable, kw_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef():
-        variable_ref_class = ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
 
     # Equivalent of:
     #
@@ -1879,7 +1700,9 @@ def getFunctionCallHelperKeywordsStarDict():
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
-            star_dict_variable_ref        = makeStarDictArgVariableRef()
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            )
         ),
         StatementReturn(
             expression = ExpressionCallKeywordsOnly(
@@ -1895,12 +1718,14 @@ def getFunctionCallHelperKeywordsStarDict():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1926,53 +1751,6 @@ def getFunctionCallHelperPosKeywordsStarDict():
         is_class   = False
     )
 
-    called_variable, args_variable, kw_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef():
-        variable_ref_class = ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-
     # Equivalent of:
     #
     # Note: Call in here is not the same, as it can go without checks directly
@@ -2033,7 +1811,9 @@ def getFunctionCallHelperPosKeywordsStarDict():
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
-            star_dict_variable_ref        = makeStarDictArgVariableRef()
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            )
         ),
         StatementReturn(
             expression = ExpressionCall(
@@ -2050,15 +1830,16 @@ def getFunctionCallHelperPosKeywordsStarDict():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 @once_decorator
 def getFunctionCallHelperStarListStarDict():
@@ -2081,42 +1862,6 @@ def getFunctionCallHelperStarListStarDict():
         source_ref = source_ref,
         is_class   = False
     )
-
-    called_variable, star_arg_list_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
 
     statements = (
         _makeStarDictArgumentToDictStatement(
@@ -2152,12 +1897,14 @@ def getFunctionCallHelperStarListStarDict():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -2185,57 +1932,6 @@ def getFunctionCallHelperPosStarListStarDict():
         is_class   = False
     )
 
-    (
-        called_variable,
-        args_variable,
-        star_arg_list_variable,
-        star_arg_dict_variable
-    ) = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
     statements = (
         _makeStarDictArgumentToDictStatement(
             called_variable_ref           = makeCalledVariableRef(),
@@ -2275,15 +1971,16 @@ def getFunctionCallHelperPosStarListStarDict():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 @once_decorator
 def getFunctionCallHelperKeywordsStarListStarDict():
@@ -2309,61 +2006,14 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         is_class   = False
     )
 
-    called_variable, kw_variable, star_arg_list_variable, star_arg_dict_variable = \
-        result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef():
-        variable_ref_class = ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
     statements = (
         _makeStarDictArgumentMergeToKwStatement(
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
-            star_dict_variable_ref        = makeStarDictArgVariableRef()
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            )
         ),
         _makeStarListArgumentToTupleStatement(
             called_variable_ref           = makeCalledVariableRef(),
@@ -2389,15 +2039,16 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 @once_decorator
 def getFunctionCallHelperPosKeywordsStarListStarDict():
@@ -2423,71 +2074,14 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         is_class   = False
     )
 
-    called_variable, args_variable, kw_variable, star_arg_list_variable, star_arg_dict_variable = \
-        result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef():
-        variable_ref_class = ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
     statements = (
         _makeStarDictArgumentMergeToKwStatement(
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
-            star_dict_variable_ref        = makeStarDictArgVariableRef()
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            )
         ),
         _makeStarListArgumentToTupleStatement(
             called_variable_ref           = makeCalledVariableRef(),
@@ -2518,11 +2112,13 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
-            arg_names     = (),
+            arg_names     = result.getParameters().getParameterNames(),
             kw_only_count = 0,
             statements    = statements,
             source_ref    = source_ref
         )
     )
+
+    completeVariableClosures( result )
 
     return result
