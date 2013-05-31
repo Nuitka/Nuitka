@@ -16,6 +16,8 @@
 #     limitations under the License.
 #
 
+from . import CodeTemplates
+
 from .Identifiers import Identifier
 
 def getCallCodeNoArgs( called_identifier ):
@@ -26,8 +28,12 @@ def getCallCodeNoArgs( called_identifier ):
         1
     )
 
+quick_calls_used = set()
+
 def getCallCodePosArgsQuick( context, order_relevance, called_identifier,
                              arguments ):
+    quick_calls_used.add( len( arguments ) )
+
     from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 
     return getOrderRelevanceEnforcedArgsCode(
@@ -83,3 +89,34 @@ def getCallCodePosKeywordArgs( context, order_relevance, called_identifier,
                             argument_dictionary ),
         context         = context
     )
+
+def getCallsCode():
+    result = []
+
+    result.append(
+        CodeTemplates.template_helper_impl_decl % {}
+    )
+
+    result.append(
+        CodeTemplates.template_call_cpython_function_fast_impl % {}
+    )
+
+    for quick_call_used in sorted( quick_calls_used ):
+        args_decl = [
+            "PyObject *arg%d" % d
+            for d in range( quick_call_used )
+        ]
+        args_list = [
+            "arg%d" % d
+            for d in range( quick_call_used )
+        ]
+
+        result.append(
+            CodeTemplates.template_call_function_with_args_impl % {
+                "args_decl"  : ", ".join( args_decl ),
+                "args_list"  : ", ".join( args_list ),
+                "args_count" : quick_call_used
+            }
+        )
+
+    return "\n".join( result )

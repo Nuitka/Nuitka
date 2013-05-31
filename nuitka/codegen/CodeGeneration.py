@@ -2633,9 +2633,13 @@ def generateConstantsDefinitionCode( context ):
 
 
 def generateHelpersCode():
-    return Generator.getMakeTuplesCode() + \
-           Generator.getMakeListsCode() + \
-           Generator.getMakeDictsCode()
+    header_code = Generator.getMakeTuplesCode() + \
+                  Generator.getMakeListsCode() + \
+                  Generator.getMakeDictsCode()
+
+    body_code = Generator.getCallsCode()
+
+    return header_code, body_code
 
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()

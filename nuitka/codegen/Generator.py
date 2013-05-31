@@ -63,11 +63,12 @@ from .DictCodes import (
 from .SetCodes import getSetCreationCode
 
 from .CallCodes import (
-    getCallCodeNoArgs,
-    getCallCodePosArgs,
-    getCallCodeKeywordArgs,
-    getCallCodePosArgsQuick,
     getCallCodePosKeywordArgs,
+    getCallCodePosArgsQuick,
+    getCallCodeKeywordArgs,
+    getCallCodePosArgs,
+    getCallCodeNoArgs,
+    getCallsCode
 )
 # imported from here pylint: enable=W0611
 

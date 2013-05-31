@@ -1583,34 +1583,33 @@ static PyObject *_fast_function_noargs( PyObject *func )
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE( func );
     PyObject *globals = PyFunction_GET_GLOBALS( func );
     PyObject *argdefs = PyFunction_GET_DEFAULTS( func );
-    int nd = 0;
 
 #if PYTHON_VERSION >= 300
     PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS( func );
 
     if ( kwdefs == NULL && argdefs == NULL && co->co_argcount == 0 &&
-        co->co_flags == (CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
+        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
 #else
     if ( argdefs == NULL && co->co_argcount == 0 &&
-        co->co_flags == (CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
+        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
 #endif
     {
         PyThreadState *tstate = PyThreadState_GET();
+        assertObject( globals );
 
-        assert(globals != NULL);
+        PyFrameObject *frame = PyFrame_New( tstate, co, globals, NULL );
 
-        PyFrameObject *f = PyFrame_New(tstate, co, globals, NULL);
-
-        if (unlikely( f == NULL))
+        if (unlikely( frame == NULL ))
         {
             throw PythonException();
         };
 
-        PyObject *result = PyEval_EvalFrameEx( f, 0 );
+        PyObject *result = PyEval_EvalFrameEx( frame, 0 );
 
-        // Frame release protects against recursion.
+        // Frame release protects against recursion as it may lead to variable
+        // destruction.
         ++tstate->recursion_depth;
-        Py_DECREF( f );
+        Py_DECREF( frame );
         --tstate->recursion_depth;
 
         if ( result == NULL )
@@ -1622,17 +1621,19 @@ static PyObject *_fast_function_noargs( PyObject *func )
     }
 
     PyObject **defaults = NULL;
+    int nd = 0;
+
     if ( argdefs != NULL )
     {
         defaults = &PyTuple_GET_ITEM( argdefs, 0 );
-        nd = Py_SIZE(argdefs);
+        nd = Py_SIZE( argdefs );
     }
 
     PyObject *result = PyEval_EvalCodeEx(
 #if PYTHON_VERSION >= 300
-        (PyObject *)co,        // code object
+        (PyObject *)co,
 #else
-        co,
+        co,        // code object
 #endif
         globals,   // globals
         NULL,      // no locals
@@ -1750,526 +1751,6 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     return CALL_FUNCTION(
         called,
         _python_tuple_empty,
-        NULL
-    );
-}
-
-PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1 )
-{
-    assertObject( called );
-    assertObject( arg1 );
-
-    if ( Nuitka_Function_Check( called ) )
-    {
-        if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-        {
-            throw PythonException();
-        }
-
-        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
-        PyObject *result;
-
-        PyObject *args[] = {
-            arg1
-        };
-
-        if ( function->m_direct_arg_parser )
-        {
-            result = function->m_direct_arg_parser(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * )
-            );
-        }
-        else
-        {
-            result = function->m_code(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * ),
-                NULL
-            );
-        }
-
-        Py_LeaveRecursiveCall();
-
-        if ( result == NULL )
-        {
-            throw PythonException();
-        }
-
-        return result;
-    }
-    else if ( Nuitka_Method_Check( called ) )
-    {
-        Nuitka_MethodObject *method = (Nuitka_MethodObject *)called;
-
-        // Unbound method without arguments, let the error path be slow.
-        if ( method->m_object != NULL )
-        {
-            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-            {
-                throw PythonException();
-            }
-
-            PyObject *args[] = {
-                method->m_object,
-                arg1
-            };
-
-            PyObject *result;
-
-            if ( method->m_function->m_direct_arg_parser )
-            {
-                result = method->m_function->m_direct_arg_parser(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * )
-                );
-            }
-            else
-            {
-                result = method->m_function->m_code(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * ),
-                    NULL
-                );
-            }
-
-            Py_LeaveRecursiveCall();
-
-            if ( result == NULL )
-            {
-                throw PythonException();
-            }
-
-            return result;
-        }
-    }
-
-    return CALL_FUNCTION(
-        called,
-        PyObjectTemporary( MAKE_TUPLE1( arg1 ) ).asObject(),
-        NULL
-    );
-}
-
-PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1, PyObject *arg2 )
-{
-    assertObject( called );
-    assertObject( arg1 );
-    assertObject( arg2 );
-
-    if ( Nuitka_Function_Check( called ) )
-    {
-        if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-        {
-            throw PythonException();
-        }
-
-        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
-        PyObject *result;
-
-        PyObject *args[] = {
-            arg1,
-            arg2
-        };
-
-        if ( function->m_direct_arg_parser )
-        {
-            result = function->m_direct_arg_parser(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * )
-            );
-        }
-        else
-        {
-            result = function->m_code(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * ),
-                NULL
-            );
-        }
-
-        Py_LeaveRecursiveCall();
-
-        if ( result == NULL )
-        {
-            throw PythonException();
-        }
-
-        return result;
-    }
-    else if ( Nuitka_Method_Check( called ) )
-    {
-        Nuitka_MethodObject *method = (Nuitka_MethodObject *)called;
-
-        // Unbound method without arguments, let the error path be slow.
-        if ( method->m_object != NULL )
-        {
-            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-            {
-                throw PythonException();
-            }
-
-            PyObject *args[] = {
-                method->m_object,
-                arg1,
-                arg2
-            };
-
-            PyObject *result;
-
-            if ( method->m_function->m_direct_arg_parser )
-            {
-                result = method->m_function->m_direct_arg_parser(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * )
-                );
-            }
-            else
-            {
-                result = method->m_function->m_code(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * ),
-                    NULL
-                );
-            }
-
-            Py_LeaveRecursiveCall();
-
-            if ( result == NULL )
-            {
-                throw PythonException();
-            }
-
-            return result;
-        }
-    }
-
-    return CALL_FUNCTION(
-        called,
-        PyObjectTemporary( MAKE_TUPLE2( arg1, arg2 ) ).asObject(),
-        NULL
-    );
-}
-
-PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1, PyObject *arg2, PyObject *arg3 )
-{
-    assertObject( called );
-    assertObject( arg1 );
-    assertObject( arg2 );
-    assertObject( arg3 );
-
-    if ( Nuitka_Function_Check( called ) )
-    {
-        if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-        {
-            throw PythonException();
-        }
-
-        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
-        PyObject *result;
-
-        PyObject *args[] = { arg1, arg2, arg3 };
-
-        if ( function->m_direct_arg_parser )
-        {
-            result = function->m_direct_arg_parser(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * )
-            );
-        }
-        else
-        {
-            result = function->m_code(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * ),
-                NULL
-            );
-        }
-
-        Py_LeaveRecursiveCall();
-
-        if ( result == NULL )
-        {
-            throw PythonException();
-        }
-
-        return result;
-    }
-    else if ( Nuitka_Method_Check( called ) )
-    {
-        Nuitka_MethodObject *method = (Nuitka_MethodObject *)called;
-
-        // Unbound method without arguments, let the error path be slow.
-        if ( method->m_object != NULL )
-        {
-            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-            {
-                throw PythonException();
-            }
-
-            PyObject *args[] = {
-                method->m_object,
-                arg1,
-                arg2,
-                arg3
-            };
-
-            PyObject *result;
-
-            if ( method->m_function->m_direct_arg_parser )
-            {
-                result = method->m_function->m_direct_arg_parser(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * )
-                );
-            }
-            else
-            {
-                result = method->m_function->m_code(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * ),
-                    NULL
-                );
-            }
-
-            Py_LeaveRecursiveCall();
-
-            if ( result == NULL )
-            {
-                throw PythonException();
-            }
-
-            return result;
-        }
-    }
-
-    return CALL_FUNCTION(
-        called,
-        PyObjectTemporary( MAKE_TUPLE3( arg1, arg2, arg3 ) ).asObject(),
-        NULL
-    );
-}
-
-PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1, PyObject *arg2, PyObject *arg3, PyObject *arg4 )
-{
-    assertObject( called );
-    assertObject( arg1 );
-    assertObject( arg2 );
-    assertObject( arg3 );
-    assertObject( arg4 );
-
-    if ( Nuitka_Function_Check( called ) )
-    {
-        if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-        {
-            throw PythonException();
-        }
-
-        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
-        PyObject *result;
-
-        PyObject *args[] = { arg1, arg2, arg3, arg4 };
-
-        if ( function->m_direct_arg_parser )
-        {
-            result = function->m_direct_arg_parser(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * )
-            );
-        }
-        else
-        {
-            result = function->m_code(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * ),
-                NULL
-            );
-        }
-
-        Py_LeaveRecursiveCall();
-
-        if ( result == NULL )
-        {
-            throw PythonException();
-        }
-
-        return result;
-    }
-    else if ( Nuitka_Method_Check( called ) )
-    {
-        Nuitka_MethodObject *method = (Nuitka_MethodObject *)called;
-
-        // Unbound method without arguments, let the error path be slow.
-        if ( method->m_object != NULL )
-        {
-            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-            {
-                throw PythonException();
-            }
-
-            PyObject *args[] = {
-                method->m_object,
-                arg1,
-                arg2,
-                arg3,
-                arg4
-            };
-
-            PyObject *result;
-
-            if ( method->m_function->m_direct_arg_parser )
-            {
-                result = method->m_function->m_direct_arg_parser(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * )
-                );
-            }
-            else
-            {
-                result = method->m_function->m_code(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * ),
-                    NULL
-                );
-            }
-
-            Py_LeaveRecursiveCall();
-
-            if ( result == NULL )
-            {
-                throw PythonException();
-            }
-
-            return result;
-        }
-    }
-
-    return CALL_FUNCTION(
-        called,
-        PyObjectTemporary( MAKE_TUPLE4( arg1, arg2, arg3, arg4 ) ).asObject(),
-        NULL
-    );
-}
-
-PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1, PyObject *arg2, PyObject *arg3, PyObject *arg4, PyObject *arg5 )
-{
-    assertObject( called );
-    assertObject( arg1 );
-    assertObject( arg2 );
-    assertObject( arg3 );
-    assertObject( arg4 );
-    assertObject( arg5 );
-
-    if ( Nuitka_Function_Check( called ) )
-    {
-        if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-        {
-            throw PythonException();
-        }
-
-        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
-        PyObject *result;
-
-        PyObject *args[] = { arg1, arg2, arg3, arg4, arg5 };
-
-        if ( function->m_direct_arg_parser )
-        {
-            result = function->m_direct_arg_parser(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * )
-            );
-        }
-        else
-        {
-            result = function->m_code(
-                function,
-                args,
-                sizeof( args ) / sizeof( PyObject * ),
-                NULL
-            );
-        }
-
-        Py_LeaveRecursiveCall();
-
-        if ( result == NULL )
-        {
-            throw PythonException();
-        }
-
-        return result;
-    }
-    else if ( Nuitka_Method_Check( called ) )
-    {
-        Nuitka_MethodObject *method = (Nuitka_MethodObject *)called;
-
-        // Unbound method without arguments, let the error path be slow.
-        if ( method->m_object != NULL )
-        {
-            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-            {
-                throw PythonException();
-            }
-
-            PyObject *args[] = {
-                method->m_object,
-                arg1,
-                arg2,
-                arg3,
-                arg4,
-                arg5
-            };
-
-            PyObject *result;
-
-            if ( method->m_function->m_direct_arg_parser )
-            {
-                result = method->m_function->m_direct_arg_parser(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * )
-                );
-            }
-            else
-            {
-                result = method->m_function->m_code(
-                    method->m_function,
-                    args,
-                    sizeof( args ) / sizeof( PyObject * ),
-                    NULL
-                );
-            }
-
-            Py_LeaveRecursiveCall();
-
-            if ( result == NULL )
-            {
-                throw PythonException();
-            }
-
-            return result;
-        }
-    }
-
-    return CALL_FUNCTION(
-        called,
-        PyObjectTemporary( MAKE_TUPLE5( arg1, arg2, arg3, arg4, arg5 ) ).asObject(),
         NULL
     );
 }

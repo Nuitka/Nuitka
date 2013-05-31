@@ -410,6 +410,14 @@ MOD_INIT_DECL( %(module_identifier)s )
 }
 """
 
+template_helper_impl_decl = """\
+// This file contains helper functions that are automatically created from
+// templates.
+
+#include "nuitka/prelude.hpp"
+
+"""
+
 template_header_guard = """\
 #ifndef %(header_guard_name)s
 #define %(header_guard_name)s

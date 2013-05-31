@@ -263,9 +263,16 @@ def makeSourceDirectory( main_module ):
         )
     )
 
+    helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode()
+
     writeSourceCode(
         filename    = Utils.joinpath( source_dir, "__helpers.hpp" ),
-        source_code = CodeGeneration.generateHelpersCode()
+        source_code = helper_decl_code
+    )
+
+    writeSourceCode(
+        filename    = Utils.joinpath( source_dir, "__helpers.cpp" ),
+        source_code = helper_impl_code
     )
 
     module_hpp_include = [
