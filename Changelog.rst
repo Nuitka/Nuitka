@@ -1,3 +1,92 @@
+Nuitka Release 0.4.4 (Draft)
+============================
+
+A whole new use case opens up with "portable" binaries.
+
+New Features
+------------
+
+- Portable Binaries.
+
+  Nuitka has gained the ``--portable`` option which adds the Python libraries,
+  and a zip files with the modules, sufficient to run independent of the Python
+  installation. This has often been requested, and finally been contributed by
+  ownssh.
+
+- Tracing user provided constants, now Nuitka warns about too large constants
+  produced during optimization.
+
+New Optimization
+----------------
+
+- Previous corrections for ``==``, ``!=``, and ``<=``, caused a performance
+  regression for these operations in case of handling identical objects.
+
+  For built-in objects of sane types (not ``float``), these operations are now
+  accelerated again. The overreaching acceleration of ``>=`` was still there
+  (bug, see below) and has been adapted too.
+
+- Calling non-compiled Python functions from compiled functions was slower than
+  in CPython. It is now just as fast.
+
+- Calling compiled functions without keyword arguments has been accelerated with
+  a dedicated entry point that may call the implementation directly and avoid
+  parameter parsing almost entirely.
+
+- Making calls to compiled and non-compiled Python functions no longer requires
+  to build a temporary tuple and therefore is much faster.
+
+Bug Fixes
+---------
+
+- Wrong optimization of ``a >= a`` on C++ level.
+
+  While it's not done during Nuitka optimization, the rich comparison helper
+  still contained short cuts for ``>=``.
+
+- Constants created with ``+`` could become larger than limits. Not as likely to
+  become huge.
+
+- The ``vars`` built-in, when used on something without ``__dict__`` attribute,
+  was giving ``AttributeError`` instead of ``TypeError``.
+
+Cleanups
+--------
+
+- For containers (``tuple``, ``list``, ``set``, ``dict``) defined on the source
+  code level, Nuitka immediately created constant references from them.
+
+  For function calls, class creations, slice objects, this code is now re-used,
+  and its dictionaries and tuples, may now also become constants immediately,
+  reducing noise in optimization steps.
+
+- Global variable management moved to module objects and out of "Variables"
+  module.
+
+- Make sure, nodes in the tree are not shared by accident.
+
+  This helped to find a case of duplicate use in the complex call helpers
+  functions. Code generation will now notice this kind of duplication in debug
+  mode.
+
+- The complex call helper functions were manually taking variable closure, which
+  made these functions inconsistent to other functions, e.g. no variable version
+  was allocated to assignments.
+
+  Removing the manual setting of variables also allowed a huge reduction of code
+  volume, as it became more generic code.
+
+- Many line length 80 changes, improved comments.
+
+Summary
+-------
+
+Not completed yet.
+
+The contributed "portable" code opens up a whole new area of use for Nuitka. We
+may see it evolved to replace "py2exe" for more and more people now.
+
+
 Nuitka Release 0.4.3
 ====================
 
@@ -23,8 +112,8 @@ New Features
   Nuitka uses Scons to build the generated C++ files. Unfortunately it requires
   Python2 to execute, which is not readily available to call from Python3. It
   now guesses the default installation paths of CPython 2.7 or CPython 2.6 and
-  it will use it for running Scons instead. You have to install it to"
-  C:\Python26" or "C:\Python27" for Nuitka to be able to find it.
+  it will use it for running Scons instead. You have to install it to
+  ``C:\Python26`` or ``C:\Python27`` for Nuitka to be able to find it.
 
 - Enhanced Python 3.3 compatibility.
 
@@ -291,10 +380,10 @@ Bug Fixes
   and should be present. This is now also supported by Nuitka. Corrects
   `Issue#75 <http://bugs.nuitka.net/issue75>`_.
 
-- Wrong optimization of ``a == a``, ``a != a``, ``a < a`` on C++ level.
+- Wrong optimization of ``a == a``, ``a != a``, ``a <= a`` on C++ level.
 
   While it's not done during Nuitka optimization, the rich comparison helpers
-  still contained short cuts for "==", "!=", and "<".
+  still contained short cuts for ``==``, ``!=``, and ``<=``.
 
 - The ``sys.executable`` for ``nuitka-python --python-version 3.2`` was still
   ``python``.
@@ -303,7 +392,8 @@ Bug Fixes
   looks at the name ``exec`` had received. It was ``python`` in all cases, but
   now it depends on the running version, so it propagates.
 
-- Keyword only functions with default values were loosing references to defaults.
+- Keyword only functions with default values were loosing references to
+  defaults.
 
   .. code-block:: python
 
@@ -616,7 +706,8 @@ New Features
 
   - Annotations of functions return value and their arguments.
 
-  - Exception causes, chaining, automatic deletion of exception handlers ``as`` values.
+  - Exception causes, chaining, automatic deletion of exception handlers ``as``
+    values.
 
   - Added support for starred assigns.
 
@@ -865,6 +956,7 @@ re-formulation being optimized away. This will be about achieving goals from the
 
 Also the performance page will be expanded with more benchmarks and diagrams as
 I go forward. I have finally given up on "codespeed", and do my own diagrams.
+
 
 Nuitka Release 0.3.25
 =====================
