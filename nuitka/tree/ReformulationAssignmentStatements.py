@@ -48,11 +48,11 @@ from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryInplace
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.SliceNodes import ExpressionSliceLookup
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
+    makeSequenceCreationOrConstant,
     buildNode,
     getKind
 )
@@ -76,8 +76,9 @@ def buildExtSliceNode( provider, node, source_ref ):
             )
         elif dim_kind == "Ellipsis":
             element = ExpressionConstantRef(
-                constant   = Ellipsis,
-                source_ref = source_ref
+                constant      = Ellipsis,
+                source_ref    = source_ref,
+                user_provided = True
             )
         elif dim_kind == "Index":
             element = buildNode(
@@ -90,7 +91,8 @@ def buildExtSliceNode( provider, node, source_ref ):
 
         elements.append( element )
 
-    return ExpressionMakeTuple(
+    return makeSequenceCreationOrConstant(
+        sequence_kind = "tuple",
         elements      = elements,
         source_ref    = source_ref
     )

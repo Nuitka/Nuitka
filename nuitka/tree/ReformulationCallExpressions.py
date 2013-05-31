@@ -23,11 +23,6 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionRef
 )
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeTuple,
-    ExpressionMakeDict,
-)
 from .Helpers import (
     makeSequenceCreationOrConstant,
     makeDictCreationOrConstant,
@@ -46,19 +41,19 @@ def buildCallNode( provider, node, source_ref ):
     for keyword in node.keywords:
         keys.append(
             ExpressionConstantRef(
-                constant   = keyword.arg,
-                source_ref = source_ref
+                constant      = keyword.arg,
+                source_ref    = source_ref,
+                user_provided = True
             )
         )
         values.append(
             buildNode( provider, keyword.value, source_ref )
         )
 
-    list_star_arg   = buildNode( provider, node.starargs, source_ref, True )
-    dict_star_arg   = buildNode( provider, node.kwargs, source_ref, True )
+    list_star_arg = buildNode( provider, node.starargs, source_ref, True )
+    dict_star_arg = buildNode( provider, node.kwargs, source_ref, True )
 
     return _makeCallNode(
-        provider        = provider,
         called          = buildNode( provider, node.func, source_ref ),
         positional_args = positional_args,
         keys            = keys,
@@ -68,8 +63,8 @@ def buildCallNode( provider, node, source_ref ):
         source_ref      = source_ref,
     )
 
-def _makeCallNode( provider, called, positional_args, keys, values,
-                   list_star_arg, dict_star_arg, source_ref ):
+def _makeCallNode( called, positional_args, keys, values, list_star_arg,
+                   dict_star_arg, source_ref ):
     # Many variables, but only to cover the many complex call cases.
     # pylint: disable=R0914
 
@@ -135,9 +130,10 @@ def _makeCallNode( provider, called, positional_args, keys, values,
 
         if positional_args:
             helper_args.append(
-                ExpressionMakeTuple(
-                    elements   = positional_args,
-                    source_ref = source_ref
+                makeSequenceCreationOrConstant(
+                    sequence_kind = "tuple",
+                    elements      = positional_args,
+                    source_ref    = source_ref
                 )
             )
 

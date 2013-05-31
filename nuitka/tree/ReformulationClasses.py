@@ -50,11 +50,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.ClassNodes import ExpressionSelectMetaclass
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeTuple,
-    ExpressionMakeDict
-)
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ContainerOperationNodes import (
     StatementDictOperationRemove,
     ExpressionDictOperationGet
@@ -77,6 +73,8 @@ from nuitka.nodes.ParameterSpecs import ParameterSpec
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    makeSequenceCreationOrConstant,
+    makeDictCreationOrConstant,
     makeStatementsSequence,
     buildStatementsNode,
     extractDocFromBody,
@@ -211,8 +209,9 @@ def _buildClassNode3( provider, node, source_ref ):
                     variable   = tmp_metaclass.makeReference( result ),
                     source_ref = source_ref
                 ),
-                args       = ExpressionMakeTuple(
-                    elements   = (
+                args       = makeSequenceCreationOrConstant(
+                    sequence_kind = "tuple",
+                    elements      = (
                         ExpressionConstantRef(
                             constant      = node.name,
                             source_ref    = source_ref,
@@ -226,7 +225,7 @@ def _buildClassNode3( provider, node, source_ref ):
                             source_ref = source_ref
                         )
                     ),
-                    source_ref = source_ref
+                    source_ref    = source_ref
                 ),
                 kw         = ExpressionTempVariableRef(
                     variable   = tmp_class_decl_dict.makeReference( result ),
@@ -302,17 +301,18 @@ def _buildClassNode3( provider, node, source_ref ):
                 variable   = tmp_class_decl_dict.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = ExpressionMakeDict(
-                pairs      = [
-                    ExpressionKeyValuePair(
-                        key        = ExpressionConstantRef(
-                            constant      = keyword.arg,
-                            source_ref    = source_ref,
-                            user_provided = True
-                        ),
-                        value      = buildNode( provider, keyword.value, source_ref ),
-                        source_ref = source_ref
+            source       = makeDictCreationOrConstant(
+                keys      = [
+                    ExpressionConstantRef(
+                        constant      = keyword.arg,
+                        source_ref    = source_ref,
+                        user_provided = True
                     )
+                    for keyword in
+                    node.keywords
+                ],
+                values = [
+                    buildNode( provider, keyword.value, source_ref )
                     for keyword in
                     node.keywords
                 ],
