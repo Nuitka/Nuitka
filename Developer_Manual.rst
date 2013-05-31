@@ -2881,6 +2881,11 @@ etc.
 
     This should be reflected in a class "VariableTrace".
 
+* Recursion checks are expensive.
+
+  If the "caller" or the "called" can declare that it cannot be called by
+  itself, we could leave it out.
+
 .. header::
 
    Nuitka - Developer Manual
