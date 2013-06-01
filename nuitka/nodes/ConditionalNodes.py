@@ -167,8 +167,12 @@ class StatementConditional( StatementChildrenHavingBase ):
 
             branch_yes_collection.process( yes_branch )
 
-            # May have just gone away.
+            # May have just gone away, so fetch it again.
             yes_branch = self.getBranchYes()
+
+            # If it's aborting, it doesn't contribute to merging.
+            if yes_branch is None or yes_branch.isStatementAborting():
+                branch_yes_collection = None
         else:
             branch_yes_collection = None
 
@@ -179,26 +183,34 @@ class StatementConditional( StatementChildrenHavingBase ):
 
             branch_no_collection.process( no_branch )
 
-            # May have just gone away.
+            # May have just gone away, so fetch it again.
             no_branch = self.getBranchNo()
+
+            # If it's aborting, it doesn't contribute to merging.
+            if no_branch is None or no_branch.isStatementAborting():
+                branch_yes_collection = None
         else:
             branch_no_collection = None
 
-
         # Merge into parent constraint collection.
-        constraint_collection.mergeBranches( branch_yes_collection, branch_no_collection )
+        constraint_collection.mergeBranches(
+            branch_yes_collection,
+            branch_no_collection
+        )
 
-        if yes_branch is not None and no_branch is not None:
+        if branch_yes_collection is not None and \
+           branch_no_collection is not None:
             # TODO: Merging should be done by method.
             constraint_collection.variables = constraint_collection.mergeBranchVariables(
                 branch_yes_collection.variables,
                 branch_no_collection.variables
             )
-        elif yes_branch is not None:
+        elif branch_yes_collection is not None:
             constraint_collection.mergeBranch( branch_yes_collection )
-        elif no_branch is not None:
+        elif branch_no_collection is not None:
             constraint_collection.mergeBranch( branch_no_collection )
-        else:
+
+        if yes_branch is None and no_branch is None:
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             # With both branches eliminated, the condition remains as a side effect.
