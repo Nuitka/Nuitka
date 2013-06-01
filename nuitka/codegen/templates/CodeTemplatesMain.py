@@ -318,8 +318,9 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 
 #ifdef _NUITKA_MODULE
-    // In case of a stand alone extension module, need to call initialization the init here
-    // because that's how we are going to get called here.
+    // In case of a stand alone extension module, need to call initialization
+    // the init here because that's the first and only time we are going to get
+    // called here.
 
     // Initialize the constant values used.
     _initBuiltinModule();
@@ -350,8 +351,11 @@ MOD_INIT_DECL( %(module_identifier)s )
 #if PYTHON_VERSION < 300
     _module_%(module_identifier)s = Py_InitModule4(
         "%(module_name)s",       // Module Name
-        NULL,                    // No methods initially, all are added dynamically in actual code only.
-        NULL,                    // No __doc__ is initially set, as it could not contain 0 this way, added early in actual code.
+        NULL,                    // No methods initially, all are added
+                                 // dynamically in actual module code only.
+        NULL,                    // No __doc__ is initially set, as it could
+                                 // not contain NUL this way, added early in
+                                 // actual code.
         NULL,                    // No self for modules, we don't use it.
         PYTHON_API_VERSION
     );
@@ -376,9 +380,9 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 #endif
 
-    // For deep importing of a module we need to have "__builtins__", so we set it
-    // ourselves in the same way than CPython does. Note: This must be done before
-    // the frame object is allocated, or else it may fail.
+    // For deep importing of a module we need to have "__builtins__", so we set
+    // it ourselves in the same way than CPython does. Note: This must be done
+    // before the frame object is allocated, or else it may fail.
 
     PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
 

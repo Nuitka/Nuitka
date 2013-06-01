@@ -216,7 +216,7 @@ catch ( PythonException &_exception )
     frame_guard.getFrame0()->f_locals = %(frame_locals)s;
 #endif
 
-// TODO:
+// Return the error.
     _exception.toPython();
 %(return_code)s
 }"""

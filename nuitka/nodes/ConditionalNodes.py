@@ -17,9 +17,9 @@
 #
 """ Conditional nodes.
 
-These is the conditional expression '(a if b else c)' and the conditional statement, that
-would be 'if a: ... else: ...' and there is no 'elif', because that is expressed via
-nesting of conditional statements.
+These is the conditional expression '(a if b else c)' and the conditional
+statement, 'if a: ... else: ...' and there is no 'elif', because that is
+expressed via nesting of conditional statements.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
@@ -213,7 +213,8 @@ class StatementConditional( StatementChildrenHavingBase ):
         if yes_branch is None and no_branch is None:
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-            # With both branches eliminated, the condition remains as a side effect.
+            # With both branches eliminated, the condition remains as a side
+            # effect.
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = condition,
                 node       = self
@@ -241,8 +242,9 @@ Both branches have no effect, reduced to evaluate condition."""
             return new_statement, "new_statements", """\
 Empty 'yes' branch for condition was replaced with inverted condition check."""
 
-        # Note: Checking the condition late, so that the surviving branches got processed
-        # already. Returning without doing that, will lead to errorneous assumptions.
+        # Note: Checking the condition late, so that the surviving branches got
+        # processed already. Returning without doing that, will corrupte the SSA
+        # results.
         if truth_value is not None:
             from .NodeMakingHelpers import wrapStatementWithSideEffects
 
@@ -272,6 +274,7 @@ Condition for branch was predicted to be always %s.""" % choice
             )
 
             return result, "new_raise", """\
-Conditional statements already raises implicitely in condition, removing branches"""
+Conditional statements already raises implicitely in condition, removing \
+branches"""
 
         return self, None, None

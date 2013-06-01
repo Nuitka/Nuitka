@@ -17,7 +17,9 @@
 #
 """ Variables link the storage and use of a Python variable together.
 
-Different kinds of variables represent different scopes and owners.
+Different kinds of variables represent different scopes and owners types,
+and their links between each other, i.e. references as in closure or
+module variable references.
 
 """
 
@@ -174,9 +176,15 @@ class Variable:
             )
 
     def getDeclarationCode( self ):
-        return self.getDeclarationTypeCode( in_context = False ) + " &" + self.getCodeName()
+        return self.getDeclarationTypeCode( in_context = False ) + \
+               " &" + self.getCodeName()
 
     def getMangledName( self ):
+        """ Get the mangled name of the variable.
+
+            By default no manglin is applied.
+        """
+
         return self.getName()
 
     def getDeclarationTypeCode( self, in_context ):
@@ -217,7 +225,8 @@ class VariableReferenceBase( Variable ):
         return self.variable
 
     def __cmp__( self, other ):
-        # Compare the referenced variable, so de-reference until it's no more possible.
+        # Compare the referenced variable, so de-reference until it's no more
+        # possible.
 
         while other.getReferenced() is not None:
             other = other.getReferenced()
@@ -329,7 +338,9 @@ class LocalVariable( Variable ):
             variable_name = variable_name
         )
 
-        assert not owner.isExpressionFunctionBody() or owner.local_locals or self.__class__ is not LocalVariable
+        assert not owner.isExpressionFunctionBody() or \
+               owner.local_locals or \
+               self.__class__ is not LocalVariable
 
     def __repr__( self ):
         return "<%s '%s' of '%s'>" % (
@@ -354,8 +365,13 @@ class LocalVariable( Variable ):
 class ClassVariable( LocalVariable ):
 
     def getMangledName( self ):
-        # Names like "__name__" are not mangled, only "__name" would be.
-        if not self.variable_name.startswith( "__" ) or self.variable_name.endswith( "__" ):
+        """ Get the mangled name of the variable.
+
+            In classes, names like "__name__" are not mangled, only "__name"
+            would be.
+        """
+        if not self.variable_name.startswith( "__" ) or \
+           self.variable_name.endswith( "__" ):
             return self.variable_name
         else:
             return "_" + self.owner.getName() + self.variable_name
@@ -405,7 +421,6 @@ class ParameterVariable( LocalVariable ):
             return "PyObjectLocalParameterVariableWithDel"
         else:
             return "PyObjectLocalParameterVariableNoDel"
-
 
 
 class NestedParameterVariable( ParameterVariable ):

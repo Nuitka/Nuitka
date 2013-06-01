@@ -86,7 +86,7 @@ class ExpressionComparison( ExpressionChildrenHavingBase ):
                     left_value,
                     right_value
                 ),
-                description = "Comparison with constant arguments"
+                description = "Comparison with constant arguments."
             )
 
         return self, None, None

@@ -845,14 +845,15 @@ class ExpressionMixin:
         pass
 
     def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
-        # By default, an attribute lookup may change everything about the lookup source.
-        # Virtual method, pylint: disable=R0201,W0613
+        # By default, an attribute lookup may change everything about the lookup
+        # source. Virtual method, pylint: disable=R0201,W0613
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
     def computeExpressionSubscript( self, lookup_node, subscript, constraint_collection ):
-        # By default, an subscript may change everything about the lookup source.
+        # By default, an subscript may change everything about the lookup
+        # source.
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None

@@ -678,7 +678,8 @@ def computeBuiltinCall( call_node, called ):
             )
         elif inspect_node.isExpressionBuiltin() or inspect_node.isStatementExec():
             tags = "new_builtin"
-            message = "Replaced call to builtin with builtin call %s." % (
+            message = "Replaced call to builtin %s with builtin call %s." % (
+                builtin_name,
                 inspect_node.kind,
             )
         elif inspect_node.isExpressionRaiseException():

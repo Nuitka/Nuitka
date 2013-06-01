@@ -148,7 +148,7 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
                     left_value,
                     right_value
                 ),
-                description = "Operator '%s' with constant arguments" % operator
+                description = "Operator '%s' with constant arguments." % operator
             )
         else:
             return self, None, None
@@ -192,7 +192,7 @@ class ExpressionOperationUnary( ExpressionOperationBase ):
                 computation = lambda : self.getSimulator()(
                     operand_value,
                 ),
-                description = "Operator '%s' with constant argument" % operator
+                description = "Operator '%s' with constant argument." % operator
             )
         else:
             return self, None, None

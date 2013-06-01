@@ -17,9 +17,9 @@
 #
 """ Control the flow of optimizations applied to node tree.
 
-Uses many optimization supplying visitors imported from the optimizations package, these
-can emit tags that can cause the re-execution of other optimization visitors, because
-e.g. a new constant determined could make another optimization feasible.
+Applies constraint collection on all so far known modules until no more
+optimization is possible. Every successful optimization to anything might
+make others possible.
 """
 
 from .Tags import TagSet

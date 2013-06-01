@@ -176,8 +176,9 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
 def makeStatementsSequenceOrStatement( statements, source_ref ):
     """ Make a statement sequence, but only if more than one statement
 
-    Useful for when we can unroll constructs already here, but are not sure if we actually
-    did that. This avoids the branch or the pollution of doing it always.
+    Useful for when we can unroll constructs already here, but are not sure if
+    we actually did that. This avoids the branch or the pollution of doing it
+    always.
     """
 
     if len( statements ) > 1:

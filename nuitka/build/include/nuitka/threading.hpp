@@ -47,15 +47,15 @@ NUITKA_MAY_BE_UNUSED static void CONSIDER_THREADING( void )
 #ifdef _NUITKA_EXPERIMENTAL
         if ( PyEval_ThreadsInitialized() )
         {
-            // Release and acquire the GIL, it's very inefficient, because we don't even know
-            // if it makes sense to do it. A controlling thread should be used to determine if
-            // it's needed at all.
+            // Release and acquire the GIL, it's very inefficient, because we
+            // don't even know if it makes sense to do it. A controlling thread
+            // should be used to determine if it's needed at all.
             PyEval_SaveThread();
             PyEval_AcquireThread( tstate );
         }
 #endif
 
-        if (unlikely( tstate->async_exc != NULL))
+        if (unlikely( tstate->async_exc != NULL ))
         {
             PyObjectTemporary tmp_async_exc( tstate->async_exc );
             tstate->async_exc = NULL;
