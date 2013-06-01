@@ -290,9 +290,12 @@ def _buildClassNode3( provider, node, source_ref ):
                 variable   = tmp_bases.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = ExpressionMakeTuple(
-                elements   = buildNodeList( provider, node.bases, source_ref ),
-                source_ref = source_ref
+            source       = makeSequenceCreationOrConstant(
+                sequence_kind = "tuple",
+                elements      = buildNodeList(
+                    provider, node.bases, source_ref
+                ),
+                source_ref    = source_ref
             ),
             source_ref   = source_ref
         ),
@@ -592,9 +595,12 @@ def _buildClassNode2( provider, node, source_ref ):
                 variable   = tmp_bases.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = ExpressionMakeTuple(
-                elements   = buildNodeList( provider, node.bases, source_ref ),
-                source_ref = source_ref
+            source       = makeSequenceCreationOrConstant(
+                sequence_kind = "tuple",
+                elements      = buildNodeList(
+                    provider, node.bases, source_ref
+                ),
+                source_ref    = source_ref
             ),
             source_ref   = source_ref
         ),
