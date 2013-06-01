@@ -1143,6 +1143,28 @@ def buildModuleTree( filename, package, is_top, is_main ):
         is_module   = True
     )
 
+    if is_main:
+        from nuitka.nodes.ImportNodes import ExpressionImportModule
+
+        module_body = makeStatementsSequence(
+            statements = (
+                StatementExpressionOnly(
+                    expression = ExpressionImportModule(
+                        module_name    = "site",
+                        import_list    = (),
+                        level          = 0,
+                        source_ref     = source_ref,
+                    ),
+                    source_ref  = source_ref.atInternal()
+                ),
+                module_body
+            ),
+            allow_none = True,
+            source_ref = source_ref
+        )
+
+
+
     result.setBody( module_body )
 
     addImportedModule( Utils.relpath( filename ), result )

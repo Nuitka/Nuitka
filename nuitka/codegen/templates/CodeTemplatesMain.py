@@ -68,7 +68,6 @@ int main( int argc, char *argv[] )
     Py_OptimizeFlag = %(python_sysflag_optimize)d;
     Py_DontWriteBytecodeFlag = %(python_sysflag_dont_write_bytecode)d;
     Py_NoUserSiteDirectory = %(python_sysflag_no_user_site)d;
-    Py_NoSiteFlag = %(python_sysflag_no_site)d;
     Py_IgnoreEnvironmentFlag = %(python_sysflag_ignore_environment)d;
 #if %(python_sysflag_tabcheck)d
     Py_TabcheckFlag = %(python_sysflag_tabcheck)d;
@@ -81,8 +80,16 @@ int main( int argc, char *argv[] )
 #if %(python_sysflag_hash_randomization)d
     Py_HashRandomizationFlag = %(python_sysflag_hash_randomization)d;
 #endif
+
+    // We want to import the site module, but only after we finished our own
+    // setup. The site module import will be the first thing, the main module
+    // does.
+    Py_NoSiteFlag = 1;
+
+    // Initialize the embedded CPython interpreter.
     Py_Initialize();
 
+    // Set the command line parameters
     setCommandLineParameters( argc, argv );
 
     // Initialize the constant values used.
@@ -106,7 +113,6 @@ int main( int argc, char *argv[] )
     );
 
     patchInspectModule();
-
     patchBuiltinModule();
 
     // Execute the "__main__" module init function.
