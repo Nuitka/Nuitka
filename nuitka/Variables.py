@@ -121,34 +121,38 @@ class Variable:
 
     # pylint: enable=R0201
 
-    def _checkShared( self, variable ):
+    def _checkShared( self, variable, technical ):
         for reference in variable.references:
-            # print "Checking", reference, "of", variable
+            # print( "Checking", reference, "of", variable )
 
-            if self._checkShared( reference ):
+            if self._checkShared( reference, technical ):
                 return True
 
             top_owner = reference.getReferenced().getOwner()
             owner = reference.getOwner()
 
-            while owner.isExpressionFunctionBody() and not owner.isGenerator() and not owner.needsCreation():
+            # The generations and functions that are not created, get things
+            # passed, and do not need the variable to share.
+            while technical and \
+                  owner.isExpressionFunctionBody() and \
+                  not owner.isGenerator() and not owner.needsCreation():
                 owner = owner.getParentVariableProvider()
 
-            # This defines being shared. Owned by one, and references that are owned by
-            # another node.
+            # This defines being shared. Owned by one, and references that are
+            # owned by another node.
             if owner != top_owner:
                 return True
         else:
             return False
 
 
-    def isShared( self ):
+    def isShared( self, technical = False ):
         variable = self
 
         while variable.isClosureReference():
             variable = variable.getReferenced()
 
-        return self._checkShared( variable )
+        return self._checkShared( variable, technical )
 
     reference_class = None
 
@@ -255,7 +259,7 @@ class ClosureVariableReference( VariableReferenceBase ):
                 assert False, self
 
     def getDeclarationTypeCode( self, in_context ):
-        if self.getReferenced().isShared():
+        if self.getReferenced().isShared( True ):
             if in_context:
                 return "PyObjectClosureVariable"
             else:
@@ -341,7 +345,7 @@ class LocalVariable( Variable ):
         return "python_var_" + self.getName()
 
     def getDeclarationTypeCode( self, in_context ):
-        if self.isShared():
+        if self.isShared( True ):
             return "PyObjectSharedLocalVariable"
         else:
             return "PyObjectLocalVariable"
@@ -395,7 +399,7 @@ class ParameterVariable( LocalVariable ):
         return self.kw_only
 
     def getDeclarationTypeCode( self, in_context ):
-        if self.isShared():
+        if self.isShared( True ):
             return "PyObjectSharedLocalVariable"
         elif self.getHasDelIndicator():
             return "PyObjectLocalParameterVariableWithDel"
