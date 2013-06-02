@@ -329,14 +329,18 @@ class StatementDelVariable( StatementChildrenHavingBase ):
 
     getTargetVariableRef = StatementChildrenHavingBase.childGetter( "variable_ref" )
     def computeStatement( self, constraint_collection ):
-        variable = self.getTargetVariableRef()
+        variable = self.getTargetVariableRef().getVariable()
 
-        if variable in constraint_collection.variables:
-            assert False # TODO: This must be dead code obviously.
+        trace = constraint_collection.getVariableCurrentTrace( variable )
 
-            constraint_collection.variables[ variable ].onRelease( constraint_collection )
+        if trace.isUninitTrace():
+            if self.isTolerant():
+                return (
+                    None,
+                    "new_statements",
+                    "Removed tolerate del without effect."
+                )
 
-            del constraint_collection.variables[ variable ]
 
         constraint_collection.onVariableDel(
             del_node = self

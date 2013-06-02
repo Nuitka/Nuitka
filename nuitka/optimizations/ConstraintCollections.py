@@ -84,6 +84,9 @@ class VariableTraceBase:
     def isAssignTrace( self ):
         return False
 
+    def isUninitTrace( self ):
+        return False
+
 
 class VariableUninitTrace( VariableTraceBase ):
     def __init__( self, variable, version ):
@@ -92,6 +95,9 @@ class VariableUninitTrace( VariableTraceBase ):
             variable = variable,
             version  = version
         )
+
+    def isUninitTrace( self ):
+        return True
 
     def dump( self ):
         debug( "Trace of %s %d:", self.variable, self.version )
