@@ -111,17 +111,34 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #endif
 
 
-#if PYTHON_VERSION < 300
-
-// With the idea to reduce the amount of exported symbols, make it clear that
-// the module init function should of course be exported.
+// With the idea to reduce the amount of exported symbols in the DLLs, make it
+// clear that the module init function should of course be exported, but not for
+// executable, where we call it ourselves.
 #if defined( _NUITKA_EXE )
+
+#if PYTHON_VERSION < 300
 #define NUITKA_MODULE_INIT_FUNCTION void
+#else
+#define NUITKA_MODULE_INIT_FUNCTION PyObject *
+#endif
+
 #elif defined( __GNUC__ )
+
+#if PYTHON_VERSION < 300
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__(( visibility( "default" )))
 #else
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
+#define NUITKA_MODULE_INIT_FUNCTION extern "C" __attribute__(( visibility( "default" ))) PyObject *
 #endif
+
+#else
+
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
+
+#endif
+
+// The name of the entry point for DLLs changed between Python versions, and
+// this is.
+#if PYTHON_VERSION < 300
 
 #define MOD_INIT_NAME( name ) init##name
 #define MOD_INIT_DECL( name ) NUITKA_MODULE_INIT_FUNCTION init##name( void )
@@ -130,11 +147,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #else
 
 #define MOD_INIT_NAME( name ) PyInit_##name
-#if defined( _NUITKA_EXE )
-#define MOD_INIT_DECL( name ) PyObject *PyInit_##name( void )
-#else
-#define MOD_INIT_DECL( name ) PyMODINIT_FUNC PyInit_##name( void )
-#endif
+#define MOD_INIT_DECL( name ) NUITKA_MODULE_INIT_FUNCTION PyInit_##name( void )
 #define MOD_RETURN_VALUE( value ) value
 
 #endif
