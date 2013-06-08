@@ -184,11 +184,13 @@ def executePASS1():
 
     print( "Compiling", nuitka_main_path )
 
+    shutil.copyfile( nuitka_main_path, "nuitka.py" )
+
     result = subprocess.call(
         "%s %s %s --exe --recurse-none --output-dir %s %s" % (
             os.environ[ "PYTHON" ],
             nuitka_main_path,
-            nuitka_main_path,
+            "nuitka.py",
             ".",
             os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
         ),
