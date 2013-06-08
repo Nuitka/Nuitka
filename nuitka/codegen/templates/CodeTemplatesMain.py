@@ -290,24 +290,24 @@ extern PyObject *loader_frozen_modules;
 
 #endif
 
-#ifdef _NUITKA_EXE
-static bool init_done = false;
-#endif
-
-// The exported interface to CPython. On import of the module, this function gets
-// called. It has have that exact function name.
+// The exported interface to CPython. On import of the module, this function
+// gets called. It has to have an exact function name, in cases it's a shared
+// library export. This is hidden behind the MOD_INIT_DECL.
 
 MOD_INIT_DECL( %(module_identifier)s )
 {
-#ifdef _NUITKA_EXE
+
+#if defined( _NUITKA_EXE ) || PYTHON_VERSION >= 300
+    static bool _init_done = false;
+
     // Packages can be imported recursively in deep executables.
-    if ( init_done )
+    if ( _init_done )
     {
         return MOD_RETURN_VALUE( _module_%(module_identifier)s );
     }
     else
     {
-        init_done = true;
+        _init_done = true;
     }
 #endif
 
