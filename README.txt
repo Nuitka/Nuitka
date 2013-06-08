@@ -137,6 +137,54 @@ feasible, use Nuitka like this:
    otherwise the package is empty. Data files located inside the package will
    not be embedded yet.
 
+Use Case 4 - Cross compilation to Windows
+-----------------------------------------
+
+Nuitka can cross compile to Windows from other platforms, specifically Linux, and these are the instructions on how to do it.
+
+1. Make sure to have the latest wine installed.
+
+   .. code-block:: bash
+
+      apt-get install wine-unstable
+
+   .. note::
+
+      Make sure to actually use the "i386" architecture. From multiarch enabled
+      debian systems, that may mean to say "wine-unstable:i386", otherwise it
+      won't work.
+
+2. Make sure to use the latest "mxe" environment as the cross compiler.
+
+   .. code-block:: bash
+
+      git clone https://github.com/mxe/mxe.git
+      cd mxe
+      make gcc
+      mkdir -p /opt
+      cd /opt
+      ln -s $OLDPWD mingw
+
+   Nuitka will use "/opt/mingw" to locate the cross compiler.
+
+3. Install the *same* Python version as you have under Linux.
+
+   .. code-block:: bash
+
+      wine msiexec /i python-2.7.5.msi
+
+   .. note::
+
+      You don't have to install documentation, TCL/Tk files, or Python tests to
+      preserve disk space.
+
+.. code-block:: bash
+
+    nuitka-python --windows-target program.py
+
+To test the binary, use "wine program.exe", the "nuitka-python" does it
+automatically for you.
+
 Where to go next
 ================
 
