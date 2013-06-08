@@ -44,7 +44,6 @@ NUITKA_MAY_BE_UNUSED static void CONSIDER_THREADING( void )
         PyThreadState *tstate = PyThreadState_GET();
         assert( tstate );
 
-#ifdef _NUITKA_EXPERIMENTAL
         if ( PyEval_ThreadsInitialized() )
         {
             // Release and acquire the GIL, it's very inefficient, because we
@@ -53,7 +52,6 @@ NUITKA_MAY_BE_UNUSED static void CONSIDER_THREADING( void )
             PyEval_SaveThread();
             PyEval_AcquireThread( tstate );
         }
-#endif
 
         if (unlikely( tstate->async_exc != NULL ))
         {
