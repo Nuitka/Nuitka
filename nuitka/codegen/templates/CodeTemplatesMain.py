@@ -383,7 +383,9 @@ MOD_INIT_DECL( %(module_identifier)s )
 #ifdef _NUITKA_EXE
         if ( _module_%(module_identifier)s != _module___main__ )
         {
+#endif
             value = PyModule_GetDict( value );
+#ifdef _NUITKA_EXE
         }
 #endif
 

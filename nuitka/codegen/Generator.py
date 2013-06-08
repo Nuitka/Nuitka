@@ -2622,7 +2622,7 @@ def getFrameGuardOnceCode( frame_identifier, code_identifier, locals_identifier,
         "module_identifier" : getModuleAccessCode( context = context ),
         "frame_locals"      : locals_identifier.getCodeExportRef(),
         "tb_making"         : tb_making.getCodeExportRef(),
-        "return_code"       : indented( context.getReturnCode() )
+        "return_code"       : indented( context.getReturnErrorCode() )
     }
 
 def getFrameGuardLightCode( frame_identifier, code_identifier, codes, context ):

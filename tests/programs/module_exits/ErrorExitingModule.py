@@ -19,6 +19,6 @@
 
 import sys
 
-print type( __builtins__ )
-sys.exit("aus")
-print "This won't happen!"
+print( type( __builtins__ ) )
+sys.exit("Module doing sys.exit")
+print( "This won't happen!" )

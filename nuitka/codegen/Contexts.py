@@ -376,10 +376,8 @@ class PythonModuleContext( PythonContextBase ):
     def setFrameGuardMode( self, guard_mode ):
         assert guard_mode == "once"
 
-    def getReturnCode( self ):
-        return "return MOD_RETURN_VALUE( _module_%s );" % (
-            self.getModuleCodeName()
-        )
+    def getReturnErrorCode( self ):
+        return "return MOD_RETURN_VALUE( NULL );"
 
     def addHelperCode( self, key, code ):
         assert key not in self.helper_codes, key

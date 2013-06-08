@@ -1919,8 +1919,9 @@ void _initBuiltinOriginalValues()
     assertObject( _python_original_builtin_value_range );
 }
 
-#if PYTHON_VERSION >= 300
-volatile int _Py_Ticker = _Py_CheckInterval;
 #endif
 
+// Used for threading.
+#if PYTHON_VERSION >= 300
+volatile int _Py_Ticker = _Py_CheckInterval;
 #endif
