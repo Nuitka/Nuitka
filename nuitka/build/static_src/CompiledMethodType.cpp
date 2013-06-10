@@ -233,7 +233,7 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
             new_args[ i + 1 ] = PyTuple_GET_ITEM( args, i );
         }
 
-        if ( kw )
+        if ( kw || method->m_function->m_direct_arg_parser == NULL )
         {
             return method->m_function->m_code(
                 method->m_function,
