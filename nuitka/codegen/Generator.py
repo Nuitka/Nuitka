@@ -2022,7 +2022,10 @@ def _getFuncDefaultValue( defaults_identifier ):
 
 def _getFuncKwDefaultValue( kw_defaults_identifier ):
     if kw_defaults_identifier.isConstantIdentifier():
-        return kw_defaults_identifier
+        if kw_defaults_identifier.getConstant():
+            return kw_defaults_identifier
+        else:
+            return SpecialConstantIdentifier( constant_value = None )
     else:
         return Identifier( "kwdefaults", 1 )
 
