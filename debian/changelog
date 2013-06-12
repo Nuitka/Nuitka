@@ -1,9 +1,9 @@
-nuitka (0.4.4~pre2+ds-1) UNRELEASED; urgency=low
+nuitka (0.4.4~pre3+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
   * Bump to Standards Version 3.9.4, no changes needed.
 
- -- Kay Hayen <kayhayen@gmx.de>  Fri, 31 May 2013 18:39:40 +0200
+ -- Kay Hayen <kayhayen@gmx.de>  Wed, 12 Jun 2013 23:22:47 +0200
 
 nuitka (0.4.3+ds-1) unstable; urgency=low
 
