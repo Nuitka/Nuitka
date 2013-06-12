@@ -289,6 +289,14 @@ if os.name != "nt" and "CXX" not in env:
 The g++ compiler '%s' (version %s) doesn't have the sufficient \
 version (>= 4.4).""" % ( orig_cxx, orig_cxx_version ) )
 
+if "CXX" not in env:
+    if os.name == "nt":
+        sys.exit( """\
+Error, cannot locate suitable C++ compiler. Install MinGW to 'C:\\MinGW'
+exactly or execute from 'Visual Studio Command Prompt' so MSVC can be found.""" )
+    else:
+        sys.exit( "Error, cannot locate suitable C++ compiler." )
+
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
 
