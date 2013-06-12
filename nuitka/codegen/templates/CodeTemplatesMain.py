@@ -45,6 +45,8 @@ main_program = """\
 // The main program for C++. It needs to prepare the interpreter and then calls the
 // initialization code of the __main__ module.
 
+#include "structseq.h"
+
 int main( int argc, char *argv[] )
 {
 #ifdef _NUITKA_PORTABLE
@@ -89,6 +91,10 @@ int main( int argc, char *argv[] )
     // Initialize the embedded CPython interpreter.
     Py_Initialize();
 
+    // Lie about it, believe it or not, there are "site" files, that check
+    // against later imports, see below.
+    Py_NoSiteFlag = 0;
+
     // Set the command line parameters
     setCommandLineParameters( argc, argv );
 
@@ -96,6 +102,16 @@ int main( int argc, char *argv[] )
     _initBuiltinModule();
     _initConstants();
     _initBuiltinOriginalValues();
+
+    // Revert the wrong sys.flags value, it's used by "site" on at least Debian
+    // for Python3.3, more uses may exist.
+#if PYTHON_VERSION >= 330
+    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, _python_int_0 );
+#elif PYTHON_VERSION >= 320
+    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 7, _python_int_0 );
+#elif PYTHON_VERSION >= 260
+    PyStructSequence_SET_ITEM( PySys_GetObject( (char *)"flags" ), 9, _python_int_0 );
+#endif
 
     // Initialize the compiled types of Nuitka.
     PyType_Ready( &Nuitka_Generator_Type );

@@ -35,3 +35,5 @@ if __name__ == "__main__":
     args[0] = os.path.basename( args[0] ).replace( ".exe", ".py" ).replace( ".py", "" )
 
     print "Arguments were", args
+
+    print "Flags are", sys.flags

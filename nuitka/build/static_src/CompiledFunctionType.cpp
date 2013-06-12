@@ -549,6 +549,7 @@ static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_par
     result->m_defaults = defaults;
 
 #if PYTHON_VERSION >= 300
+    assert( kwdefaults );
     assert( kwdefaults == Py_None || ( PyDict_Check( kwdefaults ) && PyDict_Size( kwdefaults ) > 0 ) );
     result->m_kwdefaults = kwdefaults;
 
