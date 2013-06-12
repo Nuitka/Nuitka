@@ -1,6 +1,7 @@
 nuitka (0.4.4~pre2+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
+  * Bump to Standards Version 3.9.4, no changes needed.
 
  -- Kay Hayen <kayhayen@gmx.de>  Fri, 31 May 2013 18:39:40 +0200
 
