@@ -176,6 +176,11 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
 }
 
+#ifdef _MSC_VER
+// Using _alloca below.
+#include <malloc.h>
+#endif
+
 static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *args, PyObject *kw )
 {
     Py_ssize_t arg_count = PyTuple_Size( args );
@@ -225,7 +230,11 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
     }
     else
     {
+#ifdef _MSC_VER
+        PyObject **new_args = (PyObject **)_alloca( sizeof( PyObject * ) *( arg_count + 1 ) );
+#else
         PyObject *new_args[ arg_count + 1 ];
+#endif
         new_args[ 0 ] = method->m_object;
 
         for ( int i = 0; i < arg_count; i++ )
