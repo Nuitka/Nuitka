@@ -28,7 +28,7 @@ def getCallCodeNoArgs( called_identifier ):
         1
     )
 
-quick_calls_used = set()
+quick_calls_used = set([1])
 
 def getCallCodePosArgsQuick( context, order_relevance, called_identifier,
                              arguments ):
