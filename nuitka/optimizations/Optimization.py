@@ -24,7 +24,7 @@ make others possible.
 
 from .Tags import TagSet
 
-from nuitka import Options, Variables
+from nuitka import ModuleRegistry, Options, Variables
 from nuitka.tree import Building
 
 from nuitka.Tracing import printLine
@@ -71,6 +71,7 @@ def optimizeModule( module ):
         printLine( "Doing module local optimizations for '%s'." % module.getFullName() )
 
     tag_set = TagSet()
+    touched = False
 
     while True:
         tag_set.clear()
@@ -83,38 +84,33 @@ def optimizeModule( module ):
         if not tag_set:
             break
 
-    return module
+        touched = True
 
-def getImportedModules():
-    return Building.getImportedModules()
+    return touched
 
-def optimizeWhole( main_module ):
-    done_modules = set()
-
-    optimizeModule( main_module )
-    done_modules.add( main_module )
-
-    if _progress:
-        printLine( "Finished. %d more modules to go." % len( getImportedModules() ) )
-
-    finished = False
-
-    while not finished:
+def optimize():
+    while True:
         finished = True
+        ModuleRegistry.startTraversal()
 
-        for module in list( getImportedModules() ):
-            if module not in done_modules:
-                optimizeModule(
-                    module = module
+        while True:
+            current_module = ModuleRegistry.nextModule()
+
+            if current_module is None:
+                break
+
+            if _progress:
+                printLine(
+                    "Optimizing module '%s', %d more modules to go after that." % (
+                        current_module.getFullName(),
+                        ModuleRegistry.remainingCount()
+                    )
                 )
 
-                done_modules.add( module )
+            changed = optimizeModule( current_module )
 
-                if _progress:
-                    printLine(
-                        "Finished. %d more modules to go." % (
-                            len( getImportedModules() ) - len( done_modules )
-                        )
-                    )
-
+            if changed:
                 finished = False
+
+        if finished:
+            break

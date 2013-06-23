@@ -58,6 +58,7 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
         self.level = level
 
         self.attempted_recurse = False
+        self.found_modules = ()
 
     def getDetails( self ):
         return {
@@ -230,6 +231,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
             if imported_module is not None:
                 self.setModule( imported_module )
+                self.found_modules = []
 
                 import_list = self.getImportList()
 
@@ -245,11 +247,14 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         )
 
                         if module_filename is not None:
-                            _imported_module = self._consider(
+                            sub_imported_module = self._consider(
                                 constraint_collection = constraint_collection,
                                 module_filename       = module_filename,
                                 module_package        = module_package
                             )
+
+                            if sub_imported_module is not None:
+                                self.found_modules.append( sub_imported_module )
 
 
     def computeExpression( self, constraint_collection ):
@@ -260,6 +265,13 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             )
 
             self.setAttemptedRecurse()
+
+        if self.getModule() is not None:
+            from nuitka.ModuleRegistry import addUsedModule
+            addUsedModule( self.getModule() )
+
+            for found_module in self.found_modules:
+                addUsedModule( found_module )
 
         # TODO: May return a module reference of some sort in the future with
         # embedded modules.

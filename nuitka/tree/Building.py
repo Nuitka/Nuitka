@@ -1015,9 +1015,6 @@ def getImportedModule( module_relpath ):
 
     return imported_modules[ key ]
 
-def getImportedModules():
-    return list( imported_modules.values() )
-
 def buildModuleTree( filename, package, is_top, is_main ):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
 

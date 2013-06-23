@@ -28,6 +28,7 @@ from .tree import (
 )
 
 from . import (
+    ModuleRegistry,
     Tracing,
     TreeXML,
     Options,
@@ -59,6 +60,7 @@ def createNodeTree( filename ):
         is_top   = True,
         is_main  = not Options.shallMakeModule()
     )
+    ModuleRegistry.addRootModule( result )
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
@@ -68,9 +70,7 @@ def createNodeTree( filename ):
         )
 
     # Then optimize the tree and potentially recursed modules.
-    Optimization.optimizeWhole(
-        main_module = result
-    )
+    Optimization.optimize()
 
     return result
 
@@ -191,12 +191,8 @@ def makeSourceDirectory( main_module ):
     global_context = CodeGeneration.makeGlobalContext()
 
     # Get the full list of modules imported, create code for all of them.
-    modules = Building.getImportedModules()
+    modules = ModuleRegistry.getDoneModules()
     assert main_module in modules
-
-    from nuitka.tree import ComplexCallHelperFunctions
-    if ComplexCallHelperFunctions.internal_module is not None:
-        modules.append( ComplexCallHelperFunctions.internal_module )
 
     # Sometimes we need to talk about all modules except main module.
     other_modules = tuple(
