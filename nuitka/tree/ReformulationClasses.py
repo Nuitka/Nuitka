@@ -178,7 +178,7 @@ def _buildClassNode3( provider, node, source_ref ):
 
     if Utils.python_version >= 330:
         if provider.isExpressionFunctionBody():
-            qualname = provider.getName() + ".<locals>." + node.name
+            qualname = provider.getFunctionQualname() + ".<locals>." + node.name
         else:
             qualname = node.name
 

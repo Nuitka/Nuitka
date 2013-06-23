@@ -186,6 +186,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
 
         if provider.isPythonModule():
             return function_name
+        elif provider.isClassDictCreation():
+            return provider.getFunctionQualname() + "." + function_name
         else:
             return provider.getFunctionQualname() + ".<locals>." + function_name
 
