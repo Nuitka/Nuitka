@@ -33,10 +33,11 @@ static PyObject *Nuitka_Generator_tp_repr( Nuitka_GeneratorObject *generator )
 
 static long Nuitka_Generator_tp_traverse( PyObject *function, visitproc visit, void *arg )
 {
-    // TODO: Identify the impact of not visiting owned objects and/or if it could be NULL
-    // instead. The methodobject visits its self and module. I understand this is probably
-    // so that back references of this function to its upper do not make it stay in the
-    // memory. A specific test if that works might be needed.
+    // TODO: Identify the impact of not visiting owned objects and/or if it
+    // could be NULL instead. The methodobject visits its self and module. I
+    // understand this is probably so that back references of this function to
+    // its upper do not make it stay in the memory. A specific test if that
+    // works might be needed.
     return 0;
 }
 
@@ -69,7 +70,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
         {
             generator->m_status = status_Running;
 
-            // Prepare the generator context to run. TODO: Make stack size rational.
+            // Prepare the generator context to run. TODO: Make stack size
+            // rational.
             prepareFiber( &generator->m_yielder_context, generator->m_code, (unsigned long)generator );
         }
 
@@ -86,7 +88,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         if ( generator->m_frame )
         {
-            // It would be nice if our frame were still alive. Nobody had the right to release it.
+            // It would be nice if our frame were still alive. Nobody had the
+            // right to release it.
             assertFrameObject( generator->m_frame );
 
             // It's not supposed to be on the top right now.

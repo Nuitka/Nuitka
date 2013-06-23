@@ -48,9 +48,9 @@ def visitFunctions( tree, visitor ):
 
 class VisitorNoopMixin:
     def onEnterNode( self, node ):
-        """ To be optionally overloaded for operation before the node children were done. """
+        """ Overloaded for operation before the node children were done. """
         pass
 
     def onLeaveNode( self, node ):
-        """ To be optionally overloaded for operation after the node children were done. """
+        """ Overloaded for operation after the node children were done. """
         pass

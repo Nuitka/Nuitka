@@ -53,7 +53,7 @@ def _optimizeModulePass( module, tag_set ):
         old_value = variable.getReadOnlyIndicator()
         new_value = variable not in written_variables
 
-        if old_value is not new_value and new_value:
+        if old_value is not new_value:
             # Don't suddenly start to write.
             assert not (new_value is False and old_value is True)
 

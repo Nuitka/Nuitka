@@ -87,6 +87,9 @@ class VariableTraceBase:
     def isUninitTrace( self ):
         return False
 
+    def isMergeTrace( self ):
+        return False
+
 
 class VariableUninitTrace( VariableTraceBase ):
     def __init__( self, variable, version ):
@@ -177,6 +180,9 @@ class VariableMergeTrace( VariableTraceBase ):
         self.trace_no = trace_no
 
         self.forwarded = True
+
+    def isMergeTrace( self ):
+        return True
 
     def addUsage( self, ref_node ):
         if not self.usages:
@@ -291,7 +297,7 @@ class CollectionStartpointMixin:
 
         # Cannot mess with local variables that much, as "locals" and "eval"
         # calls may not yet be known.
-        self.unclear_locals = None
+        self.unclear_locals = False
 
     def getVariableTrace( self, variable, version ):
         return self.variable_traces[ ( variable, version ) ]
@@ -949,6 +955,8 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
         for variable_trace in self.variable_traces.values():
             variable = variable_trace.getVariable()
 
+            # print variable
+
             if variable.isLocalVariable() and not variable.isShared():
                 if variable_trace.isAssignTrace():
                     assign_node = variable_trace.getAssignNode()
@@ -976,6 +984,14 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
                                 assign_node.parent.getSourceReference(),
                                 "Removed assignment without effect."
                             )
+                elif variable_trace.isMergeTrace():
+                    # print variable_trace
+                    if not variable_trace.getDefiniteUsages() and \
+                       not variable_trace.isEscaped() and \
+                       not variable_trace.releases:
+                        pass
+                        # print "HIT", variable_trace
+
 
 
     def onLocalVariableAssigned( self, variable, value_friend ):

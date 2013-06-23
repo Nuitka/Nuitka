@@ -163,9 +163,11 @@ import ast, sys
 from logging import warning
 
 def buildVariableReferenceNode( provider, node, source_ref ):
-    # Python3 is influenced by the mere use of a variable name. So we need to remember it,
-    # esp. for cases, where it is optimized away.
-    if Utils.python_version >= 300 and node.id == "super" and provider.isExpressionFunctionBody():
+    # Python3 is influenced by the mere use of a variable name. So we need to
+    # remember it, esp. for cases, where it is optimized away.
+    if Utils.python_version >= 300 and \
+       node.id == "super" and \
+       provider.isExpressionFunctionBody():
         provider.markAsClassClosureTaker()
 
     return ExpressionVariableRef(

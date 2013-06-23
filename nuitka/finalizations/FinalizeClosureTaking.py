@@ -17,10 +17,10 @@
 #
 """ Finalize the closure.
 
-If a taker wants a variable, make sure that the closure taker in between all do forward it
-for this use or else it will not be available. We do this late so it is easier to remove
-closure variables and keep track of references, by not having it spoiled with these
-transitive only references.
+If a taker wants a variable, make sure that the closure taker in between all do
+forward it for this use or else it will not be available. We do this late so it
+is easier to remove closure variables and keep track of references, by not
+having it spoiled with these transitive only references.
 
 """
 
@@ -52,7 +52,7 @@ class FinalizeClosureTaking( FinalizationVisitorBase ):
                         current.addClosureVariable( referenced )
 
                 # Detect loops in the provider relationship
-                assert current.getParentVariableProvider() is not current, current
+                assert current.getParentVariableProvider() is not current
 
                 current = current.getParentVariableProvider()
 

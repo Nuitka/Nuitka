@@ -28,8 +28,9 @@ extern PyObject *_python_str_plain___class__;
 extern PyObject *_python_str_plain___enter__;
 extern PyObject *_python_str_plain___exit__;
 
-// From CPython, to allow us quick access to the dictionary of an module, the structure is
-// normally private, but we need it for quick access to the module dictionary.
+// From CPython, to allow us quick access to the dictionary of an module, the
+// structure is normally private, but we need it for quick access to the module
+// dictionary.
 typedef struct {
     PyObject_HEAD
     PyObject *md_dict;
@@ -39,7 +40,7 @@ extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 
-// Helper to check that an object is valid and has reference count better than 0.
+// Helper to check that an object is valid and has positive reference count.
 static inline void assertObject( PyObject *value )
 {
     assert( value != NULL );
@@ -51,8 +52,9 @@ static inline void assertObject( PyTracebackObject *value )
     assertObject( (PyObject *)value );
 }
 
-// Due to ABI issues, it seems that on Windows the symbols used by _PyObject_GC_TRACK are
-// not exported and we need to use a function that does it instead.
+// Due to ABI issues, it seems that on Windows the symbols used by
+// _PyObject_GC_TRACK are not exported and we need to use a function that does
+// it instead.
 #if defined( _WIN32 )
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
@@ -64,7 +66,7 @@ static inline void assertObject( PyTracebackObject *value )
 #include "nuitka/variables_temporary.hpp"
 #include "nuitka/exceptions.hpp"
 
-// For the EVAL_ORDER and MAKE_TUPLE macros.
+// For the MAKE_TUPLE macros.
 #include "__helpers.hpp"
 
 // Helper functions for reference count handling in the fly.

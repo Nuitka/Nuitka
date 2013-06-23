@@ -93,8 +93,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TRACEBACK( PyFrameObject *frame )
 extern PyObject *_python_str_plain_exc_type, *_python_str_plain_exc_value, *_python_str_plain_exc_traceback;
 #endif
 
-// Helper that sets the current thread exception, releasing the current one, for use in this
-// file only.
+// Helper that sets the current thread exception, releasing the current one, for
+// use in this file only.
 inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb )
 {
     PyThreadState *thread_state = PyThreadState_GET();
@@ -415,8 +415,8 @@ public:
             Py_XINCREF( this->exception_value );
             Py_XINCREF( this->exception_tb );
 
-            // Restore the frame line number from the traceback, if present. Otherwise it
-            // will changed already.
+            // Restore the frame line number from the traceback, if
+            // present. Otherwise it will changed already.
             if ( this->exception_tb )
             {
                 this->exception_tb->tb_frame->f_lineno = this->exception_tb->tb_lineno;

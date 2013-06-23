@@ -34,7 +34,7 @@ from nuitka.__past__ import iterItems
 
 from .ConstantRefNodes import ExpressionConstantRef
 
-def _isReadOnlyUnterdetermindModuleVariable( variable ):
+def _isReadOnlyUnterdeterminedModuleVariable( variable ):
     return variable.isModuleVariable() and \
            variable.getReadOnlyIndicator() is None
 
@@ -94,8 +94,9 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
     def computeExpression( self, constraint_collection ):
         assert self.variable is not None
 
-        if _isReadOnlyUnterdetermindModuleVariable( self.variable ):
+        if _isReadOnlyUnterdeterminedModuleVariable( self.variable ):
             constraint_collection.assumeUnclearLocals()
+            constraint_collection.signalChange( "new_expression", self.source_ref, "txt" )
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:

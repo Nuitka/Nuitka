@@ -77,7 +77,8 @@ def generateListCreationCode( elements, context ):
             context             = context
         )
 
-def generateConditionCode( condition, context, inverted = False, allow_none = False ):
+def generateConditionCode( condition, context, inverted = False,
+                           allow_none = False ):
     # The complexity is needed to avoid unnecessary complex generated C++, so
     # e.g. inverted is typically a branch inside every optimizable case.
     # pylint: disable=R0912,R0915
@@ -110,7 +111,9 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
         comparator = condition.getComparator()
 
         # Do not allow this, expected to be optimized away.
-        assert not inverted or comparator not in PythonOperators.comparison_inversions, condition
+        assert not inverted or \
+              comparator not in PythonOperators.comparison_inversions, \
+                 condition
 
         result = Generator.getComparisonExpressionBoolCode(
             order_relevance = getOrderRelevance(
@@ -711,8 +714,8 @@ def generateCallCode( call_node, context ):
 
             return Generator.getCallCodePosArgsQuick(
                 order_relevance   =
-                   ( call_node.isOrderRelevant(), ) + ( None, ) * len( call_args.getConstant() ),
-
+                   ( call_node.isOrderRelevant(), ) + \
+                   ( None, ) * len( call_args.getConstant() ),
                 called_identifier = called_identifier,
                 arguments         = [
                     Generator.getConstantHandle(
@@ -724,7 +727,6 @@ def generateCallCode( call_node, context ):
                 ],
                 context           = context
             )
-
         else:
             return Generator.getCallCodePosArgs(
                 order_relevance   = getOrderRelevance(
@@ -861,7 +863,10 @@ def generateExpressionCode( expression, context, allow_none = False ):
             Tracing.printError( "Illegal variable reference, not resolved" )
 
             expression.dump()
-            assert False, ( expression.getSourceReference(), expression.getVariableName() )
+            assert False, (
+                expression.getSourceReference(),
+                expression.getVariableName()
+            )
 
         identifier = Generator.getVariableHandle(
             variable = expression.getVariable(),
@@ -1032,7 +1037,9 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 condition = expression.getCondition(),
                 context   = context
             ),
-            identifier_yes = makeExpressionCode( expression.getExpressionYes() ),
+            identifier_yes = makeExpressionCode(
+                expression.getExpressionYes()
+            ),
             identifier_no  = makeExpressionCode( expression.getExpressionNo() )
         )
     elif expression.isExpressionBuiltinRange1():
@@ -1464,11 +1471,15 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionSelectMetaclass():
         identifier = Generator.getSelectMetaclassCode(
-            metaclass_identifier = makeExpressionCode( expression.getMetaclass(), allow_none = True ),
+            metaclass_identifier = makeExpressionCode(
+                expression.getMetaclass(),
+                allow_none = True
+            ),
             bases_identifier     = makeExpressionCode( expression.getBases() ),
             context              = context
         )
-    elif Utils.python_version < 300 and expression.isExpressionBuiltinExecfile():
+    elif Utils.python_version < 300 and \
+         expression.isExpressionBuiltinExecfile():
         identifier = generateExecfileCode(
             context       = context,
             execfile_node = expression

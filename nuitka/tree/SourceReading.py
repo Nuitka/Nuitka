@@ -17,8 +17,8 @@
 #
 """ Read source code from files.
 
-This is tremendously more complex than one might think, due to encoding issues and
-version differences of Python.
+This is tremendously more complex than one might think, due to encoding issues
+and version differences of Python.
 """
 
 from nuitka import Utils, SyntaxErrors, SourceCodeReferences
@@ -41,14 +41,18 @@ def _readSourceCodeFromFilename3( source_filename ):
         if line_match:
             encoding = line_match.group(1).decode( "ascii" )
 
-            # Detect encoding problem, as decode won't raise the compatible thing.
+            # Detect encoding problem, as decode won't raise the compatible
+            # thing.
             try:
                 import codecs
                 codecs.lookup( encoding )
             except LookupError:
                 SyntaxErrors.raiseSyntaxError(
                     reason       = "unknown encoding: %s" % encoding,
-                    source_ref   = SourceCodeReferences.fromFilename( source_filename, None ),
+                    source_ref   = SourceCodeReferences.fromFilename(
+                        source_filename,
+                        None
+                    ),
                     display_line = False
                 )
 
@@ -117,15 +121,23 @@ def _readSourceCodeFromFilename2( source_filename ):
                     # Cannot happen, decode error implies non-empty.
                     count = -1
 
-                wrong_byte = re.search( "byte 0x([a-f0-9]{2}) in position", str( e ) ).group( 1 )
+                wrong_byte = re.search(
+                    "byte 0x([a-f0-9]{2}) in position",
+                    str( e )
+                ).group( 1 )
 
                 SyntaxErrors.raiseSyntaxError(
-                    reason     = "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % ( # pylint: disable=C0301
+                    reason     = """\
+Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
+see http://www.python.org/peps/pep-0263.html for details""" % (
                         wrong_byte,
                         source_filename,
                         count+1,
                     ),
-                    source_ref = SourceCodeReferences.fromFilename( source_filename, None ).atLineNumber( count+1 ),
+                    source_ref = SourceCodeReferences.fromFilename(
+                        source_filename,
+                        None
+                    ).atLineNumber( count+1 ),
                     display_line = False
                 )
 

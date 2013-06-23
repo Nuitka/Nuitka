@@ -512,8 +512,8 @@ def open_extractor( node ):
     )
 
 def super_extractor( node ):
-    # Need to accept type and object as keyword argument, that is just the API of super,
-    # pylint: disable=W0622
+    # Need to accept type and object as keyword argument, that is just the API
+    # of super, pylint: disable=W0622
     def wrapSuperBuiltin( type, object, source_ref ):
         if type is None and python_version >= 300:
             provider = node.getParentVariableProvider()

@@ -42,8 +42,8 @@ module_inittab_entry = """\
 { (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ) },"""
 
 main_program = """\
-// The main program for C++. It needs to prepare the interpreter and then calls the
-// initialization code of the __main__ module.
+// The main program for C++. It needs to prepare the interpreter and then
+// calls the initialization code of the __main__ module.
 
 #include "structseq.h"
 
@@ -298,7 +298,8 @@ static struct PyModuleDef _moduledef =
 // For embedded modules, to be unpacked. Used by main program/package only
 extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules );
 
-// Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
+// Our own inittab for lookup of "frozen" modules, i.e. the ones included in
+// this binary.
 static struct _inittab _frozen_modules[] =
 {
 %(module_inittab)s

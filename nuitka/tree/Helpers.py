@@ -134,12 +134,13 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
     if nodes is None:
         return None
 
-    # Build as list of statements, throw away empty ones, and remove useless nesting.
+    # Build as list of statements, throw away empty ones, and remove useless
+    # nesting.
     statements = buildNodeList( provider, nodes, source_ref, allow_none = True )
     statements = mergeStatements( statements )
 
-    # We are not creating empty statement sequences. Might be empty, because e.g. a global
-    # node generates not really a statement, or pass statements.
+    # We are not creating empty statement sequences. Might be empty, because
+    # e.g. a global node generates not really a statement, or pass statements.
     if not statements:
         return None
 

@@ -353,8 +353,8 @@ class StatementImportStar( StatementChildrenHavingBase ):
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getModule() )
 
-        # Need to invalidate everything, and everything could be assigned to something
-        # else now.
+        # Need to invalidate everything, and everything could be assigned to
+        # something else now.
         constraint_collection.removeAllKnowledge()
 
         return self, None, None
@@ -388,6 +388,6 @@ class ExpressionImportName( ExpressionChildrenHavingBase ):
     getModule = ExpressionChildrenHavingBase.childGetter( "module" )
 
     def computeExpression( self, constraint_collection ):
-        # TODO: May return a module or module variable reference of some sort in the
-        # future with embedded modules.
+        # TODO: May return a module or module variable reference of some sort in
+        # the future with embedded modules.
         return self, None, None

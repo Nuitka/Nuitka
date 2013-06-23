@@ -33,9 +33,10 @@ def buildComparisonNode( provider, node, source_ref ):
 
     assert len( node.comparators ) == len( node.ops )
 
-    # Comparisons are re-formulated as described in the developer manual. When having
-    # multiple compators, things require assignment expressions and references of them to
-    # work properly. Then they can become normal "and" code.
+    # Comparisons are re-formulated as described in the developer manual. When
+    # having multiple compators, things require assignment expressions and
+    # references of them to work properly. Then they can become normal "and"
+    # code.
 
     # The operands are split out
     left = buildNode( provider, node.left, source_ref )
@@ -45,8 +46,8 @@ def buildComparisonNode( provider, node, source_ref ):
         node.comparators
     ]
 
-    # Only the first comparison has as left operands as the real thing, the others must
-    # reference the previous comparison right one temp variable ref.
+    # Only the first comparison has as left operands as the real thing, the
+    # others must reference the previous comparison right one temp variable ref.
     result = []
 
     # For PyLint to like it, this will hold the previous one, normally.
@@ -54,8 +55,8 @@ def buildComparisonNode( provider, node, source_ref ):
 
     for comparator, right in zip( node.ops, rights ):
         if result:
-            # Now we know it's not the only one, so we change the "left" to be a reference
-            # to the previously saved right side.
+            # Now we know it's not the only one, so we change the "left" to be a
+            # reference to the previously saved right side.
             left = ExpressionTempKeeperRef(
                 variable   = keeper_variable.makeReference( provider ),
                 source_ref = source_ref
@@ -64,9 +65,10 @@ def buildComparisonNode( provider, node, source_ref ):
             keeper_variable = None
 
         if right is not rights[-1]:
-            # Now we know it's not the last one, so we ought to preseve the "right" so it
-            # can be referenced by the next part that will come. We do it by assining it
-            # to a temp variable to be shared with the next part.
+            # Now we know it's not the last one, so we ought to preseve the
+            # "right" so it can be referenced by the next part that will
+            # come. We do it by assining it to a temp variable to be shared with
+            # the next part.
             keeper_variable = provider.getTempKeeperVariable()
 
             right = ExpressionAssignmentTempKeeper(
