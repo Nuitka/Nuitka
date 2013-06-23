@@ -99,8 +99,7 @@ def _getParameterParsingCode( context, parameters, function_name ):
             )
 
             parameter_assign_from_kw = CodeTemplates.argparse_template_assign_from_dict_finding % {
-                "parameter_name"        : variable.getName(),
-                "function_name"         : function_name,
+                "parameter_name" : variable.getName(),
             }
 
             if variable.isParameterVariableKwOnly():
@@ -128,23 +127,20 @@ def _getParameterParsingCode( context, parameters, function_name ):
         }
 
     if parameters.isEmpty():
-        parameter_parsing_code += CodeTemplates.template_parameter_function_refuses % {
-            "function_name" : function_name,
-        }
+        parameter_parsing_code += CodeTemplates.template_parameter_function_refuses % {}
     else:
-        if parameters.getListStarArgVariable() is None:
-            check_template = CodeTemplates.parse_argument_template_check_counts_without_list_star_arg
-        else:
-            check_template = CodeTemplates.parse_argument_template_check_counts_with_list_star_arg
-
         required_parameter_count = plain_possible_count - \
                                    parameters.getDefaultCount()
 
-        parameter_parsing_code += check_template % {
-            "function_name"             : function_name,
-            "top_level_parameter_count" : plain_possible_count,
-            "required_parameter_count"  : required_parameter_count,
-        }
+        if parameters.getListStarArgVariable() is None:
+            parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts_without_list_star_arg % {
+                "top_level_parameter_count" : plain_possible_count,
+                "required_parameter_count"  : required_parameter_count,
+            }
+        else:
+            parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts_with_list_star_arg  % {
+                "required_parameter_count"  : required_parameter_count,
+            }
 
     if plain_possible_count > 0:
         parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {

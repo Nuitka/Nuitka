@@ -607,3 +607,140 @@ PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dpa
     return make_kfunction( fparse, dparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, context, cleanup );
 }
 #endif
+
+void ERROR_NO_ARGUMENTS_ALLOWED( Nuitka_FunctionObject *function,
+#if PYTHON_VERSION >= 330
+                                 PyObject *kw,
+#endif
+                                 Py_ssize_t given )
+{
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+
+#if PYTHON_VERSION < 330
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes no arguments (%zd given)",
+        function_name,
+        given );
+#else
+    if ( kw == NULL )
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes 0 positional arguments but %zd was given",
+            function_name,
+            given
+         );
+    }
+    else
+    {
+       PyObject *tmp_iter = PyObject_GetIter( kw );
+       PyObject *tmp_arg_name = PyIter_Next( tmp_iter );
+       Py_DECREF( tmp_iter );
+
+       PyErr_Format( PyExc_TypeError,
+           "%s() got an unexpected keyword argument '%s'",
+           function_name,
+           Nuitka_String_AsString( tmp_arg_name )
+       );
+
+       Py_DECREF( tmp_arg_name );
+    }
+#endif
+}
+
+void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
+#if PYTHON_VERSION < 270
+                              Py_ssize_t kw_size,
+#endif
+                              Py_ssize_t given )
+{
+    Py_ssize_t required_parameter_count =
+        function->m_code_object->co_argcount;
+
+    if ( function->m_defaults != Py_None )
+    {
+        required_parameter_count -= PyTuple_GET_SIZE( function->m_defaults );
+    }
+
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+    char const *violation =
+        ( function->m_defaults != Py_None || function->m_code_object->co_flags & CO_VARARGS ) ? "at least" : "exactly";
+    char const *plural =
+       required_parameter_count == 1 ? "" : "s";
+
+#if PYTHON_VERSION < 270
+    if ( kw_size > 0 )
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes %s %zd non-keyword argument%s (%zd given)",
+            function_name,
+            violation,
+            required_parameter_count,
+            plural,
+            given
+        );
+    }
+    else
+#endif
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes %s %zd argument%s (%zd given)",
+            function_name,
+            violation,
+            required_parameter_count,
+            plural,
+            given
+        );
+    }
+}
+
+void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject *function,
+                               Py_ssize_t given )
+{
+    Py_ssize_t top_level_parameter_count = function->m_code_object->co_argcount;
+
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+#if PYTHON_VERSION < 330
+    char const *violation =
+       function->m_defaults != Py_None ? "at most" : "exactly";
+#endif
+    char const *plural =
+       top_level_parameter_count == 1 ? "" : "s";
+
+#if PYTHON_VERSION < 300
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes %s %zd argument%s (%zd given)",
+        function_name,
+        violation,
+        top_level_parameter_count,
+        plural,
+        given
+    );
+#elif PYTHON_VERSION < 330
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes %s %zd positional argument%s (%zd given)",
+        function_name,
+        violation,
+        top_level_parameter_count,
+        plural,
+        given
+    );
+#else
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes %zd positional argument%s but %zd were given",
+        function_name,
+        top_level_parameter_count,
+        plural,
+        given
+    );
+#endif
+}

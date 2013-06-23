@@ -107,4 +107,18 @@ static inline PyObject *Nuitka_Function_GetName( PyObject *object )
     return ((Nuitka_FunctionObject *)object)->m_name;
 }
 
+extern void ERROR_TOO_MANY_ARGUMENTS( struct Nuitka_FunctionObject *function,
+                                      Py_ssize_t given );
+extern void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
+#if PYTHON_VERSION < 270
+                                     Py_ssize_t kw_size,
+#endif
+                                     Py_ssize_t given );
+
+extern void ERROR_NO_ARGUMENTS_ALLOWED( struct Nuitka_FunctionObject *function,
+#if PYTHON_VERSION >= 330
+                                        PyObject *kw,
+#endif
+                                        Py_ssize_t given );
+
 #endif

@@ -48,23 +48,18 @@ template_parameter_function_refuses = r"""
 if (unlikely( args_given + kw_size > 0 ))
 {
 #if PYTHON_VERSION < 330
-    PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%zd given)", args_given + kw_size );
+    ERROR_NO_ARGUMENTS_ALLOWED(
+       self,
+       args_given + kw_size
+    );
 #else
-    if ( kw_size == 0 )
-    {
-       PyErr_Format( PyExc_TypeError, "%(function_name)s() takes 0 positional arguments but %%zd was given", args_given );
-    }
-    else
-    {
-       PyObject *tmp_iter = PyObject_GetIter( kw );
-       PyObject *tmp_arg_name = PyIter_Next( tmp_iter );
-       Py_DECREF( tmp_iter );
-
-       PyErr_Format( PyExc_TypeError, "%(function_name)s() got an unexpected keyword argument '%%s'", Nuitka_String_AsString( tmp_arg_name ) );
-
-       Py_DECREF( tmp_arg_name );
-    }
+    ERROR_NO_ARGUMENTS_ALLOWED(
+       self,
+       kw_size > 0 ? kw : NULL,
+       args_given
+    );
 #endif
+
     goto error_exit;
 }
 """
@@ -73,23 +68,13 @@ parse_argument_template_check_counts_with_list_star_arg = r"""
 // Check if too little arguments were given.
 if (unlikely( args_given + kw_found - kw_only_found < %(required_parameter_count)d ))
 {
-    if ( %(top_level_parameter_count)d == 1 )
-    {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%zd given)", args_given + kw_found );
-    }
-    else
-    {
 #if PYTHON_VERSION < 270
-        if ( kw_size > 0 )
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_found );
-        }
-        else
+    ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
+#elif PYTHON_VERSION < 300
+    ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
+#else
+    ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found - kw_only_found );
 #endif
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_found );
-        }
-    }
 
     goto error_exit;
 }
@@ -99,71 +84,24 @@ parse_argument_template_check_counts_without_list_star_arg = r"""
 // Check if too many arguments were given in case of non star args
 if (unlikely( args_given > %(top_level_parameter_count)d ))
 {
-    if ( %(top_level_parameter_count)d == 1 )
-    {
 #if PYTHON_VERSION < 300
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given + kw_found );
-#elif PYTHON_VERSION < 330
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 positional argument (%%zd given)", args_given + kw_only_found );
+    ERROR_TOO_MANY_ARGUMENTS( self, args_given + kw_found );
 #else
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes 1 positional argument but %%zd were given", args_given + kw_only_found );
+    ERROR_TOO_MANY_ARGUMENTS( self, args_given + kw_only_found );
 #endif
-    }
-    else
-    {
-#if PYTHON_VERSION < 300
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
-#elif PYTHON_VERSION < 330
-        if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d positional arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_only_found );
-        }
-        else
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at most %%d positional arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_only_found );
-        }
-#else
-        if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes %%d positional arguments but %%zd were given", %(top_level_parameter_count)d, args_given + kw_only_found );
-        }
-        else
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at most %%d positional arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_only_found );
-        }
-#endif
-    }
-
     goto error_exit;
 }
 
 // Check if too little arguments were given.
 if (unlikely( args_given + kw_found - kw_only_found < %(required_parameter_count)d ))
 {
-    if ( %(top_level_parameter_count)d == 1 )
-    {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given + kw_found - kw_only_found );
-    }
-    else
-    {
 #if PYTHON_VERSION < 270
-        if ( kw_size > 0 )
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_found  );
-        }
-        else
+    ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
+#elif PYTHON_VERSION < 300
+    ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
+#else
+    ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found - kw_only_found );
 #endif
-        {
-            if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
-            {
-                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(required_parameter_count)d, args_given + kw_found - kw_only_found );
-            }
-            else
-            {
-                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(required_parameter_count)d, args_given + kw_found - kw_only_found );
-            }
-        }
-    }
 
     goto error_exit;
 }
@@ -456,12 +394,7 @@ if ( found == false && RICH_COMPARE_BOOL_EQ_PARAMETERS( %(parameter_name_object)
 
 
 argparse_template_assign_from_dict_finding = """\
-if (unlikely( _python_par_%(parameter_name)s ))
-{
-    PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
-    goto error_exit;
-}
-
+assert( _python_par_%(parameter_name)s == NULL );
 _python_par_%(parameter_name)s = value;
 """
 
