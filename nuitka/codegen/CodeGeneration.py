@@ -2618,7 +2618,8 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
 
 def generateMainCode( module, codes, context ):
     if module.getBody() is not None:
-        code_identifier = context.getCodeObjectHandle(
+        code_identifier = Generator.getCodeObjectHandle(
+            context       = context,
             filename      = module.source_ref.getFilename(),
             arg_names     = (),
             kw_only_count = 0,

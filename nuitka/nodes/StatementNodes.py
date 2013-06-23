@@ -175,7 +175,11 @@ class StatementsFrame( StatementsSequence ):
     def getCodeObjectHandle( self, context ):
         provider = self.getParentVariableProvider()
 
-        return context.getCodeObjectHandle(
+        # TODO: Why do this accessing a node, do this outside.
+        from nuitka.codegen.CodeObjectCodes import getCodeObjectHandle
+
+        return getCodeObjectHandle(
+            context       = context,
             filename      = self.source_ref.getFilename(),
             arg_names     = self.getArgNames(),
             kw_only_count = self.getKwOnlyParameterCount(),

@@ -97,6 +97,12 @@ from .ParameterParsing import (
     getParameterParsingCode,
 )
 
+from .CodeObjectCodes import (
+    getCodeObjectsDeclCode,
+    getCodeObjectsInitCode,
+    getCodeObjectHandle,
+)
+
 from . import (
     CodeTemplates,
     OperatorCodes,
@@ -2187,7 +2193,8 @@ def getGeneratorFunctionCode( context, function_name,
         "context_access"      : indented( context_access_instance, 2 ),
     }
 
-    code_identifier = context.getCodeObjectHandle(
+    code_identifier = getCodeObjectHandle(
+        context       = context,
         filename      = source_ref.getFilename(),
         arg_names     = parameters.getCoArgNames(),
         kw_only_count = parameters.getKwOnlyParameterCount(),
@@ -2264,7 +2271,8 @@ def getFunctionMakerCode( context, function_name, function_qualname,
         constant = function_name
     )
 
-    code_identifier = context.getCodeObjectHandle(
+    code_identifier = getCodeObjectHandle(
+        context       = context,
         filename      = source_ref.getFilename(),
         arg_names     = parameters.getCoArgNames(),
         kw_only_count = parameters.getKwOnlyParameterCount(),
@@ -2514,27 +2522,45 @@ def getStatementTrace( source_desc, statement_repr ):
 
 
 def getConstantsDeclarationCode( context ):
-    constants_declarations = CodeTemplates.template_constants_declaration % {
-        "constant_declarations" : getConstantsDeclCode(
-            context    = context,
-            for_header = True
-        )
+    constant_declarations = getConstantsDeclCode(
+        context    = context,
+        for_header = True
+    )
+
+    constant_declarations += getCodeObjectsDeclCode(
+        for_header = True
+    )
+
+    header_body = CodeTemplates.template_constants_declaration % {
+        "constant_declarations" : "\n".join( constant_declarations )
     }
 
     return CodeTemplates.template_header_guard % {
         "header_guard_name" : "__NUITKA_DECLARATIONS_H__",
-        "header_body"       : constants_declarations
+        "header_body"       : header_body
     }
 
 def getConstantsDefinitionCode( context ):
+    constant_inits = getConstantsInitCode(
+        context    = context
+    )
+
+    constant_inits += getCodeObjectsInitCode(
+        context    = context
+    )
+
+    constant_declarations = getConstantsDeclCode(
+        context    = context,
+        for_header = False
+    )
+
+    constant_declarations += getCodeObjectsDeclCode(
+        for_header = False
+    )
+
     return CodeTemplates.template_constants_reading % {
-        "constant_declarations" : getConstantsDeclCode(
-            context    = context,
-            for_header = False
-        ),
-        "constant_inits"        : getConstantsInitCode(
-            context    = context
-        ),
+        "constant_declarations" : "\n".join( constant_declarations ),
+        "constant_inits"        : indented( constant_inits ),
         "needs_pickle"          : "true" if needsPickleInit() else "false"
     }
 
