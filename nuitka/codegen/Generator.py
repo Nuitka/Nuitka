@@ -44,7 +44,9 @@ from .Indentation import (
 from .OrderedEvaluation import (
     getOrderRelevanceEnforcedCallCode,
     getOrderRelevanceEnforcedArgsCode,
-    _getAssignmentTempKeeperCode
+    _getAssignmentTempKeeperCode,
+    getLineNumberCode,
+    pickFirst
 )
 
 # imported from here pylint: disable=W0611
@@ -811,16 +813,6 @@ def getSliceDelCode( target, lower, upper ):
         _defaultToNoneIdentifier( upper ).getCodeTemporaryRef()
     )
 
-def getLineNumberCode( source_ref ):
-    if source_ref.shallSetCurrentLine():
-        return "frame_guard.setLineNumber( %d );\n" % source_ref.getLineNumber()
-    else:
-        return ""
-
-def getLineNumberCommentCode( source_ref ):
-    return "// line %d\n" % source_ref.getLineNumber()
-
-
 def getLoopCode( loop_body_codes, needs_break_exception,
                  needs_continue_exception ):
     if needs_break_exception and needs_continue_exception:
@@ -1101,7 +1093,7 @@ def getRaiseExceptionWithCauseCode( context, order_relevance, exception_type,
     )
 
     return getOrderRelevanceEnforcedCallCode(
-        order_relevance = order_relevance + [ True ],
+        order_relevance = order_relevance + [ None ],
         helper          = "RAISE_EXCEPTION_WITH_CAUSE",
         names           = (
             "exception_type", "exception_cause", "exception_tb"
@@ -1118,7 +1110,7 @@ def getRaiseExceptionWithTypeCode( context, order_relevance, exception_type ):
     )
 
     return getOrderRelevanceEnforcedCallCode(
-        order_relevance = order_relevance + [ True ],
+        order_relevance = order_relevance + [ None ],
         helper          = "RAISE_EXCEPTION_WITH_TYPE",
         names           = (
             "exception_type", "exception_tb"
@@ -1141,7 +1133,7 @@ def getRaiseExceptionWithValueCode( context, order_relevance, exception_type,
         helper = "RAISE_EXCEPTION_WITH_VALUE"
 
     return getOrderRelevanceEnforcedCallCode(
-        order_relevance = order_relevance + [ True ],
+        order_relevance = order_relevance + [ None ],
         helper          = helper,
         names           = (
             "exception_type", "exception_value", "exception_tb"
@@ -1263,7 +1255,7 @@ def getMakeBuiltinExceptionCode( context, order_relevance, exception_type,
             order_relevance     = order_relevance,
             context             = context,
         ),
-        order_relevance   = ( False, True ),
+        order_relevance   = ( None, None ),
         context           = context
     )
 
@@ -1433,7 +1425,7 @@ def getStoreLocalsCode( context, source_identifier, provider ):
                 context    = context,
                 variable   = variable,
                 identifier = getSubscriptLookupCode(
-                    order_relevance = ( False, False ),
+                    order_relevance = ( None, None ),
                     subscript       = key_identifier,
                     source          = source_identifier,
                     context         = context
@@ -1480,7 +1472,7 @@ def getEvalCode( context, order_relevance, exec_code, filename_identifier,
                  globals_identifier, locals_identifier, mode_identifier,
                  future_flags ):
     code_identifier = getCompileCode(
-        order_relevance     = [ False ] * 4,
+        order_relevance     = [ None ] * 4, # TODO: Probably wrong.
         source_identifier   = exec_code,
         filename_identifier = filename_identifier,
         mode_identifier     = mode_identifier,

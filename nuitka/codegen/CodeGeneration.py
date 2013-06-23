@@ -316,16 +316,28 @@ def generateFunctionCreationCode( function_body, defaults, kw_defaults,
     )
 
     default_args = []
+    order_relevance = []
 
     if not kw_defaults_identifier.isConstantIdentifier():
         default_args.append( kw_defaults_identifier )
+        order_relevance.extend(
+            getOrderRelevance( ( kw_defaults, ) )
+        )
 
     if not defaults_identifier.isConstantIdentifier():
         default_args.append( defaults_identifier )
 
+        order_relevance.append(
+            Generator.pickFirst( getOrderRelevance( defaults ) )
+        )
+
     if annotations_identifier is not None and \
        not annotations_identifier.isConstantIdentifier():
         default_args.append( annotations_identifier )
+
+        order_relevance.extend(
+            getOrderRelevance( ( annotations, ) )
+        )
 
     function_identifier = function_body.getCodeName()
 
@@ -335,6 +347,7 @@ def generateFunctionCreationCode( function_body, defaults, kw_defaults,
         function_qualname      = function_body.getFunctionQualname(),
         function_identifier    = function_identifier,
         parameters             = parameters,
+        local_variables        = function_body.getLocalVariables(),
         closure_variables      = function_body.getClosureVariables(),
         defaults_identifier    = defaults_identifier,
         kw_defaults_identifier = kw_defaults_identifier,
@@ -367,7 +380,7 @@ def generateFunctionCreationCode( function_body, defaults, kw_defaults,
 
     return Generator.getFunctionCreationCode(
         function_identifier = function_body.getCodeName(),
-        order_relevance     = [ True ] * len( default_args ),
+        order_relevance     = order_relevance,
         default_args        = default_args,
         closure_variables   = function_body.getClosureVariables(),
         context             = context
@@ -646,7 +659,7 @@ def generateSliceLookupCode( expression, context ):
             return Generator.getSubscriptLookupCode(
                 order_relevance = (
                     order_relevance[0],
-                    any( order_relevance[1:] )
+                    Generator.pickFirst( order_relevance[1:] )
                 ),
                 source          = generateExpressionCode(
                     expression = expression.getLookupSource(),
@@ -816,18 +829,18 @@ def generateExpressionsCode( expressions, context, allow_none = False ):
     ]
 
 def getOrderRelevance( expressions, allow_none = False ):
-    if allow_none:
-        return [
-            expression.isOrderRelevant() if expression is not None else None
-            for expression in
-            expressions
-        ]
-    else:
-        return [
-            expression.isOrderRelevant()
-            for expression in
-            expressions
-        ]
+    result = []
+
+    for expression in expressions:
+        if expression is None and allow_none:
+            result.append( None )
+        elif expression.isOrderRelevant():
+            result.append( expression.getSourceReference() )
+        else:
+            result.append( None )
+
+
+    return result
 
 def generateExpressionCode( expression, context, allow_none = False ):
     # This is a dispatching function with a branch per expression node type, and
@@ -1512,7 +1525,7 @@ def generateAssignmentVariableCode( variable_ref, value, context ):
 def generateAssignmentAttributeCode( lookup_source, attribute_name, value,
                                      context ):
     order_relevance = getOrderRelevance( ( value, lookup_source ) )
-    order_relevance.append( False )
+    order_relevance.append( None )
 
     return Generator.getAttributeAssignmentCode(
         order_relevance = order_relevance,
@@ -1583,7 +1596,7 @@ def generateAssignmentSliceCode( lookup_source, lower, upper, value, context ):
                 order_relevance = (
                     order_relevance[0],
                     order_relevance[1],
-                    any( order_relevance[2:] )
+                    Generator.pickFirst( order_relevance[2:] )
                 ),
                 subscribed = generateExpressionCode(
                     expression = lookup_source,
@@ -1653,7 +1666,7 @@ def generateDelSliceCode( lookup_source, lower, upper, context ):
         return Generator.getSubscriptDelCode(
             order_relevance = (
                 order_relevance[0],
-                any( order_relevance[1:] )
+                Generator.pickFirst( order_relevance[1:] )
             ),
             subscribed      = generateExpressionCode(
                 expression = lookup_source,
@@ -1976,7 +1989,7 @@ def generateImportModuleCode( expression, context ):
             context     = context
         )
 
-    order_relevance = [ False ] * 5
+    order_relevance = [ None ] * 5
 
     return Generator.getBuiltinImportCode(
         order_relevance    = order_relevance,
@@ -2458,10 +2471,15 @@ def generateStatementSequenceCode( statement_sequence, context,
         # Cannot happen
         assert code != "", statement
 
-        if source_ref != last_ref and statement.needsLineNumber():
-            code = Generator.getLineNumberCode(
-                source_ref = source_ref
-            ) + code
+        if source_ref != last_ref and \
+           statement.needsLineNumber() and \
+           source_ref.shallSetCurrentLine():
+
+            line_code = Generator.getLineNumberCode(
+                line_number = source_ref.getLineNumber()
+            )
+
+            code = line_code + ";\n" + code
 
             last_ref = source_ref
 

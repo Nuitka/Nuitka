@@ -30,6 +30,16 @@ from .Indentation import (
     indented
 )
 
+def getLineNumberCode( line_number ):
+    return "frame_guard.setLineNumber( %d )" % line_number
+
+def pickFirst( order_relevance ):
+    for value in order_relevance:
+        if value:
+            return value
+    else:
+        return None
+
 def _getAssignmentTempKeeperCode( source_identifier, variable_name, context ):
     ref_count = source_identifier.getCheapRefCount()
 
@@ -58,17 +68,25 @@ def getOrderRelevanceEnforcedArgsCode( helper, tmp_scope, order_relevance, args,
 
     assert len( args ) == len( order_relevance )
 
-    if order_relevance.count( True ) >= 2:
-        order_relevance = _getMinimalOrderRelevance( order_relevance )
+    if order_relevance.count( None ) <= len( args ) - 2:
+        order_relevance, lines = _getMinimalOrderRelevance( order_relevance )
+
+        assert len( args ) == len( lines )
 
         order_codes = []
         arg_codes = []
 
-        for argument, order_relevant in zip( args, order_relevance ):
+        for argument, order_relevant, line in zip(
+                args, order_relevance, lines ):
             variable_name = "%s%d" % (
                 tmp_scope,
                 context.allocateCallTempNumber()
             )
+
+            if line:
+                order_codes.append(
+                    getLineNumberCode( line )
+                )
 
             if order_relevant:
                 order_codes.append(
@@ -128,34 +146,58 @@ def getOrderRelevanceEnforcedArgsCode( helper, tmp_scope, order_relevance, args,
             )
 
 def _getMinimalOrderRelevance( order_relevance ):
-    if order_relevance:
-        last_true = None
-        for count, value in enumerate( order_relevance ):
-            if value:
-                last_true = count
+    last_true = None
 
+    lines = []
+    last_line = None
 
-        if last_true is not None:
-            new_order_relevance = list( order_relevance )
-            new_order_relevance[ last_true ] = False
+    for count, value in enumerate( order_relevance ):
+        if value:
+            last_true = count
 
-            return new_order_relevance
+            if value.shallSetCurrentLine():
+                line = value.getLineNumber()
 
-    return order_relevance
+                if last_line != line:
+                    last_line = line
+
+                    lines.append( line )
+                else:
+                    lines.append( None )
+            else:
+                lines.append( None )
+        else:
+            lines.append( None )
+
+    if last_true is not None:
+        new_order_relevance = list( order_relevance )
+        new_order_relevance[ last_true ] = None
+        order_relevance = new_order_relevance
+
+    return order_relevance, lines
 
 def _getTempDeclCode( order_relevance, names, values ):
     assert len( names ) == len( values )
     assert len( names ) == len( order_relevance )
 
-    order_relevance = _getMinimalOrderRelevance( order_relevance )
+    order_relevance, lines = _getMinimalOrderRelevance( order_relevance )
 
     usages = []
     decls = []
+    scoped = False
 
-    for name, value, order_relevant in zip( names, values, order_relevance ):
+    for name, value, order_relevant, line in zip( names, values,
+                                                  order_relevance, lines ):
+        if line:
+            decls.append(
+                getLineNumberCode( line ) + ";"
+            )
+
         if not order_relevant:
             usages.append( value.getCodeTemporaryRef() )
         else:
+            scoped = True
+
             tmp_name = "tmp_" + name
 
             if value.getRefCount() == 1:
@@ -177,15 +219,19 @@ def _getTempDeclCode( order_relevance, names, values ):
 
                 usages.append( tmp_name )
 
-    return decls, usages
+    return scoped, decls, usages
 
 def getOrderRelevanceEnforcedCallCode( helper, order_relevance, names, values ):
-    decls, usages = _getTempDeclCode( order_relevance, names, values )
+    scoped, decls, usages = _getTempDeclCode( order_relevance, names, values )
 
     if decls:
-        return getBlockCode(
-            indented( decls ) + \
-            indented( "\n%s( %s );" % ( helper, ", ".join( usages ) ) )
-        )
+        code = decls + [ "%s( %s );" % ( helper, ", ".join( usages ) ) ]
+
+        if scoped:
+            return getBlockCode(
+                code
+            )
+        else:
+            return "\n".join( code )
     else:
         return "%s( %s );" % ( helper, ", ".join( usages ) )
