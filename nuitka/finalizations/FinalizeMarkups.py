@@ -184,5 +184,3 @@ of '--recurse-directory'.""" % (
 
             if node.getParentModule() is not parent_module:
                 node.getFunctionBody().markAsCrossModuleUsed()
-
-            node.getFunctionBody().markAsUsed()

@@ -90,8 +90,6 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .VariableClosure import completeVariableClosures
 from .Helpers import makeStatementsSequenceFromStatement
 
-from nuitka import ModuleRegistry
-
 source_ref = fromFilename( "internal", FutureSpec() ).atInternal()
 
 from nuitka.Utils import python_version
@@ -117,8 +115,6 @@ def getInternalModule():
 
     if internal_module is None:
         internal_module = PythonInternalModule()
-
-        ModuleRegistry.addRootModule( internal_module )
 
     return internal_module
 

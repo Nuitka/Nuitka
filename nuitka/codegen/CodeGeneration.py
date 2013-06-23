@@ -2588,10 +2588,7 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
     function_body_codes = []
     extra_declarations = []
 
-    for function_body in module.getFunctions():
-        if not function_body.isUsed():
-            continue
-
+    for function_body in module.getUsedFunctions():
         function_code = generateFunctionBodyCode(
             function_body = function_body,
             context       = context

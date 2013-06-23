@@ -29,5 +29,11 @@ from .FinalizeClosureTaking import FinalizeClosureTaking
 from nuitka.tree import Operations
 
 def prepareCodeGeneration( tree ):
-    Operations.visitScopes( tree, visitor = FinalizeMarkups() )
-    Operations.visitFunctions( tree, visitor = FinalizeClosureTaking() )
+    visitor = FinalizeMarkups()
+    Operations.visitTree( tree, visitor )
+    for function in tree.getUsedFunctions():
+        Operations.visitTree( function, visitor )
+
+    visitor = FinalizeClosureTaking()
+    for function in tree.getUsedFunctions():
+        Operations.visitFunction( function, visitor )

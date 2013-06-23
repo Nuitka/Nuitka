@@ -45,9 +45,13 @@ def startTraversal():
     active_modules = OrderedSet( root_modules )
     done_modules = OrderedSet()
 
+    for active_module in active_modules:
+        active_module.startTraversal()
+
 def addUsedModule( module ):
     if module not in done_modules and module not in active_modules:
         active_modules.add( module )
+        module.startTraversal()
 
 def nextModule():
     if active_modules:

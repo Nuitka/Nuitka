@@ -150,9 +150,6 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
 
-        # Indicator if the function is reached by any module code.
-        self.is_used = False
-
     def getDetails( self ):
         return {
             "name"       : self.getFunctionName(),
@@ -350,12 +347,6 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
     def markAsCrossModuleUsed( self ):
         self.cross_module_use = True
 
-    def markAsUsed( self ):
-        self.is_used = True
-
-    def isUsed( self ):
-        return self.is_used
-
     def computeExpression( self, constraint_collection ):
         assert False
 
@@ -552,6 +543,15 @@ class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
         return self.function_body
 
     def computeExpressionRaw( self, constraint_collection ):
+        function_body = self.getFunctionBody()
+
+        owning_module = function_body.getParentModule()
+
+        from nuitka.ModuleRegistry import addUsedModule
+        addUsedModule( owning_module )
+
+        owning_module.addUsedFunction( function_body )
+
         from nuitka.optimizations.ConstraintCollections import ConstraintCollectionFunction
 
         collector = ConstraintCollectionFunction( constraint_collection )

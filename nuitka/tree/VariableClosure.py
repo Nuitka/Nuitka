@@ -29,7 +29,7 @@ from nuitka import SyntaxErrors
 from nuitka.Utils import python_version
 from nuitka.Options import isFullCompat
 
-from .Operations import VisitorNoopMixin, visitScopes, visitTree
+from .Operations import VisitorNoopMixin, visitTree, visitFunction
 
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -315,7 +315,8 @@ def completeVariableClosures( tree ):
         )
 
     for visitor in visitors:
+        visitTree( tree, visitor )
+
         if tree.isPythonModule():
-            visitScopes( tree, visitor )
-        else:
-            visitTree( tree, visitor )
+            for function in tree.getFunctions():
+                visitTree( function, visitor )

@@ -34,17 +34,9 @@ def visitTree( tree, visitor ):
     visitor.onLeaveNode( tree )
 
 
-def visitScopes( tree, visitor ):
-    visitTree( tree, visitor )
-
-    for function in tree.getFunctions():
-        visitTree( function, visitor )
-
-def visitFunctions( tree, visitor ):
-    for function in tree.getFunctions():
-        visitor.onEnterNode( function )
-        visitor.onLeaveNode( function )
-
+def visitFunction( function, visitor ):
+    visitor.onEnterNode( function )
+    visitor.onLeaveNode( function )
 
 class VisitorNoopMixin:
     def onEnterNode( self, node ):

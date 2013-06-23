@@ -65,7 +65,6 @@ def _optimizeModulePass( module, tag_set ):
 
             variable.setReadOnlyIndicator( new_value )
 
-
 def optimizeModule( module ):
     if _progress:
         printLine( "Doing module local optimizations for '%s'." % module.getFullName() )
