@@ -196,8 +196,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
         THROW_IF_ERROR_OCCURED();
     }
 
-    char *value_str = Nuitka_String_AsString( value );
+#if PYTHON_VERSION < 300
+    if (unlikely( !Nuitka_String_Check( value ) ))
+    {
+        PyErr_Format( PyExc_TypeError, "int() can't convert non-string with explicit base" );
+        throw PythonException();
+    }
 
+    char *value_str = Nuitka_String_AsString( value );
     if (unlikely( value_str == NULL ))
     {
         throw PythonException();
@@ -211,6 +217,68 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
     }
 
     return result;
+#else
+    if ( PyUnicode_Check( value ) )
+    {
+#if PYTHON_VERSION < 330
+        char *value_str = Nuitka_String_AsString( value );
+
+        if (unlikely( value_str == NULL ))
+        {
+            throw PythonException();
+        }
+
+        PyObject *result = PyInt_FromString( value_str, NULL, base_int );
+
+        if (unlikely( result == NULL ))
+        {
+            throw PythonException();
+        }
+
+        return result;
+#else
+        return PyLong_FromUnicodeObject( value, base_int );
+#endif
+    }
+    else if ( PyBytes_Check( value ) || PyByteArray_Check( value ) )
+    {
+        // Check for "NUL" as PyLong_FromString has no length parameter,
+        Py_ssize_t size = Py_SIZE( value );
+        char *value_str;
+
+        if ( PyByteArray_Check( value ) )
+        {
+            value_str = PyByteArray_AS_STRING( value );
+        }
+        else
+        {
+            value_str = PyBytes_AS_STRING( value );
+        }
+
+        if ( strlen( value_str ) != (size_t)size || size == 0 )
+        {
+            PyErr_Format(
+                PyExc_ValueError,
+                "invalid literal for int() with base %d: %R",
+                base_int,
+                value
+            );
+
+            throw PythonException();
+        }
+
+        return PyLong_FromString( value_str, NULL, base_int );
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "int() can't convert non-string with explicit base"
+        );
+        throw PythonException();
+    }
+#endif
+
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value )
@@ -233,6 +301,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG2( PyObject *value, PyObject *base 
     {
         THROW_IF_ERROR_OCCURED();
     }
+
+#if PYTHON_VERSION < 300
+    if (unlikely( !Nuitka_String_Check( value ) ))
+    {
+        PyErr_Format( PyExc_TypeError, "long() can't convert non-string with explicit base" );
+        throw PythonException();
+    }
+#endif
 
     char *value_str = Nuitka_String_AsString( value );
 
