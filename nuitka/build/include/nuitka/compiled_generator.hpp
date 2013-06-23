@@ -24,8 +24,8 @@
 
 // Compiled generator function type.
 
-// Another cornerstone of the integration into CPython. Try to behave as well as normal
-// generator function objects do or even better.
+// Another cornerstone of the integration into CPython. Try to behave as well as
+// normal generator function objects do or even better.
 
 
 // *** Nuitka_Generator type begin
@@ -39,8 +39,8 @@ enum Generator_Status {
     status_Finished // Stoped, no more values to come
 };
 
-// The Nuitka_GeneratorObject is the storage associated with a compiled generator object
-// instance of which there can be many for each code.
+// The Nuitka_GeneratorObject is the storage associated with a compiled
+// generator object instance of which there can be many for each code.
 typedef struct {
     PyObject_HEAD
 
@@ -98,7 +98,11 @@ static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
         Py_XINCREF( generator->m_exception_value );
         Py_XINCREF( generator->m_exception_tb );
 
-        PyErr_Restore( generator->m_exception_type, generator->m_exception_value, (PyObject *)generator->m_exception_tb );
+        PyErr_Restore(
+            generator->m_exception_type,
+            generator->m_exception_value,
+            (PyObject *)generator->m_exception_tb
+        );
 
         generator->m_exception_type = NULL;
         generator->m_exception_value = NULL;
@@ -108,7 +112,7 @@ static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
     }
 }
 
-static inline PyObject *YIELD_VALUE( Nuitka_GeneratorObject *generator, PyObject *value )
+static inline PyObject *YIELD( Nuitka_GeneratorObject *generator, PyObject *value )
 {
     assertObject( value );
 
@@ -122,15 +126,15 @@ static inline PyObject *YIELD_VALUE( Nuitka_GeneratorObject *generator, PyObject
     return generator->m_yielded;
 }
 
-static inline PyObject *YIELD_VALUE_FROM_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
+static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
 {
     assertObject( value );
 
     generator->m_yielded = value;
 
 #if PYTHON_VERSION >= 300
-    // When yielding, the exception preserved to the frame is restore, while the current one
-    // is put there.
+    // When yielding from an exception handler in Python3, the exception
+    // preserved to the frame is restore, while the current one is put there.
     PyThreadState *thread_state = PyThreadState_GET();
 
     PyObject *saved_exception_type = thread_state->exc_type;
@@ -150,11 +154,11 @@ static inline PyObject *YIELD_VALUE_FROM_HANDLER( Nuitka_GeneratorObject *genera
     // Return to the calling context.
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 
-    // When yielding, the exception preserved to the frame is restore, while the current one
-    // is put there.
+    // When yielding, the exception preserved to the frame is restore, while the
+    // current one is put there.
 #if PYTHON_VERSION >= 300
-    // When returning from yield, the exception of the frame is preserved, and the one that
-    // enters should be there.
+    // When returning from yield, the exception of the frame is preserved, and
+    // the one that enters should be there.
     thread_state = PyThreadState_GET();
 
     saved_exception_type = thread_state->exc_type;
@@ -174,5 +178,98 @@ static inline PyObject *YIELD_VALUE_FROM_HANDLER( Nuitka_GeneratorObject *genera
 
     return generator->m_yielded;
 }
+
+#if PYTHON_VERSION >= 330
+static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
+{
+    PyObject *send_value = Py_None;
+
+    while( 1 )
+    {
+        PyObject *retval;
+
+        if ( PyGen_CheckExact( value ) )
+        {
+            retval = _PyGen_Send( (PyGenObject *)value, Py_None );
+        }
+        else if ( send_value == Py_None )
+        {
+            retval = Py_TYPE( value )->tp_iternext( value );
+        }
+        else
+        {
+            retval = PyObject_CallMethod( value, (char *)"send", (char *)"O", send_value );
+        }
+
+        if ( retval == NULL )
+        {
+            PyObject *return_value;
+
+            int err = _PyGen_FetchStopIterationValue( &return_value );
+
+            if (unlikely( err < 0 ))
+            {
+                throw PythonException();
+            }
+
+            assertObject( return_value );
+
+            return return_value;
+        }
+        else
+        {
+            send_value = YIELD( generator, retval );
+
+            assertObject( send_value );
+        }
+    }
+}
+
+// TODO: Duplicate of above.
+static inline PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
+{
+    PyObject *send_value = Py_None;
+
+    while( 1 )
+    {
+        PyObject *retval;
+
+        if ( PyGen_CheckExact( value ) )
+        {
+            retval = _PyGen_Send( (PyGenObject *)value, Py_None );
+        }
+        else if ( send_value == Py_None )
+        {
+            retval = Py_TYPE( value )->tp_iternext( value );
+        }
+        else
+        {
+            retval = PyObject_CallMethod( value, (char *)"send", (char *)"O", send_value );
+        }
+
+        if ( retval == NULL )
+        {
+            PyObject *return_value;
+
+            int err = _PyGen_FetchStopIterationValue( &return_value );
+
+            if (unlikely( err < 0 ))
+            {
+                throw PythonException();
+            }
+
+            assertObject( return_value );
+
+            return return_value;
+        }
+        else
+        {
+            send_value = YIELD_IN_HANDLER( generator, retval );
+
+            assertObject( send_value );
+        }
+    }
+}
+#endif
 
 #endif

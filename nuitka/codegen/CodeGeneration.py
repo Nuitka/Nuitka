@@ -1134,6 +1134,13 @@ def generateExpressionCode( expression, context, allow_none = False ):
             ),
             in_handler = expression.isExceptionPreserving()
         )
+    elif expression.isExpressionYieldFrom():
+        identifier = Generator.getYieldFromCode(
+            identifier = makeExpressionCode(
+                expression = expression.getExpression()
+            ),
+            in_handler = expression.isExceptionPreserving()
+        )
     elif expression.isExpressionImportModule():
         identifier = generateImportModuleCode(
             expression = expression,

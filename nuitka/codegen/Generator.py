@@ -196,15 +196,29 @@ def getReturnCode( identifier, via_exception, context ):
 def getYieldCode( identifier, in_handler ):
     if in_handler:
         return Identifier(
-            "YIELD_VALUE_FROM_HANDLER( generator, %s )" % (
+            "YIELD_IN_HANDLER( generator, %s )" % (
                 identifier.getCodeExportRef(),
             ),
             0
         )
     else:
         return Identifier(
-            "YIELD_VALUE( generator, %s )" % identifier.getCodeExportRef(),
+            "YIELD( generator, %s )" % identifier.getCodeExportRef(),
             0
+        )
+
+def getYieldFromCode( identifier, in_handler ):
+    if in_handler:
+        return Identifier(
+            "YIELD_FROM_IN_HANDLER( generator, %s )" % (
+                identifier.getCodeTemporaryRef(),
+            ),
+            1
+        )
+    else:
+        return Identifier(
+            "YIELD_FROM( generator, %s )" % identifier.getCodeTemporaryRef(),
+            1
         )
 
 def getMetaclassVariableCode( context ):

@@ -82,7 +82,7 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             if node.isExceptionDriven():
                 search.markAsExceptionContinue()
 
-        if node.isExpressionYield():
+        if node.isExpressionYield() or node.isExpressionYieldFrom():
             search = node.getParent()
 
             while not search.isExpressionFunctionBody():

@@ -81,7 +81,6 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
 )
-from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ModuleNodes import (
@@ -141,6 +140,8 @@ from .ReformulationContractionExpressions import (
 from .ReformulationCallExpressions import buildCallNode
 
 from .ReformulationExecStatements import buildExecNode
+
+from .ReformulationYieldExpressions import buildYieldNode, buildYieldFromNode
 
 # Some helpers.
 from .Helpers import (
@@ -693,31 +694,6 @@ def buildReturnNode( provider, node, source_ref ):
         )
 
 
-def buildYieldNode( provider, node, source_ref ):
-    if provider.isPythonModule():
-        SyntaxErrors.raiseSyntaxError(
-            "'yield' outside function",
-            source_ref,
-            None if Utils.python_version < 300 else node.col_offset
-        )
-
-    provider.markAsGenerator()
-
-    if node.value is not None:
-        return ExpressionYield(
-            expression = buildNode( provider, node.value, source_ref ),
-            source_ref = source_ref
-        )
-    else:
-        return ExpressionYield(
-            expression = ExpressionConstantRef(
-                constant      = None,
-                source_ref    = source_ref,
-                user_provided = True
-            ),
-            source_ref = source_ref
-        )
-
 def buildExprOnlyNode( provider, node, source_ref ):
     return StatementExpressionOnly(
         expression = buildNode( provider, node.value, source_ref ),
@@ -806,6 +782,7 @@ setBuildDispatchers(
         "Attribute"    : buildAttributeNode,
         "Return"       : buildReturnNode,
         "Yield"        : buildYieldNode,
+        "YieldFrom"    : buildYieldFromNode,
         "Expr"         : buildExprOnlyNode,
         "UnaryOp"      : buildUnaryOpNode,
         "BinOp"        : buildBinaryOpNode,
