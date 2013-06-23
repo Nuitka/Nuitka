@@ -171,6 +171,17 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
     def isClassDictCreation( self ):
         return self.is_class
 
+    def getContainingClassDictCreation( self ):
+        current = self
+
+        while not current.isPythonModule():
+            if current.isClassDictCreation():
+                return current
+
+            current = current.getParentVariableProvider()
+
+        return None
+
     def getFunctionName( self ):
         if self.is_lambda:
             return "<lambda>"
