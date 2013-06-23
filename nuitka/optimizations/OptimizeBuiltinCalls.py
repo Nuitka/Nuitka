@@ -553,7 +553,7 @@ def super_extractor( node ):
                     )
 
                     object.setVariable(
-                        node.getParentVariableProvider().getVariableForReference(
+                        provider.getVariableForReference(
                             variable_name = par1_name
                         )
                     )

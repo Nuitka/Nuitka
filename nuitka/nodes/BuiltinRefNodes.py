@@ -211,11 +211,12 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
     def computeExpressionCall( self, call_node, constraint_collection ):
         exception_name = self.getExceptionName()
 
-        # TODO: Keyword only arguments of it, are not properly handled yet.
+        # TODO: Keyword only arguments of it, are not properly handled yet by
+        # the built-in call code.
         if exception_name == "ImportError" and python_version >= 330:
             kw = call_node.getCallKw()
 
-            if not kw.isExpressionConstantRef() and kw.getConstant() == {}:
+            if not kw.isExpressionConstantRef() or kw.getConstant() != {}:
                 return call_node, None, None
 
         def createBuiltinMakeException( args, source_ref ):
