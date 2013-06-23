@@ -74,6 +74,8 @@ for filename in sorted( os.listdir( "." ) ):
     # Some syntax errors are for Python3 only.
     if filename == "Importing2.py" and python_version < "3":
         extra_flags = [ "remove_output" ]
+    elif filename == "GeneratorReturn2.py" and python_version >= "3.3":
+        extra_flags = [ "remove_output" ]
     else:
         extra_flags = [ "expect_failure",  "remove_output" ]
 

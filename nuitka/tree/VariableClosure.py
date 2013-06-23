@@ -184,20 +184,30 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
         # exception raises, fix that up now. Doing it right from the onset,
         # would be a bit more difficult, as the knowledge that something is a
         # generator, requires a second pass.
-        if node.isStatementReturn() and node.getParentVariableProvider().isGenerator():
+        if node.isStatementReturn() and \
+           node.getParentVariableProvider().isGenerator():
+            return_value = node.getExpression()
+
+            if python_version < 330:
+                if not return_value.isExpressionConstantRef() or \
+                   return_value.getConstant() is not None:
+                    SyntaxErrors.raiseSyntaxError(
+                        "'return' with argument inside generator",
+                        source_ref   = node.getSourceReference(),
+                    )
+
             node.replaceWith(
                 StatementRaiseException(
                     exception_type  = ExpressionBuiltinExceptionRef(
                         exception_name = "StopIteration",
                         source_ref     = node.getSourceReference()
                     ),
-                    exception_value = None,
+                    exception_value = return_value,
                     exception_trace = None,
                     exception_cause = None,
                     source_ref      = node.getSourceReference()
                 )
             )
-
 
 
 class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):
