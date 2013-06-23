@@ -158,7 +158,9 @@ def _findModuleInPath( module_name, package_name ):
             print( "_findModuleInPath: Package, using extended path", ext_path )
 
         try:
-            _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+            module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+            if module_fh is not None:
+                module_fh.close()
 
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module worked", module_filename, package_name )
@@ -183,7 +185,9 @@ def _findModuleInPath( module_name, package_name ):
         print( "_findModuleInPath: Non-package, using extended path", ext_path )
 
     try:
-        _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+        module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+        if module_fh is not None:
+            module_fh.close()
     except SyntaxError:
         # Warn user, as this is kind of unusual.
         warning(

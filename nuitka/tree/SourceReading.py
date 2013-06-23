@@ -26,7 +26,8 @@ from nuitka import Utils, SyntaxErrors, SourceCodeReferences
 import re
 
 def _readSourceCodeFromFilename3( source_filename ):
-    source_code = open( source_filename, "rb" ).read()
+    with open( source_filename, "rb" ) as source_file:
+        source_code = source_file.read()
 
     if source_code.startswith( b'\xef\xbb\xbf' ):
         return source_code[3:]
