@@ -134,9 +134,12 @@ def _buildClassNode3( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+    # source_ref_orig = source_ref
+    source_ref = source_ref.atInternal()
+
     if body is not None:
         # The frame guard has nothing to tell its line number to.
-        body.source_ref = source_ref.atInternal()
+        body.source_ref = source_ref
 
     statements = [
         StatementSetLocals(
@@ -144,7 +147,7 @@ def _buildClassNode3( provider, node, source_ref ):
                 variable   = tmp_prepared.makeReference( result ),
                 source_ref = source_ref
             ),
-            source_ref = source_ref.atInternal()
+            source_ref = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetVariableRef(
@@ -193,7 +196,7 @@ def _buildClassNode3( provider, node, source_ref ):
                     source_ref    = source_ref,
                     user_provided = True
                 ),
-                source_ref   = source_ref.atInternal()
+                source_ref   = source_ref
             )
         )
 
@@ -233,14 +236,14 @@ def _buildClassNode3( provider, node, source_ref ):
                 ),
                 source_ref = source_ref
             ),
-            source_ref   = source_ref.atInternal()
+            source_ref   = source_ref
         ),
         StatementReturn(
             expression = ExpressionVariableRef(
                 variable_name = "__class__",
                 source_ref    = source_ref
             ),
-            source_ref = source_ref.atInternal()
+            source_ref = source_ref
         )
     ]
 
