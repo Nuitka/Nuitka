@@ -32,12 +32,17 @@ quick_calls_used = set()
 
 def getCallCodePosArgsQuick( context, order_relevance, called_identifier,
                              arguments ):
-    quick_calls_used.add( len( arguments ) )
+
+    arg_size = len( arguments )
+    quick_calls_used.add( arg_size )
+
+    from .TupleCodes import addMakeTupleUse
+    addMakeTupleUse( arg_size )
 
     from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 
     return getOrderRelevanceEnforcedArgsCode(
-        helper          = "CALL_FUNCTION_WITH_ARGS",
+        helper          = "CALL_FUNCTION_WITH_ARGS%d" % arg_size,
         export_ref      = 0,
         ref_count       = 1,
         tmp_scope       = "call",
@@ -89,6 +94,28 @@ def getCallCodePosKeywordArgs( context, order_relevance, called_identifier,
                             argument_dictionary ),
         context         = context
     )
+
+def getCallsDecls():
+    result = []
+
+    for quick_call_used in sorted( quick_calls_used ):
+        args_decl = [
+            "PyObject *arg%d" % d
+            for d in range( quick_call_used )
+        ]
+
+        result.append(
+            CodeTemplates.template_call_function_with_args_decl % {
+                "args_decl"  : ", ".join( args_decl ),
+                "args_count" : quick_call_used
+            }
+        )
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_CALLS_H__",
+        "header_body"       : "\n".join( result )
+    }
+
 
 def getCallsCode():
     result = []

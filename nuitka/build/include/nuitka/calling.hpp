@@ -71,13 +71,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, 
 // Function call variant with no arguments provided at all.
 extern PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called );
 
-// Function call variants with few positional arguments only
-extern PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1 );
-extern PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1, PyObject *arg2 );
-extern PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1, PyObject *arg2, PyObject *arg3 );
-extern PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1, PyObject *arg2, PyObject *arg3, PyObject *arg4 );
-extern PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, PyObject *arg1, PyObject *arg2, PyObject *arg3, PyObject *arg4, PyObject *arg5 );
-
+// Function call variants with positional arguments tuple.
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS( PyObject *function_object, PyObject *positional_args )
 {
     return CALL_FUNCTION(

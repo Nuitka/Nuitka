@@ -105,8 +105,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *_fast_function_args( PyObject *func, PyObj
 }
 """
 
+template_call_function_with_args_decl = """\
+extern PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s );"""
+
 template_call_function_with_args_impl = """\
-PyObject *CALL_FUNCTION_WITH_ARGS( PyObject *called, %(args_decl)s )
+PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s )
 {
     assertObject( called );
 

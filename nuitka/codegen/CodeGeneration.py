@@ -696,8 +696,7 @@ def generateCallCode( call_node, context ):
             return Generator.getCallCodeNoArgs(
                 called_identifier = called_identifier
             )
-        elif call_args.isExpressionMakeTuple() and \
-             call_args.getIterationLength() <= 5:
+        elif call_args.isExpressionMakeTuple():
             return Generator.getCallCodePosArgsQuick(
                order_relevance   = getOrderRelevance(
                    ( call_node.getCalled(), ) + call_args.getElements(),
@@ -709,9 +708,7 @@ def generateCallCode( call_node, context ):
                 ),
                 context           = context
             )
-        elif call_args.isExpressionConstantRef() and \
-             len( call_args.getConstant() ) <= 5:
-
+        elif call_args.isExpressionConstantRef():
             return Generator.getCallCodePosArgsQuick(
                 order_relevance   =
                    ( call_node.isOrderRelevant(), ) + \
@@ -2646,7 +2643,8 @@ def generateConstantsDefinitionCode( context ):
 def generateHelpersCode():
     header_code = Generator.getMakeTuplesCode() + \
                   Generator.getMakeListsCode() + \
-                  Generator.getMakeDictsCode()
+                  Generator.getMakeDictsCode() + \
+                  Generator.getCallsDecls()
 
     body_code = Generator.getCallsCode()
 

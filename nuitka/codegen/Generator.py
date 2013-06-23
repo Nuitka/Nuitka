@@ -68,6 +68,7 @@ from .CallCodes import (
     getCallCodeKeywordArgs,
     getCallCodePosArgs,
     getCallCodeNoArgs,
+    getCallsDecls,
     getCallsCode
 )
 # imported from here pylint: enable=W0611
