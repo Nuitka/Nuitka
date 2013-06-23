@@ -271,40 +271,6 @@ The code objects are empty for for native compiled functions. There is no
 bytecode with Nuitka's compiled function objects, so there is no way to provide
 it.
 
-Threading can block it seems
-----------------------------
-
-Bug tracker link: `"Threading is not supported, never yields the execution to
-other threads" <http://bugs.nuitka.net/issue10>`_
-
-The generated code never lets the CPython run time switch threads, so its
-chances to do so are reduced, which may lead to dead lock problems.
-
-.. note::
-
-   There is an option ``--experimental`` which adds support for it. Future
-   versions will support threading.
-
-
-Start of function call vs. end of function call in traceback output
--------------------------------------------------------------------
-
-Bug tracker link: `"In tracebacks Nuitka uses start of call line, whereas
-CPython uses end of call line" <http://bugs.nuitka.net/issue9>`_
-
-In CPython the traceback points to the end of the function call, whereas in
-Nuitka they point to the first line of the function call.
-
-This is due to the use of the ``ast.parse`` over bytecode it seems and not easy
-to overcome. It would require parsing the Python source on our own and search
-for the end of the function call.
-
-Maybe someone will do it someday. Help is welcome.
-
-We can consider making the compatible behaviour optional, and use it for the
-tests only as the called expression clearly is more useful to see then the
-closing brace.
-
 
 Optimization
 ============
