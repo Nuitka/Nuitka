@@ -459,16 +459,18 @@ def _makeStarListArgumentToTupleStatement( called_variable_ref,
     )
 
     return StatementConditional(
-        condition  = ExpressionBuiltinIsinstance(
-            instance   = star_list_variable_ref.makeCloneAt( source_ref ),
-            cls        = ExpressionBuiltinRef(
-                builtin_name = "tuple",
-                source_ref   = source_ref
+        condition  = ExpressionOperationNOT(
+            operand = ExpressionBuiltinIsinstance(
+                instance   = star_list_variable_ref.makeCloneAt( source_ref ),
+                cls        = ExpressionBuiltinRef(
+                    builtin_name = "tuple",
+                    source_ref   = source_ref
+                ),
+                source_ref = source_ref
             ),
             source_ref = source_ref
         ),
-        yes_branch = None,
-        no_branch  = makeStatementsSequenceFromStatement(
+        yes_branch = makeStatementsSequenceFromStatement(
             statement = makeTryExceptSingleHandlerNode(
                 tried          =  makeStatementsSequenceFromStatement(
                     statement = StatementAssignmentVariable(
@@ -485,6 +487,7 @@ def _makeStarListArgumentToTupleStatement( called_variable_ref,
                 source_ref     = source_ref
             ),
         ),
+        no_branch  = None,
         source_ref = source_ref
     )
 
