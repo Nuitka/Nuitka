@@ -2196,12 +2196,15 @@ def getGeneratorFunctionCode( context, function_name,
     code_identifier = getCodeObjectHandle(
         context       = context,
         filename      = source_ref.getFilename(),
-        arg_names     = parameters.getCoArgNames(),
+        var_names     = parameters.getCoArgNames(),
+        arg_count     = parameters.getArgumentCount(),
         kw_only_count = parameters.getKwOnlyParameterCount(),
         line_number   = source_ref.getLineNumber(),
         code_name     = function_name,
         is_generator  = True,
-        is_optimized  = not context.hasLocalsDict()
+        is_optimized  = not context.hasLocalsDict(),
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None,
     )
 
     if context_decl or instance_context_decl:
@@ -2261,25 +2264,39 @@ def getTempKeeperDecl( context ):
     ]
 
 def getFunctionMakerCode( context, function_name, function_qualname,
-                          function_identifier, parameters, closure_variables,
-                          defaults_identifier, kw_defaults_identifier,
-                          annotations_identifier, source_ref, function_doc,
-                          is_generator ):
+                          function_identifier, parameters, local_variables,
+                          closure_variables, defaults_identifier,
+                          kw_defaults_identifier, annotations_identifier,
+                          source_ref, function_doc, is_generator ):
 
     function_name_obj = getConstantCode(
         context  = context,
         constant = function_name
     )
 
+    var_names = parameters.getCoArgNames()
+
+    # Apply mangled names of local variables too.
+    var_names += [
+        local_variable.getMangledName()
+        for local_variable in
+        local_variables
+        if not local_variable.isParameterVariable()
+    ]
+
+
     code_identifier = getCodeObjectHandle(
         context       = context,
         filename      = source_ref.getFilename(),
-        arg_names     = parameters.getCoArgNames(),
+        var_names     = var_names,
+        arg_count     = parameters.getArgumentCount(),
         kw_only_count = parameters.getKwOnlyParameterCount(),
         line_number   = source_ref.getLineNumber(),
         code_name     = function_name,
         is_generator  = is_generator,
-        is_optimized  = not context.hasLocalsDict()
+        is_optimized  = not context.hasLocalsDict(),
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None,
     )
 
     function_creation_args = _getFunctionCreationArgs(

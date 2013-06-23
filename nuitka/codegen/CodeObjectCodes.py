@@ -37,14 +37,14 @@ code_objects = {}
 if python_version < 300:
     def _calcHash( key ):
         hash_value = hashlib.md5(
-            "%s%s%d%s%d%s%s" % key
+            "%s%s%d%s%d%d%s%s%s%s" % key
         )
 
         return hash_value.hexdigest()
 else:
     def _calcHash( key ):
         hash_value = hashlib.md5(
-            ( "%s%s%d%s%d%s%s" % key ).encode( "utf-8" )
+            ( "%s%s%d%s%d%d%s%s%s%s" % key ).encode( "utf-8" )
         )
 
         return hash_value.hexdigest()
@@ -52,16 +52,26 @@ else:
 def _getCodeObjects():
     return sorted( iterItems( code_objects ) )
 
-def getCodeObjectHandle( context, filename, code_name, line_number, arg_names,
-                         kw_only_count, is_generator, is_optimized ):
+def getCodeObjectHandle( context, filename, code_name, line_number, var_names,
+                         arg_count, kw_only_count, is_generator, is_optimized,
+                         has_starlist, has_stardict ):
+
+    var_names = tuple( var_names )
+
+    assert type( has_starlist ) is bool
+    assert type( has_stardict ) is bool
+
     key = (
         filename,
         code_name,
         line_number,
-        arg_names,
+        var_names,
+        arg_count,
         kw_only_count,
         is_generator,
-        is_optimized
+        is_optimized,
+        has_starlist,
+        has_stardict
     )
 
     if key not in code_objects:
@@ -72,7 +82,7 @@ def getCodeObjectHandle( context, filename, code_name, line_number, arg_names,
 
         getConstantHandle( context, filename )
         getConstantHandle( context, code_name )
-        getConstantHandle( context, arg_names )
+        getConstantHandle( context, var_names )
 
     return code_objects[ key ]
 
@@ -101,11 +111,17 @@ def getCodeObjectsInitCode( context ):
         if code_object_key[2] != 0:
             co_flags.append( "CO_NEWLOCALS" )
 
-        if code_object_key[5]:
+        if code_object_key[6]:
             co_flags.append( "CO_GENERATOR" )
 
-        if code_object_key[6]:
+        if code_object_key[7]:
             co_flags.append( "CO_OPTIMIZED" )
+
+        if code_object_key[8]:
+            co_flags.append( "CO_VARARGS" )
+
+        if code_object_key[9]:
+            co_flags.append( "CO_VARKEYWORDS" )
 
         if python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
@@ -123,7 +139,7 @@ def getCodeObjectsInitCode( context ):
                     constant = code_object_key[3],
                     context  = context
                 ),
-                len( code_object_key[3] ),
+                code_object_key[4],
                 " | ".join( co_flags ) or "0",
             )
         else:
@@ -142,8 +158,8 @@ def getCodeObjectsInitCode( context ):
                     constant = code_object_key[3],
                     context  = context
                 ),
-                len( code_object_key[3] ),
                 code_object_key[4],
+                code_object_key[5],
                 " | ".join( co_flags ) or  "0",
             )
 

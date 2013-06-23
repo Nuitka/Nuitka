@@ -2621,12 +2621,15 @@ def generateMainCode( module, codes, context ):
         code_identifier = Generator.getCodeObjectHandle(
             context       = context,
             filename      = module.source_ref.getFilename(),
-            arg_names     = (),
+            var_names     = (),
+            arg_count     = 0,
             kw_only_count = 0,
             line_number   = 0,
             code_name     = "<module>",
             is_generator  = False,
-            is_optimized  = False
+            is_optimized  = False,
+            has_starlist  = False,
+            has_stardict  = False
         )
     else:
         code_identifier = None

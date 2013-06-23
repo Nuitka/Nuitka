@@ -147,10 +147,14 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
     # In case of a frame is desired, build it instead.
     if frame:
         if provider.isExpressionFunctionBody():
-            arg_names     = provider.getParameters().getCoArgNames()
-            kw_only_count = provider.getParameters().getKwOnlyParameterCount()
+            parameters = provider.getParameters()
+
+            arg_names     = parameters.getCoArgNames()
+            kw_only_count = parameters.getKwOnlyParameterCount()
             code_name     = provider.getFunctionName()
             guard_mode    = "generator" if provider.isGenerator() else "full"
+            has_starlist  = parameters.getStarListArgumentName() is not None
+            has_stardict  = parameters.getStarDictArgumentName() is not None
         else:
             assert provider.isPythonModule()
 
@@ -158,14 +162,19 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
             kw_only_count = 0
             code_name     = "<module>" if provider.isMainModule() else provider.getName()
             guard_mode    = "once"
+            has_starlist  = False
+            has_stardict  = False
 
 
         return StatementsFrame(
             statements    = statements,
             guard_mode    = guard_mode,
-            arg_names     = arg_names,
+            var_names     = arg_names,
+            arg_count     = len( arg_names ),
             kw_only_count = kw_only_count,
             code_name     = code_name,
+            has_starlist  = has_starlist,
+            has_stardict  = has_stardict,
             source_ref    = source_ref
         )
     else:

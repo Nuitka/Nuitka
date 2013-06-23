@@ -302,7 +302,13 @@ class ParameterSpec( ParameterSpecTuple ):
             else:
                 result.append( variable.getName() )
 
-        return tuple( result )
+        if self.list_star_variable is not None:
+            result.append( self.list_star_arg )
+
+        if self.dict_star_variable is not None:
+            result.append( self.dict_star_arg )
+
+        return result
 
 
 # Note: Based loosley on "inspect.getcallargs" with corrections.

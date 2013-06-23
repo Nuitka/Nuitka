@@ -168,6 +168,23 @@ def makeStarDictArgVariableRef( assign ):
 
     return variable_ref
 
+# TODO: Code generation should become capable of not generating actual
+# exceptions for the TypeError caught immediately and then unused, then the
+# frame will be unnecessary.
+
+def makePseudoFrame( parameters, statements ):
+    return StatementsFrame(
+        code_name     = "unused",
+        guard_mode    = "pass_through",
+        var_names     = parameters.getParameterNames(),
+        arg_count     = parameters.getArgumentCount(),
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None,
+        kw_only_count = 0,
+        statements    = statements,
+        source_ref    = source_ref
+    )
+
 
 @once_decorator
 def getCallableNameDescBody():
@@ -1187,17 +1204,10 @@ def getFunctionCallHelperStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual
-    # exceptions for the TypeError caught immediately and then unused, then the
-    # frame will be unnecessary.
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -1264,17 +1274,10 @@ def getFunctionCallHelperKeywordsStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual
-    # exceptions for the TypeError caught immediately and then unused, then the
-    # frame will be unnecessary.
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -1345,17 +1348,10 @@ def getFunctionCallHelperPosStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual
-    # exceptions for the TypeError caught immediately and then unused, then the
-    # frame will be unnecessary.
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -1427,17 +1423,10 @@ def getFunctionCallHelperPosKeywordsStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual
-    # exceptions for the TypeError caught immediately and then unused, then the
-    # frame will be unnecessary.
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -1517,13 +1506,9 @@ def getFunctionCallHelperStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -1604,13 +1589,9 @@ def getFunctionCallHelperPosStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -1715,13 +1696,9 @@ def getFunctionCallHelperKeywordsStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -1827,13 +1804,9 @@ def getFunctionCallHelperPosKeywordsStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -1894,13 +1867,9 @@ def getFunctionCallHelperStarListStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -1968,13 +1937,9 @@ def getFunctionCallHelperPosStarListStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -2036,13 +2001,9 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
@@ -2109,13 +2070,9 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = result.getParameters().getParameterNames(),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 

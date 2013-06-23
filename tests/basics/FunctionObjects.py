@@ -42,6 +42,9 @@ print "func_code", func.func_code, func.func_code.co_argcount
 print dir( func.func_code )
 
 def func2( arg1, arg2 = "default_arg2", arg3 = "default_arg3" ):
-   pass
+   x = 1
+   return x
 
 print "func_defaults", func2.__defaults__, func2.func_defaults
+
+print "function varnames", func2.__code__.co_varnames
