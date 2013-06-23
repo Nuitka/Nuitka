@@ -541,31 +541,37 @@ def super_extractor( node ):
                     exception_value = "super(): __class__ cell not found",
                 )
 
-            if object is None and provider.getParameters().getArgumentCount() > 0:
-                par1_name = provider.getParameters().getArgumentNames()[0]
-                # TODO: Nested first argument would kill us here, need a test
-                # for that.
+            if object is None:
+                if provider.getParameters().getArgumentCount() > 0:
+                    par1_name = provider.getParameters().getArgumentNames()[0]
+                    # TODO: Nested first argument would kill us here, need a
+                    # test for that.
 
-                object = ExpressionVariableRef(
-                    variable_name = par1_name,
-                    source_ref    = source_ref
-                )
-
-                object.setVariable(
-                    node.getParentVariableProvider().getVariableForReference(
-                        variable_name = par1_name
+                    object = ExpressionVariableRef(
+                        variable_name = par1_name,
+                        source_ref    = source_ref
                     )
-                )
 
-                if not object.getVariable().isParameterVariable():
+                    object.setVariable(
+                        node.getParentVariableProvider().getVariableForReference(
+                            variable_name = par1_name
+                        )
+                    )
+
+                    if not object.getVariable().isParameterVariable():
+                        return makeRaiseExceptionReplacementExpression(
+                            expression      = node,
+                            exception_type  = "SystemError"
+                                                if python_version < 330 else
+                                              "RuntimeError",
+                            exception_value = "super(): __class__ cell not found",
+                        )
+                else:
                     return makeRaiseExceptionReplacementExpression(
                         expression      = node,
-                        exception_type  = "SystemError"
-                                            if python_version < 330 else
-                                          "RuntimeError",
-                        exception_value = "super(): __class__ cell not found",
+                        exception_type  = "RuntimeError",
+                        exception_value = "super(): no arguments"
                     )
-
 
         return ExpressionBuiltinSuper(
             super_type   = type,
