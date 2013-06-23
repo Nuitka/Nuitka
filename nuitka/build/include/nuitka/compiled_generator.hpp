@@ -88,10 +88,8 @@ static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
     return ((Nuitka_GeneratorObject *)object)->m_name;
 }
 
-static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
+static inline void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
 {
-    if ( generator->m_exception_type )
-    {
         assertObject( generator->m_exception_type );
 
         Py_INCREF( generator->m_exception_type );
@@ -109,6 +107,13 @@ static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
         generator->m_exception_tb = NULL;
 
         throw PythonException();
+}
+
+static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
+{
+    if ( generator->m_exception_type )
+    {
+        RAISE_GENERATOR_EXCEPTION( generator );
     }
 }
 
@@ -180,15 +185,83 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
 }
 
 #if PYTHON_VERSION >= 330
+extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
+
 static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 {
+    // This is the value, propagated back and forth the sub-generator and the
+    // yield from consumer.
     PyObject *send_value = Py_None;
 
     while( 1 )
     {
+        // Send iteration value to the sub-generator, which may be a CPython
+        // generator object, something with an iterator next, or a send method,
+        // where the later is only required if values other than "None" need to
+        // be passed in.
         PyObject *retval;
 
-        if ( PyGen_CheckExact( value ) )
+        // Exception, was thrown into us, need to send that to sub-generator.
+        if ( generator->m_exception_type )
+        {
+            // The yielding generator is being closed, but we also are tasked to
+            // immediately close the currently running sub-generator.
+            if ( PyErr_GivenExceptionMatches( generator->m_exception_type, PyExc_GeneratorExit ) )
+            {
+                PyObject *close_method = PyObject_GetAttrString( value, (char *)"close" );
+
+                if ( close_method )
+                {
+                    PyObject *close_value = PyObject_Call( close_method, _python_tuple_empty, NULL );
+                    Py_DECREF( close_method );
+
+                    if (unlikely( close_value == NULL ))
+                    {
+                        throw PythonException();
+                    }
+
+                    Py_DECREF( close_value );
+                }
+
+                RAISE_GENERATOR_EXCEPTION( generator );
+            }
+
+            PyObject *throw_method = PyObject_GetAttrString( value, (char *)"throw" );
+
+            if ( throw_method )
+            {
+                retval = PyObject_CallFunctionObjArgs( throw_method, generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb, NULL );
+                Py_DECREF( throw_method );
+
+                if (unlikely( send_value == NULL ))
+                {
+                    if ( PyErr_ExceptionMatches( PyExc_StopIteration ) )
+                    {
+
+                        return ERROR_GET_STOP_ITERATION_VALUE();
+                    }
+
+                    throw PythonException();
+                }
+
+
+                generator->m_exception_type = NULL;
+                generator->m_exception_value = NULL;
+                generator->m_exception_tb = NULL;
+            }
+            else if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+            {
+                PyErr_Clear();
+
+                RAISE_GENERATOR_EXCEPTION( generator );
+            }
+            else
+            {
+                throw PythonException();
+            }
+
+        }
+        else if ( PyGen_CheckExact( value ) )
         {
             retval = _PyGen_Send( (PyGenObject *)value, Py_None );
         }
@@ -201,75 +274,36 @@ static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject 
             retval = PyObject_CallMethod( value, (char *)"send", (char *)"O", send_value );
         }
 
+        // Check the sub-generator result
         if ( retval == NULL )
         {
-            PyObject *return_value;
+            assert( ERROR_OCCURED() );
 
-            int err = _PyGen_FetchStopIterationValue( &return_value );
-
-            if (unlikely( err < 0 ))
+            // The sub-generator has given an exception. In case of
+            // StopIteration, we need to check the value, as it is going to be
+            // the expression value of this "yield from", and we are done. All
+            // other errors, we need to raise.
+            if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
             {
-                throw PythonException();
+                return ERROR_GET_STOP_ITERATION_VALUE();
             }
 
-            assertObject( return_value );
-
-            return return_value;
+            throw PythonException();
         }
         else
         {
-            send_value = YIELD( generator, retval );
+            generator->m_yielded = retval;
+
+            // Return to the calling context.
+            swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+            send_value = generator->m_yielded;
 
             assertObject( send_value );
         }
     }
 }
 
-// TODO: Duplicate of above.
-static inline PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
-{
-    PyObject *send_value = Py_None;
-
-    while( 1 )
-    {
-        PyObject *retval;
-
-        if ( PyGen_CheckExact( value ) )
-        {
-            retval = _PyGen_Send( (PyGenObject *)value, Py_None );
-        }
-        else if ( send_value == Py_None )
-        {
-            retval = Py_TYPE( value )->tp_iternext( value );
-        }
-        else
-        {
-            retval = PyObject_CallMethod( value, (char *)"send", (char *)"O", send_value );
-        }
-
-        if ( retval == NULL )
-        {
-            PyObject *return_value;
-
-            int err = _PyGen_FetchStopIterationValue( &return_value );
-
-            if (unlikely( err < 0 ))
-            {
-                throw PythonException();
-            }
-
-            assertObject( return_value );
-
-            return return_value;
-        }
-        else
-        {
-            send_value = YIELD_IN_HANDLER( generator, retval );
-
-            assertObject( send_value );
-        }
-    }
-}
 #endif
 
 #endif

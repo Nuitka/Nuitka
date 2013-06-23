@@ -195,7 +195,7 @@ try
 
 %(codes)s
 
-    PyErr_SetNone( PyExc_StopIteration );
+    PyErr_SetObject( PyExc_StopIteration, (PyObject *)NULL );
 }
 catch ( PythonException &_exception )
 {

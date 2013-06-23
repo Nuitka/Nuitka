@@ -154,7 +154,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
     }
     else
     {
-        PyErr_SetNone( PyExc_StopIteration );
+        PyErr_SetObject( PyExc_StopIteration, (PyObject *)NULL );
+
         return NULL;
     }
 }
@@ -472,3 +473,38 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
 {
     return Nuitka_Generator_New( code, name, code_object, NULL, NULL );
 }
+
+#if PYTHON_VERSION >= 330
+PyObject *ERROR_GET_STOP_ITERATION_VALUE()
+{
+    assert ( PyErr_ExceptionMatches( PyExc_StopIteration ));
+
+    PyObject *et, *ev, *tb;
+    PyErr_Fetch( &et, &ev, &tb );
+
+    Py_XDECREF(et);
+    Py_XDECREF(tb);
+
+    PyObject *value = NULL;
+
+    if ( ev )
+    {
+        if ( PyErr_GivenExceptionMatches( ev, PyExc_StopIteration ) )
+        {
+            value = ((PyStopIterationObject *)ev)->value;
+            Py_DECREF( ev );
+        }
+        else
+        {
+            value = ev;
+        }
+    }
+
+    if ( value == NULL )
+    {
+        value = INCREASE_REFCOUNT( Py_None );
+    }
+
+    return value;
+}
+#endif

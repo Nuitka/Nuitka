@@ -214,7 +214,8 @@ def getYieldCode( identifier, in_handler ):
         )
 
 def getYieldFromCode( identifier, in_handler ):
-    if in_handler:
+    # TODO: Clarify, if the difference as in getYieldCode is needed.
+    if False and in_handler:
         return Identifier(
             "YIELD_FROM_IN_HANDLER( generator, %s )" % (
                 identifier.getCodeTemporaryRef(),

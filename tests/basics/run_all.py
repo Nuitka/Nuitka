@@ -109,7 +109,7 @@ for filename in sorted( os.listdir( "." ) ):
             extra_flags.append( "ignore_stderr" )
             extra_flags.append( "python_debug" )
 
-        if filename == "OrderChecks.py":
+        if filename in ( "OrderChecks.py", "YieldFrom33.py" ):
             extra_flags.append( "ignore_stderr" )
 
         assert type( python_version ) is bytes
