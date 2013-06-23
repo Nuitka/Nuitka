@@ -103,7 +103,18 @@ try:
     )
 except (SyntaxError, IndentationError) as e:
     if Options.isFullCompat() and e.args[0].startswith( "unknown encoding:" ):
-        e.args = "encoding problem: with BOM", ( e.args[1][0], 1, None, None )
+        # False alarm, pylint: disable=E0611
+        from nuitka.Utils import python_version
+
+        if python_version < 300 and python_version >= 275:
+            complaint = "no-exist"
+        else:
+            complaint = "with BOM"
+
+        e.args = (
+            "encoding problem: %s" % complaint,
+            ( e.args[1][0], 1, None, None )
+        )
 
     sys.exit( SyntaxErrors.formatOutput( e ) )
 
