@@ -15,8 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print( "Main importing from package" )
+import posix
 
-from some_package import star_importing
+print( "Importing posix, should use our one." )
 
-print( "Done." )
+print( dir( posix ) )
