@@ -38,31 +38,35 @@ def getQuickEntryPointIdentifier( function_identifier, parameters ):
 def getDirectFunctionEntryPointIdentifier( function_identifier ):
     return "impl_" + function_identifier
 
-def _getParameterParsingCode( context, parameters, function_name, is_method ):
+def _getParameterParsingCode( context, parameters, function_name ):
     # There is really no way this could be any less complex.
     # pylint: disable=R0912,R0914
 
+    # First, declare all parameter objects as variables.
     parameter_parsing_code = "".join(
         [
             "PyObject *_python_par_" + variable.getName() + " = NULL;\n"
             for variable in
-            parameters.getAllVariables()[ 1 if is_method else 0 : ]
+            parameters.getAllVariables()
         ]
     )
 
     top_level_parameters = parameters.getTopLevelVariables()
 
-    plain_possible_count = len( top_level_parameters ) - parameters.getKwOnlyParameterCount()
+    # Max allowed number of positional arguments, all except keyword only
+    # arguments.
+    plain_possible_count = len( top_level_parameters ) - \
+                           parameters.getKwOnlyParameterCount()
 
-    if plain_possible_count > 1 or (not is_method and plain_possible_count > 0):
+    if plain_possible_count > 0:
         parameter_parsing_code += str( CodeTemplates.parse_argument_template_take_counts3 )
 
     if top_level_parameters:
         parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
 
     if parameters.getDictStarArgVariable() is not None:
-        # In the case of star dict arguments, we need to check what is for it and which arguments
-        # with names we have.
+        # In the case of star dict arguments, we need to check what is for it
+        # and which arguments with names we have.
 
         parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {
             "dict_star_parameter_name" : parameters.getStarDictArgumentName(),
@@ -133,8 +137,8 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
         else:
             check_template = CodeTemplates.parse_argument_template_check_counts_with_list_star_arg
 
-        required_parameter_count = len( top_level_parameters ) - parameters.getDefaultCount() - \
-                                   parameters.getKwOnlyParameterCount()
+        required_parameter_count = plain_possible_count - \
+                                   parameters.getDefaultCount()
 
         parameter_parsing_code += check_template % {
             "function_name"             : function_name,
@@ -142,40 +146,28 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
             "required_parameter_count"  : required_parameter_count,
         }
 
-    if plain_possible_count > 1 or (not is_method and plain_possible_count > 0):
+    if plain_possible_count > 0:
         parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {
             "top_level_parameter_count" : plain_possible_count,
         }
 
         for count, variable in enumerate( top_level_parameters ):
-            # The "self" will already be parsed.
-            if is_method and count == 0:
-                continue
-
             if variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.argparse_template_nested_argument % {
-                    "parameter_name"       : variable.getName(),
-                    "parameter_position"   : count,
-                    "parameter_args_index" : count if not is_method else count-1
+                    "parameter_name"     : variable.getName(),
+                    "parameter_position" : count
                 }
             elif not variable.isParameterVariableKwOnly():
                 parameter_parsing_code += CodeTemplates.argparse_template_plain_argument % {
-                    "function_name"        : function_name,
-                    "parameter_name"       : variable.getName(),
-                    "parameter_position"   : count,
-                    "parameter_args_index" : count if not is_method else count-1
+                    "function_name"      : function_name,
+                    "parameter_name"     : variable.getName(),
+                    "parameter_position" : count
                 }
 
     if parameters.getListStarArgVariable() is not None:
-        if is_method:
-            max_index = plain_possible_count - 1
-        else:
-            max_index = plain_possible_count
-
         parameter_parsing_code += CodeTemplates.parse_argument_template_copy_list_star_args % {
             "list_star_parameter_name"  : parameters.getStarListArgumentName(),
-            "top_level_parameter_count" : len( top_level_parameters ) - parameters.getKwOnlyParameterCount(),
-            "top_level_max_index"       : max_index
+            "top_level_parameter_count" : plain_possible_count
         }
 
     if parameters.hasDefaultParameters():
@@ -291,10 +283,10 @@ def getParameterParsingCode( context, function_identifier, function_name,
 
     parameter_entry_point_code = CodeTemplates.template_parameter_function_entry_point % {
         "parameter_parsing_code"    : _getParameterParsingCode(
-            context             = context,
-            function_name       = function_name,
-            parameters          = parameters,
-            is_method           = False
+            context       = context,
+            function_name = function_name,
+            parameters    = parameters,
+
         ),
         "parse_function_identifier" : getParameterEntryPointIdentifier(
             function_identifier = function_identifier,

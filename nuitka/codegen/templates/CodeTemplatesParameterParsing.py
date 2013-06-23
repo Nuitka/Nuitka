@@ -39,26 +39,6 @@ error_exit:;
 }
 """
 
-template_parameter_method_entry_point = """\
-static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *_python_par_self, PyObject **args, Py_ssize_t args_size, PyObject *kw )
-{
-    Py_INCREF( _python_par_self );
-
-    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
-    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
-    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_only_found = 0;
-    Py_ssize_t args_given = args_size + 1; // Count the self parameter already given as well.
-%(parameter_parsing_code)s
-
-    return %(impl_function_identifier)s( %(parameter_objects_list)s );
-
-error_exit:;
-
-%(parameter_release_code)s
-    return NULL;
-}
-"""
-
 parse_argument_template_take_counts3 = """\
 Py_ssize_t args_usable_count;
 """
@@ -204,14 +184,14 @@ if (likely( %(parameter_position)d < args_usable_count ))
          goto error_exit;
      }
 
-    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( args[ %(parameter_args_index)d ] );
+    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( args[ %(parameter_position)d ] );
 }
 """
 
 argparse_template_nested_argument = """\
 if (likely( %(parameter_position)d < args_usable_count ))
 {
-    _python_par_%(parameter_name)s = args[ %(parameter_args_index)d ];
+    _python_par_%(parameter_name)s = args[ %(parameter_position)d ];
 }
 """
 
@@ -223,7 +203,7 @@ if ( args_given > %(top_level_parameter_count)d )
 
     for( Py_ssize_t i = 0; i < args_size - %(top_level_parameter_count)d; i++ )
     {
-       PyTuple_SET_ITEM( _python_par_%(list_star_parameter_name)s, i, INCREASE_REFCOUNT( args[%(top_level_max_index)d+i] ) );
+       PyTuple_SET_ITEM( _python_par_%(list_star_parameter_name)s, i, INCREASE_REFCOUNT( args[%(top_level_parameter_count)d+i] ) );
     }
 }
 else
