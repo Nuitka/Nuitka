@@ -63,10 +63,12 @@ parse_argument_template_check_counts_without_list_star_arg = r"""
 // Check if too many arguments were given in case of non star args
 if (unlikely( args_given > %(top_level_parameter_count)d ))
 {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 270
+    ERROR_TOO_MANY_ARGUMENTS( self, args_given, kw_size );
+#elif PYTHON_VERSION < 330
     ERROR_TOO_MANY_ARGUMENTS( self, args_given + kw_found );
 #else
-    ERROR_TOO_MANY_ARGUMENTS( self, args_given + kw_only_found );
+    ERROR_TOO_MANY_ARGUMENTS( self, args_given, kw_only_found );
 #endif
     goto error_exit;
 }
@@ -83,7 +85,7 @@ if (likely( %(parameter_position)d < args_given ))
 {
      if (unlikely( _python_par_%(parameter_name)s != NULL ))
      {
-         PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
+         ERROR_MULTIPLE_VALUES( self, %(parameter_position)d );
          goto error_exit;
      }
 
@@ -95,6 +97,7 @@ else if ( _python_par_%(parameter_name)s == NULL )
     {
         _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d ) );
     }
+#if PYTHON_VERSION < 330
     else
     {
 #if PYTHON_VERSION < 270
@@ -107,7 +110,20 @@ else if ( _python_par_%(parameter_name)s == NULL )
 
         goto error_exit;
     }
+#endif
 }
+"""
+
+template_arguments_check = """
+#if PYTHON_VERSION >= 330
+if (unlikely( %(parameter_test)s ))
+{
+    PyObject *values[] = { %(parameter_list)s };
+    ERROR_TOO_FEW_ARGUMENTS( self, values );
+
+    goto error_exit;
+}
+#endif
 """
 
 argparse_template_nested_argument = """\
@@ -125,10 +141,8 @@ else if ( _python_par_%(parameter_name)s == NULL )
     {
 #if PYTHON_VERSION < 270
         ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
-#elif PYTHON_VERSION < 300
-        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
 #else
-        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found - kw_only_found );
+        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
 #endif
 
         goto error_exit;
@@ -431,19 +445,35 @@ parse_argument_template_nested_argument_assign = """
     }
 """
 
-template_kwonly_argument_default = """
-    if (_python_par_%(parameter_name)s == NULL )
+template_kwonly_argument_default = """\
+if ( _python_par_%(parameter_name)s == NULL )
+{
+    _python_par_%(parameter_name)s = PyDict_GetItem( self->m_kwdefaults, %(parameter_name_object)s );
+
+#if PYTHON_VERSION < 330
+    if (unlikely (_python_par_%(parameter_name)s == NULL ))
     {
-        _python_par_%(parameter_name)s = PyDict_GetItem( self->m_kwdefaults, %(parameter_name_object)s );
-
-        if (unlikely (_python_par_%(parameter_name)s == NULL ))
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() needs keyword-only argument %(parameter_name)s" );
-            goto error_exit;
-        }
-
-        Py_INCREF( _python_par_%(parameter_name)s );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() needs keyword-only argument %(parameter_name)s" );
+        goto error_exit;
     }
+
+    Py_INCREF( _python_par_%(parameter_name)s );
+#else
+    Py_XINCREF( _python_par_%(parameter_name)s );
+#endif
+
+}"""
+
+template_kwonly_arguments_check = """
+#if PYTHON_VERSION >= 330
+if (unlikely( %(parameter_test)s ))
+{
+    PyObject *values[] = { %(parameter_list)s };
+    ERROR_TOO_FEW_KWONLY( self, values );
+
+    goto error_exit;
+}
+#endif
 """
 
 template_dparser = """

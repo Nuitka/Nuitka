@@ -57,3 +57,18 @@ try:
     kwfuncdefaulted( 1, 2, 3 )
 except TypeError as e:
     print( repr(e) )
+
+def kwfunc2( a, *, k, l, m ):
+    pass
+
+print( "Call function with mixed arguments with too little positional and keyword-only arguments." )
+
+try:
+    kwfunc2( 1, l = 2 )
+except TypeError as e:
+    print( repr(e) )
+
+try:
+    kwfunc2( 1 )
+except TypeError as e:
+    print( repr(e) )

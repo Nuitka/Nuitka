@@ -135,22 +135,35 @@ def _getParameterParsingCode( context, parameters, function_name ):
             }
 
     if plain_possible_count > 0:
+        plain_var_names = []
+
         parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {}
 
         for count, variable in enumerate( top_level_parameters ):
             if variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.argparse_template_nested_argument % {
-                    "parameter_name"     : variable.getName(),
-                    "parameter_position" : count,
+                    "parameter_name"            : variable.getName(),
+                    "parameter_position"        : count,
                     "top_level_parameter_count" : plain_possible_count,
                 }
             elif not variable.isParameterVariableKwOnly():
                 parameter_parsing_code += CodeTemplates.argparse_template_plain_argument % {
-                    "function_name"      : function_name,
-                    "parameter_name"     : variable.getName(),
-                    "parameter_position" : count,
+                    "parameter_name"            : variable.getName(),
+                    "parameter_position"        : count,
                     "top_level_parameter_count" : plain_possible_count,
                 }
+
+                plain_var_names.append( "_python_par_" + variable.getName() );
+
+        parameter_parsing_code += CodeTemplates.template_arguments_check % {
+            "parameter_test" : " || ".join(
+                "%s == NULL" % plain_var_name
+                for plain_var_name in
+                plain_var_names
+            ),
+            "parameter_list" : ", ".join( plain_var_names )
+        }
+
 
     if parameters.getListStarArgVariable() is not None:
         parameter_parsing_code += CodeTemplates.parse_argument_template_copy_list_star_args % {
@@ -198,6 +211,8 @@ def _getParameterParsingCode( context, parameters, function_name ):
         variables = top_level_parameters
     )
 
+    kw_only_var_names = []
+
     for variable in parameters.getKwOnlyVariables():
         parameter_parsing_code += CodeTemplates.template_kwonly_argument_default % {
             "function_name"         : function_name,
@@ -206,6 +221,18 @@ def _getParameterParsingCode( context, parameters, function_name ):
                 constant = variable.getName(),
                 context  = context
             )
+        }
+
+        kw_only_var_names.append( "_python_par_" + variable.getName() );
+
+    if kw_only_var_names:
+        parameter_parsing_code += CodeTemplates.template_kwonly_arguments_check % {
+            "parameter_test" : " || ".join(
+                "%s == NULL" % kw_only_var_name
+                for kw_only_var_name in
+                kw_only_var_names
+            ),
+            "parameter_list" : ", ".join( kw_only_var_names )
         }
 
     return indented( parameter_parsing_code )

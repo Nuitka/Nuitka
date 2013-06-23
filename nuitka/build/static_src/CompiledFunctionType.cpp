@@ -651,6 +651,28 @@ void ERROR_NO_ARGUMENTS_ALLOWED( Nuitka_FunctionObject *function,
 #endif
 }
 
+void ERROR_MULTIPLE_VALUES( Nuitka_FunctionObject *function, Py_ssize_t index )
+{
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+
+    PyErr_Format(
+        PyExc_TypeError,
+#if PYTHON_VERSION < 330
+        "%s() got multiple values for keyword argument '%s'",
+#else
+        "%s() got multiple values for argument '%s'",
+#endif
+        function_name,
+        Nuitka_String_AsString(
+            PyTuple_GET_ITEM(
+                function->m_code_object->co_varnames,
+                index
+            )
+        )
+    );
+}
+
 void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
 #if PYTHON_VERSION < 270
                               Py_ssize_t kw_size,
@@ -711,7 +733,15 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
 }
 
 void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject *function,
-                               Py_ssize_t given )
+                               Py_ssize_t given
+#if PYTHON_VERSION < 270
+                             , Py_ssize_t kw_size
+
+#endif
+#if PYTHON_VERSION >= 330
+                             , Py_ssize_t kw_only
+#endif
+)
 {
     Py_ssize_t top_level_parameter_count = function->m_code_object->co_argcount;
 
@@ -724,7 +754,18 @@ void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject *function,
     char const *plural =
        top_level_parameter_count == 1 ? "" : "s";
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 270
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes %s %zd %sargument%s (%zd given)",
+        function_name,
+        violation,
+        top_level_parameter_count,
+        kw_size > 0 ? "non-keyword " : "",
+        plural,
+        given
+    );
+#elif PYTHON_VERSION < 300
     PyErr_Format(
         PyExc_TypeError,
         "%s() takes %s %zd argument%s (%zd given)",
@@ -745,13 +786,247 @@ void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject *function,
         given
     );
 #else
-    PyErr_Format(
-        PyExc_TypeError,
-        "%s() takes %zd positional argument%s but %zd were given",
-        function_name,
-        top_level_parameter_count,
-        plural,
-        given
-    );
+    char keyword_only_part[100];
+
+    if ( kw_only > 0 )
+    {
+        sprintf(
+            keyword_only_part,
+            " positional argument%s (and %zd keyword-only argument%s)",
+            given != 1 ? "s" : "",
+            kw_only,
+            kw_only != 1 ? "s" : ""
+        );
+    }
+    else
+    {
+        keyword_only_part[0] = 0;
+    }
+
+    if ( function->m_defaults_given == 0 )
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes %zd positional argument%s but %zd%s were given",
+            function_name,
+            top_level_parameter_count,
+            plural,
+            given,
+            keyword_only_part
+        );
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes from %zd to %zd positional argument%s but %zd%s were given",
+            function_name,
+            top_level_parameter_count - function->m_defaults_given,
+            top_level_parameter_count,
+            plural,
+            given,
+            keyword_only_part
+        );
+    }
 #endif
 }
+
+#if PYTHON_VERSION >= 330
+void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
+                              PyObject **values )
+{
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+
+    PyCodeObject *code_object = function->m_code_object;
+
+    Py_ssize_t max_missing = 0;
+
+    for( Py_ssize_t i = code_object->co_argcount-1; i >= 0; --i )
+    {
+        if ( values[ i ] == NULL )
+        {
+            max_missing += 1;
+        }
+    }
+
+    PyObject *list_str = PyUnicode_FromString( "" );
+
+    PyObject *comma_str = PyUnicode_FromString( ", " );
+    PyObject *and_str = PyUnicode_FromString(
+        max_missing == 2 ? " and " : ", and "
+    );
+
+    Py_ssize_t missing = 0;
+    for( Py_ssize_t i = code_object->co_argcount-1; i >= 0; --i )
+    {
+        if ( values[ i ] == NULL )
+        {
+            PyObject *current_str = PyTuple_GET_ITEM(
+                code_object->co_varnames,
+                i
+            );
+
+            PyObjectTemporary current( PyObject_Repr( current_str ) );
+
+            if ( missing == 0 )
+            {
+                PyObjectTemporary old( list_str );
+
+                list_str = PyUnicode_Concat(
+                    list_str,
+                    current.asObject()
+                );
+            }
+            else if ( missing == 1 )
+            {
+                PyObjectTemporary old1( list_str );
+
+                list_str = PyUnicode_Concat(
+                    and_str,
+                    list_str
+                );
+
+                PyObjectTemporary old2( list_str );
+
+                list_str = PyUnicode_Concat(
+                    current.asObject(),
+                    list_str
+                );
+            }
+            else
+            {
+                PyObjectTemporary old1( list_str );
+
+                list_str = PyUnicode_Concat(
+                    comma_str,
+                    list_str
+                );
+
+                PyObjectTemporary old2( list_str );
+
+                list_str = PyUnicode_Concat(
+                    current.asObject(),
+                    list_str
+                );
+            }
+
+            missing += 1;
+        }
+    }
+
+    Py_DECREF( comma_str );
+    Py_DECREF( and_str );
+
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() missing %zd required positional argument%s: %s",
+        function_name,
+        max_missing,
+        max_missing > 1 ? "s" : "",
+        Nuitka_String_AsString( list_str )
+    );
+
+    Py_DECREF( list_str );
+}
+
+
+void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
+                           PyObject **kw_vars )
+{
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+
+    PyCodeObject *code_object = function->m_code_object;
+
+    Py_ssize_t max_missing = 0;
+
+    for( Py_ssize_t i = code_object->co_kwonlyargcount-1; i >= 0; --i )
+    {
+        if ( kw_vars[ i ] == NULL )
+        {
+            max_missing += 1;
+        }
+    }
+
+    PyObject *list_str = PyUnicode_FromString( "" );
+
+    PyObject *comma_str = PyUnicode_FromString( ", " );
+    PyObject *and_str = PyUnicode_FromString(
+        max_missing == 2 ? " and " : ", and "
+    );
+
+    Py_ssize_t missing = 0;
+    for( Py_ssize_t i = code_object->co_kwonlyargcount-1; i >= 0; --i )
+    {
+        if ( kw_vars[ i ] == NULL )
+        {
+            PyObject *current_str = PyTuple_GET_ITEM(
+                code_object->co_varnames,
+                code_object->co_argcount + i
+            );
+
+            PyObjectTemporary current( PyObject_Repr( current_str ) );
+
+            if ( missing == 0 )
+            {
+                PyObjectTemporary old( list_str );
+
+                list_str = PyUnicode_Concat(
+                    list_str,
+                    current.asObject()
+                );
+            }
+            else if ( missing == 1 )
+            {
+                PyObjectTemporary old1( list_str );
+
+                list_str = PyUnicode_Concat(
+                    and_str,
+                    list_str
+                );
+
+                PyObjectTemporary old2( list_str );
+
+                list_str = PyUnicode_Concat(
+                    current.asObject(),
+                    list_str
+                );
+            }
+            else
+            {
+                PyObjectTemporary old1( list_str );
+
+                list_str = PyUnicode_Concat(
+                    comma_str,
+                    list_str
+                );
+
+                PyObjectTemporary old2( list_str );
+
+                list_str = PyUnicode_Concat(
+                    current.asObject(),
+                    list_str
+                );
+            }
+
+
+            missing += 1;
+        }
+    }
+
+    Py_DECREF( comma_str );
+    Py_DECREF( and_str );
+
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() missing %zd required keyword-only argument%s: %s",
+        function_name,
+        max_missing,
+        max_missing > 1 ? "s" : "",
+        Nuitka_String_AsString( list_str )
+    );
+
+    Py_DECREF( list_str );
+}
+#endif
