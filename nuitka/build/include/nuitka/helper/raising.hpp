@@ -205,19 +205,30 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( Py
             throw PythonException();
         }
 
+#if PYTHON_VERSION >= 300
+        CHAIN_EXCEPTION( exception_type, value );
+#endif
+
         PythonException to_throw( exception_type, value, traceback );
         to_throw.setCause( exception_cause );
         throw to_throw;
     }
     else if ( PyExceptionInstance_Check( exception_type ) )
     {
-        Py_XDECREF( exception_cause );
+        PyObject *value = exception_type;
+        exception_type = PyExceptionInstance_Class( value );
 
-        throw PythonException(
-            INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) ),
+#if PYTHON_VERSION >= 300
+        CHAIN_EXCEPTION( exception_type, value );
+#endif
+
+        PythonException to_throw(
             INCREASE_REFCOUNT( exception_type ),
+            INCREASE_REFCOUNT( value ),
             INCREASE_REFCOUNT( traceback )
         );
+        to_throw.setCause( exception_cause );
+        throw to_throw;
     }
     else
     {
