@@ -174,10 +174,7 @@ return _return_value_%(try_count)d.asObject();"""
 
 try_finally_template_direct_generator_return_value = """\
 assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
-PyErr_SetObject( PyExc_StopIteration, _return_value_%(try_count)d.asObject() );
-generator->m_yielded = NULL;
-swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-return;"""
+throw ReturnValueException( _return_value_%(try_count)d.asObject() );"""
 
 
 try_finally_template_indirect_return_value = """\
@@ -189,10 +186,7 @@ if ( _return_value_%(try_count)d.isKeeping() )
 try_finally_template_indirect_generator_return_value = """\
 if ( _return_value_%(try_count)d.isKeeping() )
 {
-    PyErr_SetObject( PyExc_StopIteration, _return_value_%(try_count)d.asObject() );
-    generator->m_yielded = NULL;
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-    return;
+    throw ReturnValueException( _return_value_%(try_count)d.asObject() );
 }"""
 
 

@@ -152,6 +152,8 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
         PyErr_SetObject( PyExc_StopIteration, e.getValue() );
     }
 
+    assert( ERROR_OCCURED() );
+
     // TODO: Won't return, we should tell the compiler about that.
     generator->m_yielded = NULL;
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );

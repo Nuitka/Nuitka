@@ -119,6 +119,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         if ( generator->m_yielded == NULL )
         {
+            assert( ERROR_OCCURED() );
+
             generator->m_status = status_Finished;
 
             Py_XDECREF( generator->m_frame );
@@ -126,8 +128,14 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
             if ( generator->m_context )
             {
+                // Surpressing exception in cleanup, to restore later before
+                // return.
+                PythonException saved_exception;
+
                 generator->m_cleanup( generator->m_context );
                 generator->m_context = NULL;
+
+                saved_exception.toPython();
             }
 
             assert( ERROR_OCCURED() );
@@ -288,7 +296,15 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "exceptions must be classes, or instances, not %s", Py_TYPE( generator->m_exception_type )->tp_name );
+        PyErr_Format(
+            PyExc_TypeError,
+#if PYTHON_VERSION < 300
+            "exceptions must be classes, or instances, not %s",
+#else
+            "exceptions must be classes or instances deriving from BaseException, not %s",
+#endif
+            Py_TYPE( generator->m_exception_type )->tp_name
+        );
         return NULL;
     }
 
