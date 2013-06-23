@@ -150,7 +150,7 @@ def _findModuleInPath( module_name, package_name ):
         ext_path = [
             getPackageDirname( element )
             for element in
-            sys.path + extra_paths
+            extra_paths + sys.path
             if isPackageDir( getPackageDirname( element ) )
         ]
 
@@ -177,7 +177,7 @@ def _findModuleInPath( module_name, package_name ):
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module failed with syntax error" )
 
-    ext_path = sys.path + extra_paths
+    ext_path = extra_paths + sys.path
 
     if _debug_module_finding:
         print( "_findModuleInPath: Non-package, using extended path", ext_path )
