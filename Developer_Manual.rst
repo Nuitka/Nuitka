@@ -695,6 +695,58 @@ Notice how the frame guard taking is limited and may be avoided, or in best
 cases, it might be removed completely. Also this will play a role when in-lining
 function, it will not be lost or need any extra care.
 
+Parameter Parsing
+-----------------
+
+The parsing of parameters is very convoluted in Python, and doing it in an
+compatible way is not that easy. This is a description of the required process,
+for easier overview.
+
+Input
++++++
+
+The input is an argument tuple (type is fixed), which contains the positional
+arguments, and potentially an argument dictionary (type is fixed, but could also
+be ``NULL``, indicating no keyword arguments.
+
+Keyword dictionary
+++++++++++++++++++
+
+The keyword argument dictionary is checked first. Anything in there, that cannot
+be associated, either raises an error, or is added to a potentially given star
+dict argument. So there are two major cases.
+
+* No star dict argument: Iterate over dictionary, and assign or raise errors.
+
+  This check covers extra arguments given.
+
+* With star dict argument: Iterate over dictionary, and assign or raise errors.
+
+  Interesting case for optimization are no positional arguments, then no check
+  is needed, and the keyword argument dictionary could be used as the star
+  argument. Should it change, a copy is needed though.
+
+What's noteworthy here, is that in comparison of the keywords, we can hope that
+they are the same value as we use. The interning of strings increases chances
+for non-compiled code to do that, esp. for short names.
+
+We then can do a simple ``==`` comparison and only fall back to real string
+comparisons, after all of these failed. That means more code, but also a lot
+faster code in the positive case.
+
+Argument tuple
+++++++++++++++
+
+After this completed, the argument tuple is up for processing. The first thing it needs to do is to check if it's too many of them, and then to complain.
+
+For arguments in Python2, there is the possibility of them being nested, in
+which case they cannot be provided in the keyword dictionary, and merely should
+get picked from the argument tuple.
+
+Otherwise, the length of the argument tuple should be checked against its
+position and if possible, values should be taken from there. If it's already set
+(from the keyword dictionary), raise an error instead.
+
 
 Language Conversions to make things simpler
 ===========================================
