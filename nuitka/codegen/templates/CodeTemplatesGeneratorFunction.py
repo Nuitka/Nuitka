@@ -131,9 +131,12 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 }
 """
 
+# TODO: Make the try/catch below unnecessary by detecting the presence
+# or return statements in generators.
 genfunc_yielder_template = """
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
+    try
     {
         // Make context accessible if one is used.
 %(context_access)s
@@ -143,6 +146,10 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 
         // Actual function code.
 %(function_body)s
+    }
+    catch( ReturnValueException &e )
+    {
+        PyErr_SetObject( PyExc_StopIteration, e.getValue() );
     }
 
     // TODO: Won't return, we should tell the compiler about that.

@@ -999,9 +999,15 @@ def getTryFinallyCode( context, needs_continue, needs_break,
         if needs_return_value_reraise:
             rethrow_raisers += CodeTemplates.try_finally_template_reraise_return_value % values
         elif not aborting:
-            rethrow_raisers += CodeTemplates.try_finally_template_indirect_return_value % values
+            if context.getFunction().isGenerator():
+                rethrow_raisers += CodeTemplates.try_finally_template_indirect_generator_return_value % values
+            else:
+                rethrow_raisers += CodeTemplates.try_finally_template_indirect_return_value % values
         else:
-            rethrow_raisers += CodeTemplates.try_finally_template_direct_return_value % values
+            if context.getFunction().isGenerator():
+                rethrow_raisers += CodeTemplates.try_finally_template_direct_generator_return_value % values
+            else:
+                rethrow_raisers += CodeTemplates.try_finally_template_direct_return_value % values
 
     result = CodeTemplates.try_finally_template % {
         "try_count"        : try_count,

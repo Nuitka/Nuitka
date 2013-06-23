@@ -2150,6 +2150,18 @@ def generateReturnCode( statement, context ):
         context       = context
     )
 
+def generateGeneratorReturnCode( statement, context ):
+    return Generator.getReturnCode(
+        identifier    = generateExpressionCode(
+            expression = statement.getExpression(),
+            context    = context
+        ),
+        # TODO: Use the knowledge about actual need and return immediately if
+        # possible.
+        via_exception = True,
+        context       = context
+    )
+
 def generateStatementCode( statement, context ):
     try:
         statement_context = Contexts.PythonStatementContext( context )
@@ -2325,6 +2337,11 @@ def _generateStatementCode( statement, context ):
         )
     elif statement.isStatementReturn():
         code = generateReturnCode(
+            statement = statement,
+            context   = context
+        )
+    elif statement.isStatementGeneratorReturn():
+        code = generateGeneratorReturnCode(
             statement = statement,
             context   = context
         )

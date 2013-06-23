@@ -33,6 +33,7 @@ from .Operations import VisitorNoopMixin, visitScopes, visitTree
 
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
+from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 
 # Note: We do the variable scope assignment, as an extra step from tree
 # building, because it will build the tree without any consideration of
@@ -197,15 +198,9 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                     )
 
             node.replaceWith(
-                StatementRaiseException(
-                    exception_type  = ExpressionBuiltinExceptionRef(
-                        exception_name = "StopIteration",
-                        source_ref     = node.getSourceReference()
-                    ),
-                    exception_value = return_value,
-                    exception_trace = None,
-                    exception_cause = None,
-                    source_ref      = node.getSourceReference()
+                StatementGeneratorReturn(
+                    expression  = return_value,
+                    source_ref  = node.getSourceReference()
                 )
             )
 

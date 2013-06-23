@@ -99,7 +99,7 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                     node.markAsExceptionPreserving()
                     break
 
-        if node.isStatementReturn():
+        if node.isStatementReturn() or node.isStatementGeneratorReturn():
             search = node.getParent()
 
             exception_driven = False

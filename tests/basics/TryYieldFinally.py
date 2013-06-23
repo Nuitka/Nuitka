@@ -38,6 +38,34 @@ def tryFinallyAfterYield():
     finally:
         print "Executing finally"
 
+def tryReturnFinallyYield():
+    try:
+        return
+    finally:
+        yield 1
+
+def tryReturnExceptYield():
+    try:
+        return
+    except StopIteration:
+        print "Caught StopIteration"
+        yield 2
+    except:
+        yield 1
+    else:
+        print "No exception"
+
+def tryStopIterationExceptYield():
+    try:
+        raise StopIteration
+    except StopIteration:
+        print "Caught StopIteration"
+        yield 2
+    except:
+        yield 1
+    else:
+        print "No exception"
+
 
 print "Check if finally is executed in a continue using for loop:"
 print tuple( tryContinueFinallyTest() )
@@ -47,3 +75,12 @@ print tuple( tryBreakFinallyTest() )
 
 print "Check what try yield finally something does:"
 print tuple( tryFinallyAfterYield() )
+
+print "Check if yield is executed in finally after return:"
+print tuple( tryReturnFinallyYield() )
+
+print "Check if yield is executed in except after return:"
+print tuple( tryReturnExceptYield() )
+
+print "Check if yield is executed in except after StopIteration:"
+print tuple( tryReturnExceptYield() )
