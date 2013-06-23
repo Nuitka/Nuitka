@@ -547,6 +547,7 @@ static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_par
     assertObject( defaults );
     assert( defaults == Py_None || ( PyTuple_Check( defaults ) && PyTuple_Size( defaults ) > 0 ) );
     result->m_defaults = defaults;
+    result->m_defaults_given = defaults == Py_None ? 0 : PyTuple_GET_SIZE( defaults );
 
 #if PYTHON_VERSION >= 300
     assert( kwdefaults );
@@ -681,11 +682,10 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
             violation,
             required_parameter_count,
             plural,
-            given
+            given - function->m_defaults_given
         );
     }
     else
-#endif
     {
         PyErr_Format(
             PyExc_TypeError,
@@ -697,6 +697,17 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
             given
         );
     }
+#else
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes %s %zd argument%s (%zd given)",
+        function_name,
+        violation,
+        required_parameter_count,
+        plural,
+        given
+    );
+#endif
 }
 
 void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject *function,

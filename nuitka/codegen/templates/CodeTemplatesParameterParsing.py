@@ -39,11 +39,6 @@ error_exit:;
 }
 """
 
-parse_argument_template_take_counts3 = """\
-Py_ssize_t args_usable_count;
-"""
-
-
 template_parameter_function_refuses = r"""
 if (unlikely( args_given + kw_size > 0 ))
 {
@@ -64,22 +59,6 @@ if (unlikely( args_given + kw_size > 0 ))
 }
 """
 
-parse_argument_template_check_counts_with_list_star_arg = r"""
-// Check if too little arguments were given.
-if (unlikely( args_given + kw_found - kw_only_found < %(required_parameter_count)d ))
-{
-#if PYTHON_VERSION < 270
-    ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
-#elif PYTHON_VERSION < 300
-    ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
-#else
-    ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found - kw_only_found );
-#endif
-
-    goto error_exit;
-}
-"""
-
 parse_argument_template_check_counts_without_list_star_arg = r"""
 // Check if too many arguments were given in case of non star args
 if (unlikely( args_given > %(top_level_parameter_count)d ))
@@ -92,29 +71,15 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
     goto error_exit;
 }
 
-// Check if too little arguments were given.
-if (unlikely( args_given + kw_found - kw_only_found < %(required_parameter_count)d ))
-{
-#if PYTHON_VERSION < 270
-    ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
-#elif PYTHON_VERSION < 300
-    ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
-#else
-    ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found - kw_only_found );
-#endif
-
-    goto error_exit;
-}
 """
 
 parse_argument_usable_count = r"""
 // Copy normal parameter values given as part of the args list to the respective variables:
-args_usable_count = args_given < %(top_level_parameter_count)d ? args_given : %(top_level_parameter_count)d;
 
 """
 
 argparse_template_plain_argument = """\
-if (likely( %(parameter_position)d < args_usable_count ))
+if (likely( %(parameter_position)d < args_given ))
 {
      if (unlikely( _python_par_%(parameter_name)s != NULL ))
      {
@@ -124,12 +89,50 @@ if (likely( %(parameter_position)d < args_usable_count ))
 
     _python_par_%(parameter_name)s = INCREASE_REFCOUNT( args[ %(parameter_position)d ] );
 }
+else if ( _python_par_%(parameter_name)s == NULL )
+{
+    if ( %(parameter_position)d + self->m_defaults_given >= %(top_level_parameter_count)d  )
+    {
+        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d ) );
+    }
+    else
+    {
+#if PYTHON_VERSION < 270
+        ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
+#elif PYTHON_VERSION < 300
+        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
+#else
+        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found - kw_only_found );
+#endif
+
+        goto error_exit;
+    }
+}
 """
 
 argparse_template_nested_argument = """\
-if (likely( %(parameter_position)d < args_usable_count ))
+if (likely( %(parameter_position)d < args_given ))
 {
     _python_par_%(parameter_name)s = args[ %(parameter_position)d ];
+}
+else if ( _python_par_%(parameter_name)s == NULL )
+{
+    if ( %(parameter_position)d + self->m_defaults_given >= %(top_level_parameter_count)d  )
+    {
+        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d ) );
+    }
+    else
+    {
+#if PYTHON_VERSION < 270
+        ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
+#elif PYTHON_VERSION < 300
+        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
+#else
+        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found - kw_only_found );
+#endif
+
+        goto error_exit;
+    }
 }
 """
 
@@ -396,14 +399,6 @@ if ( found == false && RICH_COMPARE_BOOL_EQ_PARAMETERS( %(parameter_name_object)
 argparse_template_assign_from_dict_finding = """\
 assert( _python_par_%(parameter_name)s == NULL );
 _python_par_%(parameter_name)s = value;
-"""
-
-parse_argument_template_copy_default_value = """\
-if ( _python_par_%(parameter_name)s == NULL )
-{
-    _python_par_%(parameter_name)s = %(default_identifier)s;
-    assertObject( _python_par_%(parameter_name)s );
-}
 """
 
 parse_argument_template_nested_argument_unpack = """\

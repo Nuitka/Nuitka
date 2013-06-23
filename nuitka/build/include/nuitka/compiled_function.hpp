@@ -63,6 +63,7 @@ struct Nuitka_FunctionObject {
 
     // List of defaults, for use in __defaults__ and parameter parsing.
     PyObject *m_defaults;
+    Py_ssize_t m_defaults_given;
 
 #if PYTHON_VERSION >= 300
     // List of keyword only defaults, for use in __kwdefaults__ and parameter

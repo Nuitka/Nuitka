@@ -285,8 +285,6 @@ def generateFunctionCreationCode( function_body, defaults, kw_defaults,
 
     parameters = function_body.getParameters()
 
-    assert len( defaults ) == len( parameters.getDefaultParameterVariables() )
-
     if defaults:
         defaults_identifier = generateTupleCreationCode(
             elements = defaults,

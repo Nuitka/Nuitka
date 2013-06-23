@@ -259,3 +259,13 @@ try:
     None(a=2, **a)
 except TypeError, e:
     print repr(e)
+
+print "Call function with only defaulted value given as keyword argument:"
+
+def functionwithTwoArgsOneDefaulted(a, b=5):
+    pass
+
+try:
+    functionwithTwoArgsOneDefaulted(b=12)
+except TypeError, e:
+    print repr(e)

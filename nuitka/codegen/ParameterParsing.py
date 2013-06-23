@@ -22,7 +22,7 @@
 from . import CodeTemplates
 
 from .ConstantCodes import getConstantCode
-from .Identifiers import Identifier, DefaultValueIdentifier
+from .Identifiers import Identifier
 from .Indentation import indented
 
 def getParameterEntryPointIdentifier( function_identifier ):
@@ -57,9 +57,6 @@ def _getParameterParsingCode( context, parameters, function_name ):
     # arguments.
     plain_possible_count = len( top_level_parameters ) - \
                            parameters.getKwOnlyParameterCount()
-
-    if plain_possible_count > 0:
-        parameter_parsing_code += str( CodeTemplates.parse_argument_template_take_counts3 )
 
     if top_level_parameters:
         parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
@@ -135,29 +132,24 @@ def _getParameterParsingCode( context, parameters, function_name ):
         if parameters.getListStarArgVariable() is None:
             parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts_without_list_star_arg % {
                 "top_level_parameter_count" : plain_possible_count,
-                "required_parameter_count"  : required_parameter_count,
-            }
-        else:
-            parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts_with_list_star_arg  % {
-                "required_parameter_count"  : required_parameter_count,
             }
 
     if plain_possible_count > 0:
-        parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {
-            "top_level_parameter_count" : plain_possible_count,
-        }
+        parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {}
 
         for count, variable in enumerate( top_level_parameters ):
             if variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.argparse_template_nested_argument % {
                     "parameter_name"     : variable.getName(),
-                    "parameter_position" : count
+                    "parameter_position" : count,
+                    "top_level_parameter_count" : plain_possible_count,
                 }
             elif not variable.isParameterVariableKwOnly():
                 parameter_parsing_code += CodeTemplates.argparse_template_plain_argument % {
                     "function_name"      : function_name,
                     "parameter_name"     : variable.getName(),
-                    "parameter_position" : count
+                    "parameter_position" : count,
+                    "top_level_parameter_count" : plain_possible_count,
                 }
 
     if parameters.getListStarArgVariable() is not None:
@@ -166,36 +158,15 @@ def _getParameterParsingCode( context, parameters, function_name ):
             "top_level_parameter_count" : plain_possible_count
         }
 
-    if parameters.hasDefaultParameters():
-        parameter_parsing_code += "// Assign values not given to defaults\n"
-
-        for count, variable in enumerate( parameters.getDefaultParameterVariables() ):
-            if not variable.isNestedParameterVariable():
-                parameter_parsing_code += CodeTemplates.parse_argument_template_copy_default_value % {
-                    "parameter_name"     : variable.getName(),
-                    "default_identifier" : DefaultValueIdentifier( count ).getCodeExportRef()
-                }
-
-
-    def unPackNestedParameterVariables( variables, default_variables, recursion ):
+    def unPackNestedParameterVariables( variables ):
         result = ""
 
         for count, variable in enumerate( variables ):
             if variable.isNestedParameterVariable():
-                if recursion == 1 and count < len( default_variables ):
-                    assign_source = Identifier(
-                        "_python_par_%s ? _python_par_%s : %s" % (
-                            variable.getName(),
-                            variable.getName(),
-                            DefaultValueIdentifier( count ).getCodeExportRef()
-                        ),
-                        0
-                    )
-                else:
-                    assign_source = Identifier(
-                        "_python_par_%s" % variable.getName(),
-                        0
-                    )
+                assign_source = Identifier(
+                    "_python_par_%s" % variable.getName(),
+                    0
+                )
 
                 unpack_code = ""
 
@@ -218,17 +189,13 @@ def _getParameterParsingCode( context, parameters, function_name ):
         for variable in variables:
             if variable.isNestedParameterVariable():
                 result += unPackNestedParameterVariables(
-                    variables         = variable.getTopLevelVariables(),
-                    default_variables = (),
-                    recursion         = recursion + 1
+                    variables = variable.getTopLevelVariables()
                 )
 
         return result
 
     parameter_parsing_code += unPackNestedParameterVariables(
-        variables         = top_level_parameters,
-        default_variables = parameters.getDefaultParameterVariables(),
-        recursion         = 1
+        variables = top_level_parameters
     )
 
     for variable in parameters.getKwOnlyVariables():
@@ -236,9 +203,9 @@ def _getParameterParsingCode( context, parameters, function_name ):
             "function_name"         : function_name,
             "parameter_name"        : variable.getName(),
             "parameter_name_object" : getConstantCode(
-                        constant = variable.getName(),
-                        context  = context
-                    )
+                constant = variable.getName(),
+                context  = context
+            )
         }
 
     return indented( parameter_parsing_code )
