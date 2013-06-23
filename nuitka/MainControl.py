@@ -150,7 +150,7 @@ def _pickSourceFilenames( source_dir, modules ):
 
         seen_filenames.add( collision_filename )
 
-    collision_count = {}
+    collision_counts = {}
 
     module_filenames = {}
 
@@ -165,8 +165,8 @@ def _pickSourceFilenames( source_dir, modules ):
         collision_filename = Utils.normcase( base_filename )
 
         if collision_filename in collision_filenames:
-            hash_suffix = "@%d" % collision_count[ collision_filename ]
-            collision_count[ collision_filename ] = collision_count.get( collision_filename, 0 ) + 1
+            collision_counts[ collision_filename ] = collision_counts.get( collision_filename, 0 ) + 1
+            hash_suffix = "@%d" % collision_counts[ collision_filename ]
         else:
             hash_suffix = ""
 
