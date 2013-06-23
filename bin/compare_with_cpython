@@ -238,6 +238,7 @@ def makeDiffable( output ):
         line = global_name_error_re.sub( r"\1\2\3", line )
         line = module_repr_re.sub( r"\1xxxxx\2", line )
         line = line.replace( "'compiled_module'", "'module'" )
+        line = line.replace( "'compiled_function'", "'function'" )
         line = non_ascii_error_rt.sub( r"\1 xxxx", line )
 
         # Windows has a different os.path, update according to it.
