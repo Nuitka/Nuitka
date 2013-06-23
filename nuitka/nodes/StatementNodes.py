@@ -186,11 +186,6 @@ class StatementsFrame( StatementsSequence ):
         # TODO: Why do this accessing a node, do this outside.
         from nuitka.codegen.CodeObjectCodes import getCodeObjectHandle
 
-        if provider.isPythonModule():
-            line_number = 0
-        else:
-            line_number = self.source_ref.getLineNumber()
-
         return getCodeObjectHandle(
             context       = context,
             filename      = self.source_ref.getFilename(),

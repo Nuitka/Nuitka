@@ -24,8 +24,7 @@ make others possible.
 
 from .Tags import TagSet
 
-from nuitka import ModuleRegistry, Options, Variables
-from nuitka.tree import Building
+from nuitka import ModuleRegistry, Options
 
 from nuitka.Tracing import printLine
 

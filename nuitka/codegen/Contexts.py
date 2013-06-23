@@ -29,8 +29,6 @@ from .Namify import namifyConstant
 
 from nuitka.Constants import HashableConstant, constant_builtin_types
 
-from nuitka.__past__ import iterItems
-
 from nuitka.Utils import python_version
 
 from nuitka import Options

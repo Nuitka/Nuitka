@@ -29,10 +29,8 @@ from nuitka import SyntaxErrors
 from nuitka.Utils import python_version
 from nuitka.Options import isFullCompat
 
-from .Operations import VisitorNoopMixin, visitTree, visitFunction
+from .Operations import VisitorNoopMixin, visitTree
 
-from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 
 # Note: We do the variable scope assignment, as an extra step from tree

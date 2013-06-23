@@ -23,8 +23,6 @@ module variable references.
 
 """
 
-from .__past__ import iterItems
-
 class Variable:
     def __init__( self, owner, variable_name ):
         assert type( variable_name ) is str, variable_name

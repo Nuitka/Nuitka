@@ -17,20 +17,18 @@
 #
 """ Node for variable references.
 
-These represent all variable references in the node tree. Can be in assignments and it
-expressions, changing the meaning of course dramatically.
+These represent all variable references in the node tree. Can be in assignments
+and its expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Variables, Builtins, Options
+from nuitka import Variables, Builtins
 
 from .NodeBases import (
     StatementChildrenHavingBase,
     ExpressionMixin,
     NodeBase
 )
-
-from nuitka.__past__ import iterItems
 
 from .ConstantRefNodes import ExpressionConstantRef
 
@@ -355,11 +353,11 @@ class StatementTempBlock( StatementChildrenHavingBase ):
         return self.getBody().mayHaveSideEffects()
 
     def computeStatement( self, constraint_collection ):
-        old_body = self.getBody()
-
         from nuitka.optimizations.ConstraintCollections import ConstraintCollectionTempBlock
 
-        collection_temp_block = ConstraintCollectionTempBlock( constraint_collection )
+        collection_temp_block = ConstraintCollectionTempBlock(
+            constraint_collection
+        )
         collection_temp_block.process( self )
 
         if self.getBody() is None:

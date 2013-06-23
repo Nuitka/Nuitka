@@ -15,6 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Code generation for calls.
+
+The different kinds of calls get dedicated code. Most notable, calls with
+only positional arguments, are attempted through helpers that might be
+able to execute them without creating the argument dictionary at all.
+
+"""
 
 from . import CodeTemplates
 
@@ -28,6 +35,7 @@ def getCallCodeNoArgs( called_identifier ):
         1
     )
 
+# Outside code relies on the single argument quick call to be present.
 quick_calls_used = set([1])
 
 def getCallCodePosArgsQuick( context, order_relevance, called_identifier,

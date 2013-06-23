@@ -202,4 +202,5 @@ def buildExecNode( provider, node, source_ref ):
         source_ref  = source_ref
     )
 
+# This is here, to make sure it can register, pylint: disable=W0611
 import nuitka.optimizations.OptimizeBuiltinCalls

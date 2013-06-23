@@ -126,9 +126,6 @@ def _getParameterParsingCode( context, parameters, function_name ):
     if parameters.isEmpty():
         parameter_parsing_code += CodeTemplates.template_parameter_function_refuses % {}
     else:
-        required_parameter_count = plain_possible_count - \
-                                   parameters.getDefaultCount()
-
         if parameters.getListStarArgVariable() is None:
             parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts_without_list_star_arg % {
                 "top_level_parameter_count" : plain_possible_count,
@@ -153,7 +150,7 @@ def _getParameterParsingCode( context, parameters, function_name ):
                     "top_level_parameter_count" : plain_possible_count,
                 }
 
-                plain_var_names.append( "_python_par_" + variable.getName() );
+                plain_var_names.append( "_python_par_" + variable.getName() )
 
         parameter_parsing_code += CodeTemplates.template_arguments_check % {
             "parameter_test" : " || ".join(
@@ -223,7 +220,7 @@ def _getParameterParsingCode( context, parameters, function_name ):
             )
         }
 
-        kw_only_var_names.append( "_python_par_" + variable.getName() );
+        kw_only_var_names.append( "_python_par_" + variable.getName() )
 
     if kw_only_var_names:
         parameter_parsing_code += CodeTemplates.template_kwonly_arguments_check % {

@@ -21,7 +21,6 @@
 
 from .Pickling import getStreamedConstant
 from .CppStrings import encodeString
-from .Indentation import indented
 
 from .TupleCodes import addMakeTupleUse
 from .ListCodes import addMakeListUse
@@ -31,7 +30,6 @@ from .DictCodes import addMakeDictUse
 from ..__past__ import unicode, long, iterItems
 # pylint: enable=W0622
 
-from ..Utils import python_version
 from ..Constants import HashableConstant, constant_builtin_types
 
 import re, struct

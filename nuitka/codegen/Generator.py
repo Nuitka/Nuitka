@@ -41,6 +41,7 @@ from .Indentation import (
     indented
 )
 
+# imported from here pylint: disable=W0611
 from .OrderedEvaluation import (
     getOrderRelevanceEnforcedCallCode,
     getOrderRelevanceEnforcedArgsCode,
@@ -49,7 +50,6 @@ from .OrderedEvaluation import (
     pickFirst
 )
 
-# imported from here pylint: disable=W0611
 from .TupleCodes import (
     getTupleCreationCode,
     getMakeTuplesCode
@@ -1520,10 +1520,7 @@ def getExecCode( context, exec_code, globals_identifier, locals_identifier, futu
         "globals_identifier"      : globals_identifier.getCodeExportRef(),
         "locals_identifier"       : locals_identifier.getCodeExportRef(),
         "source_identifier"       : exec_code.getCodeTemporaryRef(),
-        "filename_identifier"     : getConstantCode(
-            constant = "<string>",
-            context  = context
-        ),
+        "filename_identifier"     : filename_identifier,
         "mode_identifier"         : getConstantCode(
             constant = "exec",
             context  = context
@@ -2011,7 +2008,7 @@ def getFunctionMakerDecl( function_identifier, defaults_identifier,
     }
 
 
-def getFunctionDirectDecl( context, function_identifier, closure_variables,
+def getFunctionDirectDecl( function_identifier, closure_variables,
                            parameter_variables, file_scope ):
 
     parameter_objects_decl = [

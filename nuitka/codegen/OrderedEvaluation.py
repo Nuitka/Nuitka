@@ -25,10 +25,7 @@ from .Identifiers import (
     Identifier
 )
 
-from .Indentation import (
-    getBlockCode,
-    indented
-)
+from .Indentation import getBlockCode
 
 def getLineNumberCode( line_number ):
     return "frame_guard.setLineNumber( %d )" % line_number

@@ -1120,8 +1120,6 @@ def buildModuleTree( filename, package, is_top, is_main ):
     )
 
     if is_main:
-        from nuitka.nodes.ImportNodes import ExpressionImportModule
-
         module_body = makeStatementsSequence(
             statements = (
                 StatementExpressionOnly(

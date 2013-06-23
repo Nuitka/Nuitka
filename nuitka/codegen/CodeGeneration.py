@@ -2600,7 +2600,6 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
 
         if function_body.needsDirectCall():
             function_decl = Generator.getFunctionDirectDecl(
-                context = context,
                 function_identifier = function_body.getCodeName(),
                 closure_variables   = function_body.getClosureVariables(),
                 parameter_variables = function_body.getParameters().getAllVariables(),
