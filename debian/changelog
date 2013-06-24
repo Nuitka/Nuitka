@@ -1,7 +1,10 @@
 nuitka (0.4.4~pre3+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
+  * Upstream now supports Python3.3 and threads.
   * Bump to Standards Version 3.9.4, no changes needed.
+  * Fix support for modules and Python3 was broken (Closes: #711459)
+  * Fix encoding error changes  Python 2.7.5 (Closes: #713531)
 
  -- Kay Hayen <kayhayen@gmx.de>  Wed, 12 Jun 2013 23:22:47 +0200
 
