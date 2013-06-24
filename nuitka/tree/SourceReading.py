@@ -57,7 +57,7 @@ def _readSourceCodeFromFilename3( source_filename ):
                     display_line = False
                 )
 
-            return source_code[ new_line + 1 : ].decode( encoding )
+            return source_code[ new_line : ].decode( encoding )
 
         new_line = source_code.find( b"\n", new_line+1 )
 
@@ -69,7 +69,7 @@ def _readSourceCodeFromFilename3( source_filename ):
             if line_match:
                 encoding = line_match.group(1).decode( "ascii" )
 
-                return source_code[ new_line + 1 : ].decode( encoding )
+                return "\n" + source_code[ new_line : ].decode( encoding )
 
 
     return source_code.decode( "utf-8" )
