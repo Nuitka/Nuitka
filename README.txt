@@ -29,6 +29,8 @@ Requirements
      The created binaries can be made executable independent of the Python
      installation, with ``--portable`` option.
 
+     CURRENTLY not FINISHED code, so disabled.
+
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits),
 
   Others may work as well. The portability is expected to be generally good, but
@@ -103,6 +105,8 @@ given directory shall also be included in the executable:
    being installed. If you want to be able to copy it to another machine, use
    ``--portable`` and copy the generated "_python" directory and "_python.zip"
    archives as well.
+
+   CURRENTLY not FINISHED code, so disabled.
 
 Use Case 2 - Extension Module compilation
 -----------------------------------------
