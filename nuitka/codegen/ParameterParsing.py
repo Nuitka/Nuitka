@@ -25,6 +25,8 @@ from .ConstantCodes import getConstantCode
 from .Identifiers import Identifier
 from .Indentation import indented
 
+from nuitka.Utils import python_version
+
 def getParameterEntryPointIdentifier( function_identifier ):
     return "fparse_" + function_identifier
 
@@ -125,7 +127,7 @@ def _getParameterParsingCode( context, parameters, function_name ):
 
     if parameters.isEmpty():
         parameter_parsing_code += CodeTemplates.template_parameter_function_refuses % {}
-    else:
+    elif python_version < 330:
         if parameters.getListStarArgVariable() is None:
             parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts_without_list_star_arg % {
                 "top_level_parameter_count" : plain_possible_count,
@@ -166,6 +168,10 @@ def _getParameterParsingCode( context, parameters, function_name ):
         parameter_parsing_code += CodeTemplates.parse_argument_template_copy_list_star_args % {
             "list_star_parameter_name"  : parameters.getStarListArgumentName(),
             "top_level_parameter_count" : plain_possible_count
+        }
+    elif python_version >= 330:
+        parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts_without_list_star_arg % {
+            "top_level_parameter_count" : plain_possible_count,
         }
 
     def unPackNestedParameterVariables( variables ):
