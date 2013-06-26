@@ -32,7 +32,7 @@ for filename in ( "README.pdf", "Changelog.pdf", "Developer_Manual.pdf",
                   "doc/man-nuitka.html", "doc/man-nuitka-python.html" ):
     assert 0 == os.system( "rsync %s root@nuitka.net:/var/www/doc/" % filename )
 
-# Upload only stable releases to OpenSUSE Build Service: TODO: Not yet there.
+# Upload only stable releases to OpenSUSE Build Service:
 if branch_name.startswith( "release" ) or branch_name == "master":
     # Cleanup the osc directory.
     shutil.rmtree( "osc", ignore_errors = True )
@@ -54,5 +54,6 @@ elif branch_name == "develop":
 
     for remote in "origin", "bitbucket", "github", "gitorious", "googlecode":
         assert 0 == os.system( "git push --tags -f %s develop" % remote )
+        assert 0 == os.system( "git push %s master" % remote )
 else:
     sys.stdout.write( "Skipping OSC for branch '%s'" % branch_name )
