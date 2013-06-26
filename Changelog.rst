@@ -52,7 +52,7 @@ New Features
 - Line numbers of expressions are now updates as evaluation progresses. This
   almost corrects.
 
-  Finally improves `Issue#9 <http://bugs.nuitka.net/issue9`_. Now only
+  Finally improves `Issue#9 <http://bugs.nuitka.net/issue9>`_. Now only
   expression parts that cannot raise, do not update, which can still cause
   difference, but much less often, and then definitely useless.
 
