@@ -72,6 +72,8 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
         # The list functions contained in that module.
         self.functions = OrderedSet()
 
+        self.active_functions = OrderedSet()
+
     def getDetails( self ):
         return {
             "filename" : self.source_ref.getFilename(),
@@ -162,6 +164,20 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
 
     def getFunctions( self ):
         return self.functions
+
+    def startTraversal( self ):
+        self.active_functions = OrderedSet()
+
+    def addUsedFunction( self, function_body ):
+        assert function_body in self.functions
+
+        assert function_body.isExpressionFunctionBody()
+
+        if function_body not in self.active_functions:
+            self.active_functions.add( function_body )
+
+    def getUsedFunctions( self ):
+        return self.active_functions
 
     def getOutputFilename( self ):
         main_filename = self.getFilename()

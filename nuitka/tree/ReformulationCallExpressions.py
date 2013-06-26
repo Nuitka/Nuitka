@@ -23,12 +23,9 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionRef
 )
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeTuple,
-    ExpressionMakeDict,
-)
 from .Helpers import (
+    makeSequenceCreationOrConstant,
+    makeDictCreationOrConstant,
     buildNodeList,
     buildNode
 )
@@ -36,35 +33,37 @@ from .Helpers import (
 def buildCallNode( provider, node, source_ref ):
     positional_args = buildNodeList( provider, node.args, source_ref )
 
-    # Only the values of keyword pairs have a real source ref, and those only really
-    # matter, so that makes sense.
-    pairs = [
-        ExpressionKeyValuePair(
-            key        = ExpressionConstantRef(
-                constant   = keyword.arg,
-                source_ref = source_ref
-            ),
-            value      = buildNode( provider, keyword.value, source_ref ),
-            source_ref = source_ref
-        )
-        for keyword in
-        node.keywords
-    ]
+    # Only the values of keyword pairs have a real source ref, and those only
+    # really matter, so that makes sense.
+    keys = []
+    values = []
 
-    list_star_arg   = buildNode( provider, node.starargs, source_ref, True )
-    dict_star_arg   = buildNode( provider, node.kwargs, source_ref, True )
+    for keyword in node.keywords:
+        keys.append(
+            ExpressionConstantRef(
+                constant      = keyword.arg,
+                source_ref    = source_ref,
+                user_provided = True
+            )
+        )
+        values.append(
+            buildNode( provider, keyword.value, source_ref )
+        )
+
+    list_star_arg = buildNode( provider, node.starargs, source_ref, True )
+    dict_star_arg = buildNode( provider, node.kwargs, source_ref, True )
 
     return _makeCallNode(
-        provider        = provider,
         called          = buildNode( provider, node.func, source_ref ),
         positional_args = positional_args,
-        pairs           = pairs,
+        keys            = keys,
+        values          = values,
         list_star_arg   = list_star_arg,
         dict_star_arg   = dict_star_arg,
         source_ref      = source_ref,
     )
 
-def _makeCallNode( provider, called, positional_args, pairs, list_star_arg,
+def _makeCallNode( called, positional_args, keys, values, list_star_arg,
                    dict_star_arg, source_ref ):
     # Many variables, but only to cover the many complex call cases.
     # pylint: disable=R0914
@@ -72,12 +71,14 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg,
     if list_star_arg is None and dict_star_arg is None:
         return ExpressionCall(
             called  = called,
-            args    = ExpressionMakeTuple(
-                elements   = positional_args,
-                source_ref = source_ref
+            args    = makeSequenceCreationOrConstant(
+                sequence_kind = "tuple",
+                elements      = positional_args,
+                source_ref    = source_ref
             ),
-            kw      = ExpressionMakeDict(
-                pairs      = pairs,
+            kw      = makeDictCreationOrConstant(
+                keys       = keys,
+                values     = values,
                 source_ref = source_ref
             ),
             source_ref      = source_ref,
@@ -86,7 +87,12 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg,
         # Dispatch to complex helper function for each case. These do
         # re-formulation of complex calls according to developer manual.
 
-        key = len( positional_args ) > 0, len( pairs ) > 0, list_star_arg is not None, dict_star_arg is not None
+        key = (
+            len( positional_args ) > 0,
+            len( keys ) > 0,
+            list_star_arg is not None,
+            dict_star_arg is not None
+        )
 
         from .ComplexCallHelperFunctions import (
             getFunctionCallHelperPosKeywordsStarList,
@@ -104,18 +110,30 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg,
         )
 
         table = {
-            (  True,   True,  True, False ) : getFunctionCallHelperPosKeywordsStarList,
-            (  True,  False,  True, False ) : getFunctionCallHelperPosStarList,
-            ( False,   True,  True, False ) : getFunctionCallHelperKeywordsStarList,
-            ( False,  False,  True, False ) : getFunctionCallHelperStarList,
-            (  True,   True, False,  True ) : getFunctionCallHelperPosKeywordsStarDict,
-            (  True,  False, False,  True ) : getFunctionCallHelperPosStarDict,
-            ( False,   True, False,  True ) : getFunctionCallHelperKeywordsStarDict,
-            ( False,  False, False,  True ) : getFunctionCallHelperStarDict,
-            (  True,   True,  True,  True ) : getFunctionCallHelperPosKeywordsStarListStarDict,
-            (  True,  False,  True,  True ) : getFunctionCallHelperPosStarListStarDict,
-            ( False,   True,  True,  True ) : getFunctionCallHelperKeywordsStarListStarDict,
-            ( False,  False,  True,  True ) : getFunctionCallHelperStarListStarDict,
+            (  True,   True,  True, False ) :
+                getFunctionCallHelperPosKeywordsStarList,
+            (  True,  False,  True, False ) :
+                getFunctionCallHelperPosStarList,
+            ( False,   True,  True, False ) :
+                getFunctionCallHelperKeywordsStarList,
+            ( False,  False,  True, False ) :
+                getFunctionCallHelperStarList,
+            (  True,   True, False,  True ) :
+                getFunctionCallHelperPosKeywordsStarDict,
+            (  True,  False, False,  True ) :
+                getFunctionCallHelperPosStarDict,
+            ( False,   True, False,  True ) :
+                getFunctionCallHelperKeywordsStarDict,
+            ( False,  False, False,  True ) :
+                getFunctionCallHelperStarDict,
+            (  True,   True,  True,  True ) :
+                getFunctionCallHelperPosKeywordsStarListStarDict,
+            (  True,  False,  True,  True ) :
+                getFunctionCallHelperPosStarListStarDict,
+            ( False,   True,  True,  True ) :
+                getFunctionCallHelperKeywordsStarListStarDict,
+            ( False,  False,  True,  True ) :
+                getFunctionCallHelperStarListStarDict,
         }
 
         get_helper = table[ key ]
@@ -124,16 +142,18 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg,
 
         if positional_args:
             helper_args.append(
-                ExpressionMakeTuple(
-                    elements   = positional_args,
-                    source_ref = source_ref
+                makeSequenceCreationOrConstant(
+                    sequence_kind = "tuple",
+                    elements      = positional_args,
+                    source_ref    = source_ref
                 )
             )
 
-        if pairs:
+        if keys:
             helper_args.append(
-                ExpressionMakeDict(
-                    pairs      = pairs,
+                makeDictCreationOrConstant(
+                    keys       = keys,
+                    values     = values,
                     source_ref = source_ref
                 )
             )

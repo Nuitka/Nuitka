@@ -1,3 +1,13 @@
+nuitka (0.4.4+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * Upstream now supports Python3.3 and threads.
+  * Bump to Standards Version 3.9.4, no changes needed.
+  * Fix support for modules and Python3 was broken (Closes: #711459)
+  * Fix encoding error changes  Python 2.7.5 (Closes: #713531)
+
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 25 Jun 2013 10:46:40 +0200
+
 nuitka (0.4.3+ds-1) unstable; urgency=low
 
   * New upstream release.

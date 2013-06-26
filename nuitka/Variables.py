@@ -17,11 +17,11 @@
 #
 """ Variables link the storage and use of a Python variable together.
 
-Different kinds of variables represent different scopes and owners.
+Different kinds of variables represent different scopes and owners types,
+and their links between each other, i.e. references as in closure or
+module variable references.
 
 """
-
-from .__past__ import iterItems
 
 class Variable:
     def __init__( self, owner, variable_name ):
@@ -121,39 +121,44 @@ class Variable:
 
     # pylint: enable=R0201
 
-    def _checkShared( self, variable ):
+    def _checkShared( self, variable, technical ):
         for reference in variable.references:
-            # print "Checking", reference, "of", variable
+            # print( "Checking", reference, "of", variable )
 
-            if self._checkShared( reference ):
+            if self._checkShared( reference, technical ):
                 return True
 
             top_owner = reference.getReferenced().getOwner()
             owner = reference.getOwner()
 
-            while owner.isExpressionFunctionBody() and not owner.isGenerator() and not owner.needsCreation():
+            # The generations and functions that are not created, get things
+            # passed, and do not need the variable to share.
+            while technical and \
+                  owner.isExpressionFunctionBody() and \
+                  not owner.isGenerator() and not owner.needsCreation():
                 owner = owner.getParentVariableProvider()
 
-            # This defines being shared. Owned by one, and references that are owned by
-            # another node.
+            # This defines being shared. Owned by one, and references that are
+            # owned by another node.
             if owner != top_owner:
                 return True
         else:
             return False
 
 
-    def isShared( self ):
+    def isShared( self, technical = False ):
         variable = self
 
         while variable.isClosureReference():
             variable = variable.getReferenced()
 
-        return self._checkShared( variable )
+        return self._checkShared( variable, technical )
 
     reference_class = None
 
     def makeReference( self, owner ):
-        # Need to provider a reference class, or else making references cannot work.
+        # Need to provider a reference class, or else making references cannot
+        # work.
         assert self.reference_class, self
 
         # Search for existing references to be re-used before making a new one.
@@ -161,16 +166,23 @@ class Variable:
             if reference.getOwner() is owner:
                 return reference
         else:
-            # The reference_class will be overloaded with something callable, pylint: disable=E1102
+            # The reference_class will be overloaded with something callable,
+            # pylint: disable=E1102
             return self.reference_class(
                 owner    = owner,
                 variable = self
             )
 
     def getDeclarationCode( self ):
-        return self.getDeclarationTypeCode( in_context = False ) + " &" + self.getCodeName()
+        return self.getDeclarationTypeCode( in_context = False ) + \
+               " &" + self.getCodeName()
 
     def getMangledName( self ):
+        """ Get the mangled name of the variable.
+
+            By default no manglin is applied.
+        """
+
         return self.getName()
 
     def getDeclarationTypeCode( self, in_context ):
@@ -211,7 +223,8 @@ class VariableReferenceBase( Variable ):
         return self.variable
 
     def __cmp__( self, other ):
-        # Compare the referenced variable, so de-reference until it's no more possible.
+        # Compare the referenced variable, so de-reference until it's no more
+        # possible.
 
         while other.getReferenced() is not None:
             other = other.getReferenced()
@@ -253,7 +266,7 @@ class ClosureVariableReference( VariableReferenceBase ):
                 assert False, self
 
     def getDeclarationTypeCode( self, in_context ):
-        if self.getReferenced().isShared():
+        if self.getReferenced().isShared( True ):
             if in_context:
                 return "PyObjectClosureVariable"
             else:
@@ -270,8 +283,8 @@ class ClosureVariableReference( VariableReferenceBase ):
 class ModuleVariableReference( VariableReferenceBase ):
     def __init__( self, owner, variable ):
 
-        # Module variable access are direct pass-through, so de-reference them if
-        # possible.
+        # Module variable access are direct pass-through, so de-reference them
+        # if possible.
         while variable.isModuleVariableReference():
             variable = variable.getReferenced()
 
@@ -323,7 +336,9 @@ class LocalVariable( Variable ):
             variable_name = variable_name
         )
 
-        assert not owner.isExpressionFunctionBody() or owner.local_locals or self.__class__ is not LocalVariable
+        assert not owner.isExpressionFunctionBody() or \
+               owner.local_locals or \
+               self.__class__ is not LocalVariable
 
     def __repr__( self ):
         return "<%s '%s' of '%s'>" % (
@@ -339,17 +354,36 @@ class LocalVariable( Variable ):
         return "python_var_" + self.getName()
 
     def getDeclarationTypeCode( self, in_context ):
-        if self.isShared():
+        if self.isShared( True ):
             return "PyObjectSharedLocalVariable"
         else:
             return "PyObjectLocalVariable"
+
+    def getMangledName( self ):
+        if not self.variable_name.startswith( "__" ) or \
+           self.variable_name.endswith( "__" ):
+            return self.variable_name
+        else:
+            # The mangling of function variable names depends on being inside a
+            # class. TODO: ClassVariable seems unnecessary now.
+            class_container = self.owner.getContainingClassDictCreation()
+
+            if class_container is None:
+                return self.variable_name
+            else:
+                return "_" + class_container.getName() + self.variable_name
 
 
 class ClassVariable( LocalVariable ):
 
     def getMangledName( self ):
-        # Names like "__name__" are not mangled, only "__name" would be.
-        if not self.variable_name.startswith( "__" ) or self.variable_name.endswith( "__" ):
+        """ Get the mangled name of the variable.
+
+            In classes, names like "__name__" are not mangled, only "__name"
+            would be.
+        """
+        if not self.variable_name.startswith( "__" ) or \
+           self.variable_name.endswith( "__" ):
             return self.variable_name
         else:
             return "_" + self.owner.getName() + self.variable_name
@@ -393,13 +427,12 @@ class ParameterVariable( LocalVariable ):
         return self.kw_only
 
     def getDeclarationTypeCode( self, in_context ):
-        if self.isShared():
+        if self.isShared( True ):
             return "PyObjectSharedLocalVariable"
         elif self.getHasDelIndicator():
             return "PyObjectLocalParameterVariableWithDel"
         else:
             return "PyObjectLocalParameterVariableNoDel"
-
 
 
 class NestedParameterVariable( ParameterVariable ):
@@ -428,39 +461,26 @@ class NestedParameterVariable( ParameterVariable ):
     def getParameterNames( self ):
         return self.parameter_spec.getParameterNames()
 
-def makeParameterVariables( owner, parameter_names ):
-    return [
-        ParameterVariable( owner = owner, parameter_name = parameter_name )
-        for parameter_name in
-        parameter_names
-    ]
 
 class ModuleVariable( Variable ):
-    module_variables = {}
-
     reference_class = ModuleVariableReference
 
     def __init__( self, module, variable_name ):
         assert type( variable_name ) is str, repr( variable_name )
 
-        Variable.__init__( self, owner = module, variable_name = variable_name )
+        Variable.__init__(
+            self,
+            owner         = module,
+            variable_name = variable_name
+        )
+
         self.module = module
-
-        key = self._getKey()
-
-        assert key not in self.module_variables, key
-        self.module_variables[ key ] = self
 
     def __repr__( self ):
         return "<ModuleVariable '%s' of '%s'>" % (
             self.variable_name,
             self.getModuleName()
         )
-
-    def _getKey( self ):
-        """ The module name and the variable name form the key."""
-
-        return self.getModule(), self.getName()
 
     def isModuleVariable( self ):
         return True
@@ -473,16 +493,6 @@ class ModuleVariable( Variable ):
 
     def _checkShared( self, variable ):
         assert False, variable
-
-
-def getModuleVariables( module ):
-    result = []
-
-    for key, variable in iterItems( ModuleVariable.module_variables ):
-        if key[0] is module:
-            result.append( variable )
-
-    return result
 
 
 class TempVariableReference2( VariableReferenceBase ):

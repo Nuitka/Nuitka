@@ -23,11 +23,11 @@
 #include "compiled_function.hpp"
 #include "compiled_generator.hpp"
 
-// The backbone of the integration into CPython. Try to behave as well as normal method
-// objects, or even better.
+// The backbone of the integration into CPython. Try to behave as well as normal
+// method objects, or even better.
 
-// The Nuitka_MethodObject is the storage associated with a compiled method instance
-// of which there can be many for each code.
+// The Nuitka_MethodObject is the storage associated with a compiled method
+// instance of which there can be many for each code.
 
 typedef struct {
     PyObject_HEAD

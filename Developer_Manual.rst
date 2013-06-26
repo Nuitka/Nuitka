@@ -695,6 +695,58 @@ Notice how the frame guard taking is limited and may be avoided, or in best
 cases, it might be removed completely. Also this will play a role when in-lining
 function, it will not be lost or need any extra care.
 
+Parameter Parsing
+-----------------
+
+The parsing of parameters is very convoluted in Python, and doing it in an
+compatible way is not that easy. This is a description of the required process,
+for easier overview.
+
+Input
++++++
+
+The input is an argument tuple (type is fixed), which contains the positional
+arguments, and potentially an argument dictionary (type is fixed, but could also
+be ``NULL``, indicating no keyword arguments.
+
+Keyword dictionary
+++++++++++++++++++
+
+The keyword argument dictionary is checked first. Anything in there, that cannot
+be associated, either raises an error, or is added to a potentially given star
+dict argument. So there are two major cases.
+
+* No star dict argument: Iterate over dictionary, and assign or raise errors.
+
+  This check covers extra arguments given.
+
+* With star dict argument: Iterate over dictionary, and assign or raise errors.
+
+  Interesting case for optimization are no positional arguments, then no check
+  is needed, and the keyword argument dictionary could be used as the star
+  argument. Should it change, a copy is needed though.
+
+What's noteworthy here, is that in comparison of the keywords, we can hope that
+they are the same value as we use. The interning of strings increases chances
+for non-compiled code to do that, esp. for short names.
+
+We then can do a simple ``==`` comparison and only fall back to real string
+comparisons, after all of these failed. That means more code, but also a lot
+faster code in the positive case.
+
+Argument tuple
+++++++++++++++
+
+After this completed, the argument tuple is up for processing. The first thing it needs to do is to check if it's too many of them, and then to complain.
+
+For arguments in Python2, there is the possibility of them being nested, in
+which case they cannot be provided in the keyword dictionary, and merely should
+get picked from the argument tuple.
+
+Otherwise, the length of the argument tuple should be checked against its
+position and if possible, values should be taken from there. If it's already set
+(from the keyword dictionary), raise an error instead.
+
 
 Language Conversions to make things simpler
 ===========================================
@@ -1599,8 +1651,9 @@ So it's a rather general problem, this time we know:
      with a function.
 
 Again, we wouldn't want to create the list. Therefore Nuitka avoids executing
-these calculation, when they result in constants larger than a threshold
-of 256. It's also applied to integers and more CPU and memory traps.
+these calculation, when they result in constants larger than a threshold of
+e.g. 256. This concept has to be also applied to integers and more CPU and
+memory traps.
 
 Now lets look at a more common use case:
 
@@ -1618,7 +1671,7 @@ And even if ``x`` were used, only the ability to predict the value from a
 function would be interesting, so we would use that computation function instead
 of having an iteration source. Being able to predict from a function could mean
 to have Python code to do it, as well as C++ code to do it. Then code for the
-loop can be generated without any CPython usage at all.
+loop can be generated without any CPython library usage at all.
 
 .. note::
 
@@ -1641,13 +1694,13 @@ properties of an expression result, more or less.
 
 Here we have ``len`` to look at an argument that we know the size of. Great. We
 need to ask if there are any side effects, and if there are, we need to maintain
-them of course, but generally this appears feasible, and is already being done
-by existing optimization if an operation generates an exception.
+them of course. This is already done by existing optimization if an operation
+generates an exception.
 
 .. note::
 
    The optimization of ``len`` has been implemented and works for all kinds of
-   container building and ranges.
+   container creation and ranges.
 
 Applying this to "ctypes"
 -------------------------
@@ -1659,10 +1712,10 @@ is maybe as follows:
 
    import ctypes
 
-This leads to Nuitka tree an assignment from a ``__import__`` expression to the
-variable ``ctypes``. It can be predicted by default to be a module object, and
-even better, it can be known as ``ctypes`` from standard library with more or
-less certainty. See the section about "Importing".
+This leads to Nuitka in its tree to have an assignment from a ``__import__``
+expression to the variable ``ctypes``. It can be predicted by default to be a
+module object, and even better, it can be known as ``ctypes`` from standard
+library with more or less certainty. See the section about "Importing".
 
 So that part is "easy", and it's what will happen. During optimization, when the
 module ``__import__`` expression is examined, it should say:
@@ -1676,7 +1729,8 @@ The later is the generic interface, and the optimization should connect the two,
 of course via package and module full names. It will need a
 ``ModuleFriendRegistry``, from which it can be pulled. It would be nice if we
 can avoid ``ctypes`` to be loaded into Nuitka unless necessary, so these need to
-be more like a plug-in, loaded only if necessary.
+be more like a plug-in, loaded only if necessary, i.e. the user code actually
+uses ``ctypes``.
 
 Coming back to the original expression, it also contains an assignment
 expression, because it is more like this:
@@ -1685,34 +1739,40 @@ expression, because it is more like this:
 
    ctypes = __import__( "ctypes" )
 
-The assigned to object, simply gets the type inferred propagated, and the
-question is now, if the propagation should be done as soon as possible and to
-what, or later.
+The assigned to object, simply gets the type inferred propagated as part of an
+SSA form. Ideally, we could be sure that nothing in the program changes the
+variable, and therefore have only one version of that variable.
 
-For variables, we don't currently track at all any more than there usages
-read/write and that is it. The problem with tracking it, is that such
-information may continuously become invalid at many instances, and it can be
-hard to notice mistakes due to it. But if do not have it correct, how to we
-detect this:
+For module variables, when the execution leaves the module to unknown code, or
+unclear code, it might change the variable. Therefore, likely we will often only
+assume that it could still be ctypes, or something else.
+
+Depending on how well we control module variable assignment, we can decide this
+more of less quickly. With "compiled modules" types, the expectation is that
+it's merely a quick C++ `==` comparison check. The module friend should offer
+code to allow a check if it applies, for uncertain cases.
+
+Then when we come to uses of it:
 
 .. code-block:: python
 
    ctypes.c_int()
 
-How do we tell that ``ctypes`` is at that point a variable of module object or
-even the ctypes module, and that we know what it's ``c_int`` attribute is, and
-what it's call result is.
+At this point, using SSA, we are more of less sure, that ``ctypes`` is at that
+point the module, and that we know what it's ``c_int`` attribute is, at comile
+time, and what it's call result is. We will use the module friend to help with
+that. It will attach knowledge about the result of that expression during the
+SSA collection process.
 
-We should therefore, forward the usage of all we know and see if we hit any
-``ctypes.c_int`` alike. This is more like a value forward propagation than
-anything else. In fact, constant propagation should only be the special case of
-it.
+This is more like a value forward propagation than anything else. In fact,
+constant propagation should only be the special case of it, and one design goal
+of Nuitka was always to cover these two cases with the same code.
 
 Excursion to Functions
 ----------------------
 
-In order to decide what this means to functions and their call boundaries, if we propagate
-forward, how to handle this:
+In order to decide what this means to functions and their call boundaries, if we
+propagate forward, how to handle this:
 
 .. code-block:: python
 
@@ -1721,22 +1781,29 @@ forward, how to handle this:
 
       return a
 
-We would notate that ``a`` is first a "unknown PyObject parameter object", then
-something that definitely has an ``append`` attribute, when returned. Otherwise
-an exception occurs. The type of ``a`` changes to that after ``a.append``
-look-up succeeds. It might be many kinds of an object, but e.g. it could have a
-higher probability of being a ``PyListObject``. And we would know it cannot be a
-``PyStringObject``, as that one has no "append".
+We would notate that ``a`` is first a "unknown but defined parameter object",
+then later on something that definitely has an ``append`` attribute, when
+returned. Otherwise an exception occurs.
+
+The type of ``a`` changes to that after ``a.append`` look-up succeeds. It might
+be many kinds of an object, but e.g. it could have a higher probability of being
+a ``PyListObject``. And we would know it cannot be a ``PyStringObject``, as that
+one has no "append".
 
 .. note::
 
    If classes, i.e. other types in the program, have an ``append`` attribute, it
    should play a role too, there needs to be a way to plug-in to this decisions.
 
-This is a more global property of ``a`` value, and true even before the
-``append`` succeeded, but not as much maybe, so it would make sense to apply
-that information after an analysis of all the node. This may be ``Finalization``
-work.
+.. note::
+
+   On the other hand, types without ``append`` attribute could be eliminated.
+
+It would be great, if functions provided some sort of analysis on their return
+type, or a quick way to predict return value properties, based on input value
+knowledge.
+
+So this could work:
 
 .. code-block:: python
 
@@ -1751,14 +1818,24 @@ with given parameters or not, if it does impact the return value.
 
 We should e.g. be able to make ``my_append`` tell, one or more of these:
 
-   - Returns the first parameter value as return value (unless it raises an
-     exception).
-   - The return value has the same type as ``a`` (unless it raises an
-     exception).
+  - Returns the first parameter value as return value (unless it raises an
+    exception).
+
+  - The return value has the same type as ``a`` (unless it raises an
+    exception).
+
+  - The return value has an ``append`` attribute.
+
+  - The return value might be a ``list`` object.
+
+  - The return value may not be a ``str`` object.
+
+  - The function will raise if first argument has no ``append`` attribute.
 
 The exactness of statements may vary. But some things may be more
-interesting. If e.g. the aliasing of a parameter value is known exactly, then
-information about it need to all be given up, but can survive.
+interesting. If e.g. the aliasing of a parameter value to the return value is
+known exactly, then information about it need to all be given up, but some can
+survive.
 
 It would be nice, if ``my_append`` had sufficient information, so we could
 specialize with ``list`` and ``int`` from the parameters, and then e.g. know at
@@ -1776,7 +1853,7 @@ Excursion to Loops
 
    a = 1
 
-   while 1:
+   while 1:   # think loop: here
        b = a + 1
        a = b
 
@@ -1791,19 +1868,17 @@ before it started, that "a" is constant, but that is only true for the first
 iteration. So, we can't pass knowledge from outside loop forward directly into
 the for loop body.
 
-So while we pass through the loop, we need to collect in-validations of this
-outside knowledge. The assignment to "a" should make it an alternative to what
-we knew about "b". And we can't really assume to know anything about a to
-e.g. predict "b" due to that. That first pass needs to scan for assignments, and
-treat them as in-validations.
+So the collection for loops needs to be two pass. First, to collect assignments,
+and merge these into the start state, before entering the loop body. The need to
+make two passes is special to loops.
 
-For a start, it will be done like this though. At loop entry, all knowledge is
+For a start, it could be done like this though: At loop entry, all knowledge is
 removed about everything, and so is at loop exit. That way, only the loop inner
-working is optimized, and before and after the loop as separate things. The
+working is optimized, and before and after the loop are separate things. The
 optimal handling of "a" in the example code will take a while.
 
 For a general solution, it would be sweet to trace different exit paths
-differently. One loop exit may be good enough.
+differently. One loop exit may be good enough, as it will be the common case.
 
 Excursion to Conditions
 -----------------------
@@ -1818,22 +1893,30 @@ Excursion to Conditions
    b = x < 3
 
 The above code contains a condition, and these have the problem, that when
-exiting the conditional block, it must be clear to the outside, that things
-changed inside the block may not necessarily apply. Even worse, one of 2 things
-might be true. In one branch, the variable "x" is constant, in the other too,
-but it's a different value.
+exiting the conditional block, a merge must be done, of the "x" versions. It
+could be either one. The merge may trace the condition under which a choice is
+taken. That way, we could decide pairs of traces under the same condition.
 
-So the constraint collection tracks when it enters a conditional branch, and
-then merge the existing state at conditional statement exit.
+These merges of SSA variable versions, represent alternatives. They pose
+difficulties, and might have to be reduced to commonality. In the above example,
+the "<" operator will have to check for each version, and then to decide that
+both indeed give the same result.
+
+The constraint collection tracks variable changes in conditional branches, and
+then merges the existing state at conditional statement exits.
 
 .. note::
 
-   A branch is called "exiting" if it is not abortive. Should it end in a
+   A branch is considered "exiting" if it is not abortive. Should it end in a
    ``raise``, ``break``, ``continue``, or ``return``, there is no need to merge
    that branch, as execution of that branch is terminated.
 
    Should both branches be abortive, that makes things really simple, as there
    is no need to even continue.
+
+   Should only one branch exist, but be abortive, then no merge is needed, and
+   the collection can assume after the conditional statement, that the branch
+   was not taken, and continue.
 
 When exiting both the branches, these branches must both be merged, with their
 new information.
@@ -1843,14 +1926,9 @@ In the above case:
    - The "yes" branch knows variable ``x`` is an ``int`` of constant value ``1``
    - The "no" branch knows variable ``x`` is an ``int`` of constant value ``2``
 
-That should be collapsed to:
+That might be collapsed to:
 
    - The variable ``x`` is an integer of value in ``(1,2)``
-
-We are doing the merging based on SSA (Single State Assignment) form. That is,
-we put versions to all assignments of ``x``. And when the branches are merged,
-we are assigning a new version of ``x``, that references the potential versions,
-and the condition that guards it.
 
 Given this, we then should be able to precompute the value of this:
 
@@ -1858,29 +1936,31 @@ Given this, we then should be able to precompute the value of this:
 
    b = x < 3
 
-The comparison operator can work on the function that provides all values in see
-if the result is always the same. Because if it is, and it is, then it can tell:
+The comparison operator can therefore decide and tell:
 
     - The variable ``b`` is a boolean of constant value ``True``.
 
-For conditional statements optimization, the following is also note-worthy:
+Were it unable to decide, it would still be able to say:
 
-   - The value of the condition is known to pass truth check or not inside
-     either branch.
+    - The variable ``b`` is a boolean.
 
-     We may want to take advantage of it. Consider e.g.
+For conditional statements optimization, it's also noteworthy, that the
+condition is known to pass or not pass the truth check, inside branches, and in
+the case of non-exiting single branches, after the statement it's not true.
 
-     .. code-block:: python
+We may want to take advantage of it. Consider e.g.
 
-         if type( a ) is list:
-             a.append( x )
-         else:
-             a += ( x, )
+.. code-block:: python
 
-     In this case, the knowledge that ``a`` is a list, could be used to generate
-     better code and with the definite knowledge that ``a`` is of type
-     list. With that knowledge the ``append`` attribute call will become the
-     ``list`` built-in type operation.
+   if type( a ) is list:
+       a.append( x )
+   else:
+       a += ( x, )
+
+In this case, the knowledge that ``a`` is a list, could be used to generate
+better code and with the definite knowledge that ``a`` is of type list. With
+that knowledge the ``append`` attribute call will become the ``list`` built-in
+type operation.
 
 Excursion to ``return`` statements
 ----------------------------------
@@ -1901,7 +1981,8 @@ decided "aborting" too. If a loop doesn't break, it should be considered
 
 So, ``return`` statements are easy for local optimization. In the general
 picture, it would be sweet to collect all return statements, and analyze the
-commonality of them.
+commonality of them. The goal to predict function results, might be solvable by
+looking at their traces.
 
 Excursion to ``yield`` expressions
 ----------------------------------
@@ -1972,51 +2053,72 @@ default. This should be enforced by a base class and give a warning or note.
 Now to the interface
 --------------------
 
-The following is the intended interface
+The following is the intended interface:
 
-- Base class ``ValueFriendBase`` according to rules.
+- Iteration with node methods ``computeStatement`` and ``computeNode``.
 
-  The base class offers methods that allow to check if certain operations are
-  supported or not. These can always return ``True`` (yes), ``False`` (no), and
-  ``None`` (cannot decide). In the case of the later, optimizations may not be
-  able do much about it. Lets call these values "tri-state".
+  These traverse modules and functions (i.e. scopes) and visit everything in the
+  order that Python executes it. The visiting object is ``ConstraintCollection``
+  and pass forward. Some node types, e.g. ``StatementConditional`` new create
+  child constraint collections and handle the SSA merging at exit.
 
-  Part of the interface is a method ``computeExpression`` which gives the node
-  the chance to return another node instead, which may also be an exception.
+- Replacing nodes during the visit.
 
-  The ``computeExpression`` may be able to produce exceptions or constants even
-  for non-constant inputs depending on the operation being performed. For every
-  expression it will be executed in the order in which the program control flow
-  goes for a function or module.
+  Both ``computeStatement`` and ``computeNode`` are tasked to return potential
+  replacements of themselves, together with "tags" (meaningless now), and a
+  "message", used for verbose tracing.
 
-  In this sense, attribute look-up is also a computation, as its value might be
-  computed as well. Most often an attribute look-up will produce a new value,
-  which is not assigned, but e.g. called. In this case, the call value friend
-  may be able to query its called expression for the attribute call prediction.
+  The replacement node of "+" operator, may e.g. the pre-computed result,
+  wrapped in side effects of the node.
 
-  By default, attribute look-up, should turn an expression to unknown, unless
-  something in the registry can say something about it. That way,
-  ``some_list.append`` produces something which when called, invalidates
-  ``some_list``, but only then.
+- Assignments and references affect SSA.
 
-- Name for module ``ValueFriends`` according to rules.
+  The SSA tree is initialized every time a scope is visited. Then during
+  traversal, traces are built up. Every assignment and merge starts a new trace
+  for that matter. References to a given variable version are traced that way.
 
-  These should live in a package of some sort and be split up into groups later
-  on, but for the start it's probably easier to keep them all in one file or
-  next to the node that produces them.
+- Value escapes are traced too.
 
-- Class for module import expression ``ValueFriendImportModule``.
+  When an operation hands over a value to outside code, it indicates so to the
+  constraint collection. This is for it to know, when e.g. a constant value,
+  might be mutated meanwhile.
 
-  This one just knows that something is imported and not how or what it is
-  assigned to, it will be able in a recursive compile, to provide the module as
+- Nodes can be queried about their properties.
+
+  The node base classes offers methods that allow to check if certain operations
+  are supported or not. These can always return ``True`` (yes), ``False`` (no),
+  and ``None`` (cannot decide). In the case of the later, optimizations may not
+  be able do much about it. Lets call these values "tri-state".
+
+  The default implementation will be very pessimistic. Specific node types may
+  then declare, that they e.g. have no side effects, do no raise, have a know
+  truth value, have a known iteration length, can predict their iteration
+  values, etc.
+
+- Nodes are linked to certain states.
+
+  During the collect, a variable reference, is linked to a certain trace state,
+  and that can be used by parent operations.
+
+  .. code-block:: python
+
+     a = 1
+     b = a + a
+
+  In this example, the references to "a", can look-up the "1" in the trace, and
+  base their responses to "+" on it. It will ask "isCompileTimeConstant()" and
+  both nodes will respond "True", then "getCompileTimeConstant()" will return
+  "1", which will be computed. Then "extractSideEffects()" will return "()" and
+  therefore, the result "2" will not be wrapped.
+
+- Class for module import expression ``ExpressionImportModule``.
+
+  This one just knows that something is imported, but not how or what it is
+  assigned to. It will be able in a recursive compile, to provide the module as
   an assignment source, or the module variables or submodules as an attribute
-  source.
+  source when referenced from a variable trace or in an expression.
 
-- Class for module value friend ``ValueFriendModule``.
-
-  The concrete module, e.g. ``ctypes`` or ``math`` from standard library.
-
-- Base class for module and module friend ``ValueFriendModuleBase``.
+- Base class for module friend ``ModuleFriendBase``.
 
   This is intended to provide something to overload, which e.g. can handle
   ``math`` in a better way.
@@ -2038,24 +2140,11 @@ The following is the intended interface
   The delay will avoid unnecessary blot of the compiler at run time, if no such
   module is used. For "qt" and other complex stuff, this will be a must.
 
-- A collection of ``ValueFriend`` instances expresses the current data flow state.
+- The walk should initially be single pass, and not maintain history.
 
-  - This collection should carry the name ``ConstraintCollection``
+  Instead optimization that needs to look at multiple things, e.g. "unused
+  assignment", will look at the whole SSA collection afterwards.
 
-  - Updates to the collection should be done via methods
-
-      - ``onAssigment( variable, value_friend )``
-      - ``onAttributeLookup( source, attribute_name )``
-      - ``onOutsideCode()``
-      - ``passedByReference( var_name )``
-      - etc. (will decide the actual interface of this when implementing its
-        use)
-
-  - This collection is the input to walking the tree by ``execute``, i.e. per
-    module body, per function body, per loop body, etc.
-
-  - The walk should initially be single pass, that means it does not maintain
-    the history.
 
 Discussing with examples
 ------------------------
@@ -2067,26 +2156,27 @@ The following examples:
    # Assignment, the source decides the type of the assigned expression
    a = b
 
-   # Operator "attribute look-up", the looked up expression decides via its "ValueFriend"
+   # Operator "attribute look-up", the looked up expression "ctypes" decides
+   # via its trace.
    ctypes.c_int
 
-   # Call operator, the called expressions decides with help of arguments, which may
-   # receive value friends after walking to them too.
+   # Call operator, the called expressions decides with help of arguments,
+   # which have been walked, before the call itself.
    called_expression_of_any_complexity()
 
    # import gives a module any case, and the "ModuleRegistry" may say more.
    import ctypes
 
-   # From import need not give module, "x" decides
+   # From import need not give module, "x" decides what it is.
    from x import y
 
-   # Operations are decided by arguments, and CPython operator rules between argument
-   # "ValueFriend"s.
+   # Operations are decided by arguments, and CPython operator rules between
+   # argument states.
    a + b
 
 The optimization is mostly performed by walking of the tree and performing
-constraint collection. When it encounters assignments and references, it
-considers current state of value friends and uses it for ``computeExpression``.
+constraint collection. When it encounters assignments and references to them, it
+considers current state of traces and uses it for ``computeExpression``.
 
 .. note::
 
@@ -2113,9 +2203,9 @@ on that level. Imagine e.g. the following calls:
 
    c_call( other_c_call() )
 
-Value return by other_c_call() of say ``c_int`` type, should be possible to be
-fed directly into another call. That should be easy by having a ``asIntC()`` in
-the identifier classes, which the ``ctypes`` Identifiers handle without
+Value returned by "other_c_call()" of say ``c_int`` type, should be possible to
+be fed directly into another call. That should be easy by having a ``asIntC()``
+in the identifier classes, which the ``ctypes`` Identifiers handle without
 conversions.
 
 Code Generation should one day also become able to tell that all uses of a
@@ -2130,11 +2220,9 @@ history of values throughout a function or part of it.
 Initial Implementation
 ----------------------
 
-The ``ValueFriendBase`` interface will be added to *all* expressions and a node
-may offer it for itself (constant reference is an obvious example) or may
-delegate the task to an instantiated object of "ValueFriendBase"
-inheritance. This will e.g. be done, if a state is attached, e.g. the current
-iteration value.
+The basic interface will be added to *all* expressions and a node may override
+it, potentially using constraint collection state, as attached during
+"computeExpression".
 
 Goal 1
 ++++++
@@ -2399,6 +2487,7 @@ Limitations for now
 
    PageBreak
 
+
 Idea Bin
 ========
 
@@ -2449,15 +2538,11 @@ etc.
   The best approach is probably to track down ``in`` and other potential users,
   that don't use the list nature and just convert then.
 
-* Friends that keep track
+* Keeping track of iterations
 
-  The value friends should become the place, where variables or values track
-  their use state. The iterator should keep track of the "next()" calls made to
-  it, so it can tell which value to given in that case.
-
-  And then there is a destroy, once a value is released, which could then make
-  the iterator decide to tell its references, that they can be considered to
-  have no effect, or if they must not be released yet.
+  The constraint collection trace should become the place, where variables or
+  values track their use state. The iterator should keep track of the "next()"
+  calls made to it, so it can tell which value to given in that case.
 
   That would solve the "iteration of constants" as a side effect and it would
   allow to tell that they can be removed.
@@ -2468,7 +2553,7 @@ etc.
 
      a = iter( ( 2, 3 ) )
      b = next( a )
-     b = next( a )
+     c = next( a )
      del a
 
   It would be sweet if we could recognize that:
@@ -2477,7 +2562,7 @@ etc.
 
      a = iter( ( 2, 3 ) )
      b = side_effect( next( a ), 2 )
-     b = side_effect( next( a ), 3 )
+     c = side_effect( next( a ), 3 )
      del a
 
   That trivially becomes:
@@ -2488,119 +2573,18 @@ etc.
      next( a )
      b = 2
      next( a )
-     b = 3
+     c = 3
      del a
 
-
-  When the "del a" is happening (potentially end of scope, or another assignment
-  to it), we would have to know of the "next" uses, and retrofit that
-  information that they had no effect.
+  When the "del a" is examined at the end of scope, or due to another assignment
+  to the same variable, ending the trace, we would have to consider of the
+  "next" uses, and retrofit the information that they had no effect.
 
   .. code-block:: python
 
      a = iter( ( 2, 3 ) )
      b = 2
      b = 3
-     del a
-
-
-* Friends that link
-
-  .. code-block:: python
-
-     a = iter( ( 2, 3 ) )
-     b = next( a )
-     b = next( a )
-     del a
-
-  When ``a`` is assigned, it is receiving a value friend from the ``iter`` call,
-  a fresh iterator, one that hasn't been used at all. The variable trace of
-  ``a`` will contain that.
-
-  Then when ``next`` is called on ``a`` value, it creates *another* value
-  friend, based on the un-escaped ``a`` value friend. Using ``a`` it in ``next``
-  would let escape, if it didn't know what ``next`` does to it. For tuples, it
-  knows though, so it marks "a" as referenced, and its value friend as used once
-  for iteration.
-
-  The ``next`` is then asked for a value friend to be assigned to ``b``. The
-  value friend can decide which value that is. We now have to choose if we want
-  to use the value friend produced that could determine the value ``2`` or the
-  actual value. If it's a cheap thing (constant, local variable access), we will
-  propagate it, otherwise we probably won't do it.
-
-  This repeats and again a new value friend is created, this time "used iterator
-  2 times" is attched to ``a`` value friend. It will keep record of the need to
-  execute next 2 times (which we may have optimized code for).
-
-  .. code-block:: python
-
-     a = iter( ( 2, 3 ) )
-     b = 2
-     # Remember a has one delayed iteration
-     b = 3
-     # Remember b has two delayed iteration
-     del a
-
-  When then ``a`` is deleted, it's being told "onReleased". The value friend
-  will then decide through the value friend state "used iterator 2 times", that
-  it may drop them.
-
-  .. code-block:: python
-
-     a = iter( ( 2, 3 ) )
-     b = 2
-     b = 3
-     del a
-
-  Then next round, "a" is assigned the "fresh iterator" again, which remains in
-  that state and at the time "del" is called, the "onReleased" may decide that
-  the assignment to "a", bearing no side effects, may be dropped. If there was a
-  previous state of "a", it will move up.
-
-  Also, and earlier, when "b" is assigned second time, the "onReleased" for the
-  constant, bearing no side effects, may also be dropped. Had it a side effect,
-  it would become an expression only.
-
-  .. code-block:: python
-
-     a = iter( ( f(), g() ) )
-     b = next( a )
-     b = next( a )
-     del a
-
-  .. code-block:: python
-
-     a = iter( ( f(), g() ) )
-     b = f()
-     b = g()
-     del a
-
-  .. code-block:: python
-
-     f()
-     b = g()
-
-  That may actually be workable. Difficult point, is how to maintain the
-  trace. It seems that per variable, a history of states is needed, where that
-  history connects value friends to nodes.
-
-  .. code-block:: python
-
-     a = iter(
-       (
-          f(),
-          g()
-       )
-     )
-     # 1. For the assignment, ask right hand side, for computation. Enter "computeExpression"
-     # for iterator making, and decide that it gives a fresh iterator value, with a known
-     # "iterated" value.
-     # 2. Link the "a" assignment to the assignment node.
-     b = next( a )
-     # 1. ask the right hand side, for computation. Enter "computeExpression"
-     # for next iterator value, which will look up a.
-     b = next( a )
      del a
 
 * Aliasing
@@ -2618,56 +2602,16 @@ etc.
   If we fail to detect the aliasing nature, we will calculate "d" wrongly. We
   may incref and decref values to trace it.
 
-  To trace aliasing and non-aliasing of values, it is a log(n**2) quadratic
-  problem, that we should address efficiently. For most things, it will happen
-  that we fail to know if an alias exists. In such cases, we will have to be
-  pessimistic, and let go of knowledge we thought we had.
-
-  If e.g. "x" is a list (read mutable value), and aliases to a module value "y",
-  then if we call unknown code, that may modify "y", we must assume that "x" is
-  modified as well.
-
-  For an "x" that is a str (read non-mutable value), aliases are no concern at
-  all, as they can't change "x". So we can trust it rather.
-
-  The knowledge if "x" is mutable or not, is therefore important for preserving
-  knowledge, and of course, if external code, may access aliases or not.
-
-  To solve the issue, we should not only have "variables" in constraint
-  collections, but also "aliases". Where for each variable, module, or local, we
-  track the aliasing. Of course, such an alias can be broken by a new
-  assignment. So, the "variable" would still be the key, but the value would be
-  list of other variables, and then a value, that all of these hold. That list
-  could be a shared set for ease of updating.
-
-  Values produce friends. Then they are assigned names, and can be
-  referenced. When they are assigned names, they should have a special value
-  friend that can handle the alias.  They need to create links and destroy them,
-  when something else is assigned.
-
-  When done properly, it ought to handle code like this one.
+  Aliasing is automatically traced already in SSA form. The "b" is assigned to
+  version of "a". So, that should allow to replace it with this:
 
   .. code-block:: python
 
-     def f():
-        a = [ 3 ]
-        b = a
-        a.append( 4 )
-        a = 3
-        return b[1]
+     a = iter( range(9 ))
+     c = next(a)
+     d = next(a)
 
-  For assignment of "a", the value friend of the list creation is taken, and
-  then it is stored under variable "a". That is already done with an "alias"
-  structure, with only the variable "a". Then when assigning to "b", it is
-  assigned the same value friend and another link is created to variable
-  "b". Then, when looking up "a.append", that shared value is looked up and
-  potentially mutated.
-
-  If it doesn't get the meaning of ".append", it will discard the knowledge of
-  both "a" and "b", but still know that they alias.
-
-  The aliasing is only broken when a is assigned to a new value. And when then
-  "b" is subscribed, it may understand what that value is or not.
+  Which then will be properly handled.
 
 * Shelve for caching
 
@@ -2772,7 +2716,7 @@ etc.
 * SSA form for Nuitka nodes
 
   * Assignments collect a counter from the variable, which becomes the variable
-    version.
+    version. This happens during tree building phase.
 
   * References need to back track to the last assignment on their path, which
     may be a merge. Constraint collection can do that.
@@ -2781,10 +2725,11 @@ etc.
 
     Every constraint collection has these:
 
-    * variable_versions
+    * variable_actives
 
-      Dictionary, where per "variable" the current version is the value. It is
-      used to determine, what variable reads need to go.
+      Dictionary, where per "variable" the currently used version is. Used to
+      track situations changes in branches. This is the main input for merge
+      process.
 
     * variable_traces
 
@@ -2803,60 +2748,36 @@ etc.
       influence the value friend they attached to the initial assignment. Each
       usage may have a current value friend state that is different.
 
-    Then branches have this:
+  * When merging branches of conditional statements, the merge shall apply as
+    follows.
 
-    * branch_only_traces
-
-      Set of "variable" and "version" tuples. They start out as empty, and then
-      when assigning or referencing inside a branch, it's propagating to the
-      parent collection directly, but then remembers things that were created in
-      that branch.
-
-      For this, the parent collection must return newly added "variable" and
-      "version" pairs added to the traces.
-
-  * When merging branches of conditional statements, the PHI function shall
-    apply as follows.
-
-    * Branches are children of an outer collections
+    * Branches have their own collection, with deviating sets of
+      "variable_actives". These are children of an outer collections
 
     * Case a) One branch only.
 
-      Continue constraint collection in that one branch. As usual new
-      assignments generate a new version, references use pre-existing
-      versions. In terms of this, it's only about the version generated in the
-      branch not being accessible directly to outside the branch.
+      For that branch a collection is performed. As usual new assignments
+      generate a new version making it "active", references then related to
+      these "active" versions.
 
-      Then, when the branch merges, for all new versions of variables, that are
-      alive and not replaced by another version already, a newer version shall
-      be generated, that merges it with the version that was alive before.
-
-      The single branch constraint collection therefore can pass assignments of
-      versions on to its version, as it can do with references. Only for the
-      assignments, it should track the ones new to the branch, so it can apply
-      the merging.
+      Then, when the branch is merged, for all "active" variables, it is
+      considered, if that is a change related to before the branch. If it's not
+      the same, a merge trace with the branch condition is created with the one
+      active in the collection before that statement.
 
     * Case b) Two branches.
 
-      When there are two branches, they both as usual turn new assignments into
-      new versions, and reference pre-existing versions from before the
-      branches. Because the do it both to the parent, they track things there.
+      When there are two branches, they both as are treated as above, except for
+      the merge.
 
-      In terms of references, usages in a branch could be annotation, that they
-      are guarded by a condition. This could help to identify cases, where a
-      value is constructed, and only used inside a branch, and should be moved
-      there. But this is only sugar at this time.
-
-      Then, when merging the both branches, we have tracked too the assignments,
-      and the merge should consider the other branch as source for the variable
-      version to merge.
+      When merging, a difference in active variables between the two branches
+      creates the merge trace.
 
     .. note::
 
        For conditional expressions, there are always only two branches. Even if
        you think you have more than one branch, you do not. It's always nested
        branches, already when it comes out of the parser.
-
 
   * Trace structure
 
@@ -2880,6 +2801,11 @@ etc.
       information.
 
     This should be reflected in a class "VariableTrace".
+
+* Recursion checks are expensive.
+
+  If the "caller" or the "called" can declare that it cannot be called by
+  itself, we could leave it out.
 
 .. header::
 

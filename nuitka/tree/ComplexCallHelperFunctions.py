@@ -87,7 +87,7 @@ from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.SourceCodeReferences import fromFilename
 
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-
+from .VariableClosure import completeVariableClosures
 from .Helpers import makeStatementsSequenceFromStatement
 
 source_ref = fromFilename( "internal", FutureSpec() ).atInternal()
@@ -117,6 +117,74 @@ def getInternalModule():
         internal_module = PythonInternalModule()
 
     return internal_module
+
+def makeCalledVariableRef():
+    variable_ref = ExpressionVariableRef(
+        variable_name = "called",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
+def makeArgsVariableRef():
+    variable_ref = ExpressionVariableRef(
+        variable_name = "args",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
+def makeKwVariableRef( assign ):
+    variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
+
+    variable_ref = variable_ref_class(
+        variable_name = "kw",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
+def makeStarListArgVariableRef( assign ):
+    variable_ref_class = ( ExpressionTargetVariableRef
+                             if assign else
+                           ExpressionVariableRef )
+
+    variable_ref = variable_ref_class(
+        variable_name = "star_arg_list",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
+def makeStarDictArgVariableRef( assign ):
+    variable_ref_class = ( ExpressionTargetVariableRef
+                             if assign else
+                           ExpressionVariableRef )
+
+    variable_ref = variable_ref_class(
+        variable_name = "star_arg_dict",
+        source_ref    = source_ref
+    )
+
+    return variable_ref
+
+# TODO: Code generation should become capable of not generating actual
+# exceptions for the TypeError caught immediately and then unused, then the
+# frame will be unnecessary.
+
+def makePseudoFrame( parameters, statements ):
+    return StatementsFrame(
+        code_name     = "unused",
+        guard_mode    = "pass_through",
+        var_names     = parameters.getParameterNames(),
+        arg_count     = parameters.getArgumentCount(),
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None,
+        kw_only_count = 0,
+        statements    = statements,
+        source_ref    = source_ref
+    )
+
 
 @once_decorator
 def getCallableNameDescBody():
@@ -153,18 +221,6 @@ def getCallableNameDescBody():
     # else:
     #     return called_type.__name__ + " object"
 
-    called_variable, = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
     def makeNameAttributeLookup( node, attribute_name = "__name__" ):
         return ExpressionAttributeLookup(
             expression     = node,
@@ -182,8 +238,9 @@ def getCallableNameDescBody():
                 expression = ExpressionOperationBinary(
                     operator   = "Add",
                     right      = ExpressionConstantRef(
-                        constant = "()",
-                        source_ref = source_ref
+                        constant      = "()",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     left       = makeNameAttributeLookup(
                         makeCalledVariableRef()
@@ -201,8 +258,9 @@ def getCallableNameDescBody():
             expression = ExpressionOperationBinary(
                 operator   = "Add",
                 right      = ExpressionConstantRef(
-                    constant = " object",
-                    source_ref = source_ref
+                    constant      = " object",
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 left       = makeNameAttributeLookup(
                     ExpressionBuiltinType1(
@@ -222,8 +280,9 @@ def getCallableNameDescBody():
                 expression = ExpressionOperationBinary(
                     operator   = "Add",
                     right      = ExpressionConstantRef(
-                        constant = " instance",
-                        source_ref = source_ref
+                        constant      = " instance",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     left       = makeNameAttributeLookup(
                         makeNameAttributeLookup(
@@ -258,8 +317,9 @@ def getCallableNameDescBody():
                 expression = ExpressionOperationBinary(
                     operator   = "Add",
                     right      = ExpressionConstantRef(
-                        constant = " constructor",
-                        source_ref = source_ref
+                        constant      = " constructor",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     left       = makeNameAttributeLookup(
                         makeCalledVariableRef(),
@@ -287,9 +347,13 @@ def getCallableNameDescBody():
         )
 
     if python_version < 300:
-        normal_cases = ( "function", "builtin_function_or_method", "instancemethod" )
+        normal_cases = (
+            "function", "builtin_function_or_method", "instancemethod"
+        )
     else:
-        normal_cases = ( "function", "builtin_function_or_method" )
+        normal_cases = (
+            "function", "builtin_function_or_method"
+        )
 
     statements = (
         StatementConditional(
@@ -327,8 +391,9 @@ def getCallableNameDescBody():
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 def _makeStarListArgumentToTupleStatement( called_variable_ref,
                                            star_list_target_variable_ref,
@@ -340,8 +405,10 @@ def _makeStarListArgumentToTupleStatement( called_variable_ref,
                 ExpressionOperationBinary(
                     operator = "Mod",
                     left     =  ExpressionConstantRef(
-                        constant   = "%s argument after * must be a sequence, not %s",
-                        source_ref = source_ref
+                        constant      = """\
+%s argument after * must be a sequence, not %s""",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     right = ExpressionMakeTuple(
                         elements = (
@@ -388,16 +455,18 @@ def _makeStarListArgumentToTupleStatement( called_variable_ref,
     )
 
     return StatementConditional(
-        condition  = ExpressionBuiltinIsinstance(
-            instance   = star_list_variable_ref.makeCloneAt( source_ref ),
-            cls        = ExpressionBuiltinRef(
-                builtin_name = "tuple",
-                source_ref   = source_ref
+        condition  = ExpressionOperationNOT(
+            operand = ExpressionBuiltinIsinstance(
+                instance   = star_list_variable_ref.makeCloneAt( source_ref ),
+                cls        = ExpressionBuiltinRef(
+                    builtin_name = "tuple",
+                    source_ref   = source_ref
+                ),
+                source_ref = source_ref
             ),
             source_ref = source_ref
         ),
-        yes_branch = None,
-        no_branch  = makeStatementsSequenceFromStatement(
+        yes_branch = makeStatementsSequenceFromStatement(
             statement = makeTryExceptSingleHandlerNode(
                 tried          =  makeStatementsSequenceFromStatement(
                     statement = StatementAssignmentVariable(
@@ -414,6 +483,7 @@ def _makeStarListArgumentToTupleStatement( called_variable_ref,
                 source_ref     = source_ref
             ),
         ),
+        no_branch  = None,
         source_ref = source_ref
     )
 
@@ -428,8 +498,10 @@ def _makeStarDictArgumentToDictStatement( called_variable_ref,
                 ExpressionOperationBinary(
                     operator = "Mod",
                     left     =  ExpressionConstantRef(
-                        constant   = "%s argument after ** must be a mapping, not %s",
-                        source_ref = source_ref
+                        constant      = """\
+%s argument after ** must be a mapping, not %s""",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     right = ExpressionMakeTuple(
                         elements = (
@@ -542,8 +614,9 @@ def _makeStarDictArgumentToDictStatement( called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
-                constant   = None,
-                source_ref = source_ref
+                constant      = None,
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         ),
@@ -591,8 +664,9 @@ def _makeStarDictArgumentToDictStatement( called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
-                constant   = {},
-                source_ref = source_ref
+                constant      = {},
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         ),
@@ -640,7 +714,8 @@ def _makeStarDictArgumentToDictStatement( called_variable_ref,
 
 
 def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
-                                             kw_target_variable_ref, kw_variable_ref,
+                                             kw_target_variable_ref,
+                                             kw_variable_ref,
                                              star_dict_variable_ref ):
     # This is plain terribly complex, pylint: disable=R0914
 
@@ -651,8 +726,10 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 ExpressionOperationBinary(
                     operator = "Mod",
                     left     =  ExpressionConstantRef(
-                        constant   = "%s argument after ** must be a mapping, not %s",
-                        source_ref = source_ref
+                        constant      = """\
+%s argument after ** must be a mapping, not %s""",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     right = ExpressionMakeTuple(
                         elements = (
@@ -710,8 +787,10 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 ExpressionOperationBinary(
                     operator = "Mod",
                     left     =  ExpressionConstantRef(
-                        constant   = "%s got multiple values for keyword argument '%s'",
-                        source_ref = source_ref
+                        constant      = """\
+%s got multiple values for keyword argument '%s'""",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     right = ExpressionMakeTuple(
                         elements = (
@@ -786,7 +865,7 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 source_ref = source_ref
             ),
             yes_branch = makeStatementsSequenceFromStatement(
-                statement = raise_duplicate
+                statement = raise_duplicate.makeCloneAt( source_ref )
             ),
             no_branch  = None,
             source_ref = source_ref
@@ -815,17 +894,18 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
     )
 
     statements = (
-        # Initializing the temp variable outside of try/except, because code generation
-        # does not yet detect that case properly. TODO: Can be removed once code
-        # generation is apt enough.
+        # Initializing the temp variable outside of try/except, because code
+        # generation does not yet detect that case properly. TODO: Can be
+        # removed once code generation is apt enough.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_keys_variable.makeReference( mapping_case ),
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
-                constant   = None,
-                source_ref = source_ref
+                constant      = None,
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         ),
@@ -873,8 +953,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
-                constant   = {},
-                source_ref = source_ref
+                constant      = {},
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         ),
@@ -938,8 +1019,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                     source_ref = source_ref
                 ),
                 subscript  = ExpressionConstantRef(
-                    constant    = 0,
-                    source_ref = source_ref
+                    constant      = 0,
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 source_ref = source_ref
             ),
@@ -973,8 +1055,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                     source_ref = source_ref
                 ),
                 subscript  = ExpressionConstantRef(
-                    constant   = 1,
-                    source_ref = source_ref
+                    constant      = 1,
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 source_ref = source_ref
             ),
@@ -1006,7 +1089,9 @@ def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                 value = ExpressionCallEmpty(
                     called = ExpressionAttributeLookup(
                         expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
-                        attribute_name = "iteritems" if python_version < 300 else "items",
+                        attribute_name = "iteritems"
+                                           if python_version < 300 else
+                                         "items",
                         source_ref     = source_ref
                     ),
                     source_ref     = source_ref
@@ -1086,33 +1171,10 @@ def getFunctionCallHelperStarList():
         is_class   = False
     )
 
-    called_variable, star_arg_list_variable = result.getParameters().getAllVariables()
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_list, tuple ):
     #     try:
@@ -1145,18 +1207,14 @@ def getFunctionCallHelperStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual exceptions for the
-    # TypeError caught immediately and then unused, then the frame will be unnecessary.
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1182,43 +1240,10 @@ def getFunctionCallHelperKeywordsStarList():
         is_class   = False
     )
 
-    called_variable, kw_variable, star_arg_list_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_list, tuple ):
     #     try:
@@ -1245,25 +1270,21 @@ def getFunctionCallHelperKeywordsStarList():
             expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
                 args       = makeStarListArgVariableRef( assign = False ),
-                kw         = makeKwVariableRef(),
+                kw         = makeKwVariableRef( assign = False),
                 source_ref = source_ref
             ),
             source_ref = source_ref
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual exceptions for the
-    # TypeError caught immediately and then unused, then the frame will be unnecessary.
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1289,43 +1310,10 @@ def getFunctionCallHelperPosStarList():
         is_class   = False
     )
 
-    called_variable, args_variable, star_arg_list_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_list, tuple ):
     #     try:
@@ -1363,21 +1351,18 @@ def getFunctionCallHelperPosStarList():
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual exceptions for the
-    # TypeError caught immediately and then unused, then the frame will be unnecessary.
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
+    completeVariableClosures( result )
+
     return result
 
+@once_decorator
 def getFunctionCallHelperPosKeywordsStarList():
     helper_name = "complex_call_helper_pos_keywords_star_list"
 
@@ -1399,53 +1384,10 @@ def getFunctionCallHelperPosKeywordsStarList():
         is_class   = False
     )
 
-    called_variable, args_variable, kw_variable, star_arg_list_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_list, tuple ):
     #     try:
@@ -1477,25 +1419,21 @@ def getFunctionCallHelperPosKeywordsStarList():
                     right      = makeStarListArgVariableRef( assign = False ),
                     source_ref = source_ref
                 ),
-                kw         = makeKwVariableRef(),
+                kw         = makeKwVariableRef( assign = False ),
                 source_ref = source_ref
             ),
             source_ref = source_ref
         )
     )
 
-    # TODO: Code generation should become capable of not generating actual exceptions for the
-    # TypeError caught immediately and then unused, then the frame will be unnecessary.
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1521,34 +1459,10 @@ def getFunctionCallHelperStarDict():
         is_class   = False
     )
 
-    called_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to
-    # PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_dict, dict ):
     #     try:
@@ -1595,15 +1509,13 @@ def getFunctionCallHelperStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1629,44 +1541,10 @@ def getFunctionCallHelperPosStarDict():
         is_class   = False
     )
 
-    called_variable, args_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to
-    # PyObject_Call.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call.
     #
     # if not isinstance( star_arg_dict, dict ):
     #     try:
@@ -1714,18 +1592,15 @@ def getFunctionCallHelperPosStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 @once_decorator
 def getFunctionCallHelperKeywordsStarDict():
@@ -1749,48 +1624,11 @@ def getFunctionCallHelperKeywordsStarDict():
         is_class   = False
     )
 
-    called_variable, kw_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef():
-        variable_ref_class = ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to
-    # PyObject_Call. One goal is to avoid copying "kw" unless really necessary, and
-    # to take the slow route only for non-dictionaries.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call. One goal is to avoid copying "kw" unless really
+    # necessary, and to take the slow route only for non-dictionaries.
     #
     # if not isinstance( star_arg_dict, dict ):
     #     try:
@@ -1846,7 +1684,9 @@ def getFunctionCallHelperKeywordsStarDict():
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
-            star_dict_variable_ref        = makeStarDictArgVariableRef()
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            )
         ),
         StatementReturn(
             expression = ExpressionCallKeywordsOnly(
@@ -1859,15 +1699,13 @@ def getFunctionCallHelperKeywordsStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -1893,58 +1731,11 @@ def getFunctionCallHelperPosKeywordsStarDict():
         is_class   = False
     )
 
-    called_variable, args_variable, kw_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef():
-        variable_ref_class = ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-
     # Equivalent of:
     #
-    # Note: Call in here is not the same, as it can go without checks directly to
-    # PyObject_Call. One goal is to avoid copying "kw" unless really necessary, and
-    # to take the slow route only for non-dictionaries.
+    # Note: Call in here is not the same, as it can go without checks directly
+    # to PyObject_Call. One goal is to avoid copying "kw" unless really
+    # necessary, and to take the slow route only for non-dictionaries.
     #
     # if not isinstance( star_arg_dict, dict ):
     #     try:
@@ -2000,7 +1791,9 @@ def getFunctionCallHelperPosKeywordsStarDict():
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
-            star_dict_variable_ref        = makeStarDictArgVariableRef()
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            )
         ),
         StatementReturn(
             expression = ExpressionCall(
@@ -2014,18 +1807,15 @@ def getFunctionCallHelperPosKeywordsStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 @once_decorator
 def getFunctionCallHelperStarListStarDict():
@@ -2048,42 +1838,6 @@ def getFunctionCallHelperStarListStarDict():
         source_ref = source_ref,
         is_class   = False
     )
-
-    called_variable, star_arg_list_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
 
     statements = (
         _makeStarDictArgumentToDictStatement(
@@ -2116,15 +1870,13 @@ def getFunctionCallHelperStarListStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
+
+    completeVariableClosures( result )
 
     return result
 
@@ -2152,57 +1904,6 @@ def getFunctionCallHelperPosStarListStarDict():
         is_class   = False
     )
 
-    (
-        called_variable,
-        args_variable,
-        star_arg_list_variable,
-        star_arg_dict_variable
-    ) = result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
     statements = (
         _makeStarDictArgumentToDictStatement(
             called_variable_ref           = makeCalledVariableRef(),
@@ -2239,24 +1940,22 @@ def getFunctionCallHelperPosStarListStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 @once_decorator
 def getFunctionCallHelperKeywordsStarListStarDict():
     helper_name = "complex_call_helper_keywords_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
         provider   = getInternalModule(),
         name       = helper_name,
@@ -2275,61 +1974,14 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         is_class   = False
     )
 
-    called_variable, kw_variable, star_arg_list_variable, star_arg_dict_variable = \
-        result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef():
-        variable_ref_class = ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
     statements = (
         _makeStarDictArgumentMergeToKwStatement(
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
-            star_dict_variable_ref        = makeStarDictArgVariableRef()
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            )
         ),
         _makeStarListArgumentToTupleStatement(
             called_variable_ref           = makeCalledVariableRef(),
@@ -2352,18 +2004,15 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
 
-    return result
+    completeVariableClosures( result )
 
+    return result
 
 @once_decorator
 def getFunctionCallHelperPosKeywordsStarListStarDict():
@@ -2389,71 +2038,14 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         is_class   = False
     )
 
-    called_variable, args_variable, kw_variable, star_arg_list_variable, star_arg_dict_variable = \
-        result.getParameters().getAllVariables()
-
-    def makeCalledVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = called_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( called_variable )
-
-        return variable_ref
-
-    def makeArgsVariableRef():
-        variable_ref = ExpressionVariableRef(
-            variable_name = args_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( args_variable )
-
-        return variable_ref
-
-    def makeKwVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = kw_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( kw_variable )
-
-        return variable_ref
-
-    def makeStarListArgVariableRef( assign ):
-        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_list_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_list_variable )
-
-        return variable_ref
-
-    def makeStarDictArgVariableRef():
-        variable_ref_class = ExpressionVariableRef
-
-        variable_ref = variable_ref_class(
-            variable_name = star_arg_dict_variable.getName(),
-            source_ref    = source_ref
-        )
-
-        variable_ref.setVariable( star_arg_dict_variable )
-
-        return variable_ref
-
     statements = (
         _makeStarDictArgumentMergeToKwStatement(
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
-            star_dict_variable_ref        = makeStarDictArgVariableRef()
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            )
         ),
         _makeStarListArgumentToTupleStatement(
             called_variable_ref           = makeCalledVariableRef(),
@@ -2481,14 +2073,12 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
     )
 
     result.setBody(
-        StatementsFrame(
-            code_name     = "unused",
-            guard_mode    = "pass_through",
-            arg_names     = (),
-            kw_only_count = 0,
-            statements    = statements,
-            source_ref    = source_ref
+        makePseudoFrame(
+            parameters = result.getParameters(),
+            statements = statements
         )
     )
+
+    completeVariableClosures( result )
 
     return result

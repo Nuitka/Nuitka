@@ -88,7 +88,7 @@ class ExpressionBuiltinDict( ExpressionChildrenHavingBase ):
                 computation = lambda : builtin_dict_spec.simulateCall(
                     ( pos_args, self.getNamedArgumentPairs() )
                 ),
-                description = "Replace dict call with constant arguments"
+                description = "Replace dict call with constant arguments."
             )
         else:
             return self, None, None

@@ -320,20 +320,46 @@ class StatementDelVariable( StatementChildrenHavingBase ):
         else:
             return "to variable %s" % self.getTargetVariableRef()
 
+    def getDetails( self ):
+        return { "tolerant" : self.tolerant }
+
     # TODO: Value propagation needs to make a difference based on this.
     def isTolerant( self ):
         return self.tolerant
 
     getTargetVariableRef = StatementChildrenHavingBase.childGetter( "variable_ref" )
     def computeStatement( self, constraint_collection ):
-        variable = self.getTargetVariableRef()
+        variable = self.getTargetVariableRef().getVariable()
 
-        if variable in constraint_collection.variables:
-            constraint_collection.variables[ variable ].onRelease( constraint_collection )
+        trace = constraint_collection.getVariableCurrentTrace( variable )
 
-            del constraint_collection.variables[ variable ]
+        if trace.isUninitTrace():
+            if self.isTolerant():
+                return (
+                    None,
+                    "new_statements",
+                    "Removed tolerate del without effect."
+                )
+
+
+        constraint_collection.onVariableDel(
+            del_node = self
+        )
 
         return self, None, None
+
+        constraint_collection.onVariableDel(
+            del_node = self,
+        )
+
+    def mayHaveSideEffects( self ):
+        return True
+
+    def mayRaiseException( self, exception_type ):
+        if self.tolerant:
+            return False
+        else:
+            return True
 
 
 class StatementDelAttribute( StatementChildrenHavingBase ):

@@ -43,6 +43,12 @@ try:
 except TypeError, e:
     print repr(e)
 
+print "Call a function with one parameter too many, and duplicate arguments:"
+try:
+    functionOneParameter(6, a=4, *(1, 2, 3))
+except TypeError, e:
+    print repr(e)
+
 print "Call a function with two parameters with three plain arguments:"
 
 def functionTwoParameters( a, b ):
@@ -257,5 +263,15 @@ try:
     a = {"a" : 3}
 
     None(a=2, **a)
+except TypeError, e:
+    print repr(e)
+
+print "Call function with only defaulted value given as keyword argument:"
+
+def functionwithTwoArgsOneDefaulted(a, b=5):
+    pass
+
+try:
+    functionwithTwoArgsOneDefaulted(b=12)
 except TypeError, e:
     print repr(e)

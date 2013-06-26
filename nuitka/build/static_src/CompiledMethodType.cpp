@@ -176,6 +176,11 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
 }
 
+#ifdef _MSC_VER
+// Using _alloca below.
+#include <malloc.h>
+#endif
+
 static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *args, PyObject *kw )
 {
     Py_ssize_t arg_count = PyTuple_Size( args );
@@ -196,7 +201,7 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
         else
         {
             PyObject *self = PyTuple_GET_ITEM( args, 0 );
-            assert( self != NULL );
+            assertObject( self );
 
             int result = PyObject_IsInstance( self, method->m_class );
 
@@ -225,40 +230,34 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
     }
     else
     {
-        if (unlikely( method->m_function->m_method_arg_parser == NULL ))
+#ifdef _MSC_VER
+        PyObject **new_args = (PyObject **)_alloca( sizeof( PyObject * ) *( arg_count + 1 ) );
+#else
+        PyObject *new_args[ arg_count + 1 ];
+#endif
+        new_args[ 0 ] = method->m_object;
+
+        for ( int i = 0; i < arg_count; i++ )
         {
-            // This injects the extra argument, and is not normally used.
-            PyObject *new_args = PyTuple_New( arg_count + 1 );
+            new_args[ i + 1 ] = PyTuple_GET_ITEM( args, i );
+        }
 
-            PyTuple_SET_ITEM( new_args, 0, INCREASE_REFCOUNT( method->m_object ) );
-
-            for ( int i = 0; i < arg_count; i++ )
-            {
-                PyObject *v = PyTuple_GET_ITEM( args, i );
-                Py_XINCREF( v );
-
-                PyTuple_SET_ITEM( new_args, i + 1, v );
-            }
-
-            PyObject *result = Py_TYPE( method->m_function )->tp_call(
-                (PyObject *)method->m_function,
+        if ( kw || method->m_function->m_direct_arg_parser == NULL )
+        {
+            return method->m_function->m_code(
+                method->m_function,
                 new_args,
+                arg_count + 1,
                 kw
             );
-
-            Py_DECREF( new_args );
-
-            return result;
         }
         else
         {
-            assert( method->m_function->m_has_args );
-
-            return method->m_function->m_method_arg_parser(
+            return method->m_function->m_direct_arg_parser(
                 method->m_function,
-                method->m_object,
-                args,
-                kw
+                new_args,
+                arg_count + 1
+
             );
         }
     }

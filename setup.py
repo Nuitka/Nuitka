@@ -35,24 +35,6 @@ def detectVersion():
 
 version = detectVersion()
 
-# py2exe needs to be installed to work
-try:
-    import py2exe
-    py2exeloaded = True
-except ImportError:
-    py2exeloaded = False
-
-extra = {}
-
-if py2exeloaded:
-    extra[ "console" ] = [
-        {
-            "script"          : "bin/nuitka",
-            "copyright"       : "Copyright (C) 2012 Kay Hayen",
-            "product_version" : version
-        }
-    ]
-
 def find_packages():
     result = []
 

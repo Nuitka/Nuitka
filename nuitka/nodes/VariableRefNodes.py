@@ -17,12 +17,12 @@
 #
 """ Node for variable references.
 
-These represent all variable references in the node tree. Can be in assignments and it
-expressions, changing the meaning of course dramatically.
+These represent all variable references in the node tree. Can be in assignments
+and its expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Variables, Builtins, Options
+from nuitka import Variables, Builtins
 
 from .NodeBases import (
     StatementChildrenHavingBase,
@@ -30,13 +30,17 @@ from .NodeBases import (
     NodeBase
 )
 
-from nuitka.__past__ import iterItems
-
 from .ConstantRefNodes import ExpressionConstantRef
 
+def _isReadOnlyUnterdeterminedModuleVariable( variable ):
+    return variable.isModuleVariable() and \
+           variable.getReadOnlyIndicator() is None
+
 def _isReadOnlyModuleVariable( variable ):
-    return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or \
-           variable.isMaybeLocalVariable()
+    return (
+        variable.isModuleVariable() and \
+        variable.getReadOnlyIndicator() is True
+    ) or variable.isMaybeLocalVariable()
 
 
 class ExpressionVariableRef( NodeBase, ExpressionMixin ):
@@ -88,6 +92,10 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
     def computeExpression( self, constraint_collection ):
         assert self.variable is not None
 
+        if _isReadOnlyUnterdeterminedModuleVariable( self.variable ):
+            constraint_collection.assumeUnclearLocals()
+            constraint_collection.signalChange( "new_expression", self.source_ref, "txt" )
+
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -134,26 +142,6 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
                 change_desc = None
 
             return new_node, change_tags, change_desc
-
-        # TODO: Enable the below, once we can trust that the corruption of mutable
-        # constants is detected.
-        if True or not Options.isExperimental():
-            return self, None, None
-
-        friend = constraint_collection.getVariableValueFriend( self.variable )
-
-        if friend is not None and not friend.mayHaveSideEffects() and friend.isNode():
-            assert hasattr( friend, "makeCloneAt" ), friend
-
-            new_node = friend.makeCloneAt(
-                source_ref = self.source_ref,
-            )
-
-            change_desc = "Assignment source of '%s' propagated, as it has no side effects." % (
-                self.variable.getName()
-            )
-
-            return new_node, "new_expression", change_desc
 
         return self, None, None
 
@@ -286,6 +274,8 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
             return None
 
     def getIterationNext( self, constraint_collection ):
+        return None
+
         friend = constraint_collection.getVariableValueFriend( self.variable )
 
         if friend is not None:
@@ -363,21 +353,14 @@ class StatementTempBlock( StatementChildrenHavingBase ):
         return self.getBody().mayHaveSideEffects()
 
     def computeStatement( self, constraint_collection ):
-        old_body = self.getBody()
-        result = constraint_collection.onStatementsSequence( old_body )
+        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionTempBlock
 
-        if result is not old_body:
-            self.setBody( result )
+        collection_temp_block = ConstraintCollectionTempBlock(
+            constraint_collection
+        )
+        collection_temp_block.process( self )
 
-        # TODO: That should be a method of the constraint_collection
-        for variable, friend in iterItems( dict( constraint_collection.variables ) ):
-            if variable.getOwner() is self:
-                del constraint_collection.variables[ variable ]
-
-                # TODO: Back propagate now.
-                friend.onRelease( self )
-
-        if result is None:
+        if self.getBody() is None:
             return None, "new_statements", "Removed empty temporary block"
 
         return self, None, None

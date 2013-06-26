@@ -28,8 +28,9 @@ extern PyObject *_python_str_plain___class__;
 extern PyObject *_python_str_plain___enter__;
 extern PyObject *_python_str_plain___exit__;
 
-// From CPython, to allow us quick access to the dictionary of an module, the structure is
-// normally private, but we need it for quick access to the module dictionary.
+// From CPython, to allow us quick access to the dictionary of an module, the
+// structure is normally private, but we need it for quick access to the module
+// dictionary.
 typedef struct {
     PyObject_HEAD
     PyObject *md_dict;
@@ -39,7 +40,7 @@ extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 
-// Helper to check that an object is valid and has reference count better than 0.
+// Helper to check that an object is valid and has positive reference count.
 static inline void assertObject( PyObject *value )
 {
     assert( value != NULL );
@@ -51,8 +52,9 @@ static inline void assertObject( PyTracebackObject *value )
     assertObject( (PyObject *)value );
 }
 
-// Due to ABI issues, it seems that on Windows the symbols used by _PyObject_GC_TRACK are
-// not exported and we need to use a function that does it instead.
+// Due to ABI issues, it seems that on Windows the symbols used by
+// _PyObject_GC_TRACK are not exported and we need to use a function that does
+// it instead.
 #if defined( _WIN32 )
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
@@ -64,7 +66,7 @@ static inline void assertObject( PyTracebackObject *value )
 #include "nuitka/variables_temporary.hpp"
 #include "nuitka/exceptions.hpp"
 
-// For the EVAL_ORDER and MAKE_TUPLE macros.
+// For the MAKE_TUPLE macros.
 #include "__helpers.hpp"
 
 // Helper functions for reference count handling in the fly.
@@ -194,8 +196,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
         THROW_IF_ERROR_OCCURED();
     }
 
-    char *value_str = Nuitka_String_AsString( value );
+#if PYTHON_VERSION < 300
+    if (unlikely( !Nuitka_String_Check( value ) ))
+    {
+        PyErr_Format( PyExc_TypeError, "int() can't convert non-string with explicit base" );
+        throw PythonException();
+    }
 
+    char *value_str = Nuitka_String_AsString( value );
     if (unlikely( value_str == NULL ))
     {
         throw PythonException();
@@ -209,6 +217,68 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
     }
 
     return result;
+#else
+    if ( PyUnicode_Check( value ) )
+    {
+#if PYTHON_VERSION < 330
+        char *value_str = Nuitka_String_AsString( value );
+
+        if (unlikely( value_str == NULL ))
+        {
+            throw PythonException();
+        }
+
+        PyObject *result = PyInt_FromString( value_str, NULL, base_int );
+
+        if (unlikely( result == NULL ))
+        {
+            throw PythonException();
+        }
+
+        return result;
+#else
+        return PyLong_FromUnicodeObject( value, base_int );
+#endif
+    }
+    else if ( PyBytes_Check( value ) || PyByteArray_Check( value ) )
+    {
+        // Check for "NUL" as PyLong_FromString has no length parameter,
+        Py_ssize_t size = Py_SIZE( value );
+        char *value_str;
+
+        if ( PyByteArray_Check( value ) )
+        {
+            value_str = PyByteArray_AS_STRING( value );
+        }
+        else
+        {
+            value_str = PyBytes_AS_STRING( value );
+        }
+
+        if ( strlen( value_str ) != (size_t)size || size == 0 )
+        {
+            PyErr_Format(
+                PyExc_ValueError,
+                "invalid literal for int() with base %d: %R",
+                base_int,
+                value
+            );
+
+            throw PythonException();
+        }
+
+        return PyLong_FromString( value_str, NULL, base_int );
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "int() can't convert non-string with explicit base"
+        );
+        throw PythonException();
+    }
+#endif
+
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value )
@@ -231,6 +301,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG2( PyObject *value, PyObject *base 
     {
         THROW_IF_ERROR_OCCURED();
     }
+
+#if PYTHON_VERSION < 300
+    if (unlikely( !Nuitka_String_Check( value ) ))
+    {
+        PyErr_Format( PyExc_TypeError, "long() can't convert non-string with explicit base" );
+        throw PythonException();
+    }
+#endif
 
     char *value_str = Nuitka_String_AsString( value );
 
@@ -679,6 +757,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 
     if (unlikely( result == NULL ))
     {
+        PyErr_Format(
+            PyExc_TypeError,
+            "vars() argument must have __dict__ attribute"
+        );
+
         throw PythonException();
     }
 
@@ -1402,5 +1485,17 @@ extern void _initPortableEnvironment( char *binary_path );
 #endif
 
 #include <nuitka/threading.hpp>
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE( PyObject **elements, Py_ssize_t size )
+{
+    PyObject *result = PyTuple_New( size );
+
+    for( Py_ssize_t i = 0; i < size; i++ )
+    {
+        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( elements[i] ) );
+    }
+
+    return result;
+}
 
 #endif

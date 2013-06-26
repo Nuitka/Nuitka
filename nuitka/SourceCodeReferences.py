@@ -17,8 +17,8 @@
 #
 """ Source code reference record.
 
-All the information to lookup line and file of a code location, together with the future
-flags in use there.
+All the information to lookup line and file of a code location, together with
+the future flags in use there.
 """
 
 class SourceCodeReference:

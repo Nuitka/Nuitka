@@ -16,8 +16,8 @@
 #     limitations under the License.
 #
 
-print type(__builtins__)
+print( type(__builtins__) )
 
 import ErrorExitingModule
 
-print "huch!"
+print( "Should not get here!" )

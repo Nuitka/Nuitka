@@ -53,20 +53,12 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.SliceNodes import (
     ExpressionSliceLookup,
     ExpressionSliceObject
-)
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeTuple,
-    ExpressionMakeList,
-    ExpressionMakeDict,
-    ExpressionMakeSet
 )
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
@@ -89,7 +81,6 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
 )
-from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ModuleNodes import (
@@ -150,9 +141,13 @@ from .ReformulationCallExpressions import buildCallNode
 
 from .ReformulationExecStatements import buildExecNode
 
+from .ReformulationYieldExpressions import buildYieldNode, buildYieldFromNode
+
 # Some helpers.
 from .Helpers import (
     makeStatementsSequenceOrStatement,
+    makeSequenceCreationOrConstant,
+    makeDictCreationOrConstant,
     makeStatementsSequence,
     buildStatementsNode,
     setBuildDispatchers,
@@ -169,9 +164,11 @@ import ast, sys
 from logging import warning
 
 def buildVariableReferenceNode( provider, node, source_ref ):
-    # Python3 is influenced by the mere use of a variable name. So we need to remember it,
-    # esp. for cases, where it is optimized away.
-    if Utils.python_version >= 300 and node.id == "super" and provider.isExpressionFunctionBody():
+    # Python3 is influenced by the mere use of a variable name. So we need to
+    # remember it, esp. for cases, where it is optimized away.
+    if Utils.python_version >= 300 and \
+       node.id == "super" and \
+       provider.isExpressionFunctionBody():
         provider.markAsClassClosureTaker()
 
     return ExpressionVariableRef(
@@ -181,106 +178,24 @@ def buildVariableReferenceNode( provider, node, source_ref ):
 
 
 def buildSequenceCreationNode( provider, node, source_ref ):
-    # Sequence creation. Tries to avoid creations with only constant elements. Would be
-    # caught by optimization, but would be useless churn. For mutable constants we cannot
-    # do it though.
-
-    elements = buildNodeList( provider, node.elts, source_ref )
-
-    for element in elements:
-        if not element.isExpressionConstantRef() or element.isMutable():
-            constant = False
-            break
-    else:
-        constant = True
-
-    sequence_kind = getKind( node ).upper()
-
-    # Note: This would happen in optimization instead, but lets just do it immediately to
-    # save some time.
-    if constant:
-        if sequence_kind == "TUPLE":
-            const_type = tuple
-        elif sequence_kind == "LIST":
-            const_type = list
-        elif sequence_kind == "SET":
-            const_type = set
-        else:
-            assert False, sequence_kind
-
-        return ExpressionConstantRef(
-            constant   = const_type( element.getConstant() for element in elements ),
-            source_ref = source_ref
-        )
-    else:
-        if sequence_kind == "TUPLE":
-            return ExpressionMakeTuple(
-                elements   = elements,
-                source_ref = source_ref
-            )
-        elif sequence_kind == "LIST":
-            return ExpressionMakeList(
-                elements   = elements,
-                source_ref = source_ref
-            )
-        elif sequence_kind == "SET":
-            return ExpressionMakeSet(
-                elements   = elements,
-                source_ref = source_ref
-            )
-        else:
-            assert False, sequence_kind
+    return makeSequenceCreationOrConstant(
+        sequence_kind = getKind( node ).upper(),
+        elements      = buildNodeList( provider, node.elts, source_ref ),
+        source_ref    = source_ref
+    )
 
 
 def buildDictionaryNode( provider, node, source_ref ):
-    # Create dictionary node. Tries to avoid it for constant values that are not mutable.
-
-    keys = []
-    values = []
-
-    constant = True
-
-    for key, value in zip( node.keys, node.values ):
-        key_node = buildNode( provider, key, source_ref )
-        value_node = buildNode( provider, value, source_ref )
-
-        keys.append( key_node )
-        values.append( value_node )
-
-        constant = constant and key_node.isExpressionConstantRef()
-        constant = constant and value_node.isExpressionConstantRef() and not value_node.isMutable()
-
-    # Note: This would happen in optimization instead, but lets just do it immediately to
-    # save some time.
-    if constant:
-        # Create the dictionary in its full size, so that no growing occurs and the
-        # constant becomes as similar as possible before being marshalled.
-        constant_value = dict.fromkeys(
-            [ key.getConstant() for key in keys ],
-            None
-        )
-
-        for key, value in zip( keys, values ):
-            constant_value[ key.getConstant() ] = value.getConstant()
-
-        return ExpressionConstantRef(
-            constant   = constant_value,
-            source_ref = source_ref
-        )
-    else:
-        return ExpressionMakeDict(
-            pairs      = [
-                ExpressionKeyValuePair( key, value, key.getSourceReference() )
-                for key, value in
-                zip( keys, values )
-            ],
-            source_ref = source_ref
-        )
+    return makeDictCreationOrConstant(
+        keys          = buildNodeList( provider, node.keys, source_ref ),
+        values        = buildNodeList( provider, node.values, source_ref ),
+        source_ref    = source_ref
+    )
 
 def buildConditionNode( provider, node, source_ref ):
-    # Conditional statements may have one or two branches. We will never see an "elif",
-    # because that's already dealt with by module "ast", which turns it into nested
-    # conditional statements.
+    # Conditional statements may have one or two branches. We will never see an
+    # "elif", because that's already dealt with by module "ast", which turns it
+    # into nested conditional statements.
 
     return StatementConditional(
         condition  = buildNode( provider, node.test, source_ref ),
@@ -315,9 +230,9 @@ def buildTryFinallyNode( provider, node, source_ref ):
     )
 
 def buildTryNode( provider, node, source_ref ):
-    # Note: This variant is used for Python3.3 or higher only, older stuff uses the above
-    # ones, this one merges try/except with try/finally in the "ast". We split it up
-    # again, as it's logically separated of course.
+    # Note: This variant is used for Python3.3 or higher only, older stuff uses
+    # the above ones, this one merges try/except with try/finally in the
+    # "ast". We split it up again, as it's logically separated of course.
     return StatementTryFinally(
         tried      = StatementsSequence(
             statements = (
@@ -338,8 +253,8 @@ def buildTryNode( provider, node, source_ref ):
     )
 
 def buildRaiseNode( provider, node, source_ref ):
-    # Raise statements. Under Python2 they may have type, value and traceback attached,
-    # for Python3, you can only give type (actually value) and cause.
+    # Raise statements. Under Python2 they may have type, value and traceback
+    # attached, for Python3, you can only give type (actually value) and cause.
 
     if Utils.python_version < 300:
         return StatementRaiseException(
@@ -363,13 +278,14 @@ def buildSubscriptNode( provider, node, source_ref ):
 
     assert getKind( node.ctx ) == "Load", source_ref
 
-    # The subscribt "[]" operator is one of many different things. This is expressed by
-    # this kind, there are "slice" lookups (two values, even if one is using default), and
-    # then "index" lookups. The form with three argument is really an "index" lookup, with
-    # a slice object. And the "..." lookup is also an index loopup, with it as the
-    # argument. So this splits things into two different operations, "subscript" with a
-    # single "subscript" object. Or a slice lookup with a lower and higher boundary. These
-    # things should behave similar, but they are different slots.
+    # The subscribt "[]" operator is one of many different things. This is
+    # expressed by this kind, there are "slice" lookups (two values, even if one
+    # is using default), and then "index" lookups. The form with three argument
+    # is really an "index" lookup, with a slice object. And the "..." lookup is
+    # also an index loopup, with it as the argument. So this splits things into
+    # two different operations, "subscript" with a single "subscript" object. Or
+    # a slice lookup with a lower and higher boundary. These things should
+    # behave similar, but they are different slots.
     kind = getKind( node.slice )
 
     if kind == "Index":
@@ -421,8 +337,8 @@ def buildSubscriptNode( provider, node, source_ref ):
         assert False, kind
 
 def buildImportModulesNode( node, source_ref ):
-    # Import modules statement. As described in the developer manual, these statements can
-    # be treated as several ones.
+    # Import modules statement. As described in the developer manual, these
+    # statements can be treated as several ones.
 
     import_names   = [
         ( import_desc.name, import_desc.asname )
@@ -437,7 +353,8 @@ def buildImportModulesNode( node, source_ref ):
 
         module_topname = module_name.split(".")[0]
 
-        # Note: The "level" of import is influenced by the future absolute imports.
+        # Note: The "level" of import is influenced by the future absolute
+        # imports.
         level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
 
         if local_name:
@@ -462,13 +379,16 @@ def buildImportModulesNode( node, source_ref ):
                 source_ref  = source_ref
             )
 
-        # If a name was given, use the one provided, otherwise the import gives the top
-        # level package name given for assignment of the imported module.
+        # If a name was given, use the one provided, otherwise the import gives
+        # the top level package name given for assignment of the imported
+        # module.
 
         import_nodes.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
-                    variable_name = local_name if local_name is not None else module_topname,
+                    variable_name = local_name
+                                      if local_name is not None else
+                                    module_topname,
                     source_ref    = source_ref
                 ),
                 source     = import_node,
@@ -476,9 +396,9 @@ def buildImportModulesNode( node, source_ref ):
             )
         )
 
-    # Note: Each import is sequential. It can succeed, and the failure of a later one is
-    # not changing one. We can therefore have a sequence of imports that only import one
-    # thing therefore.
+    # Note: Each import is sequential. It will potentially succeed, and the
+    # failure of a later one is not changing that one bit . We can therefore
+    # have a sequence of imports that only import one thing therefore.
     return makeStatementsSequenceOrStatement(
         statements = import_nodes,
         source_ref = source_ref
@@ -513,8 +433,8 @@ def enableFutureFeature( object_name, future_spec, source_ref ):
 _future_import_nodes = []
 
 def buildImportFromNode( provider, node, source_ref ):
-    # "from .. import .." statements. This may trigger a star import, or multiple names
-    # being looked up from the given module variable name.
+    # "from .. import .." statements. This may trigger a star import, or
+    # multiple names being looked up from the given module variable name.
 
     module_name = node.module if node.module is not None else ""
     level = node.level
@@ -523,8 +443,12 @@ def buildImportFromNode( provider, node, source_ref ):
     if module_name == "__future__":
         if not provider.isPythonModule() and not source_ref.isExecReference():
             SyntaxErrors.raiseSyntaxError(
-                reason     = "from __future__ imports must occur at the beginning of the file",
-                col_offset = 8 if Utils.python_version >= 300 or not Options.isFullCompat() else None,
+                reason     = """\
+from __future__ imports must occur at the beginning of the file""",
+                col_offset = 8
+                  if Utils.python_version >= 300 or \
+                  not Options.isFullCompat()
+                else None,
                 source_ref = source_ref
             )
 
@@ -551,7 +475,11 @@ def buildImportFromNode( provider, node, source_ref ):
         if object_name == "*":
             target_names.append( None )
         else:
-            target_names.append( local_name if local_name is not None else object_name )
+            target_names.append(
+                local_name
+                  if local_name is not None else
+                object_name
+            )
 
         import_names.append( object_name )
 
@@ -603,9 +531,9 @@ def buildImportFromNode( provider, node, source_ref ):
                 )
             )
 
-        # Note: Each import is sequential. It can succeed, and the failure of a later one is
-        # not changing one. We can therefore have a sequence of imports that only import one
-        # thing therefore.
+        # Note: Each import is sequential. It can succeed, and the failure of a
+        # later one is not changing one. We can therefore have a sequence of
+        # imports that only import one thing therefore.
         return StatementsSequence(
             statements = import_nodes,
             source_ref = source_ref
@@ -619,8 +547,8 @@ def handleGlobalDeclarationNode( provider, node, source_ref ):
         if provider.isPythonModule():
             return None
 
-        # Need to catch the error of declaring a parameter variable as global ourselves
-        # here. The AST parsing doesn't catch it.
+        # Need to catch the error of declaring a parameter variable as global
+        # ourselves here. The AST parsing doesn't catch it.
         try:
             parameters = provider.getParameters()
 
@@ -629,7 +557,9 @@ def handleGlobalDeclarationNode( provider, node, source_ref ):
                     SyntaxErrors.raiseSyntaxError(
                         reason     = "name '%s' is %s and global" % (
                             variable_name,
-                            "local" if Utils.python_version < 300 else "parameter"
+                            "local"
+                              if Utils.python_version < 300 else
+                            "parameter"
                         ),
                         source_ref = provider.getSourceReference()
                     )
@@ -673,10 +603,11 @@ def handleGlobalDeclarationNode( provider, node, source_ref ):
     return None
 
 def handleNonlocalDeclarationNode( provider, node, source_ref ):
-    # The source reference of the nonlocal really doesn't matter, pylint: disable=W0613
+    # The source reference of the nonlocal really doesn't matter.
+    # pylint: disable=W0613
 
-    # Need to catch the error of declaring a parameter variable as global ourselves
-    # here. The AST parsing doesn't catch it, but we can do it here.
+    # Need to catch the error of declaring a parameter variable as global
+    # ourselves here. The AST parsing doesn't catch it, but we can do it here.
     parameters = provider.getParameters()
 
     for variable_name in node.names:
@@ -699,28 +630,32 @@ def buildStringNode( node, source_ref ):
     assert type( node.s ) in ( str, unicode )
 
     return ExpressionConstantRef(
-        constant   = node.s,
-        source_ref = source_ref
+        constant      = node.s,
+        source_ref    = source_ref,
+        user_provided = True
     )
 
 def buildNumberNode( node, source_ref ):
     assert type( node.n ) in ( int, long, float, complex ), type( node.n )
 
     return ExpressionConstantRef(
-        constant   = node.n,
-        source_ref = source_ref
+        constant      = node.n,
+        source_ref    = source_ref,
+        user_provided = True
     )
 
 def buildBytesNode( node, source_ref ):
     return ExpressionConstantRef(
-        constant   = node.s,
-        source_ref = source_ref
+        constant      = node.s,
+        source_ref    = source_ref,
+        user_provided = True
     )
 
 def buildEllipsisNode( source_ref ):
     return ExpressionConstantRef(
-        constant   = Ellipsis,
-        source_ref = source_ref
+        constant      = Ellipsis,
+        source_ref    = source_ref,
+        user_provided = True
     )
 
 def buildAttributeNode( provider, node, source_ref ):
@@ -731,12 +666,15 @@ def buildAttributeNode( provider, node, source_ref ):
     )
 
 def buildReturnNode( provider, node, source_ref ):
-    if not provider.isExpressionFunctionBody() or provider.isClassDictCreation():
+    if not provider.isExpressionFunctionBody() or \
+       provider.isClassDictCreation():
         SyntaxErrors.raiseSyntaxError(
             "'return' outside function",
             source_ref,
             None if Utils.python_version < 300 else (
-                node.col_offset if provider.isPythonModule() else node.col_offset+4
+                node.col_offset
+                  if provider.isPythonModule() else
+                node.col_offset+4
             )
         )
 
@@ -748,36 +686,13 @@ def buildReturnNode( provider, node, source_ref ):
     else:
         return StatementReturn(
             expression = ExpressionConstantRef(
-                constant   = None,
-                source_ref = source_ref
+                constant      = None,
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref = source_ref
         )
 
-
-def buildYieldNode( provider, node, source_ref ):
-    if provider.isPythonModule():
-        SyntaxErrors.raiseSyntaxError(
-            "'yield' outside function",
-            source_ref,
-            None if Utils.python_version < 300 else node.col_offset
-        )
-
-    provider.markAsGenerator()
-
-    if node.value is not None:
-        return ExpressionYield(
-            expression = buildNode( provider, node.value, source_ref ),
-            source_ref = source_ref
-        )
-    else:
-        return ExpressionYield(
-            expression = ExpressionConstantRef(
-                constant   = None,
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
-        )
 
 def buildExprOnlyNode( provider, node, source_ref ):
     return StatementExpressionOnly(
@@ -867,6 +782,7 @@ setBuildDispatchers(
         "Attribute"    : buildAttributeNode,
         "Return"       : buildReturnNode,
         "Yield"        : buildYieldNode,
+        "YieldFrom"    : buildYieldFromNode,
         "Expr"         : buildExprOnlyNode,
         "UnaryOp"      : buildUnaryOpNode,
         "BinOp"        : buildBinaryOpNode,
@@ -888,8 +804,8 @@ setBuildDispatchers(
 )
 
 def buildParseTree( provider, source_code, source_ref, is_module ):
-    # Workaround: ast.parse cannot cope with some situations where a file is not terminated
-    # by a new line.
+    # Workaround: ast.parse cannot cope with some situations where a file is not
+    # terminated by a new line.
     if not source_code.endswith( "\n" ):
         source_code = source_code + "\n"
 
@@ -919,8 +835,12 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
         else:
             if _future_import_nodes:
                 SyntaxErrors.raiseSyntaxError(
-                    reason     = "from __future__ imports must occur at the beginning of the file",
-                    col_offset = 1 if Utils.python_version >= 300 or not Options.isFullCompat() else None,
+                    reason     = """\
+from __future__ imports must occur at the beginning of the file""",
+                    col_offset = 1
+                      if Utils.python_version >= 300 or \
+                      not Options.isFullCompat() else
+                    None,
                     source_ref = _future_import_nodes[0].source_ref
                 )
 
@@ -936,8 +856,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = doc,
-                    source_ref = internal_source_ref
+                    constant      = doc,
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
@@ -950,16 +871,17 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = source_ref.getFilename(),
-                    source_ref = internal_source_ref
+                    constant      = source_ref.getFilename(),
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
         )
 
         if provider.isPythonPackage():
-            # TODO: __package__ is not set here, but automatically, which makes it invisible
-            # though
+            # TODO: __package__ is not set here, but automatically, which makes
+            # it invisible though
             statements.append(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetVariableRef(
@@ -967,8 +889,11 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                         source_ref    = internal_source_ref
                     ),
                     source       = ExpressionConstantRef(
-                        constant   = [ Utils.dirname( source_ref.getFilename() ) ],
-                        source_ref = internal_source_ref
+                        constant      = [
+                            Utils.dirname( source_ref.getFilename() )
+                        ],
+                        source_ref    = internal_source_ref,
+                        user_provided = True
                     ),
                     source_ref   = internal_source_ref
                 )
@@ -982,8 +907,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = None,
-                    source_ref = internal_source_ref
+                    constant      = None,
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
@@ -999,8 +925,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = provider.getPackage(),
-                    source_ref = internal_source_ref
+                    constant      = provider.getPackage(),
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
@@ -1015,8 +942,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = True,
-                    source_ref = internal_source_ref
+                    constant      = True,
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
@@ -1036,8 +964,9 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = False,
-                    source_ref = internal_source_ref
+                    constant      = False,
+                    source_ref    = internal_source_ref,
+                    user_provided = True
                 ),
                 source_ref   = internal_source_ref
             )
@@ -1058,7 +987,9 @@ imported_modules = {}
 
 def addImportedModule( module_relpath, imported_module ):
     if ( module_relpath, "__main__" ) in imported_modules:
-        warning( "Re-importing __main__ module via its filename duplicates the module." )
+        warning( """\
+Re-importing __main__ module via its filename duplicates the module."""
+        )
 
     key = module_relpath, imported_module.getName()
 
@@ -1083,9 +1014,6 @@ def getImportedModule( module_relpath ):
     key = module_relpath, module_name
 
     return imported_modules[ key ]
-
-def getImportedModules():
-    return list( imported_modules.values() )
 
 def buildModuleTree( filename, package, is_top, is_main ):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
@@ -1146,7 +1074,8 @@ def buildModuleTree( filename, package, is_top, is_main ):
                 package    = package,
                 source_ref = source_ref
             )
-    elif Utils.isDir( filename ) and Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
+    elif Utils.isDir( filename ) and \
+         Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
         source_filename = Utils.joinpath( filename, "__init__.py" )
 
         if is_top:
@@ -1189,6 +1118,26 @@ def buildModuleTree( filename, package, is_top, is_main ):
         source_ref  = source_ref,
         is_module   = True
     )
+
+    if is_main:
+        module_body = makeStatementsSequence(
+            statements = (
+                StatementExpressionOnly(
+                    expression = ExpressionImportModule(
+                        module_name    = "site",
+                        import_list    = (),
+                        level          = 0,
+                        source_ref     = source_ref,
+                    ),
+                    source_ref  = source_ref.atInternal()
+                ),
+                module_body
+            ),
+            allow_none = True,
+            source_ref = source_ref
+        )
+
+
 
     result.setBody( module_body )
 

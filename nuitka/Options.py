@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.4.3
+Nuitka V0.4.4
 Copyright (C) 2013 Kay Hayen."""
 
 from . import Utils
@@ -27,8 +27,8 @@ from optparse import OptionParser, OptionGroup
 
 import sys, logging
 
-# Indicator if we were called as "nuitka-python" in which case we assume some other
-# defaults and work a bit different with parameters.
+# Indicator if we were called as "nuitka-python" in which case we assume some
+# other defaults and work a bit different with parameters.
 is_nuitka_python = Utils.basename( sys.argv[0] ).lower().startswith( "nuitka-python" )
 
 def getVersion():

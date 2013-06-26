@@ -17,8 +17,8 @@
 #
 """ Reformulation of classes
 
-Consult the developmer manual for information. TODO: Add ability to sync source code
-comments with developer manual sections.
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
 
 """
 
@@ -50,11 +50,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.ClassNodes import ExpressionSelectMetaclass
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeTuple,
-    ExpressionMakeDict
-)
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ContainerOperationNodes import (
     StatementDictOperationRemove,
     ExpressionDictOperationGet
@@ -77,6 +73,8 @@ from nuitka.nodes.ParameterSpecs import ParameterSpec
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    makeSequenceCreationOrConstant,
+    makeDictCreationOrConstant,
     makeStatementsSequence,
     buildStatementsNode,
     extractDocFromBody,
@@ -87,7 +85,8 @@ from .Helpers import (
 
 from nuitka import Utils
 
-# TODO: Once we start to modify these, we should make sure, the copy is not shared.
+# TODO: Once we start to modify these, we should make sure, the copy is not
+# shared.
 make_class_parameters = ParameterSpec(
     name          = "class",
     normal_args   = (),
@@ -99,11 +98,11 @@ make_class_parameters = ParameterSpec(
 
 
 def _buildClassNode3( provider, node, source_ref ):
-    # Many variables, due to the huge re-formulation that is going on here, which just has
-    # the complexity, pylint: disable=R0914
+    # Many variables, due to the huge re-formulation that is going on here,
+    # which just has the complexity, pylint: disable=R0914
 
-    # This function is the Python3 special case with special re-formulation as according
-    # to developer manual.
+    # This function is the Python3 special case with special re-formulation as
+    # according to developer manual.
     class_statements, class_doc = extractDocFromBody( node )
 
     # The result will be a temp block that holds the temporary variables.
@@ -135,9 +134,12 @@ def _buildClassNode3( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+    # source_ref_orig = source_ref
+    source_ref = source_ref.atInternal()
+
     if body is not None:
         # The frame guard has nothing to tell its line number to.
-        body.source_ref = source_ref.atInternal()
+        body.source_ref = source_ref
 
     statements = [
         StatementSetLocals(
@@ -145,7 +147,7 @@ def _buildClassNode3( provider, node, source_ref ):
                 variable   = tmp_prepared.makeReference( result ),
                 source_ref = source_ref
             ),
-            source_ref = source_ref.atInternal()
+            source_ref = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetVariableRef(
@@ -153,8 +155,9 @@ def _buildClassNode3( provider, node, source_ref ):
                 source_ref    = source_ref
             ),
             source        = ExpressionConstantRef(
-                constant   = provider.getParentModule().getName(),
-                source_ref = source_ref
+                constant      = provider.getParentModule().getName(),
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref   = source_ref.atInternal()
         )
@@ -168,8 +171,9 @@ def _buildClassNode3( provider, node, source_ref ):
                     source_ref    = source_ref
                 ),
                 source        = ExpressionConstantRef(
-                    constant   = class_doc,
-                    source_ref = source_ref
+                    constant      = class_doc,
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 source_ref   = source_ref.atInternal()
             )
@@ -177,7 +181,7 @@ def _buildClassNode3( provider, node, source_ref ):
 
     if Utils.python_version >= 330:
         if provider.isExpressionFunctionBody():
-            qualname = provider.getName() + ".<locals>." + node.name
+            qualname = provider.getFunctionQualname() + ".<locals>." + node.name
         else:
             qualname = node.name
 
@@ -188,10 +192,11 @@ def _buildClassNode3( provider, node, source_ref ):
                     source_ref    = source_ref
                 ),
                 source        = ExpressionConstantRef(
-                    constant   = qualname,
-                    source_ref = source_ref
+                    constant      = qualname,
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
-                source_ref   = source_ref.atInternal()
+                source_ref   = source_ref
             )
         )
 
@@ -207,11 +212,13 @@ def _buildClassNode3( provider, node, source_ref ):
                     variable   = tmp_metaclass.makeReference( result ),
                     source_ref = source_ref
                 ),
-                args       = ExpressionMakeTuple(
-                    elements   = (
+                args       = makeSequenceCreationOrConstant(
+                    sequence_kind = "tuple",
+                    elements      = (
                         ExpressionConstantRef(
-                            constant   = node.name,
-                            source_ref = source_ref
+                            constant      = node.name,
+                            source_ref    = source_ref,
+                            user_provided = True
                         ),
                         ExpressionTempVariableRef(
                             variable   = tmp_bases.makeReference( result ),
@@ -221,7 +228,7 @@ def _buildClassNode3( provider, node, source_ref ):
                             source_ref = source_ref
                         )
                     ),
-                    source_ref = source_ref
+                    source_ref    = source_ref
                 ),
                 kw         = ExpressionTempVariableRef(
                     variable   = tmp_class_decl_dict.makeReference( result ),
@@ -229,14 +236,14 @@ def _buildClassNode3( provider, node, source_ref ):
                 ),
                 source_ref = source_ref
             ),
-            source_ref   = source_ref.atInternal()
+            source_ref   = source_ref
         ),
         StatementReturn(
             expression = ExpressionVariableRef(
                 variable_name = "__class__",
                 source_ref    = source_ref
             ),
-            source_ref = source_ref.atInternal()
+            source_ref = source_ref
         )
     ]
 
@@ -246,13 +253,14 @@ def _buildClassNode3( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    # The class body is basically a function that implicitely, at the end returns its
-    # locals and cannot have other return statements contained.
+    # The class body is basically a function that implicitely, at the end
+    # returns its locals and cannot have other return statements contained.
 
     class_creation_function.setBody( body )
 
-    # The class body is basically a function that implicitely, at the end returns its
-    # created class and cannot have other return statements contained.
+    # The class body is basically a function that implicitely, at the end
+    # returns its created class and cannot have other return statements
+    # contained.
 
     decorated_body = ExpressionFunctionCall(
         function   = ExpressionFunctionCreation(
@@ -285,9 +293,12 @@ def _buildClassNode3( provider, node, source_ref ):
                 variable   = tmp_bases.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = ExpressionMakeTuple(
-                elements   = buildNodeList( provider, node.bases, source_ref ),
-                source_ref = source_ref
+            source       = makeSequenceCreationOrConstant(
+                sequence_kind = "tuple",
+                elements      = buildNodeList(
+                    provider, node.bases, source_ref
+                ),
+                source_ref    = source_ref
             ),
             source_ref   = source_ref
         ),
@@ -296,16 +307,18 @@ def _buildClassNode3( provider, node, source_ref ):
                 variable   = tmp_class_decl_dict.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = ExpressionMakeDict(
-                pairs      = [
-                    ExpressionKeyValuePair(
-                        key        = ExpressionConstantRef(
-                            constant   = keyword.arg,
-                            source_ref = source_ref
-                        ),
-                        value      = buildNode( provider, keyword.value, source_ref ),
-                        source_ref = source_ref
+            source       = makeDictCreationOrConstant(
+                keys      = [
+                    ExpressionConstantRef(
+                        constant      = keyword.arg,
+                        source_ref    = source_ref,
+                        user_provided = True
                     )
+                    for keyword in
+                    node.keywords
+                ],
+                values = [
+                    buildNode( provider, keyword.value, source_ref )
                     for keyword in
                     node.keywords
                 ],
@@ -323,8 +336,9 @@ def _buildClassNode3( provider, node, source_ref ):
                     condition = ExpressionComparison(
                         comparator = "In",
                         left       = ExpressionConstantRef(
-                            constant   = "metaclass",
-                            source_ref = source_ref
+                            constant      = "metaclass",
+                            source_ref    = source_ref,
+                            user_provided = True
                         ),
                         right      = ExpressionTempVariableRef(
                             variable   = tmp_class_decl_dict.makeReference( result ),
@@ -338,8 +352,9 @@ def _buildClassNode3( provider, node, source_ref ):
                             source_ref = source_ref
                         ),
                         key        = ExpressionConstantRef(
-                            constant   = "metaclass",
-                            source_ref = source_ref
+                            constant      = "metaclass",
+                            source_ref    = source_ref,
+                            user_provided = True
                         ),
                         source_ref = source_ref
                     ),
@@ -359,8 +374,9 @@ def _buildClassNode3( provider, node, source_ref ):
                                     source_ref = source_ref
                                 ),
                                 subscript  = ExpressionConstantRef(
-                                    constant   = 0,
-                                    source_ref = source_ref
+                                    constant      = 0,
+                                    source_ref    = source_ref,
+                                    user_provided = True
                                 ),
                                 source_ref = source_ref
                             ),
@@ -382,8 +398,9 @@ def _buildClassNode3( provider, node, source_ref ):
             condition  = ExpressionComparison(
                 comparator = "In",
                 left       = ExpressionConstantRef(
-                    constant   = "metaclass",
-                    source_ref = source_ref
+                    constant      = "metaclass",
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 right      = ExpressionTempVariableRef(
                     variable   = tmp_class_decl_dict.makeReference( result ),
@@ -399,8 +416,9 @@ def _buildClassNode3( provider, node, source_ref ):
                         source_ref = source_ref
                     ),
                     key   = ExpressionConstantRef(
-                        constant   = "metaclass",
-                        source_ref = source_ref
+                        constant      = "metaclass",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     source_ref = source_ref
                 )
@@ -419,14 +437,16 @@ def _buildClassNode3( provider, node, source_ref ):
                         source_ref = source_ref
                     ),
                     name       = ExpressionConstantRef(
-                        constant   = "__prepare__",
-                        source_ref = source_ref
+                        constant      = "__prepare__",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     source_ref = source_ref
                 ),
                 no_expression = ExpressionConstantRef(
-                    constant   = {},
-                    source_ref = source_ref
+                    constant      = {},
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 yes_expression = ExpressionCall(
                     called     = ExpressionAttributeLookup(
@@ -440,8 +460,9 @@ def _buildClassNode3( provider, node, source_ref ):
                     args       = ExpressionMakeTuple(
                         elements   = (
                             ExpressionConstantRef(
-                                constant = node.name,
-                                source_ref     = source_ref
+                                constant      = node.name,
+                                source_ref    = source_ref,
+                                user_provided = True
                             ),
                             ExpressionTempVariableRef(
                                 variable   = tmp_bases.makeReference( result ),
@@ -483,8 +504,8 @@ def _buildClassNode3( provider, node, source_ref ):
 def _buildClassNode2( provider, node, source_ref ):
     class_statements, class_doc = extractDocFromBody( node )
 
-    # This function is the Python3 special case with special re-formulation as according
-    # to developer manual.
+    # This function is the Python3 special case with special re-formulation as
+    # according to developer manual.
 
     # The result will be a temp block that holds the temporary variables.
     result = StatementTempBlock(
@@ -526,8 +547,9 @@ def _buildClassNode2( provider, node, source_ref ):
                 source_ref    = source_ref
             ),
             source        = ExpressionConstantRef(
-                constant   = provider.getParentModule().getName(),
-                source_ref = source_ref
+                constant      = provider.getParentModule().getName(),
+                source_ref    = source_ref,
+                user_provided = True
             ),
             source_ref   = source_ref.atInternal()
         )
@@ -541,8 +563,9 @@ def _buildClassNode2( provider, node, source_ref ):
                     source_ref    = source_ref
                 ),
                 source        = ExpressionConstantRef(
-                    constant   = class_doc,
-                    source_ref = source_ref
+                    constant      = class_doc,
+                    source_ref    = source_ref,
+                    user_provided = True
                 ),
                 source_ref   = source_ref.atInternal()
             )
@@ -575,9 +598,12 @@ def _buildClassNode2( provider, node, source_ref ):
                 variable   = tmp_bases.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = ExpressionMakeTuple(
-                elements   = buildNodeList( provider, node.bases, source_ref ),
-                source_ref = source_ref
+            source       = makeSequenceCreationOrConstant(
+                sequence_kind = "tuple",
+                elements      = buildNodeList(
+                    provider, node.bases, source_ref
+                ),
+                source_ref    = source_ref
             ),
             source_ref   = source_ref
         ),
@@ -611,8 +637,9 @@ def _buildClassNode2( provider, node, source_ref ):
                 condition =  ExpressionComparison(
                     comparator = "In",
                     left       = ExpressionConstantRef(
-                        constant   = "__metaclass__",
-                        source_ref = source_ref
+                        constant      = "__metaclass__",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     right      = ExpressionTempVariableRef(
                         variable   = tmp_class_dict.makeReference( result ),
@@ -626,8 +653,9 @@ def _buildClassNode2( provider, node, source_ref ):
                         source_ref = source_ref
                     ),
                     key   = ExpressionConstantRef(
-                        constant   = "__metaclass__",
-                        source_ref = source_ref
+                        constant      = "__metaclass__",
+                        source_ref    = source_ref,
+                        user_provided = True
                     ),
                     source_ref = source_ref
                 ),
@@ -656,8 +684,9 @@ def _buildClassNode2( provider, node, source_ref ):
                 args           = ExpressionMakeTuple(
                     elements   = (
                         ExpressionConstantRef(
-                            constant = node.name,
-                            source_ref     = source_ref
+                            constant      = node.name,
+                            source_ref    = source_ref,
+                            user_provided = True
                         ),
                         ExpressionTempVariableRef(
                             variable   = tmp_bases.makeReference( result ),

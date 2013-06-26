@@ -33,10 +33,11 @@ static PyObject *Nuitka_Generator_tp_repr( Nuitka_GeneratorObject *generator )
 
 static long Nuitka_Generator_tp_traverse( PyObject *function, visitproc visit, void *arg )
 {
-    // TODO: Identify the impact of not visiting owned objects and/or if it could be NULL
-    // instead. The methodobject visits its self and module. I understand this is probably
-    // so that back references of this function to its upper do not make it stay in the
-    // memory. A specific test if that works might be needed.
+    // TODO: Identify the impact of not visiting owned objects and/or if it
+    // could be NULL instead. The methodobject visits its self and module. I
+    // understand this is probably so that back references of this function to
+    // its upper do not make it stay in the memory. A specific test if that
+    // works might be needed.
     return 0;
 }
 
@@ -69,7 +70,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
         {
             generator->m_status = status_Running;
 
-            // Prepare the generator context to run. TODO: Make stack size rational.
+            // Prepare the generator context to run. TODO: Make stack size
+            // rational.
             prepareFiber( &generator->m_yielder_context, generator->m_code, (unsigned long)generator );
         }
 
@@ -86,7 +88,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         if ( generator->m_frame )
         {
-            // It would be nice if our frame were still alive. Nobody had the right to release it.
+            // It would be nice if our frame were still alive. Nobody had the
+            // right to release it.
             assertFrameObject( generator->m_frame );
 
             // It's not supposed to be on the top right now.
@@ -116,6 +119,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         if ( generator->m_yielded == NULL )
         {
+            assert( ERROR_OCCURED() );
+
             generator->m_status = status_Finished;
 
             Py_XDECREF( generator->m_frame );
@@ -123,8 +128,14 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
             if ( generator->m_context )
             {
+                // Surpressing exception in cleanup, to restore later before
+                // return.
+                PythonException saved_exception;
+
                 generator->m_cleanup( generator->m_context );
                 generator->m_context = NULL;
+
+                saved_exception.toPython();
             }
 
             assert( ERROR_OCCURED() );
@@ -151,7 +162,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
     }
     else
     {
-        PyErr_SetNone( PyExc_StopIteration );
+        PyErr_SetObject( PyExc_StopIteration, (PyObject *)NULL );
+
         return NULL;
     }
 }
@@ -284,7 +296,15 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "exceptions must be classes, or instances, not %s", Py_TYPE( generator->m_exception_type )->tp_name );
+        PyErr_Format(
+            PyExc_TypeError,
+#if PYTHON_VERSION < 300
+            "exceptions must be classes, or instances, not %s",
+#else
+            "exceptions must be classes or instances deriving from BaseException, not %s",
+#endif
+            Py_TYPE( generator->m_exception_type )->tp_name
+        );
         return NULL;
     }
 
@@ -469,3 +489,38 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
 {
     return Nuitka_Generator_New( code, name, code_object, NULL, NULL );
 }
+
+#if PYTHON_VERSION >= 330
+PyObject *ERROR_GET_STOP_ITERATION_VALUE()
+{
+    assert ( PyErr_ExceptionMatches( PyExc_StopIteration ));
+
+    PyObject *et, *ev, *tb;
+    PyErr_Fetch( &et, &ev, &tb );
+
+    Py_XDECREF(et);
+    Py_XDECREF(tb);
+
+    PyObject *value = NULL;
+
+    if ( ev )
+    {
+        if ( PyErr_GivenExceptionMatches( ev, PyExc_StopIteration ) )
+        {
+            value = ((PyStopIterationObject *)ev)->value;
+            Py_DECREF( ev );
+        }
+        else
+        {
+            value = ev;
+        }
+    }
+
+    if ( value == NULL )
+    {
+        value = INCREASE_REFCOUNT( Py_None );
+    }
+
+    return value;
+}
+#endif

@@ -55,6 +55,12 @@ class StatementsSequence( StatementChildrenHavingBase ):
     getStatements = StatementChildrenHavingBase.childGetter( "statements" )
     setStatements = StatementChildrenHavingBase.childSetterNotNone( "statements" )
 
+    def getDetails( self ):
+        if self.getStatements():
+            return { "statement_count" : len( self.getStatements() ) }
+        else:
+            return { "statement_count" : 0 }
+
     def setChild( self, name, value ):
         assert name == "statements"
 
@@ -122,24 +128,29 @@ class StatementsSequence( StatementChildrenHavingBase ):
 class StatementsFrame( StatementsSequence ):
     kind = "STATEMENTS_FRAME"
 
-    def __init__( self, statements, guard_mode, code_name, arg_names, kw_only_count, source_ref ):
+    def __init__( self, statements, guard_mode, code_name, var_names, arg_count,
+                  kw_only_count, has_starlist, has_stardict, source_ref ):
         StatementsSequence.__init__(
             self,
             statements = statements,
             source_ref = source_ref
         )
 
-        self.arg_names = tuple( arg_names )
+        self.var_names = tuple( var_names )
         self.code_name = code_name
 
         self.kw_only_count = kw_only_count
+        self.arg_count = arg_count
 
         self.guard_mode = guard_mode
+
+        self.has_starlist = has_starlist
+        self.has_stardict = has_stardict
 
     def getDetails( self ):
         result = {
             "code_name"  : self.code_name,
-            "arg_names"  : ", ".join( self.arg_names ),
+            "var_names"  : ", ".join( self.var_names ),
             "guard_mode" : self.guard_mode
         }
 
@@ -154,8 +165,8 @@ class StatementsFrame( StatementsSequence ):
     def getGuardMode( self ):
         return self.guard_mode
 
-    def getArgNames( self ):
-        return self.arg_names
+    def getVarNames( self ):
+        return self.var_names
 
     def getCodeObjectName( self ):
         return self.code_name
@@ -163,21 +174,35 @@ class StatementsFrame( StatementsSequence ):
     def getKwOnlyParameterCount( self ):
         return self.kw_only_count
 
+    def getArgumentCount( self ):
+        return self.arg_count
+
     def makeCloneAt( self, source_ref ):
         assert False
 
     def getCodeObjectHandle( self, context ):
         provider = self.getParentVariableProvider()
 
-        return context.getCodeObjectHandle(
+        # TODO: Why do this accessing a node, do this outside.
+        from nuitka.codegen.CodeObjectCodes import getCodeObjectHandle
+
+        return getCodeObjectHandle(
+            context       = context,
             filename      = self.source_ref.getFilename(),
-            arg_names     = self.getArgNames(),
+            var_names     = self.getVarNames(),
+            arg_count     = self.getArgumentCount(),
             kw_only_count = self.getKwOnlyParameterCount(),
-            line_number   = 0 if provider.isPythonModule() else self.source_ref.getLineNumber(),
+            line_number   = 0
+                              if provider.isPythonModule() else
+                            self.source_ref.getLineNumber(),
             code_name     = self.getCodeObjectName(),
-            is_generator  = provider.isExpressionFunctionBody() and provider.isGenerator(),
-            is_optimized  = not provider.isPythonModule() and not provider.isClassDictCreation() and \
-                            not context.hasLocalsDict()
+            is_generator  = provider.isExpressionFunctionBody() and \
+                            provider.isGenerator(),
+            is_optimized  = not provider.isPythonModule() and \
+                            not provider.isClassDictCreation() and \
+                            not context.hasLocalsDict(),
+            has_starlist  = self.has_starlist,
+            has_stardict  = self.has_stardict
         )
 
 

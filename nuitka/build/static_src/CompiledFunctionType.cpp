@@ -62,22 +62,35 @@ static PyObject *Nuitka_Function_tp_repr( Nuitka_FunctionObject *function )
 
 static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObject *args, PyObject *kw )
 {
-    if ( function->m_has_args )
+    assertObject( args );
+    assert( PyTuple_Check( args ) );
+
+    if ( kw || function->m_direct_arg_parser == NULL )
     {
-        return ((function_arg_parser)function->m_code)( function, args, kw );
+        return function->m_code(
+            function,
+            &PyTuple_GET_ITEM( args, 0 ),
+            PyTuple_GET_SIZE( args ),
+            kw
+        );
     }
     else
     {
-       return ((PyNoArgsFunction)function->m_code)( (PyObject *)function->m_context );
+        return function->m_direct_arg_parser(
+            function,
+            &PyTuple_GET_ITEM( args, 0 ),
+            PyTuple_GET_SIZE( args )
+        );
     }
 }
 
 static long Nuitka_Function_tp_traverse( PyObject *function, visitproc visit, void *arg )
 {
-    // TODO: Identify the impact of not visiting owned objects and/or if it could be NULL
-    // instead. The methodobject visits its self and module. I understand this is probably
-    // so that back references of this function to its upper do not make it stay in the
-    // memory. A specific test if that works might be needed.
+    // TODO: Identify the impact of not visiting owned objects and/or if it
+    // could be NULL instead. The methodobject visits its self and module. I
+    // understand this is probably so that back references of this function to
+    // its upper do not make it stay in the memory. A specific test if that
+    // works might be needed.
     return 0;
 }
 
@@ -504,11 +517,11 @@ PyTypeObject Nuitka_Function_Type =
 };
 
 #if PYTHON_VERSION < 300
-static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
+static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 #elif PYTHON_VERSION < 330
-static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
+static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 #else
-static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
+static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 #endif
 {
     Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
@@ -520,8 +533,7 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     }
 
     result->m_code = code;
-    result->m_has_args = has_args;
-    result->m_method_arg_parser = mparse;
+    result->m_direct_arg_parser = dparse;
 
     result->m_name = INCREASE_REFCOUNT( name );
 
@@ -535,8 +547,10 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     assertObject( defaults );
     assert( defaults == Py_None || ( PyTuple_Check( defaults ) && PyTuple_Size( defaults ) > 0 ) );
     result->m_defaults = defaults;
+    result->m_defaults_given = defaults == Py_None ? 0 : PyTuple_GET_SIZE( defaults );
 
 #if PYTHON_VERSION >= 300
+    assert( kwdefaults );
     assert( kwdefaults == Py_None || ( PyDict_Check( kwdefaults ) && PyDict_Size( kwdefaults ) > 0 ) );
     result->m_kwdefaults = kwdefaults;
 
@@ -561,48 +575,458 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
 
 // Make a function without context.
 #if PYTHON_VERSION < 300
-PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc )
 {
-    return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, module, doc, true, NULL, NULL );
+    return make_kfunction( fparse, dparse, name, code_object, defaults, module, doc, NULL, NULL );
 }
 #elif PYTHON_VERSION < 330
-PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
 {
-    return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, kwdefaults, annotations, module, doc, true, NULL, NULL );
+    return make_kfunction( fparse, dparse, name, code_object, defaults, kwdefaults, annotations, module, doc, NULL, NULL );
 }
 #else
-PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
 {
-    return make_kfunction( (void *)fparse, mparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, true, NULL, NULL );
+    return make_kfunction( fparse, dparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, NULL, NULL );
 }
 #endif
 
 // Make a function with context.
 #if PYTHON_VERSION < 300
-PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
-    return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, module, doc, true, context, cleanup );
+    return make_kfunction( fparse, dparse, name, code_object, defaults, module, doc, context, cleanup );
 }
 #elif PYTHON_VERSION < 330
-PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
-    return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, kwdefaults, annotations, module, doc, true, context, cleanup );
+    return make_kfunction( fparse, dparse, name, code_object, defaults, kwdefaults, annotations, module, doc, context, cleanup );
 }
 #else
-PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
-    return make_kfunction( (void *)fparse, mparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, true, context, cleanup );
+    return make_kfunction( fparse, dparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, context, cleanup );
 }
 #endif
 
-// Make a function that is only a yielder, no args.
-PyObject *Nuitka_Function_New( argless_code code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+void ERROR_NO_ARGUMENTS_ALLOWED( Nuitka_FunctionObject *function,
+#if PYTHON_VERSION >= 330
+                                 PyObject *kw,
+#endif
+                                 Py_ssize_t given )
 {
-#if PYTHON_VERSION < 300
-    return make_kfunction( (void *)code, NULL, name, NULL, _python_tuple_empty, module, doc, false, context, cleanup );
-#elif PYTHON_VERSION < 330
-    return make_kfunction( (void *)code, NULL, name, NULL, _python_tuple_empty, Py_None, PyDict_New(), module, doc, false, context, cleanup );
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+
+#if PYTHON_VERSION < 330
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes no arguments (%zd given)",
+        function_name,
+        given );
 #else
-    return make_kfunction( (void *)code, NULL, name, NULL, NULL, _python_tuple_empty, Py_None, PyDict_New(), module, doc, false, context, cleanup );
+    if ( kw == NULL )
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes 0 positional arguments but %zd was given",
+            function_name,
+            given
+         );
+    }
+    else
+    {
+       PyObject *tmp_iter = PyObject_GetIter( kw );
+       PyObject *tmp_arg_name = PyIter_Next( tmp_iter );
+       Py_DECREF( tmp_iter );
+
+       PyErr_Format( PyExc_TypeError,
+           "%s() got an unexpected keyword argument '%s'",
+           function_name,
+           Nuitka_String_AsString( tmp_arg_name )
+       );
+
+       Py_DECREF( tmp_arg_name );
+    }
 #endif
 }
+
+void ERROR_MULTIPLE_VALUES( Nuitka_FunctionObject *function, Py_ssize_t index )
+{
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+
+    PyErr_Format(
+        PyExc_TypeError,
+#if PYTHON_VERSION < 330
+        "%s() got multiple values for keyword argument '%s'",
+#else
+        "%s() got multiple values for argument '%s'",
+#endif
+        function_name,
+        Nuitka_String_AsString(
+            PyTuple_GET_ITEM(
+                function->m_code_object->co_varnames,
+                index
+            )
+        )
+    );
+}
+
+void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
+#if PYTHON_VERSION < 270
+                              Py_ssize_t kw_size,
+#endif
+                              Py_ssize_t given )
+{
+    Py_ssize_t required_parameter_count =
+        function->m_code_object->co_argcount;
+
+    if ( function->m_defaults != Py_None )
+    {
+        required_parameter_count -= PyTuple_GET_SIZE( function->m_defaults );
+    }
+
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+    char const *violation =
+        ( function->m_defaults != Py_None || function->m_code_object->co_flags & CO_VARARGS ) ? "at least" : "exactly";
+    char const *plural =
+       required_parameter_count == 1 ? "" : "s";
+
+#if PYTHON_VERSION < 270
+    if ( kw_size > 0 )
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes %s %zd non-keyword argument%s (%zd given)",
+            function_name,
+            violation,
+            required_parameter_count,
+            plural,
+            given - function->m_defaults_given
+        );
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes %s %zd argument%s (%zd given)",
+            function_name,
+            violation,
+            required_parameter_count,
+            plural,
+            given
+        );
+    }
+#else
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes %s %zd argument%s (%zd given)",
+        function_name,
+        violation,
+        required_parameter_count,
+        plural,
+        given
+    );
+#endif
+}
+
+void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject *function,
+                               Py_ssize_t given
+#if PYTHON_VERSION < 270
+                             , Py_ssize_t kw_size
+
+#endif
+#if PYTHON_VERSION >= 330
+                             , Py_ssize_t kw_only
+#endif
+)
+{
+    Py_ssize_t top_level_parameter_count = function->m_code_object->co_argcount;
+
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+#if PYTHON_VERSION < 330
+    char const *violation =
+       function->m_defaults != Py_None ? "at most" : "exactly";
+#endif
+    char const *plural =
+       top_level_parameter_count == 1 ? "" : "s";
+
+#if PYTHON_VERSION < 270
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes %s %zd %sargument%s (%zd given)",
+        function_name,
+        violation,
+        top_level_parameter_count,
+        kw_size > 0 ? "non-keyword " : "",
+        plural,
+        given
+    );
+#elif PYTHON_VERSION < 300
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes %s %zd argument%s (%zd given)",
+        function_name,
+        violation,
+        top_level_parameter_count,
+        plural,
+        given
+    );
+#elif PYTHON_VERSION < 330
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() takes %s %zd positional argument%s (%zd given)",
+        function_name,
+        violation,
+        top_level_parameter_count,
+        plural,
+        given
+    );
+#else
+    char keyword_only_part[100];
+
+    if ( kw_only > 0 )
+    {
+        sprintf(
+            keyword_only_part,
+            " positional argument%s (and %zd keyword-only argument%s)",
+            given != 1 ? "s" : "",
+            kw_only,
+            kw_only != 1 ? "s" : ""
+        );
+    }
+    else
+    {
+        keyword_only_part[0] = 0;
+    }
+
+    if ( function->m_defaults_given == 0 )
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes %zd positional argument%s but %zd%s were given",
+            function_name,
+            top_level_parameter_count,
+            plural,
+            given,
+            keyword_only_part
+        );
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "%s() takes from %zd to %zd positional argument%s but %zd%s were given",
+            function_name,
+            top_level_parameter_count - function->m_defaults_given,
+            top_level_parameter_count,
+            plural,
+            given,
+            keyword_only_part
+        );
+    }
+#endif
+}
+
+#if PYTHON_VERSION >= 330
+void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
+                              PyObject **values )
+{
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+
+    PyCodeObject *code_object = function->m_code_object;
+
+    Py_ssize_t max_missing = 0;
+
+    for( Py_ssize_t i = code_object->co_argcount-1; i >= 0; --i )
+    {
+        if ( values[ i ] == NULL )
+        {
+            max_missing += 1;
+        }
+    }
+
+    PyObject *list_str = PyUnicode_FromString( "" );
+
+    PyObject *comma_str = PyUnicode_FromString( ", " );
+    PyObject *and_str = PyUnicode_FromString(
+        max_missing == 2 ? " and " : ", and "
+    );
+
+    Py_ssize_t missing = 0;
+    for( Py_ssize_t i = code_object->co_argcount-1; i >= 0; --i )
+    {
+        if ( values[ i ] == NULL )
+        {
+            PyObject *current_str = PyTuple_GET_ITEM(
+                code_object->co_varnames,
+                i
+            );
+
+            PyObjectTemporary current( PyObject_Repr( current_str ) );
+
+            if ( missing == 0 )
+            {
+                PyObjectTemporary old( list_str );
+
+                list_str = PyUnicode_Concat(
+                    list_str,
+                    current.asObject()
+                );
+            }
+            else if ( missing == 1 )
+            {
+                PyObjectTemporary old1( list_str );
+
+                list_str = PyUnicode_Concat(
+                    and_str,
+                    list_str
+                );
+
+                PyObjectTemporary old2( list_str );
+
+                list_str = PyUnicode_Concat(
+                    current.asObject(),
+                    list_str
+                );
+            }
+            else
+            {
+                PyObjectTemporary old1( list_str );
+
+                list_str = PyUnicode_Concat(
+                    comma_str,
+                    list_str
+                );
+
+                PyObjectTemporary old2( list_str );
+
+                list_str = PyUnicode_Concat(
+                    current.asObject(),
+                    list_str
+                );
+            }
+
+            missing += 1;
+        }
+    }
+
+    Py_DECREF( comma_str );
+    Py_DECREF( and_str );
+
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() missing %zd required positional argument%s: %s",
+        function_name,
+        max_missing,
+        max_missing > 1 ? "s" : "",
+        Nuitka_String_AsString( list_str )
+    );
+
+    Py_DECREF( list_str );
+}
+
+
+void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
+                           PyObject **kw_vars )
+{
+    char const *function_name =
+       Nuitka_String_AsString( function->m_name );
+
+    PyCodeObject *code_object = function->m_code_object;
+
+    Py_ssize_t max_missing = 0;
+
+    for( Py_ssize_t i = code_object->co_kwonlyargcount-1; i >= 0; --i )
+    {
+        if ( kw_vars[ i ] == NULL )
+        {
+            max_missing += 1;
+        }
+    }
+
+    PyObject *list_str = PyUnicode_FromString( "" );
+
+    PyObject *comma_str = PyUnicode_FromString( ", " );
+    PyObject *and_str = PyUnicode_FromString(
+        max_missing == 2 ? " and " : ", and "
+    );
+
+    Py_ssize_t missing = 0;
+    for( Py_ssize_t i = code_object->co_kwonlyargcount-1; i >= 0; --i )
+    {
+        if ( kw_vars[ i ] == NULL )
+        {
+            PyObject *current_str = PyTuple_GET_ITEM(
+                code_object->co_varnames,
+                code_object->co_argcount + i
+            );
+
+            PyObjectTemporary current( PyObject_Repr( current_str ) );
+
+            if ( missing == 0 )
+            {
+                PyObjectTemporary old( list_str );
+
+                list_str = PyUnicode_Concat(
+                    list_str,
+                    current.asObject()
+                );
+            }
+            else if ( missing == 1 )
+            {
+                PyObjectTemporary old1( list_str );
+
+                list_str = PyUnicode_Concat(
+                    and_str,
+                    list_str
+                );
+
+                PyObjectTemporary old2( list_str );
+
+                list_str = PyUnicode_Concat(
+                    current.asObject(),
+                    list_str
+                );
+            }
+            else
+            {
+                PyObjectTemporary old1( list_str );
+
+                list_str = PyUnicode_Concat(
+                    comma_str,
+                    list_str
+                );
+
+                PyObjectTemporary old2( list_str );
+
+                list_str = PyUnicode_Concat(
+                    current.asObject(),
+                    list_str
+                );
+            }
+
+
+            missing += 1;
+        }
+    }
+
+    Py_DECREF( comma_str );
+    Py_DECREF( and_str );
+
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s() missing %zd required keyword-only argument%s: %s",
+        function_name,
+        max_missing,
+        max_missing > 1 ? "s" : "",
+        Nuitka_String_AsString( list_str )
+    );
+
+    Py_DECREF( list_str );
+}
+#endif

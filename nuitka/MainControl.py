@@ -28,6 +28,7 @@ from .tree import (
 )
 
 from . import (
+    ModuleRegistry,
     Tracing,
     TreeXML,
     Options,
@@ -46,9 +47,9 @@ import sys, os
 def createNodeTree( filename ):
     """ Create a node tree.
 
-    Turn that source code into a node tree structure. If recursion into imported modules
-    is available, more trees will be available during optimization, or immediately through
-    recursed directory paths.
+    Turn that source code into a node tree structure. If recursion into
+    imported modules is available, more trees will be available during
+    optimization, or immediately through recursed directory paths.
 
     """
 
@@ -59,6 +60,7 @@ def createNodeTree( filename ):
         is_top   = True,
         is_main  = not Options.shallMakeModule()
     )
+    ModuleRegistry.addRootModule( result )
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
@@ -68,9 +70,7 @@ def createNodeTree( filename ):
         )
 
     # Then optimize the tree and potentially recursed modules.
-    Optimization.optimizeWhole(
-        main_module = result
-    )
+    Optimization.optimize()
 
     return result
 
@@ -141,8 +141,8 @@ def _pickSourceFilenames( source_dir, modules ):
     for module in sorted( modules, key = lambda x : x.getFullName() ):
         base_filename = Utils.joinpath( source_dir, module.getFullName() )
 
-        # Note: Could detect if the filesystem is cases sensitive in source_dir or not,
-        # but that's probably not worth the effort.
+        # Note: Could detect if the filesystem is cases sensitive in source_dir
+        # or not, but that's probably not worth the effort.
         collision_filename = Utils.normcase( base_filename )
 
         if collision_filename in seen_filenames:
@@ -150,7 +150,7 @@ def _pickSourceFilenames( source_dir, modules ):
 
         seen_filenames.add( collision_filename )
 
-    collision_count = {}
+    collision_counts = {}
 
     module_filenames = {}
 
@@ -165,8 +165,8 @@ def _pickSourceFilenames( source_dir, modules ):
         collision_filename = Utils.normcase( base_filename )
 
         if collision_filename in collision_filenames:
-            hash_suffix = "@%d" % collision_count[ collision_filename ]
-            collision_count[ collision_filename ] = collision_count.get( collision_filename, 0 ) + 1
+            collision_counts[ collision_filename ] = collision_counts.get( collision_filename, 0 ) + 1
+            hash_suffix = "@%d" % collision_counts[ collision_filename ]
         else:
             hash_suffix = ""
 
@@ -191,12 +191,8 @@ def makeSourceDirectory( main_module ):
     global_context = CodeGeneration.makeGlobalContext()
 
     # Get the full list of modules imported, create code for all of them.
-    modules = Building.getImportedModules()
+    modules = ModuleRegistry.getDoneModules()
     assert main_module in modules
-
-    from nuitka.tree import ComplexCallHelperFunctions
-    if ComplexCallHelperFunctions.internal_module is not None:
-        modules.append( ComplexCallHelperFunctions.internal_module )
 
     # Sometimes we need to talk about all modules except main module.
     other_modules = tuple(
@@ -263,9 +259,16 @@ def makeSourceDirectory( main_module ):
         )
     )
 
+    helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode()
+
     writeSourceCode(
         filename    = Utils.joinpath( source_dir, "__helpers.hpp" ),
-        source_code = CodeGeneration.generateHelpersCode()
+        source_code = helper_decl_code
+    )
+
+    writeSourceCode(
+        filename    = Utils.joinpath( source_dir, "__helpers.cpp" ),
+        source_code = helper_impl_code
     )
 
     module_hpp_include = [
@@ -375,7 +378,7 @@ def executeMain( binary_filename, tree, clean_path ):
     if not Options.isWindowsTarget() or os.name == "nt":
         args = ( binary_filename, name )
     else:
-        args = ( "/usr/bin/wine", name, binary_filename )
+        args = ( "/usr/bin/wine", "wine", binary_filename )
 
     callExec(
         clean_path = clean_path,

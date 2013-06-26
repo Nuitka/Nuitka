@@ -77,6 +77,10 @@ for filename in sorted( os.listdir( "." ) ):
     if filename.endswith( "32.py" ) and not python_version.startswith( b"3" ):
         continue
 
+    # Skip tests that require Python 3.3 at least.
+    if filename.endswith( "33.py" ) and not python_version.startswith( b"3.3" ):
+        continue
+
     # The overflow functions test gives syntax error on Python 3.x and can be ignored.
     if filename == "OverflowFunctions.py" and python_version.startswith( b"3" ):
         continue
@@ -89,7 +93,7 @@ for filename in sorted( os.listdir( "." ) ):
     extra_flags = [ "expect_success", "remove_output" ]
 
     if active:
-        if filename in ( "Referencing.py", "Referencing32.py" ):
+        if filename.startswith( "Referencing" ):
             debug_python = os.environ[ "PYTHON" ]
             if not debug_python.endswith( "-dbg" ):
                 debug_python += "-dbg"
@@ -105,14 +109,10 @@ for filename in sorted( os.listdir( "." ) ):
             extra_flags.append( "ignore_stderr" )
             extra_flags.append( "python_debug" )
 
-        if filename == "OrderChecks.py":
+        if filename in ( "OrderChecks.py", "YieldFrom33.py" ):
             extra_flags.append( "ignore_stderr" )
 
         assert type( python_version ) is bytes
-
-        if python_version.startswith( b"3.3" ) and filename in ( "ParameterErrors.py", "ParameterErrors32.py" ):
-            print( "Skip parameter errors test", filename, "not yet compatible." )
-            continue
 
         # Apply 2to3 conversion if necessary.
         if python_version.startswith( b"3" ) and not filename.endswith( "32.py" ):

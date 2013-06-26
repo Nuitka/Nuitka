@@ -386,8 +386,11 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
         StatementsFrame(
             statements    = [ temp_block ],
             guard_mode    = "pass_through" if emit_class is not ExpressionYield else "generator",
-            arg_names     = (),
+            var_names     = (),
+            arg_count     = 0,
             kw_only_count = 0,
+            has_starlist  = False,
+            has_stardict  = False,
             code_name     = "contraction",
             source_ref    = source_ref
         )

@@ -17,19 +17,21 @@
 #
 """ The virtue of importing modules and packages.
 
-The actual import of a module may already execute code that changes things. Imagine a
-module that does "os.system()", it will be done. People often connect to databases,
-and these kind of things, at import time. Not a good style, but it's being done.
+The actual import of a module may already execute code that changes things.
+Imagine a module that does "os.system()", it will be done. People often connect
+to databases, and these kind of things, at import time. Not a good style, but
+it's being done.
 
-Therefore CPython exhibits the interfaces in an "imp" module in standard library,
-which one can use those to know ahead of time, what file import would load. For us
-unfortunately there is nothing in CPython that is easily accessible and gives us this
-functionality for packages and search paths exactly like CPython does, so we implement
-here a multi step search process that is compatible.
+Therefore CPython exhibits the interfaces in an "imp" module in standard
+library, which one can use those to know ahead of time, what file import would
+load. For us unfortunately there is nothing in CPython that is easily accessible
+and gives us this functionality for packages and search paths exactly like
+CPython does, so we implement here a multi step search process that is
+compatible.
 
-This approach is much safer of course and there is no loss. To determine if it's from
-the standard library, one can abuse the attribute "__file__" of the "os" module like
-it's done in "isStandardLibraryPath" of this module.
+This approach is much safer of course and there is no loss. To determine if it's
+from the standard library, one can abuse the attribute "__file__" of the "os"
+module like it's done in "isStandardLibraryPath" of this module.
 
 """
 
@@ -53,7 +55,8 @@ def setMainScriptDirectory( main_dir ):
     main_path = main_dir
 
 def isPackageDir( dirname ):
-    return Utils.isDir( dirname ) and Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
+    return Utils.isDir( dirname ) and \
+           Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
 
 def findModule( source_ref, module_name, parent_package, level, warn ):
     # We have many branches here, because there are a lot of cases to try.
@@ -147,7 +150,7 @@ def _findModuleInPath( module_name, package_name ):
         ext_path = [
             getPackageDirname( element )
             for element in
-            sys.path + extra_paths
+            extra_paths + sys.path
             if isPackageDir( getPackageDirname( element ) )
         ]
 
@@ -155,7 +158,9 @@ def _findModuleInPath( module_name, package_name ):
             print( "_findModuleInPath: Package, using extended path", ext_path )
 
         try:
-            _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+            module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+            if module_fh is not None:
+                module_fh.close()
 
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module worked", module_filename, package_name )
@@ -174,13 +179,15 @@ def _findModuleInPath( module_name, package_name ):
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module failed with syntax error" )
 
-    ext_path = sys.path + extra_paths
+    ext_path = extra_paths + sys.path
 
     if _debug_module_finding:
         print( "_findModuleInPath: Non-package, using extended path", ext_path )
 
     try:
-        _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+        module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+        if module_fh is not None:
+            module_fh.close()
     except SyntaxError:
         # Warn user, as this is kind of unusual.
         warning(
@@ -202,8 +209,9 @@ def _findModule( module_name, parent_package ):
     if _debug_module_finding:
         print( "_findModule: Enter", module_name, "in", parent_package )
 
-    # The os.path is strangely hacked into the os module, dispatching per platform, we
-    # either cannot look into it, or we require that we resolve it here correctly.
+    # The os.path is strangely hacked into the os module, dispatching per
+    # platform, we either cannot look into it, or we require that we resolve it
+    # here correctly.
     if module_name == "os.path" and parent_package is None:
         parent_package = "os"
 

@@ -15,10 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+print( "Main importing from package" )
 
+from some_package import star_importing
+from some_package import normal_importing
 
-import sys
-
-print( type( __builtins__ ) )
-sys.exit("Module doing sys.exit")
-print( "This won't happen!" )
+print( "Done." )

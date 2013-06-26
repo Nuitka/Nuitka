@@ -267,18 +267,6 @@ class ClosureVariableIdentifier( Identifier ):
         return self.getCode() + ".asObject()"
 
 
-class DefaultValueIdentifier( Identifier ):
-    def __init__( self, count ):
-        Identifier.__init__(
-            self,
-            code      = "PyTuple_GET_ITEM( self->m_defaults, %d )" % count,
-            ref_count = 0
-        )
-
-    def getCheapRefCount( self ):
-        return 0
-
-
 class NullIdentifier( Identifier ):
     def __init__( self ):
         Identifier.__init__(

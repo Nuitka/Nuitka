@@ -265,3 +265,26 @@ if a != a:
     print("is nan")
 else:
     print("isn't nan")
+
+class CustomStr(str): pass
+class CustomBytes(bytes): pass
+class CustomByteArray(bytearray): pass
+
+values = [
+    b'100',
+    bytearray(b'100'),
+    CustomStr('100'),
+    CustomBytes(b'100'),
+    CustomByteArray(b'100')
+]
+
+for x in values:
+    try:
+        print "int", repr(x), int(x), int(x,2)
+    except TypeError as e:
+        print "caught", repr(e)
+
+    try:
+        print "long", repr(x), long(x), long(x,2)
+    except TypeError as e:
+        print "caught", repr(e)

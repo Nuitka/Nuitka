@@ -32,13 +32,10 @@ from nuitka.nodes.FunctionNodes import (
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeDict
-)
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    makeDictCreationOrConstant,
     buildStatementsNode,
     extractDocFromBody,
     buildNodeList,
@@ -68,7 +65,9 @@ def buildFunctionNode( provider, node, source_ref ):
     decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
 
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
-    kw_defaults = buildParameterKwDefaults( provider, node, function_body, source_ref )
+    kw_defaults = buildParameterKwDefaults(
+        provider, node, function_body, source_ref
+    )
 
     function_statements_body = buildStatementsNode(
         provider   = function_body,
@@ -121,8 +120,8 @@ def buildFunctionNode( provider, node, source_ref ):
 
     # Add the staticmethod decorator to __new__ methods if not provided.
 
-    # CPython made these optional, but applies them to every class __new__. We add them
-    # early, so our optimization will see it.
+    # CPython made these optional, but applies them to every class __new__. We
+    # add them early, so our optimization will see it.
     if node.name == "__new__" and not decorators and \
          provider.isExpressionFunctionBody() and provider.isClassDictCreation():
 
@@ -153,29 +152,33 @@ def buildFunctionNode( provider, node, source_ref ):
     )
 
 def buildParameterKwDefaults( provider, node, function_body, source_ref ):
-    # Build keyword only arguments default values. We are hiding here, that it is a
-    # Python3 only feature.
+    # Build keyword only arguments default values. We are hiding here, that it
+    # is a Python3 only feature.
 
     if Utils.python_version >= 300:
         kw_only_names = function_body.getParameters().getKwOnlyParameterNames()
-        pairs = []
 
-        for kw_name, kw_default in zip( kw_only_names, node.args.kw_defaults ):
-            if kw_default is not None:
-                pairs.append(
-                    ExpressionKeyValuePair(
-                        key = ExpressionConstantRef(
-                            constant   = kw_name,
+        if kw_only_names:
+            keys = []
+            values = []
+
+            for kw_only_name, kw_default in \
+              zip( kw_only_names, node.args.kw_defaults ):
+                if kw_default is not None:
+                    keys.append(
+                        ExpressionConstantRef(
+                            constant   = kw_only_name,
                             source_ref = source_ref
-                        ),
-                        value = buildNode( provider, kw_default, source_ref ),
-                        source_ref = source_ref
+                        )
                     )
-                )
+                    values.append(
+                        buildNode( provider, kw_default, source_ref )
+                    )
 
-        if pairs:
-            kw_defaults = ExpressionMakeDict(
-                pairs = pairs,
+
+            kw_defaults = makeDictCreationOrConstant(
+                keys       = keys,
+                values     = values,
                 source_ref = source_ref
             )
         else:
@@ -192,22 +195,27 @@ def buildParameterAnnotations( provider, node, source_ref ):
     if Utils.python_version < 300:
         return None
 
-    pairs = []
+    keys = []
+    values = []
+
+    def addAnnotation( key, value ):
+        keys.append(
+            ExpressionConstantRef(
+                constant      = key,
+                source_ref    = source_ref,
+                user_provided = True
+            )
+        )
+        values.append( value )
 
     def extractArg( arg ):
         if getKind( arg ) == "Name":
             assert arg.annotation is None
         elif getKind( arg ) == "arg":
             if arg.annotation is not None:
-                pairs.append(
-                    ExpressionKeyValuePair(
-                        key        = ExpressionConstantRef(
-                            constant   = arg.arg,
-                            source_ref = source_ref
-                        ),
-                        value      = buildNode( provider, arg.annotation, source_ref ),
-                        source_ref = source_ref
-                    )
+                addAnnotation(
+                    key   = arg.arg,
+                    value = buildNode( provider, arg.annotation, source_ref )
                 )
         elif getKind( arg ) == "Tuple":
             for arg in arg.elts:
@@ -222,45 +230,32 @@ def buildParameterAnnotations( provider, node, source_ref ):
         extractArg( arg )
 
     if node.args.varargannotation is not None:
-        pairs.append(
-            ExpressionKeyValuePair(
-                key        = ExpressionConstantRef(
-                    constant   = node.args.vararg,
-                    source_ref = source_ref
-                ),
-                value      = buildNode( provider, node.args.varargannotation, source_ref ),
-                source_ref = source_ref
+        addAnnotation(
+            key   = node.args.vararg,
+            value = buildNode(
+                provider, node.args.varargannotation, source_ref
             )
         )
 
     if node.args.kwargannotation is not None:
-        pairs.append(
-            ExpressionKeyValuePair(
-                key        = ExpressionConstantRef(
-                    constant   = node.args.kwarg,
-                    source_ref = source_ref
-                ),
-                value      = buildNode( provider, node.args.kwargannotation, source_ref ),
-                source_ref = source_ref
+        addAnnotation(
+            key   = node.args.kwarg,
+            value = buildNode(
+                provider, node.args.kwargannotation, source_ref
             )
         )
 
     # Return value annotation (not there for lambdas)
     if hasattr( node, "returns" ) and node.returns is not None:
-        pairs.append(
-            ExpressionKeyValuePair(
-                key        = ExpressionConstantRef(
-                    constant   = "return",
-                    source_ref = source_ref
-                ),
-                value      = buildNode( provider, node.returns, source_ref ),
-                source_ref = source_ref
-            )
+        addAnnotation(
+            key   = "return",
+            value = buildNode( provider, node.returns, source_ref )
         )
 
-    if pairs:
-        return ExpressionMakeDict(
-            pairs      = pairs,
+    if keys:
+        return makeDictCreationOrConstant(
+            keys       = keys,
+            values     = values,
             source_ref = source_ref
         )
     else:
@@ -284,7 +279,9 @@ def buildParameterSpec( name, node, source_ref ):
     result = ParameterSpec(
         name           = name,
         normal_args    = [ extractArg( arg ) for arg in node.args.args ],
-        kw_only_args   = [ extractArg( arg ) for arg in node.args.kwonlyargs ] if Utils.python_version >= 300 else [],
+        kw_only_args   = [ extractArg( arg ) for arg in node.args.kwonlyargs ]
+                           if Utils.python_version >= 300 else
+                         [],
         list_star_arg  = node.args.vararg,
         dict_star_arg  = node.args.kwarg,
         default_count  = len( node.args.defaults )

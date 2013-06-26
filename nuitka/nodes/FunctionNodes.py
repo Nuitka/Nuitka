@@ -17,8 +17,8 @@
 #
 """ Nodes for functions and their creations.
 
-Lambdas are functions too. The functions are at the core of the language and have their
-complexities.
+Lambdas are functions too. The functions are at the core of the language and
+have their complexities.
 
 """
 
@@ -150,9 +150,6 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
 
-        # Indicator if the function is reached by any module code.
-        self.is_used = False
-
     def getDetails( self ):
         return {
             "name"       : self.getFunctionName(),
@@ -171,6 +168,17 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
     def isClassDictCreation( self ):
         return self.is_class
 
+    def getContainingClassDictCreation( self ):
+        current = self
+
+        while not current.isPythonModule():
+            if current.isClassDictCreation():
+                return current
+
+            current = current.getParentVariableProvider()
+
+        return None
+
     def getFunctionName( self ):
         if self.is_lambda:
             return "<lambda>"
@@ -186,6 +194,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
 
         if provider.isPythonModule():
             return function_name
+        elif provider.isClassDictCreation():
+            return provider.getFunctionQualname() + "." + function_name
         else:
             return provider.getFunctionQualname() + ".<locals>." + function_name
 
@@ -274,7 +284,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         # The class bodies provide no closure, except under CPython3,
         # "__class__" and nothing else.
 
-        if self.isClassDictCreation() and ( variable_name != "__class__" or Utils.python_version < 300 ):
+        if self.isClassDictCreation() and \
+           ( variable_name != "__class__" or Utils.python_version < 300 ):
             return self.provider.getVariableForReference( variable_name )
 
         if self.hasProvidedVariable( variable_name ):
@@ -317,7 +328,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
     setBody = ChildrenHavingMixin.childSetter( "body" )
 
     def needsCreation( self ):
-        # TODO: This looks kind of arbitrary, the users should decide, if they need it.
+        # TODO: This looks kind of arbitrary, the users should decide, if they
+        # need it.
         return self.needs_creation
 
     def markAsNeedsCreation( self ):
@@ -335,13 +347,9 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
     def markAsCrossModuleUsed( self ):
         self.cross_module_use = True
 
-    def markAsUsed( self ):
-        self.is_used = True
-
-    def isUsed( self ):
-        return self.is_used
-
     def computeExpression( self, constraint_collection ):
+        assert False
+
         # Function body is quite irreplacable.
         return self, None, None
 
@@ -534,7 +542,21 @@ class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
     def getFunctionBody( self ):
         return self.function_body
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpressionRaw( self, constraint_collection ):
+        function_body = self.getFunctionBody()
+
+        owning_module = function_body.getParentModule()
+
+        from nuitka.ModuleRegistry import addUsedModule
+        addUsedModule( owning_module )
+
+        owning_module.addUsedFunction( function_body )
+
+        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionFunction
+
+        collector = ConstraintCollectionFunction( constraint_collection )
+        collector.process( self.getFunctionBody() )
+
         # TODO: Function body may know something.
         return self, None, None
 

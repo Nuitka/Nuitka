@@ -19,7 +19,7 @@
 
 """
 
-from nuitka import Utils, Importing
+from nuitka import Utils, Importing, ModuleRegistry
 
 from . import Building
 
@@ -97,6 +97,8 @@ def _checkPluginPath( plugin_filename, module_package ):
                     module.getName(),
                     plugin_info[0]
                 )
+
+                ModuleRegistry.addRootModule( module )
 
             if module.isPythonPackage():
                 package_dir = Utils.dirname( module.getFilename() )

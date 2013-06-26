@@ -56,11 +56,13 @@ from .Helpers import (
 def buildLambdaNode( provider, node, source_ref ):
     assert getKind( node ) == "Lambda"
 
+    parameters = buildParameterSpec( "<lambda>", node, source_ref )
+
     function_body = ExpressionFunctionBody(
         provider   = provider,
         name       = "<lambda>",
         doc        = None,
-        parameters = buildParameterSpec( "<lambda>", node, source_ref ),
+        parameters = parameters,
         source_ref = source_ref,
     )
 
@@ -141,8 +143,11 @@ def buildLambdaNode( provider, node, source_ref ):
     body = StatementsFrame(
         statements    = ( body, ),
         guard_mode    = "generator" if function_body.isGenerator() else "full",
-        arg_names     = function_body.getParameters().getCoArgNames(),
-        kw_only_count = function_body.getParameters().getKwOnlyParameterCount(),
+        var_names     = parameters.getCoArgNames(),
+        arg_count     = parameters.getArgumentCount(),
+        kw_only_count = parameters.getKwOnlyParameterCount(),
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None,
         code_name     = "<lambda>",
         source_ref    = body.getSourceReference()
     )

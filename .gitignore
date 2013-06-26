@@ -13,6 +13,7 @@
 *.exe
 *.build
 tests/reflected/nuitka/
+tests/reflected/nuitka.py
 dist
 MANIFEST
 README.pdf

@@ -17,9 +17,9 @@
 #
 """ Finalizations. Last steps directly before code creation is called.
 
-Here the final tasks are executed. Things normally volatile during optimizations can
-be computed here, so the code generation can be quick and doesn't have to check it
-many times.
+Here the final tasks are executed. Things normally volatile during optimization
+can be computed here, so the code generation can be quick and doesn't have to
+check it many times.
 
 """
 from .FinalizeMarkups import FinalizeMarkups
@@ -29,5 +29,11 @@ from .FinalizeClosureTaking import FinalizeClosureTaking
 from nuitka.tree import Operations
 
 def prepareCodeGeneration( tree ):
-    Operations.visitScopes( tree, visitor = FinalizeMarkups() )
-    Operations.visitFunctions( tree, visitor = FinalizeClosureTaking() )
+    visitor = FinalizeMarkups()
+    Operations.visitTree( tree, visitor )
+    for function in tree.getUsedFunctions():
+        Operations.visitTree( function, visitor )
+
+    visitor = FinalizeClosureTaking()
+    for function in tree.getUsedFunctions():
+        Operations.visitFunction( function, visitor )

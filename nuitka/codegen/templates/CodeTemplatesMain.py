@@ -23,7 +23,7 @@ global_copyright = """\
 // Generated code for Python source for module '%(name)s'
 // created by Nuitka version %(version)s
 
-// This code is in part copyright 2012 Kay Hayen.
+// This code is in part copyright 2013 Kay Hayen.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,8 +42,10 @@ module_inittab_entry = """\
 { (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ) },"""
 
 main_program = """\
-// The main program for C++. It needs to prepare the interpreter and then calls the
-// initialization code of the __main__ module.
+// The main program for C++. It needs to prepare the interpreter and then
+// calls the initialization code of the __main__ module.
+
+#include "structseq.h"
 
 int main( int argc, char *argv[] )
 {
@@ -68,7 +70,6 @@ int main( int argc, char *argv[] )
     Py_OptimizeFlag = %(python_sysflag_optimize)d;
     Py_DontWriteBytecodeFlag = %(python_sysflag_dont_write_bytecode)d;
     Py_NoUserSiteDirectory = %(python_sysflag_no_user_site)d;
-    Py_NoSiteFlag = %(python_sysflag_no_site)d;
     Py_IgnoreEnvironmentFlag = %(python_sysflag_ignore_environment)d;
 #if %(python_sysflag_tabcheck)d
     Py_TabcheckFlag = %(python_sysflag_tabcheck)d;
@@ -81,14 +82,36 @@ int main( int argc, char *argv[] )
 #if %(python_sysflag_hash_randomization)d
     Py_HashRandomizationFlag = %(python_sysflag_hash_randomization)d;
 #endif
+
+    // We want to import the site module, but only after we finished our own
+    // setup. The site module import will be the first thing, the main module
+    // does.
+    Py_NoSiteFlag = 1;
+
+    // Initialize the embedded CPython interpreter.
     Py_Initialize();
 
+    // Lie about it, believe it or not, there are "site" files, that check
+    // against later imports, see below.
+    Py_NoSiteFlag = 0;
+
+    // Set the command line parameters
     setCommandLineParameters( argc, argv );
 
     // Initialize the constant values used.
     _initBuiltinModule();
     _initConstants();
     _initBuiltinOriginalValues();
+
+    // Revert the wrong sys.flags value, it's used by "site" on at least Debian
+    // for Python3.3, more uses may exist.
+#if PYTHON_VERSION >= 330
+    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, _python_int_0 );
+#elif PYTHON_VERSION >= 320
+    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 7, _python_int_0 );
+#elif PYTHON_VERSION >= 260
+    PyStructSequence_SET_ITEM( PySys_GetObject( (char *)"flags" ), 9, _python_int_0 );
+#endif
 
     // Initialize the compiled types of Nuitka.
     PyType_Ready( &Nuitka_Generator_Type );
@@ -106,7 +129,6 @@ int main( int argc, char *argv[] )
     );
 
     patchInspectModule();
-
     patchBuiltinModule();
 
     // Execute the "__main__" module init function.
@@ -239,9 +261,9 @@ module_body_template = """
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
 
-// Note: For full compatability with CPython, every module variable access needs to go
-// through it except for cases where the module cannot possibly have changed in the mean
-// time.
+// Note: For full compatability with CPython, every module variable access
+// needs to go through it except for cases where the module cannot possibly
+// have changed in the mean time.
 
 PyObject *_module_%(module_identifier)s;
 PyDictObject *_moduledict_%(module_identifier)s;
@@ -276,7 +298,8 @@ static struct PyModuleDef _moduledef =
 // For embedded modules, to be unpacked. Used by main program/package only
 extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules );
 
-// Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
+// Our own inittab for lookup of "frozen" modules, i.e. the ones included in
+// this binary.
 static struct _inittab _frozen_modules[] =
 {
 %(module_inittab)s
@@ -290,30 +313,31 @@ extern PyObject *loader_frozen_modules;
 
 #endif
 
-#ifdef _NUITKA_EXE
-static bool init_done = false;
-#endif
-
-// The exported interface to CPython. On import of the module, this function gets
-// called. It has have that exact function name.
+// The exported interface to CPython. On import of the module, this function
+// gets called. It has to have an exact function name, in cases it's a shared
+// library export. This is hidden behind the MOD_INIT_DECL.
 
 MOD_INIT_DECL( %(module_identifier)s )
 {
-#ifdef _NUITKA_EXE
+
+#if defined( _NUITKA_EXE ) || PYTHON_VERSION >= 300
+    static bool _init_done = false;
+
     // Packages can be imported recursively in deep executables.
-    if ( init_done )
+    if ( _init_done )
     {
         return MOD_RETURN_VALUE( _module_%(module_identifier)s );
     }
     else
     {
-        init_done = true;
+        _init_done = true;
     }
 #endif
 
 #ifdef _NUITKA_MODULE
-    // In case of a stand alone extension module, need to call initialization the init here
-    // because that's how we are going to get called here.
+    // In case of a stand alone extension module, need to call initialization
+    // the init here because that's the first and only time we are going to get
+    // called here.
 
     // Initialize the constant values used.
     _initBuiltinModule();
@@ -336,15 +360,19 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // puts( "in init%(module_identifier)s" );
 
-    // Create the module object first. There are no methods initially, all are added
-    // dynamically in actual code only.  Also no __doc__ is initially set, as it could not
-    // contain 0 this way, added early in actual code.  No self for modules, we have no
+    // Create the module object first. There are no methods initially, all are
+    // added dynamically in actual code only.  Also no "__doc__" is initially
+    // set at this time, as it could not contain NUL characters this way, they
+    // are instead set in early module code.  No "self" for modules, we have no
     // use for it.
 #if PYTHON_VERSION < 300
     _module_%(module_identifier)s = Py_InitModule4(
         "%(module_name)s",       // Module Name
-        NULL,                    // No methods initially, all are added dynamically in actual code only.
-        NULL,                    // No __doc__ is initially set, as it could not contain 0 this way, added early in actual code.
+        NULL,                    // No methods initially, all are added
+                                 // dynamically in actual module code only.
+        NULL,                    // No __doc__ is initially set, as it could
+                                 // not contain NUL this way, added early in
+                                 // actual code.
         NULL,                    // No self for modules, we don't use it.
         PYTHON_API_VERSION
     );
@@ -357,8 +385,9 @@ MOD_INIT_DECL( %(module_identifier)s )
     assertObject( _module_%(module_identifier)s );
 
 #ifndef _NUITKA_MODULE
-// Seems to work for Python2.7 out of the box, but for Python3.2, the module doesn't automatically enter
-// "sys.modules" with the object that it should, so do it manually.
+// Seems to work for Python2.7 out of the box, but for Python3.2, the module
+// doesn't automatically enter "sys.modules" with the object that it should, so
+// do it manually.
 #if PYTHON_VERSION >= 300
     {
         int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, _module_%(module_identifier)s );
@@ -368,9 +397,9 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 #endif
 
-    // For deep importing of a module we need to have "__builtins__", so we set it
-    // ourselves in the same way than CPython does. Note: This must be done before
-    // the frame object is allocated, or else it may fail.
+    // For deep importing of a module we need to have "__builtins__", so we set
+    // it ourselves in the same way than CPython does. Note: This must be done
+    // before the frame object is allocated, or else it may fail.
 
     PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
 
@@ -381,7 +410,9 @@ MOD_INIT_DECL( %(module_identifier)s )
 #ifdef _NUITKA_EXE
         if ( _module_%(module_identifier)s != _module___main__ )
         {
+#endif
             value = PyModule_GetDict( value );
+#ifdef _NUITKA_EXE
         }
 #endif
 
@@ -406,6 +437,14 @@ MOD_INIT_DECL( %(module_identifier)s )
 
    return MOD_RETURN_VALUE( _module_%(module_identifier)s );
 }
+"""
+
+template_helper_impl_decl = """\
+// This file contains helper functions that are automatically created from
+// templates.
+
+#include "nuitka/prelude.hpp"
+
 """
 
 template_header_guard = """\

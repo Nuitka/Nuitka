@@ -25,7 +25,7 @@ from .ConstantRefNodes import ExpressionConstantRef
 
 from nuitka.Constants import isConstant
 from nuitka.Builtins import builtin_names
-from nuitka.Options import shallWarnImplicitRaises
+from nuitka.Options import shallWarnImplicitRaises, isDebug
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinExceptionRef,
@@ -137,6 +137,9 @@ def getComputationResult( node, computation, description ):
             value = result,
             node  = node
         )
+
+        if isDebug():
+            assert new_node is not node, ( node, result )
 
         if new_node is not node:
             change_tags = "new_constant"

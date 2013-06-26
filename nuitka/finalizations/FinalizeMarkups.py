@@ -39,8 +39,8 @@ from logging import warning
 
 class FinalizeMarkups( FinalizationVisitorBase ):
     def onEnterNode( self, node ):
-        # This has many different things it deals with, so there need to be a lot of
-        # branches and statements, pylint: disable=R0912,R0915
+        # This has many different things it deals with, so there need to be a
+        # lot of branches and statements, pylint: disable=R0912,R0915
         if node.isExpressionFunctionBody():
             if node.isUnoptimized():
                 node.markAsLocalsDict()
@@ -82,7 +82,7 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             if node.isExceptionDriven():
                 search.markAsExceptionContinue()
 
-        if node.isExpressionYield():
+        if node.isExpressionYield() or node.isExpressionYieldFrom():
             search = node.getParent()
 
             while not search.isExpressionFunctionBody():
@@ -99,7 +99,7 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                     node.markAsExceptionPreserving()
                     break
 
-        if node.isStatementReturn():
+        if node.isStatementReturn() or node.isStatementGeneratorReturn():
             search = node.getParent()
 
             exception_driven = False
@@ -184,5 +184,3 @@ of '--recurse-directory'.""" % (
 
             if node.getParentModule() is not parent_module:
                 node.getFunctionBody().markAsCrossModuleUsed()
-
-            node.getFunctionBody().markAsUsed()

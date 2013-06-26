@@ -16,9 +16,10 @@
 #     limitations under the License.
 #
 
+def g():
+    for a in range(3):
+        yield a
 
-import sys
+    return 7
 
-print( type( __builtins__ ) )
-sys.exit("Module doing sys.exit")
-print( "This won't happen!" )
+print( "Yielder with return value", list(g()) )

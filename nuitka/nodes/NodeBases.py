@@ -163,7 +163,8 @@ class NodeBase( NodeMetaClassBase ):
 
         while not parent.isPythonModule():
             if hasattr( parent, "provider" ):
-                # After we checked, we can use it, will be much faster, pylint: disable=E1101
+                # After we checked, we can use it, will be much faster,
+                # pylint: disable=E1101
                 parent = parent.provider
             else:
                 parent = parent.getParent()
@@ -698,8 +699,8 @@ class ClosureTakerMixin:
         # There is no maybe with closures. It means, it is closure variable in
         # this case.
         if result.isMaybeLocalVariable():
-            # This mixin is used with nodes only, but doesn't want to inherit from
-            # it, pylint: disable=E1101
+            # This mixin is used with nodes only, but doesn't want to inherit
+            # from it, pylint: disable=E1101
             result = self.getParentModule().getVariableForClosure(
                 variable_name = variable_name
             )
@@ -736,11 +737,13 @@ class ClosureTakerMixin:
             return None
 
     def isEarlyClosure( self ):
-        """ Normally it's good to lookup name references immediately, but not for functions.
+        """ Early closure taking means immediate binding of references.
 
-        in case of a function body it is not allowed to do that, because a later
-        assignment needs to be queried first. Nodes need to indicate via this if they
-        would like to resolve references at the same time as assignments.
+        Normally it's good to lookup name references immediately, but not for
+        functions. In case of a function body it is not allowed to do that,
+        because a later assignment needs to be queried first. Nodes need to
+        indicate via this if they would like to resolve references at the same
+        time as assignments.
         """
 
         return self.early_closure
@@ -776,8 +779,8 @@ class ExpressionMixin:
     def isKnownToBeIterable( self, count ):
         """ Can be iterated at all (count is None) or exactly count times.
 
-            Yes or no. If it can be iterated a known number of times, it may be asked to
-            unpack itself.
+            Yes or no. If it can be iterated a known number of times, it may
+            be asked to unpack itself.
         """
 
         # Virtual method, pylint: disable=R0201,W0613
@@ -842,15 +845,33 @@ class ExpressionMixin:
         # print "onRelease", self
         pass
 
+    def computeExpressionRaw( self, constraint_collection ):
+        """ Compute an expression.
+
+            Default behavior is to just visit the child expressions first, and
+            then the node "computeExpression". For a few cases this needs to
+            be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before.
+        sub_expressions = self.getVisitableNodes()
+
+        for sub_expression in sub_expressions:
+            constraint_collection.onExpression( sub_expression )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression( constraint_collection )
+
     def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
-        # By default, an attribute lookup may change everything about the lookup source.
-        # Virtual method, pylint: disable=R0201,W0613
+        # By default, an attribute lookup may change everything about the lookup
+        # source. Virtual method, pylint: disable=R0201,W0613
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
     def computeExpressionSubscript( self, lookup_node, subscript, constraint_collection ):
-        # By default, an subscript may change everything about the lookup source.
+        # By default, an subscript may change everything about the lookup
+        # source.
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None

@@ -20,12 +20,10 @@
 """
 
 template_parameter_function_entry_point = """\
-static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *args, PyObject *kw )
+static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject **args, Py_ssize_t args_size, PyObject *kw )
 {
-    assert( PyTuple_Check( args ) );
     assert( kw == NULL || PyDict_Check( kw ) );
 
-    Py_ssize_t args_size = PyTuple_GET_SIZE( args );
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_only_found = 0;
@@ -41,78 +39,21 @@ error_exit:;
 }
 """
 
-template_parameter_method_entry_point = """\
-static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *_python_par_self, PyObject *args, PyObject *kw )
-{
-    Py_INCREF( _python_par_self );
-
-    Py_ssize_t args_size = PyTuple_GET_SIZE( args );
-    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
-    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
-    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_only_found = 0;
-    Py_ssize_t args_given = args_size + 1; // Count the self parameter already given as well.
-%(parameter_parsing_code)s
-
-    return %(impl_function_identifier)s( %(parameter_objects_list)s );
-
-error_exit:;
-
-%(parameter_release_code)s
-    return NULL;
-}
-"""
-
-parse_argument_template_take_counts3 = """\
-Py_ssize_t args_usable_count;
-"""
-
-
 template_parameter_function_refuses = r"""
 if (unlikely( args_given + kw_size > 0 ))
 {
 #if PYTHON_VERSION < 330
-    PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%zd given)", args_given + kw_size );
+    ERROR_NO_ARGUMENTS_ALLOWED(
+       self,
+       args_given + kw_size
+    );
 #else
-    if ( kw_size == 0 )
-    {
-       PyErr_Format( PyExc_TypeError, "%(function_name)s() takes 0 positional arguments but %%zd was given", args_given );
-    }
-    else
-    {
-       PyObject *tmp_iter = PyObject_GetIter( kw );
-       PyObject *tmp_arg_name = PyIter_Next( tmp_iter );
-       Py_DECREF( tmp_iter );
-
-       PyErr_Format( PyExc_TypeError, "%(function_name)s() got an unexpected keyword argument '%%s'", Nuitka_String_AsString( tmp_arg_name ) );
-
-       Py_DECREF( tmp_arg_name );
-    }
+    ERROR_NO_ARGUMENTS_ALLOWED(
+       self,
+       kw_size > 0 ? kw : NULL,
+       args_given
+    );
 #endif
-    goto error_exit;
-}
-"""
-
-parse_argument_template_check_counts_with_list_star_arg = r"""
-// Check if too little arguments were given.
-if (unlikely( args_given + kw_found - kw_only_found < %(required_parameter_count)d ))
-{
-    if ( %(top_level_parameter_count)d == 1 )
-    {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%zd given)", args_given + kw_found );
-    }
-    else
-    {
-#if PYTHON_VERSION < 270
-        if ( kw_size > 0 )
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_found );
-        }
-        else
-#endif
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_found );
-        }
-    }
 
     goto error_exit;
 }
@@ -122,99 +63,90 @@ parse_argument_template_check_counts_without_list_star_arg = r"""
 // Check if too many arguments were given in case of non star args
 if (unlikely( args_given > %(top_level_parameter_count)d ))
 {
-    if ( %(top_level_parameter_count)d == 1 )
-    {
-#if PYTHON_VERSION < 300
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given + kw_found );
-#elif PYTHON_VERSION < 330
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 positional argument (%%zd given)", args_given + kw_only_found );
-#else
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes 1 positional argument but %%zd were given", args_given + kw_only_found );
-#endif
-    }
-    else
-    {
-#if PYTHON_VERSION < 300
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
-#elif PYTHON_VERSION < 330
-        if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d positional arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_only_found );
-        }
-        else
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at most %%d positional arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_only_found );
-        }
-#else
-        if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes %%d positional arguments but %%zd were given", %(top_level_parameter_count)d, args_given + kw_only_found );
-        }
-        else
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at most %%d positional arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_only_found );
-        }
-#endif
-    }
-
-    goto error_exit;
-}
-
-// Check if too little arguments were given.
-if (unlikely( args_given + kw_found - kw_only_found < %(required_parameter_count)d ))
-{
-    if ( %(top_level_parameter_count)d == 1 )
-    {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given + kw_found - kw_only_found );
-    }
-    else
-    {
 #if PYTHON_VERSION < 270
-        if ( kw_size > 0 )
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_found  );
-        }
-        else
+    ERROR_TOO_MANY_ARGUMENTS( self, args_given, kw_size );
+#elif PYTHON_VERSION < 330
+    ERROR_TOO_MANY_ARGUMENTS( self, args_given + kw_found );
+#else
+    ERROR_TOO_MANY_ARGUMENTS( self, args_given, kw_only_found );
 #endif
-        {
-            if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
-            {
-                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(required_parameter_count)d, args_given + kw_found - kw_only_found );
-            }
-            else
-            {
-                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(required_parameter_count)d, args_given + kw_found - kw_only_found );
-            }
-        }
-    }
-
     goto error_exit;
 }
+
 """
 
 parse_argument_usable_count = r"""
 // Copy normal parameter values given as part of the args list to the respective variables:
-args_usable_count = args_given < %(top_level_parameter_count)d ? args_given : %(top_level_parameter_count)d;
 
 """
 
 argparse_template_plain_argument = """\
-if (likely( %(parameter_position)d < args_usable_count ))
+if (likely( %(parameter_position)d < args_given ))
 {
      if (unlikely( _python_par_%(parameter_name)s != NULL ))
      {
-         PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
+         ERROR_MULTIPLE_VALUES( self, %(parameter_position)d );
          goto error_exit;
      }
 
-    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( args, %(parameter_args_index)d ) );
+    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( args[ %(parameter_position)d ] );
+}
+else if ( _python_par_%(parameter_name)s == NULL )
+{
+    if ( %(parameter_position)d + self->m_defaults_given >= %(top_level_parameter_count)d  )
+    {
+        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d ) );
+    }
+#if PYTHON_VERSION < 330
+    else
+    {
+#if PYTHON_VERSION < 270
+        ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
+#elif PYTHON_VERSION < 300
+        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
+#else
+        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found - kw_only_found );
+#endif
+
+        goto error_exit;
+    }
+#endif
 }
 """
 
-argparse_template_nested_argument = """\
-if (likely( %(parameter_position)d < args_usable_count ))
+template_arguments_check = """
+#if PYTHON_VERSION >= 330
+if (unlikely( %(parameter_test)s ))
 {
-    _python_par_%(parameter_name)s = PyTuple_GET_ITEM( args, %(parameter_args_index)d );
+    PyObject *values[] = { %(parameter_list)s };
+    ERROR_TOO_FEW_ARGUMENTS( self, values );
+
+    goto error_exit;
+}
+#endif
+"""
+
+argparse_template_nested_argument = """\
+if (likely( %(parameter_position)d < args_given ))
+{
+    _python_par_%(parameter_name)s = args[ %(parameter_position)d ];
+}
+else if ( _python_par_%(parameter_name)s == NULL )
+{
+    if ( %(parameter_position)d + self->m_defaults_given >= %(top_level_parameter_count)d  )
+    {
+        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d ) );
+    }
+    else
+    {
+#if PYTHON_VERSION < 270
+        ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
+#else
+        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
+#endif
+
+        goto error_exit;
+    }
 }
 """
 
@@ -222,7 +154,12 @@ parse_argument_template_copy_list_star_args = """
 // Copy left over argument values to the star list parameter given.
 if ( args_given > %(top_level_parameter_count)d )
 {
-    _python_par_%(list_star_parameter_name)s = PyTuple_GetSlice( args, %(top_level_max_index)d, args_size );
+    _python_par_%(list_star_parameter_name)s = PyTuple_New( args_size - %(top_level_parameter_count)d );
+
+    for( Py_ssize_t i = 0; i < args_size - %(top_level_parameter_count)d; i++ )
+    {
+       PyTuple_SET_ITEM( _python_par_%(list_star_parameter_name)s, i, INCREASE_REFCOUNT( args[%(top_level_parameter_count)d+i] ) );
+    }
 }
 else
 {
@@ -474,21 +411,8 @@ if ( found == false && RICH_COMPARE_BOOL_EQ_PARAMETERS( %(parameter_name_object)
 
 
 argparse_template_assign_from_dict_finding = """\
-if (unlikely( _python_par_%(parameter_name)s ))
-{
-    PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
-    goto error_exit;
-}
-
+assert( _python_par_%(parameter_name)s == NULL );
 _python_par_%(parameter_name)s = value;
-"""
-
-parse_argument_template_copy_default_value = """\
-if ( _python_par_%(parameter_name)s == NULL )
-{
-    _python_par_%(parameter_name)s = %(default_identifier)s;
-    assertObject( _python_par_%(parameter_name)s );
-}
 """
 
 parse_argument_template_nested_argument_unpack = """\
@@ -521,17 +445,50 @@ parse_argument_template_nested_argument_assign = """
     }
 """
 
-template_kwonly_argument_default = """
-    if (_python_par_%(parameter_name)s == NULL )
+template_kwonly_argument_default = """\
+if ( _python_par_%(parameter_name)s == NULL )
+{
+    _python_par_%(parameter_name)s = PyDict_GetItem( self->m_kwdefaults, %(parameter_name_object)s );
+
+#if PYTHON_VERSION < 330
+    if (unlikely (_python_par_%(parameter_name)s == NULL ))
     {
-        _python_par_%(parameter_name)s = PyDict_GetItem( self->m_kwdefaults, %(parameter_name_object)s );
-
-        if (unlikely (_python_par_%(parameter_name)s == NULL ))
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() needs keyword-only argument %(parameter_name)s" );
-            goto error_exit;
-        }
-
-        Py_INCREF( _python_par_%(parameter_name)s );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() needs keyword-only argument %(parameter_name)s" );
+        goto error_exit;
     }
+
+    Py_INCREF( _python_par_%(parameter_name)s );
+#else
+    Py_XINCREF( _python_par_%(parameter_name)s );
+#endif
+
+}"""
+
+template_kwonly_arguments_check = """
+#if PYTHON_VERSION >= 330
+if (unlikely( %(parameter_test)s ))
+{
+    PyObject *values[] = { %(parameter_list)s };
+    ERROR_TOO_FEW_KWONLY( self, values );
+
+    goto error_exit;
+}
+#endif
+"""
+
+template_dparser = """
+static PyObject *dparse_%(function_identifier)s( Nuitka_FunctionObject *self, PyObject **args, int size )
+{
+    if ( size == %(arg_count)d)
+    {
+        return impl_%(function_identifier)s( self%(args_forward)s );
+    }
+    else
+    {
+        PyObject *result = fparse_%(function_identifier)s( self, args, size, NULL );
+        return result;
+    }
+
+}
+
 """

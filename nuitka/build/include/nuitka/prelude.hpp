@@ -48,9 +48,10 @@
 // Include the C header files most often used.
 #include <stdio.h>
 
-// An idea I first saw used with Cython, hint the compiler about branches that are more or
-// less likely to be taken. And hint the compiler about things that we assume to be
-// normally true. If other compilers can do similar, I would be grateful for howtos.
+// An idea I first saw used with Cython, hint the compiler about branches that
+// are more or less likely to be taken. And hint the compiler about things that
+// we assume to be normally true. If other compilers can do similar, I would be
+// grateful for howtos.
 
 #ifdef __GNUC__
 #define likely(x) __builtin_expect(!!(x), 1)
@@ -60,8 +61,9 @@
 #define unlikely(x) (x)
 #endif
 
-// A way to not give warnings about things that are declared, but might not be used like
-// inline helper functions in headers or static per module variables from headers.
+// A way to not give warnings about things that are declared, but might not be
+// used like inline helper functions in headers or static per module variables
+// from headers.
 
 #ifdef __GNUC__
 #define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
@@ -100,7 +102,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #define Nuitka_StringIntern PyString_InternInPlace
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
-// Note: There seems to be no variant that does it without checks, so rolled our own.
+// Note: There seems to be no variant that does it without checks, so rolled our
+// own.
 #define Nuitka_String_AsString_Unchecked _PyUnicode_AS_STRING
 #define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_StringObject PyUnicodeObject
@@ -108,17 +111,34 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #endif
 
 
-#if PYTHON_VERSION < 300
-
-// With the idea to reduce the amount of exported symbols, make it clear that the module
-// init function should of course be exported.
+// With the idea to reduce the amount of exported symbols in the DLLs, make it
+// clear that the module init function should of course be exported, but not for
+// executable, where we call it ourselves.
 #if defined( _NUITKA_EXE )
+
+#if PYTHON_VERSION < 300
 #define NUITKA_MODULE_INIT_FUNCTION void
+#else
+#define NUITKA_MODULE_INIT_FUNCTION PyObject *
+#endif
+
 #elif defined( __GNUC__ )
+
+#if PYTHON_VERSION < 300
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__(( visibility( "default" )))
 #else
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
+#define NUITKA_MODULE_INIT_FUNCTION extern "C" __attribute__(( visibility( "default" ))) PyObject *
 #endif
+
+#else
+
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
+
+#endif
+
+// The name of the entry point for DLLs changed between Python versions, and
+// this is.
+#if PYTHON_VERSION < 300
 
 #define MOD_INIT_NAME( name ) init##name
 #define MOD_INIT_DECL( name ) NUITKA_MODULE_INIT_FUNCTION init##name( void )
@@ -127,25 +147,15 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #else
 
 #define MOD_INIT_NAME( name ) PyInit_##name
-#if defined( _NUITKA_EXE )
-#define MOD_INIT_DECL( name ) PyObject *PyInit_##name( void )
-#else
-#define MOD_INIT_DECL( name ) PyMODINIT_FUNC PyInit_##name( void )
-#endif
+#define MOD_INIT_DECL( name ) NUITKA_MODULE_INIT_FUNCTION PyInit_##name( void )
 #define MOD_RETURN_VALUE( value ) value
 
 #endif
 
-// These two express if a directly called function should be exported (C++ level) or if it
-// can be local to the file.
-#ifdef _MSC_VER
-#define NUITKA_CROSS_MODULE __declspec(noinline)
-#define NUITKA_LOCAL_MODULE static __declspec(noinline)
-// static
-#else
+// These two express if a directly called function should be exported (C++
+// level) or if it can be local to the file.
 #define NUITKA_CROSS_MODULE
 #define NUITKA_LOCAL_MODULE static
-#endif
 
 #include "nuitka/helpers.hpp"
 

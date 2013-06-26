@@ -15,7 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Templates for raising exceptions, making assertions, and try/finally construct.
+""" Templates for raising exceptions, making assertions, and try/finally
+    construct.
 
 """
 
@@ -171,11 +172,23 @@ try_finally_template_direct_return_value = """\
 assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
 return _return_value_%(try_count)d.asObject();"""
 
+try_finally_template_direct_generator_return_value = """\
+assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
+throw ReturnValueException( _return_value_%(try_count)d.asObject() );"""
+
+
 try_finally_template_indirect_return_value = """\
 if ( _return_value_%(try_count)d.isKeeping() )
 {
     return _return_value_%(try_count)d.asObject();
 }"""
+
+try_finally_template_indirect_generator_return_value = """\
+if ( _return_value_%(try_count)d.isKeeping() )
+{
+    throw ReturnValueException( _return_value_%(try_count)d.asObject() );
+}"""
+
 
 
 # Very special template for:

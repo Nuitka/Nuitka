@@ -18,7 +18,7 @@
 #
 
 def plain_list_dict_args_function( plain, *arg_list, **arg_dict ):
-    print plain, arg_list, arg_dict
+    print "plain", plain, "arg_list", arg_list, "arg_dict", arg_dict
 
 def plain_list_args_function( plain, *arg_list ):
     print plain, arg_list

@@ -27,6 +27,14 @@ from nuitka.nodes.StatementNodes import (
 )
 
 from nuitka.nodes.NodeBases import NodeBase
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import (
+    ExpressionKeyValuePair,
+    ExpressionMakeTuple,
+    ExpressionMakeList,
+    ExpressionMakeDict,
+    ExpressionMakeSet
+)
 
 from nuitka import Tracing
 
@@ -126,22 +134,27 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
     if nodes is None:
         return None
 
-    # Build as list of statements, throw away empty ones, and remove useless nesting.
+    # Build as list of statements, throw away empty ones, and remove useless
+    # nesting.
     statements = buildNodeList( provider, nodes, source_ref, allow_none = True )
     statements = mergeStatements( statements )
 
-    # We are not creating empty statement sequences. Might be empty, because e.g. a global
-    # node generates not really a statement, or pass statements.
+    # We are not creating empty statement sequences. Might be empty, because
+    # e.g. a global node generates not really a statement, or pass statements.
     if not statements:
         return None
 
     # In case of a frame is desired, build it instead.
     if frame:
         if provider.isExpressionFunctionBody():
-            arg_names     = provider.getParameters().getCoArgNames()
-            kw_only_count = provider.getParameters().getKwOnlyParameterCount()
+            parameters = provider.getParameters()
+
+            arg_names     = parameters.getCoArgNames()
+            kw_only_count = parameters.getKwOnlyParameterCount()
             code_name     = provider.getFunctionName()
             guard_mode    = "generator" if provider.isGenerator() else "full"
+            has_starlist  = parameters.getStarListArgumentName() is not None
+            has_stardict  = parameters.getStarDictArgumentName() is not None
         else:
             assert provider.isPythonModule()
 
@@ -149,14 +162,19 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
             kw_only_count = 0
             code_name     = "<module>" if provider.isMainModule() else provider.getName()
             guard_mode    = "once"
+            has_starlist  = False
+            has_stardict  = False
 
 
         return StatementsFrame(
             statements    = statements,
             guard_mode    = guard_mode,
-            arg_names     = arg_names,
+            var_names     = arg_names,
+            arg_count     = len( arg_names ),
             kw_only_count = kw_only_count,
             code_name     = code_name,
+            has_starlist  = has_starlist,
+            has_stardict  = has_stardict,
             source_ref    = source_ref
         )
     else:
@@ -168,8 +186,9 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
 def makeStatementsSequenceOrStatement( statements, source_ref ):
     """ Make a statement sequence, but only if more than one statement
 
-    Useful for when we can unroll constructs already here, but are not sure if we actually
-    did that. This avoids the branch or the pollution of doing it always.
+    Useful for when we can unroll constructs already here, but are not sure if
+    we actually did that. This avoids the branch or the pollution of doing it
+    always.
     """
 
     if len( statements ) > 1:
@@ -197,3 +216,99 @@ def makeStatementsSequenceFromStatement( statement ):
         statements = ( statement, ),
         source_ref = statement.getSourceReference()
     )
+
+def makeSequenceCreationOrConstant( sequence_kind, elements, source_ref ):
+    # Sequence creation. Tries to avoid creations with only constant
+    # elements. Would be caught by optimization, but would be useless churn. For
+    # mutable constants we cannot do it though.
+    for element in elements:
+        if not element.isExpressionConstantRef() or element.isMutable():
+            constant = False
+            break
+    else:
+        constant = True
+
+    sequence_kind = sequence_kind.upper()
+
+    # Note: This would happen in optimization instead, but lets just do it
+    # immediately to save some time.
+    if constant:
+        if sequence_kind == "TUPLE":
+            const_type = tuple
+        elif sequence_kind == "LIST":
+            const_type = list
+        elif sequence_kind == "SET":
+            const_type = set
+        else:
+            assert False, sequence_kind
+
+        return ExpressionConstantRef(
+            constant      = const_type(
+                element.getConstant()
+                for element in
+                elements
+            ),
+            source_ref    = source_ref,
+            user_provided = True
+        )
+    else:
+        if sequence_kind == "TUPLE":
+            return ExpressionMakeTuple(
+                elements   = elements,
+                source_ref = source_ref
+            )
+        elif sequence_kind == "LIST":
+            return ExpressionMakeList(
+                elements   = elements,
+                source_ref = source_ref
+            )
+        elif sequence_kind == "SET":
+            return ExpressionMakeSet(
+                elements   = elements,
+                source_ref = source_ref
+            )
+        else:
+            assert False, sequence_kind
+
+
+def makeDictCreationOrConstant( keys, values, source_ref ):
+    # Create dictionary node. Tries to avoid it for constant values that are not
+    # mutable.
+
+    assert len( keys ) == len( values )
+    for key, value in zip( keys, values ):
+        if not key.isExpressionConstantRef() or \
+           not value.isExpressionConstantRef() or \
+           not value.isMutable():
+            constant = False
+            break
+    else:
+        constant = True
+
+    # Note: This would happen in optimization instead, but lets just do it
+    # immediately to save some time.
+    if constant:
+        # Create the dictionary in its full size, so that no growing occurs and
+        # the constant becomes as similar as possible before being marshalled.
+        constant_value = dict.fromkeys(
+            [ key.getConstant() for key in keys ],
+            None
+        )
+
+        for key, value in zip( keys, values ):
+            constant_value[ key.getConstant() ] = value.getConstant()
+
+        return ExpressionConstantRef(
+            constant      = constant_value,
+            source_ref    = source_ref,
+            user_provided = True
+        )
+    else:
+        return ExpressionMakeDict(
+            pairs      = [
+                ExpressionKeyValuePair( key, value, key.getSourceReference() )
+                for key, value in
+                zip( keys, values )
+            ],
+            source_ref = source_ref
+        )

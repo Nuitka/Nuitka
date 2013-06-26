@@ -17,9 +17,9 @@
 #
 """ Conditional nodes.
 
-These is the conditional expression '(a if b else c)' and the conditional statement, that
-would be 'if a: ... else: ...' and there is no 'elif', because that is expressed via
-nesting of conditional statements.
+These is the conditional expression '(a if b else c)' and the conditional
+statement, 'if a: ... else: ...' and there is no 'elif', because that is
+expressed via nesting of conditional statements.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
@@ -146,8 +146,9 @@ class StatementConditional( StatementChildrenHavingBase ):
     def computeStatement( self, constraint_collection ):
         # This is rather complex stuff, pylint: disable=R0912
 
-        # Query the truth value before the expression is evaluated, once it is evaluated
-        # in onExpression, it may change.
+        # Query the truth value before the expression is evaluated, once it is
+        # evaluated in onExpression, it may change. TODO: That is non-sense of
+        # course, will be stable.
         condition = self.getCondition()
         truth_value = condition.getTruthValue()
 
@@ -161,46 +162,68 @@ class StatementConditional( StatementChildrenHavingBase ):
 
         yes_branch = self.getBranchYes()
 
+        # Handle branches that became empty behind our back
+        if yes_branch is not None:
+            if not yes_branch.getStatements():
+                yes_branch = None
+
         if yes_branch is not None:
             branch_yes_collection = ConstraintCollectionBranch( constraint_collection )
 
             branch_yes_collection.process( yes_branch )
 
-            # May have just gone away.
+            # May have just gone away, so fetch it again.
             yes_branch = self.getBranchYes()
+
+            # If it's aborting, it doesn't contribute to merging.
+            if yes_branch is None or yes_branch.isStatementAborting():
+                branch_yes_collection = None
         else:
             branch_yes_collection = None
 
         no_branch = self.getBranchNo()
 
         if no_branch is not None:
+            if not no_branch.getStatements():
+                no_branch = None
+
+        if no_branch is not None:
             branch_no_collection = ConstraintCollectionBranch( constraint_collection )
 
             branch_no_collection.process( no_branch )
 
-            # May have just gone away.
+            # May have just gone away, so fetch it again.
             no_branch = self.getBranchNo()
+
+            # If it's aborting, it doesn't contribute to merging.
+            if no_branch is None or no_branch.isStatementAborting():
+                branch_yes_collection = None
         else:
             branch_no_collection = None
 
-
         # Merge into parent constraint collection.
-        constraint_collection.mergeBranches( branch_yes_collection, branch_no_collection )
+        constraint_collection.mergeBranches(
+            branch_yes_collection,
+            branch_no_collection
+        )
 
-        if yes_branch is not None and no_branch is not None:
+        if branch_yes_collection is not None and \
+           branch_no_collection is not None:
             # TODO: Merging should be done by method.
             constraint_collection.variables = constraint_collection.mergeBranchVariables(
                 branch_yes_collection.variables,
                 branch_no_collection.variables
             )
-        elif yes_branch is not None:
+        elif branch_yes_collection is not None:
             constraint_collection.mergeBranch( branch_yes_collection )
-        elif no_branch is not None:
+        elif branch_no_collection is not None:
             constraint_collection.mergeBranch( branch_no_collection )
-        else:
+
+        if yes_branch is None and no_branch is None:
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-            # With both branches eliminated, the condition remains as a side effect.
+            # With both branches eliminated, the condition remains as a side
+            # effect.
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = condition,
                 node       = self
@@ -228,8 +251,9 @@ Both branches have no effect, reduced to evaluate condition."""
             return new_statement, "new_statements", """\
 Empty 'yes' branch for condition was replaced with inverted condition check."""
 
-        # Note: Checking the condition late, so that the surviving branches got processed
-        # already. Returning without doing that, will lead to errorneous assumptions.
+        # Note: Checking the condition late, so that the surviving branches got
+        # processed already. Returning without doing that, will corrupte the SSA
+        # results.
         if truth_value is not None:
             from .NodeMakingHelpers import wrapStatementWithSideEffects
 
@@ -259,6 +283,7 @@ Condition for branch was predicted to be always %s.""" % choice
             )
 
             return result, "new_raise", """\
-Conditional statements already raises implicitely in condition, removing branches"""
+Conditional statements already raises implicitely in condition, removing \
+branches"""
 
         return self, None, None

@@ -17,8 +17,8 @@
 #
 """ Nodes for unary and binary operations.
 
-No short-circuit involved, boolean 'not' is an unary operation like '-' is, no real
-difference.
+No short-circuit involved, boolean 'not' is an unary operation like '-' is,
+no real difference.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
@@ -82,7 +82,11 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
         left, right = operands
 
         if left.willRaiseException( BaseException ):
-            return left, "new_raise", "Left argument of binary operation raises exception"
+            return (
+                left,
+                "new_raise",
+                "Left argument of binary operation raises exception"
+            )
 
         if right.willRaiseException( BaseException ):
             from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
@@ -92,7 +96,11 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
                 old_node = left
             )
 
-            return result, "new_raise", "Right argument of binary operation raises exception"
+            return (
+                result,
+                "new_raise",
+                "Right argument of binary operation raises exception"
+            )
 
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
@@ -122,7 +130,15 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
                 if iter_length is not None:
                     if iter_length * left_value > 256:
                         return self, None, None
+            elif operator == "Add" and \
+                left.isKnownToBeIterable( None ) and \
+                right.isKnownToBeIterable( None ):
 
+                iter_length = left.getIterationLength() + \
+                              right.getIterationLength()
+
+                if iter_length > 256:
+                    return self, None, None
 
             from .NodeMakingHelpers import getComputationResult
 
@@ -132,7 +148,7 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
                     left_value,
                     right_value
                 ),
-                description = "Operator '%s' with constant arguments" % operator
+                description = "Operator '%s' with constant arguments." % operator
             )
         else:
             return self, None, None
@@ -176,7 +192,7 @@ class ExpressionOperationUnary( ExpressionOperationBase ):
                 computation = lambda : self.getSimulator()(
                     operand_value,
                 ),
-                description = "Operator '%s' with constant argument" % operator
+                description = "Operator '%s' with constant argument." % operator
             )
         else:
             return self, None, None
@@ -202,7 +218,11 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
         operand = self.getOperand()
 
         if operand.willRaiseException( BaseException ):
-            return operand, "new_raise", "Argument of 'not' operation raises exception"
+            return (
+                operand,
+                "new_raise",
+                "Argument of 'not' operation raises exception"
+            )
 
         return operand.computeExpressionOperationNot(
             not_node              = self,
@@ -228,7 +248,8 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
     def extractSideEffects( self ):
         operand = self.getOperand()
 
-        # TODO: Find the common ground of these, and make it an expression method.
+        # TODO: Find the common ground of these, and make it an expression
+        # method.
         if operand.isExpressionMakeSequence():
             return self.getOperand().extractSideEffects()
 
@@ -238,8 +259,8 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
         return ( self, )
 
     def mayProvideReference( self ):
-        # Dedicated code returns "True" or "False" only, which requires no reference,
-        # except for rich comparisons, which do.
+        # Dedicated code returns "True" or "False" only, which requires no
+        # reference, except for rich comparisons, which do.
         return False
 
 
@@ -258,5 +279,6 @@ class ExpressionOperationBinaryInplace( ExpressionOperationBinary ):
         )
 
     def computeExpression( self, constraint_collection ):
-        # TODO: Inplace operation requires extra care to avoid corruption of values.
+        # TODO: Inplace operation requires extra care to avoid corruption of
+        # values.
         return self, None, None

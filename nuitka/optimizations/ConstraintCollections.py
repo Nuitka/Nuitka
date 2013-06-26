@@ -17,15 +17,14 @@
 #
 """ Constraint collection
 
-At the core of value propagation there is the collection of constraints that allow
-to propagate knowledge forward or not. This is about collecting these constraints
-and to manage them.
+At the core of value propagation there is the collection of constraints that
+allow to propagate knowledge forward or not.
 
+This is about collecting these constraints and to manage them.
 """
 
 # Python3 compatibility.
 from nuitka.__past__ import iterItems
-from nuitka.oset import OrderedSet
 
 from nuitka.nodes import ValueFriends
 
@@ -34,26 +33,108 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeStatementsSequenceReplacementNode,
 )
 
+from nuitka.nodes.AssignNodes import StatementDelVariable
+
 from nuitka import Options, Utils, Importing
 from nuitka.tree import Recursion
 
 from logging import debug, warning
 
 
-class VariableTrace:
+class VariableTraceBase:
     def __init__( self, variable, version ):
         self.variable     = variable
         self.version      = version
 
+        # List of references.
         self.usages = []
+
+        # List of releases of the node.
+        self.releases = []
+
+        # If not None, this indicates the last usage, where the value was not
+        # yet escaped. If it is 0, it escaped immediately. Escaping is a one
+        # time action.
+        self.escaped_at = None
+
+    def getVariable( self ):
+        return self.variable
+
+    def getVersion( self ):
+        return self.version
 
     def addUsage( self, ref_node ):
         self.usages.append( ref_node )
 
+    def addRelease( self, release_node ):
+        self.releases.append( release_node )
 
-class VariableAssignTrace( VariableTrace ):
+    def onValueEscape( self ):
+        self.escaped_at = len( self.usages )
+
+    def isEscaped( self ):
+        return self.escaped_at is not None
+
+    def getPotentialUsages( self ):
+        return self.usages
+
+    def getDefiniteUsages( self ):
+        return self.usages
+
+    def isAssignTrace( self ):
+        return False
+
+    def isUninitTrace( self ):
+        return False
+
+    def isMergeTrace( self ):
+        return False
+
+
+class VariableUninitTrace( VariableTraceBase ):
+    def __init__( self, variable, version ):
+        VariableTraceBase.__init__(
+            self,
+            variable = variable,
+            version  = version
+        )
+
+    def isUninitTrace( self ):
+        return True
+
+    def dump( self ):
+        debug( "Trace of %s %d:", self.variable, self.version )
+        debug( "  Starts out uninitialized" )
+
+        for count, usage in enumerate( self.usages ):
+            if count == self.escaped_at:
+                debug( "  Escaped value" )
+
+            debug( "  Used at %s", usage )
+
+
+class VariableUnknownTrace( VariableTraceBase ):
+    def __init__( self, variable, version ):
+        VariableTraceBase.__init__(
+            self,
+            variable = variable,
+            version  = version
+        )
+
+    def dump( self ):
+        debug( "Trace of %s %d:", self.variable, self.version )
+        debug( "  Starts unknown" )
+
+        for count, usage in enumerate( self.usages ):
+            if count == self.escaped_at:
+                debug( "  Escaped value" )
+
+            debug( "  Used at %s", usage )
+
+
+class VariableAssignTrace( VariableTraceBase ):
     def __init__( self, target_node, variable, version, value_friend ):
-        VariableTrace.__init__(
+        VariableTraceBase.__init__(
             self,
             variable = variable,
             version  = version
@@ -62,30 +143,34 @@ class VariableAssignTrace( VariableTrace ):
         self.target_node = target_node
         self.value_friend = value_friend
 
-    def onValueEscape( self ):
-        # TODO: Tell value friend to degrade intelligently.
-        self.value_friend = None
-
-
-class VariableReferenceTrace( VariableTrace ):
-    def __init__( self, ref_node, variable, version ):
-        VariableTrace.__init__(
-            self,
-            variable = variable,
-            version  = version
+    def __repr__( self ):
+        return "<VariableAssignTrace %s %d>" % (
+            self.variable,
+            self.version
         )
 
-        self.ref_node = ref_node
+    def dump( self ):
+        debug( "Trace of %s %d:", self.variable, self.version )
+        debug( "  Assigned from %s", self.value_friend )
 
-        self.usages.append( ref_node )
+        for count, usage in enumerate( self.usages ):
+            if count == self.escaped_at:
+                debug( "  Escaped value" )
 
-    def onValueEscape( self ):
-        pass
+            debug( "  Used at %s", usage )
+
+    def isAssignTrace( self ):
+        return True
+
+    def getAssignNode( self ):
+        return self.target_node
 
 
-class VariableMergeTrace( VariableTrace ):
+class VariableMergeTrace( VariableTraceBase ):
     def __init__( self, variable, version, trace_yes, trace_no ):
-        VariableTrace.__init__(
+        assert trace_no is not trace_yes, ( variable, version, trace_no )
+
+        VariableTraceBase.__init__(
             self,
             variable = variable,
             version  = version
@@ -94,8 +179,27 @@ class VariableMergeTrace( VariableTrace ):
         self.trace_yes = trace_yes
         self.trace_no = trace_no
 
-    def onValueEscape( self ):
-        pass
+        self.forwarded = True
+
+    def isMergeTrace( self ):
+        return True
+
+    def addUsage( self, ref_node ):
+        if not self.usages:
+            # Merging is usage.
+            self.trace_yes.addUsage( self )
+            if self.trace_no is not None:
+                self.trace_no.addUsage( self )
+
+        VariableTraceBase.addUsage( self, ref_node )
+
+
+    def getPotentialUsages( self ):
+        assert False
+
+    def dump( self ):
+        debug( "Trace of %s %d:", self.variable, self.version )
+        debug( "  Merge of %s <-> %s", self.trace_yes, self.trace_no )
 
 
 class VariableUsageProfile:
@@ -157,9 +261,93 @@ class VariableUsageTrackingMixin:
                     variable.setWriteOnly()
 
 
-# TODO: This code is only here while staging it, will live in a dedicated module later on
-class ConstraintCollectionBase:
+class CollectionTracingMixin:
+    def __init__( self ):
+        # For functions, when we are in here, the currently active one,
+        self.variable_actives = {}
+
+    def getVariableCurrentTrace( self, variable ):
+        return self.getVariableTrace(
+            variable = variable,
+            version  = self.getCurrentVariableVersion( variable )
+        )
+
+    def markCurrentVariableTrace( self, variable, version ):
+        assert not variable.isModuleVariable() or variable.isReference(), variable
+
+        self.variable_actives[ variable ] = version
+
+    def getCurrentVariableVersion( self, variable ):
+        assert variable in self.variable_actives, ( variable, self )
+        return self.variable_actives[ variable ]
+
+    def getActiveVariables( self ):
+        return list( self.variable_actives.keys() )
+
+
+class CollectionStartpointMixin:
+    def __init__( self ):
+        # Variable assignments performed in here, last issued number, only used
+        # to determine the next number that should be used for a new assignment.
+        self.variable_versions = {}
+
+        # The full trace of a variable with a version for the function or module
+        # this is.
+        self.variable_traces = {}
+
+        # Cannot mess with local variables that much, as "locals" and "eval"
+        # calls may not yet be known.
+        self.unclear_locals = False
+
+    def getVariableTrace( self, variable, version ):
+        return self.variable_traces[ ( variable, version ) ]
+
+    def addVariableTrace( self, variable, version, trace ):
+        key = variable, version
+
+        assert key not in self.variable_traces, key
+        self.variable_traces[ key ] = trace
+
+    def dumpTrace( self ):
+        debug( "Constraint collection state:" )
+        for variable_desc, variable_trace in iterItems( self.variable_traces ):
+            debug( "%r: %r", variable_desc, variable_trace )
+            variable_trace.dump()
+
+    def initVariableUnknown( self, variable ):
+        self.addVariableTrace(
+            variable = variable,
+            version  = 0,
+            trace    = VariableUnknownTrace(
+                variable = variable,
+                version  = 0
+            )
+        )
+
+        self.markCurrentVariableTrace( variable, 0 )
+
+    def initVariableUninit( self, variable ):
+        self.addVariableTrace(
+            variable = variable,
+            version  = 0,
+            trace    = VariableUninitTrace(
+                variable = variable,
+                version  = 0
+            )
+        )
+
+        self.markCurrentVariableTrace( variable, 0 )
+
+    def assumeUnclearLocals( self ):
+        self.unclear_locals = True
+
+
+# TODO: This code is only here while staging it, will live in a dedicated module
+# later on
+class ConstraintCollectionBase( CollectionTracingMixin ):
     def __init__( self, parent, signal_change = None ):
+        CollectionTracingMixin.__init__( self )
+
         assert signal_change is None or parent is None
 
         if signal_change is not None:
@@ -169,11 +357,11 @@ class ConstraintCollectionBase:
 
         self.parent = parent
 
-        # Variable assignments performed in here.
-        self.variable_versions = {}
-        self.variable_traces = {}
-
         self.variables = {}
+
+        # Trust variable_traces, should go away later on, for now we use it to
+        # disable optimization.
+        self.removes_knowledge = False
 
     def mustAlias( self, a, b ):
         if a.isExpressionVariableRef() and b.isExpressionVariableRef():
@@ -196,6 +384,10 @@ class ConstraintCollectionBase:
 
     def removeAllKnowledge( self ):
         self.variables = {}
+
+        # Temporary, we don't have to have this anyway, this will just disable
+        # all uses of variable traces for optimization.
+        self.removes_knowledge = True
 
     @staticmethod
     def mergeBranchVariables( a, b ):
@@ -221,18 +413,13 @@ class ConstraintCollectionBase:
     def getVariableValueFriend( self, variable ):
         return self.variables.get( variable, None )
 
-    def dump( self ):
-        debug( "Constraint collection state:" )
-        for variable_name, variable_info in sorted( iterItems( self.variables ) ):
-            debug( "%r: %r", variable_name, variable_info )
-
     def _onStatementsFrame( self, statements_sequence ):
         assert statements_sequence.isStatementsFrame()
 
         new_statements = []
 
         statements = statements_sequence.getStatements()
-        assert statements, statements_sequence
+#        assert statements, statements_sequence
 
         for count, statement in enumerate( statements ):
             # May be frames embedded.
@@ -242,7 +429,8 @@ class ConstraintCollectionBase:
                 new_statement = self.onStatement( statement )
 
             if new_statement is not None:
-                if new_statement.isStatementsSequence() and not new_statement.isStatementsFrame():
+                if new_statement.isStatementsSequence() and \
+                   not new_statement.isStatementsFrame():
                     new_statements.extend( new_statement.getStatements() )
                 else:
                     new_statements.append( new_statement )
@@ -285,6 +473,9 @@ class ConstraintCollectionBase:
                     node       = statements_sequence
                 )
         else:
+            if not new_statements:
+                return None
+
             if statements != new_statements:
                 statements_sequence.setStatements( tuple( new_statements ) )
 
@@ -310,7 +501,8 @@ class ConstraintCollectionBase:
                 new_statement = self.onStatement( statement )
 
             if new_statement is not None:
-                if new_statement.isStatementsSequence() and not new_statement.isStatementsFrame():
+                if new_statement.isStatementsSequence() and \
+                   not new_statement.isStatementsFrame():
                     new_statements.extend( new_statement.getStatements() )
                 else:
                     new_statements.append( new_statement )
@@ -336,67 +528,79 @@ class ConstraintCollectionBase:
         else:
             return statements_sequence
 
+    def assumeUnclearLocals( self ):
+        self.parent.assumeUnclearLocals()
+
+    def getVariableTrace( self, variable, version ):
+        return self.parent.getVariableTrace( variable, version )
+
+    def addVariableTrace( self, variable, version, trace ):
+        assert self.parent is not None, self
+
+        self.parent.addVariableTrace( variable, version, trace )
 
     def onVariableSet( self, target_node, value_friend ):
-        # Add a new trace, allocating a new version for the variable, and remember the value
-        # friend.
+        # Add a new trace, using the version allocated for the variable, and
+        # remember the value friend.
         variable = target_node.getVariable()
 
-        while variable.isReference():
-            variable = variable.getReferenced()
+        assert not variable.isModuleVariable() or variable.isReference(), variable
 
-        assert not variable.isModuleVariableReference()
+        # print "SET", target_node, target_node.getVariableVersion()
+        version = target_node.getVariableVersion()
 
-        version  = target_node.getVariableVersion()
-
-        key = variable, version
-
-        self.variable_traces[ key ] = VariableAssignTrace(
-            target_node  = target_node,
-            variable     = variable,
-            version      = version,
-            value_friend = value_friend
+        self.addVariableTrace(
+            variable = variable,
+            version  = version,
+            trace    = VariableAssignTrace(
+                target_node  = target_node,
+                variable     = variable,
+                version      = version,
+                value_friend = value_friend
+            )
         )
 
-        self.variable_versions[ variable ] = version
+        # Make references point to it.
+        self.markCurrentVariableTrace( variable, version )
 
-        return key
+    def onVariableDel( self, del_node ):
+        # Add a new trace, allocating a new version for the variable, and
+        # remember the delete of the current
+        target_node = del_node.getTargetVariableRef()
+        variable = target_node.getVariable()
+
+        current = self.getVariableCurrentTrace( variable )
+        current.addRelease( del_node )
+
+        version = target_node.getVariableVersion()
+
+        # Assign to uninit again.
+        self.addVariableTrace(
+            variable = variable,
+            version  = version,
+            trace    = VariableUninitTrace(
+                variable     = variable,
+                version      = version
+            )
+        )
+
+        # Make references point to it.
+        self.markCurrentVariableTrace( variable, version )
 
     def onVariableUsage( self, ref_node ):
         variable = ref_node.getVariable()
+        # while variable.isReference():
+        #    variable = variable.getReferenced()
 
-        while variable.isReference():
-            variable = variable.getReferenced()
+        self.getVariableCurrentTrace( variable ).addUsage( ref_node )
 
-        assert not variable.isModuleVariableReference()
-
-        version  = self.variable_versions.get( variable, 0 )
-
-        key = variable, version
-
-        if key in self.variable_traces:
-            self.variable_traces[ key ].addUsage( ref_node )
-
-            return None
-        else:
-            self.variable_traces[ key ] = VariableReferenceTrace(
-                ref_node = ref_node,
-                variable = variable,
-                version  = version
-            )
-
-            self.variable_versions[ variable ] = version
-
-            return key
+    def onLocalsAccess( self, locals_node ):
+        for variable in self.getActiveVariables():
+            # print "LOCALS", variable
+            self.getVariableCurrentTrace( variable ).addUsage( locals_node )
 
     def onVariableContentEscapes( self, variable ):
-        version = self.variable_versions.get( variable, 0 )
-
-        key = variable, version
-
-        if key in self.variable_traces:
-            # Indicate when the variable value escaped.
-            self.variable_traces[ key ].onValueEscape()
+        self.getVariableCurrentTrace( variable ).onValueEscape()
 
     def onExpression( self, expression, allow_none = False ):
         if expression is None and allow_none:
@@ -404,12 +608,9 @@ class ConstraintCollectionBase:
 
         assert expression.isExpression(), expression
 
-        # First apply the sub-expressions, as they are evaluated before.
-        self.onSubExpressions( expression )
-
-        # Now compute this expression, allowing it to replace itself with something else
-        # as part of a local peephole optimization.
-        r = expression.computeExpression( self )
+        # Now compute this expression, allowing it to replace itself with
+        # something else as part of a local peephole optimization.
+        r = expression.computeExpressionRaw( self )
         assert type(r) is tuple, expression
 
         new_node, change_tags, change_desc = r
@@ -417,8 +618,8 @@ class ConstraintCollectionBase:
         if new_node is not expression:
             expression.replaceWith( new_node )
 
-            # This is mostly for tracing and indication that a change occured and it may
-            # be interesting to look again.
+            # This is mostly for tracing and indication that a change occured
+            # and it may be interesting to look again.
             self.signalChange(
                 change_tags,
                 expression.getSourceReference(),
@@ -430,9 +631,9 @@ class ConstraintCollectionBase:
             if not new_node.getVariable().isModuleVariableReference():
                 self.onLocalVariableRead( new_node.getVariable() )
 
-            # Remember this for constraint collection. Any variable that we access has a
-            # version already that we can query. TODO: May do this as a
-            # "computeReference".
+            # Remember this for constraint collection. Any variable that we
+            # access has a version already that we can query. TODO: May do this
+            # as a "computeReference".
 
             self.onVariableUsage( new_node )
         elif new_node.isExpressionAssignmentTempKeeper():
@@ -454,18 +655,6 @@ class ConstraintCollectionBase:
             self.onTempVariableRead( variable )
 
         return new_node
-
-    def onSubExpressions( self, owner ):
-        if owner.isExpressionFunctionRef():
-            collector = ConstraintCollectionFunction( self )
-            collector.process( owner.getFunctionBody() )
-        elif owner.isExpressionFunctionBody():
-            assert False, owner
-        else:
-            sub_expressions = owner.getVisitableNodes()
-
-            for sub_expression in sub_expressions:
-                self.onExpression( sub_expression )
 
     def onModuleVariableAssigned( self, variable, value_friend ):
         self.parent.onModuleVariableAssigned( variable, value_friend )
@@ -500,9 +689,9 @@ Removed assignment that has source that will raise."""
 
         assert variable is not None
 
-        # Assigning from and to the same variable, can be optimized away immediately,
-        # there is no point in doing it. Exceptions are of course module variables
-        # that collide with builtin names.
+        # Assigning from and to the same variable, can be optimized away
+        # immediately, there is no point in doing it. Exceptions are of course
+        # module variables that collide with builtin names.
         if not variable.isModuleVariableReference() and \
              source.isExpressionVariableRef() and \
              source.getVariable() == variable:
@@ -583,81 +772,77 @@ Side effects of assignments promoted to statements."""
             raise
 
     def mergeBranches( self, collection_yes, collection_no ):
-        def getParentVariableVersion( variable ):
-            return self.parent.getVariableVersions().get( variable, None )
+        # Refuse to do stupid work
+        if collection_yes is None and collection_no is None:
+            pass
+        elif collection_yes is None or collection_no is None:
+            # Handle one branch case, we need to merge versions backwards as
+            # they may make themselves obsolete.
+            collection = collection_yes or collection_no
 
-        def mergeSingleBranchChange( variable, version ):
-            key = variable, variable.allocateTargetNumber()
+            for variable in collection.getActiveVariables():
+                # print "ACTIVE", variable, self.getCurrentVariableVersion( variable )
 
-            # Now we didn't find it in yes, so it's up to merging.
-            if variable in self.variable_versions:
-                trace_old = self.variable_traces[ variable, self.variable_versions[ variable ] ]
-            else:
-                trace_old = None
+                trace_old = self.getVariableCurrentTrace( variable )
+                trace_new = collection.getVariableCurrentTrace( variable )
 
-            self.variable_traces[ key ] = VariableMergeTrace(
-                variable     = variable,
-                version      = key[1],
-                trace_yes    = self.variable_traces[ variable, version ],
-                trace_no     = trace_old
-            )
+                if trace_old is not trace_new:
+                    version = variable.allocateTargetNumber()
 
-        if collection_yes is not None:
-            added_yes = collection_yes.getBranchOnlyTraces()
+                    # print "Allocated", variable, version
 
-            if collection_no is not None:
-                added_no = collection_no.getBranchOnlyTraces()
+                    trace_merge = VariableMergeTrace(
+                        variable     = variable,
+                        version      = version,
+                        trace_yes    = trace_new,
+                        trace_no     = trace_old
+                    )
 
-                # Merge yes branch assignments with either existing ones from "no" branch,
-                # or with the original start point.
-                for yes_variable, yes_version in reversed( added_yes ):
-                    key = yes_variable, yes_variable.allocateTargetNumber()
+                    self.addVariableTrace(
+                        variable = variable,
+                        version  = version,
+                        trace    = trace_merge
+                    )
 
-                    for no_variable, no_version in reversed( added_no ):
-                        if yes_variable == no_variable:
-                            self.variable_traces[ key ] = VariableMergeTrace(
-                                variable     = yes_variable,
-                                # TODO: Get this from ourselves.
-                                version      = key[1],
-                                trace_yes    = self.variable_traces[ yes_variable, yes_version ],
-                                trace_no     = self.variable_traces[ no_variable, no_version ]
-                            )
+                    # Merging is releasing.
+                    trace_old.addUsage( trace_merge )
+                    trace_new.addUsage( trace_merge )
 
-                            break
-                    else:
-                        if yes_variable in self.variable_versions:
-                            trace_no = self.variable_traces[ yes_variable, self.variable_versions[ yes_variable ] ]
-                        else:
-                            trace_no = None
+            return
+        else:
+            for variable in collection_yes.getActiveVariables():
+                trace_yes = collection_yes.getVariableCurrentTrace( variable )
+                trace_no = collection_no.getVariableCurrentTrace( variable )
 
-                        self.variable_traces[ key ] = VariableMergeTrace(
-                            variable     = yes_variable,
-                            # TODO: Get this from ourselves.
-                            version      = key[1],
-                            trace_yes    = self.variable_traces[ yes_variable, yes_version ],
-                            trace_no     = trace_no
-                        )
+                if trace_yes is not trace_no:
+                    version = variable.allocateTargetNumber()
+                    trace_merge = VariableMergeTrace(
+                        variable     = variable,
+                        version      = version,
+                        trace_yes    = trace_yes,
+                        trace_no     = trace_no
+                    )
 
+                    self.addVariableTrace(
+                        variable = variable,
+                        version  = version,
+                        trace    = trace_merge
+                    )
 
-                # Merge no branch variables if their version is higher, meaning it's
-                # actually still a newer assignment, and wasn't merged yet.
-                for no_variable, no_version in reversed( added_no ):
-                    for yes_variable, yes_version in reversed( added_yes ):
-                        if yes_variable == no_variable:
-                            break
-                    else:
-                        mergeSingleBranchChange( no_variable, no_version )
-            else:
-                for yes_variable, yes_version in reversed( added_yes ):
-                    mergeSingleBranchChange( yes_variable, yes_version )
-        elif collection_no is not None:
-            added_no = collection_no.getBranchOnlyTraces()
-
-            for no_variable, no_version in reversed( added_no ):
-                mergeSingleBranchChange( no_variable, no_version )
+                    # Merging is releasing.
+                    trace_yes.addUsage( trace_merge )
+                    trace_no.addUsage( trace_merge )
 
 
 class ConstraintCollectionHandler( ConstraintCollectionBase ):
+    def __init__( self, parent ):
+        ConstraintCollectionBase.__init__(
+            self,
+            parent = parent
+        )
+
+        self.variable_actives = dict( parent.variable_actives )
+
     def process( self, handler ):
         assert handler.isStatementExceptHandler()
 
@@ -684,7 +869,7 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
             parent = parent
         )
 
-        self.branch_only_traces = OrderedSet()
+        self.variable_actives = dict( parent.variable_actives )
 
     def process( self, branch ):
         assert branch.isStatementsSequence(), branch
@@ -694,40 +879,18 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
         if result is not branch:
             branch.replaceWith( result )
 
-    def onVariableSet( self, target_node, value_friend ):
-        # Add a new trace, allocating a new version for the variable, and remember the value
-        # friend.
-        key = self.parent.onVariableSet(
-            target_node  = target_node,
-            value_friend = value_friend
-        )
-
-        # Remember the version, because it was added to this branch only, which matters
-        # for merge later.
-        self.branch_only_traces.add( key )
-
-        return key
-
-    def onVariableUsage( self, ref_node ):
-        key = self.parent.onVariableUsage(
-            ref_node = ref_node
-        )
-
-        if key is not None:
-            self.branch_only_traces.add( key )
-
-        return key
-
-    def getBranchOnlyTraces( self ):
-        return self.branch_only_traces
-
     def mergeBranches( self, collection_yes, collection_no ):
         # Branches in branches, should ask parent about merging them.
         return self.parent.mergeBranches( collection_yes, collection_no )
 
 
-class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrackingMixin ):
+class ConstraintCollectionFunction( CollectionStartpointMixin,
+                                    ConstraintCollectionBase,
+                                    VariableUsageTrackingMixin,
+                                     ):
     def __init__( self, parent ):
+        CollectionStartpointMixin.__init__( self )
+
         ConstraintCollectionBase.__init__(
             self,
             parent = parent
@@ -743,6 +906,34 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
 
         statements_sequence = function_body.getBody()
 
+        if statements_sequence is not None and \
+           not statements_sequence.getStatements():
+            function_body.setStatements( None )
+            statements_sequence = None
+
+        for variable in function_body.getVariables():
+            # print function_body, variable
+
+            if variable.isParameterVariable():
+                self.initVariableUnknown( variable )
+            elif variable.isLocalVariable():
+                self.initVariableUninit( variable )
+            elif variable.isMaybeLocalVariable():
+                self.initVariableUnknown( variable )
+            elif variable.isModuleVariableReference():
+                pass
+            elif variable.isClosureReference():
+                pass
+                # self.initVariableUnknown( variable )
+            else:
+                assert False, variable
+
+        for variable in function_body.taken:
+            # while variable.isReference():
+            #    variable = variable.getReferenced()
+
+            self.initVariableUnknown( variable )
+
         if statements_sequence is not None:
             result = self.onStatementsSequence( statements_sequence )
 
@@ -751,16 +942,57 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
 
         self.setIndications()
 
-    def dumpTrace( self ):
-        for i in range(5):
-            print( "*" * 80 )
+        if not Options.isExperimental() or self.removes_knowledge:
+            return
 
-        for variable, traces in iterItems( self.variable_targets ):
-            print( variable )
-            print( "*" * 80 )
-            for trace in traces:
-                print( trace )
-            print( "*" * 80 )
+        # self.dumpTrace()
+
+        # Cannot mess with locals yet.
+        if self.unclear_locals:
+            return
+
+        # Trace based optimization goes here:
+        for variable_trace in self.variable_traces.values():
+            variable = variable_trace.getVariable()
+
+            # print variable
+
+            if variable.isLocalVariable() and not variable.isShared():
+                if variable_trace.isAssignTrace():
+                    assign_node = variable_trace.getAssignNode()
+
+                    if not assign_node.parent.getAssignSource().mayHaveSideEffects():
+
+                        if not variable_trace.getPotentialUsages() and \
+                           not variable_trace.isEscaped():
+                            assign_node.parent.replaceWith(
+                                StatementDelVariable(
+                                    variable_ref = assign_node,
+                                    tolerant     = True,
+                                    source_ref   = assign_node.getSourceReference()
+                                )
+                            )
+
+                            for release in variable_trace.releases:
+                                if release.isStatementDelVariable():
+                                    release.replaceWith(
+                                        None
+                                    )
+
+                            self.signalChange(
+                                "new_statements",
+                                assign_node.parent.getSourceReference(),
+                                "Removed assignment without effect."
+                            )
+                elif variable_trace.isMergeTrace():
+                    # print variable_trace
+                    if not variable_trace.getDefiniteUsages() and \
+                       not variable_trace.isEscaped() and \
+                       not variable_trace.releases:
+                        pass
+                        # print "HIT", variable_trace
+
+
 
     def onLocalVariableAssigned( self, variable, value_friend ):
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
@@ -782,8 +1014,13 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
 
 
 
-class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackingMixin ):
+class ConstraintCollectionModule( CollectionStartpointMixin,
+                                  ConstraintCollectionBase,
+                                  VariableUsageTrackingMixin,
+                                   ):
     def __init__( self, signal_change ):
+        CollectionStartpointMixin.__init__( self )
+
         ConstraintCollectionBase.__init__(
             self,
             None,
@@ -792,6 +1029,7 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
 
         VariableUsageTrackingMixin.__init__( self )
 
+
         self.module = None
 
     def process( self, module ):
@@ -799,6 +1037,9 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
         self.module = module
 
         module_body = module.getBody()
+
+        for variable in module.getVariables():
+            self.initVariableUnknown( variable.makeReference( module ) )
 
         if module_body is not None:
             result = self.onStatementsSequence( module_body )
@@ -867,8 +1108,41 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
 
 
 class ConstraintCollectionLoop( ConstraintCollectionBase ):
+    def __init__( self, parent ):
+        ConstraintCollectionBase.__init__(
+            self,
+            parent = parent
+        )
+
+        self.variable_actives = dict( parent.variable_actives )
+
     def process( self, loop_body ):
         result = self.onStatementsSequence( loop_body )
 
         if result is not loop_body:
             loop_body.replaceWith( result )
+
+
+class ConstraintCollectionTempBlock( ConstraintCollectionBase ):
+    def __init__( self, parent ):
+        ConstraintCollectionBase.__init__(
+            self,
+            parent = parent
+        )
+
+        self.variable_actives = dict( parent.variable_actives )
+
+    def process( self, temp_block ):
+        old_body = temp_block.getBody()
+
+        result = self.onStatementsSequence( old_body )
+
+        if result is not old_body:
+            temp_block.setBody( result )
+
+        for variable in self.getActiveVariables():
+            if not variable.isTempVariableReference():
+                self.parent.markCurrentVariableTrace(
+                    variable = variable,
+                    version  = self.getCurrentVariableVersion( variable )
+                )

@@ -17,11 +17,12 @@
 #
 """ Yield node.
 
-The yield node returns to the caller of the generator and therefore may execute absolutely
-abitrary code, from the point of view of this code. It then returns something, which may
-often be 'None', but doesn't have to be.
+The yield node returns to the caller of the generator and therefore may execute
+absolutely abitrary code, from the point of view of this code. It then returns
+something, which may often be 'None', but doesn't have to be.
 
-Often it will be used as a statement, which should also be reflected in a dedicated node.
+Often it will be used as a statement, which should also be reflected in a
+dedicated node.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
@@ -54,9 +55,42 @@ class ExpressionYield( ExpressionChildrenHavingBase ):
         value = self.getExpression()
 
         if value.willRaiseException( BaseException ):
-            return value, "new_raise", "Yield raises exception"
+            return value, "new_raise", "The 'yield' argument raises exception"
 
         # Nothing possible really here.
+        return self, None, None
 
 
+class ExpressionYieldFrom( ExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_YIELD_FROM"
+
+    named_children = ( "expression", )
+
+    def __init__( self, expression, source_ref ):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "expression" : expression
+            },
+            source_ref = source_ref
+        )
+
+        self.exception_preserving = False
+
+    def markAsExceptionPreserving( self ):
+        self.exception_preserving = True
+
+    def isExceptionPreserving( self ):
+        return self.exception_preserving
+
+    getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
+
+    def computeExpression( self, constraint_collection ):
+        value = self.getExpression()
+
+        if value.willRaiseException( BaseException ):
+            return value, "new_raise", """\
+The 'yield from' argument raises exception"""
+
+        # Nothing possible really here.
         return self, None, None

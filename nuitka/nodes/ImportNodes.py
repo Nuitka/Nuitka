@@ -17,13 +17,14 @@
 #
 """ Nodes related to importing modules or names.
 
-Normally imports are mostly relatively static, but Nuitka also attempts to cover the uses
-of "__import__" builtin and other import techniques, that allow dynamic values.
+Normally imports are mostly relatively static, but Nuitka also attempts to
+cover the uses of "__import__" builtin and other import techniques, that
+allow dynamic values.
 
-If other optimizations make it possible to predict these, the compiler can go deeper that
-what it normally could. The import expression node can recurse. An "__import__" builtin may
-be converted to it, once the module name becomes a compile time constant.
-
+If other optimizations make it possible to predict these, the compiler can go
+deeper that what it normally could. The import expression node can recurse. An
+"__import__" builtin may be converted to it, once the module name becomes a
+compile time constant.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
@@ -39,7 +40,8 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
 
     named_children = ( "module", )
 
-    # Set of modules, that we failed to import, and gave warning to the user about it.
+    # Set of modules, that we failed to import, and gave warning to the user
+    # about it.
     _warned_about = set()
 
     def __init__( self, module_name, import_list, level, source_ref ):
@@ -56,6 +58,7 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
         self.level = level
 
         self.attempted_recurse = False
+        self.found_modules = ()
 
     def getDetails( self ):
         return {
@@ -75,8 +78,8 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
         else:
             return self.level
 
-    # Prevent normal recursion from entering the module. TODO: Why have the class when not
-    # really using it.
+    # Prevent normal recursion from entering the module. TODO: Why have the
+    # class when not really using it.
     def getVisitableNodes( self ):
         return ()
 
@@ -228,6 +231,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
             if imported_module is not None:
                 self.setModule( imported_module )
+                self.found_modules = []
 
                 import_list = self.getImportList()
 
@@ -243,11 +247,14 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         )
 
                         if module_filename is not None:
-                            _imported_module = self._consider(
+                            sub_imported_module = self._consider(
                                 constraint_collection = constraint_collection,
                                 module_filename       = module_filename,
                                 module_package        = module_package
                             )
+
+                            if sub_imported_module is not None:
+                                self.found_modules.append( sub_imported_module )
 
 
     def computeExpression( self, constraint_collection ):
@@ -259,8 +266,15 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
             self.setAttemptedRecurse()
 
-        # TODO: May return a module reference of some sort in the future with embedded
-        # modules.
+        if self.getModule() is not None:
+            from nuitka.ModuleRegistry import addUsedModule
+            addUsedModule( self.getModule() )
+
+            for found_module in self.found_modules:
+                addUsedModule( found_module )
+
+        # TODO: May return a module reference of some sort in the future with
+        # embedded modules.
         return self, None, None
 
 
@@ -269,7 +283,8 @@ class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
 
     named_children = ( "import_name", "globals", "locals", "fromlist", "level" )
 
-    def __init__( self, name, import_globals, import_locals, fromlist, level, source_ref ):
+    def __init__( self, name, import_globals, import_locals, fromlist, level,
+                  source_ref ):
         if fromlist is None:
             fromlist = ExpressionConstantRef(
                 constant   = [],
@@ -277,8 +292,10 @@ class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
             )
 
         if level is None:
+            level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
+
             level = ExpressionConstantRef(
-                constant   = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1,
+                constant   = level,
                 source_ref = source_ref
             )
 
@@ -305,9 +322,9 @@ class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
         fromlist = self.getFromList()
         level = self.getLevel()
 
-        # TODO: In fact, if the module is not a package, we don't have to insist on the
-        # fromlist that much, but normally it's not used for anything but packages, so
-        # it will be rare.
+        # TODO: In fact, if the module is not a package, we don't have to insist
+        # on the fromlist that much, but normally it's not used for anything but
+        # packages, so it will be rare.
 
         if module_name.isExpressionConstantRef() and fromlist.isExpressionConstantRef() \
              and level.isExpressionConstantRef():
@@ -318,10 +335,14 @@ class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
                 source_ref  = self.getSourceReference()
             )
 
-            return new_node, "new_import", "Replaced __import__ call with module import expression."
+            return (
+                new_node,
+                "new_import",
+                "Replaced __import__ call with module import expression."
+            )
 
-        # TODO: May return a module or module variable reference of some sort in the
-        # future with embedded modules.
+        # TODO: May return a module or module variable reference of some sort in
+        # the future with embedded modules.
         return self, None, None
 
 
@@ -344,8 +365,8 @@ class StatementImportStar( StatementChildrenHavingBase ):
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getModule() )
 
-        # Need to invalidate everything, and everything could be assigned to something
-        # else now.
+        # Need to invalidate everything, and everything could be assigned to
+        # something else now.
         constraint_collection.removeAllKnowledge()
 
         return self, None, None
@@ -379,6 +400,6 @@ class ExpressionImportName( ExpressionChildrenHavingBase ):
     getModule = ExpressionChildrenHavingBase.childGetter( "module" )
 
     def computeExpression( self, constraint_collection ):
-        # TODO: May return a module or module variable reference of some sort in the
-        # future with embedded modules.
+        # TODO: May return a module or module variable reference of some sort in
+        # the future with embedded modules.
         return self, None, None

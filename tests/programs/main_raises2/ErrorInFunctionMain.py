@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 
-# Just plain exception from the module level, supposed to report the correct file and line
+# Just plain exception from the function  level, supposed to report the correct file and line
 
 
 
@@ -25,7 +25,7 @@ def generator_function():
 
     x = ( lambda : ErrorRaising.raiseException() for z in range(3) )
 
-    x.next()()
+    next( x )()
 
 
 def normal_function():

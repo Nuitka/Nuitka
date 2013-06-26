@@ -29,31 +29,9 @@ from .Namify import namifyConstant
 
 from nuitka.Constants import HashableConstant, constant_builtin_types
 
-from nuitka.__past__ import iterItems
-
 from nuitka.Utils import python_version
 
 from nuitka import Options
-
-# False alarms about "hashlib.md5" due to its strange way of defining what is
-# exported, pylint won't understand it. pylint: disable=E1101
-
-import hashlib
-
-if python_version < 300:
-    def calcHash( key ):
-        hash_value = hashlib.md5(
-            "%s%s%d%s%d%s%s" % key
-        )
-
-        return hash_value.hexdigest()
-else:
-    def calcHash( key ):
-        hash_value = hashlib.md5(
-            ( "%s%s%d%s%d%s%s" % key ).encode( "utf-8" )
-        )
-
-        return hash_value.hexdigest()
 
 # Many methods won't use self, but it's the interface. pylint: disable=R0201
 
@@ -111,18 +89,6 @@ class PythonChildContextBase( PythonContextBase ):
 
     def getModuleName( self ):
         return self.parent.getModuleName()
-
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
-                             is_generator, is_optimized ):
-        return self.parent.getCodeObjectHandle(
-            filename      = filename,
-            code_name     = code_name,
-            line_number   = line_number,
-            arg_names     = arg_names,
-            kw_only_count = kw_only_count,
-            is_generator  = is_generator,
-            is_optimized  = is_optimized
-        )
 
     def addHelperCode( self, key, code ):
         self.parent.addHelperCode( key, code )
@@ -230,9 +196,6 @@ class PythonGlobalContext:
         for value in _getConstantDefaultPopulation():
             self.getConstantHandle( value )
 
-        # Code objects needed.
-        self.code_objects = {}
-
     def getConstantHandle( self, constant, real_use = True ):
         # There are many branches, each supposed to return.
         # pylint: disable=R0911
@@ -277,33 +240,6 @@ class PythonGlobalContext:
     def getConstants( self ):
         return self.constants
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names,
-                             kw_only_count, is_generator, is_optimized ):
-        key = (
-            filename,
-            code_name,
-            line_number,
-            arg_names,
-            kw_only_count,
-            is_generator,
-            is_optimized
-        )
-
-        if key not in self.code_objects:
-            self.code_objects[ key ] = Identifier(
-                "_codeobj_%s" % calcHash( key ),
-                0
-            )
-
-            self.getConstantHandle( filename )
-            self.getConstantHandle( code_name )
-            self.getConstantHandle( arg_names )
-
-        return self.code_objects[ key ]
-
-    def getCodeObjects( self ):
-        return sorted( iterItems( self.code_objects ) )
-
 
 class PythonModuleContext( PythonContextBase ):
     # Plent of attributes, because it's storing so many different things.
@@ -338,18 +274,6 @@ class PythonModuleContext( PythonContextBase ):
     def getConstantHandle( self, constant ):
         return self.global_context.getConstantHandle( constant )
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names,
-                             kw_only_count, is_generator, is_optimized ):
-        return self.global_context.getCodeObjectHandle(
-            filename      = filename,
-            code_name     = code_name,
-            line_number   = line_number,
-            arg_names     = arg_names,
-            kw_only_count = kw_only_count,
-            is_generator  = is_generator,
-            is_optimized  = is_optimized
-        )
-
     def getName( self ):
         return self.name
 
@@ -376,13 +300,11 @@ class PythonModuleContext( PythonContextBase ):
     def setFrameGuardMode( self, guard_mode ):
         assert guard_mode == "once"
 
-    def getReturnCode( self ):
-        return "return MOD_RETURN_VALUE( _module_%s );" % (
-            self.getModuleCodeName()
-        )
+    def getReturnErrorCode( self ):
+        return "return MOD_RETURN_VALUE( NULL );"
 
     def addHelperCode( self, key, code ):
-        assert key not in self.helper_codes
+        assert key not in self.helper_codes, key
 
         self.helper_codes[ key ] = code
 

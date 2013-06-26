@@ -71,3 +71,14 @@ class StatementReturn( StatementChildrenHavingBase ):
             return result, "new_raise", "Return statement raises in returned expression, removed return"
 
         return self, None, None
+
+
+class StatementGeneratorReturn( StatementReturn ):
+    kind = "STATEMENT_GENERATOR_RETURN"
+
+    def __init__( self, expression, source_ref ):
+        StatementReturn.__init__(
+            self,
+            expression = expression,
+            source_ref = source_ref
+        )

@@ -125,8 +125,8 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 
 PyObject *BUILTIN_CHR( unsigned char c )
 {
-    // TODO: A switch statement might be faster, because no object needs to be created at
-    // all, this here is how CPython does it.
+    // TODO: A switch statement might be faster, because no object needs to be
+    // created at all, this here is how CPython does it.
     char s[1];
     s[0] = (char)c;
 
@@ -148,8 +148,8 @@ PyObject *BUILTIN_CHR( PyObject *value )
         throw PythonException();
     }
 
-    // TODO: A switch statement might be faster, because no object needs to be created at
-    // all, this is how CPython does it.
+    // TODO: A switch statement might be faster, because no object needs to be
+    // created at all, this is how CPython does it.
     char s[1];
     s[0] = (char)x;
 
@@ -1525,8 +1525,8 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
     // This is used for "del" as well.
     assert( value == NULL || Py_REFCNT( value ) > 0 );
 
-    // only checks the builtins that we can refresh at this time, if we have many value to
-    // check maybe need create a dict first.
+    // only checks the builtins that we can refresh at this time, if we have
+    // many value to check maybe need create a dict first.
     bool found = false;
 
     int res = PyObject_RichCompareBool( name, _python_str_plain_open, Py_EQ );
@@ -1595,10 +1595,10 @@ void _initBuiltinModule()
     dict_builtin = (PyDictObject *)module_builtin->md_dict;
     assert( PyDict_Check( dict_builtin ) );
 
-    /* init PyBuiltinModule_Type, PyType_Ready wont copy all member from base type,
-       so we need copy all members from PyModule_Type manual for safety.
-       PyType_Ready will change tp_flags, we need define it again.
-       set tp_setattro to PyBuiltinModule_SetAttr and we can detect value change.
+    /* init PyBuiltinModule_Type, PyType_Ready wont copy all member from base
+       type, so we need copy all members from PyModule_Type manual for safety.
+       PyType_Ready will change tp_flags, we need define it again.  set
+       tp_setattro to PyBuiltinModule_SetAttr and we can detect value change.
        set tp_base to PyModule_Type and PyModule_Check will pass. */
     PyBuiltinModule_Type.tp_dealloc = PyModule_Type.tp_dealloc;
     PyBuiltinModule_Type.tp_repr = PyModule_Type.tp_repr;
@@ -1620,6 +1620,183 @@ void _initBuiltinModule()
     // replace type of builtin module
     ((PyObject *)module_builtin)->ob_type = &PyBuiltinModule_Type;
     assert( PyModule_Check( module_builtin ) == 1 );
+}
+
+static PyObject *_fast_function_noargs( PyObject *func )
+{
+    PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE( func );
+    PyObject *globals = PyFunction_GET_GLOBALS( func );
+    PyObject *argdefs = PyFunction_GET_DEFAULTS( func );
+
+#if PYTHON_VERSION >= 300
+    PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS( func );
+
+    if ( kwdefs == NULL && argdefs == NULL && co->co_argcount == 0 &&
+        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
+#else
+    if ( argdefs == NULL && co->co_argcount == 0 &&
+        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
+#endif
+    {
+        PyThreadState *tstate = PyThreadState_GET();
+        assertObject( globals );
+
+        PyFrameObject *frame = PyFrame_New( tstate, co, globals, NULL );
+
+        if (unlikely( frame == NULL ))
+        {
+            throw PythonException();
+        };
+
+        PyObject *result = PyEval_EvalFrameEx( frame, 0 );
+
+        // Frame release protects against recursion as it may lead to variable
+        // destruction.
+        ++tstate->recursion_depth;
+        Py_DECREF( frame );
+        --tstate->recursion_depth;
+
+        if ( result == NULL )
+        {
+            throw PythonException();
+        }
+
+        return result;
+    }
+
+    PyObject **defaults = NULL;
+    int nd = 0;
+
+    if ( argdefs != NULL )
+    {
+        defaults = &PyTuple_GET_ITEM( argdefs, 0 );
+        nd = Py_SIZE( argdefs );
+    }
+
+    PyObject *result = PyEval_EvalCodeEx(
+#if PYTHON_VERSION >= 300
+        (PyObject *)co,
+#else
+        co,        // code object
+#endif
+        globals,   // globals
+        NULL,      // no locals
+        NULL,      // args
+        0,         // argcount
+        NULL,      // kwds
+        0,         // kwcount
+        defaults,  // defaults
+        nd,        // defcount
+#if PYTHON_VERSION >= 300
+        kwdefs,
+#endif
+        PyFunction_GET_CLOSURE( func )
+    );
+
+    if ( result == 0 )
+    {
+        throw PythonException();
+    }
+
+    return result;
+}
+
+PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
+{
+    assertObject( called );
+
+    if ( Nuitka_Function_Check( called ) )
+    {
+        if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
+        {
+            throw PythonException();
+        }
+
+        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
+        PyObject *result;
+
+        if ( function->m_direct_arg_parser )
+        {
+            result = function->m_direct_arg_parser(
+                function,
+                NULL,
+                0
+            );
+        }
+        else
+        {
+            result = function->m_code(
+                function,
+                NULL,
+                0,
+                NULL
+            );
+        }
+
+        Py_LeaveRecursiveCall();
+
+        if ( result == NULL )
+        {
+            throw PythonException();
+        }
+
+        return result;
+    }
+    else if ( Nuitka_Method_Check( called ) )
+    {
+        Nuitka_MethodObject *method = (Nuitka_MethodObject *)called;
+
+        // Unbound method without arguments, let the error path be slow.
+        if ( method->m_object != NULL )
+        {
+            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
+            {
+                throw PythonException();
+            }
+
+            PyObject *args[1] = {
+                method->m_object
+            };
+            PyObject *result;
+
+            if ( method->m_function->m_direct_arg_parser )
+            {
+                result = method->m_function->m_direct_arg_parser(
+                    method->m_function,
+                    args,
+                    1
+                );
+            }
+            else
+            {
+                result = method->m_function->m_code(
+                    method->m_function,
+                    args,
+                    1,
+                    NULL
+                );
+            }
+
+            Py_LeaveRecursiveCall();
+
+            if ( result == NULL )
+            {
+                throw PythonException();
+            }
+
+            return result;
+        }
+    }
+    else if ( PyFunction_Check( called ) )
+    {
+        return _fast_function_noargs( called );
+    }
+
+    return CALL_FUNCTION(
+        called,
+        _python_tuple_empty,
+        NULL
+    );
 }
 
 #ifdef _NUITKA_PORTABLE
@@ -1742,8 +1919,9 @@ void _initBuiltinOriginalValues()
     assertObject( _python_original_builtin_value_range );
 }
 
-#if PYTHON_VERSION >= 300
-volatile int _Py_Ticker = _Py_CheckInterval;
 #endif
 
+// Used for threading.
+#if PYTHON_VERSION >= 300
+volatile int _Py_Ticker = _Py_CheckInterval;
 #endif

@@ -17,10 +17,11 @@
 #
 """ Variable closure taking.
 
-This is the completion of variable object completion. The variables were not immediately
-resolved to be bound to actual scopes, but are only now.
+This is the completion of variable object completion. The variables were not
+immediately resolved to be bound to actual scopes, but are only now.
 
-Only after this is executed, variable reference nodes can be considered complete.
+Only after this is executed, variable reference nodes can be considered
+complete.
 """
 
 from nuitka import SyntaxErrors
@@ -28,27 +29,28 @@ from nuitka import SyntaxErrors
 from nuitka.Utils import python_version
 from nuitka.Options import isFullCompat
 
-from .Operations import VisitorNoopMixin, visitScopes
+from .Operations import VisitorNoopMixin, visitTree
 
-from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
+from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 
-# Note: We do the variable scope assignment, as an extra step from tree building, because
-# it will build the tree without any consideration of evaluation order. And only the way
-# these visitors are entered, will ensure this order.
+# Note: We do the variable scope assignment, as an extra step from tree
+# building, because it will build the tree without any consideration of
+# evaluation order. And only the way these visitors are entered, will ensure
+# this order.
 
-# The main complexity is that there are two ways of visiting. One where variable lookups
-# are to be done immediately, and one where it is delayed. This is basically class vs.
-# function.
+# The main complexity is that there are two ways of visiting. One where variable
+# lookups are to be done immediately, and one where it is delayed. This is
+# basically class vs. function scope handling.
 
 class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
     """ Variable closure phase 1: Find assignments and early closure references.
 
-        In class context, a reference to a variable must be obeyed immediately, so
-        that "variable = variable" takes first "variable" as a closure and then adds
-        a new local "variable" to override it from there on. For the not early closure
-        case of a function, this will not be done and only assigments shall add local
-        variables, and references be ignored until phase 2.
+        In class context, a reference to a variable must be obeyed immediately,
+        so that "variable = variable" takes first "variable" as a closure and
+        then adds a new local "variable" to override it from there on. For the
+        not early closure case of a function, this will not be done and only
+        assigments shall add local variables, and references will be ignored
+        until phase 2.
     """
 
     def onEnterNode( self, node ):
@@ -110,8 +112,8 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                             display_file = not isFullCompat(),
                             display_line = not isFullCompat()
                         )
-        # Attribute access of names of class functions should be mangled, if they start
-        # with "__", but do not end in "__" as well.
+        # Attribute access of names of class functions should be mangled, if
+        # they start with "__", but do not end in "__" as well.
         elif node.isExpressionAttributeLookup() or node.isStatementAssignmentAttribute() or \
              node.isStatementDelAttribute():
             attribute_name = node.getAttributeName()
@@ -136,7 +138,8 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                         break
                     else:
                         seen_function = True
-        # Check if continue and break are properly in loops. If not, raise a syntax error.
+        # Check if continue and break are properly in loops. If not, raise a
+        # syntax error.
         elif node.isStatementBreakLoop() or node.isStatementContinueLoop():
             current = node
 
@@ -176,37 +179,40 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                     break
 
     def onLeaveNode( self, node ):
-        # Return statements in generators are not really that, instead they are exception
-        # raises, fix that up now. Doing it right from the onset, would be a bit more
-        # difficult, as the knowledge that something is a generator, requires a second
-        # pass.
-        if node.isStatementReturn() and node.getParentVariableProvider().isGenerator():
+        # Return statements in generators are not really that, instead they are
+        # exception raises, fix that up now. Doing it right from the onset,
+        # would be a bit more difficult, as the knowledge that something is a
+        # generator, requires a second pass.
+        if node.isStatementReturn() and \
+           node.getParentVariableProvider().isGenerator():
+            return_value = node.getExpression()
+
+            if python_version < 330:
+                if not return_value.isExpressionConstantRef() or \
+                   return_value.getConstant() is not None:
+                    SyntaxErrors.raiseSyntaxError(
+                        "'return' with argument inside generator",
+                        source_ref   = node.getSourceReference(),
+                    )
+
             node.replaceWith(
-                StatementRaiseException(
-                    exception_type  = ExpressionBuiltinExceptionRef(
-                        exception_name = "StopIteration",
-                        source_ref     = node.getSourceReference()
-                    ),
-                    exception_value = None,
-                    exception_trace = None,
-                    exception_cause = None,
-                    source_ref      = node.getSourceReference()
+                StatementGeneratorReturn(
+                    expression  = return_value,
+                    source_ref  = node.getSourceReference()
                 )
             )
-
 
 
 class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):
     """ Variable closure phase 2: Find assignments and references.
 
-        In class context, a reference to a variable must be obeyed immediately, so
-        that "variable = variable" takes first "variable" as a closure and then adds
-        a new local "variable" to override it from there on.
+        In class context, a reference to a variable must be obeyed immediately,
+        so that "variable = variable" takes first "variable" as a closure and
+        then adds a new local "variable" to override it from there on.
 
-        So, assignments for early closure, accesses will already have a variable set now,
-        the others, only now.
+        So, assignments for early closure, accesses will already have a
+        variable set now, the others, only in this phase.
     """
-
 
     def onEnterNode( self, node ):
         if node.isExpressionVariableRef() and node.getVariable() is None:
@@ -225,7 +231,8 @@ class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):
             assert not (node.getParent().isStatementDelVariable())
 
             # Need to catch functions with "exec" not allowed.
-            if python_version < 300 and provider.isExpressionFunctionBody() and \
+            if python_version < 300 and \
+               provider.isExpressionFunctionBody() and \
                variable.isReference() and \
                  (not variable.isModuleVariableReference() or \
                   not variable.isFromGlobalStatement() ):
@@ -238,12 +245,16 @@ class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):
 
                 if parent_provider.isExpressionFunctionBody() and \
                    parent_provider.isUnqualifiedExec():
-                    lines = open( node.source_ref.getFilename(), "rU" ).readlines()
+                    lines = open(
+                        node.source_ref.getFilename(),
+                        "rU"
+                    ).readlines()
+
                     exec_line_number = parent_provider.getExecSourceRef().getLineNumber()
 
                     raise SyntaxError(
-                        """unqualified exec is not allowed in function '%s' it contains \
-a nested function with free variables""" % parent_provider.getName(),
+                        """unqualified exec is not allowed in function '%s' it \
+contains a nested function with free variables""" % parent_provider.getName(),
                         (
                             node.source_ref.getFilename(),
                             exec_line_number,
@@ -253,8 +264,8 @@ a nested function with free variables""" % parent_provider.getName(),
 
                     )
 
-    # For Python3, every function is supposed to take "__class__" as a reference, so make
-    # sure that happens.
+    # For Python3, every function is supposed to take "__class__" as a
+    # reference, so make sure that happens.
     if python_version >= 300:
         def onLeaveNode( self, node ):
             if node.isExpressionFunctionBody() and node.isClassClosureTaker():
@@ -302,4 +313,8 @@ def completeVariableClosures( tree ):
         )
 
     for visitor in visitors:
-        visitScopes( tree, visitor )
+        visitTree( tree, visitor )
+
+        if tree.isPythonModule():
+            for function in tree.getFunctions():
+                visitTree( function, visitor )

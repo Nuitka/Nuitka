@@ -18,6 +18,8 @@
 #ifndef __NUITKA_BUILTINS_H__
 #define __NUITKA_BUILTINS_H__
 
+#include "__helpers.hpp"
+
 extern PyModuleObject *module_builtin;
 extern PyDictObject *dict_builtin;
 
@@ -77,9 +79,9 @@ public:
 
     PyObject *call1( PyObject *arg )
     {
-        return CALL_FUNCTION_WITH_POSARGS(
+        return CALL_FUNCTION_WITH_ARGS1(
             this->asObject(),
-            PyObjectTemporary( MAKE_TUPLE1( arg ) ).asObject()
+            arg
         );
     }
 

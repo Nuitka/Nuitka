@@ -108,11 +108,20 @@ def genexprSend():
     print "Send return value", y
     print "And then next gave", x.next()
 
-    print "Throwing an exception from it."
+    print "Throwing an exception to it."
+    try:
+        x.throw( 2, 2, None )
+        assert False
+    except TypeError, e:
+        print "Gave expected TypeError:", e
+
+    print "Throwing an exception to it."
     try:
         x.throw( ValueError, 2, None )
     except ValueError, e:
-        print "Gave expected ValueError with text:", e
+        print "Gave expected ValueError:", e
+
+
 
     try:
         x.next()

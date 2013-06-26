@@ -96,6 +96,13 @@ class ParameterSpecTuple:
 
         return result
 
+    def hasNestedParameterVariables( self ):
+        for variable in self.normal_variables:
+            if variable.isNestedParameterVariable():
+                return True
+        else:
+            return False
+
     def getAllVariables( self ):
         result = self.normal_variables[:]
 
@@ -295,20 +302,20 @@ class ParameterSpec( ParameterSpecTuple ):
             else:
                 result.append( variable.getName() )
 
-        return tuple( result )
+        if self.list_star_variable is not None:
+            result.append( self.list_star_arg )
 
-    def mightBeClassMethod( self ):
-        # Note: It's only a convention, but one generally adhered, so use the
-        # presence of a "self" to detect of a "method" entry point makes sense.
+        if self.dict_star_variable is not None:
+            result.append( self.dict_star_arg )
 
-        # TODO: Not need to use variable, this got moved to here.
-        return self.normal_args and self.normal_args[0] == "self"
+        return result
 
 
 # Note: Based loosley on "inspect.getcallargs" with corrections.
 def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, positional, pairs, improved = False  ):
-    # This is of incredible code complexity, but there really is no other way to express
-    # this with less statements, branches, or variables. pylint: disable=R0914,R0912,R0915
+    # This is of incredible code complexity, but there really is no other way to
+    # express this with less statements, branches, or variables.
+    # pylint: disable=R0914,R0912,R0915
 
     assert type( positional ) is tuple
     assert type( pairs ) in ( tuple, list )

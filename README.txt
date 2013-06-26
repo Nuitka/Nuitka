@@ -29,6 +29,8 @@ Requirements
      The created binaries can be made executable independent of the Python
      installation, with ``--portable`` option.
 
+     CURRENTLY not FINISHED code, so disabled.
+
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits),
 
   Others may work as well. The portability is expected to be generally good, but
@@ -104,6 +106,8 @@ given directory shall also be included in the executable:
    ``--portable`` and copy the generated "_python" directory and "_python.zip"
    archives as well.
 
+   CURRENTLY not FINISHED code, so disabled.
+
 Use Case 2 - Extension Module compilation
 -----------------------------------------
 
@@ -136,6 +140,54 @@ feasible, use Nuitka like this:
    The recursion into the package directory needs to be provided manually,
    otherwise the package is empty. Data files located inside the package will
    not be embedded yet.
+
+Use Case 4 - Cross compilation to Windows
+-----------------------------------------
+
+Nuitka can cross compile to Windows from other platforms, specifically Linux, and these are the instructions on how to do it.
+
+1. Make sure to have the latest wine installed.
+
+   .. code-block:: bash
+
+      apt-get install wine-unstable
+
+   .. note::
+
+      Make sure to actually use the "i386" architecture. From multiarch enabled
+      debian systems, that may mean to say "wine-unstable:i386", otherwise it
+      won't work.
+
+2. Make sure to use the latest "mxe" environment as the cross compiler.
+
+   .. code-block:: bash
+
+      git clone https://github.com/mxe/mxe.git
+      cd mxe
+      make gcc
+      mkdir -p /opt
+      cd /opt
+      ln -s $OLDPWD mingw
+
+   Nuitka will use "/opt/mingw" to locate the cross compiler.
+
+3. Install the *same* Python version as you have under Linux.
+
+   .. code-block:: bash
+
+      wine msiexec /i python-2.7.5.msi
+
+   .. note::
+
+      You don't have to install documentation, TCL/Tk files, or Python tests to
+      preserve disk space.
+
+.. code-block:: bash
+
+    nuitka-python --windows-target program.py
+
+To test the binary, use "wine program.exe", the "nuitka-python" does it
+automatically for you.
 
 Where to go next
 ================
@@ -222,40 +274,6 @@ The ``co_code`` attribute of code objects
 The code objects are empty for for native compiled functions. There is no
 bytecode with Nuitka's compiled function objects, so there is no way to provide
 it.
-
-Threading can block it seems
-----------------------------
-
-Bug tracker link: `"Threading is not supported, never yields the execution to
-other threads" <http://bugs.nuitka.net/issue10>`_
-
-The generated code never lets the CPython run time switch threads, so its
-chances to do so are reduced, which may lead to dead lock problems.
-
-.. note::
-
-   There is an option ``--experimental`` which adds support for it. Future
-   versions will support threading.
-
-
-Start of function call vs. end of function call in traceback output
--------------------------------------------------------------------
-
-Bug tracker link: `"In tracebacks Nuitka uses start of call line, whereas
-CPython uses end of call line" <http://bugs.nuitka.net/issue9>`_
-
-In CPython the traceback points to the end of the function call, whereas in
-Nuitka they point to the first line of the function call.
-
-This is due to the use of the ``ast.parse`` over bytecode it seems and not easy
-to overcome. It would require parsing the Python source on our own and search
-for the end of the function call.
-
-Maybe someone will do it someday. Help is welcome.
-
-We can consider making the compatible behaviour optional, and use it for the
-tests only as the called expression clearly is more useful to see then the
-closing brace.
 
 
 Optimization

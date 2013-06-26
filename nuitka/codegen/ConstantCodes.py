@@ -21,7 +21,6 @@
 
 from .Pickling import getStreamedConstant
 from .CppStrings import encodeString
-from .Indentation import indented
 
 from .TupleCodes import addMakeTupleUse
 from .ListCodes import addMakeListUse
@@ -31,7 +30,6 @@ from .DictCodes import addMakeDictUse
 from ..__past__ import unicode, long, iterItems
 # pylint: enable=W0622
 
-from ..Utils import python_version
 from ..Constants import HashableConstant, constant_builtin_types
 
 import re, struct
@@ -297,8 +295,8 @@ def _lengthKey( value ):
 the_contained_constants = {}
 
 def getConstantsInitCode( context ):
-    # There are many cases for constants to be created in the most efficient way,
-    # pylint: disable=R0912
+    # There are many cases for constants to be created in the most efficient
+    # way, pylint: disable=R0912
 
     statements = []
 
@@ -321,75 +319,12 @@ def getConstantsInitCode( context ):
             context             = context
         )
 
-    for code_object_key, code_identifier in context.getCodeObjects():
-        co_flags = []
-
-        if code_object_key[2] != 0:
-            co_flags.append( "CO_NEWLOCALS" )
-
-        if code_object_key[5]:
-            co_flags.append( "CO_GENERATOR" )
-
-        if code_object_key[6]:
-            co_flags.append( "CO_OPTIMIZED" )
-
-        if python_version < 300:
-            code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
-                code_identifier.getCode(),
-                getConstantCode(
-                    constant = code_object_key[0],
-                    context  = context
-                ),
-                getConstantCode(
-                    constant = code_object_key[1],
-                    context  = context
-                ),
-                code_object_key[2],
-                getConstantCode(
-                    constant = code_object_key[3],
-                    context  = context
-                ),
-                len( code_object_key[3] ),
-                " | ".join( co_flags ) or "0",
-            )
-        else:
-            code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
-                code_identifier.getCode(),
-                getConstantCode(
-                    constant = code_object_key[0],
-                    context  = context
-                ),
-                getConstantCode(
-                    constant = code_object_key[1],
-                    context  = context
-                ),
-                code_object_key[2],
-                getConstantCode(
-                    constant = code_object_key[3],
-                    context  = context
-                ),
-                len( code_object_key[3] ),
-                code_object_key[4],
-                " | ".join( co_flags ) or  "0",
-            )
-
-
-        statements.append( code )
-
-    return indented( statements )
+    return statements
 
 def getConstantsDeclCode( context, for_header ):
     # There are many cases for constants of different types.
     # pylint: disable=R0912
     statements = []
-
-    for _code_object_key, code_identifier in context.getCodeObjects():
-        declaration = "PyCodeObject *%s;" % code_identifier.getCode()
-
-        if for_header:
-            declaration = "extern " + declaration
-
-        statements.append( declaration )
 
     constants = context.getConstants()
 
@@ -452,4 +387,4 @@ def getConstantsDeclCode( context, for_header ):
         global the_contained_constants
         the_contained_constants = contained_constants
 
-    return "\n".join( statements )
+    return statements

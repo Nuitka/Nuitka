@@ -17,8 +17,8 @@
 #
 """ Operations on the tree.
 
-This is mostly for the different kinds of visits that the node tree can have. You
-can visit a scope, a tree (module), or every scope of a tree (module).
+This is mostly for the different kinds of visits that the node tree can have.
+You can visit a scope, a tree (module), or every scope of a tree (module).
 
 """
 
@@ -34,23 +34,15 @@ def visitTree( tree, visitor ):
     visitor.onLeaveNode( tree )
 
 
-def visitScopes( tree, visitor ):
-    visitTree( tree, visitor )
-
-    for function in tree.getFunctions():
-        visitTree( function, visitor )
-
-def visitFunctions( tree, visitor ):
-    for function in tree.getFunctions():
-        visitor.onEnterNode( function )
-        visitor.onLeaveNode( function )
-
+def visitFunction( function, visitor ):
+    visitor.onEnterNode( function )
+    visitor.onLeaveNode( function )
 
 class VisitorNoopMixin:
     def onEnterNode( self, node ):
-        """ To be optionally overloaded for operation before the node children were done. """
+        """ Overloaded for operation before the node children were done. """
         pass
 
     def onLeaveNode( self, node ):
-        """ To be optionally overloaded for operation after the node children were done. """
+        """ Overloaded for operation after the node children were done. """
         pass

@@ -19,9 +19,10 @@
 
 """
 
-This is the main program of Nuitka, it checks the options and then translates one or more
-modules to a C++ source code using Python C/API in a build directory compiles it to either
-an executable or an extension module.
+This is the main program of Nuitka, it checks the options and then translates
+one or more modules to a C++ source code using Python C/API in a build directory
+compiles it to either an executable or an extension module that can contain
+other modules.
 
 """
 
@@ -37,12 +38,16 @@ if libdir != '@' 'LIBDIR' '@':
     # Changed by our distutils hook, then use the given path.
 
     if not os.path.isabs( libdir ):
-        libdir = os.path.join( os.path.dirname( os.path.realpath( __file__ ) ), libdir )
+        libdir = os.path.join(
+            os.path.dirname( os.path.realpath( __file__ ) ),
+            libdir
+        )
         libdir = os.path.abspath( libdir )
 
     sys.path.insert( 0, libdir )
 else:
-    # Unchanged, running from checkout, use the parent directory, the nuitka package ought be there.
+    # Unchanged, running from checkout, use the parent directory, the nuitka
+    # package ought be there.
     sys.path.insert( 0, os.path.join( os.path.dirname( __file__ ), ".." ) )
 # LIBDIR trick end (marker for removal on platforms that don't need it)
 
@@ -58,8 +63,8 @@ from nuitka import Options
 
 intended_version = Options.getIntendedPythonVersion()
 
-# Make sure on the promise to execute with a specific version. When compiled, this may
-# not be supported.
+# Make sure on the promise to execute with a specific version. When compiled,
+# this may not be supported.
 if intended_version is not None:
     current_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
@@ -67,7 +72,8 @@ if intended_version is not None:
         assert intended_version in ( "2.6", "2.7", "3.2", "3.3" )
 
         if os.name == "nt":
-            python_binary = r"C:\Python%s\python.exe" % intended_version.replace( ".", "" )
+            python_binary = r"C:\Python%s\python.exe" % \
+              intended_version.replace( ".", "" )
         else:
             python_binary = "/usr/bin/python" + intended_version
 
@@ -84,8 +90,8 @@ assert len( positional_args ) > 0
 
 filename = Options.getPositionalArgs()[0]
 
-# Inform the importing layer about the main script directory, so it can use it when
-# attempting to follow imports.
+# Inform the importing layer about the main script directory, so it can use it
+# when attempting to follow imports.
 Importing.setMainScriptDirectory(
     main_dir = os.path.dirname( os.path.abspath( filename ) )
 )
@@ -97,7 +103,20 @@ try:
     )
 except (SyntaxError, IndentationError) as e:
     if Options.isFullCompat() and e.args[0].startswith( "unknown encoding:" ):
-        e.args = ( "encoding problem: with BOM", ( e.args[1][0], 1, None, None ) )
+        # False alarm, pylint: disable=E0611
+        from nuitka.Utils import python_version
+
+        if python_version < 300 and python_version >= 275:
+            complaint = "no-exist"
+        elif python_version >= 332:
+            complaint = "no-exist"
+        else:
+            complaint = "with BOM"
+
+        e.args = (
+            "encoding problem: %s" % complaint,
+            ( e.args[1][0], 1, None, None )
+        )
 
     sys.exit( SyntaxErrors.formatOutput( e ) )
 
@@ -126,13 +145,14 @@ else:
         if not PortableSetup.setup( filename, Options.getOutputDir() ):
             sys.exit( 1 )
 
-    # Sanity check, warn people if "__main__" is used in the compiled module, it may not
-    # be the appropiate usage.
+    # Sanity check, warn people if "__main__" is used in the compiled module, it
+    # may not be the appropiate usage.
     if Options.shallMakeModule() and Options.shallExecuteImmediately():
         for variable in tree.getVariables():
             if variable.getName() == "__name__":
-                warning( """Compiling to extension module, which will not have '__name__' \
-as '__main__', did you intend '--exe' or to use 'nuitka-python' instead.""" )
+                warning( """\
+Compiling to extension module, which will not have '__name__' as '__main__', \
+did you intend '--exe' or to use 'nuitka-python' instead.""" )
                 break
 
     # Execute the module immediately if option was given.
