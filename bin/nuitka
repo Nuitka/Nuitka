@@ -108,6 +108,8 @@ except (SyntaxError, IndentationError) as e:
 
         if python_version < 300 and python_version >= 275:
             complaint = "no-exist"
+        elif python_version >= 332:
+            complaint = "no-exist"
         else:
             complaint = "with BOM"
 
