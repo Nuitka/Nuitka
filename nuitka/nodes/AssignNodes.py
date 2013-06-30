@@ -17,8 +17,8 @@
 #
 """ Assignment related nodes.
 
-All kinds of assignment targets as well as the assignment statement and expression are
-located here. These are the core of value control flow.
+All kinds of assignment targets as well as the assignment statement and
+expression are located here. These are the core of value control flow.
 
 """
 
@@ -103,7 +103,8 @@ class StatementAssignmentAttribute( StatementChildrenHavingBase ):
         constraint_collection.onExpression( self.getAssignSource() )
         source = self.getAssignSource()
 
-        # No assignment will occur, if the assignment source raises, so strip it away.
+        # No assignment will occur, if the assignment source raises, so strip it
+        # away.
         if source.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
@@ -112,7 +113,8 @@ class StatementAssignmentAttribute( StatementChildrenHavingBase ):
                 node       = self
             )
 
-            return result, "new_raise", "Attribute assignment raises exception in assigned value, removed assignment"
+            return result, "new_raise", """\
+Attribute assignment raises exception in assigned value, removed assignment"""
 
         constraint_collection.onExpression( self.getLookupSource() )
         lookup_source = self.getLookupSource()
@@ -127,7 +129,8 @@ class StatementAssignmentAttribute( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Attribute assignment raises exception in attribute source, removed assignment"
+            return result, "new_raise", """\
+Attribute assignment raises exception in attribute source, removed assignment"""
 
         return self, None, None
 
@@ -156,7 +159,8 @@ class StatementAssignmentSubscript( StatementChildrenHavingBase ):
         constraint_collection.onExpression( self.getAssignSource() )
         source = self.getAssignSource()
 
-        # No assignment will occur, if the assignment source raises, so strip it away.
+        # No assignment will occur, if the assignment source raises, so strip it
+        # away.
         if source.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
@@ -165,7 +169,8 @@ class StatementAssignmentSubscript( StatementChildrenHavingBase ):
                 node       = self
             )
 
-            return result, "new_raise", "Subscript assignment raises exception in assigned value, removed assignment"
+            return result, "new_raise", """\
+Subscript assignment raises exception in assigned value, removed assignment"""
 
         constraint_collection.onExpression( self.getSubscribed() )
         subscribed = self.getSubscribed()
@@ -180,7 +185,8 @@ class StatementAssignmentSubscript( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Subscript assignment raises exception in subscribed value, removed assignment"
+            return result, "new_raise", """\
+Subscript assignment raises exception in subscribed value, removed assignment"""
 
         constraint_collection.onExpression( self.getSubscript() )
         subscript = self.getSubscript()
@@ -196,7 +202,8 @@ class StatementAssignmentSubscript( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Subscript assignment raises exception in subscript value, removed assignment"
+            return result, "new_raise", """
+Subscript assignment raises exception in subscript value, removed assignment"""
 
         return self, None, None
 
@@ -227,7 +234,8 @@ class StatementAssignmentSlice( StatementChildrenHavingBase ):
         constraint_collection.onExpression( self.getAssignSource() )
         source = self.getAssignSource()
 
-        # No assignment will occur, if the assignment source raises, so strip it away.
+        # No assignment will occur, if the assignment source raises, so strip it
+        # away.
         if source.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
@@ -236,7 +244,8 @@ class StatementAssignmentSlice( StatementChildrenHavingBase ):
                 node       = self
             )
 
-            return result, "new_raise", "Slice assignment raises exception in assigned value, removed assignment"
+            return result, "new_raise", """\
+Slice assignment raises exception in assigned value, removed assignment"""
 
         constraint_collection.onExpression( self.getLookupSource() )
         lookup_source = self.getLookupSource()
@@ -251,7 +260,8 @@ class StatementAssignmentSlice( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Slice assignment raises exception in sliced value, removed assignment"
+            return result, "new_raise", """\
+Slice assignment raises exception in sliced value, removed assignment"""
 
         constraint_collection.onExpression( self.getLower(), allow_none = True )
         lower = self.getLower()
@@ -268,7 +278,8 @@ class StatementAssignmentSlice( StatementChildrenHavingBase ):
             )
 
             return result, "new_raise", """\
-Slice assignment raises exception in lower slice boundary value, removed assignment."""
+Slice assignment raises exception in lower slice boundary value, removed\
+assignment."""
 
         constraint_collection.onExpression( self.getUpper(), allow_none = True )
         upper = self.getUpper()
@@ -437,8 +448,8 @@ class StatementDelSubscript( StatementChildrenHavingBase ):
                 node       = self
             )
 
-            return result, "new_raise", "Subscript del raises exception in subscribed value, removed del"
-
+            return result, "new_raise", """\
+Subscript del raises exception in subscribed value, removed del"""
 
         constraint_collection.onExpression( self.getSubscript() )
         subscript = self.getSubscript()
@@ -453,7 +464,8 @@ class StatementDelSubscript( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Subscript del raises exception in subscribt value, removed del"
+            return result, "new_raise", """\
+Subscript del raises exception in subscribt value, removed del"""
 
         return self, None, None
 
@@ -490,7 +502,8 @@ class StatementDelSlice( StatementChildrenHavingBase ):
                 node       = self
             )
 
-            return result, "new_raise", "Slice del raises exception in sliced value, removed del"
+            return result, "new_raise", """\
+Slice del raises exception in sliced value, removed del"""
 
 
         constraint_collection.onExpression( self.getLower(), allow_none = True )
@@ -506,7 +519,8 @@ class StatementDelSlice( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Slice del raises exception in lower slice boundary value, removed del"
+            return result, "new_raise", """
+Slice del raises exception in lower slice boundary value, removed del"""
 
         constraint_collection.onExpression( self.getUpper(), allow_none = True )
         upper = self.getUpper()
@@ -522,6 +536,7 @@ class StatementDelSlice( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Slice del raises exception in upper slice boundary value, removed del"
+            return result, "new_raise", """
+Slice del raises exception in upper slice boundary value, removed del"""
 
         return self, None, None

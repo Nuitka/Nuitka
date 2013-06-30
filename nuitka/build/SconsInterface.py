@@ -85,10 +85,6 @@ def runScons( options, quiet ):
         # to the PATH variable before executing scons.
         os.environ[ "PATH" ] += r";\MinGW\bin;C:\MinGW\bin"
 
-    # Scons is Python2 only, so we need to make the system find a suitable
-    # Python binary.
-    python2_exe = getPython2ExePath()
-
     scons_command = """%(scons_call)s %(quiet)s --warn=no-deprecated \
 -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
         "scons_call" : getSconsBinaryPath(),

@@ -28,9 +28,11 @@ import sys
 
 def _getBuiltinExceptionNames():
     def isExceptionName( builtin_name ):
-        if builtin_name.endswith( "Error" ) or builtin_name.endswith( "Exception" ):
+        if builtin_name.endswith( "Error" ) or \
+           builtin_name.endswith( "Exception" ):
             return True
-        elif builtin_name in ( "StopIteration", "GeneratorExit", "SystemExit", "NotImplemented", "KeyboardInterrupt" ):
+        elif builtin_name in ( "StopIteration", "GeneratorExit", "SystemExit",
+                               "NotImplemented", "KeyboardInterrupt" ):
             return True
         else:
             return False
@@ -122,14 +124,16 @@ builtin_all_names = builtin_names + builtin_exception_names + builtin_warnings
 
 def _getAnonBuiltins():
     anon_names = {
-        "NoneType"                   : type( None ), # Strangely not Python3 types module
+        # Strangely not Python3 types module
+        "NoneType"                   : type( None ),
         "ellipsis"                   : type( Ellipsis ), # see above
         "NotImplementedType"         : type( NotImplemented ),
         "function"                   : FunctionType,
         "builtin_function_or_method" : BuiltinFunctionType,
-        "compiled_function"          : BuiltinFunctionType, # Can't really have it any better way.
+        # Can't really have it any better way.
+        "compiled_function"          : BuiltinFunctionType,
         "generator"                  : GeneratorType,
-        "compiled_generator"         : GeneratorType, # Can't really have it any better way.
+        "compiled_generator"         : GeneratorType, # see above
     }
 
     anon_codes = {
