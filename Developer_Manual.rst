@@ -1319,7 +1319,7 @@ the ``if``/``else`` expressions and are therefore re-formulated as such:
 
 .. code-block:: python
 
-   expr2() if ( _tmp = expr1() ) else expr1()
+   expr2() if ( _tmp = expr1() ) else _tmp
 
 In this form, the differences between these two operators becomes very apparent,
 the operands are simply switching sides.
@@ -1976,8 +1976,8 @@ decided "aborting" too. If a loop doesn't break, it should be considered
 .. note::
 
    The removal of statements following "aborting" statements is implemented, and
-   so is the discovery of abortative conditional statements. It's not yet done
-   for loops, temp blocks, etc. though.
+   so is the discovery of abortive conditional statements. It's not yet done for
+   loops, temp blocks, etc. though.
 
 So, ``return`` statements are easy for local optimization. In the general
 picture, it would be sweet to collect all return statements, and analyze the
