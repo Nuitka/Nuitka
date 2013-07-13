@@ -1,9 +1,24 @@
 Nuitka Release 0.4.5 (Draft)
 ============================
 
+Bug Fixes
+---------
+
+- When targeting Python 3.x, Nuitka was using "python" to run Scons to run it
+  under Python 2.x, which is not good enough on systems, where that is already
+  Python3. Improved to only do the guessing where necessary (i.e. when using the
+  inline copy of Scons) and then to prefer "python2". `Issue#95
+  <http://bugs.nuitka.net/issue95>`_. Fixed in 0.4.4.1 already.
+
+- When using Nuitka created binaries inside a "virtualenv", created programs
+  would instantly crash. The attempt to load and patch ``inspect`` module was
+  not making sure that ``site`` module was already imported, but inside the
+  "virtualenv", it cannot be found unless. `Issue#96
+  <http://bugs.nuitka.net/issue96>`_. Fixed in 0.4.4.1 already.
+
+
 New Features
 ------------
-
 
 - Portable Binaries.
 
@@ -1212,10 +1227,6 @@ Organizational
 
 - Catch exceptions for ``continue``, ``break``, and ``return`` only where needed
   for ``try``/``finally`` and loop constructs.
-
-- Catch exceptions for ``continue``, ``break``, and ``return`` only where needed for
-  ``try``/``finally`` and loop constructs.
-
 
 New Tests
 ---------
