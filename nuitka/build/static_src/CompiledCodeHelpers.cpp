@@ -662,6 +662,7 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     assertObject( globals );
     assertObject( locals );
     assertObject( import_items );
+    assertObject( level );
 
     PyObject *import_result;
 

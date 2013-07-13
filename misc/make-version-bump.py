@@ -110,6 +110,7 @@ if "pre" in new_version:
         os.system( 'debchange --newversion=%s ""'  % debian_version )
 else:
     if "pre" in version_line:
+        # Initial final release after pre-releases.
         changelog_lines = open( "debian/changelog" ).readlines()
         with open( "debian/changelog", "w" ) as output:
             first = True
@@ -123,8 +124,9 @@ else:
         os.system( 'debchange -R "New upstream release."' )
         os.system( 'debchange --newversion=%s ""'  % debian_version )
     else:
-        assert False
-
+        # Hotfix release after previous final or hotfix release.
+        os.system( 'debchange -R "New upstream hotfix release."' )
+        os.system( 'debchange --newversion=%s ""'  % debian_version )
 
 spec_lines = [ line for line in open( "misc/nuitka.spec" ) ]
 

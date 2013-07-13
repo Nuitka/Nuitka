@@ -33,10 +33,39 @@ def getSconsInlinePath():
     return Utils.joinpath( getSconsDataPath(), "inline_copy" )
 
 def getSconsBinaryPath():
+    """ Return a way to execute Scons.
+
+        Using potentially inline copy if no system Scons is available
+        or if we are on Windows.
+    """
+
     if Utils.isFile( "/usr/bin/scons" ):
         return "/usr/bin/scons"
     else:
-        return Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
+        return "%s %s" % (
+            getPython2ExePath(),
+            Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
+        )
+
+def getPython2ExePath():
+    """ Find a way to call Python2. Scons needs it."""
+
+    if Utils.python_version < 300:
+        return sys.executable
+    elif os.name == "nt":
+        if os.path.exists( r"c:\Python27\python.exe" ):
+            return r"c:\Python27\python.exe"
+        elif os.path.exists( r"c:\Python26\python.exe" ):
+            return r"c:\Python26\python.exe"
+        else:
+            sys.exit( """\
+Error, need to find Python2 executable under C:\\Python26 or \
+C:\\Python27 to execute scons which is not Python3 compatible.""" )
+    elif os.path.exists( "/usr/bin/python2" ):
+        return "python2"
+    else:
+        return "python"
+
 
 def runScons( options, quiet ):
     # For the scons file to find the static C++ files and include path. The
@@ -58,24 +87,11 @@ def runScons( options, quiet ):
 
     # Scons is Python2 only, so we need to make the system find a suitable
     # Python binary.
-    if Utils.python_version < 300:
-        python_exe = sys.executable
-    elif os.name == "nt":
-        if os.path.exists( r"c:\Python27\python.exe" ):
-            python_exe = r"c:\Python27\python.exe"
-        elif os.path.exists( r"c:\Python26\python.exe" ):
-            python_exe = r"c:\Python26\python.exe"
-        else:
-            sys.exit( """\
-Error, need to find Python2 executable under C:\\Python26 or \
-C:\\Python27 to execute scons which is not Python3 compatible.""" )
-    else:
-        python_exe = "python"
+    python2_exe = getPython2ExePath()
 
-    scons_command = """%(python)s %(binary)s %(quiet)s --warn=no-deprecated \
+    scons_command = """%(scons_call)s %(quiet)s --warn=no-deprecated \
 -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
-        "python"     : python_exe,
-        "binary"     : getSconsBinaryPath(),
+        "scons_call" : getSconsBinaryPath(),
         "quiet"      : "--quiet" if quiet else "",
         "scons_file" : Utils.joinpath( getSconsDataPath(), "SingleExe.scons" ),
         "job_limit"  : Options.getJobLimit(),
