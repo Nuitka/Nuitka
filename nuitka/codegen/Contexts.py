@@ -170,6 +170,9 @@ def _getConstantDefaultPopulation():
     if not Options.shallMakeModule():
         result += ( "__main__", )
 
+        # The site module is referenced in inspect patching.
+        result += ( "site", )
+
     # Builtin original values
     if not Options.shallMakeModule():
         result += (

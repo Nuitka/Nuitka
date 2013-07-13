@@ -19,6 +19,7 @@
 #include "nuitka/prelude.hpp"
 
 extern PyObject *_python_str_plain_inspect;
+extern PyObject *_python_str_plain_site;
 extern PyObject *_python_int_0;
 
 static PyObject *module_inspect;
@@ -193,6 +194,15 @@ static PyMethodDef _method_def_inspect_getgeneratorstate_replacement =
 
 void patchInspectModule( void )
 {
+#ifdef _NUITKA_EXE
+    // May need to import the "site" module, because otherwise the patching can
+    // fail.
+    if ( Py_NoSiteFlag == 0 )
+    {
+        IMPORT_MODULE( _python_str_plain_site, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+    }
+#endif
+
     module_inspect = IMPORT_MODULE( _python_str_plain_inspect, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
     assertObject( module_inspect );
 

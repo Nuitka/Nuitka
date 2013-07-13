@@ -148,7 +148,9 @@ def checkChangeLog( message ):
         assert False, message # No new messages.
 
 
-if branch_name.startswith( "release" ) or branch_name == "master":
+if branch_name.startswith( "release" ) or \
+   branch_name == "master" or \
+   branch_name.startswith( "hotfix/" ):
     if nuitka_version.count( "." ) == 2:
         assert checkChangeLog( "New upstream release." )
     else:
