@@ -21,39 +21,72 @@
 
 from nuitka import Utils, Importing, ModuleRegistry
 
-from . import Building
+from . import ImportCache, Building
 
 from logging import info, warning
 
 def recurseTo( module_package, module_filename, module_relpath ):
-    if not Building.isImportedPath( module_relpath ):
-        info( "Recurse to import %s", module_relpath )
+    if not ImportCache.isImportedModuleByPath( module_relpath ):
+        module, source_ref, source_filename = Building.decideModuleTree(
+            filename = module_filename,
+            package  = module_package,
+            is_top   = False,
+            is_main  = False
+        )
 
-        try:
-            _imported_module = Building.buildModuleTree(
-                filename = module_filename,
-                package  = module_package,
-                is_top   = False,
-                is_main  = False
+        # Check if the module name is known. In order to avoid duplicates,
+        # learn the new filename, and continue build if its not.
+        if not ImportCache.isImportedModuleByName( module.getFullName() ):
+            info(
+                "Recurse to import '%s' from %s",
+                module.getFullName(),
+                module_relpath
             )
-        except ( SyntaxError, IndentationError ) as e:
-            if module_filename not in Importing.warned_about:
-                Importing.warned_about.add( module_filename )
 
-                warning(
-                    "Cannot recurse to import module '%s' (%s) because of '%s'",
-                    module_relpath,
-                    module_filename,
-                    e.__class__.__name__
+            try:
+                Building.createModuleTree(
+                    module          = module,
+                    source_ref      = source_ref,
+                    source_filename = source_filename,
+                    is_main         = False
                 )
+            except ( SyntaxError, IndentationError ) as e:
+                if module_filename not in Importing.warned_about:
+                    Importing.warned_about.add( module_filename )
 
-            return None, False
+                    warning(
+                        """\
+Cannot recurse to import module '%s' (%s) because of '%s'""",
+                        module_relpath,
+                        module_filename,
+                        e.__class__.__name__
+                    )
+
+                return None, False
+
+            ImportCache.addImportedModule(
+                module_relpath,
+                module
+            )
+
+            is_added = True
+        else:
+            ImportCache.addImportedModule(
+                module_relpath,
+                ImportCache.getImportedModuleByName( module.getFullName() )
+            )
+
+            module = ImportCache.getImportedModuleByName(
+                module.getFullName()
+            )
+
+            is_added = False
 
         assert not module_relpath.endswith( "/__init__.py" )
 
-        return Building.getImportedModule( module_relpath ), True
+        return module, is_added
     else:
-        return Building.getImportedModule( module_relpath ), False
+        return ImportCache.getImportedModuleByPath( module_relpath ), False
 
 
 def considerFilename( module_filename, module_package ):

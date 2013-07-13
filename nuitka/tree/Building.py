@@ -159,9 +159,9 @@ from .Helpers import (
 
 from .SourceReading import readSourceCodeFromFilename
 
-import ast, sys
+from .ImportCache import addImportedModule
 
-from logging import warning
+import ast, sys
 
 def buildVariableReferenceNode( provider, node, source_ref ):
     # Python3 is influenced by the mere use of a variable name. So we need to
@@ -950,7 +950,6 @@ from __future__ imports must occur at the beginning of the file""",
             )
         )
 
-
     # Now the module body if there is any at all.
     if result is not None:
         statements.extend( result.getStatements() )
@@ -983,39 +982,7 @@ from __future__ imports must occur at the beginning of the file""",
 
     return result
 
-imported_modules = {}
-
-def addImportedModule( module_relpath, imported_module ):
-    if ( module_relpath, "__main__" ) in imported_modules:
-        warning( """\
-Re-importing __main__ module via its filename duplicates the module."""
-        )
-
-    key = module_relpath, imported_module.getName()
-
-    imported_modules[ key ] = imported_module
-
-def isImportedPath( module_relpath ):
-    module_name = Utils.basename( module_relpath )
-
-    if module_name.endswith( ".py" ):
-        module_name = module_name[:-3]
-
-    key = module_relpath, module_name
-
-    return key in imported_modules
-
-def getImportedModule( module_relpath ):
-    module_name = Utils.basename( module_relpath )
-
-    if module_name.endswith( ".py" ):
-        module_name = module_name[:-3]
-
-    key = module_relpath, module_name
-
-    return imported_modules[ key ]
-
-def buildModuleTree( filename, package, is_top, is_main ):
+def decideModuleTree( filename, package, is_top, is_main ):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
 
     assert package is None or type( package ) is str
@@ -1078,19 +1045,14 @@ def buildModuleTree( filename, package, is_top, is_main ):
          Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
         source_filename = Utils.joinpath( filename, "__init__.py" )
 
-        if is_top:
-            source_ref = SourceCodeReferences.fromFilename(
-                filename    = Utils.abspath( source_filename ),
-                future_spec = FutureSpec()
-            )
+        source_ref = SourceCodeReferences.fromFilename(
+            filename    = Utils.abspath( source_filename ),
+            future_spec = FutureSpec()
+        )
 
+        if is_top:
             package_name = Utils.splitpath( filename )[-1]
         else:
-            source_ref = SourceCodeReferences.fromFilename(
-                filename    = Utils.abspath( source_filename ),
-                future_spec = FutureSpec()
-            )
-
             package_name = Utils.basename( filename )
 
         result = PythonPackage(
@@ -1110,15 +1072,19 @@ def buildModuleTree( filename, package, is_top, is_main ):
     if not Options.shallHaveStatementLines():
         source_ref = source_ref.atInternal()
 
+    return result, source_ref, source_filename
+
+def createModuleTree( module, source_ref, source_filename, is_main ):
     source_code = readSourceCodeFromFilename( source_filename )
 
     module_body = buildParseTree(
-        provider    = result,
+        provider    = module,
         source_code = source_code,
         source_ref  = source_ref,
         is_module   = True
     )
 
+    # Add import of "site" module visibly in the node tree.
     if is_main:
         module_body = makeStatementsSequence(
             statements = (
@@ -1137,12 +1103,25 @@ def buildModuleTree( filename, package, is_top, is_main ):
             source_ref = source_ref
         )
 
+    module.setBody( module_body )
 
+    completeVariableClosures( module )
 
-    result.setBody( module_body )
+def buildModuleTree( filename, package, is_top, is_main ):
+    module, source_ref, source_filename = decideModuleTree(
+        filename = filename,
+        package  = package,
+        is_top   = is_top,
+        is_main  = is_main
+    )
 
-    addImportedModule( Utils.relpath( filename ), result )
+    addImportedModule( Utils.relpath( filename ), module )
 
-    completeVariableClosures( result )
+    createModuleTree(
+        module          = module,
+        source_ref      = source_ref,
+        source_filename = source_filename,
+        is_main         = is_main
+    )
 
-    return result
+    return module
