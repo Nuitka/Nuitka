@@ -44,6 +44,8 @@ from .finalizations import Finalization
 
 import sys, os
 
+from logging import warning
+
 def createNodeTree( filename ):
     """ Create a node tree.
 
@@ -201,6 +203,17 @@ def makeSourceDirectory( main_module ):
         modules
         if not m.isMainModule() and not m.isInternalModule()
     )
+
+    # Lets check if the recurse-to modules are actually present.
+    for any_case_module in Options.getShallFollowModules():
+        for module in other_modules:
+            if module.getFullName() == any_case_module:
+                break
+        else:
+            warning(
+                "Didn't recurse to '%s', apparently not used." % \
+                any_case_module
+            )
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in sorted( modules, key = lambda x : x.getFullName() ):
