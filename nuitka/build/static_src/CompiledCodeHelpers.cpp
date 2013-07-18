@@ -26,14 +26,15 @@ static PythonBuiltin _python_builtin_compile( &_python_str_plain_compile );
 
 PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
 {
-    // May be a source, but also could already be a compiled object, in which case this
-    // should just return it.
+    // May be a source, but also could already be a compiled object, in which
+    // case this should just return it.
     if ( PyCode_Check( source_code ) )
     {
         return INCREASE_REFCOUNT( source_code );
     }
 
-    // Workaround leading whitespace causing a trouble to compile builtin, but not eval builtin
+    // Workaround leading whitespace causing a trouble to compile builtin, but
+    // not eval builtin
     PyObject *source;
 
     if (
@@ -1229,8 +1230,8 @@ static PyObject *nuitka_class_getattr( PyClassObject *klass, PyObject *attr_name
 void enhancePythonTypes( void )
 {
 #if PYTHON_VERSION < 300
-    // Our own variant won't call PyEval_GetRestricted, saving quite some cycles not doing
-    // that.
+    // Our own variant won't call PyEval_GetRestricted, saving quite some cycles
+    // not doing that.
     PyClass_Type.tp_setattro = (setattrofunc)nuitka_class_setattr;
     PyClass_Type.tp_getattro = (getattrofunc)nuitka_class_getattr;
 #endif
