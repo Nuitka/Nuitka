@@ -96,6 +96,9 @@ if sys.platform == "darwin" or "freebsd" in sys.platform:
 # Portable mode
 portable_mode = getBoolOption( "portable_mode", False )
 
+# Python home directory, used for finding Python dev files under Windows
+python_home = ARGUMENTS.get( "python_home", None ) if os.name == "nt" else None
+
 def createEnvironment( compiler_tools ):
     return Environment(
         # We want the outside environment to be passed through.
@@ -470,7 +473,8 @@ if win_target:
                 "~/.wine/drive_c/Python" + python_version.replace( ".", "" )
             )
 
-    python_home = os.environ.get( "PYTHON_HOME", guessPythonHome() )
+    if python_home is None:
+        python_home = guessPythonHome()
 
     env.Append( LIBPATH = [ os.path.join( python_home, "libs" ) ] )
 
