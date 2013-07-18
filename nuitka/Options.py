@@ -440,12 +440,14 @@ if is_nuitka_python:
 else:
     extra_args = []
 
+
 options, positional_args = parser.parse_args()
 
 if not positional_args:
     parser.print_help()
 
-    sys.exit( "\nError, need positional argument with python module or main program." )
+    sys.exit( """
+Error, need positional argument with python module or main program.""" )
 
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
@@ -486,8 +488,41 @@ def shallFollowAllImports():
 def getShallFollowModules():
     return sum( [ x.split( "," ) for x in options.recurse_modules ], [] )
 
+for any_case_module in getShallFollowModules():
+    if any_case_module.startswith( "." ):
+        bad = True
+    else:
+        for char in "/\\:":
+            if  char in any_case_module:
+                bad = True
+                break
+        else:
+            bad = False
+
+    if bad:
+        sys.exit( """
+Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
+any_case_module )
+
 def getShallFollowInNoCase():
     return sum( [ x.split( "," ) for x in options.recurse_not_modules ], [] )
+
+for no_case_module in getShallFollowInNoCase():
+    if no_case_module.startswith( "." ):
+        bad = True
+    else:
+        for char in "/\\:":
+            if  char in no_case_module:
+                bad = True
+                break
+        else:
+            bad = False
+
+    if bad:
+        sys.exit( """
+Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" % \
+no_case_module )
+
 
 def getShallFollowExtra():
     return sum( [ x.split( "," ) for x in options.recurse_extra ], [] )
