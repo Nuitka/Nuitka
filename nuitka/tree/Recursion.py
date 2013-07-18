@@ -131,7 +131,7 @@ def _checkPluginPath( plugin_filename, module_package ):
                     plugin_info[0]
                 )
 
-                ModuleRegistry.addRootModule( module )
+            ModuleRegistry.addRootModule( module )
 
             if module.isPythonPackage():
                 package_dir = Utils.dirname( module.getFilename() )
