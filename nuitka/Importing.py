@@ -354,8 +354,14 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test/test_zipimport_support.py
         "test.test_cmd_line_script",
 
-        # Python3 modules that no longer exist
-        "commands",
+        # Python3: modules that no longer exist
+        "commands", "dummy_thread", "_dummy_thread", "httplib", "Queue", "sets",
+
+        # Python2: modules that don't yet exit
+        "http.client", "queue", "winreg",
+
+        # Very old modules with older names
+        "simplejson", "sets",
     )
 
     # TODO: Turn this into a warning that encourages reporting.
