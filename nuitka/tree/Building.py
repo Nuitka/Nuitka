@@ -1070,9 +1070,9 @@ def buildModuleTree( filename, package, is_top, is_main ):
             )
         else:
             result = PythonModule(
-                name       = module_name,
-                package    = package,
-                source_ref = source_ref
+                name         = module_name,
+                package_name = package,
+                source_ref   = source_ref
             )
     elif Utils.isDir( filename ) and \
          Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
@@ -1094,9 +1094,9 @@ def buildModuleTree( filename, package, is_top, is_main ):
             package_name = Utils.basename( filename )
 
         result = PythonPackage(
-            name       = package_name,
-            package    = package,
-            source_ref = source_ref
+            name         = package_name,
+            package_name = package,
+            source_ref   = source_ref
         )
     else:
         sys.stderr.write(

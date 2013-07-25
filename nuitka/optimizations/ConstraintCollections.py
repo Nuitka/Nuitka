@@ -1049,34 +1049,8 @@ class ConstraintCollectionModule( CollectionStartpointMixin,
 
         self.setIndications()
 
-        self.attemptRecursion( module )
+        self.module.attemptRecursion( self )
 
-    def attemptRecursion( self, module ):
-        if not Options.shallMakeModule():
-            # Make sure the package is recursed to.
-            module_package = module.getPackage()
-
-            if module_package is not None:
-                package_package, _package_module_name, package_filename = Importing.findModule(
-                    source_ref     = module.getSourceReference(),
-                    module_name    = module_package,
-                    parent_package = None,
-                    level          = 1,
-                    warn           = True
-                )
-
-                imported_module, added_flag = Recursion.recurseTo(
-                    module_package  = package_package,
-                    module_filename = package_filename,
-                    module_relpath  = Utils.relpath( package_filename )
-                )
-
-                if added_flag:
-                    self.signalChange(
-                        "new_code",
-                        imported_module.getSourceReference(),
-                        "Recursed to module package."
-                    )
 
     def onModuleVariableAssigned( self, variable, value_friend ):
         while variable.isModuleVariableReference():
