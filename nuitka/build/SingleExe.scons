@@ -641,16 +641,19 @@ def discoverSourceFiles():
 
     # If more than one module is included, we need the unfreezer.
     if module_count > 1:
-        result.append( static_src + "/ModuleUnfreezer.cpp" )
+        result.append( os.path.join( static_src, "ModuleUnfreezer.cpp" ) )
 
     # Add the resource file for the manifest to be included in the executable.
     if msvc_mode and not module_mode:
-        result.append( env.RES( os.path.join( source_dir, source_name + ".exe.rc" ) ) )
+        result.append(
+            env.RES( os.path.join( source_dir, source_name + ".exe.rc" ) )
+        )
 
     return result
 
-# Prepare the use of a custom specs file for windows targets. We change the used specs for
-# linking to avoid the use of the wrong (for CPython) run time library.
+# Prepare the use of a custom specs file for windows targets. We change the used
+# specs for linking to avoid the use of the wrong (for CPython) run time
+# library.
 if msvc_mode and not module_mode:
     manifest_file = open( os.path.join(source_dir, source_name + ".exe.manifest" ), "w" )
     manifest_file.write( r"""
