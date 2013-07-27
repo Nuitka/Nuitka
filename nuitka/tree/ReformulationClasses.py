@@ -155,7 +155,7 @@ def _buildClassNode3( provider, node, source_ref ):
                 source_ref    = source_ref
             ),
             source        = ExpressionConstantRef(
-                constant      = provider.getParentModule().getName(),
+                constant      = provider.getParentModule().getFullName(),
                 source_ref    = source_ref,
                 user_provided = True
             ),
@@ -277,7 +277,11 @@ def _buildClassNode3( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    for decorator in buildNodeList( provider, reversed( node.decorator_list ), source_ref ):
+    for decorator in buildNodeList(
+            provider,
+            reversed( node.decorator_list ),
+            source_ref
+        ):
         decorated_body = ExpressionCallNoKeywords(
             called     = decorator,
             args       = ExpressionMakeTuple(
@@ -341,14 +345,18 @@ def _buildClassNode3( provider, node, source_ref ):
                             user_provided = True
                         ),
                         right      = ExpressionTempVariableRef(
-                            variable   = tmp_class_decl_dict.makeReference( result ),
+                            variable   = tmp_class_decl_dict.makeReference(
+                                result
+                            ),
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
                     ),
                     yes_expression = ExpressionDictOperationGet(
                         dicte      = ExpressionTempVariableRef(
-                            variable   = tmp_class_decl_dict.makeReference( result ),
+                            variable   = tmp_class_decl_dict.makeReference(
+                                result
+                            ),
                             source_ref = source_ref
                         ),
                         key        = ExpressionConstantRef(
@@ -370,7 +378,9 @@ def _buildClassNode3( provider, node, source_ref ):
                         yes_expression = ExpressionBuiltinType1(
                             value      = ExpressionSubscriptLookup(
                                 expression = ExpressionTempVariableRef(
-                                    variable   = tmp_bases.makeReference( result ),
+                                    variable   = tmp_bases.makeReference(
+                                        result
+                                    ),
                                     source_ref = source_ref
                                 ),
                                 subscript  = ExpressionConstantRef(
@@ -412,7 +422,9 @@ def _buildClassNode3( provider, node, source_ref ):
             yes_branch = makeStatementsSequenceFromStatement(
                 statement = StatementDictOperationRemove(
                     dicte = ExpressionTempVariableRef(
-                        variable   = tmp_class_decl_dict.makeReference( result ),
+                        variable   = tmp_class_decl_dict.makeReference(
+                            result
+                        ),
                         source_ref = source_ref
                     ),
                     key   = ExpressionConstantRef(
@@ -472,7 +484,9 @@ def _buildClassNode3( provider, node, source_ref ):
                         source_ref = source_ref
                     ),
                     kw         = ExpressionTempVariableRef(
-                        variable   = tmp_class_decl_dict.makeReference( result ),
+                        variable   = tmp_class_decl_dict.makeReference(
+                            result
+                        ),
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
@@ -537,9 +551,9 @@ def _buildClassNode2( provider, node, source_ref ):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref.atInternal()
 
-    # The class body is basically a function that implicitely, at the end returns its
-    # locals and cannot have other return statements contained, and starts out with a
-    # variables "__module__" and potentially "__doc__" set.
+    # The class body is basically a function that implicitely, at the end
+    # returns its locals and cannot have other return statements contained, and
+    # starts out with a variables "__module__" and potentially "__doc__" set.
     statements = [
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetVariableRef(
@@ -547,7 +561,7 @@ def _buildClassNode2( provider, node, source_ref ):
                 source_ref    = source_ref
             ),
             source        = ExpressionConstantRef(
-                constant      = provider.getParentModule().getName(),
+                constant      = provider.getParentModule().getFullName(),
                 source_ref    = source_ref,
                 user_provided = True
             ),
@@ -587,8 +601,8 @@ def _buildClassNode2( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    # The class body is basically a function that implicitely, at the end returns its
-    # locals and cannot have other return statements contained.
+    # The class body is basically a function that implicitely, at the end
+    # returns its locals and cannot have other return statements contained.
 
     class_creation_function.setBody( body )
 
@@ -705,7 +719,11 @@ def _buildClassNode2( provider, node, source_ref ):
         )
     ]
 
-    for decorator in buildNodeList( provider, reversed( node.decorator_list ), source_ref ):
+    for decorator in buildNodeList(
+            provider,
+            reversed( node.decorator_list ),
+            source_ref
+        ):
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
@@ -755,8 +773,8 @@ def _buildClassNode2( provider, node, source_ref ):
 def buildClassNode( provider, node, source_ref ):
     assert getKind( node ) == "ClassDef"
 
-    # Python3 and Python3 are similar, but fundamentally different, so handle them in
-    # dedicated code.
+    # Python2 and Python3 are similar, but fundamentally different, so handle
+    # them in dedicated code.
 
     if Utils.python_version >= 300:
         return _buildClassNode3( provider, node, source_ref )

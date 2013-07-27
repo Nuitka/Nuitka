@@ -17,3 +17,8 @@
 #
 
 print( "Importing child." )
+
+class A:
+   pass
+
+print( "Class defined here, has these vars", vars( A ) )
