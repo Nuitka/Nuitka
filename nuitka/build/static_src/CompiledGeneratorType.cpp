@@ -491,6 +491,101 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
 }
 
 #if PYTHON_VERSION >= 330
+
+// Note: Taken from CPython, which does not export this code on Windows.
+// TODO: Rewrite for better operation.
+static PyObject *gen_send_ex(PyGenObject *gen, PyObject *arg, int exc)
+{
+    PyThreadState *tstate = PyThreadState_GET();
+    PyFrameObject *f = gen->gi_frame;
+    PyObject *result;
+
+    if (gen->gi_running) {
+        PyErr_SetString(PyExc_ValueError,
+                        "generator already executing");
+        return NULL;
+    }
+    if (f == NULL || f->f_stacktop == NULL) {
+        /* Only set exception if called from send() */
+        if (arg && !exc)
+            PyErr_SetNone(PyExc_StopIteration);
+        return NULL;
+    }
+
+    if (f->f_lasti == -1) {
+        if (arg && arg != Py_None) {
+            PyErr_SetString(PyExc_TypeError,
+                            "can't send non-None value to a "
+                            "just-started generator");
+            return NULL;
+        }
+    } else {
+        /* Push arg onto the frame's value stack */
+        result = arg ? arg : Py_None;
+        Py_INCREF(result);
+        *(f->f_stacktop++) = result;
+    }
+
+    /* Generators always return to their most recent caller, not
+     * necessarily their creator. */
+    Py_XINCREF(tstate->frame);
+    assert(f->f_back == NULL);
+    f->f_back = tstate->frame;
+
+    gen->gi_running = 1;
+    result = PyEval_EvalFrameEx(f, exc);
+    gen->gi_running = 0;
+
+    /* Don't keep the reference to f_back any longer than necessary.  It
+     * may keep a chain of frames alive or it could create a reference
+     * cycle. */
+    assert(f->f_back == tstate->frame);
+    Py_CLEAR(f->f_back);
+
+    /* If the generator just returned (as opposed to yielding), signal
+     * that the generator is exhausted. */
+    if (result && f->f_stacktop == NULL) {
+        if (result == Py_None) {
+            /* Delay exception instantiation if we can */
+            PyErr_SetNone(PyExc_StopIteration);
+        } else {
+            PyObject *e = PyObject_CallFunctionObjArgs(
+                               PyExc_StopIteration, result, NULL);
+            if (e != NULL) {
+                PyErr_SetObject(PyExc_StopIteration, e);
+                Py_DECREF(e);
+            }
+        }
+        Py_CLEAR(result);
+    }
+
+    if (!result || f->f_stacktop == NULL) {
+        /* generator can't be rerun, so release the frame */
+        /* first clean reference cycle through stored exception traceback */
+        PyObject *t, *v, *tb;
+        t = f->f_exc_type;
+        v = f->f_exc_value;
+        tb = f->f_exc_traceback;
+        f->f_exc_type = NULL;
+        f->f_exc_value = NULL;
+        f->f_exc_traceback = NULL;
+        Py_XDECREF(t);
+        Py_XDECREF(v);
+        Py_XDECREF(tb);
+        gen->gi_frame = NULL;
+        Py_DECREF(f);
+    }
+
+    return result;
+}
+
+// Note: Taken from CPython, which does not export this code on Windows.
+// TODO: Rewrite for better operation.
+PyObject *PyGen_Send(PyGenObject *gen, PyObject *arg)
+{
+    return gen_send_ex(gen, arg, 0);
+}
+
 PyObject *ERROR_GET_STOP_ITERATION_VALUE()
 {
     assert ( PyErr_ExceptionMatches( PyExc_StopIteration ));

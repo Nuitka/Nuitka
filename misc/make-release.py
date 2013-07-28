@@ -17,9 +17,9 @@
 #     limitations under the License.
 #
 
-import os, sys, shutil, subprocess, tarfile
+import os, shutil, subprocess
 
-from optparse import OptionParser, OptionGroup
+from optparse import OptionParser
 
 parser = OptionParser()
 
@@ -29,7 +29,8 @@ parser.add_option(
     dest    = "ds_source",
     default = None,
     help    = """\
-When given, use this as the source for the Debian package instead. Default %default."""
+When given, use this as the source for the Debian package instead. Default \
+%default."""
 )
 
 parser.add_option(
@@ -75,7 +76,8 @@ parser.add_option(
     dest    = "ubuntu_maverick",
     default = False,
     help    = """\
-Check the created Debian package in a Ubuntu Maveric pbuilder. Default %default."""
+Check the created Debian package in a Ubuntu Maveric pbuilder. Default \
+%default."""
 )
 
 parser.add_option(
@@ -84,7 +86,8 @@ parser.add_option(
     dest    = "ubuntu_natty",
     default = False,
     help    = """\
-Check the created Debian package in a Ubuntu Natty pbuilder. Default %default."""
+Check the created Debian package in a Ubuntu Natty pbuilder. Default \
+%default."""
 )
 
 parser.add_option(
@@ -93,7 +96,8 @@ parser.add_option(
     dest    = "ubuntu_oneiric",
     default = False,
     help    = """\
-Check the created Debian package in a Ubuntu Oneiric pbuilder. Default %default."""
+Check the created Debian package in a Ubuntu Oneiric pbuilder. Default \
+%default."""
 )
 
 parser.add_option(
@@ -102,7 +106,8 @@ parser.add_option(
     dest    = "ubuntu_precise",
     default = False,
     help    = """\
-Check the created Debian package in a Ubuntu Precise pbuilder. Default %default."""
+Check the created Debian package in a Ubuntu Precise pbuilder. Default \
+%default."""
 )
 
 options, positional_args = parser.parse_args()
@@ -130,10 +135,20 @@ def checkAtHome():
 
 checkAtHome()
 
-nuitka_version = subprocess.check_output( "./bin/nuitka --version", shell = True ).strip()
-branch_name = subprocess.check_output( "git name-rev --name-only HEAD".split() ).strip()
+nuitka_version = subprocess.check_output(
+    "./bin/nuitka --version", shell = True
+).strip()
 
-assert branch_name in ( b"master", b"develop", b"release/" + nuitka_version, b"hotfix/" + nuitka_version ), branch_name
+branch_name = subprocess.check_output(
+    "git name-rev --name-only HEAD".split()
+).strip()
+
+assert branch_name in (
+    b"master",
+    b"develop",
+    b"release/" + nuitka_version,
+    b"hotfix/" + nuitka_version
+), branch_name
 
 def checkChangeLog( message ):
     for line in open( "debian/changelog" ):
@@ -146,7 +161,6 @@ def checkChangeLog( message ):
             return True
     else:
         assert False, message # No new messages.
-
 
 if branch_name.startswith( "release" ) or \
    branch_name == "master" or \
@@ -165,8 +179,8 @@ assert 0 == os.system( "python setup.py sdist --formats=bztar,gztar,zip" )
 
 os.chdir( "dist" )
 
-# Clean the stage for the debian package. The name "deb_dist" is what "py2dsc" uses for
-# its output later on.
+# Clean the stage for the debian package. The name "deb_dist" is what "py2dsc"
+# uses for its output later on.
 
 if os.path.exists( "deb_dist" ):
     shutil.rmtree( "deb_dist" )
@@ -186,19 +200,28 @@ for filename in os.listdir( "." ):
 
         shutil.copy( filename, new_name )
         assert 0 == os.system( "gunzip " + new_name )
-        assert 0 == os.system( "tar --wildcards --delete --file " + new_name[:-3] + " Nuitka*/tests/benchmarks Nuitka*/nuitka/build/inline_copy Nuitka*/*.pdf"  )
+        assert 0 == os.system(
+            "tar --wildcards --delete --file " + new_name[:-3] + \
+            " Nuitka*/tests/benchmarks Nuitka*/nuitka/build/inline_copy " + \
+            "Nuitka*/*.pdf"
+        )
         assert 0 == os.system( "gzip -9 -n " + new_name[:-3] )
 
         assert 0 == os.system( "py2dsc " + new_name )
 
-        # Fixup for py2dsc not taking our custom suffix into account, so we need to rename
-        # it ourselves.
+        # Fixup for py2dsc not taking our custom suffix into account, so we need
+        # to rename it ourselves.
         before_deb_name = filename[:-7].lower().replace( "-", "_" )
         after_deb_name = before_deb_name.replace( "pre", "~pre" )
 
-        assert 0 == os.system( "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'" % ( before_deb_name, after_deb_name ) )
+        assert 0 == os.system(
+            "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'" % (
+                before_deb_name, after_deb_name
+            )
+        )
 
-        # Remove the now useless input, py2dsc has copied it, and we don't publish it.
+        # Remove the now useless input, py2dsc has copied it, and we don't
+        # publish it.
         os.unlink( new_name )
 
         if options.ds_source is not None:
@@ -217,22 +240,25 @@ for entry in os.listdir( "." ):
 else:
     assert False
 
-# Import the "debian" directory from above. It's not in the original tar and overrides or
-# extends what py2dsc does.
-assert 0 == os.system( "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry )
+# Import the "debian" directory from above. It's not in the original tar and
+# overrides or extends what py2dsc does.
+assert 0 == os.system(
+    "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
+)
 
 assert 0 == os.system( "rm *.dsc *.debian.tar.gz" )
-
 os.chdir( entry )
 
-# Check for licenses and do not accept "UNKNOWN", because that means a proper license
-# string is missing. Not the case for current Nuitka and it shall remain that way.
+# Check for licenses and do not accept "UNKNOWN", because that means a proper
+# license string is missing. Not the case for current Nuitka and it shall remain
+# that way.
 print( "Checking licenses... " )
-for line in subprocess.check_output( "licensecheck -r .", shell = True ).strip().split( b"\n" ):
+for line in subprocess.check_output( "licensecheck -r .", shell = True ).\
+  strip().split( b"\n" ):
     assert b"UNKNOWN" not in line, line
 
-# Build the debian package, but disable the running of tests, will be done later in the
-# pbuilder test steps.
+# Build the debian package, but disable the running of tests, will be done later
+# in the pbuilder test steps.
 assert 0 == os.system( "debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck" )
 
 os.chdir( "../../.." )
@@ -241,14 +267,16 @@ checkAtHome()
 
 assert os.path.exists( "dist/deb_dist" )
 
-# Check with pylint in pedantic mode and don't procede if there were any warnings
-# given. Nuitka is lintian clean and shall remain that way.
-assert 0 == os.system( "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes" )
+# Check with pylint in pedantic mode and don't procede if there were any
+# warnings given. Nuitka is lintian clean and shall remain that way.
+assert 0 == os.system(
+    "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes"
+)
 
 os.system( "cp dist/deb_dist/*.deb dist/" )
 
-# Build inside the pbuilder chroot, which should be an updated sid. The update is
-# not done here.
+# Build inside the pbuilder chroot, which should be an updated sid. The update
+# is not done here.
 
 basetgz_list = []
 
@@ -272,11 +300,14 @@ if options.ubuntu_precise  or options.ubuntu_all:
 
 for basetgz in basetgz_list:
     if options.update_pbuilder:
-        command = "sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s" % basetgz
+        command = """\
+sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s""" % basetgz
 
         assert 0 == os.system( command ), basetgz
 
-    command = "sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s --hookdir debian/pbuilder-hookdir dist/deb_dist/*.dsc" % basetgz
+    command = """\
+sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s \
+--hookdir debian/pbuilder-hookdir dist/deb_dist/*.dsc""" % basetgz
 
     assert 0 == os.system( command ), basetgz
 
@@ -285,13 +316,18 @@ for filename in os.listdir( "dist/deb_dist" ):
         shutil.rmtree( "dist/deb_dist/" + filename )
 
 # Build the Windows installer.
-assert 0 == os.system( r"DISPLAY= wine c:\\python27\\python.exe setup.py bdist_wininst --bitmap misc/Nuitka-Installer.bmp" )
+assert 0 == os.system(
+    """DISPLAY= wine c:\\\\python27\\\\python.exe setup.py bdist_wininst \
+--bitmap misc/Nuitka-Installer.bmp"""
+)
 
 # Sign the result files. The Debian binary package was copied here.
 for filename in os.listdir( "dist" ):
     if os.path.isfile( "dist/" + filename ):
         assert 0 == os.system( "chmod 644 dist/" + filename )
-        assert 0 == os.system( "gpg --local-user 0BCF7396 --detach-sign dist/" + filename )
+        assert 0 == os.system(
+            "gpg --local-user 0BCF7396 --detach-sign dist/" + filename
+        )
 
 # Cleanup the build directory, not needed.
 shutil.rmtree( "build", ignore_errors = True )

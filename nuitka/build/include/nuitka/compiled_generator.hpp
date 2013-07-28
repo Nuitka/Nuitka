@@ -186,6 +186,7 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
 
 #if PYTHON_VERSION >= 330
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
+extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
 
 static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 {
@@ -263,7 +264,7 @@ static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject 
         }
         else if ( PyGen_CheckExact( value ) )
         {
-            retval = _PyGen_Send( (PyGenObject *)value, Py_None );
+            retval = PyGen_Send( (PyGenObject *)value, Py_None );
         }
         else if ( send_value == Py_None )
         {
