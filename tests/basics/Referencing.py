@@ -466,7 +466,9 @@ def simpleFunction58():
    b = 5
 
    try:
-      return 7
+       a = a * 2
+
+       return a
    finally:
       a / b
 
@@ -476,9 +478,11 @@ def simpleFunction59():
    b = 5
 
    try:
-      return 7
+       a = a * 2
+
+       return a
    finally:
-      return a / b
+       return a / b
 
 
 def simpleFunction60():

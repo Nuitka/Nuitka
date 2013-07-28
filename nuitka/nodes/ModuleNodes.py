@@ -46,10 +46,11 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
 
     named_children = ( "body", )
 
-    def __init__( self, name, package, source_ref ):
+    def __init__( self, name, package_name, source_ref ):
         assert type(name) is str, type(name)
         assert "." not in name, name
-        assert package is None or ( type( package ) is str and package != "" )
+        assert package_name is None or \
+               ( type( package_name ) is str and package_name != "" )
 
         ClosureGiverNodeBase.__init__(
             self,
@@ -65,7 +66,8 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
 
         MarkContainsTryExceptIndicator.__init__( self )
 
-        self.package = package
+        self.package_name = package_name
+        self.package = None
 
         self.variables = set()
 
@@ -77,7 +79,7 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
     def getDetails( self ):
         return {
             "filename" : self.source_ref.getFilename(),
-            "package"  : self.package,
+            "package"  : self.package_name,
             "name"     : self.name
         }
 
@@ -109,11 +111,11 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
         return self.source_ref.getFilename()
 
     def getPackage( self ):
-        return self.package
+        return self.package_name
 
     def getFullName( self ):
-        if self.package:
-            return self.package + "." + self.getName()
+        if self.package_name:
+            return self.package_name + "." + self.getName()
         else:
             return self.getName()
 
@@ -187,6 +189,44 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
         else:
             return main_filename
 
+    def attemptRecursion( self, constraint_collection ):
+        # Make sure the package is recursed to.
+        from nuitka.tree import Recursion
+        from nuitka import Importing
+
+        if self.package_name is not None and self.package is None:
+            package_package, _package_module_name, package_filename = \
+              Importing.findModule(
+                source_ref     = self.getSourceReference(),
+                module_name    = self.package_name,
+                parent_package = None,
+                level          = 1,
+                warn           = True
+            )
+
+            imported_module, added_flag = Recursion.recurseTo(
+                module_package  = package_package,
+                module_filename = package_filename,
+                module_relpath  = Utils.relpath( package_filename )
+            )
+
+            self.package = imported_module
+
+            if added_flag:
+                constraint_collection.signalChange(
+                    "new_code",
+                    imported_module.getSourceReference(),
+                    "Recursed to module package."
+                )
+
+        if self.package:
+            from nuitka.ModuleRegistry import addUsedModule
+
+            addUsedModule( self.package )
+
+#            print "Recursed to package", self.package_name
+            self.package.attemptRecursion( constraint_collection )
+
 
 class SingleCreationMixin:
     created = set()
@@ -202,9 +242,9 @@ class PythonMainModule( PythonModule, SingleCreationMixin ):
     def __init__( self, main_added, source_ref ):
         PythonModule.__init__(
             self,
-            name        = "__main__",
-            package     = None,
-            source_ref  = source_ref
+            name         = "__main__",
+            package_name = None,
+            source_ref   = source_ref
         )
 
         SingleCreationMixin.__init__( self )
@@ -227,9 +267,9 @@ class PythonInternalModule( PythonModule, SingleCreationMixin ):
     def __init__( self ):
         PythonModule.__init__(
             self,
-            name        = "__internal__",
-            package     = None,
-            source_ref  = SourceCodeReference.fromFilenameAndLine(
+            name         = "__internal__",
+            package_name = None,
+            source_ref   = SourceCodeReference.fromFilenameAndLine(
                 filename    = "internal",
                 line        = 0,
                 future_spec = FutureSpec(),
@@ -249,14 +289,14 @@ class PythonInternalModule( PythonModule, SingleCreationMixin ):
 class PythonPackage( PythonModule ):
     kind = "PYTHON_PACKAGE"
 
-    def __init__( self, name, package, source_ref ):
+    def __init__( self, name, package_name, source_ref ):
         assert name
 
         PythonModule.__init__(
             self,
-            name       = name,
-            package    = package,
-            source_ref = source_ref
+            name         = name,
+            package_name = package_name,
+            source_ref   = source_ref
         )
 
     def getOutputFilename( self ):

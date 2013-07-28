@@ -2528,9 +2528,8 @@ def getSelectMetaclassCode( metaclass_identifier, bases_identifier, context ):
     return CallIdentifier( "SELECT_METACLASS", args )
 
 def getStatementTrace( source_desc, statement_repr ):
-    return 'puts( "Execute: %s " %s );' % (
-        source_desc,
-        CppStrings.encodeString( statement_repr )
+    return 'puts( "Execute: " %s );' % (
+        CppStrings.encodeString( source_desc + " " + statement_repr ),
     )
 
 

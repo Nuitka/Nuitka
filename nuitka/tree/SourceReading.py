@@ -30,7 +30,7 @@ def _readSourceCodeFromFilename3( source_filename ):
         source_code = source_file.read()
 
     if source_code.startswith( b'\xef\xbb\xbf' ):
-        return source_code[3:]
+        source_code = source_code[3:]
 
     new_line = source_code.find( b"\n" )
 

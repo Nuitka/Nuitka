@@ -85,14 +85,14 @@ public:
         Py_XDECREF( this->object );
     }
 
-    PyObject *asObject()
+    inline PyObject *asObject() const
     {
         assertObject( this->object );
 
         return INCREASE_REFCOUNT( this->object );
     }
 
-    inline PyObject *asObject0()
+    inline PyObject *asObject0() const
     {
         assertObject( this->object );
 
@@ -131,14 +131,14 @@ public:
     ~PyObjectTempKeeper0()
     {}
 
-    PyObject *asObject0()
+    inline PyObject *asObject0() const
     {
         assertObject( this->object );
 
         return this->object;
     }
 
-    inline PyObject *asObject()
+    inline PyObject *asObject() const
     {
         assertObject( this->object );
 
