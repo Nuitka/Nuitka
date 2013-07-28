@@ -130,23 +130,23 @@ PyObjectTempKeeper1 _return_value_%(try_count)d;
 """
 
 try_finally_template_catch_continue = """\
-catch ( ContinueException & )
+catch ( ContinueException const & )
 {
     _continue_%(try_count)d = true;
 }
 """
 
 try_finally_template_catch_break = """\
-catch ( BreakException & )
+catch ( BreakException const & )
 {
     _break_%(try_count)d = true;
 }
 """
 
 try_finally_template_catch_return_value = """\
-catch ( ReturnValueException &e )
+catch ( ReturnValueException const &e )
 {
-    _return_value_%(try_count)d.assign( e.getValue() );
+    _return_value_%(try_count)d.assign( e.getValue1() );
 }
 """
 

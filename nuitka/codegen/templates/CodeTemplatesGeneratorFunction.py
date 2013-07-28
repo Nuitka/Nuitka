@@ -149,7 +149,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     }
     catch( ReturnValueException &e )
     {
-        PyErr_SetObject( PyExc_StopIteration, e.getValue() );
+        PyErr_SetObject( PyExc_StopIteration, e.getValue0() );
     }
 
     assert( ERROR_OCCURED() );

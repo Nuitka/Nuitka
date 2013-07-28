@@ -433,6 +433,12 @@ public:
 
 private:
 
+
+    PythonExceptionKeeper( const PythonExceptionKeeper &other )
+    {
+        assert( false );
+    }
+
     bool keeping;
 
     PyObject *exception_type, *exception_value;
@@ -450,12 +456,21 @@ class BreakException
 class ReturnValueException
 {
 public:
+
     explicit ReturnValueException( PyObject *value )
     {
+        // Always called with extra reference, whose ownership is transfered to
+        // us here.
         assertObject( value );
 
         this->value = value;
     }
+
+    ReturnValueException( const ReturnValueException &other )
+    {
+        this->value = other.getValue1();
+    }
+
 
     ~ReturnValueException()
     {
@@ -464,12 +479,19 @@ public:
         Py_DECREF( this->value );
     }
 
-    PyObject *getValue() const
+    PyObject *getValue0() const
+    {
+        return this->value;
+    }
+
+    PyObject *getValue1() const
     {
         return INCREASE_REFCOUNT( this->value );
     }
 
 private:
+
+
     PyObject *value;
 
 };
