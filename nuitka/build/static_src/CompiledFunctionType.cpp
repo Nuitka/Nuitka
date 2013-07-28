@@ -792,7 +792,7 @@ void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject *function,
     {
         sprintf(
             keyword_only_part,
-            " positional argument%s (and %zd keyword-only argument%s)",
+            " positional argument%s (and %" PY_FORMAT_SIZE_T "d keyword-only argument%s)",
             given != 1 ? "s" : "",
             kw_only,
             kw_only != 1 ? "s" : ""
