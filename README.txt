@@ -643,8 +643,13 @@ The order is sorted by time.
 
 - Pete Hunt: Submitted patches for MacOS X support.
 
-- ownssh: Submitted patches for builtins module guarding, and made massive
+- "ownssh": Submitted patches for builtins module guarding, and made massive
   efforts to make high quality bug reports.
+
+- "dr. Equivalent": Submitted the Nuitka Logo.
+
+- Johan Holmberg: Submitted patch for Python3 support on MacOS X.
+
 
 Projects used by Nuitka
 -----------------------
