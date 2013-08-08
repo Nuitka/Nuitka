@@ -19,6 +19,19 @@
 
 import os, subprocess
 
+# Not really re-creating the images ever, cannot make sure they are binary
+# identical
+
+if False:
+    assert 0 == os.system( "convert -background none misc/Logo/Nuitka-Logo-Vertical.svg images/Nuitka-Logo-Vertical.png" )
+    assert 0 == os.system( "convert -background none misc/Logo/Nuitka-Logo-Symbol.svg images/Nuitka-Logo-Symbol.png" )
+    assert 0 == os.system( "convert -background none misc/Logo/Nuitka-Logo-Horizontal.svg images/Nuitka-Logo-Horizontal.png" )
+
+    assert 0 == os.system( "optipng -o2 images/Nuitka-Logo-Vertical.png" )
+    assert 0 == os.system( "optipng -o2 images/Nuitka-Logo-Symbol.png" )
+    assert 0 == os.system( "optipng -o2 images/Nuitka-Logo-Horizontal.png" )
+
+
 for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
     assert 0 == subprocess.call(
         "rst2pdf %(document)s" % {
