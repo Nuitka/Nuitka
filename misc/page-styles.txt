@@ -1,0 +1,3 @@
+"pageSetup" : {
+   "firstTemplate": "coverPage"
+}

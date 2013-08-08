@@ -1,5 +1,14 @@
+Nuitka User Manual
+~~~~~~~~~~~~~~~~~~
+
+.. image:: images/Nuitka-Logo-Symbol.png
 
 .. contents::
+
+.. raw:: pdf
+
+   PageBreak oneColumn
+   SetPageCounter 1
 
 Usage
 =====
@@ -246,10 +255,12 @@ The development of Nuitka occurs in git. We currently have these 2 branches:
 
 .. note::
 
-   I accept patch files, git formated patch queues, and git pull requests. I
-   will do the integration work. If you base your work on "master" or "develop"
-   at any given time, I will do any re-basing required and keep your authorship
-   intact.
+   I accept patch files, git formatted patch queues (use ``git format-patch
+   origin`` command), or if you prefer git pull on the social code platforms.
+
+   I will do the integration work. If you base your work on "master" or
+   "develop" at any given time, I will do any re-basing required and keep your
+   authorship intact.
 
 .. note::
 
@@ -613,9 +624,10 @@ The order is sorted by time.
 - Li Xuan Ji: Contributed patches for general portability issue and enhancements
   to the environment variable settings.
 
-- Nicolas Dumazet: Found and fixed reference counting issues, import work,
-  improved some of the English and generally made good code contributions all
-  over the place, code generation TODOs, tree building cleanups, core stuff.
+- Nicolas Dumazet: Found and fixed reference counting issues, ``import``
+  packages work, improved some of the English and generally made good code
+  contributions all over the place, solved code generation TODOs, did tree
+  building cleanups, core stuff.
 
 - Khalid Abu Bakr: Submitted patches for his work to support MinGW and Windows,
   debugged the issues, and helped me to get cross compile with MinGW from Linux
@@ -685,16 +697,6 @@ Projects used by Nuitka
 
   Thanks for enabling us to run the cross compiled binaries without have to
   maintain a windows installation at all.
-
-.. header::
-
-   Nuitka - User Manual
-
-.. footer::
-
-   |copy| Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
-
-.. |copy|   unicode:: U+000A9
 
 Updates for this Manual
 =======================

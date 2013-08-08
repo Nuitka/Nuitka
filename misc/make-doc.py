@@ -33,12 +33,24 @@ if False:
 
 
 for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
+    args = []
+
+    if document != "Changelog.rst":
+        args.append( "-s misc/page-styles.txt" )
+
+        args.append( '--header="###Title### - ###Section###"' )
+        args.append( '--footer="###Title### - page ###Page### - ###Section###"' )
+
     assert 0 == subprocess.call(
-        "rst2pdf %(document)s" % {
+        "rst2pdf %(args)s  %(document)s" %
+        {
+            "args"     : " ".join( args ),
             "document" : document
         },
         shell = True
     )
+
+
 
 if not os.path.exists( "man" ):
     os.mkdir( "man" )
@@ -86,6 +98,5 @@ assert new_contents != contents
 contents = new_contents
 new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
 assert new_contents != contents
-
 
 open( "doc/man-nuitka-python.html", "w" ).write( new_contents )

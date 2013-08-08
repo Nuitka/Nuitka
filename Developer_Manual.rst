@@ -1,12 +1,14 @@
+Nuitka Developer Manual
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Developer Manual
-~~~~~~~~~~~~~~~~
+.. image:: images/Nuitka-Logo-Symbol.png
 
 .. contents::
 
 .. raw:: pdf
 
-   PageBreak
+   PageBreak oneColumn
+   SetPageCounter 1
 
 The purpose of this developer manual is to present the current design of Nuitka,
 the coding rules, and the intentions of choices made. It is intended to be a
@@ -19,7 +21,6 @@ plans before implementing them. And we update them as we proceed.
 
 It grows out of discussions and presentations made at conferences as well as
 private conversations or discussions on the mailing list or bug tracker.
-
 
 Milestones
 ==========
@@ -484,7 +485,7 @@ Choice of the Target Language
 _`1`:: C++11 is not fully supported from any compiler
 (temporary problem)
 
-_`2`:: Not a whole lot of people have C++11 knowledge. My *only* C++11 Code was
+_`2`:: Not a whole lot of people have C++11 knowledge. My *only* C++11 code was
 that in Nuitka.
 
 _`3`:: The Python C-API for Ada would have to be created by us, possible just
@@ -2807,15 +2808,6 @@ etc.
   If the "caller" or the "called" can declare that it cannot be called by
   itself, we could leave it out.
 
-.. header::
-
-   Nuitka - Developer Manual
-
-.. footer::
-
-   |copy| Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
-
-.. |copy|   unicode:: U+000A9
 
 .. raw:: pdf
 
