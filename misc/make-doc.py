@@ -17,12 +17,12 @@
 #     limitations under the License.
 #
 
-import os, subprocess
+import sys, os, subprocess
 
 # Not really re-creating the images ever, cannot make sure they are binary
-# identical
+# identical, so made this optional.
 
-if False:
+if "logo" in sys.argv:
     assert 0 == os.system( "convert -background none misc/Logo/Nuitka-Logo-Vertical.svg images/Nuitka-Logo-Vertical.png" )
     assert 0 == os.system( "convert -background none misc/Logo/Nuitka-Logo-Symbol.svg images/Nuitka-Logo-Symbol.png" )
     assert 0 == os.system( "convert -background none misc/Logo/Nuitka-Logo-Horizontal.svg images/Nuitka-Logo-Horizontal.png" )
@@ -31,6 +31,7 @@ if False:
     assert 0 == os.system( "optipng -o2 images/Nuitka-Logo-Symbol.png" )
     assert 0 == os.system( "optipng -o2 images/Nuitka-Logo-Horizontal.png" )
 
+    assert 0 == os.system( "convert -background grey -resize 152x261 misc/Logo/Nuitka-Logo-Vertical.svg -alpha background images/Nuitka-Logo-WinInstaller.bmp" )
 
 for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
     args = []
