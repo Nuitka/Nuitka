@@ -33,6 +33,16 @@ if "logo" in sys.argv:
 
     assert 0 == os.system( "convert -background grey -resize 152x261 misc/Logo/Nuitka-Logo-Vertical.svg -alpha background images/Nuitka-Logo-WinInstaller.bmp" )
 
+    if os.path.exists( "web/nikola-site" ):
+        assert 0 == os.system( "convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/favicon.ico" )
+        assert 0 == os.system( "convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/favicon.png" )
+
+        assert 0 == os.system( "convert -resize 72x72 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/apple-touch-icon-ipad.png" )
+        assert 0 == os.system( "convert -resize 144x144 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/apple-touch-icon-ipad3.png" )
+        assert 0 == os.system( "convert -resize 57x57 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/apple-touch-icon-iphone.png" )
+        assert 0 == os.system( "convert -resize 114x114 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/apple-touch-icon-iphone4.png" )
+
+
 for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
     args = []
 
