@@ -492,98 +492,112 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
 
 #if PYTHON_VERSION >= 330
 
-// Note: Taken from CPython, which does not export this code on Windows.
-// TODO: Rewrite for better operation.
-static PyObject *gen_send_ex(PyGenObject *gen, PyObject *arg, int exc)
+// This is for CPython iterator objects, the respective code is not exported as
+// API, so we need to redo it. This is an re-implementation that closely follows
+// what it does. It's unrelated to compiled generators.
+PyObject *PyGen_Send( PyGenObject *generator, PyObject *arg )
 {
-    PyThreadState *tstate = PyThreadState_GET();
-    PyFrameObject *f = gen->gi_frame;
-    PyObject *result;
-
-    if (gen->gi_running) {
-        PyErr_SetString(PyExc_ValueError,
-                        "generator already executing");
-        return NULL;
-    }
-    if (f == NULL || f->f_stacktop == NULL) {
-        /* Only set exception if called from send() */
-        if (arg && !exc)
-            PyErr_SetNone(PyExc_StopIteration);
+    if (unlikely( generator->gi_running ))
+    {
+        PyErr_SetString( PyExc_ValueError, "generator already executing" );
         return NULL;
     }
 
-    if (f->f_lasti == -1) {
-        if (arg && arg != Py_None) {
-            PyErr_SetString(PyExc_TypeError,
-                            "can't send non-None value to a "
-                            "just-started generator");
+    PyFrameObject *frame = generator->gi_frame;
+
+    if ( frame == NULL || frame->f_stacktop == NULL )
+    {
+        // Set exception if called from send()
+        if ( arg != NULL )
+        {
+            PyErr_SetNone( PyExc_StopIteration );
+        }
+
+        return NULL;
+    }
+
+    if ( frame->f_lasti == -1 )
+    {
+        if (unlikely( arg && arg != Py_None ))
+        {
+            PyErr_SetString(
+                PyExc_TypeError,
+                "can't send non-None value to a just-started generator"
+            );
+
             return NULL;
         }
-    } else {
-        /* Push arg onto the frame's value stack */
-        result = arg ? arg : Py_None;
-        Py_INCREF(result);
-        *(f->f_stacktop++) = result;
+    }
+    else
+    {
+        // Put arg on top of the value stack
+        PyObject *tmp = arg ? arg : Py_None;
+        *(frame->f_stacktop++) = INCREASE_REFCOUNT( tmp );
     }
 
-    /* Generators always return to their most recent caller, not
-     * necessarily their creator. */
-    Py_XINCREF(tstate->frame);
-    assert(f->f_back == NULL);
-    f->f_back = tstate->frame;
+    // Generators always return to their most recent caller, not necessarily
+    // their creator.
+    PyThreadState *tstate = PyThreadState_GET();
+    Py_XINCREF( tstate->frame );
 
-    gen->gi_running = 1;
-    result = PyEval_EvalFrameEx(f, exc);
-    gen->gi_running = 0;
+    assert( frame->f_back == NULL );
+    frame->f_back = tstate->frame;
 
-    /* Don't keep the reference to f_back any longer than necessary.  It
-     * may keep a chain of frames alive or it could create a reference
-     * cycle. */
-    assert(f->f_back == tstate->frame);
-    Py_CLEAR(f->f_back);
+    generator->gi_running = 1;
+    PyObject *result = PyEval_EvalFrameEx( frame, 0 );
+    generator->gi_running = 0;
 
-    /* If the generator just returned (as opposed to yielding), signal
-     * that the generator is exhausted. */
-    if (result && f->f_stacktop == NULL) {
-        if (result == Py_None) {
-            /* Delay exception instantiation if we can */
-            PyErr_SetNone(PyExc_StopIteration);
-        } else {
+    // Don't keep the reference to f_back any longer than necessary.  It
+    // may keep a chain of frames alive or it could create a reference
+    // cycle.
+    assert( frame->f_back == tstate->frame );
+    Py_CLEAR( frame->f_back );
+
+    // If the generator just returned (as opposed to yielding), signal that the
+    // generator is exhausted.
+    if ( result && frame->f_stacktop == NULL )
+    {
+        if ( result == Py_None )
+        {
+            PyErr_SetNone( PyExc_StopIteration );
+        }
+        else {
             PyObject *e = PyObject_CallFunctionObjArgs(
-                               PyExc_StopIteration, result, NULL);
-            if (e != NULL) {
-                PyErr_SetObject(PyExc_StopIteration, e);
-                Py_DECREF(e);
+                PyExc_StopIteration,
+                result,
+                NULL
+            );
+
+            if ( e != NULL )
+            {
+                PyErr_SetObject( PyExc_StopIteration, e );
+                Py_DECREF( e );
             }
         }
-        Py_CLEAR(result);
+
+        Py_CLEAR( result );
     }
 
-    if (!result || f->f_stacktop == NULL) {
-        /* generator can't be rerun, so release the frame */
-        /* first clean reference cycle through stored exception traceback */
-        PyObject *t, *v, *tb;
-        t = f->f_exc_type;
-        v = f->f_exc_value;
-        tb = f->f_exc_traceback;
-        f->f_exc_type = NULL;
-        f->f_exc_value = NULL;
-        f->f_exc_traceback = NULL;
-        Py_XDECREF(t);
-        Py_XDECREF(v);
-        Py_XDECREF(tb);
-        gen->gi_frame = NULL;
-        Py_DECREF(f);
+    if ( result == NULL || frame->f_stacktop == NULL )
+    {
+        // Generator is finished, remove exception from frame before releasing
+        // it.
+        PyObject *type = frame->f_exc_type;
+        PyObject *value = frame->f_exc_value;
+        PyObject *traceback = frame->f_exc_traceback;
+        frame->f_exc_type = NULL;
+        frame->f_exc_value = NULL;
+        frame->f_exc_traceback = NULL;
+        Py_XDECREF( type );
+        Py_XDECREF( value );
+        Py_XDECREF( traceback );
+
+        // Now release frame.
+        generator->gi_frame = NULL;
+        Py_DECREF( frame );
     }
 
     return result;
-}
-
-// Note: Taken from CPython, which does not export this code on Windows.
-// TODO: Rewrite for better operation.
-PyObject *PyGen_Send(PyGenObject *gen, PyObject *arg)
-{
-    return gen_send_ex(gen, arg, 0);
 }
 
 PyObject *ERROR_GET_STOP_ITERATION_VALUE()
