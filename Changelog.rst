@@ -1,5 +1,10 @@
-Nuitka Release 0.4.5 (Draft)
-============================
+Nuitka Release 0.4.5
+====================
+
+This release incorporates very many bug fixes, most of which were already part
+of hot fixes, usability improvements, documentation improvements, new logo,
+simpler Python3 on Windows, warnings for recursion options, and so on. So it's
+mostly a consolidation release.
 
 Bug Fixes
 ---------
@@ -64,13 +69,6 @@ New Features
 - Added a warning for ``--recurse-to`` arguments that end up having no effect to
   the final result.
 
-- Portable Binaries.
-
-  Nuitka has gained the ``--portable`` option which adds the Python libraries,
-  and a zip files with the modules, sufficient to run independent of the Python
-  installation. This has often been requested, and finally been contributed by
-  ownssh.
-
 Cleanups
 --------
 
@@ -78,7 +76,8 @@ Cleanups
   does not handle packages, and the ``sys.meta_path`` based importer is now well
   proven.
 
-- Moved some of the constraint collection code mess into proper places.
+- Moved some of the constraint collection code mess into proper places. It still
+  remains a mess.
 
 Organizational
 --------------
@@ -104,10 +103,14 @@ Organizational
 Summary
 -------
 
-Not completed yet.
+This release is mostly the result of improvements made based on the surge of
+users after Europython 2013. Some people went to extents and reported their
+experience very detailed, and so I could aim at making e.g. their misconceptions
+about how recursion options work, more obvious through warnings and errors.
 
-The contributed "portable" code opens up a whole new area of use for Nuitka. We
-may see it evolved to replace "py2exe" for more and more people now.
+This release is not addressing performance improvements. The next release will
+be able to focus on that. I am taking my claim of full compatibility very
+serious, so any time it's broken, it's the highest priority to restore it.
 
 
 Nuitka Release 0.4.4
