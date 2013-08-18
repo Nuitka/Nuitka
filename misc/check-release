@@ -239,8 +239,9 @@ def executeSubTest( command ):
 
     parts[0] = parts[0].replace( "/", os.path.sep )
 
+    # On Windows, we need to specify Python ourselves.
     if parts[0].endswith( ".py" ) and os.name == "nt":
-        parts.insert( 0, r"C:\Python27\python.exe" )
+        parts.insert( 0, sys.executable )
 
     command = " ".join( parts )
 
@@ -263,13 +264,25 @@ def execute_tests( where, use_python, flags ):
 
     if os.name == "nt":
         if use_python == "python2.6":
-            os.environ[ "PYTHON" ] = r"C:\Python26\python.exe"
+            if sys.version.startswith( "2.6"):
+                os.environ[ "PYTHON" ] = sys.executable
+            else:
+                os.environ[ "PYTHON" ] = r"C:\Python26\python.exe"
         elif use_python == "python2.7":
-            os.environ[ "PYTHON" ] = r"C:\Python27\python.exe"
+            if sys.version.startswith( "2.7"):
+                os.environ[ "PYTHON" ] = sys.executable
+            else:
+                os.environ[ "PYTHON" ] = r"C:\Python27\python.exe"
         elif use_python == "python3.2":
-            os.environ[ "PYTHON" ] = r"C:\Python32\python.exe"
+            if sys.version.startswith( "3.2"):
+                os.environ[ "PYTHON" ] = sys.executable
+            else:
+                os.environ[ "PYTHON" ] = r"C:\Python32\python.exe"
         elif use_python == "python3.3":
-            os.environ[ "PYTHON" ] = r"C:\Python33\python.exe"
+            if sys.version.startswith( "3.3"):
+                os.environ[ "PYTHON" ] = sys.executable
+            else:
+                os.environ[ "PYTHON" ] = r"C:\Python33\python.exe"
         else:
             assert False, use_python
     else:
