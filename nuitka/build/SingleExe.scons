@@ -646,7 +646,7 @@ def discoverSourceFiles():
     # Add the resource file for the manifest to be included in the executable.
     if msvc_mode and not module_mode:
         result.append(
-            env.RES( os.path.join( source_dir, source_name + ".exe.rc" ) )
+            env.RES( os.path.join( source_dir, "resources.rc" ) )
         )
 
     return result
@@ -655,7 +655,10 @@ def discoverSourceFiles():
 # specs for linking to avoid the use of the wrong (for CPython) run time
 # library.
 if msvc_mode and not module_mode:
-    manifest_file = open( os.path.join(source_dir, source_name + ".exe.manifest" ), "w" )
+    manifest_file = open(
+        os.path.join( source_dir, "resources.manifest" ),
+        "w"
+    )
     manifest_file.write( r"""
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
@@ -681,11 +684,11 @@ if msvc_mode and not module_mode:
     )
     manifest_file.close()
 
-    rc_file = open( os.path.join( source_dir, source_name + ".exe.rc" ), "w" )
+    rc_file = open( os.path.join( source_dir, "resources.rc" ), "w" )
     rc_file.write( r"""
 #include "winuser.h"
-1 RT_MANIFEST %s
-""" % ( source_name + ".exe.manifest" )
+1 RT_MANIFEST resources.manifest
+"""
     )
     rc_file.close()
 
