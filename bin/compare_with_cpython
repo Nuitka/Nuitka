@@ -201,7 +201,7 @@ compiled_generator_object_re = re.compile( r"'compiled_generator' object" )
 global_name_error_re = re.compile( r"global (name ')(.*?)(' is not defined)" )
 module_repr_re = re.compile( r"(\<module '.*?' from ').*?('\>)" )
 non_ascii_error_rt = re.compile( r"(SyntaxError: Non-ASCII character.*? on line) \d+" )
-python_win_lib_re = re.compile( r"[a-zA-Z]:\\\\?[Pp]ython(\d\d\\\\?)[Ll]ib" )
+python_win_lib_re = re.compile( r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib" )
 
 def makeDiffable( output ):
     result = []
@@ -213,7 +213,7 @@ def makeDiffable( output ):
 
     for line in output.split( b"\n" ):
         if type( line ) is not str:
-            line = line.decode( "utf-8" )
+            line = line.decode( "utf-8" if os.name != "nt" else "cp850" )
 
         if line.endswith( "\r" ):
             line = line[:-1]

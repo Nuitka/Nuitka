@@ -324,7 +324,7 @@ def runScons( main_module, quiet ):
         "full_compat"    : asBoolStr( Options.isFullCompat() ),
         "experimental"   : asBoolStr( Options.isExperimental() ),
         "python_version" : python_version,
-        "python_home"    : Utils.dirname( sys.executable ),
+        "python_prefix"  : sys.prefix,
         "lto_mode"       : asBoolStr( Options.isLto() ),
         "clang_mode"     : asBoolStr( Options.isClang() )
     }
