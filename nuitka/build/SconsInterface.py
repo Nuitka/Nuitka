@@ -125,7 +125,7 @@ def runScons( options, quiet ):
         "scons_file" : Utils.joinpath( getSconsDataPath(), "SingleExe.scons" ),
         "job_limit"  : Options.getJobLimit(),
         "options"    : " ".join(
-            "%s=%s" % ( key, value )
+            '%s=%s' % ( key, value if " " not in value else '"%s"' % value )
             for key, value in
             options.items()
         )
