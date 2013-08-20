@@ -1,3 +1,37 @@
+Nuitka Release 0.4.6 (Draft)
+============================
+
+This release focuses on advancing SSA optimization over older optimization code
+that was already in place. This is mainly a cleanup release.
+
+Bug Fixes
+---------
+
+- Install inline copy of scons only on systems where scons is not already
+  installed.
+
+- Added support for Gentoo.
+
+Cleanups
+--------
+
+- Replaced "value friend" based optimization code with SSA based optimization,
+  which allowed to remove complicated and old code that was still used mainly in
+  optimization of ``or`` and ``and`` expressions.
+
+Organizational
+--------------
+
+- Added use of Nuitka fonts for headers in manuals.
+
+- Added support for Gentoo.
+
+Summary
+-------
+
+This release is not complete yet.
+
+
 Nuitka Release 0.4.5
 ====================
 
@@ -94,7 +128,7 @@ Organizational
 - Added section about Nuitka license to the "`User Manual
   <http://nuitka.net/doc/user-manual.html#license>`__".
 
-- Added `Nuitka Logo <http://nuitka.net/doc/images/Nuitka-Logo-Symbol.svg>`_
+- Added `Nuitka Logo <http://nuitka.net/doc/images/Nuitka-Logo-Symbol.png>`_
   to the distribution.
 
 - Use Nuitka Logo as the bitmap in the Windows installer.
