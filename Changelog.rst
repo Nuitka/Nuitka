@@ -47,6 +47,12 @@ Bug Fixes
 - Windows: Added back XML manifest, found a case where it is needed to prevent
   clashes with binary modules.
 
+- Windows: Generators only worked in the main Python threads. Some unusual
+  threading modules therefore failed.
+
+- Using ``sys.prefix`` to find the Python installation instead of hard coded
+  paths. `Issue#103 <http://bugs.nuitka.net/issue103>`_.
+
 New Features
 ------------
 
@@ -98,7 +104,7 @@ Organizational
   <http://nuitka.net/doc/developer-manual.html>`_").
 
 - Enhanced documentation to number page numbers starting after table of
-  contents, removed header/footer from table cover pages.
+  contents, removed header/footer from cover pages.
 
 Summary
 -------
