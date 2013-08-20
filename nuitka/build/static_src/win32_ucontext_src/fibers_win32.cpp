@@ -23,14 +23,8 @@
 
 void initFiber( Fiber *to )
 {
-    static bool init_done = false;
-
-    if ( init_done == false )
-    {
-        // Need to call this once, so we have a main FIBER.
-        ConvertThreadToFiber( NULL );
-        init_done = true;
-    }
+    // Need to call this at least once per thread, so we have a main FIBER.
+    ConvertThreadToFiber( NULL );
 
     assert( to );
     to->fiber = NULL;
@@ -56,5 +50,7 @@ void releaseFiber( Fiber *to )
 void swapFiber( Fiber *to, Fiber *from )
 {
     to->fiber = GetCurrentFiber();
+
+    assert( from->fiber );
     SwitchToFiber( from->fiber );
 }
