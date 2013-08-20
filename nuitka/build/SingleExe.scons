@@ -188,6 +188,13 @@ def setupSpawn( env ):
             data = data[ data.find( "\r\n" ) + 2 : ]
         elif cmd == "rc":
             data = data[ data.find( "reserved.\r" ) + 13 : ]
+
+            data = "\n".join(
+                line
+                for line in
+                data.split( "\n")
+                if not "identifier truncated to"
+            )
         elif cmd == "link" and module_mode:
             data = "\r\n".join(
                 line
