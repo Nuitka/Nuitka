@@ -96,8 +96,8 @@ if sys.platform == "darwin" or "freebsd" in sys.platform:
 # Portable mode
 portable_mode = getBoolOption( "portable_mode", False )
 
-# Python home directory, used for finding Python dev files under Windows
-python_home = ARGUMENTS.get( "python_home", None ) if os.name == "nt" else None
+# Home of Python to be compiled against
+python_prefix = ARGUMENTS.get( "python_prefix", None )
 
 def createEnvironment( compiler_tools ):
     return Environment(
@@ -455,53 +455,29 @@ if python_version is None:
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
 if win_target:
-    def guessPythonHome():
-        """ Guess the Python home directory.
+    # On Windows, the installation layout is relatively fixed.
+    env.Append( LIBPATH = [ os.path.join( python_prefix, "libs" ) ] )
 
-        Under Windows it can be done from the running Python under Windows.
-        Under Linux we take the supposed wine path. Can be overridden by an
-        environment variable in any case.
-        """
-
-        if os.name == "nt":
-            if python_version == "%d.%d" % ( sys.version_info[0], sys.version_info[1] ):
-                return os.path.dirname( sys.executable )
-            else:
-                return r"C:\Python" + python_version.replace( ".", "" )
-        else:
-            return os.path.expanduser(
-                "~/.wine/drive_c/Python" + python_version.replace( ".", "" )
-            )
-
-    if python_home is None:
-        python_home = guessPythonHome()
-
-    env.Append( LIBPATH = [ os.path.join( python_home, "libs" ) ] )
-
+    # For MinGW and cross compilation, we need to tell the subsystem
+    # to target as well as to automatically import everything used.
     if gcc_mode:
         env.Append( LINKFLAGS = [ "-Wl,--enable-auto-import" ] )
 
         if win_disable_console:
             env.Append( LINKFLAGS = [ "-Wl,--subsystem,windows" ] )
 
-    python_header_path = os.path.join( python_home, "include" )
+    python_header_path = os.path.join( python_prefix, "include" )
 
 else:
     # The python header path is a combination of python version and debug
     # indication, make sure the headers are found by adding it to the C++
     # include path.
 
-    candidate_paths = (
-        "/usr/include",
-        "/usr/local/include",
-        "/usr/pkg/include"
+    python_header_path = os.path.join(
+        python_prefix,
+        "include",
+        "python" + python_version
     )
-
-    for candidate_path in candidate_paths:
-        python_header_path = os.path.join( candidate_path, "python" + python_version )
-
-        if os.path.exists( python_header_path ):
-            break
 
 if not os.path.exists( os.path.join( python_header_path, "Python.h" ) ):
     sys.exit( """\
@@ -510,16 +486,16 @@ not satisfied!""" )
 
 env.Append( CPPPATH  = [ python_header_path ] )
 
-# The Python library path is not in the standard path for FreeBSD, add it
-# manually.
-if "freebsd" in sys.platform:
-    env.Append( LIBPATH = [ "/usr/local/lib" ] )
+# The Python library path is not in the standard path for FreeBSD and
+# NetBSD, add it manually.
+if "freebsd" in sys.platform or "netbsd" in sys.platform:
+    python_lib_path = os.path.join( python_prefix, "lib" )
 
-# The Python library path is not in the standard path for NetBSD, add it
-# manually.
+    env.Append( LIBPATH = [ python_lib_path ] )
+
+# For NetBSD the rpath is required, on FreeBSD it's warned as unused.
 if "netbsd" in sys.platform:
-    env.Append( LIBPATH = [ "/usr/pkg/lib" ] )
-    env.Append( LINKFLAGS = [ "-rpath=/usr/pkg/lib" ] )
+    env.Append( LINKFLAGS = [ "-rpath=" + python_lib_path ] )
 
 def detectHostMultiarch():
     import commands
