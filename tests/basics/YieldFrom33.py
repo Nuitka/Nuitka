@@ -110,3 +110,13 @@ def test_throw_catched_subgenerator_handling():
 
 
 test_throw_catched_subgenerator_handling()
+
+def give_cpython_generator():
+    # TODO: This relies on eval not being inlined, which will become untrue.
+    return eval( "( x for x in range(3) )" )
+
+def gen_compiled():
+    yield from give_cpython_generator()
+    yield from range(7)
+
+print( list( gen_compiled() ) )

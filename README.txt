@@ -1,5 +1,26 @@
+Nuitka User Manual
+~~~~~~~~~~~~~~~~~~
+
+.. image:: images/Nuitka-Logo-Symbol.png
 
 .. contents::
+
+.. raw:: pdf
+
+   PageBreak oneColumn
+   SetPageCounter 1
+
+Overview
+========
+
+Nuitka is the Python compiler. It is a good replacement for the Python
+interpreter and compiles **every** construct that CPython 2.6, 2.7, 3.2 and 3.3
+offer. It translates the Python into a C++ program that then uses "libpython" to
+execute in the same way as CPython does, in a very compatible way.
+
+This document is the recommended first read if you are interested in using
+Nuitka, understand its use cases, check what you can expect, license,
+requirements, credits, etc.
 
 Usage
 =====
@@ -64,6 +85,20 @@ defaults. It tries to compile and directly execute a Python script:
 
 These options with different defaults are ``--exe`` and ``--execute``, so it is
 somewhat more similar to what plain ``python`` will do.
+
+License
+-------
+
+Nuitka is licensed under the Apache License, Version 2.0; you may not use
+it file except in compliance with the License.
+
+You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations under the License.
 
 Use Cases
 =========
@@ -246,17 +281,19 @@ The development of Nuitka occurs in git. We currently have these 2 branches:
 
 .. note::
 
-   I accept patch files, git formated patch queues, and git pull requests. I
-   will do the integration work. If you base your work on "master" or "develop"
-   at any given time, I will do any re-basing required and keep your authorship
-   intact.
+   I accept patch files, git formatted patch queues (use ``git format-patch
+   origin`` command), or if you prefer git pull on the social code platforms.
+
+   I will do the integration work. If you base your work on "master" or
+   "develop" at any given time, I will do any re-basing required and keep your
+   authorship intact.
 
 .. note::
 
-   The Developer Manual explains the coding rules, branching model used, with
-   feature branches and hotfix releases, the Nuitka design and much
-   more. Consider reading it to become a contributor. This document is intended
-   for Nuitka users.
+   The `Developer Manual <http://nuitka.net/doc/developer-manual.html>`_
+   explains the coding rules, branching model used, with feature branches and
+   hotfix releases, the Nuitka design and much more. Consider reading it to
+   become a contributor. This document is intended for Nuitka users.
 
 Donations
 =========
@@ -613,9 +650,10 @@ The order is sorted by time.
 - Li Xuan Ji: Contributed patches for general portability issue and enhancements
   to the environment variable settings.
 
-- Nicolas Dumazet: Found and fixed reference counting issues, import work,
-  improved some of the English and generally made good code contributions all
-  over the place, code generation TODOs, tree building cleanups, core stuff.
+- Nicolas Dumazet: Found and fixed reference counting issues, ``import``
+  packages work, improved some of the English and generally made good code
+  contributions all over the place, solved code generation TODOs, did tree
+  building cleanups, core stuff.
 
 - Khalid Abu Bakr: Submitted patches for his work to support MinGW and Windows,
   debugged the issues, and helped me to get cross compile with MinGW from Linux
@@ -631,8 +669,13 @@ The order is sorted by time.
 
 - Pete Hunt: Submitted patches for MacOS X support.
 
-- ownssh: Submitted patches for builtins module guarding, and made massive
+- "ownssh": Submitted patches for builtins module guarding, and made massive
   efforts to make high quality bug reports.
+
+- "dr. Equivalent": Submitted the Nuitka Logo.
+
+- Johan Holmberg: Submitted patch for Python3 support on MacOS X.
+
 
 Projects used by Nuitka
 -----------------------
@@ -685,16 +728,6 @@ Projects used by Nuitka
 
   Thanks for enabling us to run the cross compiled binaries without have to
   maintain a windows installation at all.
-
-.. header::
-
-   Nuitka - User Manual
-
-.. footer::
-
-   |copy| Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
-
-.. |copy|   unicode:: U+000A9
 
 Updates for this Manual
 =======================

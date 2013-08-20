@@ -17,6 +17,9 @@
 #
 import sys, gc
 
+if not hasattr( sys, "gettotalrefcount" ):
+    sys.gettotalrefcount = lambda : 0
+
 gc.disable()
 
 def simpleFunction1():

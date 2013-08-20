@@ -318,7 +318,7 @@ for filename in os.listdir( "dist/deb_dist" ):
 # Build the Windows installer.
 assert 0 == os.system(
     """DISPLAY= wine c:\\\\python27\\\\python.exe setup.py bdist_wininst \
---bitmap misc/Nuitka-Installer.bmp"""
+--bitmap images/Nuitka-Logo-WinInstaller.bmp"""
 )
 
 # Sign the result files. The Debian binary package was copied here.

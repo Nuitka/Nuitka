@@ -15,42 +15,31 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-// Implementation of process context switch for Win32
+#ifndef __NUITKA_UNFREEZING_H__
+#define __NUITKA_UNFREEZING_H__
 
-#include "nuitka/prelude.hpp"
+// This define guards these definitions from being used without the unfreezing
+// mode actually being active at all.
 
-#define STACK_SIZE (1024*1024)
-
-void initFiber( Fiber *to )
+struct Nuitka_FreezeTableEntry
 {
-    // Need to call this at least once per thread, so we have a main FIBER.
-    ConvertThreadToFiber( NULL );
+    char *name; // Full module name, including package
 
-    assert( to );
-    to->fiber = NULL;
-}
+#if PYTHON_VERSION < 300
+    void (*python_initfunc)( void );
+#else
+    PyObject * (*python_initfunc)( void );
+#endif
 
-void prepareFiber( Fiber *to, void *code, unsigned long arg )
-{
-    assert( to );
-    assert( code );
+    int flags;
+};
 
-    to->fiber = CreateFiber( STACK_SIZE, (LPFIBER_START_ROUTINE)code, (LPVOID)arg );
-}
+// For embedded modules, to be unpacked. Used by main program/package only
+extern void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_modules );
 
-void releaseFiber( Fiber *to )
-{
-    if ( to->fiber )
-    {
-        DeleteFiber( to->fiber );
-    }
-    to->fiber = NULL;
-}
+// For the "__loader__" attribute of modules.
+#if PYTHON_VERSION >= 330
+extern PyObject *loader_frozen_modules;
+#endif
 
-void swapFiber( Fiber *to, Fiber *from )
-{
-    to->fiber = GetCurrentFiber();
-
-    assert( from->fiber );
-    SwitchToFiber( from->fiber );
-}
+#endif

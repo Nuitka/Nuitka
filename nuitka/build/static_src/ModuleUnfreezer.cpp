@@ -20,15 +20,16 @@
 // responds if it is an embedded one.
 
 #include "nuitka/prelude.hpp"
+#include "nuitka/unfreezing.hpp"
 
-// For Python3.3, the loader is a module attribute, that it will access from
-// this variable.
+// For Python3.3, the loader is a module attribute, so we need tp make it
+// accessible from this variable.
 #if PYTHON_VERSION < 330
 static
 #endif
 PyObject *loader_frozen_modules = NULL;
 
-static struct _inittab *frozen_modules = NULL;
+static Nuitka_FreezeTableEntry *frozen_modules = NULL;
 
 static char *_kwlist[] = {
     (char *)"fullname",
@@ -60,7 +61,7 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
     printf( "Looking for module '%s'...\n", name );
 #endif
 
-    struct _inittab *current = frozen_modules;
+    struct Nuitka_FreezeTableEntry *current = frozen_modules;
 
     while ( current->name != NULL )
     {
@@ -103,7 +104,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 
     char *name = Nuitka_String_AsString( module_name );
 
-    struct _inittab *current = frozen_modules;
+    struct Nuitka_FreezeTableEntry *current = frozen_modules;
 
     while ( current->name != NULL )
     {
@@ -114,11 +115,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 #endif
 
            // Check prelude on why this is necessary.
-#if PYTHON_VERSION < 300
            current->python_initfunc();
-#else
-           current->initfunc();
-#endif
 
            if (unlikely( ERROR_OCCURED() ))
            {
@@ -159,7 +156,7 @@ static PyMethodDef _method_def_loader_load_module =
     NULL
 };
 
-void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules )
+void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_modules )
 {
     // Do it only once.
     if ( frozen_modules )
@@ -170,12 +167,6 @@ void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules )
     }
 
     frozen_modules = _frozen_modules;
-
-    // Register the initialization functions for modules included in the
-    // traditional way. TODO: Find out, if that is needed at all, maybe the meta
-    // path approach alone is already perfect.
-    int res = PyImport_ExtendInittab( _frozen_modules );
-    assert( res != -1 );
 
     // Build the dictionary of the "loader" object, which needs to have two
     // methods "find_module" where we acknowledge that we are capable of loading
@@ -213,6 +204,6 @@ void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules )
     assertObject( loader_frozen_modules );
 
     // And also provide it as a meta path loader.
-    res = PyList_Insert( PySys_GetObject( ( char *)"meta_path" ), 0, loader_frozen_modules );
+    int res = PyList_Insert( PySys_GetObject( ( char *)"meta_path" ), 0, loader_frozen_modules );
     assert( res == 0 );
 }

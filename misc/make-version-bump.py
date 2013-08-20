@@ -128,6 +128,8 @@ else:
         os.system( 'debchange -R "New upstream hotfix release."' )
         os.system( 'debchange --newversion=%s ""'  % debian_version )
 
+    os.system( 'debchange -r ""' )
+
 spec_lines = [ line for line in open( "misc/nuitka.spec" ) ]
 
 with open( "misc/nuitka.spec", "w" ) as spec_file:

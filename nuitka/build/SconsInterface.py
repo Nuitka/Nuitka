@@ -47,16 +47,49 @@ def getSconsBinaryPath():
             Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
         )
 
+def _getPython2ExePathWindows():
+    # Shortcuts for the default installation directories, to avoid going to
+    # registry at all.
+
+    if os.path.exists( r"c:\Python27\python.exe" ):
+        return r"c:\Python27\python.exe"
+    elif os.path.exists( r"c:\Python26\python.exe" ):
+        return r"c:\Python26\python.exe"
+
+    # Windows only code, pylint: disable=E0602,F0401
+    try:
+        import _winreg as winreg
+    except ImportError:
+        import winreg
+
+    for search in ( "2.7", "2.6" ):
+        for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:
+            try:
+                key = _winreg.OpenKey(
+                    winreg.HKEY_LOCAL_MACHINE,
+                    r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
+                    0,
+                    winreg.KEY_READ | arch_key
+                )
+
+                return os.path.join(
+                    winreg.QueryValue( key, '' ),
+                    "python.exe"
+                )
+            except WindowsError:
+                pass
+
+
 def getPython2ExePath():
     """ Find a way to call Python2. Scons needs it."""
 
     if Utils.python_version < 300:
         return sys.executable
     elif os.name == "nt":
-        if os.path.exists( r"c:\Python27\python.exe" ):
-            return r"c:\Python27\python.exe"
-        elif os.path.exists( r"c:\Python26\python.exe" ):
-            return r"c:\Python26\python.exe"
+        python_exe = _getPython2ExePathWindows()
+
+        if python_exe is not None:
+            return python_exe
         else:
             sys.exit( """\
 Error, need to find Python2 executable under C:\\Python26 or \
@@ -84,10 +117,6 @@ def runScons( options, quiet ):
         # used the default path or installed it on the same drive by appending
         # to the PATH variable before executing scons.
         os.environ[ "PATH" ] += r";\MinGW\bin;C:\MinGW\bin"
-
-    # Scons is Python2 only, so we need to make the system find a suitable
-    # Python binary.
-    python2_exe = getPython2ExePath()
 
     scons_command = """%(scons_call)s %(quiet)s --warn=no-deprecated \
 -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {

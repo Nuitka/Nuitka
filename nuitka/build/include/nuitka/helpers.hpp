@@ -528,9 +528,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
     }
 }
 
-// Return the next item of an iterator. Avoiding any exception for end of iteration,
-// callers must deal with NULL return as end of iteration, but will know it wasn't an
-// Python exception, that will show as a thrown exception.
+// Return the next item of an iterator. Avoiding any exception for end of
+// iteration, callers must deal with NULL return as end of iteration, but will
+// know it wasn't an Python exception, that will show as a thrown exception.
 NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assertObject( iterator );
@@ -828,8 +828,8 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
     PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-    // TODO: The special cases should get their own SET_ATTRIBUTE variant on the code
-    // generation level as SET_ATTRIBUTE is called with constants only.
+    // TODO: The special cases should get their own SET_ATTRIBUTE variant on the
+    // code generation level as SET_ATTRIBUTE is called with constants only.
     if (unlikely( attr_name == _python_str_plain___dict__ ))
     {
         return INCREASE_REFCOUNT( source_instance->in_dict );
@@ -978,8 +978,8 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 
     PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
-    // TODO: The special cases should get their own SET_ATTRIBUTE variant on the code
-    // generation level as SET_ATTRIBUTE is called with constants only.
+    // TODO: The special cases should get their own SET_ATTRIBUTE variant on the
+    // code generation level as SET_ATTRIBUTE is called with constants only.
     if (unlikely( attr_name == _python_str_plain___dict__ ))
     {
         if (unlikely( !PyDict_Check( value ) ))

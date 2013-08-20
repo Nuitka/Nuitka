@@ -15,10 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-print( "Importing child." )
-
-class A:
-   pass
-
-print( "Class defined here, has these vars", vars( A ) )
+print ("Imported local package")

@@ -188,9 +188,12 @@ def main( mainscript, outputdir ):
 
     # pack scripts to archive
     zip_path = os.path.join( outputdir, python_library_archive_name )
-    with zipfile.ZipFile( zip_path, "w", zipfile.ZIP_STORED ) as zip_file:
-        for path_pack, import_base in sorted( zip_list ):
-            zip_file.write( path_pack, path_pack[ len( import_base ): ] )
+    if not os.path.exists( outputdir ):
+        os.makedirs( outputdir )
+    zip_file = zipfile.ZipFile( zip_path, "w", zipfile.ZIP_STORED )
+    for path_pack, import_base in sorted( zip_list ):
+        zip_file.write( path_pack, path_pack[ len( import_base ): ] )
+    zip_file.close()
 
     # copy extensions to directory
     import shutil

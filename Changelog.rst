@@ -1,5 +1,10 @@
-Nuitka Release 0.4.5 (Draft)
-============================
+Nuitka Release 0.4.5
+====================
+
+This release incorporates very many bug fixes, most of which were already part
+of hot fixes, usability improvements, documentation improvements, new logo,
+simpler Python3 on Windows, warnings for recursion options, and so on. So it's
+mostly a consolidation release.
 
 Bug Fixes
 ---------
@@ -16,24 +21,102 @@ Bug Fixes
   "virtualenv", it cannot be found unless. `Issue#96
   <http://bugs.nuitka.net/issue96>`_. Fixed in 0.4.4.1 already.
 
+- The option ``--recurse-directory`` to include plugin directories was
+  broken. `Issue#97 <http://bugs.nuitka.net/issue97>`_. Fixed in 0.4.4.2
+  already.
+
+- Python3: Files with "BOM" marker causes the compiler to crash. `Issue#98
+  <http://bugs.nuitka.net/issue98>`_. Fixed in 0.4.4.2 already.
+
+- Windows: The generated code for ``try``/``return``/``finally`` was working
+  with gcc (and therefore MinGW), but not with MSVC, causing crashes. `Issue#102
+  <http://bugs.nuitka.net/issue102>`_. Fixed in 0.4.4.2 already.
+
+- The option ``--recurse-all`` did not recurse to package ``__init__.py`` files
+  in case ``from x.y import z`` syntax was used. `Issue#100
+  <http://bugs.nuitka.net/issue100>`_. Fixed in 0.4.4.2 already.
+
+- Python3 on MacOS: Corrected link time error. Fixed in 0.4.4.2 already.
+
+- Python3.3 on Windows: Fixed crash with too many arguments to a kwonly argument
+  using function. Fixed in 0.4.4.2 already.
+
+- Python3.3 on Windows: Using "yield from" resulted in a link time error. Fixed
+  in 0.4.4.2 already.
+
+- Windows: Added back XML manifest, found a case where it is needed to prevent
+  clashes with binary modules.
+
+- Windows: Generators only worked in the main Python threads. Some unusual
+  threading modules therefore failed.
+
+- Using ``sys.prefix`` to find the Python installation instead of hard coded
+  paths. `Issue#103 <http://bugs.nuitka.net/issue103>`_.
 
 New Features
 ------------
 
-- Portable Binaries.
+- Windows: Python3 finds Python2 installation to run Scons automatically now.
 
-  Nuitka has gained the ``--portable`` option which adds the Python libraries,
-  and a zip files with the modules, sufficient to run independent of the Python
-  installation. This has often been requested, and finally been contributed by
-  ownssh.
+  Nuitka itself runs under Python3 just fine, but in order to build the
+  generated C++ code into binaries, it uses Scons which still needs Python2.
+
+  Nuitka will now find the Python2 installation searching Windows registry
+  instead of requiring hard coded paths.
+
+- Windows: Python2 and Python3 find their headers now even if Python is not
+  installed to specific paths.
+
+  The installation path now is passed on to Scons which then uses it.
+
+- Better error checking for ``--recurse-to`` and ``--recurse-not-to`` arguments,
+  tell the user not to use directory paths.
+
+- Added a warning for ``--recurse-to`` arguments that end up having no effect to
+  the final result.
+
+Cleanups
+--------
+
+- Import mechanism got cleaned up, stopped using "PyImport_ExtendInittab". It
+  does not handle packages, and the ``sys.meta_path`` based importer is now well
+  proven.
+
+- Moved some of the constraint collection code mess into proper places. It still
+  remains a mess.
+
+Organizational
+--------------
+
+- Added ``LICENSE.txt`` file with Apache License 2.0 text to make it more
+  immediately obvious which license Nuitka is under.
+
+- Added section about Nuitka license to the "`User Manual
+  <http://nuitka.net/doc/user-manual.html#license>`__".
+
+- Added `Nuitka Logo <http://nuitka.net/doc/images/Nuitka-Logo-Symbol.svg>`_
+  to the distribution.
+
+- Use Nuitka Logo as the bitmap in the Windows installer.
+
+- Use Nuitka Logo in the documentation ("`User Manual
+  <http://nuitka.net/doc/user-manual.html>`_" and "`Developer Manual
+  <http://nuitka.net/doc/developer-manual.html>`_").
+
+- Enhanced documentation to number page numbers starting after table of
+  contents, removed header/footer from cover pages.
 
 Summary
 -------
 
-Not completed yet.
+This release is mostly the result of improvements made based on the surge of
+users after Europython 2013. Some people went to extents and reported their
+experience very detailed, and so I could aim at making e.g. their misconceptions
+about how recursion options work, more obvious through warnings and errors.
 
-The contributed "portable" code opens up a whole new area of use for Nuitka. We
-may see it evolved to replace "py2exe" for more and more people now.
+This release is not addressing performance improvements. The next release will
+be able to focus on that. I am taking my claim of full compatibility very
+serious, so any time it's broken, it's the highest priority to restore it.
 
 
 Nuitka Release 0.4.4
@@ -169,7 +252,7 @@ Cleanups
   code level, Nuitka immediately created constant references from them.
 
   For function calls, class creations, slice objects, this code is now re-used,
-  and its dictionaries and tuples, may now also become constants immediately,
+  and its dictionaries and tuples, may now become constants immediately,
   reducing noise in optimization steps.
 
 - The parameter parsing code got cleaned up. There were a lot of relics from
@@ -189,7 +272,7 @@ Cleanups
   made these functions inconsistent to other functions, e.g. no variable version
   was allocated to assignments.
 
-  Removing the manual setting of variables also allowed a huge reduction of code
+  Removing the manual setting of variables allowed a huge reduction of code
   volume, as it became more generic code.
 
 - Converting user provided constants to create containers into constants
@@ -218,7 +301,8 @@ Organizational
   Support for Python3.3 was a higher priority, but the intention is to get it
   into shape for Europython still.
 
-  Added notes about it being disabled it in the User Manual documentation.
+  Added notes about it being disabled it in the "`User Manual
+  <http://nuitka.net/doc/user-manual.html>`_" documentation.
 
 Summary
 -------
@@ -338,7 +422,7 @@ Organizational
 - Accepting `Donations <http://nuitka.net/pages/donations.html>`_ via Paypal,
   please support funding travels, website, etc.
 
-- The `User Manual <http://nuitka.net/doc/user-manual.html>`_ has been updated
+- The "`User Manual <http://nuitka.net/doc/user-manual.html>`_" has been updated
   with new content. We now do support Visual Studio, documented the required
   LLVM version for clang, Win64 and modules may include modules too, etc. Lots
   of information was no longer accurate and has been updated.
@@ -652,8 +736,8 @@ Organizational
 
 - Added "ownssh" as contributor.
 
-- Revamped the `User Manual <http://nuitka.net/doc/user-manual.html>`_ in terms
-  of layout, structure, and content.
+- Revamped the "`User Manual <http://nuitka.net/doc/user-manual.html>`_" in
+  terms of layout, structure, and content.
 
 Summary
 -------
@@ -1201,15 +1285,15 @@ Organizational
   standard C++ constructs. This is needed to support MSVC which doesn't have
   this.
 
-- Added examples for the typical use cases to the `User Manual
-  <http://nuitka.net/doc/user-manual.html>`_.
+- Added examples for the typical use cases to the "`User Manual
+  <http://nuitka.net/doc/user-manual.html>`_".
 
 - The "compare_with_cpython" script has gained an option to immediately remove
   the Nuitka outputs (build directory and binary) if successful. Also the
   temporary files are now put under "/var/tmp" if available.
 
-- Debian package improvements, registering with "doc-base" the `User Manual
-  <http://nuitka.net/doc/user-manual.html>`_ so it is easier to discover. Also
+- Debian package improvements, registering with "doc-base" the "`User Manual
+  <http://nuitka.net/doc/user-manual.html>`_" so it is easier to discover. Also
   suggest "mingw32" package which provides the cross compiler to Windows.
 
 - Partial support for MSVC (Visual Studio 2008 to be exact, the version that
@@ -1366,9 +1450,9 @@ Organizational
   easily rendered these days.
 
 - Removed the "misc/gist" git sub-module, which was previously used by
-  "misc/make-doc.py" to generate HTML from `User Manual
-  <http://nuitka.net/doc/user-manual.html>`_ and `Developer Manual
-  <http://nuitka.net/doc/developer-manual.html>`_.
+  "misc/make-doc.py" to generate HTML from "`User Manual
+  <http://nuitka.net/doc/user-manual.html>`_" and "`Developer Manual
+  <http://nuitka.net/doc/developer-manual.html>`_".
 
   These are now done with Nikola, which is much better at it and it integrates
   with the web site.
@@ -2061,7 +2145,7 @@ New Optimization
   arguments. These also cannot be computed at compile time, but now will execute
   faster as well.
 
-- Added support the the ``open`` built-in in all its form. We intend for future
+- Added support for the ``open`` built-in in all its form. We intend for future
   releases to be able to track file opens for including them into the executable
   if data files.
 
@@ -2636,9 +2720,9 @@ Organizational
   "Apache License 2.0", the future Nuitka license, so that the code won't be a
   problem when changing the license of all of Nuitka to that license.
 
-- Give contributors listed in the `User Manual
-  <http://nuitka.net/doc/user-manual.html>`_ an exception to the GPL terms until
-  Nuitka is licensed under "Apache License 2.0" as well.
+- Give contributors listed in the "`User Manual
+  <http://nuitka.net/doc/user-manual.html>`_" an exception to the GPL terms
+  until Nuitka is licensed under "Apache License 2.0" as well.
 
 - Added an ``--experimental`` option which can be used to control experimental
   features, like the one currently being added on ``feature/ctypes_annotation``,
@@ -2737,11 +2821,11 @@ for ``inspect`` was going in that direction, and this has slowed down. It was
 more important to make Nuitka's recursion more accessible with the new options,
 so that was done first.
 
-And of course, the real excitement is the the "type inference" work. It will
-give a huge boost to Nuitka, and I am happy that it seems to go well. With this
-in place, new benchmarks may make sense. I am working on getting it off the
-ground, so other people can work on it too. My idea of ``ctypes`` native calls
-may become true sooner than expected. To support that, I would like to add more
+And of course, the real excitement is the "type inference" work. It will give a
+huge boost to Nuitka, and I am happy that it seems to go well. With this in
+place, new benchmarks may make sense. I am working on getting it off the ground,
+so other people can work on it too. My idea of ``ctypes`` native calls may
+become true sooner than expected. To support that, I would like to add more
 tools to make sure we discover changes earlier on, checking the XML
 representations of tests to discover improvements and regressions more clearly.
 
@@ -3321,7 +3405,7 @@ Nuitka Release 0.3.12
 
 This is to inform you about the new release of Nuitka many bug fixes, and
 substantial improvements especially in the organizational area. There is a new
-`User Manual <http://nuitka.net/doc/user-manual.html>`_ (`PDF
+"`User Manual <http://nuitka.net/doc/user-manual.html>`_" (`PDF
 <http://nuitka.net/doc/user-manual.pdf>`_), with much improved content, a
 ``sys.meta_path`` based import mechanism for ``--deep`` mode, git flow goodness.
 
@@ -3438,8 +3522,8 @@ Organizational
 --------------
 
 - Migrated the "README.txt" from org-mode to ReStructured Text, which allows for
-  a more readable document, and to generate a nice `User Manual
-  <http://nuitka.net/doc/user-manual.html>`_ in PDF form.
+  a more readable document, and to generate a nice "`User Manual
+  <http://nuitka.net/doc/user-manual.html>`_" in PDF form.
 
 - The amount of information in "README.txt" was increased, with many more
   subjects are now covered, e.g. "git flow" and how to join Nuitka

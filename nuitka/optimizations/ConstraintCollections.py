@@ -40,168 +40,14 @@ from nuitka.tree import Recursion
 
 from logging import debug, warning
 
+from .VariableTraces import (
+    VariableUnknownTrace,
+    VariableAssignTrace,
+    VariableUninitTrace,
+    VariableMergeTrace
+)
 
-class VariableTraceBase:
-    def __init__( self, variable, version ):
-        self.variable     = variable
-        self.version      = version
-
-        # List of references.
-        self.usages = []
-
-        # List of releases of the node.
-        self.releases = []
-
-        # If not None, this indicates the last usage, where the value was not
-        # yet escaped. If it is 0, it escaped immediately. Escaping is a one
-        # time action.
-        self.escaped_at = None
-
-    def getVariable( self ):
-        return self.variable
-
-    def getVersion( self ):
-        return self.version
-
-    def addUsage( self, ref_node ):
-        self.usages.append( ref_node )
-
-    def addRelease( self, release_node ):
-        self.releases.append( release_node )
-
-    def onValueEscape( self ):
-        self.escaped_at = len( self.usages )
-
-    def isEscaped( self ):
-        return self.escaped_at is not None
-
-    def getPotentialUsages( self ):
-        return self.usages
-
-    def getDefiniteUsages( self ):
-        return self.usages
-
-    def isAssignTrace( self ):
-        return False
-
-    def isUninitTrace( self ):
-        return False
-
-    def isMergeTrace( self ):
-        return False
-
-
-class VariableUninitTrace( VariableTraceBase ):
-    def __init__( self, variable, version ):
-        VariableTraceBase.__init__(
-            self,
-            variable = variable,
-            version  = version
-        )
-
-    def isUninitTrace( self ):
-        return True
-
-    def dump( self ):
-        debug( "Trace of %s %d:", self.variable, self.version )
-        debug( "  Starts out uninitialized" )
-
-        for count, usage in enumerate( self.usages ):
-            if count == self.escaped_at:
-                debug( "  Escaped value" )
-
-            debug( "  Used at %s", usage )
-
-
-class VariableUnknownTrace( VariableTraceBase ):
-    def __init__( self, variable, version ):
-        VariableTraceBase.__init__(
-            self,
-            variable = variable,
-            version  = version
-        )
-
-    def dump( self ):
-        debug( "Trace of %s %d:", self.variable, self.version )
-        debug( "  Starts unknown" )
-
-        for count, usage in enumerate( self.usages ):
-            if count == self.escaped_at:
-                debug( "  Escaped value" )
-
-            debug( "  Used at %s", usage )
-
-
-class VariableAssignTrace( VariableTraceBase ):
-    def __init__( self, target_node, variable, version, value_friend ):
-        VariableTraceBase.__init__(
-            self,
-            variable = variable,
-            version  = version
-        )
-
-        self.target_node = target_node
-        self.value_friend = value_friend
-
-    def __repr__( self ):
-        return "<VariableAssignTrace %s %d>" % (
-            self.variable,
-            self.version
-        )
-
-    def dump( self ):
-        debug( "Trace of %s %d:", self.variable, self.version )
-        debug( "  Assigned from %s", self.value_friend )
-
-        for count, usage in enumerate( self.usages ):
-            if count == self.escaped_at:
-                debug( "  Escaped value" )
-
-            debug( "  Used at %s", usage )
-
-    def isAssignTrace( self ):
-        return True
-
-    def getAssignNode( self ):
-        return self.target_node
-
-
-class VariableMergeTrace( VariableTraceBase ):
-    def __init__( self, variable, version, trace_yes, trace_no ):
-        assert trace_no is not trace_yes, ( variable, version, trace_no )
-
-        VariableTraceBase.__init__(
-            self,
-            variable = variable,
-            version  = version
-        )
-
-        self.trace_yes = trace_yes
-        self.trace_no = trace_no
-
-        self.forwarded = True
-
-    def isMergeTrace( self ):
-        return True
-
-    def addUsage( self, ref_node ):
-        if not self.usages:
-            # Merging is usage.
-            self.trace_yes.addUsage( self )
-            if self.trace_no is not None:
-                self.trace_no.addUsage( self )
-
-        VariableTraceBase.addUsage( self, ref_node )
-
-
-    def getPotentialUsages( self ):
-        assert False
-
-    def dump( self ):
-        debug( "Trace of %s %d:", self.variable, self.version )
-        debug( "  Merge of %s <-> %s", self.trace_yes, self.trace_no )
-
-
+# TODO: This will be removed, to be replaced by variable trace information.
 class VariableUsageProfile:
     def __init__( self, variable ):
         self.variable = variable
@@ -238,7 +84,7 @@ class VariableUsageProfile:
     def getNeedsFree( self ):
         return self.needs_free
 
-
+# TODO: This will be removed, to be replaced by variable trace information.
 class VariableUsageTrackingMixin:
     def __init__( self ):
         self.variable_usages = {}

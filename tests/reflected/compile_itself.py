@@ -265,7 +265,16 @@ def compileAndCompareWith( nuitka ):
 def executePASS2():
     print( "PASS 2: Compiling from compiler running from .exe and many .so files." )
 
+    # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we have
+    # to add it.
+    if os.name == "nt":
+        os.environ[ "PYTHONPATH" ] = ":".join( PACKAGE_LIST )
+
     compileAndCompareWith( os.path.join( ".", "nuitka.exe" ) )
+
+    # Undo the damage from above.
+    if os.name == "nt":
+        del os.environ[ "PYTHONPATH" ]
 
     print( "OK." )
 

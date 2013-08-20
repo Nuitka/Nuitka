@@ -77,10 +77,11 @@ class NodeCheckMetaClass( type ):
 
         type.__init__( mcs, name, bases, dictionary )
 
-# For every node type, there is a test, and then some more members, pylint: disable=R0904
+# For every node type, there is a test, and then some more members,
+# pylint: disable=R0904
 
-# For Python2/3 compatible source, we create a base class that has the metaclass used and
-# doesn't require making a choice.
+# For Python2/3 compatible source, we create a base class that has the metaclass
+# used and doesn't require making a choice.
 NodeMetaClassBase = NodeCheckMetaClass( "NodeMetaClassBase", (object, ), {} )
 
 class NodeBase( NodeMetaClassBase ):
@@ -102,7 +103,8 @@ class NodeBase( NodeMetaClassBase ):
         return True
 
     def __repr__( self ):
-        # This is to avoid crashes, because of bugs in detail. pylint: disable=W0702
+        # This is to avoid crashes, because of bugs in detail.
+        # pylint: disable=W0702
         try:
             detail = self.getDetail()
         except:
@@ -114,7 +116,8 @@ class NodeBase( NodeMetaClassBase ):
             return "<Node %s %s>" % ( self.getDescription(), detail )
 
     def getDescription( self ):
-        """ Description of the node, intented for use in __repr__ and graphical display.
+        """ Description of the node, intented for use in __repr__ and
+            graphical display.
 
         """
         return "%s at %s" % ( self.kind, self.source_ref.getAsString() )
@@ -127,7 +130,8 @@ class NodeBase( NodeMetaClassBase ):
         return {}
 
     def getDetail( self ):
-        """ Details of the node, intended for use in __repr__ and graphical display.
+        """ Details of the node, intended for use in __repr__ and graphical
+            display.
 
         """
         # Virtual method, pylint: disable=R0201
@@ -756,15 +760,15 @@ class ExpressionMixin:
     def isCompileTimeConstant( self ):
         """ Has a value that we can use at compile time.
 
-            Yes or no. If it has such a value, simulations can be applied at compile time
-            and e.g. operations or conditions, or even calls may be executed against it.
+            Yes or no. If it has such a value, simulations can be applied at
+            compile time and e.g. operations or conditions, or even calls may
+            be executed against it.
         """
         # Virtual method, pylint: disable=R0201
-
         return False
 
     def getCompileTimeConstant( self ):
-        assert self.isCompileTimeConstant(), ( self, "asked for compile time constant" )
+        assert self.isCompileTimeConstant(), self
 
         assert False
 
@@ -810,7 +814,7 @@ class ExpressionMixin:
     def getIterationLength( self ):
         """ Value that "len" or "PyObject_Size" would give, if known.
 
-        Otherwise it is "None" to indicate unknown.
+            Otherwise it is "None" to indicate unknown.
         """
 
         # Virtual method, pylint: disable=R0201
@@ -824,15 +828,15 @@ class ExpressionMixin:
     def getStrValue( self ):
         """ Value that "str" or "PyObject_Str" would give, if known.
 
-        Otherwise it is "None" to indicate unknown.
+            Otherwise it is "None" to indicate unknown.
         """
         string_value = self.getStringValue()
 
         if string_value is not None:
             from .NodeMakingHelpers import makeConstantReplacementNode
 
-            # TODO: Side effects should be considered, getStringValue may be omitting
-            # effects.
+            # TODO: Side effects should be considered, getStringValue may be
+            # omitting effects.
 
             return makeConstantReplacementNode(
                 node     = self,
@@ -895,6 +899,7 @@ class ExpressionMixin:
     def onContentEscapes( self, constraint_collection ):
         pass
 
+
 class CompileTimeConstantExpressionMixin( ExpressionMixin ):
     def __init__( self ):
         self.computed_attribute = False
@@ -902,8 +907,9 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
     def isCompileTimeConstant( self ):
         """ Has a value that we can use at compile time.
 
-            Yes or no. If it has such a value, simulations can be applied at compile time
-            and e.g. operations or conditions, or even calls may be executed against it.
+            Yes or no. If it has such a value, simulations can be applied at
+            compile time and e.g. operations or conditions, or even calls may
+            be executed against it.
         """
         # Virtual method, pylint: disable=R0201
 
@@ -921,7 +927,8 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
         return getComputationResult(
             node        = not_node,
             computation = lambda : not self.getCompileTimeConstant(),
-            description = "Compile time constant negation truth value precomputed."
+            description = """\
+Compile time constant negation truth value precomputed."""
         )
 
 
@@ -938,7 +945,9 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
             return getComputationResult(
                 node        = lookup_node,
                 computation = lambda : getattr( value, attribute_name ),
-                description = "Attribute lookup to %s precomputed." % attribute_name
+                description = "Attribute lookup to %s precomputed." % (
+                    attribute_name
+                )
             )
 
         self.computed_attribute = True
@@ -961,7 +970,8 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
     def computeExpressionSlice( self, lookup_node, lower, upper, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
-        # TODO: Could be happy with predictable index values and not require constants.
+        # TODO: Could be happy with predictable index values and not require
+        # constants.
         if lower is not None:
             if upper is not None:
                 if lower.isCompileTimeConstant() and upper.isCompileTimeConstant():
@@ -1054,8 +1064,8 @@ class ExpressionBuiltinNoArgBase( NodeBase, ExpressionMixin ):
     def computeExpression( self, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
-        # The lamba is there for make sure that no argument parsing will reach the builtin
-        # function at all, pylint: disable=W0108
+        # The lamba is there for make sure that no argument parsing will reach
+        # the builtin function at all, pylint: disable=W0108
         return getComputationResult(
             node        = self,
             computation = lambda : self.builtin_function(),

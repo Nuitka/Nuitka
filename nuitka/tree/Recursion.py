@@ -90,7 +90,8 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
 
 
 def considerFilename( module_filename, module_package ):
-    assert module_package is None or ( type( module_package ) is str and module_package != "" )
+    assert module_package is None or \
+           ( type( module_package ) is str and module_package != "" )
 
     module_filename = Utils.normpath( module_filename )
 
@@ -142,10 +143,9 @@ def _checkPluginPath( plugin_filename, module_package ):
 
                     assert sub_path != plugin_filename, package_dir
 
-                    if Importing.isPackageDir( sub_path ) or sub_path.endswith( ".py" ):
+                    if Importing.isPackageDir( sub_path ) or \
+                       sub_path.endswith( ".py" ):
                         _checkPluginPath( sub_path, module.getFullName() )
-
-
         else:
             warning( "Failed to include module from '%s'.", plugin_info[0] )
 
@@ -157,13 +157,17 @@ def checkPluginPath( plugin_filename, module_package ):
 
     if plugin_info is not None:
         # File or package, handle that.
-        if Utils.isFile( plugin_info[0] ) or Importing.isPackageDir( plugin_info[0] ):
+        if Utils.isFile( plugin_info[0] ) or \
+           Importing.isPackageDir( plugin_info[0] ):
             _checkPluginPath( plugin_filename, module_package )
         elif Utils.isDir( plugin_info[0] ):
             for sub_path, sub_filename in Utils.listDir( plugin_info[0] ):
                 assert sub_filename != "__init__.py"
 
-                if Importing.isPackageDir( sub_path ) or sub_path.endswith( ".py" ):
+                if Importing.isPackageDir( sub_path ) or \
+                   sub_path.endswith( ".py" ):
                     _checkPluginPath( sub_path, None )
         else:
             warning( "Failed to include module from '%s'.", plugin_info[0] )
+    else:
+        warning( "Failed to recurse to directory '%s'." % plugin_filename )

@@ -39,7 +39,7 @@ global_copyright = """\
 """
 
 module_inittab_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ) },"""
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0 },"""
 
 main_program = """\
 // The main program for C++. It needs to prepare the interpreter and then
@@ -295,21 +295,16 @@ static struct PyModuleDef _moduledef =
 #define _MODULE_UNFREEZER %(use_unfreezer)d
 
 #if _MODULE_UNFREEZER
-// For embedded modules, to be unpacked. Used by main program/package only
-extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules );
 
-// Our own inittab for lookup of "frozen" modules, i.e. the ones included in
-// this binary.
-static struct _inittab _frozen_modules[] =
+#include "nuitka/unfreezing.hpp"
+
+// Table for lookup to find "frozen" modules or DLLs, i.e. the ones included in
+// or along this binary.
+static struct Nuitka_FreezeTableEntry _frozen_modules[] =
 {
 %(module_inittab)s
-    { NULL, NULL }
+    { NULL, NULL, 0 }
 };
-
-// For loader attribute.
-#if PYTHON_VERSION >= 330
-extern PyObject *loader_frozen_modules;
-#endif
 
 #endif
 

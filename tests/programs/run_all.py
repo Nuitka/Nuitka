@@ -73,7 +73,8 @@ for filename in sorted( os.listdir( "." ) ):
 
     if active:
         expected_errors = [
-            "module_exits", "main_raises", "main_raises2"
+            "module_exits", "main_raises", "main_raises2",
+            "package_contains_main"
         ]
 
         # Allowed after Python3, packages need no more "__init__.py"

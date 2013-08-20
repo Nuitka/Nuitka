@@ -2233,10 +2233,9 @@ PyObject *_tmp_%s;
         result = _generateStatementCode( statement, statement_context )
         local_inits = Generator.getTempKeeperDecl( statement_context )
 
-
         if local_inits:
             result = Generator.getBlockCode(
-                local_inits + [ result ]
+                local_inits + result.split( "\n" )
             )
 
         return result
