@@ -121,7 +121,7 @@ Coding Rules
 
 These rules should generally be adhered when working on Nuitka code. It's not
 library code and it's optimized for readability, and avoids all performance
-optimizations for itself.
+optimization for itself.
 
 
 Line Length
@@ -430,8 +430,8 @@ Compile Nuitka with Nuitka
 
 And there is the "compile itself" or "reflected" test. This test makes Nuitka
 compile itself and compare the resulting C++, which helps to find
-indeterminism. The test compiles every module of Nuitka into an extension module
-and all of Nuitka into a single binary.
+in-determinism. The test compiles every module of Nuitka into an extension
+module and all of Nuitka into a single binary.
 
 That test case also gives good coverage of the ``import`` mechanisms, because
 Nuitka uses a lot of packages.
@@ -446,6 +446,43 @@ Design Descriptions
 
 These should be a lot more and contain graphics from presentations given. It
 will be filled in, but not now.
+
+Nuitka Logo
+-----------
+
+The logo was submitted by "dr. Equivalent". It's source is contained in
+``misc/Logo`` where 3 variants of the logo in SVG are placed.
+
+* Symbol only (symbol)
+
+  .. image:: images/Nuitka-Logo-Symbol.png
+
+* Text next to symbol (horizontal)
+
+  .. image:: images/Nuitka-Logo-Horizontal.png
+
+* Text beneath symbol (vertical)
+
+  .. image:: images/Nuitka-Logo-Vertical.png
+
+From these logos, PNG images, "favicons", and a BMP file for the Windows
+installer are derived.
+
+The exact ImageMagick commands are in ``misc/make-doc.py``, but are now executed
+each time, the commands are also replicated here:
+
+.. code-block:: bash
+
+   convert -background none misc/Logo/Nuitka-Logo-Symbol.svg images/Nuitka-Logo-Symbol.png
+   convert -background none misc/Logo/Nuitka-Logo-Vertical.svg images/Nuitka-Logo-Vertical.png
+   convert -background none misc/Logo/Nuitka-Logo-Horizontal.svg images/Nuitka-Logo-Horizontal.png
+
+   optipng -o2 images/Nuitka-Logo-Symbol.png
+   optipng -o2 images/Nuitka-Logo-Vertical.png
+   optipng -o2 images/Nuitka-Logo-Horizontal.png
+
+   convert -background grey -resize 152x261 misc/Logo/Nuitka-Logo-Vertical.svg -alpha background images/Nuitka-Logo-WinInstaller.bmp
+
 
 Choice of the Target Language
 -----------------------------
@@ -738,7 +775,8 @@ faster code in the positive case.
 Argument tuple
 ++++++++++++++
 
-After this completed, the argument tuple is up for processing. The first thing it needs to do is to check if it's too many of them, and then to complain.
+After this completed, the argument tuple is up for processing. The first thing
+it needs to do is to check if it's too many of them, and then to complain.
 
 For arguments in Python2, there is the possibility of them being nested, in
 which case they cannot be provided in the keyword dictionary, and merely should

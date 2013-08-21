@@ -13,9 +13,13 @@ include misc/*.bat
 include misc/check-with-pylint
 include misc/check-release
 
-# Logo wit source
+# Logo with source
 include misc/Logo/Nuitka-Logo-Symbol.svg
+include misc/Logo/Nuitka-Logo-Vertical.svg
+include misc/Logo/Nuitka-Logo-Horizontal.svg
 include images/Nuitka-Logo-Symbol.png
+include images/Nuitka-Logo-Vertical.png
+include images/Nuitka-Logo-Horizontal.png
 
 recursive-include lib *.py
 
