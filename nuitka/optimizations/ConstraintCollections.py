@@ -432,7 +432,7 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
         self.parent.addVariableMergeTrace( variable, trace_yes, trace_no )
 
 
-    def onVariableSet( self, target_node, value_friend ):
+    def onVariableSet( self, target_node ):
         # Add a new trace, using the version allocated for the variable, and
         # remember the value friend.
         variable = target_node.getVariable()
@@ -446,10 +446,9 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
             variable = variable,
             version  = version,
             trace    = VariableAssignTrace(
-                target_node  = target_node,
-                variable     = variable,
-                version      = version,
-                value_friend = value_friend
+                target_node = target_node,
+                variable    = variable,
+                version     = version
             )
         )
 
@@ -529,10 +528,7 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
             value_friend = new_node.getAssignSource().getValueFriend( self )
             assert value_friend is not None
 
-            self.onVariableSet(
-                target_node  = new_node,
-                value_friend = new_node.getValueFriend( self )
-            )
+            self.onVariableSet( target_node = new_node )
 
             self.onTempVariableAssigned( variable, value_friend )
         elif new_node.isExpressionTempKeeperRef():
@@ -848,8 +844,7 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
 
     def onTempVariableAssigned( self, variable, value_friend ):
         variable = variable.getReferenced()
-
-        assert variable.getRealOwner() is self.function_body, variable.getOwner()
+        assert variable.getRealOwner() is self.function_body
 
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
 

@@ -138,7 +138,7 @@ class VariableUnknownTrace( VariableTraceBase ):
 
 
 class VariableAssignTrace( VariableTraceBase ):
-    def __init__( self, target_node, variable, version, value_friend ):
+    def __init__( self, target_node, variable, version ):
         VariableTraceBase.__init__(
             self,
             variable = variable,
@@ -146,7 +146,6 @@ class VariableAssignTrace( VariableTraceBase ):
         )
 
         self.target_node = target_node
-        self.value_friend = value_friend
 
     def __repr__( self ):
         return "<VariableAssignTrace %s %d at %s>" % (
@@ -157,7 +156,6 @@ class VariableAssignTrace( VariableTraceBase ):
 
     def dump( self ):
         debug( "Trace of %s %d:", self.variable, self.version )
-        debug( "  Assigned from %s", self.value_friend )
 
         for count, usage in enumerate( self.usages ):
             if count == self.escaped_at:

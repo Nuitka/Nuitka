@@ -56,11 +56,8 @@ class StatementAssignmentVariable( StatementChildrenHavingBase ):
         # Assignment source may re-compute here:
         constraint_collection.onExpression( self.getAssignSource() )
 
-        source = self.getAssignSource()
-
         constraint_collection.onVariableSet(
-            target_node  = self.getTargetVariableRef(),
-            value_friend = source.getValueFriend( constraint_collection )
+            target_node = self.getTargetVariableRef()
         )
 
         # TODO: Remove this, it's old.

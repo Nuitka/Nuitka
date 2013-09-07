@@ -88,7 +88,7 @@ class ValueFriendBuiltinIter1( ValueFriendBase ):
         return self.iterated == other.iterated and self.consumed == other.consumed
 
     def mayProvideReference( self ):
-        # Virtual method overload, where it's fixed by type, pylint: disable=R0201
+        # Method overload, where it's fixed by type, pylint: disable=R0201
         return True
 
     def isKnownToBeIterableAtMin( self, count ):
@@ -127,7 +127,9 @@ class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ITER1"
 
     def getValueFriend( self, constraint_collection ):
-        return ValueFriendBuiltinIter1( self.getValue().getValueFriend( constraint_collection ) )
+        return ValueFriendBuiltinIter1(
+            self.getValue().getValueFriend( constraint_collection )
+        )
 
     def computeExpression( self, constraint_collection ):
         value = self.getValue()
@@ -156,7 +158,6 @@ class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
             return ()
         else:
             return ( self, )
-
 
     def mayHaveSideEffects( self ):
         if self.getValue().isCompileTimeConstant():
