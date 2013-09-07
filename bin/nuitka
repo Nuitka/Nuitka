@@ -106,9 +106,7 @@ except (SyntaxError, IndentationError) as e:
         # False alarm, pylint: disable=E0611
         from nuitka.Utils import python_version
 
-        if python_version < 300 and python_version >= 275 and os.name != "nt":
-            complaint = "no-exist"
-        elif python_version >= 332:
+        if python_version >= 332 or "2.7.5+" in sys.version:
             complaint = "no-exist"
         else:
             complaint = "with BOM"
