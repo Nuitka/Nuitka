@@ -55,10 +55,10 @@ class VariableUsageProfile:
         # Indicator, if the variable may contain a reference.
         self.needs_free = False
 
-    def markAsWrittenTo( self, value_friend ):
+    def markAsWrittenTo( self, assign_source ):
         self.written_to = True
 
-        if value_friend.mayProvideReference():
+        if assign_source.mayProvideReference():
             self.needs_free = True
 
     def markAsReadFrom( self ):
@@ -525,12 +525,12 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
             variable = new_node.getVariable()
             assert variable is not None
 
-            value_friend = new_node.getAssignSource().getValueFriend( self )
-            assert value_friend is not None
+            assign_source = new_node.getAssignSource()
+            assert assign_source is not None
 
             self.onVariableSet( target_node = new_node )
 
-            self.onTempVariableAssigned( variable, value_friend )
+            self.onTempVariableAssigned( variable, assign_source )
         elif new_node.isExpressionTempKeeperRef():
             variable = new_node.getVariable()
             assert variable is not None
@@ -540,17 +540,17 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
 
         return new_node
 
-    def onModuleVariableAssigned( self, variable, value_friend ):
-        self.parent.onModuleVariableAssigned( variable, value_friend )
+    def onModuleVariableAssigned( self, variable, assign_source ):
+        self.parent.onModuleVariableAssigned( variable, assign_source )
 
-    def onLocalVariableAssigned( self, variable, value_friend ):
-        self.parent.onLocalVariableAssigned( variable, value_friend )
+    def onLocalVariableAssigned( self, variable, assign_source ):
+        self.parent.onLocalVariableAssigned( variable, assign_source )
 
     def onLocalVariableRead( self, variable ):
         self.parent.onLocalVariableRead( variable )
 
-    def onTempVariableAssigned( self, variable, value_friend ):
-        self.parent.onTempVariableAssigned( variable, value_friend )
+    def onTempVariableAssigned( self, variable, assign_source ):
+        self.parent.onTempVariableAssigned( variable, assign_source )
 
     def onTempVariableRead( self, variable ):
         self.parent.onTempVariableRead( variable )
@@ -620,20 +620,12 @@ Side effects of assignments promoted to statements."""
         else:
             result = statement, None, None
 
-        value_friend = source.getValueFriend( self )
-        assert value_friend is not None
-
-        old_value_friend = None
-
         if variable.isModuleVariableReference():
-            self.onModuleVariableAssigned( variable, value_friend )
+            self.onModuleVariableAssigned( variable, source )
         elif variable.isLocalVariable():
-            self.onLocalVariableAssigned( variable, value_friend )
+            self.onLocalVariableAssigned( variable, source )
         elif variable.isTempVariableReference():
-            self.onTempVariableAssigned( variable, value_friend )
-
-        if old_value_friend is not None:
-            old_value_friend.onRelease( self )
+            self.onTempVariableAssigned( variable, source )
 
         return result
 
@@ -836,17 +828,17 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
 
 
 
-    def onLocalVariableAssigned( self, variable, value_friend ):
-        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+    def onLocalVariableAssigned( self, variable, assign_source ):
+        self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
 
     def onLocalVariableRead( self, variable ):
         self._getVariableUsage( variable ).markAsReadFrom()
 
-    def onTempVariableAssigned( self, variable, value_friend ):
+    def onTempVariableAssigned( self, variable, assign_source ):
         variable = variable.getReferenced()
         assert variable.getRealOwner() is self.function_body
 
-        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+        self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
 
     def onTempVariableRead( self, variable ):
         variable = variable.getReferenced()
@@ -893,18 +885,18 @@ class ConstraintCollectionModule( CollectionStartpointMixin,
 
         self.module.attemptRecursion( self )
 
-    def onModuleVariableAssigned( self, variable, value_friend ):
+    def onModuleVariableAssigned( self, variable, assign_source ):
         while variable.isModuleVariableReference():
             variable = variable.getReferenced()
 
-        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+        self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
 
-    def onTempVariableAssigned( self, variable, value_friend ):
+    def onTempVariableAssigned( self, variable, assign_source ):
         variable = variable.getReferenced()
 
         assert variable.getRealOwner() is self.module, variable.getOwner()
 
-        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+        self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
 
     def onTempVariableRead( self, variable ):
         variable = variable.getReferenced()

@@ -248,43 +248,12 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
         return False
 
     def isKnownToBeIterableAtMin( self, count ):
+        # TODO: See through the variable current trace.
         return None
-
-        friend = constraint_collection.getVariableValueFriend( self.variable )
-
-        if friend is not None:
-            return friend.isKnownToBeIterableAtMin(
-                count                 = count,
-                constraint_collection = constraint_collection
-            )
-        else:
-            return None
 
     def isKnownToBeIterableAtMax( self, count ):
+        # TODO: See through the variable current trace.
         return None
-
-        friend = constraint_collection.getVariableValueFriend( self.variable )
-
-        if friend is not None:
-            return friend.isKnownToBeIterableAtMax(
-                count                 = count,
-                constraint_collection = constraint_collection
-            )
-        else:
-            return None
-
-    def getIterationNext( self, constraint_collection ):
-        return None
-
-        friend = constraint_collection.getVariableValueFriend( self.variable )
-
-        if friend is not None:
-            return friend.getIterationNext(
-                constraint_collection = constraint_collection
-            )
-        else:
-            return None
-
 
     # Python3 only, it updates temporary variables that are closure variables.
     def setVariable( self, variable ):

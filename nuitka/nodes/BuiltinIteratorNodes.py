@@ -17,9 +17,11 @@
 #
 """ Builtin iterator nodes.
 
-These play a role in for loops, and in unpacking. They can something be predicted to
-succeed or fail, in which case, code can become less complex. The length of things is an
-important optimization issue.
+These play a role in for loops, and in unpacking. They can something be
+predicted to succeed or fail, in which case, code can become less complex.
+
+The length of things is an important optimization issue for these to be
+good.
 """
 
 from .NodeBases import (
@@ -28,13 +30,7 @@ from .NodeBases import (
     StatementChildrenHavingBase
 )
 
-from .ValueFriends import ValueFriendBase
-
-from .SideEffectNodes import ExpressionSideEffects
-
 from nuitka.optimizations import BuiltinOptimization
-
-from nuitka import Options
 
 
 class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
@@ -71,65 +67,8 @@ class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
         return new_node, change_tags, change_desc
 
 
-class ValueFriendBuiltinIter1( ValueFriendBase ):
-    def __init__( self, iterated ):
-        ValueFriendBase.__init__( self )
-
-        self.iterated = iterated
-        self.iter_length = None
-        self.consumed = 0
-
-        self.used = False
-
-    def __eq__( self, other ):
-        if self.__class__ is not other.__class__:
-            return False
-
-        return self.iterated == other.iterated and self.consumed == other.consumed
-
-    def mayProvideReference( self ):
-        # Method overload, where it's fixed by type, pylint: disable=R0201
-        return True
-
-    def isKnownToBeIterableAtMin( self, count ):
-        if self.iter_length is None:
-            self.iter_length = self.iterated.getIterationLength()
-
-        return self.iter_length is not None and self.iter_length - self.consumed >= count
-
-    def isKnownToBeIterableAtMax( self, count ):
-        if self.iter_length is None:
-            self.iter_length = self.iterated.getIterationLength()
-
-        return self.iter_length is not None and self.iter_length - self.consumed <= count
-
-    def getIterationNext( self ):
-        # print self.iterated, self.consumed, self.iterated.getVisitableNodes()
-
-        if self.iterated.canPredictIterationValues():
-            result = self.iterated.getIterationValue( self.consumed )
-        else:
-            result = None
-
-        self.consumed += 1
-
-        return result
-
-    def markAsUsed( self ):
-        self.used = True
-
-    def onRelease( self, constraint_collection ):
-        # print "onRelease", self
-        pass
-
-
 class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ITER1"
-
-    def getValueFriend( self, constraint_collection ):
-        return ValueFriendBuiltinIter1(
-            self.getValue().getValueFriend( constraint_collection )
-        )
 
     def computeExpression( self, constraint_collection ):
         value = self.getValue()
@@ -165,6 +104,28 @@ class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
 
         return True
 
+    def mayProvideReference( self ):
+        # Method overload, where it's fixed by type, pylint: disable=R0201
+        return True
+
+    def isKnownToBeIterableAtMin( self, count ):
+        assert type( count ) is int
+
+        iter_length = self.getValue().getIterationLength()
+        return iter_length is not None and iter_length < count
+
+    def isKnownToBeIterableAtMax( self, count ):
+        assert type( count ) is int
+
+        iter_length = self.getValue().getIterationLength()
+
+        return iter_length is not None and count <= iter_length
+
+    def onRelease( self, constraint_collection ):
+        # print "onRelease", self
+        pass
+
+
 
 class ExpressionBuiltinNext1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_NEXT1"
@@ -181,36 +142,8 @@ class ExpressionBuiltinNext1( ExpressionBuiltinSingleArgBase ):
         )
 
     def computeExpression( self, constraint_collection ):
-        # TODO: Enable below code once safer.
-        if True or not Options.isExperimental():
-            return self, None, None
-
-        target = self.getValue().getValueFriend( constraint_collection )
-
-        if target.isKnownToBeIterableAtMin( 1 ):
-            value = target.getIterationNext()
-
-            if value is not None:
-                if value.isNode() and not self.parent.isStatementExpressionOnly():
-                    # As a side effect, keep the iteration, later checks may depend on it,
-                    # or if absent, optimizations will remove it.
-                    if not self.parent.isExpressionSideEffects():
-                        value = ExpressionSideEffects(
-                            expression   = value.makeCloneAt(
-                                source_ref = self.getSourceReference()
-                            ),
-                            side_effects = (
-                                self.makeCloneAt(
-                                    source_ref = self.getSourceReference()
-                                ),
-                            ),
-                            source_ref   = self.getSourceReference()
-                        )
-
-                    return value, "new_expression", "Predicted next iteration result"
-            else:
-                assert False, target
-
+        # TODO: Predict iteration result if possible via SSA variable trace of
+        # the iterator state.
         return self, None, None
 
 

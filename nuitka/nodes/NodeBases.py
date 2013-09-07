@@ -760,9 +760,6 @@ class ClosureTakerMixin:
 
 
 class ExpressionMixin:
-    def getValueFriend( self, constraint_collection ):
-        return self
-
     def isCompileTimeConstant( self ):
         """ Has a value that we can use at compile time.
 
@@ -803,10 +800,6 @@ class ExpressionMixin:
     def isKnownToBeIterableAtMax( self, count ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
-
-    def getIterationNext( self ):
-        # Virtual method, pylint: disable=R0201,W0613
-        return None
 
     def mayProvideReference( self ):
         """ May at run time produce a reference.
