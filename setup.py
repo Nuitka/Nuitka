@@ -113,6 +113,17 @@ def findSources():
 
     return result
 
+if os.path.exists( "/usr/bin/scons" ):
+    scons_files = []
+else:
+    scons_files = [
+        "inline_copy/*/*.py",
+        "inline_copy/*/*/*.py",
+        "inline_copy/*/*/*/*.py",
+        "inline_copy/*/*/*/*/*.py",
+        "inline_copy/*/*/*/*/*/*.py",
+    ]
+
 
 setup(
     name     = "Nuitka",
@@ -127,11 +138,6 @@ setup(
         "" : ['*.txt', '*.rst', '*.cpp', '*.hpp', '*.ui' ],
         "nuitka.build" : [
             "SingleExe.scons",
-            "inline_copy/*/*.py",
-            "inline_copy/*/*/*.py",
-            "inline_copy/*/*/*/*.py",
-            "inline_copy/*/*/*/*/*.py",
-            "inline_copy/*/*/*/*/*/*.py",
             "static_src/*.cpp",
             "static_src/*/*.cpp",
             "static_src/*/*.h",
@@ -140,7 +146,7 @@ setup(
             "include/*.hpp",
             "include/*/*.hpp",
             "include/*/*/*.hpp",
-        ],
+        ] + scons_files,
         "nuitka.gui" : [
             "dialogs/*.ui",
         ],
