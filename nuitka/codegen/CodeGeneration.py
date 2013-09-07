@@ -1356,7 +1356,9 @@ def generateExpressionCode( expression, context, allow_none = False ):
     elif expression.isExpressionAssignmentTempKeeper():
         identifier = Generator.getAssignmentTempKeeperCode(
             variable          = expression.getVariable(),
-            source_identifier = makeExpressionCode( expression.getAssignSource() ),
+            source_identifier = makeExpressionCode(
+                expression.getAssignSource()
+            ),
             context           = context
         )
     elif expression.isExpressionBuiltinInt():

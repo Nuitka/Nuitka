@@ -47,6 +47,7 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
         )
 
         self.variable = variable
+        self.variable_version = variable.allocateTargetNumber()
 
     def getDetail( self ):
         return "%s from %s" % ( self.getVariableName(), self.getAssignSource() )
@@ -62,6 +63,9 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
     def getVariableName( self ):
         return self.variable.getName()
 
+    def getVariableVersion( self ):
+        return self.variable_version
+
     getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
     def computeExpression( self, constraint_collection ):
@@ -74,6 +78,12 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
             return source, "new_raise", "Keeper assignment raises"
 
         return self, None, None
+
+    def mayRaiseException( self, exception_type ):
+        return self.getAssignSource().mayRaiseException( exception_type )
+
+    def willRaiseException( self, exception_type ):
+        return self.getAssignSource().willRaiseException( exception_type )
 
 
 class ExpressionTempKeeperRef( NodeBase, ExpressionMixin ):
@@ -99,18 +109,19 @@ class ExpressionTempKeeperRef( NodeBase, ExpressionMixin ):
         return self.variable.getName()
 
     def computeExpression( self, constraint_collection ):
-        friend = constraint_collection.getVariableValueFriend( self.getVariable() )
+        variable_trace = constraint_collection.getVariableCurrentTrace(
+            variable = self.variable
+        )
 
-        if friend is not None and not friend.mayHaveSideEffects() and friend.isNode():
-            assert hasattr( friend, "makeCloneAt" ), friend
+        if variable_trace.isAssignTrace():
+            assign_source = variable_trace.getAssignNode().getAssignSource()
 
-            new_node = friend.makeCloneAt(
-                source_ref = self.source_ref,
-            )
-
-            change_desc = "Assignment source of '%s' propagated, as it has no side effects." % self.getVariableName()
-
-            return new_node, "new_expression", change_desc
+            if not assign_source.mayHaveSideEffects():
+                return (
+                    assign_source.makeCloneAt( self.getSourceReference() ),
+                    "new_expression", """\
+Replaced keeper variable usage for no side effects value."""
+                )
 
         return self, None, None
 

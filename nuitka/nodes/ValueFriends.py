@@ -28,8 +28,8 @@ class ValueFriendBase( object ):
     def isNode( self ):
         # Virtual method, pylint: disable=R0201
 
-        # ValueFriends are not nodes, this function exists in nodes too and is used only
-        # to make this difference.
+        # ValueFriends are not nodes, this function exists in nodes too and is
+        # used only to make this difference.
         return False
 
     def __eq__( self, other ):
@@ -46,58 +46,3 @@ class ValueFriendBase( object ):
     def isBuiltinNameRef( self ):
         # Virtual method, pylint: disable=R0201
         return False
-
-
-
-class ValueFriendChooseOne( ValueFriendBase ):
-    def __init__( self, *choices ):
-        assert choices
-        assert type( choices ) is tuple
-
-        self.choices = choices
-
-        ValueFriendBase.__init__( self )
-
-    def mayHaveSideEffects( self ):
-        for choice in self.choices:
-            if choice.mayHaveSideEffects():
-                return True
-        else:
-            return False
-
-    def makeCloneAt( self, source_ref ):
-        choices = tuple(
-            choice.makeCloneAt( source_ref )
-            for choice in
-            self.choices
-        )
-
-        return self.__class__( *choices ) # That is the interface, pylint: disable=W0142
-
-    def __repr__( self ):
-        return "<%s instance of choices '%r'>" % (
-            self.__class__.__name__,
-            self.choices
-        )
-
-    def __eq__( self, other ):
-        for choice in self.choices:
-            if choice != other:
-                return False
-        else:
-            return True
-
-
-current_constraint_collection = None
-
-def mergeBranchFriendValues( a, b ):
-    # The real quick path
-    if a is b:
-        return a
-
-    # The somewhat slower path, compare a and b, if equal, we can pick one.
-    if a == b:
-        return a
-
-    # Otherwise represent the choosing of one branch in a value friend.
-    return ValueFriendChooseOne( a, b )

@@ -47,6 +47,9 @@ class VariableTraceBase:
         # time action.
         self.escaped_at = None
 
+    def isNode( self ):
+        return False
+
     def getVariable( self ):
         return self.variable
 
@@ -89,6 +92,12 @@ class VariableUninitTrace( VariableTraceBase ):
             version  = version
         )
 
+    def __repr__( self ):
+        return "<VariableUninitTrace %s %d>" % (
+            self.variable,
+            self.version
+        )
+
     def isUninitTrace( self ):
         return True
 
@@ -109,6 +118,12 @@ class VariableUnknownTrace( VariableTraceBase ):
             self,
             variable = variable,
             version  = version
+        )
+
+    def __repr__( self ):
+        return "<VariableUnknownTrace %s %d>" % (
+            self.variable,
+            self.version
         )
 
     def dump( self ):
@@ -134,9 +149,10 @@ class VariableAssignTrace( VariableTraceBase ):
         self.value_friend = value_friend
 
     def __repr__( self ):
-        return "<VariableAssignTrace %s %d>" % (
+        return "<VariableAssignTrace %s %d at %s>" % (
             self.variable,
-            self.version
+            self.version,
+            self.target_node.getSourceReference()
         )
 
     def dump( self ):

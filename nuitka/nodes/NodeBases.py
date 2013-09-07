@@ -657,6 +657,12 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
         return result
 
+    def getTempKeeperVariables( self ):
+        return self.keeper_variables
+
+    def removeTempKeeperVariable( self, variable ):
+        self.keeper_variables.discard( variable )
+
 
 class ParameterHavingNodeBase( ClosureGiverNodeBase ):
     def __init__( self, name, code_prefix, parameters, source_ref ):

@@ -31,7 +31,6 @@ class Variable:
         self.variable_name = variable_name
         self.owner = owner
 
-
         self.references = []
 
         self.read_only_indicator = None
@@ -98,6 +97,9 @@ class Variable:
     def isNestedParameterVariable( self ):
         return False
 
+    def isVariableReference( self ):
+        return False
+
     def isClosureReference( self ):
         return False
 
@@ -105,7 +107,7 @@ class Variable:
         return False
 
     def isReference( self ):
-        return self.isClosureReference() or self.isModuleVariableReference()
+        return False
 
     def isModuleVariable( self ):
         return False
@@ -218,6 +220,12 @@ class VariableReferenceBase( Variable ):
             self.__class__.__name__,
             str( self.variable )[1:-1]
         )
+
+    def isVariableReference( self ):
+        return True
+
+    def isReference( self ):
+        return True
 
     def getReferenced( self ):
         return self.variable
@@ -495,7 +503,7 @@ class ModuleVariable( Variable ):
         assert False, variable
 
 
-class TempVariableReference2( VariableReferenceBase ):
+class TempVariableClosureReference( VariableReferenceBase ):
     reference_class = None
 
     def isClosureReference( self ):
@@ -521,7 +529,7 @@ class TempVariableReference2( VariableReferenceBase ):
 
 
 class TempVariableReference( VariableReferenceBase ):
-    reference_class = TempVariableReference2
+    reference_class = TempVariableClosureReference
 
     def isTempVariableReference( self ):
         # Virtual method, pylint: disable=R0201
@@ -594,6 +602,12 @@ class TempKeeperVariable( TempVariable ):
         )
 
         self.write_only = False
+
+    def __repr__( self ):
+        return "<TempKeeperVariable '%s' of '%s'>" % (
+            self.getName(),
+            self.getOwner()
+        )
 
     def isTempKeeperVariable( self ):
         return True
