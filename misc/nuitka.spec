@@ -4,7 +4,7 @@
 Name:           nuitka
 Version:        0.4.6pre1
 Release:        5%{?dist}
-Summary:        A Python compiler translates the Python into a C++ program
+Summary:        Python compiler with full language support and CPython compatibility
 Group:          Development/Languages/Python
 License:        Apache License 2.0
 URL:            http://nuitka.net/
@@ -64,6 +64,9 @@ rm -rf %{buildroot}
 %{python_sitearch}/*
 
 %changelog
+* Sat Sep 08 2013 Kay Hayen <kay.hayen@gmail.com 0.4.6
+- changed description to match what we use for Debian
+
 * Fri Mar 15 2013 Kay Hayen <kay.hayen@gmail.com 0.4.2
 - addressed complaints from opensuse buildservice
 - moved to group "/Development/Languages/Python"
