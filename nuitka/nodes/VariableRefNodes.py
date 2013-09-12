@@ -94,7 +94,7 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
         if _isReadOnlyUnterdeterminedModuleVariable( self.variable ):
             constraint_collection.assumeUnclearLocals()
-            constraint_collection.signalChange( "new_expression", self.source_ref, "txt" )
+            constraint_collection.signalChange( "new_expression", self.source_ref, "Unclear module variable delays processing." )
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:

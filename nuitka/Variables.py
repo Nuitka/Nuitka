@@ -133,7 +133,7 @@ class Variable:
             top_owner = reference.getReferenced().getOwner()
             owner = reference.getOwner()
 
-            # The generations and functions that are not created, get things
+            # The generators and functions that are not created, get things
             # passed, and do not need the variable to share.
             while technical and \
                   owner.isExpressionFunctionBody() and \

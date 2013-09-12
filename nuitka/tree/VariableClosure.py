@@ -34,8 +34,8 @@ from .Operations import VisitorNoopMixin, visitTree
 from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 
 # Note: We do the variable scope assignment, as an extra step from tree
-# building, because it will build the tree without any consideration of
-# evaluation order. And only the way these visitors are entered, will ensure
+# building, because tree building creates the tree without any consideration of
+# evaluation order. And the ordered way these visitors are entered, will ensure
 # this order.
 
 # The main complexity is that there are two ways of visiting. One where variable

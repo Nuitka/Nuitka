@@ -86,6 +86,7 @@ PythonExceptionKeeper _caught_%(try_count)d;
 %(rethrow_setups)s
 try
 {
+    // Tried block:
 %(tried_code)s
 }
 catch ( PythonException &_exception )
@@ -108,9 +109,10 @@ catch ( PythonException &_exception )
 #endif
 }
 %(rethrow_catchers)s
-// Final code:
+// Final block:
 %(final_code)s
 _caught_%(try_count)d.rethrow();
+// Final end
 %(rethrow_raisers)s"""
 
 try_finally_template_setup_continue = """\

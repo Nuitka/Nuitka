@@ -91,8 +91,8 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
         source_ref = source_ref
     )
 
-    # The "__enter__" and "__exit__" were normal attribute lookups under CPython2.6, but
-    # that changed with CPython2.7.
+    # The "__enter__" and "__exit__" were normal attribute lookups under
+    # CPython2.6, but that changed with CPython2.7.
     if Utils.python_version < 270:
         attribute_lookup_class = ExpressionAttributeLookup
     else:
@@ -108,7 +108,8 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
             source       = with_source,
             source_ref   = source_ref
         ),
-        # Next, assign "__enter__" and "__exit__" attributes to temporary variables.
+        # Next, assign "__enter__" and "__exit__" attributes to temporary
+        # variables.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_exit_variable.makeReference( result ),
@@ -165,7 +166,8 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
                     exception_name = "BaseException",
                     handler_body   = StatementsSequence(
                         statements = (
-                            # Prevents final block from calling __exit__ as well.
+                            # Prevents final block from calling __exit__ as
+                            # well.
                             StatementAssignmentVariable(
                                 variable_ref = ExpressionTargetTempVariableRef(
                                     variable   = tmp_indicator_variable.makeReference( result ),
@@ -264,12 +266,12 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
     return result
 
 def buildWithNode( provider, node, source_ref ):
-    # "with" statements are re-formulated as described in the developer manual. Catches
-    # exceptions, and provides them to "__exit__", while making the "__enter__" value
-    # available under a given name.
+    # "with" statements are re-formulated as described in the developer
+    # manual. Catches exceptions, and provides them to "__exit__", while making
+    # the "__enter__" value available under a given name.
 
-    # Before Python3.3, multiple context managers are not visible in the parse tree, now
-    # we need to handle it ourselves.
+    # Before Python3.3, multiple context managers are not visible in the parse
+    # tree, now we need to handle it ourselves.
     if hasattr( node, "items" ):
         context_exprs = [ item.context_expr for item in node.items ]
         assign_targets = [ item.optional_vars for item in node.items ]

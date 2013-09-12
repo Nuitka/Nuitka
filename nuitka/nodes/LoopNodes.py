@@ -109,7 +109,8 @@ class StatementLoop( StatementChildrenHavingBase ):
             assert statements # Cannot be empty
 
             if len( statements ) == 1 and statements[-1].isStatementBreakLoop():
-                return None, "new_statements", "Removed loop immediately broken."
+                return None, "new_statements", """\
+Removed loop immediately broken."""
 
         return self, None, None
 

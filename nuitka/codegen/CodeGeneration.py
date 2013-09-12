@@ -848,6 +848,8 @@ def generateExpressionCode( expression, context, allow_none = False ):
     if expression is None and allow_none:
         return None
 
+    # Make sure we don't generate code twice for any node, this uncovers bugs
+    # where nodes are shared in the tree, which is not allowed.
     assert not hasattr( expression, "code_generated" ), expression
     expression.code_generated = True
 

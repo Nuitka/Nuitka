@@ -46,7 +46,9 @@ class StatementAssignmentVariable( StatementChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getTargetVariableRef = StatementChildrenHavingBase.childGetter( "variable_ref" )
+    getTargetVariableRef = StatementChildrenHavingBase.childGetter(
+        "variable_ref"
+    )
     getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
 
     def mayRaiseException( self, exception_type ):
@@ -103,7 +105,8 @@ class StatementAssignmentAttribute( StatementChildrenHavingBase ):
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
         if source.willRaiseException( BaseException ):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import \
+                makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
@@ -117,7 +120,8 @@ Attribute assignment raises exception in assigned value, removed assignment"""
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException( BaseException ):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+            from .NodeMakingHelpers import \
+                makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
@@ -200,7 +204,8 @@ Subscript assignment raises exception in subscribed value, removed assignment"""
             )
 
             return result, "new_raise", """
-Subscript assignment raises exception in subscript value, removed assignment"""
+Subscript assignment raises exception in subscript value, removed \
+assignment."""
 
         return self, None, None
 
@@ -275,7 +280,7 @@ Slice assignment raises exception in sliced value, removed assignment"""
             )
 
             return result, "new_raise", """\
-Slice assignment raises exception in lower slice boundary value, removed\
+Slice assignment raises exception in lower slice boundary value, removed \
 assignment."""
 
         constraint_collection.onExpression( self.getUpper(), allow_none = True )
@@ -294,7 +299,8 @@ assignment."""
             )
 
             return result, "new_raise", """\
-Slice assignment raises exception in upper slice boundary value, removed assignment."""
+Slice assignment raises exception in upper slice boundary value, removed \
+assignment."""
 
         return self, None, None
 
@@ -306,7 +312,7 @@ class StatementDelVariable( StatementChildrenHavingBase ):
 
     def __init__( self, variable_ref, tolerant, source_ref ):
         assert variable_ref is not None
-        assert not variable_ref.isExpressionVariableRef()
+        assert variable_ref.isTargetVariableRef()
         assert tolerant is True or tolerant is False
 
         StatementChildrenHavingBase.__init__(
@@ -335,12 +341,15 @@ class StatementDelVariable( StatementChildrenHavingBase ):
     def isTolerant( self ):
         return self.tolerant
 
-    getTargetVariableRef = StatementChildrenHavingBase.childGetter( "variable_ref" )
+    getTargetVariableRef = StatementChildrenHavingBase.childGetter(
+        "variable_ref"
+    )
     def computeStatement( self, constraint_collection ):
         variable = self.getTargetVariableRef().getVariable()
 
         trace = constraint_collection.getVariableCurrentTrace( variable )
 
+        # Optimize away tolerant "del" that is not needed.
         if trace.isUninitTrace():
             if self.isTolerant():
                 return (
@@ -355,10 +364,6 @@ class StatementDelVariable( StatementChildrenHavingBase ):
         )
 
         return self, None, None
-
-        constraint_collection.onVariableDel(
-            del_node = self,
-        )
 
     def mayHaveSideEffects( self ):
         return True

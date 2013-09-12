@@ -164,7 +164,7 @@ class VariableUsageTrackingMixin:
                     variable_trace = variable_trace
                 )
             except:
-                print( "Problem with", variable_trace )
+                print( "Problem with", variable_trace, "in", owner )
                 raise
 
 
@@ -180,7 +180,8 @@ class CollectionTracingMixin:
         )
 
     def markCurrentVariableTrace( self, variable, version ):
-        assert not variable.isModuleVariable() or variable.isReference(), variable
+        assert not variable.isModuleVariable() or variable.isReference(), \
+           variable
 
         self.variable_actives[ variable ] = version
 
@@ -343,7 +344,8 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
 
         outside_post = []
 
-        while new_statements and not new_statements[-1].mayRaiseException( BaseException ):
+        while new_statements and \
+              not new_statements[-1].mayRaiseException( BaseException ):
             outside_post.insert( 0, new_statements[-1] )
             del new_statements[-1]
 
@@ -352,7 +354,8 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
                 statements_sequence.setStatements( tuple( new_statements ) )
 
                 return makeStatementsSequenceReplacementNode(
-                    statements = outside_pre + [ statements_sequence ] + outside_post,
+                    statements = outside_pre + [ statements_sequence ] + \
+                                 outside_post,
                     node       = statements_sequence
                 )
             else:
@@ -395,7 +398,8 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
                 else:
                     new_statements.append( new_statement )
 
-                if statement is not statements[-1] and new_statement.isStatementAborting():
+                if statement is not statements[-1] and \
+                   new_statement.isStatementAborting():
                     self.signalChange(
                         "new_statements",
                         statements[ count + 1 ].getSourceReference(),
@@ -438,7 +442,8 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
         # remember the value friend.
         variable = target_node.getVariable()
 
-        assert not variable.isModuleVariable() or variable.isReference(), variable
+        assert not variable.isModuleVariable() or variable.isReference(), \
+            variable
 
         # print "SET", target_node, target_node.getVariableVersion()
         version = target_node.getVariableVersion()
@@ -634,7 +639,8 @@ Side effects of assignments promoted to statements."""
         try:
             assert statement.isStatement(), statement
 
-            new_statement, change_tags, change_desc = statement.computeStatement( self )
+            new_statement, change_tags, change_desc = \
+              statement.computeStatement( self )
 
             if new_statement is not statement:
                 self.signalChange(
@@ -645,7 +651,10 @@ Side effects of assignments promoted to statements."""
 
             return new_statement
         except Exception:
-            warning( "Problem with statement at %s:", statement.getSourceReference() )
+            warning(
+                "Problem with statement at %s:",
+                statement.getSourceReference()
+            )
             raise
 
     def mergeBranches( self, collection_yes, collection_no ):
@@ -737,8 +746,7 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
 
 class ConstraintCollectionFunction( CollectionStartpointMixin,
                                     ConstraintCollectionBase,
-                                    VariableUsageTrackingMixin,
-                                     ):
+                                    VariableUsageTrackingMixin ):
     def __init__( self, parent, function_body ):
         assert function_body.isExpressionFunctionBody(), function_body
         CollectionStartpointMixin.__init__( self )
@@ -845,8 +853,7 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
 
 class ConstraintCollectionModule( CollectionStartpointMixin,
                                   ConstraintCollectionBase,
-                                  VariableUsageTrackingMixin,
-                                   ):
+                                  VariableUsageTrackingMixin ):
     def __init__( self, signal_change, module ):
         assert module.isPythonModule()
 
@@ -862,9 +869,9 @@ class ConstraintCollectionModule( CollectionStartpointMixin,
 
         self.module = module
 
-        module_body = module.getBody()
-
         self.setupVariableTraces( module )
+
+        module_body = module.getBody()
 
         if module_body is not None:
             result = self.onStatementsSequence( module_body )

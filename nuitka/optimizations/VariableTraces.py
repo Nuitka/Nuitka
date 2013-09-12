@@ -80,6 +80,9 @@ class VariableTraceBase:
     def isUninitTrace( self ):
         return False
 
+    def isUnknownTrace( self ):
+        return False
+
     def isMergeTrace( self ):
         return False
 
@@ -135,6 +138,9 @@ class VariableUnknownTrace( VariableTraceBase ):
                 debug( "  Escaped value" )
 
             debug( "  Used at %s", usage )
+
+    def isUnknownTrace( self ):
+        return True
 
 
 class VariableAssignTrace( VariableTraceBase ):

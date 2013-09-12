@@ -17,22 +17,28 @@
 #
 """ Identifiers hold code references.
 
-These are generally the means to effectively hide the reference count. The best part
-is where getCheapRefCount tries to not allocate references not needed.
+These are generally the means to effectively hide the reference count. The best
+part is where getCheapRefCount allows to not allocate references not needed.
 """
 
-# The method signatures do not always require usage of self, sometimes can be decided
-# based on class. pylint: disable=R0201
+# The method signatures do not always require usage of self, sometimes can be
+# decided based on class. pylint: disable=R0201
 
 from nuitka import Utils
 
 def encodeNonAscii( var_name ):
+    """ Encode variable name that is potentially not ASCII to ASCII only.
+
+    """
     if Utils.python_version < 300:
         return var_name
     else:
         var_name = var_name.encode( "ascii", "xmlcharrefreplace" )
+        var_name = var_name.decode( "ascii" )
 
-        return var_name.decode( "ascii" ).replace( "&#", "$$" ).replace( ";", "" )
+        # TODO: Is this truly safe of collisions, I think it is not. It might be
+        # necessary to use something that is not allowed otherwise.
+        return var_name.replace( "&#", "$$" ).replace( ";", "" )
 
 class Identifier:
     def __init__( self, code, ref_count ):
@@ -138,21 +144,30 @@ class ModuleVariableIdentifier:
         return 0
 
     def getCheapRefCount( self ):
-        # The asObject0 is the fastest way, stealing a reference directly from the module
-        # dictionary if possible.
+        # The asObject0 is the fastest way, stealing a reference directly from
+        # the module dictionary if possible.
         return 0
 
     def getCodeTemporaryRef( self ):
-        return "_mvar_%s_%s.asObject0()" % ( self.module_code_name, self.var_name )
+        return "_mvar_%s_%s.asObject0()" % (
+            self.module_code_name,
+            self.var_name
+        )
 
     def getCodeExportRef( self ):
-        return "_mvar_%s_%s.asObject()" % ( self.module_code_name, self.var_name )
+        return "_mvar_%s_%s.asObject()" % (
+            self.module_code_name,
+            self.var_name
+        )
 
     def getCodeDropRef( self ):
         return self.getCodeTemporaryRef()
 
     def getCode( self ):
-        return "_mvar_%s_%s" % ( self.module_code_name, encodeNonAscii( self.var_name ) )
+        return "_mvar_%s_%s" % (
+            self.module_code_name,
+            encodeNonAscii( self.var_name )
+        )
 
 
 class MaybeModuleVariableIdentifier( Identifier ):
@@ -184,7 +199,9 @@ class LocalVariableIdentifier:
         if not self.from_context:
             return "_python_var_" + encodeNonAscii( self.var_name )
         else:
-            return "_python_context->python_var_" + encodeNonAscii( self.var_name )
+            return "_python_context->python_var_%s" % (
+                encodeNonAscii( self.var_name )
+            )
 
     def getRefCount( self ):
         return 0
@@ -251,11 +268,22 @@ class ClosureVariableIdentifier( Identifier ):
         self.from_context = from_context
 
         if self.from_context:
-            Identifier.__init__( self, self.from_context + "python_closure_" + encodeNonAscii( self.var_name ), 0 )
+            Identifier.__init__(
+                self,
+                code = "%spython_closure_%s" % (
+                    self.from_context,
+                    encodeNonAscii( self.var_name )
+                ),
+                ref_count = 0
+            )
         else:
             # TODO: Use a variable object to decide naming policy
 
-            Identifier.__init__( self, "python_closure_" + encodeNonAscii( self.var_name ), 0 )
+            Identifier.__init__(
+                self,
+                code      = "python_closure_" + encodeNonAscii( self.var_name ),
+                ref_count = 0
+            )
 
     def __repr__( self ):
         return "<ClosureVariableIdentifier %s >" % self.var_name

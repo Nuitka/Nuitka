@@ -48,10 +48,10 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
 
 def buildForLoopNode( provider, node, source_ref ):
-    # The for loop is re-formulated according to developer manual. An iterator is created,
-    # and looped until it gives StopIteration. The else block is taken if a for loop exits
-    # normally, i.e. because of iterator exhaustion. We do this by introducing an
-    # indicator variable.
+    # The for loop is re-formulated according to developer manual. An iterator
+    # is created, and looped until it gives StopIteration. The else block is
+    # taken if a for loop exits normally, i.e. because of iterator
+    # exhaustion. We do this by introducing an indicator variable.
 
     source = buildNode( provider, node.iter, source_ref )
 
@@ -166,11 +166,11 @@ def buildForLoopNode( provider, node, source_ref ):
                     variable   = tmp_break_indicator_variable.makeReference( result ),
                     source_ref = source_ref
                 ),
-                source     = ExpressionConstantRef(
+                source       = ExpressionConstantRef(
                     constant = False,
                     source_ref = source_ref
                 ),
-                source_ref = source_ref
+                source_ref   = source_ref
             )
         ]
     else:
@@ -183,11 +183,11 @@ def buildForLoopNode( provider, node, source_ref ):
                 variable   = tmp_iter_variable.makeReference( result ),
                 source_ref = source_ref
             ),
-            source     = ExpressionBuiltinIter1(
+            source       = ExpressionBuiltinIter1(
                 value       = source,
                 source_ref  = source.getSourceReference()
             ),
-            source_ref = source_ref
+            source_ref   = source_ref
         ),
         StatementLoop(
             body       = loop_body,
@@ -225,10 +225,10 @@ def buildForLoopNode( provider, node, source_ref ):
     return result
 
 def buildWhileLoopNode( provider, node, source_ref ):
-    # The while loop is re-formulated according to developer manual. The condition becomes
-    # an early condition to break the loop. The else block is taken if a while loop exits
-    # normally, i.e. because of condition not being true. We do this by introducing an
-    # indicator variable.
+    # The while loop is re-formulated according to developer manual. The
+    # condition becomes an early condition to break the loop. The else block is
+    # taken if a while loop exits normally, i.e. because of condition not being
+    # true. We do this by introducing an indicator variable.
 
     else_block = buildStatementsNode(
         provider   = provider,

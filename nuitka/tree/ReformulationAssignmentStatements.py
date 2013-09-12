@@ -97,7 +97,8 @@ def buildExtSliceNode( provider, node, source_ref ):
         source_ref    = source_ref
     )
 
-def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source_ref ):
+def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
+                                          source_ref ):
     # This is using many variable names on purpose, so as to give names to the
     # unpacked detail values, pylint: disable=R0914
 
