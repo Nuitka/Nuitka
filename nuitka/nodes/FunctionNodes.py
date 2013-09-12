@@ -554,10 +554,12 @@ class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
 
         from nuitka.optimizations.ConstraintCollections import ConstraintCollectionFunction
 
-        collector = ConstraintCollectionFunction( constraint_collection )
-        collector.process( self.getFunctionBody() )
+        function_collection = ConstraintCollectionFunction(
+            parent        = constraint_collection,
+            function_body = function_body
+        )
 
-        # TODO: Function body may know something.
+        # TODO: Function collection may now know something.
         return self, None, None
 
     def mayHaveSideEffects( self ):

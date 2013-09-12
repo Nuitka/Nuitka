@@ -167,6 +167,7 @@ class VariableUsageTrackingMixin:
                 print( "Problem with", variable_trace )
                 raise
 
+
 class CollectionTracingMixin:
     def __init__( self ):
         # For functions, when we are in here, the currently active one,
@@ -687,7 +688,9 @@ Side effects of assignments promoted to statements."""
 
 
 class ConstraintCollectionHandler( ConstraintCollectionBase ):
-    def __init__( self, parent ):
+    def __init__( self, parent, handler ):
+        assert handler.isStatementExceptHandler(), handler
+
         ConstraintCollectionBase.__init__(
             self,
             parent = parent
@@ -695,10 +698,7 @@ class ConstraintCollectionHandler( ConstraintCollectionBase ):
 
         self.variable_actives = dict( parent.variable_actives )
 
-    def process( self, handler ):
-        assert handler.isStatementExceptHandler()
-
-        # TODO: The exception type and name could be assigned.
+        # TODO: The exception type and name must be assigned.
         branch = handler.getExceptionBranch()
 
         if branch is not None:
@@ -715,16 +715,15 @@ class ConstraintCollectionHandler( ConstraintCollectionBase ):
 
 
 class ConstraintCollectionBranch( ConstraintCollectionBase ):
-    def __init__( self, parent ):
+    def __init__( self, parent, branch ):
+        assert branch.isStatementsSequence(), branch
+
         ConstraintCollectionBase.__init__(
             self,
             parent = parent
         )
 
         self.variable_actives = dict( parent.variable_actives )
-
-    def process( self, branch ):
-        assert branch.isStatementsSequence(), branch
 
         result = self.onStatementsSequence( branch )
 
@@ -740,7 +739,8 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
                                     ConstraintCollectionBase,
                                     VariableUsageTrackingMixin,
                                      ):
-    def __init__( self, parent ):
+    def __init__( self, parent, function_body ):
+        assert function_body.isExpressionFunctionBody(), function_body
         CollectionStartpointMixin.__init__( self )
 
         ConstraintCollectionBase.__init__(
@@ -750,10 +750,6 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
 
         VariableUsageTrackingMixin.__init__( self )
 
-        self.function_body = None
-
-    def process( self, function_body ):
-        assert function_body.isExpressionFunctionBody()
         self.function_body = function_body
 
         statements_sequence = function_body.getBody()
@@ -851,7 +847,9 @@ class ConstraintCollectionModule( CollectionStartpointMixin,
                                   ConstraintCollectionBase,
                                   VariableUsageTrackingMixin,
                                    ):
-    def __init__( self, signal_change ):
+    def __init__( self, signal_change, module ):
+        assert module.isPythonModule()
+
         CollectionStartpointMixin.__init__( self )
 
         ConstraintCollectionBase.__init__(
@@ -862,11 +860,6 @@ class ConstraintCollectionModule( CollectionStartpointMixin,
 
         VariableUsageTrackingMixin.__init__( self )
 
-
-        self.module = None
-
-    def process( self, module ):
-        assert module.isPythonModule()
         self.module = module
 
         module_body = module.getBody()
@@ -915,7 +908,7 @@ class ConstraintCollectionModule( CollectionStartpointMixin,
 
 
 class ConstraintCollectionLoop( ConstraintCollectionBase ):
-    def __init__( self, parent ):
+    def __init__( self, parent, loop_body ):
         ConstraintCollectionBase.__init__(
             self,
             parent = parent
@@ -923,7 +916,6 @@ class ConstraintCollectionLoop( ConstraintCollectionBase ):
 
         self.variable_actives = dict( parent.variable_actives )
 
-    def process( self, loop_body ):
         result = self.onStatementsSequence( loop_body )
 
         if result is not loop_body:
@@ -931,7 +923,7 @@ class ConstraintCollectionLoop( ConstraintCollectionBase ):
 
 
 class ConstraintCollectionTempBlock( ConstraintCollectionBase ):
-    def __init__( self, parent ):
+    def __init__( self, parent, temp_block ):
         ConstraintCollectionBase.__init__(
             self,
             parent = parent
@@ -939,7 +931,6 @@ class ConstraintCollectionTempBlock( ConstraintCollectionBase ):
 
         self.variable_actives = dict( parent.variable_actives )
 
-    def process( self, temp_block ):
         old_body = temp_block.getBody()
 
         result = self.onStatementsSequence( old_body )

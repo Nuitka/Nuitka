@@ -322,14 +322,18 @@ class StatementTempBlock( StatementChildrenHavingBase ):
         return self.getBody().mayHaveSideEffects()
 
     def computeStatement( self, constraint_collection ):
-        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionTempBlock
+        from nuitka.optimizations.ConstraintCollections import \
+            ConstraintCollectionTempBlock
 
         collection_temp_block = ConstraintCollectionTempBlock(
-            constraint_collection
+            parent     = constraint_collection,
+            temp_block = self
         )
-        collection_temp_block.process( self )
 
         if self.getBody() is None:
             return None, "new_statements", "Removed empty temporary block"
+
+        # TODO: Remove temporary blocks that have no temporary variables
+        # anymore.
 
         return self, None, None

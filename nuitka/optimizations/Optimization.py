@@ -43,8 +43,10 @@ def _optimizeModulePass( module, tag_set ):
 
         tag_set.onSignal( tags )
 
-    constraint_collection = ConstraintCollectionModule( signalChange )
-    constraint_collection.process( module = module )
+    constraint_collection = ConstraintCollectionModule(
+        signal_change = signalChange,
+        module        = module
+    )
 
     written_variables = constraint_collection.getWrittenVariables()
 

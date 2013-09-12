@@ -253,8 +253,10 @@ class StatementTryExcept( StatementChildrenHavingBase ):
         # code may have happened. A similar approach to loops should be taken to
         # invalidate the state before.
         for handler in self.getExceptionHandlers():
-            exception_branch = ConstraintCollectionHandler( constraint_collection )
-            exception_branch.process( handler )
+            collection_exception_branch = ConstraintCollectionHandler(
+                parent  = constraint_collection,
+                handler = handler
+            )
 
         # Without exception handlers remaining, nothing else to do. They may
         # e.g. be removed as only re-raising.
@@ -263,7 +265,8 @@ class StatementTryExcept( StatementChildrenHavingBase ):
 
         # Give up, merging this is too hard for now, any amount of the tried
         # sequence may have executed together with one of the handlers, or all
-        # of tried and no handlers.
+        # of tried and no handlers. TODO: improve this to an actual merge, even
+        # if a pessimistic one.
         constraint_collection.removeAllKnowledge()
 
         return self, None, None

@@ -169,10 +169,9 @@ class StatementConditional( StatementChildrenHavingBase ):
 
         if yes_branch is not None:
             branch_yes_collection = ConstraintCollectionBranch(
-                constraint_collection
+                parent = constraint_collection,
+                branch = yes_branch
             )
-
-            branch_yes_collection.process( yes_branch )
 
             # May have just gone away, so fetch it again.
             yes_branch = self.getBranchYes()
@@ -191,10 +190,9 @@ class StatementConditional( StatementChildrenHavingBase ):
 
         if no_branch is not None:
             branch_no_collection = ConstraintCollectionBranch(
-                constraint_collection
+                parent = constraint_collection,
+                branch = no_branch
             )
-
-            branch_no_collection.process( no_branch )
 
             # May have just gone away, so fetch it again.
             no_branch = self.getBranchNo()

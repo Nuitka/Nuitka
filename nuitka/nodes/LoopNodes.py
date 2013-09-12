@@ -17,10 +17,9 @@
 #
 """ Loop nodes.
 
-There are for and loop nodes, and the break/continue statements for it. Loops are a very
-difficult topic, and it might be that the two forms need to be reduced to one common form,
-which is more general, the 'Forever' loop, with breaks
-
+There are for and loop nodes, but both are reduced to loops with break/continue
+statements for it. These reformulations require that optimization of loops has
+to be very general, yet the node type for loop, becomes very simple.
 """
 
 from .NodeBases import (
@@ -64,16 +63,19 @@ class StatementLoop( StatementChildrenHavingBase ):
         loop_body = self.getLoopBody()
 
         if loop_body is not None:
-            from nuitka.optimizations.ConstraintCollections import ConstraintCollectionLoop
+            from nuitka.optimizations.ConstraintCollections import \
+                ConstraintCollectionLoop
 
-            loop_collection = ConstraintCollectionLoop( constraint_collection )
-            loop_collection.process( loop_body )
+            loop_collection = ConstraintCollectionLoop(
+                parent    = constraint_collection,
+                loop_body = loop_body
+            )
 
             # Might be changed.
             loop_body = self.getLoopBody()
 
-        # Consider trailing "continue" statements, these have no effect, so we can remove
-        # them.
+        # Consider trailing "continue" statements, these have no effect, so we
+        # can remove them.
         if loop_body is not None:
             assert loop_body.isStatementsSequence()
 
@@ -95,10 +97,11 @@ class StatementLoop( StatementChildrenHavingBase ):
                     "Removed continue as last statement of loop."
                 )
 
-        # Consider leading "break" statements, they should be the only, and should lead to
-        # removing the whole loop statement. Trailing "break" statements could also be
-        # handled, but that would need to consider if there are other "break" statements
-        # too. Numbering loop exits is nothing we have yet.
+        # Consider leading "break" statements, they should be the only, and
+        # should lead to removing the whole loop statement. Trailing "break"
+        # statements could also be handled, but that would need to consider if
+        # there are other "break" statements too. Numbering loop exits is
+        # nothing we have yet.
         if loop_body is not None:
             assert loop_body.isStatementsSequence()
 
@@ -129,9 +132,9 @@ class StatementContinueLoop( NodeBase ):
         return self.exception_driven
 
     def computeStatement( self, constraint_collection ):
-        # This statement being aborting, will already tell everything. TODO: The fine
-        # difference that this jumps to loop start for sure, should be represented somehow
-        # one day.
+        # This statement being aborting, will already tell everything. TODO: The
+        # fine difference that this jumps to loop start for sure, should be
+        # represented somehow one day.
         return self, None, None
 
 
@@ -153,7 +156,7 @@ class StatementBreakLoop( NodeBase ):
         return self.exception_driven
 
     def computeStatement( self, constraint_collection ):
-        # This statement being aborting, will already tell everything. TODO: The fine
-        # difference that this exits the loop for sure, should be represented somehow one
-        # day.
+        # This statement being aborting, will already tell everything. TODO: The
+        # fine difference that this exits the loop for sure, should be
+        # represented somehow one day.
         return self, None, None
