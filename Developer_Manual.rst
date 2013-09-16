@@ -788,7 +788,7 @@ position and if possible, values should be taken from there. If it's already set
 
 
 Language Conversions to make things simpler
-===========================================
+-------------------------------------------
 
 There are some cases, where the Python language has things that can in fact be
 expressed in a simpler or more general way, and where we choose to do that at
@@ -796,7 +796,7 @@ either tree building or optimization time.
 
 
 The ``assert`` statement
-------------------------
+++++++++++++++++++++++++
 
 The ``assert`` statement is a special statement in Python, allowed by the
 syntax. It has two forms, with and without a second argument. The later is
@@ -829,7 +829,7 @@ have the branch statically executed or removed.
 
 
 The "comparison chain" expressions
-----------------------------------
+++++++++++++++++++++++++++++++++++
 
 .. code-block:: python
 
@@ -848,8 +848,8 @@ express the short circuit nature of comparison chains by using ``and``
 operations.
 
 
-The ``execfile`` builtin
-------------------------
+The ``execfile`` built-in
++++++++++++++++++++++++++
 
 Handling is:
 
@@ -869,7 +869,7 @@ such during optimization.
 
 
 Generator expressions with ``yield``
-------------------------------------
+++++++++++++++++++++++++++++++++++++
 
 These are converted at tree building time into a generator function body that
 yields the iterator given, which is the put into a for loop to iterate, created
@@ -879,8 +879,8 @@ That eliminates the generator expression for this case. It's a bizarre construct
 and with this trick needs no special code generation.
 
 
-Decorators
-----------
+Function Decorators
++++++++++++++++++++
 
 When one learns about decorators, you see that:
 
@@ -904,10 +904,10 @@ This removes the need for optimization and code generation to support decorators
 at all. And it should make the two variants optimize equally well.
 
 
-Inplace Assignments
--------------------
+In-place Assignments
+++++++++++++++++++++
 
-Inplace assignments are re-formulated to an expression using temporary
+In-place assignments are re-formulated to an expression using temporary
 variables.
 
 These are not as much a reformulation of ``+=`` to ``+``, but instead one which
@@ -930,7 +930,7 @@ type and value knowledge later on.
 
 
 Complex Assignments
--------------------
++++++++++++++++++++
 
 Complex assignments are defined as those with multiple targets to assign from a
 single source and are re-formulated to such using a temporary variable and
@@ -954,7 +954,7 @@ calculate ``c`` twice, which the temporary variable takes care of.
 
 
 Unpacking Assignments
----------------------
++++++++++++++++++++++
 
 Unpacking assignments are re-formulated to use temporary variables as well.
 
@@ -1003,7 +1003,7 @@ e.g. the source is a known tuple or list creation.
    if the iterator is not finished, i.e. there are more values to unpack.
 
 With Statements
----------------
++++++++++++++++
 
 The ``with`` statements are re-formulated to use temporary variables as
 well. The taking and calling of ``__enter__`` and ``__exit__`` with arguments,
@@ -1065,7 +1065,7 @@ is fulfilled by ``try``/``except`` clause instead.
 
 
 For Loops
----------
++++++++++
 
 The for loops use normal assignments and handle the iterator that is implicit in
 the code explicitly.
@@ -1119,7 +1119,7 @@ This is roughly equivalent to the following code:
 
 
 While Loops
------------
++++++++++++
 
 Loops in Nuitka have no condition attached anymore, so while loops are
 re-formulated like this:
@@ -1156,7 +1156,7 @@ loops.
 
 
 Exception Handler Values
-------------------------
+++++++++++++++++++++++++
 
 Exception handlers in Python may assign the caught exception value to a variable
 in the handler definition.
@@ -1184,7 +1184,7 @@ are called ``CaughtExceptionValueRef``.
 
 
 Statement ``try``/``except`` with ``else``
-------------------------------------------
+++++++++++++++++++++++++++++++++++++++++++
 
 Much like ``else`` branches of loops, an indicator variable is used to indicate
 the entry into any of the exception handlers.
@@ -1195,7 +1195,7 @@ branch.
 
 
 Class Creation (Python2)
-------------------------
+++++++++++++++++++++++++
 
 Classes in Python2 have a body that only serves to build the class dictionary
 and is a normal function otherwise. This is expressed with the following
@@ -1242,7 +1242,7 @@ understand ``make_class`` quite well, so it can recognize the created class
 again.
 
 Class Creation (Python3)
-------------------------
+++++++++++++++++++++++++
 
 In Python3, classes are a complicated way to write a function call, that can
 interact with its body. The body starts with a dictionary provided by the
@@ -1300,25 +1300,25 @@ not sure, what ``__prepare__`` is allowed to return.
 
 
 List Contractions
------------------
++++++++++++++++++
 
 TODO.
 
 
 Set Contractions
-----------------
+++++++++++++++++
 
 TODO.
 
 
 Dict Contractions
------------------
++++++++++++++++++
 
 TODO.
 
 
 Generator Expressions
----------------------
++++++++++++++++++++++
 
 There are re-formulated as functions.
 
@@ -1339,7 +1339,7 @@ nested) for loops:
     gen = _gen_helper( range(8 ) )
 
 Boolean expressions ``and`` and ``or``
---------------------------------------
+++++++++++++++++++++++++++++++++++++++
 
 The short circuit operators ``or`` and ``and`` tend to be only less general that
 the ``if``/``else`` expressions and are therefore re-formulated as such:
@@ -1368,7 +1368,7 @@ expense of having the assignment expression to the temporary variable, that one
 needs to create anyway.
 
 Simple Calls
-------------
+++++++++++++
 
 As seen below, even complex calls are simple calls. In simple calls of Python
 there is still some hidden semantic going on, that we expose.
@@ -1394,7 +1394,7 @@ needed for the types of the star arguments and it's directly translated to
 ``PyObject_Call``.
 
 Complex Calls
--------------
++++++++++++++
 
 The call operator in Python allows to provide arguments in 4 forms.
 
@@ -1466,7 +1466,7 @@ parsing overhead. And the call in its end, is a special call operation, which
 relates to the "PyObject_Call" C-API.
 
 Print statements
-----------------
+++++++++++++++++
 
 The ``print`` statement exists only in Python2. It implicitly coverts its
 arguments to strings before printing them. In order to make this accessible and
@@ -1485,10 +1485,10 @@ would only cause noise in optimization stage.
 
 
 Nodes that serve special purposes
-=================================
+---------------------------------
 
 Side Effects
-------------
+++++++++++++
 
 When an exception is bound to occur, and this can be determined at compile time,
 Nuitka will not generate the code the leads to the exception, but directly just
@@ -1538,7 +1538,7 @@ and allowing to drop the call to the tuple building and checking its length,
 only to release it.
 
 Caught Exception Type/Value References
---------------------------------------
+++++++++++++++++++++++++++++++++++++++
 
 When catching an exception, in C++, an exception object is used. Exception
 handler code is being re-formulated to assign the caught exception to a name, to
