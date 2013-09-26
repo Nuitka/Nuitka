@@ -2,7 +2,7 @@
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 
 Name:           nuitka
-Version:        0.4.5
+Version:        0.4.5.1
 Release:        5%{?dist}
 Summary:        A Python compiler translates the Python into a C++ program
 Group:          Development/Languages/Python
