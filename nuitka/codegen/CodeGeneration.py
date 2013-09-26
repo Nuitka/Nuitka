@@ -840,7 +840,7 @@ def getOrderRelevance( expressions, allow_none = False ):
 
     return result
 
-def generateExpressionCode( expression, context, allow_none = False ):
+def _generateExpressionCode( expression, context, allow_none ):
     # This is a dispatching function with a branch per expression node type, and
     # therefore many statements even if every branch is small
     # pylint: disable=R0912,R0915
@@ -1516,6 +1516,22 @@ def generateExpressionCode( expression, context, allow_none = False ):
         raise AssertionError( "not a code object?", repr( identifier ) )
 
     return identifier
+
+def generateExpressionCode( expression, context, allow_none = False ):
+    try:
+        return _generateExpressionCode(
+            expression = expression,
+            context    = context,
+            allow_none = allow_none
+        )
+    except:
+        Tracing.printError(
+            "Problem with %r at %s" % (
+                expression,
+                expression.getSourceReference()
+            )
+        )
+        raise
 
 def generateAssignmentVariableCode( variable_ref, value, context ):
     return Generator.getVariableAssignmentCode(
@@ -2244,7 +2260,12 @@ PyObject *_tmp_%s;
 
         return result
     except:
-        Tracing.printError( "Problem with %r at %s" % ( statement, statement.getSourceReference() ) )
+        Tracing.printError(
+            "Problem with %r at %s" % (
+                statement,
+                statement.getSourceReference()
+            )
+        )
         raise
 
 def _generateStatementCode( statement, context ):
