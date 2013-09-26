@@ -86,7 +86,7 @@ def findModule( source_ref, module_name, parent_package, level, warn ):
                     elif level == -1:
                         level_desc = "as relative or absolute import"
                     elif level == 1:
-                        level_desc = "one package level up" % level
+                        level_desc = "%d package level up" % level
                     else:
                         level_desc = "%d package levels up" % level
 

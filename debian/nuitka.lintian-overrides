@@ -1,0 +1,5 @@
+# Nuitka works with newer and older Python versions and across the
+# distributions, so python >= 2.6 will do, that being a Python3 will
+# do as well.
+nuitka binary: python-script-but-no-python-dep usr/share/nuitka/bin/nuitka
+nuitka binary: python-script-but-no-python-dep usr/share/nuitka/bin/nuitka-python

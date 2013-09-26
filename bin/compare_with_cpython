@@ -53,14 +53,14 @@ if not silent_mode:
 if exec_in_tmp:
     filename = os.path.abspath( filename )
 
-cpython_cmd = "%s -W ignore %s" % (
+cpython_cmd = '"%s" -W ignore "%s"' % (
     os.environ[ "PYTHON" ],
     filename
 )
 
 nuitka_call = os.environ.get(
     "NUITKA",
-    "%s %s" % (
+    '"%s" "%s"' % (
         os.environ[ "PYTHON" ],
         os.path.abspath( os.path.join( os.path.dirname( __file__ ), "nuitka" ) )
     )
@@ -83,7 +83,7 @@ exe_filename += ".exe"
 
 
 if not two_step_execution:
-    nuitka_cmd = "%s %s --exe --execute %s" % (
+    nuitka_cmd = '%s %s --exe --execute "%s"' % (
         nuitka_call,
         extra_options,
         filename
