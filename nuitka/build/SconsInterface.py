@@ -32,7 +32,7 @@ def getSconsDataPath():
 def getSconsInlinePath():
     return Utils.joinpath( getSconsDataPath(), "inline_copy" )
 
-def getSconsBinaryPath():
+def getSconsBinaryCall():
     """ Return a way to execute Scons.
 
         Using potentially inline copy if no system Scons is available
@@ -42,7 +42,7 @@ def getSconsBinaryPath():
     if Utils.isFile( "/usr/bin/scons" ):
         return "/usr/bin/scons"
     else:
-        return "%s %s" % (
+        return '"%s" "%s"' % (
             getPython2ExePath(),
             Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
         )
@@ -119,8 +119,8 @@ def runScons( options, quiet ):
         os.environ[ "PATH" ] += r";\MinGW\bin;C:\MinGW\bin"
 
     scons_command = """%(scons_call)s %(quiet)s --warn=no-deprecated \
--f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
-        "scons_call" : getSconsBinaryPath(),
+-f "%(scons_file)s" --jobs %(job_limit)d %(options)s""" % {
+        "scons_call" : getSconsBinaryCall(),
         "quiet"      : "--quiet" if quiet else "",
         "scons_file" : Utils.joinpath( getSconsDataPath(), "SingleExe.scons" ),
         "job_limit"  : Options.getJobLimit(),
