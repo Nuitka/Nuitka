@@ -300,6 +300,9 @@ def unpackOrderCheck():
         def __iter__( self ):
             return Iterable()
 
+        def __del__( self ):
+            print "Deleted with", self.consumed
+
         def next( self ):
             print "Next with", self.consumed
 
