@@ -234,21 +234,18 @@ def setExtraFlags( where, name, flags ):
     else:
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = flags
 
-def executeSubTest( command ):
+def executeSubTest( command, hide_stderror = False ):
     parts = command.split()
-
     parts[0] = parts[0].replace( "/", os.path.sep )
 
     # On Windows, we need to specify Python ourselves.
-    if parts[0].endswith( ".py" ) and os.name == "nt":
+    if os.name == "nt":
         parts.insert( 0, sys.executable )
 
-    command = " ".join( parts )
-
-    print( "Run '%s' in '%s'." % ( command, os.getcwd() ) )
+    print( "Run '%s' in '%s'." % ( " ".join( parts ), os.getcwd() ) )
 
     sys.stdout.flush()
-    result = subprocess.call( command, shell = True )
+    result = subprocess.call( parts )
 
     if result != 0:
         sys.exit( result )
@@ -357,7 +354,10 @@ assert checkExecutableCommand( "python2.6" ) or checkExecutableCommand( "python2
 
 # Just the quick syntax test, full tests are run later.
 if checkExecutableCommand( "python3.2" ):
-    executeSubTest( "python3.2 bin/nuitka --version 2>/dev/null" )
+    executeSubTest(
+        "bin/nuitka --python-version=3.2 --version",
+        hide_stderror = True
+    )
 
 if checkExecutableCommand( "python2.6" ):
     execute_tests( "python2.6-debug", "python2.6", "--debug" )
@@ -402,10 +402,18 @@ else:
     print( "Cannot execute wine cross-compile tests, disabled or no wine." )
 
 if checkExecutableCommand( "cppcheck" ):
-    command = "cppcheck -q --error-exitcode=1 --enable=all --check-config nuitka/build/ -I nuitka/build/include/ -I /usr/include/python2.7"
+    command = [
+        "cppcheck",
+        "-q",
+        "--error-exitcode=1",
+        "--enable=all",
+        "--check-config", "nuitka/build/",
+        "-I", "nuitka/build/include/",
+        "-I", "/usr/include/python2.7"
+    ]
 
     sys.stdout.flush()
-    result = subprocess.call( command, shell = True )
+    result = subprocess.call( command )
 
     if result != 0:
         sys.exit( result )

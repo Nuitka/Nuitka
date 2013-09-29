@@ -165,15 +165,17 @@ def executePASS1():
             if filename != "__init__.py":
                 print( "Compiling", path )
 
+                command = [
+                    os.environ[ "PYTHON" ],
+                    nuitka_main_path,
+                    path,
+                    "--recurse-none",
+                    "--output-dir", target_dir
+                ]
+                command += os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ).split()
+
                 result = subprocess.call(
-                    "%s %s %s --recurse-none --output-dir %s %s" % (
-                        os.environ[ "PYTHON" ],
-                        nuitka_main_path,
-                        path,
-                        target_dir,
-                        os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
-                    ),
-                    shell = True
+                    command
                 )
 
                 if result != 0:
@@ -186,15 +188,18 @@ def executePASS1():
 
     shutil.copyfile( nuitka_main_path, "nuitka.py" )
 
+    command = [
+        os.environ[ "PYTHON" ],
+        nuitka_main_path,
+        "nuitka.py",
+        "--exe",
+        "--recurse-none",
+        "--output-dir", "."
+    ]
+    command += os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ).split()
+
     result = subprocess.call(
-        "%s %s %s --exe --recurse-none --output-dir %s %s" % (
-            os.environ[ "PYTHON" ],
-            nuitka_main_path,
-            "nuitka.py",
-            ".",
-            os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
-        ),
-        shell = True
+        command
     )
 
     if result != 0:
@@ -245,14 +250,16 @@ def compileAndCompareWith( nuitka ):
                 if os.path.exists( target_dir ):
                     shutil.rmtree( target_dir )
 
+                command = [
+                    nuitka,
+                    path,
+                    "--recurse-none",
+                    "--output-dir", tmp_dir,
+                ]
+                command += os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ).split()
+
                 result = subprocess.call(
-                    "%s %s --recurse-none --output-dir %s %s" % (
-                        nuitka,
-                        path,
-                        tmp_dir,
-                        os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
-                    ),
-                    shell = True
+                    command
                 )
 
                 if result != 0:
@@ -295,14 +302,16 @@ def executePASS3():
 
     print( "Compiling", path )
 
+    command = [
+        os.environ[ "PYTHON" ],
+        nuitka_main_path,
+        path,
+        "--output-dir", tmp_dir,
+        "--exe",
+        "--recurse-all"
+    ]
     result = subprocess.call(
-        "%s %s %s --output-dir %s --exe --recurse-all" % (
-            os.environ[ "PYTHON" ],
-            nuitka_main_path,
-            path,
-            tmp_dir
-        ),
-        shell = True
+        command
     )
 
     if result != 0:
@@ -326,15 +335,18 @@ def executePASS5():
 
     path = os.path.join( "..", "..", "nuitka" )
 
+    command = [
+        os.environ[ "PYTHON" ],
+        nuitka_main_path,
+        path,
+        "--output-dir", tmp_dir,
+        "--recurse-all",
+        "--recurse-dir=%s" % path,
+        path
+
+    ]
     result = subprocess.call(
-        "%s %s %s --recurse-all --output-dir %s --recurse-dir=%s" % (
-            os.environ[ "PYTHON" ],
-            nuitka_main_path,
-            path,
-            tmp_dir,
-            path
-        ),
-        shell = True
+        command
     )
 
     if result != 0:
