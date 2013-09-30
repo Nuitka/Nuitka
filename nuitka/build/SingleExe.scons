@@ -473,6 +473,9 @@ if win_target:
         if win_disable_console:
             env.Append( LINKFLAGS = [ "-Wl,--subsystem,windows" ] )
 
+    if win_disable_console:
+        env.Append( CPPDEFINES = [ "_NUITKA_WINMAIN_ENTRY_POINT" ] )
+
     python_header_path = os.path.join( python_prefix, "include" )
 
 else:
