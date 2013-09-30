@@ -109,7 +109,7 @@ def runScons( options, quiet ):
         os.environ[ "SCONS_LIB_DIR" ] = Utils.joinpath(
             getSconsInlinePath(),
             "lib",
-            "scons-2.0.1"
+            "scons-2.3.0"
         )
 
         # Also, for MinGW we can avoid the user having to add the path if he

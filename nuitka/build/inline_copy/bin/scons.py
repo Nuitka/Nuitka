@@ -1,6 +1,8 @@
+#! /usr/bin/env python
+#
 # SCons - a Software Constructor
 #
-# Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010 The SCons Foundation
+# Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 The SCons Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,22 +22,20 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
 
-__revision__ = "src/script/scons.py 5134 2010/08/16 23:02:40 bdeegan"
+__revision__ = "src/script/scons.py  2013/03/03 09:48:35 garyo"
 
-__version__ = "2.0.1"
+__version__ = "2.3.0"
 
-__build__ = "r5134"
+__build__ = ""
 
-__buildsys__ = "cooldog"
+__buildsys__ = "reepicheep"
 
-__date__ = "2010/08/16 23:02:40"
+__date__ = "2013/03/03 09:48:35"
 
-__developer__ = "bdeegan"
+__developer__ = "garyo"
 
 import os
-import os.path
 import sys
 
 ##############################################################################
@@ -55,17 +55,12 @@ import sys
 # engine modules if they're in either directory.
 
 
-# Check to see if the python version is > 3.0 which is currently unsupported
-# If so exit with error message
-try:
-    if  sys.version_info >= (3,0,0):
-        msg = "scons: *** SCons version %s does not run under Python version %s.\n"
-        sys.stderr.write(msg % (__version__, sys.version.split()[0]))
-        sys.exit(1)
-except AttributeError:
-    # Pre-1.6 Python has no sys.version_info
-    # No need to check version as we then know the version is < 3.0.0 and supported
-    pass
+if sys.version_info >= (3,0,0):
+    msg = "scons: *** SCons version %s does not run under Python version %s.\n\
+Python 3 is not yet supported.\n"
+    sys.stderr.write(msg % (__version__, sys.version.split()[0]))
+    sys.exit(1)
+
 
 script_dir = sys.path[0]
 
@@ -87,7 +82,21 @@ libs.append(os.path.abspath(local))
 
 scons_version = 'scons-%s' % __version__
 
+# preferred order of scons lookup paths
 prefs = []
+
+try:
+    import pkg_resources
+except ImportError:
+    pass
+else:
+    # when running from an egg add the egg's directory 
+    try:
+        d = pkg_resources.get_distribution('scons')
+    except pkg_resources.DistributionNotFound:
+        pass
+    else:
+        prefs.append(d.location)
 
 if sys.platform == 'win32':
     # sys.prefix is (likely) C:\Python*;
@@ -157,19 +166,6 @@ else:
         # Check /usr/libfoo/scons*.
         prefs.append(libpath)
 
-    try:
-        import pkg_resources
-    except ImportError:
-        pass
-    else:
-        # when running from an egg add the egg's directory 
-        try:
-            d = pkg_resources.get_distribution('scons')
-        except pkg_resources.DistributionNotFound:
-            pass
-        else:
-            prefs.append(d.location)
-
 # Look first for 'scons-__version__' in all of our preference libs,
 # then for 'scons'.
 libs.extend([os.path.join(x, scons_version) for x in prefs])
@@ -182,7 +178,15 @@ sys.path = libs + sys.path
 ##############################################################################
 
 if __name__ == "__main__":
-    import SCons.Script
+    try:
+        import SCons.Script
+    except:
+        ROOT = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'engine')
+        if os.path.exists(ROOT):
+            sys.path += [ROOT]
+            print("SCons import failed. Trying to run from source directory")
+        import SCons.Script
+  
     # this does all the work, and calls sys.exit
     # with the proper exit status when done.
     SCons.Script.main()

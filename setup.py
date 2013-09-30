@@ -39,9 +39,11 @@ def find_packages():
     result = []
 
     for root, _dirnames, filenames in os.walk( "nuitka" ):
-        if "scons-2.0.1" in root:
+        # Ignore the inline copy of scons, these are not packages of Nuitka.
+        if "scons-" in root:
             continue
 
+        # Packages must contain "__init__.py" or they are merely directories.
         if "__init__.py" not in filenames:
             continue
 
