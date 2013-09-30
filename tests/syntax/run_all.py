@@ -80,14 +80,16 @@ for filename in sorted( os.listdir( "." ) ):
         extra_flags = [ "expect_failure",  "remove_output" ]
 
     if active:
+        command = [
+            sys.executable,
+            os.path.join( "..", "..", "bin", "compare_with_cpython" ),
+            path,
+            "silent"
+        ]
+        command += extra_flags
+
         result = subprocess.call(
-            "%s %s %s silent %s" % (
-                sys.executable,
-                os.path.join( "..", "..", "bin", "compare_with_cpython" ),
-                path,
-                " ".join( extra_flags )
-            ),
-            shell = True
+            command
         )
 
         if result == 2:

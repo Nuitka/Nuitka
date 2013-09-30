@@ -123,26 +123,38 @@ for filename in sorted( os.listdir( "." ) ):
 
             # On Windows, we cannot rely on 2to3 to be in the path.
             if os.name == "nt":
-               command = sys.executable + " " + os.path.join( os.path.dirname( sys.executable ), "Tools/Scripts/2to3.py" )
+                command = [
+                    sys.executable,
+                    os.path.join(
+                        os.path.dirname( sys.executable ),
+                        "Tools/Scripts/2to3.py"
+                    )
+                ]
             else:
-               command = "2to3"
+               command = [ "2to3" ]
+
+            command += [
+                "-w",
+                "-n",
+                "--no-diffs",
+                path
+            ]
 
             result = subprocess.call(
-                command + " -w -n --no-diffs " + path,
+                command,
                 stderr = open( os.devnull, "w" ),
-                shell  = True
             )
 
-        command = "%s %s %s silent %s" % (
+        command = [
             sys.executable,
             os.path.join( "..", "..", "bin", "compare_with_cpython" ),
             path,
-            " ".join( extra_flags )
-        )
+            "silent"
+        ]
+        command += extra_flags
 
         result = subprocess.call(
-            command,
-            shell = True
+            command
         )
 
         if result == 2:

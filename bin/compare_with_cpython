@@ -53,18 +53,19 @@ if not silent_mode:
 if exec_in_tmp:
     filename = os.path.abspath( filename )
 
-cpython_cmd = '"%s" -W ignore "%s"' % (
+cpython_cmd = [
     os.environ[ "PYTHON" ],
+    "-W", "ignore",
     filename
-)
+]
 
-nuitka_call = os.environ.get(
-    "NUITKA",
-    '"%s" "%s"' % (
+if "NUITKA" in os.environ:
+    nuitka_call = [ os.environ[ "NUITKA" ] ]
+else:
+    nuitka_call =  [
         os.environ[ "PYTHON" ],
         os.path.abspath( os.path.join( os.path.dirname( __file__ ), "nuitka" ) )
-    )
-)
+    ]
 
 extra_options = os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
 
@@ -83,20 +84,14 @@ exe_filename += ".exe"
 
 
 if not two_step_execution:
-    nuitka_cmd = '%s %s --exe --execute "%s"' % (
-        nuitka_call,
-        extra_options,
-        filename
-    )
+    nuitka_cmd = nuitka_call + extra_options.split() + \
+        [ "--exe", "--execute", filename ]
 
     if trace_command:
         print( "Nuitka command:", nuitka_cmd )
 else:
-    nuitka_cmd1 = "%s %s --exe %s" % (
-        nuitka_call,
-        extra_options,
-        filename
-    )
+    nuitka_cmd1 = nuitka_call + extra_options.split() + \
+        [ "--exe", filename ]
 
 dir_match = re.search( r"--output-dir=(.*?)(\s|$)", extra_options )
 
@@ -122,8 +117,7 @@ if exec_in_tmp:
 process = subprocess.Popen(
     args   = cpython_cmd,
     stdout = subprocess.PIPE,
-    stderr = subprocess.PIPE,
-    shell  = True
+    stderr = subprocess.PIPE
 )
 
 stdout_cpython, stderr_cpython = process.communicate()
@@ -148,8 +142,7 @@ if not two_step_execution:
     process = subprocess.Popen(
         args   = nuitka_cmd,
         stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE,
-        shell  = True
+        stderr = subprocess.PIPE
     )
 
     stdout_nuitka, stderr_nuitka = process.communicate()
@@ -158,8 +151,7 @@ else:
     process = subprocess.Popen(
         args   = nuitka_cmd1,
         stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE,
-        shell  = True
+        stderr = subprocess.PIPE
     )
 
     stdout_nuitka1, stderr_nuitka1 = process.communicate()
@@ -173,10 +165,9 @@ else:
         os.environ[ "PYTHONPATH" ] = path_sep.join( [ os.path.dirname( filename ) ] + os.environ.get( "PYTHONPATH", "" ).split( path_sep ) )
 
         process = subprocess.Popen(
-            args   = nuitka_cmd2,
+            args   = [ nuitka_cmd2 ],
             stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE,
-            shell  = True
+            stderr = subprocess.PIPE
         )
 
         stdout_nuitka2, stderr_nuitka2 = process.communicate()

@@ -24,7 +24,7 @@ options.
 
 from nuitka import Options, Tracing, Utils
 
-import os, sys
+import os, sys, subprocess
 
 def getSconsDataPath():
     return Utils.dirname( __file__ )
@@ -38,14 +38,13 @@ def getSconsBinaryCall():
         Using potentially inline copy if no system Scons is available
         or if we are on Windows.
     """
-
     if Utils.isFile( "/usr/bin/scons" ):
-        return "/usr/bin/scons"
+        return [ "/usr/bin/scons" ]
     else:
-        return '"%s" "%s"' % (
+        return [
             getPython2ExePath(),
             Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
-        )
+        ]
 
 def _getPython2ExePathWindows():
     # Shortcuts for the default installation directories, to avoid going to
@@ -118,20 +117,31 @@ def runScons( options, quiet ):
         # to the PATH variable before executing scons.
         os.environ[ "PATH" ] += r";\MinGW\bin;C:\MinGW\bin"
 
-    scons_command = """%(scons_call)s %(quiet)s --warn=no-deprecated \
--f "%(scons_file)s" --jobs %(job_limit)d %(options)s""" % {
-        "scons_call" : getSconsBinaryCall(),
-        "quiet"      : "--quiet" if quiet else "",
-        "scons_file" : Utils.joinpath( getSconsDataPath(), "SingleExe.scons" ),
-        "job_limit"  : Options.getJobLimit(),
-        "options"    : " ".join(
-            '%s=%s' % ( key, value if " " not in value else '"%s"' % value )
-            for key, value in
-            options.items()
-        )
-    }
+    scons_command = getSconsBinaryCall()
+
+    if quiet:
+        scons_command.append( "--quiet" )
+
+    scons_command += [
+        # The scons file
+        "-f",
+        Utils.joinpath( getSconsDataPath(), "SingleExe.scons" ),
+
+        # Parallel compilation.
+        "--jobs",
+        str( Options.getJobLimit() ),
+
+        # Do not warn about deprecations of Scons
+        "--warn=no-deprecated",
+    ]
+
+    # Option values to provide to scons.
+    for key, value in options.items():
+        scons_command += [
+            key + "=" + value
+        ]
 
     if Options.isShowScons():
-        Tracing.printLine( "Scons command:", scons_command )
+        Tracing.printLine( "Scons command:", " ".join( scons_command ) )
 
-    return 0 == os.system( scons_command )
+    return 0 == subprocess.call( scons_command )
