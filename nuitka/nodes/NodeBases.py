@@ -26,8 +26,9 @@ from nuitka.odict import OrderedDict
 from nuitka.oset import OrderedSet
 
 from nuitka import (
+    Variables,
     Tracing,
-    TreeXML
+    TreeXML,
 )
 
 from nuitka.__past__ import iterItems
@@ -614,6 +615,10 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
         self.keeper_variables = OrderedSet()
 
+        self.temp_variables = OrderedDict()
+
+        self.temp_scopes = OrderedDict()
+
     def hasProvidedVariable( self, variable_name ):
         return variable_name in self.providing
 
@@ -643,7 +648,7 @@ class ClosureGiverNodeBase( CodeNodeBase ):
     def getProvidedVariables( self ):
         return self.providing.values()
 
-    def getTempKeeperVariable( self ):
+    def allocateTempKeeperVariable( self ):
         name = "keeper_%d" % len( self.keeper_variables )
 
         from nuitka import Variables
@@ -662,6 +667,41 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
     def removeTempKeeperVariable( self, variable ):
         self.keeper_variables.discard( variable )
+
+    def allocateTempVariable( self, temp_scope, name ):
+        if temp_scope is not None:
+            full_name = "%s__%s" % ( temp_scope, name )
+        else:
+            full_name = name
+
+        del name
+
+        assert full_name not in self.temp_variables, full_name
+
+        result = Variables.TempVariable(
+            owner         = self,
+            variable_name = full_name
+        )
+
+        self.temp_variables[ full_name ] = result
+
+        return result
+
+    def getTempVariables( self ):
+        return tuple( self.temp_variables.values() )
+
+    def removeTempVariable( self, variable ):
+        del self.temp_variables[ variable.getName() ]
+
+    def allocateTempScope( self, name, allow_closure = False ):
+        self.temp_scopes[ name ] = self.temp_scopes.get( name, 0 ) + 1
+
+        # TODO: Instead of using overly long code name, could just visit parents
+        # and make sure to allocate the scope at the top.
+        if allow_closure:
+            return "%s_%s_%d" % ( self.getCodeName(), name, self.temp_scopes[ name ] )
+        else:
+            return "%s_%d" % ( name, self.temp_scopes[ name ] )
 
 
 class ParameterHavingNodeBase( ClosureGiverNodeBase ):

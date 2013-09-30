@@ -20,8 +20,7 @@ from nuitka import Utils
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
-    StatementTempBlock
+    ExpressionTempVariableRef
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
@@ -62,14 +61,24 @@ from .Helpers import (
 def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
     with_source = buildNode( provider, context_expr, source_ref )
 
-    result = StatementTempBlock(
-        source_ref = source_ref
-    )
+    temp_scope = provider.allocateTempScope( "with" )
 
-    tmp_source_variable = result.getTempVariable( "with_source" )
-    tmp_exit_variable = result.getTempVariable( "with_exit" )
-    tmp_enter_variable = result.getTempVariable( "with_enter" )
-    tmp_indicator_variable = result.getTempVariable( "indicator" )
+    tmp_source_variable = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "source"
+    )
+    tmp_exit_variable = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "exit"
+    )
+    tmp_enter_variable = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "enter"
+    )
+    tmp_indicator_variable = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name = "indicator"
+    )
 
     statements = (
         buildAssignmentStatements(
@@ -77,7 +86,7 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
             node       = assign_target,
             allow_none = True,
             source     = ExpressionTempVariableRef(
-                variable   = tmp_enter_variable.makeReference( result ),
+                variable   = tmp_enter_variable.makeReference( provider ),
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -102,7 +111,7 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
         # First assign the with context to a temporary variable.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_source_variable.makeReference( result ),
+                variable   = tmp_source_variable.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       = with_source,
@@ -112,12 +121,12 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
         # variables.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_exit_variable.makeReference( result ),
+                variable   = tmp_exit_variable.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       = attribute_lookup_class(
                 expression     = ExpressionTempVariableRef(
-                    variable   = tmp_source_variable.makeReference( result ),
+                    variable   = tmp_source_variable.makeReference( provider ),
                     source_ref = source_ref
                 ),
                 attribute_name = "__exit__",
@@ -127,13 +136,15 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_enter_variable.makeReference( result ),
+                variable   = tmp_enter_variable.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       = ExpressionCallEmpty(
                 called         = attribute_lookup_class(
                     expression     = ExpressionTempVariableRef(
-                        variable   = tmp_source_variable.makeReference( result ),
+                        variable   = tmp_source_variable.makeReference(
+                            provider
+                        ),
                         source_ref = source_ref
                     ),
                     attribute_name = "__enter__",
@@ -145,7 +156,7 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_indicator_variable.makeReference( result ),
+                variable   = tmp_indicator_variable.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       = ExpressionConstantRef(
@@ -170,7 +181,7 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
                             # well.
                             StatementAssignmentVariable(
                                 variable_ref = ExpressionTargetTempVariableRef(
-                                    variable   = tmp_indicator_variable.makeReference( result ),
+                                    variable   = tmp_indicator_variable.makeReference( provider ),
                                     source_ref = source_ref
                                 ),
                                 source       = ExpressionConstantRef(
@@ -182,7 +193,7 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
                             StatementConditional(
                                 condition  = ExpressionCallNoKeywords(
                                     called          = ExpressionTempVariableRef(
-                                        variable   = tmp_exit_variable.makeReference( result ),
+                                        variable   = tmp_exit_variable.makeReference( provider ),
                                         source_ref = source_ref
                                     ),
                                     args = ExpressionMakeTuple(
@@ -223,7 +234,9 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
                 statement = StatementConditional(
                     condition      = ExpressionComparisonIs(
                         left       = ExpressionTempVariableRef(
-                            variable   = tmp_indicator_variable.makeReference( result ),
+                            variable   = tmp_indicator_variable.makeReference(
+                                provider
+                            ),
                             source_ref = source_ref
                         ),
                         right      = ExpressionConstantRef(
@@ -236,7 +249,7 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
                         statement = StatementExpressionOnly(
                             expression = ExpressionCallNoKeywords(
                                 called     = ExpressionTempVariableRef(
-                                    variable   = tmp_exit_variable.makeReference( result ),
+                                    variable   = tmp_exit_variable.makeReference( provider ),
                                     source_ref = source_ref
                                 ),
                                 args       = ExpressionConstantRef(
@@ -256,14 +269,10 @@ def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
         )
     ]
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
-            source_ref = source_ref
-        )
+    return StatementsSequence(
+        statements = statements,
+        source_ref = source_ref
     )
-
-    return result
 
 def buildWithNode( provider, node, source_ref ):
     # "with" statements are re-formulated as described in the developer

@@ -669,11 +669,15 @@ def computeBuiltinCall( call_node, called ):
     if builtin_name in _dispatch_dict:
         new_node = _dispatch_dict[ builtin_name ]( call_node )
 
+        # Lets just have this contract to return "None" when no change is meant
+        # to be done.
+        assert new_node is not call_node
         if new_node is None:
             return call_node, None, None
 
+        # For traces, we are going to ignore side effects, and output traces
+        # only based on the basis of it.
         inspect_node = new_node
-
         if inspect_node.isExpressionSideEffects():
             inspect_node = inspect_node.getExpression()
 
@@ -735,6 +739,7 @@ def computeBuiltinCall( call_node, called ):
                 source_ref     = source_ref
             )
 
+        assert tags != ""
 
         return new_node, tags, message
     else:

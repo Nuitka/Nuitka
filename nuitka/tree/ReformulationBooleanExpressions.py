@@ -62,7 +62,7 @@ def buildOrNode( provider, values, source_ref ):
     del values[ -1 ]
 
     while True:
-        keeper_variable = provider.getTempKeeperVariable()
+        keeper_variable = provider.allocateTempKeeperVariable()
 
         tmp_assign = ExpressionAssignmentTempKeeper(
             variable   = keeper_variable.makeReference( provider ),
@@ -91,7 +91,7 @@ def buildAndNode( provider, values, source_ref ):
     del values[ -1 ]
 
     while values:
-        keeper_variable = provider.getTempKeeperVariable()
+        keeper_variable = provider.allocateTempKeeperVariable()
 
         tmp_assign = ExpressionAssignmentTempKeeper(
             variable   = keeper_variable.makeReference( provider ),

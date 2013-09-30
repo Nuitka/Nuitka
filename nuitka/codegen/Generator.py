@@ -847,15 +847,7 @@ def getVariableAssignmentCode( context, variable, identifier ):
     if variable.isTempVariableReference():
         referenced = variable.getReferenced()
 
-        if not referenced.isDeclared():
-            referenced.markAsDeclared()
-
-            return getLocalVariableInitCode(
-                context   = context,
-                variable  = variable.getReferenced(),
-                init_from = identifier
-            )
-        elif not referenced.getNeedsFree():
+        if not referenced.getNeedsFree():
             # So won't get a reference, and take none, or else it may get lost,
             # which we don't want to happen.
 
@@ -943,6 +935,15 @@ def getVariableDelCode( context, tolerant, variable ):
             "true" if tolerant else "false"
         )
     else:
+        if variable.isTempVariableReference():
+            if not variable.getReferenced().getNeedsFree():
+                return "%s = NULL;" % (
+                    getVariableCode(
+                        variable = variable,
+                        context  = context
+                    )
+                )
+
         return "%s.del( %s );" % (
             getVariableCode(
                 variable = variable,
@@ -1850,7 +1851,7 @@ def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
 def getModuleCode( context, module_name, codes, other_module_names,
-                   function_decl_codes, function_body_codes ):
+                   function_decl_codes, function_body_codes, temp_variables ):
     # For the module code, lots of attributes come together.
     # pylint: disable=R0914
     module_identifier = getModuleIdentifier( module_name )
@@ -1885,6 +1886,18 @@ def getModuleCode( context, module_name, codes, other_module_names,
             }
         )
 
+    # Temp local variable initializations
+    local_var_inits = [
+        getLocalVariableInitCode(
+            context  = context,
+            variable = variable
+        )
+        for variable in
+        temp_variables
+        # TODO: Should become uncessary to filter.
+        if variable.getNeedsFree() is not None
+    ]
+
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
         "module_name_obj"       : getConstantCode(
@@ -1895,6 +1908,7 @@ def getModuleCode( context, module_name, codes, other_module_names,
         "module_functions_decl" : function_decl_codes,
         "module_functions_code" : function_body_codes,
         "module_globals"        : module_globals,
+        "temps_decl"            : "\n".join( local_var_inits ),
         "module_code"           : indented( codes ),
         "module_inittab"        : indented( sorted( module_inittab ) ),
         "use_unfreezer"         : 1 if other_module_names else 0
@@ -2055,10 +2069,10 @@ def _getFuncAnnotationsValue( annotations_identifier ):
     else:
         return Identifier( "annotations", 1 )
 
-def getGeneratorFunctionCode( context, function_name,
-                              function_identifier, parameters,
-                              closure_variables, user_variables, function_codes,
-                              source_ref, function_doc ):
+def getGeneratorFunctionCode( context, function_name, function_identifier,
+                              parameters, closure_variables, user_variables,
+                              temp_variables, function_codes, source_ref,
+                              function_doc ):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables, with many
@@ -2118,6 +2132,19 @@ def getGeneratorFunctionCode( context, function_name,
                     constant = user_variable.getName(),
                     context  = context
                 )
+            )
+        )
+
+    for temp_variable in temp_variables:
+        # TODO: This filter should not be possible.
+        if temp_variable.getNeedsFree() is None:
+            continue
+
+        local_var_decl.append(
+            getLocalVariableInitCode(
+                context    = context,
+                variable   = temp_variable,
+                in_context = True
             )
         )
 
@@ -2426,8 +2453,8 @@ def getFunctionContextDefinitionCode( context, function_identifier,
     }
 
 def getFunctionCode( context, function_name, function_identifier, parameters,
-                     closure_variables, user_variables, function_codes,
-                     function_doc, file_scope ):
+                     closure_variables, user_variables, temp_variables,
+                     function_codes, function_doc, file_scope ):
 
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=R0912,R0914
@@ -2458,7 +2485,13 @@ def getFunctionCode( context, function_name, function_identifier, parameters,
             variable = variable
         )
         for variable in
-        user_variables
+        user_variables + tuple(
+            variable
+            for variable in
+            temp_variables
+            # TODO: This filter should not be possible.
+            if variable.getNeedsFree() is not None
+        )
     ]
 
     function_doc = getConstantCode(

@@ -20,6 +20,9 @@
 All kinds of assignment targets as well as the assignment statement and
 expression are located here. These are the core of value control flow.
 
+Note: Currently there is also assignment to keeper nodes in KeeperNodes,
+that should be unified at some point.
+
 """
 
 from .NodeBases import StatementChildrenHavingBase

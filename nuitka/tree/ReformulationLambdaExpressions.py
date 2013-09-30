@@ -20,8 +20,7 @@ from nuitka import Utils
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
-    StatementTempBlock
+    ExpressionTempVariableRef
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.FunctionNodes import (
@@ -77,16 +76,17 @@ def buildLambdaNode( provider, node, source_ref ):
 
     if function_body.isGenerator():
         if Utils.python_version < 270:
-            temp_block = StatementTempBlock(
-                source_ref = source_ref,
+            tmp_return_value = function_body.allocateTempVariable(
+                temp_scope = None,
+                name       = "yield_return"
             )
-
-            tmp_return_value = temp_block.getTempVariable( "yield_return" )
 
             statements = (
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable = tmp_return_value.makeReference( temp_block ),
+                        variable = tmp_return_value.makeReference(
+                            function_body
+                        ),
                         source_ref = source_ref,
                     ),
                     source     = body,
@@ -95,7 +95,9 @@ def buildLambdaNode( provider, node, source_ref ):
                 StatementConditional(
                     condition = ExpressionComparisonIsNOT(
                         left       = ExpressionTempVariableRef(
-                            variable = tmp_return_value.makeReference( temp_block ),
+                            variable = tmp_return_value.makeReference(
+                                function_body
+                            ),
                             source_ref = source_ref,
                         ),
                         right      = ExpressionConstantRef(
@@ -108,7 +110,9 @@ def buildLambdaNode( provider, node, source_ref ):
                         statement = StatementExpressionOnly(
                             expression = ExpressionYield(
                                 expression = ExpressionTempVariableRef(
-                                    variable = tmp_return_value.makeReference( temp_block ),
+                                    variable = tmp_return_value.makeReference(
+                                        function_body
+                                    ),
                                     source_ref = source_ref,
                                 ),
                                 source_ref = source_ref
@@ -121,14 +125,10 @@ def buildLambdaNode( provider, node, source_ref ):
                 )
             )
 
-            temp_block.setBody(
-                StatementsSequence(
-                    statements = statements,
-                    source_ref = source_ref
-                )
+            body = StatementsSequence(
+                statements = statements,
+                source_ref = source_ref
             )
-
-            body = temp_block
         else:
             body = StatementExpressionOnly(
                 expression = body,

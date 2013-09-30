@@ -26,6 +26,7 @@ from .NodeBases import (
     StatementChildrenHavingBase,
     NodeBase
 )
+from nuitka.tree.Extractions import getVariablesWritten
 
 
 class StatementLoop( StatementChildrenHavingBase ):
@@ -63,16 +64,23 @@ class StatementLoop( StatementChildrenHavingBase ):
         loop_body = self.getLoopBody()
 
         if loop_body is not None:
-            from nuitka.optimizations.ConstraintCollections import \
-                ConstraintCollectionLoop
+            # Look ahead. what will be written.
+            variable_writes = getVariablesWritten( loop_body )
 
-            loop_collection = ConstraintCollectionLoop(
-                parent    = constraint_collection,
-                loop_body = loop_body
-            )
+            # Mark all variables as unknown that are written in the loop body,
+            # so it destroys the assumptions for loop turn around.
+            for variable, _variable_version in variable_writes:
+                constraint_collection.markActiveVariableAsUnknown(
+                    variable = variable
+                )
+
+            result = constraint_collection.onStatementsSequence( loop_body )
 
             # Might be changed.
-            loop_body = self.getLoopBody()
+            if result is not loop_body:
+                loop_body.replaceWith( result )
+                loop_body = result
+
 
         # Consider trailing "continue" statements, these have no effect, so we
         # can remove them.

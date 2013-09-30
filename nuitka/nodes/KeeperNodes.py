@@ -49,6 +49,8 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
         self.variable = variable
         self.variable_version = variable.allocateTargetNumber()
 
+        assert self.variable_version != 0
+
     def getDetail( self ):
         return "%s from %s" % ( self.getVariableName(), self.getAssignSource() )
 
@@ -71,11 +73,17 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
     def computeExpression( self, constraint_collection ):
         source = self.getAssignSource()
 
-        if self.variable.getReferenced().isWriteOnly():
-            return source, "new_expression", "Removed useless temporary keeper assignment."
-
         if source.willRaiseException( BaseException ):
-            return source, "new_raise", "Keeper assignment raises"
+            return source, "new_raise", "Keeper assignment raises."
+
+        constraint_collection.onVariableSet(
+            target_node = self
+        )
+
+        # TODO: This should not be done here.
+        if self.variable.getReferenced().isWriteOnly():
+            return source, "new_expression", """\
+Removed useless temporary keeper assignment."""
 
         return self, None, None
 

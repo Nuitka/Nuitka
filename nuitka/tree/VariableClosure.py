@@ -84,9 +84,11 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                         )
                     )
         elif node.isExpressionTempVariableRef():
-            if node.getVariable().getOwner().getParentVariableProvider() != node.getParentVariableProvider():
+            if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.setVariable(
-                    node.getParentVariableProvider().addClosureVariable( node.getVariable() )
+                    node.getParentVariableProvider().addClosureVariable(
+                        node.getVariable()
+                    )
                 )
 
                 assert node.getVariable().isClosureReference(), node.getVariable()

@@ -38,11 +38,10 @@ from .Helpers import (
 )
 
 
-
 def wrapEvalGlobalsAndLocals( provider, globals, locals, exec_mode,
                               source_ref ):
     if globals is not None:
-        global_keeper_variable = provider.getTempKeeperVariable()
+        global_keeper_variable = provider.allocateTempKeeperVariable()
         tmp_global_assign = ExpressionAssignmentTempKeeper(
             variable   = global_keeper_variable.makeReference( provider ),
             source     = globals,
@@ -75,7 +74,7 @@ def wrapEvalGlobalsAndLocals( provider, globals, locals, exec_mode,
         )
 
     if locals is not None:
-        local_keeper_variable = provider.getTempKeeperVariable()
+        local_keeper_variable = provider.allocateTempKeeperVariable()
         tmp_local_assign = ExpressionAssignmentTempKeeper(
             variable   = local_keeper_variable.makeReference( provider ),
             source     = locals,

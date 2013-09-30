@@ -36,9 +36,6 @@ class FinalizeClosureTaking( FinalizationVisitorBase ):
             referenced = variable.getReferenced()
             referenced_owner = referenced.getOwner()
 
-            if referenced_owner.isStatementTempBlock():
-                referenced_owner = referenced_owner.getParentVariableProvider()
-
             assert not referenced.isModuleVariable()
 
             current = node

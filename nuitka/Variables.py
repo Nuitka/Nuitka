@@ -44,13 +44,9 @@ class Variable:
     def getOwner( self ):
         return self.owner
 
+    # TODO: Seems obsolete now
     def getRealOwner( self ):
-        result = self.owner
-
-        if result.isStatementTempBlock():
-            return result.getParentVariableProvider()
-        else:
-            return result
+        return self.owner
 
     def addReference( self, reference ):
         self.references.append( reference )
@@ -516,7 +512,7 @@ class TempVariableClosureReference( VariableReferenceBase ):
 
     def getDeclarationTypeCode( self, in_context ):
         if self.getReferenced().getReferenced().needs_free:
-            return "PyObjectTemporary"
+            return "PyObjectTempVariable"
         else:
             return "PyObject *"
 
@@ -534,6 +530,23 @@ class TempVariableReference( VariableReferenceBase ):
     def isTempVariableReference( self ):
         # Virtual method, pylint: disable=R0201
         return True
+
+    def makeReference( self, owner ):
+        # Search for existing references to be re-used before making a new one.
+        for reference in self.references:
+            if reference.getOwner() is owner:
+                return reference
+        else:
+            if owner is self.owner:
+                return TempVariableReference(
+                    owner    = owner,
+                    variable = self
+                )
+            else:
+                return TempVariableClosureReference(
+                    owner    = owner,
+                    variable = self
+                )
 
 
 class TempVariable( Variable ):
@@ -565,23 +578,13 @@ class TempVariable( Variable ):
         return self.needs_free
 
     def setNeedsFree( self, needs_free ):
-        assert needs_free is not None
-
         self.needs_free = needs_free
-
-    def isDeclared( self ):
-        return self.declared
-
-    def markAsDeclared( self ):
-        assert not self.declared
-
-        self.declared = True
 
     def getDeclarationTypeCode( self, in_context ):
         assert self.needs_free is not None, self
 
         if self.needs_free:
-            return "PyObjectTemporary"
+            return "PyObjectTempVariable"
         else:
             return "PyObject *"
 

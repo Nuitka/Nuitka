@@ -421,6 +421,7 @@ def generateFunctionBodyCode( function_body, context ):
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
+            temp_variables         = function_body.getTempVariables(),
             source_ref             = function_body.getSourceReference(),
             function_codes         = function_codes,
             function_doc           = function_body.getDoc()
@@ -433,6 +434,7 @@ def generateFunctionBodyCode( function_body, context ):
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
+            temp_variables         = function_body.getTempVariables(),
             function_codes         = function_codes,
             function_doc           = function_body.getDoc(),
             file_scope             = Generator.getExportScopeCode(
@@ -2150,16 +2152,6 @@ def generateLoopCode( statement, context ):
         needs_continue_exception = statement.needsExceptionContinue()
     )
 
-def generateTempBlock( statement, context ):
-    body_codes = generateStatementSequenceCode(
-        statement_sequence = statement.getBody(),
-        context            = context
-    )
-
-    return Generator.getBlockCode(
-        body_codes
-    )
-
 def generateReturnCode( statement, context ):
     return Generator.getReturnCode(
         identifier    = generateExpressionCode(
@@ -2185,71 +2177,6 @@ def generateGeneratorReturnCode( statement, context ):
 def generateStatementCode( statement, context ):
     try:
         statement_context = Contexts.PythonStatementContext( context )
-
-        # Special hack for deferred declaration of temporary variables at the
-        # first opportunity.
-        if statement.isStatementAssignmentVariable():
-            variable_ref = statement.getTargetVariableRef()
-            variable = variable_ref.getVariable()
-
-            if variable.isTempVariableReference():
-                referenced = variable.getReferenced()
-
-                if not referenced.isDeclared():
-                    referenced.markAsDeclared()
-
-                    assign_source = generateExpressionCode(
-                        expression = statement.getAssignSource(),
-                        context    = statement_context
-                    )
-
-                    local_inits = Generator.getTempKeeperDecl(
-                        context = statement_context
-                    )
-
-                    if not local_inits:
-                        return Generator.getLocalVariableInitCode(
-                            context   = statement_context,
-                            variable  = variable.getReferenced(),
-                            init_from = assign_source
-                        )
-                    else:
-                        if referenced.getNeedsFree():
-                            return """\
-PyObject *_tmp_%s;
-{
-%s
-    _tmp_%s = %s;
-}
-%s _%s( _tmp_%s );""" % (
-                            referenced.getCodeName(),
-                            Generator.indented( local_inits ),
-                            referenced.getCodeName(),
-                            assign_source.getCodeExportRef(),
-                            referenced.getDeclarationTypeCode( False ),
-                            referenced.getCodeName(),
-                            referenced.getCodeName(),
-
-                        )
-                        else:
-                            return """\
-%s _%s;
-{
-%s
-    _%s = %s;
-}
-""" % (
-                            referenced.getDeclarationTypeCode( False ),
-                            referenced.getCodeName(),
-                            Generator.indented( local_inits ),
-                            referenced.getCodeName(),
-                            assign_source.getCodeExportRef(),
-
-                        )
-
-
-
-
         result = _generateStatementCode( statement, statement_context )
         local_inits = Generator.getTempKeeperDecl( statement_context )
 
@@ -2336,11 +2263,6 @@ def _generateStatementCode( statement, context ):
         )
     elif statement.isStatementDelAttribute():
         code = generateDelAttributeCode(
-            statement = statement,
-            context   = context
-        )
-    elif statement.isStatementTempBlock():
-        code = generateTempBlock(
             statement = statement,
             context   = context
         )
@@ -2656,6 +2578,7 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
         ],
         function_decl_codes = function_decl_codes,
         function_body_codes = function_body_codes,
+        temp_variables      = module.getTempVariables(),
         context             = context,
     )
 

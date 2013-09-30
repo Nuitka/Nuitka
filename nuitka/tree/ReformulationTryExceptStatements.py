@@ -20,8 +20,7 @@ from nuitka import Utils
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
-    StatementTempBlock
+    ExpressionTempVariableRef
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ExceptionNodes import ExpressionCaughtExceptionValueRef
@@ -38,7 +37,7 @@ from nuitka.nodes.TryNodes import (
 from .ReformulationAssignmentStatements import (
     buildDeleteStatementFromDecoded,
     buildAssignmentStatements,
-    decodeAssignTarget,
+    decodeAssignTarget
 )
 
 
@@ -49,85 +48,94 @@ from .Helpers import (
 )
 
 
-def makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
-    # This helper executes the core re-formulation of "no_raise" blocks, which are the
-    # "else" blocks of try/except statements. We use an indicator variable instead, which
-    # will signal that the tried block executed up to the end. And then we make the else
-    # block be a conditional statement checking that. This is a separate function, so it
-    # can be re-used in other re-formulations, e.g. with statements.
+def makeTryExceptNoRaise( provider, temp_scope, tried, handlers, no_raise,
+                          source_ref ):
+    # This helper executes the core re-formulation of "no_raise" blocks, which
+    # are the "else" blocks of "try"/"except" statements. In order to limit the
+    # execution, we use an indicator variable instead, which will signal that
+    # the tried block executed up to the end. And then we make the else block be
+    # a conditional statement checking that.
+
+    # This is a separate function, so it can be re-used in other
+    # re-formulations, e.g. with statements.
 
     assert no_raise is not None
     assert len( handlers ) > 0
 
-    result = StatementTempBlock(
-        source_ref = source_ref
+    tmp_handler_indicator_variable = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "unhandled_indicator"
     )
 
-    tmp_handler_indicator_variable = result.getTempVariable( "unhandled_indicator" )
-
     for handler in handlers:
+        statements = (
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_handler_indicator_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref.atInternal()
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = False,
+                    source_ref = source_ref
+                ),
+                source_ref   = no_raise.getSourceReference().atInternal()
+            ),
+            handler.getExceptionBranch()
+        )
+
         handler.setExceptionBranch(
             makeStatementsSequence(
-                statements = (
-                    StatementAssignmentVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_handler_indicator_variable.makeReference( result ),
-                            source_ref = source_ref.atInternal()
-                        ),
-                        source       = ExpressionConstantRef(
-                            constant   = False,
-                            source_ref = source_ref
-                        ),
-                        source_ref   = no_raise.getSourceReference().atInternal()
-                    ),
-                    handler.getExceptionBranch()
-                ),
+                statements = statements,
                 allow_none = True,
                 source_ref = source_ref
             )
         )
 
-    result.setBody(
-        StatementsSequence(
-            statements = (
-                StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_handler_indicator_variable.makeReference( result ),
-                        source_ref = source_ref.atInternal()
-                    ),
-                    source     = ExpressionConstantRef(
-                        constant   = True,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
+    statements = (
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_handler_indicator_variable.makeReference(
+                    provider
                 ),
-                StatementTryExcept(
-                    tried      = tried,
-                    handlers   = handlers,
-                    source_ref = source_ref
-                ),
-                StatementConditional(
-                    condition  = ExpressionComparisonIs(
-                        left = ExpressionTempVariableRef(
-                            variable   = tmp_handler_indicator_variable.makeReference( result ),
-                            source_ref = source_ref
-                        ),
-                        right = ExpressionConstantRef(
-                            constant   = True,
-                            source_ref = source_ref
-                        ),
-                        source_ref = source_ref
-                    ),
-                    yes_branch = no_raise,
-                    no_branch  = None,
-                    source_ref = source_ref
-                )
+                source_ref = source_ref.atInternal()
             ),
+            source     = ExpressionConstantRef(
+                constant   = True,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        StatementTryExcept(
+            tried      = tried,
+            handlers   = handlers,
+            source_ref = source_ref
+        ),
+        StatementConditional(
+            condition  = ExpressionComparisonIs(
+                left = ExpressionTempVariableRef(
+                    variable   = tmp_handler_indicator_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
+                right = ExpressionConstantRef(
+                    constant   = True,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = no_raise,
+            no_branch  = None,
             source_ref = source_ref
         )
     )
 
-    return result
+    return StatementsSequence(
+        statements = statements,
+        source_ref = source_ref
+    )
 
 def makeTryExceptSingleHandlerNode( tried, exception_name, handler_body, source_ref ):
     return StatementTryExcept(
@@ -149,18 +157,22 @@ def makeTryExceptSingleHandlerNode( tried, exception_name, handler_body, source_
 
 
 def buildTryExceptionNode( provider, node, source_ref ):
-    # Try/except nodes. Re-formulated as described in the developer manual. Exception
-    # handlers made the assignment to variables explicit. Same for the "del" as done for
-    # Python3. Also catches always work a tuple of exception types and hides away that
-    # they may be built or not.
+    # Try/except nodes. Re-formulated as described in the developer
+    # manual. Exception handlers made the assignment to variables explicit. Same
+    # for the "del" as done for Python3. Also catches always work a tuple of
+    # exception types and hides away that they may be built or not.
 
-    # Many variables, due to the re-formulation that is going on here, which just has the
-    # complexity, pylint: disable=R0914
+    # Many variables, due to the re-formulation that is going on here, which
+    # just has the complexity, pylint: disable=R0914
 
     handlers = []
 
     for handler in node.handlers:
-        exception_expression, exception_assign, exception_block = handler.type, handler.name, handler.body
+        exception_expression, exception_assign, exception_block = (
+            handler.type,
+            handler.name,
+            handler.body
+        )
 
         statements = [
             buildAssignmentStatements(
@@ -180,7 +192,12 @@ def buildTryExceptionNode( provider, node, source_ref ):
         ]
 
         if Utils.python_version >= 300:
-            target_info = decodeAssignTarget( provider, exception_assign, source_ref, allow_none = True )
+            target_info = decodeAssignTarget(
+                provider   = provider,
+                node       = exception_assign,
+                source_ref = source_ref,
+                allow_none = True
+            )
 
             if target_info is not None:
                 kind, detail = target_info
@@ -202,7 +219,12 @@ def buildTryExceptionNode( provider, node, source_ref ):
             source_ref = source_ref
         )
 
-        exception_types = buildNode( provider, exception_expression, source_ref, True )
+        exception_types = buildNode(
+            provider   = provider,
+            node       = exception_expression,
+            source_ref = source_ref,
+            allow_none = True
+        )
 
         if exception_types is None:
             exception_types = ()
@@ -239,6 +261,8 @@ def buildTryExceptionNode( provider, node, source_ref ):
         )
     else:
         return makeTryExceptNoRaise(
+            provider   = provider,
+            temp_scope = provider.allocateTempScope( "try_except" ),
             handlers   = handlers,
             tried      = tried,
             no_raise   = no_raise,

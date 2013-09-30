@@ -433,6 +433,9 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 #endif
 
+    // Temp variables if any
+%(temps_decl)s
+
     // Module code
 %(module_code)s
 

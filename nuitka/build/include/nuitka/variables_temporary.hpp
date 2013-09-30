@@ -72,6 +72,67 @@ private:
 };
 
 
+class PyObjectTempVariable
+{
+public:
+    explicit PyObjectTempVariable()
+    {
+        this->object = NULL;
+    }
+
+    ~PyObjectTempVariable()
+    {
+        if ( this->object ) assertObject( this->object );
+
+        Py_XDECREF( this->object );
+    }
+
+    PyObject *asObject() const
+    {
+        assertObject( this->object );
+
+        return this->object;
+    }
+
+    void assign1( PyObject *object )
+    {
+        if ( this->object ) assertObject( this->object );
+        Py_XDECREF( this->object );
+
+        assertObject( object );
+
+        this->object = object;
+    }
+
+    void assign0( PyObject *object )
+    {
+        if ( this->object ) assertObject( this->object );
+        Py_XDECREF( this->object );
+
+        assertObject( object );
+
+        this->object = INCREASE_REFCOUNT( object );
+    }
+
+    void del( bool tolerant )
+    {
+        if ( this->object ) assertObject( this->object );
+        Py_XDECREF( this->object );
+
+        this->object = NULL;
+    }
+
+private:
+
+    PyObjectTempVariable( const PyObjectTempVariable &object )
+    {
+        assert( false );
+    }
+
+    PyObject *object;
+};
+
+
 class PyObjectTempKeeper1
 {
 public:

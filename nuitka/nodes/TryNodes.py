@@ -100,11 +100,16 @@ class StatementTryFinally( StatementChildrenHavingBase ):
         # May be "None" from the outset, so guard against that, later in this
         # function we are going to remove it.
         if tried_statement_sequence is not None:
-            result = constraint_collection.onStatementsSequence( tried_statement_sequence )
+            from nuitka.optimizations.ConstraintCollections import \
+                ConstraintCollectionBranch
 
+            result = constraint_collection.onStatementsSequence(
+                tried_statement_sequence
+            )
+
+            # Might be changed.
             if result is not tried_statement_sequence:
-                self.setBlockTry( result )
-
+                tried_statement_sequence.replaceWith( result )
                 tried_statement_sequence = result
 
         final_statement_sequence = self.getBlockFinal()
@@ -114,8 +119,21 @@ class StatementTryFinally( StatementChildrenHavingBase ):
         # complex definition.
 
         if final_statement_sequence is not None:
-            # TODO: Can't really merge it yet.
-            constraint_collection.removeAllKnowledge()
+            if tried_statement_sequence is not None:
+                from nuitka.tree.Extractions import getVariablesWritten
+
+                variable_writes = getVariablesWritten(
+                    tried_statement_sequence
+                )
+
+
+                # Mark all variables as unknown that are written in the tried
+                # block, so it destroys the assumptions for loop turn around.
+                for variable, _variable_version in variable_writes:
+                    constraint_collection.markActiveVariableAsUnknown(
+                        variable = variable
+                    )
+
 
             # Then assuming no exception, the no raise block if present.
             result = constraint_collection.onStatementsSequence(
