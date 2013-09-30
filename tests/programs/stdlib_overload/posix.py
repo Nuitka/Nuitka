@@ -17,4 +17,4 @@
 #
 
 
-defined_in_posix_subpackage = "see me"
+defined_in_posix = "see me"

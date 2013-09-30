@@ -79,7 +79,7 @@ for filename in sorted( os.listdir( "." ) ):
 
         # Allowed after Python3, packages need no more "__init__.py"
 
-        if python_version < "3.3":
+        if python_version < b"3.3":
             expected_errors.append( "package_missing_init" )
 
         if filename not in expected_errors:
@@ -109,14 +109,16 @@ for filename in sorted( os.listdir( "." ) ):
         else:
             sys.exit( "Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case" % filename )
 
+        command = [
+            sys.executable,
+            os.path.join( "..", "..", "bin", "compare_with_cpython" ),
+            os.path.join( filename, filename_main ),
+            "silent",
+        ]
+        command += extra_flags
+
         result = subprocess.call(
-            '"%s" "%s" "%s" silent %s' % (
-                sys.executable,
-                os.path.join( "..", "..", "bin", "compare_with_cpython" ),
-                os.path.join( filename, filename_main ),
-                " ".join( extra_flags )
-            ),
-            shell = True
+            command
         )
 
         if result == 2:

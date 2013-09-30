@@ -72,22 +72,24 @@ for filename in sorted( os.listdir( "." ) ):
         active = True
 
     # Some syntax errors are for Python3 only.
-    if filename == "Importing2.py" and python_version < "3":
+    if filename == "Importing2.py" and python_version < b"3":
         extra_flags = [ "remove_output" ]
-    elif filename == "GeneratorReturn2.py" and python_version >= "3.3":
+    elif filename == "GeneratorReturn2.py" and python_version >= b"3.3":
         extra_flags = [ "remove_output" ]
     else:
         extra_flags = [ "expect_failure",  "remove_output" ]
 
     if active:
+        command = [
+            sys.executable,
+            os.path.join( "..", "..", "bin", "compare_with_cpython" ),
+            path,
+            "silent"
+        ]
+        command += extra_flags
+
         result = subprocess.call(
-            "%s %s %s silent %s" % (
-                sys.executable,
-                os.path.join( "..", "..", "bin", "compare_with_cpython" ),
-                path,
-                " ".join( extra_flags )
-            ),
-            shell = True
+            command
         )
 
         if result == 2:

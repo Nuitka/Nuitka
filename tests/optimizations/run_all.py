@@ -116,28 +116,39 @@ for filename in sorted( os.listdir( "." ) ):
 
             # On Windows, we cannot rely on 2to3 to be in the path.
             if os.name == "nt":
-               command = sys.executable + " " + os.path.join( os.path.dirname( sys.executable ), "Tools/Scripts/2to3.py" )
+                command = [
+                    sys.executable,
+                    os.path.join(
+                        os.path.dirname( sys.executable ),
+                        "Tools/Scripts/2to3.py"
+                    )
+                ]
             else:
-               command = "2to3"
+               command = [ "2to3" ]
+
+            command += [
+                "-w",
+                "-n",
+                "--no-diffs",
+                path
+            ]
 
             result = subprocess.call(
-                command + " -w -n --no-diffs " + path,
-                stderr = open( "/dev/null", "w" ),
-                shell  = True
+                command,
+                stderr = open( os.devnull, "w" ),
             )
-
 
         print( "Consider", path, end = " " )
 
-        command = "%s %s --dump-xml %s" % (
+        command = [
             os.environ[ "PYTHON" ],
             os.path.join( "..", "..", "bin", "nuitka" ),
+            "--dump-xml",
             path
-        )
+        ]
 
         result = subprocess.check_output(
-            command,
-            shell = True
+            command
         )
 
         root = lxml.etree.fromstring( result )
@@ -165,15 +176,14 @@ for filename in sorted( os.listdir( "." ) ):
 
         checkSequence( module_statements )
 
-
         # TODO: Detect the exception from above
-        if False and result == 2:
+        if result == 2:
             sys.stderr.write( "Interruped, with CTRL-C\n" )
             sys.exit( 2 )
 
 
         # TODO: Detect error case
-        if False and result != 0 and search_mode:
+        if result != 0 and search_mode:
             print( "Error exit!", result )
             sys.exit( result )
 
