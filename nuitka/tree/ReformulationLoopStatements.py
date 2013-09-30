@@ -106,7 +106,6 @@ def buildForLoopNode( provider, node, source_ref ):
         )
     )
 
-
     handler_body = makeStatementsSequence(
         statements = statements,
         allow_none = False,
@@ -199,7 +198,7 @@ def buildForLoopNode( provider, node, source_ref ):
                 variable   = tmp_iter_variable.makeReference( provider ),
                 source_ref = source_ref
             ),
-            tolerant     = True,
+            tolerant     = False,
             source_ref   = source_ref.atInternal()
         )
     )
@@ -227,28 +226,7 @@ def buildForLoopNode( provider, node, source_ref ):
                 )
             ),
             final = StatementsSequence(
-                statements = (
-                    StatementDelVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_value_variable.makeReference(
-                                provider
-                            ),
-                            source_ref = source_ref
-                        ),
-                        tolerant     = True,
-                        source_ref   = source_ref.atInternal()
-                    ),
-                    StatementDelVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_iter_variable.makeReference(
-                                provider
-                            ),
-                            source_ref = source_ref
-                        ),
-                        tolerant     = False,
-                        source_ref   = source_ref.atInternal()
-                    )
-                ),
+                statements = cleanup_statements,
                 source_ref = source_ref.atInternal()
             ),
             source_ref = source_ref.atInternal()

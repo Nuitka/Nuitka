@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of exec statements
+
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
 
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -38,13 +44,19 @@ from .Helpers import (
 )
 
 
-def wrapEvalGlobalsAndLocals( provider, globals, locals, exec_mode,
+def wrapEvalGlobalsAndLocals( provider, globals_node, locals_node, exec_mode,
                               source_ref ):
-    if globals is not None:
+    """ Wrap the locals and globals arguments for eval and exec.
+
+        For eval, this is called from the outside, and when the node tree
+        already exists.
+    """
+
+    if globals_node is not None:
         global_keeper_variable = provider.allocateTempKeeperVariable()
         tmp_global_assign = ExpressionAssignmentTempKeeper(
             variable   = global_keeper_variable.makeReference( provider ),
-            source     = globals,
+            source     = globals_node,
             source_ref = source_ref
         )
 
@@ -73,11 +85,11 @@ def wrapEvalGlobalsAndLocals( provider, globals, locals, exec_mode,
             source_ref = source_ref
         )
 
-    if locals is not None:
+    if locals_node is not None:
         local_keeper_variable = provider.allocateTempKeeperVariable()
         tmp_local_assign = ExpressionAssignmentTempKeeper(
             variable   = local_keeper_variable.makeReference( provider ),
-            source     = locals,
+            source     = locals_node,
             source_ref = source_ref
         )
 
@@ -131,7 +143,7 @@ def wrapEvalGlobalsAndLocals( provider, globals, locals, exec_mode,
             source_ref     = source_ref
         )
     else:
-        if globals is None:
+        if globals_node is None:
             locals_wrap = ExpressionBuiltinLocals(
                 source_ref = source_ref
             )
@@ -187,11 +199,11 @@ def buildExecNode( provider, node, source_ref ):
             provider.markAsUnqualifiedExecContaining( source_ref )
 
     globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
-        provider   = provider,
-        globals    = buildNode( provider, exec_globals, source_ref, True ),
-        locals     = buildNode( provider, exec_locals, source_ref, True ),
-        exec_mode  = True,
-        source_ref = source_ref
+        provider     = provider,
+        globals_node = buildNode( provider, exec_globals, source_ref, True ),
+        locals_node  = buildNode( provider, exec_locals, source_ref, True ),
+        exec_mode    = True,
+        source_ref   = source_ref
     )
 
     return StatementExec(

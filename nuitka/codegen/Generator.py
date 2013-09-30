@@ -564,7 +564,9 @@ def getPrintCode( newline, identifiers, target_file ):
 
     if target_file is not None:
         return CodeTemplates.template_print_statement % {
-            "target_file"         : _defaultToNullIdentifier( target_file ).getCodeExportRef(),
+            "target_file"         : _defaultToNullIdentifier(
+                target_file
+            ).getCodeExportRef(),
             "print_elements_code" : indented( print_elements_code )
         }
     else:
@@ -588,7 +590,8 @@ def getClosureVariableProvisionCode( context, closure_variables ):
 
     return result
 
-def getConditionalExpressionCode( condition_code, identifier_no, identifier_yes ):
+def getConditionalExpressionCode( condition_code, identifier_no,
+                                  identifier_yes ):
     if identifier_yes.getCheapRefCount() == identifier_no.getCheapRefCount():
         if identifier_yes.getCheapRefCount() == 0:
             codes_yes = identifier_yes.getCodeTemporaryRef()
@@ -634,14 +637,18 @@ def getBranchCode( condition_code, yes_codes, no_codes ):
     if no_codes is None:
         return CodeTemplates.template_branch_one % {
             "condition"   : condition_code,
-            "branch_code" : indented( yes_codes if yes_codes is not None else "" )
+            "branch_code" : indented(
+                yes_codes if yes_codes is not None else ""
+            )
         }
     else:
         assert no_codes, no_codes
 
         return CodeTemplates.template_branch_two % {
             "condition"       : condition_code,
-            "branch_yes_code" : indented( yes_codes if yes_codes is not None else "" ),
+            "branch_yes_code" : indented(
+                yes_codes if yes_codes is not None else ""
+            ),
             "branch_no_code"  : indented( no_codes )
         }
 
@@ -2113,6 +2120,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
                 variable.getName()
             )
         )
+        del variable
 
     function_var_inits = []
     local_var_decl = []
@@ -2282,6 +2290,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
 
 def getTempKeeperDecl( context ):
     tmp_keepers = context.getTempKeeperUsages()
+
     return [
         "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
         for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )

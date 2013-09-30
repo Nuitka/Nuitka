@@ -409,11 +409,11 @@ if python_version < 300:
                     provider.markAsUnqualifiedExecContaining( source_ref )
 
             globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
-                provider   = provider,
-                globals    = globals,
-                locals     = locals,
-                exec_mode  = False,
-                source_ref = source_ref
+                provider     = provider,
+                globals_node = globals,
+                locals_node  = locals,
+                exec_mode    = False,
+                source_ref   = source_ref
             )
 
             return ExpressionBuiltinExecfile(
@@ -447,11 +447,11 @@ if python_version < 300:
 def eval_extractor( node ):
     def wrapEvalBuiltin( source, globals, locals, source_ref ):
         globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
-            provider   = node.getParentVariableProvider(),
-            globals    = globals,
-            locals     = locals,
-            exec_mode  = False,
-            source_ref = source_ref
+            provider     = node.getParentVariableProvider(),
+            globals_node = globals,
+            locals_node  = locals,
+            exec_mode    = False,
+            source_ref   = source_ref
         )
 
         return ExpressionBuiltinEval(
@@ -484,11 +484,11 @@ if python_version >= 300:
                     provider.markAsUnqualifiedExecContaining( source_ref )
 
             globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
-                provider   = provider,
-                globals    = globals,
-                locals     = locals,
-                exec_mode  = False,
-                source_ref = source_ref
+                provider     = provider,
+                globals_node = globals,
+                locals_node  = locals,
+                exec_mode    = False,
+                source_ref   = source_ref
             )
 
             return ExpressionBuiltinExec(

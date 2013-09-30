@@ -668,6 +668,20 @@ class ClosureGiverNodeBase( CodeNodeBase ):
     def removeTempKeeperVariable( self, variable ):
         self.keeper_variables.discard( variable )
 
+    def allocateTempScope( self, name, allow_closure = False ):
+        self.temp_scopes[ name ] = self.temp_scopes.get( name, 0 ) + 1
+
+        # TODO: Instead of using overly long code name, could just visit parents
+        # and make sure to allocate the scope at the top.
+        if allow_closure:
+            return "%s_%s_%d" % (
+                self.getCodeName(),
+                name,
+                self.temp_scopes[ name ]
+            )
+        else:
+            return "%s_%d" % ( name, self.temp_scopes[ name ] )
+
     def allocateTempVariable( self, temp_scope, name ):
         if temp_scope is not None:
             full_name = "%s__%s" % ( temp_scope, name )
@@ -692,16 +706,6 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
     def removeTempVariable( self, variable ):
         del self.temp_variables[ variable.getName() ]
-
-    def allocateTempScope( self, name, allow_closure = False ):
-        self.temp_scopes[ name ] = self.temp_scopes.get( name, 0 ) + 1
-
-        # TODO: Instead of using overly long code name, could just visit parents
-        # and make sure to allocate the scope at the top.
-        if allow_closure:
-            return "%s_%s_%d" % ( self.getCodeName(), name, self.temp_scopes[ name ] )
-        else:
-            return "%s_%d" % ( name, self.temp_scopes[ name ] )
 
 
 class ParameterHavingNodeBase( ClosureGiverNodeBase ):
