@@ -48,6 +48,7 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
         assert isConstant( constant ), constant
 
         self.constant = constant
+        self.user_provided = user_provided
 
         if not user_provided and isDebug():
             try:
@@ -60,7 +61,8 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
 
                 if size > max_size:
                     warning(
-                        "Too large constant (%d) encountered at %s.",
+                        "Too large constant (%s %d) encountered at %s.",
+                        type( constant ),
                         size,
                         source_ref.getAsString()
                     )
@@ -71,13 +73,13 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
         # assert type( constant ) is not str or len( constant ) < 30000
 
     def __repr__( self ):
-        return "<Node %s value %s at %s>" % ( self.kind, self.constant, self.source_ref )
+        return "<Node %s value %s at %s %s>" % ( self.kind, self.constant, self.source_ref, self.user_provided )
 
     def makeCloneAt( self, source_ref ):
         return self.__class__( self.constant, source_ref )
 
     def getDetails( self ):
-        return { "value" : repr( self.constant ) }
+        return { "value" : repr( self.constant ), "user_provided" : self.user_provided }
 
     def getDetail( self ):
         return repr( self.constant )
