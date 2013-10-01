@@ -96,6 +96,9 @@ if sys.platform == "darwin" or "freebsd" in sys.platform:
 # Portable mode
 portable_mode = getBoolOption( "portable_mode", False )
 
+# Show scons mode, output information about Scons operation
+show_scons_mode = getBoolOption( "show_scons", False )
+
 # Home of Python to be compiled against
 python_prefix = ARGUMENTS.get( "python_prefix", None )
 
@@ -204,7 +207,8 @@ def setupSpawn( env ):
             )
 
         if data.rstrip():
-            print cmdline
+            if not show_scons_mode:
+                print cmdline
             print data,
 
         if rv:
