@@ -99,17 +99,24 @@ portable_mode = getBoolOption( "portable_mode", False )
 # Home of Python to be compiled against
 python_prefix = ARGUMENTS.get( "python_prefix", None )
 
+# Target arch, should be specified for MSVC to work.
+target_arch = ARGUMENTS.get( "target_arch", "x86" )
+
 def createEnvironment( compiler_tools ):
     return Environment(
         # We want the outside environment to be passed through.
-        ENV = os.environ,
+        ENV         = os.environ,
 
         # Extra tools configuration for scons.
-        tools = compiler_tools,
+        tools       = compiler_tools,
 
         # The shared libraries should not be named "lib...", because CPython
         # requires the filename "module_name.so" to load it.
         SHLIBPREFIX = "",
+
+        # Under windows, specify the target architecture is needed for Scons
+        # to pick up MSVC.
+        TARGET_ARCH = target_arch
     )
 
 def isExecutable( filename ):
@@ -121,10 +128,15 @@ def isExecutable( filename ):
     if os.name == "nt" and not filename.lower().endswith( ".exe" ):
         filename += ".exe"
 
-    # Search in PATH environment variable for a file named like it.
-    path_elements = os.environ[ "PATH" ].split(
-        ";" if os.name == "nt" else ":"
-    )
+    # Search in PATH environment for a file named like it.
+    if os.name == "nt":
+        search_path = env._dict[ "ENV" ][ "PATH" ]
+        separator = ";"
+    else:
+        search_path = os.environ[ "PATH" ]
+        separator = ":"
+
+    path_elements = search_path.split( separator )
 
     for path_element in path_elements:
         full = os.path.join( path_element, filename )
@@ -138,11 +150,12 @@ def isExecutable( filename ):
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
-    compiler_tools = None if os.name == "nt" or not win_target else [ "mingw" ]
+    compiler_tools = [ "default" ] if os.name == "nt" or not win_target else [ "mingw" ]
 )
 
 if clang_mode:
-    # If requested by the user, use the clang compiler.
+    # If requested by the user, use the clang compiler, overriding what was
+    # said in environment.
     env[ "CXX" ] = "clang"
 elif "CXX" in os.environ:
     # If the environment variable CXX is set, use that.
@@ -302,8 +315,18 @@ version (>= 4.4).""" % ( orig_cxx, orig_cxx_version ) )
 if "CXX" not in env:
     if os.name == "nt":
         sys.exit( """\
-Error, cannot locate suitable C++ compiler. Install MinGW to 'C:\\MinGW'
-exactly or execute from 'Visual Studio Command Prompt' so MSVC can be found.""" )
+Error, cannot locate suitable C++ compiler. You have the following options:
+
+a) If a suitable Visual Studio version is installed, it not located,
+   automatically unless you install pywin32 for the Python installation
+   below "%s".
+
+b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
+   Command Prompt' or "vcvarsall.bat". That will add Visual Studio to the
+   PATH.
+
+b) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
+""" % sys.exec_prefix )
     else:
         sys.exit( "Error, cannot locate suitable C++ compiler." )
 
