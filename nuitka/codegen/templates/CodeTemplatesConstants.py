@@ -28,6 +28,12 @@ PyObject *_sentinel_value = NULL;
 
 %(constant_declarations)s
 
+// Blob from which objects are unstreamed.
+static unsigned char stream_data[] =
+{
+%(stream_data)s
+};
+
 static void __initConstants( void )
 {
     if ( %(needs_pickle)s )

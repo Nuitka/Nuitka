@@ -948,7 +948,7 @@ void UNSTREAM_INIT()
     assert( _module_cPickle_function_loads );
 }
 
-PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
+PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
 {
     assert( buffer );
     assert( _module_cPickle_function_loads );
@@ -974,12 +974,12 @@ PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
     return result;
 }
 
-PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
+PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern )
 {
 #if PYTHON_VERSION < 300
-    PyObject *result = PyString_FromStringAndSize( buffer, size );
+    PyObject *result = PyString_FromStringAndSize( (char const  *)buffer, size );
 #else
-    PyObject *result = PyUnicode_FromStringAndSize( buffer, size );
+    PyObject *result = PyUnicode_FromStringAndSize( (char const  *)buffer, size );
 #endif
 
     assert( !ERROR_OCCURED() );
@@ -1007,9 +1007,9 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
     return result;
 }
 
-PyObject *UNSTREAM_FLOAT( char const *buffer )
+PyObject *UNSTREAM_FLOAT( unsigned char const *buffer )
 {
-    double x = _PyFloat_Unpack8( (unsigned char *)buffer, 1 );
+    double x = _PyFloat_Unpack8( buffer, 1 );
     assert( x != -1.0 || !PyErr_Occurred() );
 
     PyObject *result = PyFloat_FromDouble(x);
@@ -1672,7 +1672,7 @@ static PyObject *_fast_function_noargs( PyObject *func )
     if ( argdefs != NULL )
     {
         defaults = &PyTuple_GET_ITEM( argdefs, 0 );
-        nd = Py_SIZE( argdefs );
+        nd = int( Py_SIZE( argdefs ) );
     }
 
     PyObject *result = PyEval_EvalCodeEx(

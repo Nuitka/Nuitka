@@ -59,6 +59,32 @@ _needs_pickle = False
 def needsPickleInit():
     return _needs_pickle
 
+stream_data = bytes()
+
+def encodeStreamData():
+    for count, stream_byte in enumerate( stream_data ):
+        if count % 16 == 0:
+            if count > 0:
+                yield "\n"
+            yield "    "
+
+        if str is not unicode:
+            yield "0x%02x, " % ord( stream_byte )
+        else:
+            yield "0x%02x, " % stream_byte
+
+def _getStreamDataCode( value, fixed_size = False ):
+    global stream_data
+    offset = stream_data.find( value )
+    if offset == -1:
+        offset = len( stream_data )
+        stream_data += value
+
+    if fixed_size:
+        return "&stream_data[ %d ]" % offset
+    else:
+        return "&stream_data[ %d ], %d" % ( offset, len( value ) )
+
 def _getUnstreamCode( constant_value, constant_identifier ):
     saved = getStreamedConstant(
         constant_value = constant_value
@@ -70,10 +96,9 @@ def _getUnstreamCode( constant_value, constant_identifier ):
     global _needs_pickle
     _needs_pickle = True
 
-    return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
+    return "%s = UNSTREAM_CONSTANT( %s );" % (
         constant_identifier,
-        encodeString( saved ),
-        len( saved )
+        _getStreamDataCode( saved )
     )
 
 
@@ -116,10 +141,9 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
     if constant_type is str:
         if str is not unicode:
             emit(
-                "%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );" % (
+                "%s = UNSTREAM_STRING( %s, %d );assert( %s );" % (
                     constant_identifier,
-                    encodeString( constant_value ),
-                    len( constant_value ),
+                    _getStreamDataCode( constant_value ),
                     1 if _isAttributeName( constant_value ) else 0,
                     constant_identifier
                 )
@@ -131,10 +155,9 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
                 encoded = constant_value.encode( "utf-8" )
 
                 emit(
-                    "%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );" % (
+                    "%s = UNSTREAM_STRING( %s, %d );assert( %s );" % (
                         constant_identifier,
-                        encodeString( encoded ),
-                        len( encoded ),
+                        _getStreamDataCode( encoded ),
                         1 if _isAttributeName( constant_value ) else 0,
                         constant_identifier
                     )
@@ -149,7 +172,10 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
         emit(
             "%s = UNSTREAM_FLOAT( %s );" % (
                 constant_identifier,
-                encodeString( _packFloat( constant_value ) )
+                _getStreamDataCode(
+                    value      = _packFloat( constant_value ),
+                    fixed_size = True
+                )
             )
         )
 
@@ -218,7 +244,10 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
                     emit                = emit,
                     constant_type       = type( element ),
                     constant_value      = element,
-                    constant_identifier = getConstantCodeName( context, element ),
+                    constant_identifier = getConstantCodeName(
+                        context  = context,
+                        constant = element
+                    ),
                     context             = context
                 )
 
@@ -250,7 +279,10 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
                     emit                = emit,
                     constant_type       = type( element ),
                     constant_value      = element,
-                    constant_identifier = getConstantCodeName( context, element ),
+                    constant_identifier = getConstantCodeName(
+                        context  = context,
+                        constant = element
+                    ),
                     context             = context
                 )
 
@@ -259,7 +291,10 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
                     constant_identifier,
                     length,
                     ", ".join(
-                        getConstantCodeName( context, element )
+                        getConstantCodeName(
+                            context  = context,
+                            constant = element
+                        )
                         for element
                         in
                         constant_value

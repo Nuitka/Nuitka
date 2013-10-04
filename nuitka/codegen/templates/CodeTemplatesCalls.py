@@ -73,7 +73,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_fast_function_args( PyObject *func, PyObj
     if ( argdefs != NULL )
     {
         defaults = &PyTuple_GET_ITEM( argdefs, 0 );
-        nd = Py_SIZE( argdefs );
+        nd = int( Py_SIZE( argdefs ) );
     }
 
     PyObject *result = PyEval_EvalCodeEx(

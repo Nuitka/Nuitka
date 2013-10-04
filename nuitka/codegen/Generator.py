@@ -80,7 +80,8 @@ from .ConstantCodes import (
     getConstantsDeclCode,
     getConstantHandle,
     getConstantCode,
-    needsPickleInit
+    needsPickleInit,
+    encodeStreamData
 )
 
 # These are here to be imported from here
@@ -2573,6 +2574,7 @@ def getConstantsDefinitionCode( context ):
     return CodeTemplates.template_constants_reading % {
         "constant_declarations" : "\n".join( constant_declarations ),
         "constant_inits"        : indented( constant_inits ),
+        "stream_data"           : "".join( encodeStreamData() ),
         "needs_pickle"          : "true" if needsPickleInit() else "false"
     }
 

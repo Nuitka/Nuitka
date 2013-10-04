@@ -65,6 +65,14 @@ os.environ[ "PYTHONPATH" ] = os.getcwd()
 
 print( "Using concrete python", python_version )
 
+# Create large constants test on the fly, if it's not there, not going to
+# add it to release archives for no good reason.
+if not os.path.exists( "BigConstants.py" ):
+    with open( "BigConstants.py", "w" ) as output:
+        output.write( "# Automatically generated test, not part of releases or git.\n\n" )
+        output.write( "print( '%s' )\n" % ( "1234" * 17000 ) )
+
+# Now run all the tests in this directory.
 for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ) or filename.startswith( "run_" ):
         continue

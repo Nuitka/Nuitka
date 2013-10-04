@@ -1360,9 +1360,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
 
 // For the constant loading:
 extern void UNSTREAM_INIT( void );
-extern PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size );
-extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern );
-extern PyObject *UNSTREAM_FLOAT( char const *buffer );
+extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size );
+extern PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern );
+extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
 
 extern void enhancePythonTypes( void );
 

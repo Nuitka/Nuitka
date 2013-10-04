@@ -14,6 +14,7 @@
 *.build
 tests/reflected/nuitka/
 tests/reflected/nuitka.py
+tests/basics/BigConstants.py
 dist
 MANIFEST
 README.pdf
