@@ -46,9 +46,15 @@ main_program = """\
 // calls the initialization code of the __main__ module.
 
 #include "structseq.h"
-
+#ifdef _NUITKA_WINMAIN_ENTRY_POINT
+int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmdLine, int nCmdShow )
+{
+    int argc = __argc;
+    char** argv = __argv;
+#else
 int main( int argc, char *argv[] )
 {
+#endif
 #ifdef _NUITKA_PORTABLE
     _initPortableEnvironment( argv[0] );
 #endif

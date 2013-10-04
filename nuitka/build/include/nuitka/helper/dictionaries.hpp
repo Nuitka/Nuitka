@@ -116,7 +116,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_
     assert( PyDict_CheckExact( dict ) );
     assert( Nuitka_String_Check( key ) );
 
-    long hash = key->_base._base.hash;
+    Py_hash_t hash = key->_base._base.hash;
 
     // Only improvement would be to identify how to ensure that the hash is computed
     // already. Calling hash early on could do that potentially.

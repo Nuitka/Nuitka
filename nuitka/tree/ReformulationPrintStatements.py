@@ -48,7 +48,12 @@ def buildPrintNode( provider, node, source_ref ):
 
     return StatementPrint(
         newline    = node.nl,
-        dest       = buildNode( provider, node.dest, source_ref, allow_none = True ),
+        dest       = buildNode(
+            provider   = provider,
+            node       = node.dest,
+            source_ref = source_ref,
+            allow_none = True
+        ),
         values     = values,
         source_ref = source_ref
     )

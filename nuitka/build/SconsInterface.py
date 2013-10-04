@@ -64,7 +64,7 @@ def _getPython2ExePathWindows():
     for search in ( "2.7", "2.6" ):
         for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:
             try:
-                key = _winreg.OpenKey(
+                key = winreg.OpenKey(
                     winreg.HKEY_LOCAL_MACHINE,
                     r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
                     0,

@@ -1,8 +1,8 @@
-nuitka (0.4.5.2+ds-1) unstable; urgency=low
+nuitka (0.4.5.3+ds-1) unstable; urgency=low
 
   * New upstream hotfix release.
 
- -- Kay Hayen <kayhayen@gmx.de>  Sun, 29 Sep 2013 22:32:33 +0200
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 01 Oct 2013 00:31:07 +0200
 
 nuitka (0.4.5.1+ds-1) unstable; urgency=low
 

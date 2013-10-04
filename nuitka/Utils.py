@@ -31,6 +31,15 @@ def _getPythonVersion():
 
 python_version = _getPythonVersion()
 
+def getArchitecture():
+    if os.name == "nt":
+        if "AMD64" in sys.version:
+            return "x86_64"
+        else:
+            return "x86"
+    else:
+        return os.uname()[4]
+
 def relpath( path ):
     return os.path.relpath( path )
 
