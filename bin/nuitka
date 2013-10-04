@@ -26,7 +26,7 @@ other modules.
 
 """
 
-import sys, os
+import sys, os, subprocess
 
 from logging import warning
 
@@ -153,6 +153,17 @@ else:
 Compiling to extension module, which will not have '__name__' as '__main__', \
 did you intend '--exe' or to use 'nuitka-python' instead.""" )
                 break
+
+    # Modules should not be executable, but Scons creates them like it, fix it
+    # up here.
+    if os.name != "nt" and Options.shallMakeModule():
+        subprocess.call(
+            (
+                "chmod",
+                "-x",
+                options[ "result_file" ] + ".so"
+            )
+        )
 
     # Execute the module immediately if option was given.
     if Options.shallExecuteImmediately():
