@@ -105,6 +105,9 @@ python_prefix = ARGUMENTS.get( "python_prefix", None )
 # Target arch, should be specified for MSVC to work.
 target_arch = ARGUMENTS.get( "target_arch", "x86" )
 
+# Icon for executable (windows-only)
+icon_path = ARGUMENTS.get( "icon_path", None )
+
 def createEnvironment( compiler_tools ):
     return Environment(
         # We want the outside environment to be passed through.
@@ -703,6 +706,8 @@ if msvc_mode and not module_mode:
 1 RT_MANIFEST resources.manifest
 """
     )
+    if icon_path:
+        rc_file.write("2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE \"%s\"\n" % icon_path.replace("\\", "/"))
     rc_file.close()
 
 if module_mode:

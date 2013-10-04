@@ -332,7 +332,8 @@ def runScons( main_module, quiet ):
         "target_arch"    : Utils.getArchitecture(),
         "python_prefix"  : sys.prefix,
         "lto_mode"       : asBoolStr( Options.isLto() ),
-        "clang_mode"     : asBoolStr( Options.isClang() )
+        "clang_mode"     : asBoolStr( Options.isClang() ),
+        "icon_path"      : Options.getIconPath()
     }
 
     if Options.isWindowsTarget():

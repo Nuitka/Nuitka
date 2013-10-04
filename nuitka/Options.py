@@ -424,6 +424,15 @@ if False:
 Enable portable mode in build.""",
     )
 
+parser.add_option(
+    "--icon",
+    action  = "store",
+    dest    = "icon_path",
+    metavar = "ICON_PATH",
+    default = None,
+    help    = """Add executable icon (windows only).""",
+)
+
 if is_nuitka_python:
     count = 0
 
@@ -597,3 +606,6 @@ def isPortableMode():
     # Temporarily disabled, until it becomes more usable.
     return False
     # return options.is_portable_mode
+
+def getIconPath():
+    return options.icon_path
