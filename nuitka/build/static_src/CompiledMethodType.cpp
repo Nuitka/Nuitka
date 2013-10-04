@@ -183,7 +183,7 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
 
 static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *args, PyObject *kw )
 {
-    Py_ssize_t arg_count = PyTuple_Size( args );
+    int arg_count = int( PyTuple_Size( args ) );
 
     if ( method->m_object == NULL )
     {
@@ -257,7 +257,6 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
                 method->m_function,
                 new_args,
                 arg_count + 1
-
             );
         }
     }

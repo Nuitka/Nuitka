@@ -79,7 +79,7 @@ static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObj
         return function->m_direct_arg_parser(
             function,
             &PyTuple_GET_ITEM( args, 0 ),
-            PyTuple_GET_SIZE( args )
+            int( PyTuple_GET_SIZE( args ) )
         );
     }
 }
