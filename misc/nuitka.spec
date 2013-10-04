@@ -2,7 +2,7 @@
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 
 Name:           nuitka
-Version:        0.4.6pre3
+Version:        0.4.6pre4
 Release:        5%{?dist}
 Summary:        Python compiler with full language support and CPython compatibility
 Group:          Development/Languages/Python
