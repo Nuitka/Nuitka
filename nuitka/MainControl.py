@@ -331,10 +331,10 @@ def runScons( main_module, quiet ):
         "python_version" : python_version,
         "target_arch"    : Utils.getArchitecture(),
         "python_prefix"  : sys.prefix,
-        "lto_mode"       : asBoolStr( Options.isLto() ),
-        "clang_mode"     : asBoolStr( Options.isClang() ),
-        "icon_path"      : Options.getIconPath()
     }
+
+    if Options.isLto():
+        options[ "lto_mode" ] = "true"
 
     if Options.isWindowsTarget():
         options[ "win_target" ] = "true"
@@ -346,7 +346,16 @@ def runScons( main_module, quiet ):
         options[ "portable_mode" ] = "true"
 
     if Options.isShowScons():
-        options[ "show_scons_mode" ] = "true"
+        options[ "show_scons" ] = "true"
+
+    if Options.isMingw():
+        options[ "mingw_mode" ] = "true"
+
+    if Options.isClang():
+        options[ "clang_mode" ] = "true"
+
+    if Options.getIconPath():
+        options[ "icon_path" ] = Options.getIconPath()
 
     return SconsInterface.runScons( options, quiet ), options
 

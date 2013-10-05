@@ -93,6 +93,9 @@ clang_mode = getBoolOption( "clang_mode", False )
 if sys.platform == "darwin" or "freebsd" in sys.platform:
     clang_mode = True
 
+# MinGW compiler mode, optional and interesting to Windows only.
+mingw_mode = getBoolOption( "mingw_mode", False )
+
 # Portable mode
 portable_mode = getBoolOption( "portable_mode", False )
 
@@ -125,7 +128,7 @@ def createEnvironment( compiler_tools ):
         TARGET_ARCH = target_arch
     )
 
-def isExecutable( filename ):
+def getExecutablePath( filename, initial ):
     # Variable substitution from environment.
     if filename.startswith( "$" ):
         filename = env[ filename[1:] ]
@@ -136,11 +139,16 @@ def isExecutable( filename ):
 
     # Search in PATH environment for a file named like it.
     if os.name == "nt":
-        search_path = env._dict[ "ENV" ][ "PATH" ]
         separator = ";"
     else:
-        search_path = os.environ[ "PATH" ]
         separator = ":"
+
+    # Either look at the initial PATH as given from the outside or look at the
+    # current environment.
+    if initial:
+        search_path = os.environ[ "PATH" ]
+    else:
+        search_path = env._dict[ "ENV" ][ "PATH" ]
 
     path_elements = search_path.split( separator )
 
@@ -148,16 +156,32 @@ def isExecutable( filename ):
         full = os.path.join( path_element, filename )
 
         if os.path.exists( full ):
-            return True
+            return full
     else:
-        return False
+        return None
 
+
+if ( os.name != "nt" and win_target ) or mingw_mode:
+    # Cross compilation to Windows uses MinGW or you can force it.
+    compiler_tools = [ "mingw" ]
+else:
+    # Everything else should use default.
+    compiler_tools = [ "default" ]
 
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
-    compiler_tools = [ "default" ] if os.name == "nt" or not win_target else [ "mingw" ]
+    compiler_tools = compiler_tools
 )
+
+# On Windows, in case MSVC was not found and not previously forces, retry with
+# it.
+if os.name == "nt" and \
+   not mingw_mode and \
+   getExecutablePath( env[ "CXX" ], initial = False ) is None:
+    env = createEnvironment(
+        compiler_tools = [ "mingw" ]
+    )
 
 if clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
@@ -166,12 +190,6 @@ if clang_mode:
 elif "CXX" in os.environ:
     # If the environment variable CXX is set, use that.
     env[ "CXX" ] = os.environ[ "CXX" ]
-elif win_target and not isExecutable( env[ "CXX" ] ):
-    # The MingW compiler is attemted if no C++ compiler was found, in which case
-    # env[ "CXX" ] is still set, but not valid.
-    env = createEnvironment(
-        compiler_tools = [ "mingw" ]
-    )
 
 
 # To work around Windows not supporting command lines of greater than 10K by
@@ -319,7 +337,12 @@ if os.name != "nt" and "CXX" not in env:
 The g++ compiler '%s' (version %s) doesn't have the sufficient \
 version (>= 4.4).""" % ( orig_cxx, orig_cxx_version ) )
 
-if "CXX" not in env:
+if show_scons_mode:
+    print "Scons compiler: Using",
+    print getExecutablePath( env[ "CXX" ], initial = False )
+
+if "CXX" not in env and \
+   getExecutablePath( env[ "CXX" ], initial = False ) is None:
     if os.name == "nt":
         sys.exit( """\
 Error, cannot locate suitable C++ compiler. You have the following options:

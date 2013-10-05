@@ -350,6 +350,16 @@ Enforce the use of clang (clang 3.0 or higher).
 Defaults to off."""
 )
 
+parser.add_option(
+    "--mingw",
+    action  = "store_true",
+    dest    = "mingw",
+    default = False,
+    help    = """\
+Enforce the use of MinGW on Windows.
+Defaults to off."""
+)
+
 tracing_group = OptionGroup(
     parser,
     "Tracing features"
@@ -580,6 +590,9 @@ def isLto():
 
 def isClang():
     return options.clang
+
+def isMingw():
+    return options.mingw
 
 def isWindowsTarget():
     return options.windows_target
