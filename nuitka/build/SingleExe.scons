@@ -129,6 +129,12 @@ def createEnvironment( compiler_tools ):
 
         # Batch the compilation with MSVC under Windows if used.
         MSVC_BATCH  = True,
+
+        # If we are on Windows, and MinGW is not enforced, lets see if we can
+        # find "cl.exe", and if we do, disable automatic scan.
+        MSVC_USE_SCRIPT = os.name == "nt" and not mingw_mode and \
+          getExecutablePath( "cl", initial = True ) is not None
+
     )
 
 def getExecutablePath( filename, initial ):
@@ -177,10 +183,11 @@ env = createEnvironment(
     compiler_tools = compiler_tools
 )
 
-# On Windows, in case MSVC was not found and not previously forces, retry with
-# it.
+# On Windows, in case MSVC was not found and not previously forced, retry with
+# it and use that instead then as a fallback. Using both tools in one call
+# seems to not work in terms of fallback when both exist.
 if os.name == "nt" and \
-   not mingw_mode and \
+   compiler_tools == [ "default" ] and \
    getExecutablePath( env[ "CXX" ], initial = False ) is None:
     env = createEnvironment(
         compiler_tools = [ "mingw" ]
