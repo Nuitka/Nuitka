@@ -125,7 +125,10 @@ def createEnvironment( compiler_tools ):
 
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
-        TARGET_ARCH = target_arch
+        TARGET_ARCH = target_arch,
+
+        # Batch the compilation with MSVC under Windows if used.
+        MSVC_BATCH  = True,
     )
 
 def getExecutablePath( filename, initial ):
