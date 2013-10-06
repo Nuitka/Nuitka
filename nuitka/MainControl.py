@@ -331,6 +331,10 @@ def runScons( main_module, quiet ):
         "python_version" : python_version,
         "target_arch"    : Utils.getArchitecture(),
         "python_prefix"  : sys.prefix,
+        "nuitka_src"     : Utils.joinpath(
+            SconsInterface.getSconsDataPath(),
+            "static_src"
+        )
     }
 
     if Options.isLto():
