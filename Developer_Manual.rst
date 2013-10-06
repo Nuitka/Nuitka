@@ -553,6 +553,113 @@ For Ada would have spoken the time savings through run time checks, which would
 have shortened some debugging sessions quite some. But building the Python C-API
 bindings on our own, and potentially incorrectly, would have eaten that up.
 
+Use of Scons internally
+-----------------------
+
+Nuitka does not make its users interface with Scons at all, it's purely used
+internally. Nuitka itself, being pure Python, will run without any build process
+just fine.
+
+For interfacing, there is the module ``nuitka.build.SconsInterface`` that will
+support calling scons - potentially from an inline copy - and passing arguments
+to it. These arguments are passed as "key=value", and decoded in the scons file
+of nuitka.
+
+The scons file is named ``SingleExe.scons`` for lack of better name. It's really
+wrong now, but we have yet to find a better name.
+
+It supports operation in multiple modes, and it runs outside of Nuitka process
+scope, even with a different Python version potentially, so all the information
+must be passed.
+
+What follows is the list of arguments that the scons file processes:
+
+* source_dir
+
+  Where is the generated C++ source code. Scons will just compile everything it
+  finds there. No list of files is passed.
+
+* nuitka_src
+
+  Where do the static C++ parts of Nuitka live. These provide e.g. the
+  implementation of compiled function, generators, and other helper codes, this
+  will point to where ``nuitka.build`` lives normally-
+
+
+* result_file
+
+  This is not a full name, merely the basename for the result to be produced,
+the suffix comes from module or executable mode.
+
+* module_mode
+
+  Build a module instead of a program.
+
+* debug_mode
+
+  Enable debug mode, which is a mode, where Nuitka tries to help identify errors
+  in itself, and will generate less optimal code. This also asks for warnings,
+  and makes the build fail if there are any.
+
+* optimize_mode
+
+  Optimization mode, enable as much as currently possible. This refers to
+  building the binary.
+
+* full_compat_mode
+
+  Full compatibility, even where it's stupid, i.e. do not provide information,
+  even if available, in order to assert maximum compatibility. Intended to
+  control level of compatability to absurd.
+
+* experimental_mode
+
+  Do things that are not yet accepted to be safe.
+
+* lto_mode
+
+  Make use of link time optimization of g++ compiler if available and known good
+  with the compiler in question. So far, this was not found to make major
+  differences.
+
+* win_target
+
+  Windows target mode, cross compile for Windows or compiling on windows
+  native.
+
+* win_disable_console
+
+  Windows subsystem mode: Disable console for windows builds.
+
+* unstriped_mode
+
+  Unstriped mode: Do not remove debug symbols.
+
+* clang_mode
+
+  Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
+
+* mingw_mode
+
+  MinGW compiler mode, optional and interesting to Windows only.
+
+* portable_mode
+
+  Portable mode, so far not functional.
+
+* show_scons_mode
+
+  Show scons mode, output information about Scons operation
+
+* python_prefix
+
+  Home of Python to be compiled against, used to locate headers and libraries.
+
+* target_arch
+
+  Target architecture to build.
+
+
 
 Locating Modules and Packages
 ------------------------------
