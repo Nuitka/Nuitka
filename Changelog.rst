@@ -7,10 +7,37 @@ that was already in place. This is mainly a cleanup release.
 Bug Fixes
 ---------
 
-- Install inline copy of scons only on systems where scons is not already
-  installed.
+- Support Nuitka being installed to a path that contains spaces and handle main
+  programs with spaces in their paths. `Issue#106
+  <http://bugs.nuitka.net/issue106>`_. Fixed in 0.4.5.1 already.
+
+- Support Python being installed to a path that contains spaces. `Issue#106
+  <http://bugs.nuitka.net/issue106>`_. Fixed in 0.4.5.2 already.
+
+- Windows: User provided constants larger than 65k didn't work with
+  MSVC. `Issue#108 <http://bugs.nuitka.net/issue108>`. Fixed in 0.4.5.3 already.
+
+- Windows: The option ``--windows-distable-console`` was not effective with
+  MSVC. `Issue#107 <http://bugs.nuitka.net/issue107>`. Fixed in 0.4.5.3 already.
+
+- Windows: For some users, Scons was detecting their MSVC installation properly
+  already from registry, but it didn't honor the target architecture. `Issue#99
+  <http://bugs.nuitka.net/issue99>`_. Fixed in 0.4.5.3 already.
+
+- When creating Python modules, these were marked as executable ("x" bit), which
+  they are of course not. Fixed in 0.4.5.3 already.
+
+- Python3.3: On architectures where ``Py_ssize_t`` is not the same as ``long``
+  this could lead to errors. Fixed in 0.4.5.3 already.
+
+
+New Features
+------------
 
 - Added support for Gentoo.
+
+- Windows: Detecting MSVC installation from registry, if no compiler is already
+  present in PATH.
 
 Cleanups
 --------
@@ -19,12 +46,20 @@ Cleanups
   which allowed to remove complicated and old code that was still used mainly in
   optimization of ``or`` and ``and`` expressions.
 
+- Stop using ``os.system`` and ``subprocess.call( ..., shell = True )`` as it is
+  not really portable at all, use ``subprocess.call( ..., shell = False )``
+  instead.
+
 Organizational
 --------------
 
 - Added use of Nuitka fonts for headers in manuals.
 
-- Added support for Gentoo.
+- Added support for Gentoo Linux.
+
+- Install inline copy of Scons only on systems where it is going to be used,
+  that is Windows, and Linux where it is not already present. This makes for
+  cleaner packages.
 
 Summary
 -------
