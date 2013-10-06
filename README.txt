@@ -676,6 +676,9 @@ The order is sorted by time.
 
 - Johan Holmberg: Submitted patch for Python3 support on MacOS X.
 
+- Umbra: Submitted patches to make the Windows port more usable, adding user
+  provided application icons, as well as MSVC support for large constants and
+  console applications.
 
 Projects used by Nuitka
 -----------------------
