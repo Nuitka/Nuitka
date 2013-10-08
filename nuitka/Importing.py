@@ -373,12 +373,32 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
 def isStandardLibraryPath( path ):
     path = Utils.normcase( path )
-    os_path = Utils.normcase( Utils.dirname( os.__file__  ) )
 
-    if not path.startswith( os_path ):
-        return False
+    # In virtual-env, the "site.py" lives in a place that suggests it is not in
+    # standard library, although it is.
+    if os.path.basename( path ) == "site.py":
+        return True
 
+    # These never are in standard library paths.
     if "dist-packages" in path or "site-packages" in path:
         return False
 
-    return True
+    os_filename = os.__file__
+    if os_filename.endswith( ".pyc" ):
+        os_filename = os_filename[:-1]
+
+    os_path = Utils.normcase( Utils.dirname( os_filename  ) )
+
+    candidates = [ os_path ]
+
+    # Happens for virtual-env situation, some modules will come from the link
+    # this points to.
+    if os.path.islink( os_filename ):
+        os_filename = os.readlink( os_filename )
+        candidates.append( Utils.normcase( Utils.dirname( os_filename  ) ) )
+
+    for candidate in candidates:
+        if path.startswith( candidate ):
+            return True
+    else:
+        return False
