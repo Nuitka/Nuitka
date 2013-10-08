@@ -41,7 +41,7 @@ static_src = os.path.join( source_dir, "static" )
 VariantDir( static_src, nuitka_src, 0 )
 
 # The name of executable or loadable module that we produce.
-result_file = ARGUMENTS[ "result_file" ]
+result_basepath = ARGUMENTS[ "result_name" ]
 
 def getBoolOption( option_name, default ):
     """ Small helper for boolean mode flags."""
@@ -744,13 +744,13 @@ if module_mode:
 
     env[ "SHLIBSUFFIX" ] = module_suffix
 
-    target = env.SharedLibrary( result_file, discoverSourceFiles() )
+    target = env.SharedLibrary( result_basepath, discoverSourceFiles() )
 else:
     # Avoid dependency on MinGW libraries.
     if win_target and gcc_mode:
         env.Append( LINKFLAGS = [ "-static-libgcc",  "-static-libstdc++" ] )
 
-    target = env.Program( result_file + ".exe", discoverSourceFiles() )
+    target = env.Program( result_basepath + ".exe", discoverSourceFiles() )
 
 if "CCFLAGS" in os.environ:
     env.Append( CCFLAGS = os.environ[ "CCFLAGS" ].split() )

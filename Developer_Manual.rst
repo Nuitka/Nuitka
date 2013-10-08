@@ -561,104 +561,109 @@ internally. Nuitka itself, being pure Python, will run without any build process
 just fine.
 
 For interfacing, there is the module ``nuitka.build.SconsInterface`` that will
-support calling scons - potentially from an inline copy - and passing arguments
-to it. These arguments are passed as "key=value", and decoded in the scons file
-of nuitka.
+support calling scons - potentially from an inline copy on Windows or when using
+source releases - and passing arguments to it. These arguments are passed as
+``key=value``, and decoded in the scons file of Nuitka.
 
 The scons file is named ``SingleExe.scons`` for lack of better name. It's really
-wrong now, but we have yet to find a better name.
+wrong now, but we have yet to find a better name. It once expressed the
+intention to be used to create executables, but the same works for modules too.
 
-It supports operation in multiple modes, and it runs outside of Nuitka process
-scope, even with a different Python version potentially, so all the information
-must be passed.
+It supports operation in multiple modes, and modules is just one of them. It
+runs outside of Nuitka process scope, even with a different Python version
+potentially, so all the information must be passed on the command line.
 
-What follows is the list of arguments that the scons file processes:
+What follows is the (lengthy) list of arguments that the scons file processes:
 
-* source_dir
+* ``source_dir``
 
   Where is the generated C++ source code. Scons will just compile everything it
   finds there. No list of files is passed.
 
-* nuitka_src
+* ``nuitka_src``
 
   Where do the static C++ parts of Nuitka live. These provide e.g. the
   implementation of compiled function, generators, and other helper codes, this
   will point to where ``nuitka.build`` lives normally-
 
-
-* result_file
+* ``result_base``
 
   This is not a full name, merely the basename for the result to be produced,
-the suffix comes from module or executable mode.
+  but with path included, and the suffix comes from module or executable mode.
 
-* module_mode
+* ``module_mode``
 
   Build a module instead of a program.
 
-* debug_mode
+* ``debug_mode``
 
   Enable debug mode, which is a mode, where Nuitka tries to help identify errors
   in itself, and will generate less optimal code. This also asks for warnings,
   and makes the build fail if there are any.
 
-* optimize_mode
+* ``optimize_mode``
 
   Optimization mode, enable as much as currently possible. This refers to
   building the binary.
 
-* full_compat_mode
+* ``full_compat_mode``
 
   Full compatibility, even where it's stupid, i.e. do not provide information,
   even if available, in order to assert maximum compatibility. Intended to
   control level of compatability to absurd.
 
-* experimental_mode
+* ``experimental_mode``
 
   Do things that are not yet accepted to be safe.
 
-* lto_mode
+* ``lto_mode``
 
   Make use of link time optimization of g++ compiler if available and known good
   with the compiler in question. So far, this was not found to make major
   differences.
 
-* win_target
+* ``win_target``
 
   Windows target mode, cross compile for Windows or compiling on windows
   native.
 
-* win_disable_console
+* ``win_disable_console``
 
   Windows subsystem mode: Disable console for windows builds.
 
-* unstriped_mode
+* ``unstriped_mode``
 
   Unstriped mode: Do not remove debug symbols.
 
-* clang_mode
+* ``clang_mode``
 
   Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
 
-* mingw_mode
+* ``mingw_mode``
 
   MinGW compiler mode, optional and interesting to Windows only.
 
-* portable_mode
+* ``portable_mode``
 
   Portable mode, so far not functional.
 
-* show_scons_mode
+* ``show_scons``
 
-  Show scons mode, output information about Scons operation
+  Show scons mode, output information about Scons operation. This will e.g. also
+  output the actual compiler used, output from compilation process, and
+  generally debug information relating to be build process.
 
-* python_prefix
+* ``python_prefix``
 
   Home of Python to be compiled against, used to locate headers and libraries.
 
-* target_arch
+* ``target_arch``
 
   Target architecture to build.
 
+* ``icon_path``
+
+  The icon to use for Windows programs if given.
 
 
 Locating Modules and Packages

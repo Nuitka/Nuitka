@@ -112,7 +112,7 @@ def getSourceDirectoryPath( main_module ):
         )
     )
 
-def getResultPath( main_module ):
+def getResultBasepath( main_module ):
     assert main_module.isPythonModule()
 
     return Options.getOutputPath(
@@ -320,7 +320,7 @@ def runScons( main_module, quiet ):
         "name"           : Utils.basename(
             getTreeFilenameWithSuffix( main_module, "" )
         ),
-        "result_file"    : getResultPath( main_module ),
+        "result_name"    : getResultBasepath( main_module ),
         "source_dir"     : getSourceDirectoryPath( main_module ),
         "debug_mode"     : asBoolStr( Options.isDebug() ),
         "unstriped_mode" : asBoolStr( Options.isUnstriped() ),

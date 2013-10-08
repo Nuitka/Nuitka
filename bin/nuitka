@@ -172,7 +172,7 @@ did you intend '--exe' or to use 'nuitka-python' instead.""" )
             (
                 "chmod",
                 "-x",
-                options[ "result_file" ] + ".so"
+                options[ "result_name" ] + ".so"
             )
         )
 
@@ -185,7 +185,7 @@ did you intend '--exe' or to use 'nuitka-python' instead.""" )
             )
         else:
             MainControl.executeMain(
-                binary_filename = options[ "result_file" ] + ".exe",
+                binary_filename = options[ "result_name" ] + ".exe",
                 tree            = tree,
                 clean_path      = Options.shallClearPythonPathEnvironment()
             )
