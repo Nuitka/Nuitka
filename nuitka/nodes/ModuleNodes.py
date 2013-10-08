@@ -207,7 +207,8 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
             imported_module, added_flag = Recursion.recurseTo(
                 module_package  = package_package,
                 module_filename = package_filename,
-                module_relpath  = Utils.relpath( package_filename )
+                module_relpath  = Utils.relpath( package_filename ),
+                reason          = "Containing package of recursed module."
             )
 
             self.package = imported_module

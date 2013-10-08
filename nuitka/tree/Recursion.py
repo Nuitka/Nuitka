@@ -25,7 +25,7 @@ from . import ImportCache, Building
 
 from logging import info, warning
 
-def recurseTo( module_package, module_filename, module_relpath ):
+def recurseTo( module_package, module_filename, module_relpath, reason ):
     if not ImportCache.isImportedModuleByPath( module_relpath ):
         module, source_ref, source_filename = Building.decideModuleTree(
             filename = module_filename,
@@ -38,9 +38,10 @@ def recurseTo( module_package, module_filename, module_relpath ):
         # learn the new filename, and continue build if its not.
         if not ImportCache.isImportedModuleByName( module.getFullName() ):
             info(
-                "Recurse to import '%s' from %s",
+                "Recurse to import '%s' from %s. (%s)",
                 module.getFullName(),
-                module_relpath
+                module_relpath,
+                reason
             )
 
             try:
@@ -120,7 +121,8 @@ def _checkPluginPath( plugin_filename, module_package ):
         module, added = recurseTo(
             module_filename = plugin_info[0],
             module_relpath  = plugin_info[1],
-            module_package  = module_package
+            module_package  = module_package,
+            reason          = "Lives in plugin directory."
         )
 
         if module:

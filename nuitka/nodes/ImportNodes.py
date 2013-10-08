@@ -99,13 +99,15 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
         self._setModule( module )
         module.parent = None
 
-    def _recurseTo( self, constraint_collection, module_package, module_filename, module_relpath ):
+    def _recurseTo( self, constraint_collection, module_package,
+                    module_filename, module_relpath, reason ):
         from nuitka.tree import Recursion
 
         imported_module, added_flag = Recursion.recurseTo(
             module_package  = module_package,
             module_filename = module_filename,
-            module_relpath  = module_relpath
+            module_relpath  = module_relpath,
+            reason          = reason
         )
 
         if added_flag:
@@ -130,31 +132,58 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
 
         for no_case_module in no_case_modules:
             if full_name == no_case_module:
-                return False
+                return (
+                    False,
+                    "Module listed explicitely to not recurse to."
+                )
 
             if full_name.startswith( no_case_module + "." ):
-                return False
+                return (
+                    False,
+                    "Module in package listed explicitely to not recurse to."
+                )
 
         any_case_modules = Options.getShallFollowModules()
 
         for any_case_module in any_case_modules:
             if full_name == any_case_module:
-                return True
+                return (
+                    True,
+                    "Module listed explicitely to recurse to."
+                )
 
             if full_name.startswith( any_case_module + "." ):
-                return True
+                return (
+                    True,
+                    "Module in package listed explicitely to recurse to."
+                )
 
         if Options.shallFollowNoImports():
-            return False
+            return (
+                False,
+                "Requested to not recurse at all."
+            )
 
         if Importing.isStandardLibraryPath( module_filename ):
-            return Options.shallFollowStandardLibrary()
+            return (
+                Options.shallFollowStandardLibrary(),
+                "Requested to %srecurse to standard library." % (
+                    "" if Options.shallFollowStandardLibrary() else "not "
+                )
+            )
 
         if Options.shallFollowAllImports():
-            return True
+            return (
+                True,
+                "Requested to recurse to all non-standard library modules."
+            )
 
-        # Means, I don't know.
-        return None
+
+        # Means, we were not given instructions how to handle things.
+        return (
+            None,
+            "Default behaviour, not recursing without request."
+        )
 
     def _consider( self, constraint_collection, module_filename, module_package ):
         assert module_package is None or ( type( module_package ) is str and module_package != "" )
@@ -169,7 +198,11 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
             module_name = None
 
         if module_name is not None:
-            decision = self._decide( module_filename, module_name, module_package )
+            decision, reason = self._decide(
+                module_filename = module_filename,
+                module_name     = module_name,
+                module_package  = module_package
+            )
 
             if decision:
                 module_relpath = Utils.relpath( module_filename )
@@ -178,7 +211,8 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
                     constraint_collection = constraint_collection,
                     module_package        = module_package,
                     module_filename       = module_filename,
-                    module_relpath        = module_relpath
+                    module_relpath        = module_relpath,
+                    reason                = reason
                 )
             elif decision is None:
                 if module_package is None:
@@ -189,7 +223,7 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
                 if module_filename not in self._warned_about:
                     self._warned_about.add( module_filename )
 
-                    warning( # long message, but shall be like it, pylint: disable=C0301
+                    warning(
                         """\
 Not recursing to '%(full_path)s' (%(filename)s), please specify \
 --recurse-none (do not warn), \
