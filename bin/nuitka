@@ -44,11 +44,22 @@ if libdir != '@' 'LIBDIR' '@':
         )
         libdir = os.path.abspath( libdir )
 
-    sys.path.insert( 0, libdir )
+    sys.path.insert(
+        0,
+        libdir
+    )
 else:
     # Unchanged, running from checkout, use the parent directory, the nuitka
     # package ought be there.
-    sys.path.insert( 0, os.path.join( os.path.dirname( __file__ ), ".." ) )
+    sys.path.insert(
+        0,
+        os.path.normpath(
+            os.path.join(
+                os.path.dirname( __file__ ),
+                ".."
+            )
+        )
+    )
 # LIBDIR trick end (marker for removal on platforms that don't need it)
 
 import logging
