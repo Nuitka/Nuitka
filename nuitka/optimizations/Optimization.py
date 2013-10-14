@@ -43,12 +43,12 @@ def _optimizeModulePass( module, tag_set ):
 
         tag_set.onSignal( tags )
 
-    constraint_collection = ConstraintCollectionModule(
+    module.collection = ConstraintCollectionModule(
         signal_change = signalChange,
         module        = module
     )
 
-    written_variables = constraint_collection.getWrittenVariables()
+    written_variables = module.collection.getWrittenVariables()
 
     for variable in module.getVariables():
         old_value = variable.getReadOnlyIndicator()
@@ -58,7 +58,7 @@ def _optimizeModulePass( module, tag_set ):
             # Don't suddenly start to write.
             assert not (new_value is False and old_value is True)
 
-            constraint_collection.signalChange(
+            module.collection.signalChange(
                 "read_only_mvar",
                 module.getSourceReference(),
                 "Determined variable '%s' is only read." % variable.getName()

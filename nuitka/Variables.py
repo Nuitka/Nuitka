@@ -512,6 +512,11 @@ class TempVariableClosureReference( VariableReferenceBase ):
 
     def getDeclarationTypeCode( self, in_context ):
         if self.getReferenced().getReferenced().needs_free:
+            if self.getReferenced().getReferenced().needsLateDeclaration():
+                return "PyObjectTemporary"
+            else:
+                return "PyObjectTempVariable"
+
             return "PyObjectTempVariable"
         else:
             return "PyObject *"
@@ -560,7 +565,8 @@ class TempVariable( Variable ):
         )
 
         # For code generation.
-        self.declared = False
+        self.late_declaration = False
+        self.late_declared = False
 
         self.needs_free = None
 
@@ -584,7 +590,10 @@ class TempVariable( Variable ):
         assert self.needs_free is not None, self
 
         if self.needs_free:
-            return "PyObjectTempVariable"
+            if self.late_declaration:
+                return "PyObjectTemporary"
+            else:
+                return "PyObjectTempVariable"
         else:
             return "PyObject *"
 
@@ -594,6 +603,18 @@ class TempVariable( Variable ):
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201
         return "NULL"
+
+    def markAsNeedsLateDeclaration( self ):
+        self.late_declaration = True
+
+    def needsLateDeclaration( self ):
+        return self.late_declaration
+
+    def markAsDeclared( self ):
+        self.late_declared = True
+
+    def isDeclared( self ):
+        return self.late_declared
 
 
 class TempKeeperVariable( TempVariable ):

@@ -148,6 +148,26 @@ class NodeBase( NodeMetaClassBase ):
 
         return self.parent
 
+    def getParents( self ):
+        """ Parents of the node. Up to module level.
+
+        """
+        result = []
+        current = self
+
+        while True:
+            current = current.getParent()
+
+            result.append( current )
+
+            if current.isPythonModule() or current.isExpressionFunctionBody():
+                break
+
+        assert None not in result, self
+
+        result.reverse()
+        return result
+
     def getParentFunction( self ):
         """ Return the parent that is a function.
 

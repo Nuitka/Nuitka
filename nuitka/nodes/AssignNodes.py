@@ -363,7 +363,7 @@ class StatementDelVariable( StatementChildrenHavingBase ):
 
 
         constraint_collection.onVariableDel(
-            del_node = self
+            target_node = self.getTargetVariableRef()
         )
 
         return self, None, None

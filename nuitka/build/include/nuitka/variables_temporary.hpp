@@ -63,6 +63,17 @@ public:
         this->object = object;
     }
 
+    // TODO: Tolerance must die, really and this method should be avoidable, as
+    // it's only used to emulate block scopes.
+    void del( bool tolerant )
+    {
+        assertObject( this->object );
+
+        Py_DECREF( this->object );
+
+        this->object = INCREASE_REFCOUNT( Py_None );
+    }
+
 private:
 
     PyObjectTemporary( const PyObjectTemporary &object ) { assert( false ); }

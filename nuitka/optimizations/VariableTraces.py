@@ -74,6 +74,9 @@ class VariableTraceBase:
     def getDefiniteUsages( self ):
         return self.usages
 
+    def getReleases( self ):
+        return self.releases
+
     def isAssignTrace( self ):
         return False
 

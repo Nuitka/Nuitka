@@ -172,8 +172,6 @@ class VariableUsageTrackingMixin:
                             # owner.removeTempVariable( variable )
                             pass
 
-
-
     def makeVariableTraceOptimizations( self, owner ):
         # Reliable trace based optimization goes here:
         for variable_trace in self.variable_traces.values():
@@ -185,7 +183,6 @@ class VariableUsageTrackingMixin:
             except:
                 print( "Problem with", variable_trace, "in", owner )
                 raise
-
 
 
 class CollectionTracingMixin:
@@ -261,6 +258,18 @@ class CollectionStartpointMixin:
 
     def getVariableTrace( self, variable, version ):
         return self.variable_traces[ ( variable, version ) ]
+
+    def getVariableTraces( self, variable ):
+        result = []
+
+        for key, variable_trace in iterItems( self.variable_traces ):
+            candidate = key[0]
+            candidate = candidate.getReferenced()
+
+            if variable is candidate:
+                result.append( variable_trace )
+
+        return result
 
     def addVariableTrace( self, variable, version, trace ):
         key = variable, version
@@ -514,14 +523,13 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
         # Make references point to it.
         self.markCurrentVariableTrace( variable, version )
 
-    def onVariableDel( self, del_node ):
+    def onVariableDel( self, target_node ):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
-        target_node = del_node.getTargetVariableRef()
         variable = target_node.getVariable()
 
         current = self.getVariableCurrentTrace( variable )
-        current.addRelease( del_node )
+        current.addRelease( target_node )
 
         version = target_node.getVariableVersion()
 
@@ -886,7 +894,6 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
                        not variable_trace.releases:
                         pass
                         # print "HIT", variable_trace
-
 
 
     def onLocalVariableAssigned( self, variable, assign_source ):

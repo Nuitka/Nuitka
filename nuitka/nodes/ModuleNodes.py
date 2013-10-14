@@ -76,6 +76,9 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
 
         self.active_functions = OrderedSet()
 
+        # SSA trace based information about the module.
+        self.collection = None
+
     def getDetails( self ):
         return {
             "filename" : self.source_ref.getFilename(),

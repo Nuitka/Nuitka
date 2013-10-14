@@ -426,7 +426,9 @@ class PythonStatementContext( PythonChildContextBase ):
         return self.temp_keepers[ variable_name ]
 
     def getTempKeeperUsages( self ):
-        return self.temp_keepers
+        result = self.temp_keepers
+        self.temp_keepers = {}
+        return result
 
     def allocateTryNumber( self ):
         return self.parent.allocateTryNumber()

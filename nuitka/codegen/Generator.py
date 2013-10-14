@@ -854,6 +854,62 @@ def getVariableAssignmentCode( context, variable, identifier ):
     if variable.isTempVariableReference():
         referenced = variable.getReferenced()
 
+        if referenced.needsLateDeclaration() and not referenced.isDeclared():
+            referenced.markAsDeclared()
+
+            variable_code = getVariableCode(
+                variable = variable,
+                context  = context
+            )
+
+            local_inits = getTempKeeperDecl( context )
+
+            if referenced.getNeedsFree():
+                prefix = "PyObject *_%s;" % variable_code
+
+                if local_inits:
+                    result = "_%s = %s;" % (
+                        variable_code,
+                        identifier.getCodeExportRef()
+                    )
+
+                    result = getBlockCode(
+                        local_inits + result.split( "\n" )
+                    )
+
+                    postfix = "%s %s( _%s );" % (
+                        referenced.getDeclarationTypeCode( False ),
+                        variable_code,
+                        variable_code
+                    )
+
+                    return prefix + "\n" + result + "\n" + postfix
+                else:
+                    return "%s %s( %s );" % (
+                        referenced.getDeclarationTypeCode( False ),
+                        variable_code,
+                        identifier.getCodeExportRef()
+                    )
+            else:
+                if local_inits:
+                    prefix = "PyObject *%s;" % variable_code
+
+                    result = "%s = %s;" % (
+                        variable_code,
+                        identifier.getCodeTemporaryRef()
+                    )
+
+                    result = getBlockCode(
+                        local_inits + result.split( "\n" )
+                    )
+
+                    return prefix + "\n" + result
+                else:
+                    return "PyObject *%s = %s;" % (
+                        variable_code,
+                        identifier.getCodeTemporaryRef()
+                    )
+
         if not referenced.getNeedsFree():
             # So won't get a reference, and take none, or else it may get lost,
             # which we don't want to happen.
@@ -1903,6 +1959,7 @@ def getModuleCode( context, module_name, codes, other_module_names,
         temp_variables
         # TODO: Should become uncessary to filter.
         if variable.getNeedsFree() is not None
+        if not variable.needsLateDeclaration()
     ]
 
     module_code = CodeTemplates.module_body_template % {
@@ -2144,6 +2201,11 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         )
 
     for temp_variable in temp_variables:
+        assert temp_variable.isTempVariable(), variable
+
+        if temp_variable.needsLateDeclaration():
+            continue
+
         # TODO: This filter should not be possible.
         if temp_variable.getNeedsFree() is None:
             continue
@@ -2498,6 +2560,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters,
             variable
             for variable in
             temp_variables
+            if not variable.needsLateDeclaration()
             # TODO: This filter should not be possible.
             if variable.getNeedsFree() is not None
         )

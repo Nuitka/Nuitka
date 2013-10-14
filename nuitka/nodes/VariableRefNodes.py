@@ -237,6 +237,8 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
         return False
 
     def computeExpression( self, constraint_collection ):
+        constraint_collection.onVariableUsage( self )
+
         # Nothing to do here.
         return self, None, None
 

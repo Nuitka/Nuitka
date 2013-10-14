@@ -76,15 +76,20 @@ def getVariableHandle( context, variable ):
         if variable.isTempVariableReference():
             variable = variable.getReferenced()
 
+        if variable.needsLateDeclaration():
+            from_context = ""
+        else:
+            from_context = _getContextAccess( context )
+
         if not variable.getNeedsFree():
             return TempObjectIdentifier(
                 var_name     = var_name,
-                from_context = _getContextAccess( context )
+                from_context = from_context
             )
         else:
             return TempVariableIdentifier(
                 var_name     = var_name,
-                from_context = _getContextAccess( context )
+                from_context = from_context
             )
     elif variable.isClosureReference():
         return ClosureVariableIdentifier(
