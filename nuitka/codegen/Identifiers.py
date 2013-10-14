@@ -65,7 +65,7 @@ class Identifier:
 
     def getCodeTemporaryRef( self ):
         if self.getRefCount():
-            return "PyObjectTemporary( %s ).asObject()" % self.getCodeObject()
+            return "PyObjectTemporary( %s ).asObject0()" % self.getCodeObject()
         else:
             return self.getCodeObject()
 
@@ -155,7 +155,7 @@ class ModuleVariableIdentifier:
         )
 
     def getCodeExportRef( self ):
-        return "_mvar_%s_%s.asObject()" % (
+        return "_mvar_%s_%s.asObject1()" % (
             self.module_code_name,
             self.var_name
         )
@@ -174,7 +174,7 @@ class MaybeModuleVariableIdentifier( Identifier ):
     def __init__( self, var_name, module_code_name ):
         Identifier.__init__(
             self,
-            "_mvar_%s_%s.asObject0( locals_dict.asObject() )" % (
+            "_mvar_%s_%s.asObject0( locals_dict.asObject0() )" % (
                 module_code_name,
                 var_name
             ),
@@ -210,10 +210,10 @@ class LocalVariableIdentifier:
         return 0
 
     def getCodeObject( self ):
-        return "%s.asObject()" % self.getCode()
+        return "%s.asObject0()" % self.getCode()
 
     def getCodeTemporaryRef( self ):
-        return "%s.asObject()" % self.getCode()
+        return "%s.asObject0()" % self.getCode()
 
     def getCodeExportRef( self ):
         return "%s.asObject1()" % self.getCode()
@@ -241,7 +241,7 @@ class TempVariableIdentifier( Identifier ):
         return 0
 
     def getCodeObject( self ):
-        return "%s.asObject()" % self.getCode()
+        return "%s.asObject0()" % self.getCode()
 
     def getClass( self ):
         return "PyObjectTemporary"
@@ -301,7 +301,7 @@ class ClosureVariableIdentifier( Identifier ):
         return 0
 
     def getCodeObject( self ):
-        return self.getCode() + ".asObject()"
+        return self.getCode() + ".asObject0()"
 
 
 class NullIdentifier( Identifier ):

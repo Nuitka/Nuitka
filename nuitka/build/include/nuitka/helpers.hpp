@@ -887,7 +887,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         {
             PyObject *result = CALL_FUNCTION(
                 source_instance->in_class->cl_getattr,
-                PyObjectTemporary( MAKE_TUPLE2( source, attr_name ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE2( source, attr_name ) ).asObject0(),
                 NULL
             );
 
@@ -1010,7 +1010,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
         {
             PyObject *result = CALL_FUNCTION(
                 target_instance->in_class->cl_setattr,
-                PyObjectTemporary( MAKE_TUPLE3( target, attr_name, value ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE3( target, attr_name, value ) ).asObject0(),
                 NULL
             );
 

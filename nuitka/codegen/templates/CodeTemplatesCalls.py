@@ -222,7 +222,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
 
     return CALL_FUNCTION(
         called,
-        PyObjectTemporary( MAKE_TUPLE%(args_count)d( %(args_list)s ) ).asObject(),
+        PyObjectTemporary( MAKE_TUPLE%(args_count)d( %(args_list)s ) ).asObject0(),
         NULL
     );
 }

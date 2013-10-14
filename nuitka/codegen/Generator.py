@@ -277,7 +277,7 @@ def getImportFromStarCode( context, module_identifier ):
             module_identifier.getCodeTemporaryRef()
         )
     else:
-        return "IMPORT_MODULE_STAR( locals_dict.asObject(), false, %s );" % (
+        return "IMPORT_MODULE_STAR( locals_dict.asObject0(), false, %s );" % (
             module_identifier.getCodeTemporaryRef()
         )
 
@@ -918,7 +918,7 @@ def getTempKeeperHandle( variable, context ):
 
     if ref_count == 1:
         return KeeperAccessIdentifier(
-            "%s.asObject()" % variable_name
+            "%s.asObject1()" % variable_name
         )
     else:
         # TODO: Could create an identifier, where 0 is just cheap, and 1 is
@@ -1391,7 +1391,7 @@ def getLoadLocalsCode( context, provider, mode ):
     else:
         if mode == "copy":
             return Identifier(
-                "PyDict_Copy( locals_dict.asObject() )",
+                "PyDict_Copy( locals_dict.asObject0() )",
                 1
             )
         elif mode == "updated":
@@ -1401,7 +1401,7 @@ def getLoadLocalsCode( context, provider, mode ):
             )
 
             result = Identifier(
-                "locals_dict.asObject()",
+                "locals_dict.asObject0()",
                 0
             )
 

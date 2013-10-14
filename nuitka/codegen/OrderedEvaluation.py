@@ -94,10 +94,13 @@ def getOrderRelevanceEnforcedArgsCode( helper, tmp_scope, order_relevance, args,
                     ).getCode()
                 )
 
-                if export_ref:
-                    arg_codes.append( variable_name + ".asObject()" )
-                else:
-                    arg_codes.append( variable_name + ".asObject0()" )
+
+                arg_codes.append(
+                    "%s.asObject%d()" % (
+                        variable_name,
+                        1 if export_ref else 0
+                    )
+                )
             else:
                 # TODO: Should delete the reference immediately after call, if
                 # ref_count = 1
@@ -205,7 +208,7 @@ def _getTempDeclCode( order_relevance, names, values ):
                     )
                 )
 
-                usages.append( tmp_name + ".asObject()" )
+                usages.append( tmp_name + ".asObject0()" )
             else:
                 decls.append(
                     "PyObject *%s = %s;" % (

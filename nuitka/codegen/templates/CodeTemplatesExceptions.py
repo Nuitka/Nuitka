@@ -167,28 +167,28 @@ if ( _break_%(try_count)d )
 try_finally_template_reraise_return_value = """\
 if ( _return_value_%(try_count)d.isKeeping() )
 {
-    throw ReturnValueException( _return_value_%(try_count)d.asObject() );
+    throw ReturnValueException( _return_value_%(try_count)d.asObject1() );
 }"""
 
 try_finally_template_direct_return_value = """\
 assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
-return _return_value_%(try_count)d.asObject();"""
+return _return_value_%(try_count)d.asObject1();"""
 
 try_finally_template_direct_generator_return_value = """\
 assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
-throw ReturnValueException( _return_value_%(try_count)d.asObject() );"""
+throw ReturnValueException( _return_value_%(try_count)d.asObject1() );"""
 
 
 try_finally_template_indirect_return_value = """\
 if ( _return_value_%(try_count)d.isKeeping() )
 {
-    return _return_value_%(try_count)d.asObject();
+    return _return_value_%(try_count)d.asObject1();
 }"""
 
 try_finally_template_indirect_generator_return_value = """\
 if ( _return_value_%(try_count)d.isKeeping() )
 {
-    throw ReturnValueException( _return_value_%(try_count)d.asObject() );
+    throw ReturnValueException( _return_value_%(try_count)d.asObject1() );
 }"""
 
 

@@ -45,7 +45,7 @@ public:
         Py_DECREF( this->object );
     }
 
-    PyObject *asObject() const
+    PyObject *asObject0() const
     {
         assertObject( this->object );
 
@@ -87,7 +87,7 @@ public:
         Py_XDECREF( this->object );
     }
 
-    PyObject *asObject() const
+    PyObject *asObject0() const
     {
         assertObject( this->object );
 
@@ -146,7 +146,7 @@ public:
         Py_XDECREF( this->object );
     }
 
-    inline PyObject *asObject() const
+    inline PyObject *asObject1() const
     {
         assertObject( this->object );
 
@@ -199,7 +199,7 @@ public:
         return this->object;
     }
 
-    inline PyObject *asObject() const
+    inline PyObject *asObject1() const
     {
         assertObject( this->object );
 

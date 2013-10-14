@@ -79,8 +79,8 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
             source,
             file_name,
             mode,
-            future_flags.asObject(), // flags
-            Py_True                  // dont_inherit
+            future_flags.asObject0(), // flags
+            Py_True                   // dont_inherit
         )
     );
 }
@@ -372,7 +372,7 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
 {
     PyObject *result = PyType_Type.tp_new(
         &PyType_Type,
-        PyObjectTemporary( MAKE_TUPLE3( name, bases, dict ) ).asObject(),
+        PyObjectTemporary( MAKE_TUPLE3( name, bases, dict ) ).asObject0(),
         NULL
     );
 
@@ -506,13 +506,13 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
 #if PYTHON_VERSION < 300
     PyObjectTemporary boundary_temp( TO_RANGE_ARG( boundary, "end" ) );
 
-    long start = PyInt_AsLong( boundary_temp.asObject() );
+    long start = PyInt_AsLong( boundary_temp.asObject0() );
 
     if ( start == -1 && ERROR_OCCURED() )
     {
         PyErr_Clear();
 
-        return _python_builtin_range.call1( boundary_temp.asObject() );
+        return _python_builtin_range.call1( boundary_temp.asObject0() );
     }
 
     return _BUILTIN_RANGE_INT( start );
@@ -529,7 +529,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
     bool fallback = false;
 
-    long start = PyInt_AsLong( low_temp.asObject() );
+    long start = PyInt_AsLong( low_temp.asObject0() );
 
     if (unlikely( start == -1 && ERROR_OCCURED() ))
     {
@@ -537,7 +537,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
         fallback = true;
     }
 
-    long end = PyInt_AsLong( high_temp.asObject() );
+    long end = PyInt_AsLong( high_temp.asObject0() );
 
     if (unlikely( end == -1 && ERROR_OCCURED() ))
     {
@@ -549,8 +549,8 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
     {
         return _python_builtin_range.call_args(
             MAKE_TUPLE2(
-                low_temp.asObject(),
-                high_temp.asObject()
+                low_temp.asObject0(),
+                high_temp.asObject0()
             )
         );
     }
@@ -574,7 +574,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     bool fallback = false;
 
-    long start = PyInt_AsLong( low_temp.asObject() );
+    long start = PyInt_AsLong( low_temp.asObject0() );
 
     if (unlikely( start == -1 && ERROR_OCCURED() ))
     {
@@ -582,7 +582,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
         fallback = true;
     }
 
-    long end = PyInt_AsLong( high_temp.asObject() );
+    long end = PyInt_AsLong( high_temp.asObject0() );
 
     if (unlikely( end == -1 && ERROR_OCCURED() ))
     {
@@ -590,7 +590,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
         fallback = true;
     }
 
-    long step_long = PyInt_AsLong( step_temp.asObject() );
+    long step_long = PyInt_AsLong( step_temp.asObject0() );
 
     if (unlikely( step_long == -1 && ERROR_OCCURED() ))
     {
@@ -602,9 +602,9 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
     {
         return _python_builtin_range.call_args(
             MAKE_TUPLE3(
-                low_temp.asObject(),
-                high_temp.asObject(),
-                step_temp.asObject()
+                low_temp.asObject0(),
+                high_temp.asObject0(),
+                step_temp.asObject0()
             )
        );
     }
@@ -828,8 +828,8 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
         );
 
         _python_builtin_print.call_args_kw(
-            print_args.asObject(),
-            print_kw.asObject()
+            print_args.asObject0(),
+            print_kw.asObject0()
         );
     }
 #endif
@@ -872,7 +872,7 @@ void PRINT_NEW_LINE_TO( PyObject *file )
         );
 
         _python_builtin_print.call_kw(
-            print_keyargs.asObject()
+            print_keyargs.asObject0()
         );
     }
 #endif

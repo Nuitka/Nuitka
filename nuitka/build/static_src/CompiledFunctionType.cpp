@@ -875,7 +875,7 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
 
                 list_str = PyUnicode_Concat(
                     list_str,
-                    current.asObject()
+                    current.asObject0()
                 );
             }
             else if ( missing == 1 )
@@ -890,7 +890,7 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
                 PyObjectTemporary old2( list_str );
 
                 list_str = PyUnicode_Concat(
-                    current.asObject(),
+                    current.asObject0(),
                     list_str
                 );
             }
@@ -906,7 +906,7 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
                 PyObjectTemporary old2( list_str );
 
                 list_str = PyUnicode_Concat(
-                    current.asObject(),
+                    current.asObject0(),
                     list_str
                 );
             }
@@ -974,7 +974,7 @@ void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
 
                 list_str = PyUnicode_Concat(
                     list_str,
-                    current.asObject()
+                    current.asObject0()
                 );
             }
             else if ( missing == 1 )
@@ -989,7 +989,7 @@ void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
                 PyObjectTemporary old2( list_str );
 
                 list_str = PyUnicode_Concat(
-                    current.asObject(),
+                    current.asObject0(),
                     list_str
                 );
             }
@@ -1005,7 +1005,7 @@ void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
                 PyObjectTemporary old2( list_str );
 
                 list_str = PyUnicode_Concat(
-                    current.asObject(),
+                    current.asObject0(),
                     list_str
                 );
             }

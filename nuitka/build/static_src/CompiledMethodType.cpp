@@ -55,7 +55,7 @@ static PyObject *Nuitka_Method_reduce( Nuitka_MethodObject *method )
                 (PyObject *)method->m_function,
                 method->m_object
             )
-        ).asObject()
+        ).asObject0()
     );
 }
 

@@ -198,7 +198,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
             throw PythonException();
         }
 
-        PyObject *asObject() const
+        PyObject *asObject1() const
         {
             return INCREASE_REFCOUNT( this->asObject0() );
         }

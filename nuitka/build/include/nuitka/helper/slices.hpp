@@ -184,7 +184,7 @@ NUITKA_MAY_BE_UNUSED static void DEL_SLICE( PyObject *target, Py_ssize_t lower, 
         PyObjectTemporary lower_obj( PyInt_FromSsize_t( lower ) );
         PyObjectTemporary upper_obj( PyInt_FromSsize_t( upper ) );
 
-        PyObject *slice = PySlice_New( lower_obj.asObject(), upper_obj.asObject(), NULL );
+        PyObject *slice = PySlice_New( lower_obj.asObject0(), upper_obj.asObject0(), NULL );
 
         if (unlikely( slice == NULL ))
         {
