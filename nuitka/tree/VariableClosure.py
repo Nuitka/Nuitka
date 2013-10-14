@@ -285,20 +285,24 @@ class VariableClosureLookupVisitorPhase3( VisitorNoopMixin ):
         that. Currently this phase is Python2 only, but that may change.
     """
 
-
     def onEnterNode( self, node ):
-        if python_version < 300:
-            if node.isStatementDelVariable() and \
-                 node.getTargetVariableRef().getVariable().isShared():
-                raise SyntaxError(
-                        "can not delete variable '%s' referenced in nested scope" % node.getTargetVariableRef().getVariableName(), # pylint: disable=C0301
-                        (
-                            None, # TODO: Could easily provide the line number and file
-                            None,
-                            None,
-                            None
-                        )
-                    )
+        assert python_version < 300
+
+        if node.isStatementDelVariable():
+            variable = node.getTargetVariableRef().getVariable()
+
+            if variable.isShared():
+                SyntaxErrors.raiseSyntaxError(
+                    reason       = """\
+can not delete variable '%s' referenced in nested scope""" % (
+                       variable.getName()
+                    ),
+                    source_ref   = (
+                        None if isFullCompat() else node.getSourceReference()
+                    ),
+                    display_file = not isFullCompat(),
+                    display_line = not isFullCompat()
+                )
 
 
 def completeVariableClosures( tree ):
