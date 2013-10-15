@@ -74,3 +74,12 @@ def lambdaWithcontraction( x ):
    print locals()
 
 lambdaWithcontraction( 3 )
+
+print "Contraction that gets a del on the iterator variable:",
+
+def allowedDelOnIteratorVariable( z ):
+    x = 2
+    del x
+    return [ x*z for x in range(z) ]
+
+print allowedDelOnIteratorVariable( 3 )
