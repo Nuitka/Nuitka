@@ -1367,7 +1367,7 @@ extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
 extern void enhancePythonTypes( void );
 
 // Parse the command line parameters and provide it to sys module.
-extern void setCommandLineParameters( int argc, char *argv[] );
+extern void setCommandLineParameters( int argc, char *argv[], bool initial );
 
 // Replace inspect functions with ones that accept compiled types too.
 extern void patchInspectModule( void );

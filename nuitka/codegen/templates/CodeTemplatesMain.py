@@ -95,14 +95,15 @@ int main( int argc, char *argv[] )
     Py_NoSiteFlag = 1;
 
     // Initialize the embedded CPython interpreter.
+    setCommandLineParameters( argc, argv, true );
     Py_Initialize();
 
     // Lie about it, believe it or not, there are "site" files, that check
     // against later imports, see below.
     Py_NoSiteFlag = 0;
 
-    // Set the command line parameters
-    setCommandLineParameters( argc, argv );
+    // Set the command line parameters for run time usage.
+    setCommandLineParameters( argc, argv, false );
 
     // Initialize the constant values used.
     _initBuiltinModule();

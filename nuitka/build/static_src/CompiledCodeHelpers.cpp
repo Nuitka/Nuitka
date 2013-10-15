@@ -1247,48 +1247,64 @@ extern "C" wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t siz
 
 #include <locale.h>
 
-void setCommandLineParameters( int argc, char *argv[] )
+#if PYTHON_VERSION >= 300
+static wchar_t **argv_copy = NULL;
+#endif
+
+void setCommandLineParameters( int argc, char *argv[], bool initial )
 {
 #if PYTHON_VERSION < 300
-    PySys_SetArgv( argc, argv );
-#else
-// Originally taken from CPython3: There seems to be no sane way to use
-
-    wchar_t **argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
-    /* We need a second copies, as Python might modify the first one. */
-    wchar_t **argv_copy2 = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
-
-    char *oldloc;
-    /* 754 requires that FP exceptions run in "no stop" mode by default,
-     * and until C vendors implement C99's ways to control FP exceptions,
-     * Python requires non-stop mode.  Alas, some platforms enable FP
-     * exceptions by default.  Here we disable them.
-     */
-#ifdef __FreeBSD__
-    fp_except_t m;
-
-    m = fpgetmask();
-    fpsetmask(m & ~FP_X_OFL);
-#endif
-
-    oldloc = strdup( setlocale( LC_ALL, NULL ) );
-
-    setlocale( LC_ALL, "" );
-    for ( int i = 0; i < argc; i++ )
+    if ( initial )
     {
-#ifdef __APPLE__
-        argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
-#else
-        argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
-#endif
-        assert ( argv_copy[ i ] );
-
-        argv_copy2[ i ] = argv_copy[ i ];
+        Py_SetProgramName( argv[0] );
     }
-    setlocale( LC_ALL, oldloc );
-    free( oldloc );
+    else
+    {
+        PySys_SetArgv( argc, argv );
+    }
+#else
+    if ( initial )
+    {
+        // Originally taken from CPython3: There seems to be no sane way to use
+        argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
 
-    PySys_SetArgv( argc, argv_copy );
+#ifdef __FreeBSD__
+        // 754 requires that FP exceptions run in "no stop" mode by default, and
+        // until C vendors implement C99's ways to control FP exceptions, Python
+        // requires non-stop mode.  Alas, some platforms enable FP exceptions by
+        // default.  Here we disable them.
+
+        fp_except_t m;
+
+        m = fpgetmask();
+        fpsetmask( m & ~FP_X_OFL );
+#endif
+        char *oldloc = strdup( setlocale( LC_ALL, NULL ) );
+        setlocale( LC_ALL, "" );
+
+        for ( int i = 0; i < argc; i++ )
+        {
+#ifdef __APPLE__
+            argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
+#else
+            argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
+#endif
+            assert ( argv_copy[ i ] );
+        }
+
+        setlocale( LC_ALL, oldloc );
+        free( oldloc );
+    }
+
+
+    if ( initial )
+    {
+        Py_SetProgramName( argv_copy[0] );
+    }
+    else
+    {
+        PySys_SetArgv( argc, argv_copy );
+    }
 #endif
 }
 
