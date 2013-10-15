@@ -23,6 +23,8 @@ module variable references.
 
 """
 
+from nuitka import Utils
+
 class Variable:
     def __init__( self, owner, variable_name ):
         assert type( variable_name ) is str, variable_name
@@ -135,6 +137,12 @@ class Variable:
                   owner.isExpressionFunctionBody() and \
                   not owner.isGenerator() and not owner.needsCreation():
                 owner = owner.getParentVariableProvider()
+
+            # List contractions in Python2 do not really own their variables.
+            # TODO: They ought to not be variable providers/takers at all.
+            if Utils.python_version < 300:
+                while owner != top_owner and owner.code_prefix == "listcontr":
+                    owner = owner.getParentVariableProvider()
 
             # This defines being shared. Owned by one, and references that are
             # owned by another node.
