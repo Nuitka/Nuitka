@@ -601,6 +601,13 @@ What follows is the (lengthy) list of arguments that the scons file processes:
   in itself, and will generate less optimal code. This also asks for warnings,
   and makes the build fail if there are any.
 
+* ``python_debug``
+
+  Compile and link against Python debug mode, which does assertions and extra
+  checks, to identify errors, mostly related to reference counting. May make the
+  build fail, if no debug build library of CPython is available. On Windows it
+  typically is not installed.
+
 * ``optimize_mode``
 
   Optimization mode, enable as much as currently possible. This refers to

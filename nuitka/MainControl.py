@@ -301,7 +301,7 @@ def runScons( main_module, quiet ):
 
     if hasattr( sys, "abiflags" ):
         # The Python3 for some platforms has sys.abiflags pylint: disable=E1101
-        if Options.options.python_debug is not None or \
+        if Options.isPythonDebug() or \
            hasattr( sys, "getobjects" ):
             if sys.abiflags.startswith( "d" ):
                 python_version += sys.abiflags
@@ -309,9 +309,6 @@ def runScons( main_module, quiet ):
                 python_version += "d" + sys.abiflags
         else:
             python_version += sys.abiflags
-    elif Options.options.python_debug is not None or \
-         hasattr( sys, "getobjects" ):
-        python_version += "_d"
 
     def asBoolStr( value ):
         return "true" if value else "false"
@@ -323,6 +320,7 @@ def runScons( main_module, quiet ):
         "result_name"    : getResultBasepath( main_module ),
         "source_dir"     : getSourceDirectoryPath( main_module ),
         "debug_mode"     : asBoolStr( Options.isDebug() ),
+        "python_debug"   : asBoolStr( Options.isPythonDebug() ),
         "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),

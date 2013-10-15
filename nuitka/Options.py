@@ -566,6 +566,9 @@ def shallWarnImplicitRaises():
 def isDebug():
     return options.debug
 
+def isPythonDebug():
+    return options.python_debug or sys.flags.debug
+
 def isOptimize():
     return not options.no_optimize
 
