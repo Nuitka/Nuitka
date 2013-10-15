@@ -196,21 +196,39 @@ void patchInspectModule( void )
 {
 #ifdef _NUITKA_EXE
     // May need to import the "site" module, because otherwise the patching can
-    // fail.
+    // fail with it being unable to load it.
     if ( Py_NoSiteFlag == 0 )
     {
-        IMPORT_MODULE( _python_str_plain_site, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+        try
+        {
+            IMPORT_MODULE( _python_str_plain_site, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+        }
+        catch( PythonException & )
+        {
+            PyErr_Clear();
+            // Ignore ImportError, site is not a must.
+        }
     }
 #endif
 
-    module_inspect = IMPORT_MODULE( _python_str_plain_inspect, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+    try
+    {
+        module_inspect = IMPORT_MODULE( _python_str_plain_inspect, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+    }
+    catch( PythonException &e )
+    {
+        e.toPython();
+
+        PyErr_PrintEx( 0 );
+        Py_Exit( 1 );
+    }
     assertObject( module_inspect );
 
     // Patch "inspect.isfunction" unless it is already patched.
     PyObject *old_isfunction = PyObject_GetAttrString( module_inspect, "isfunction" );
     assertObject( old_isfunction );
 
-    if (PyFunction_Check( old_isfunction ))
+    if ( PyFunction_Check( old_isfunction ) )
     {
         PyObject *inspect_isfunction_replacement = PyCFunction_New( &_method_def_inspect_isfunction_replacement, NULL );
         assertObject( inspect_isfunction_replacement );
@@ -224,7 +242,7 @@ void patchInspectModule( void )
     PyObject *old_ismethod = PyObject_GetAttrString( module_inspect, "ismethod" );
     assertObject( old_ismethod );
 
-    if (PyFunction_Check( old_ismethod ))
+    if ( PyFunction_Check( old_ismethod ) )
     {
         PyObject *inspect_ismethod_replacement = PyCFunction_New( &_method_def_inspect_ismethod_replacement, NULL );
         assertObject( inspect_ismethod_replacement );
@@ -238,7 +256,7 @@ void patchInspectModule( void )
     PyObject *old_isgenerator = PyObject_GetAttrString( module_inspect, "isgenerator" );
     assertObject( old_isgenerator );
 
-    if (PyFunction_Check( old_isgenerator ))
+    if ( PyFunction_Check( old_isgenerator ) )
     {
         PyObject *inspect_isgenerator_replacement = PyCFunction_New( &_method_def_inspect_isgenerator_replacement, NULL );
         assertObject( inspect_isgenerator_replacement );
@@ -252,7 +270,7 @@ void patchInspectModule( void )
     PyObject *old_isframe = PyObject_GetAttrString( module_inspect, "isframe" );
     assertObject( old_isframe );
 
-    if (PyFunction_Check( old_isframe ))
+    if ( PyFunction_Check( old_isframe ) )
     {
         PyObject *inspect_isframe_replacement = PyCFunction_New( &_method_def_inspect_isframe_replacement, NULL );
         assertObject( inspect_isframe_replacement );
@@ -267,7 +285,7 @@ void patchInspectModule( void )
     old_getgeneratorstate = PyObject_GetAttrString( module_inspect, "getgeneratorstate" );
     assertObject( old_getgeneratorstate );
 
-    if (PyFunction_Check( old_getgeneratorstate ))
+    if ( PyFunction_Check( old_getgeneratorstate ) )
     {
         PyObject *inspect_getgeneratorstate_replacement = PyCFunction_New( &_method_def_inspect_getgeneratorstate_replacement, NULL );
         assertObject( inspect_getgeneratorstate_replacement );
