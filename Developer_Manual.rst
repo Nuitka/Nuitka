@@ -1417,25 +1417,6 @@ not sure, what ``__prepare__`` is allowed to return.
    # Build and assign the class.
    SomeClass = _makeSomeClass()
 
-
-List Contractions
-+++++++++++++++++
-
-TODO.
-
-
-Set Contractions
-++++++++++++++++
-
-TODO.
-
-
-Dict Contractions
-+++++++++++++++++
-
-TODO.
-
-
 Generator Expressions
 +++++++++++++++++++++
 
@@ -1456,6 +1437,51 @@ nested) for loops:
               yield x*2
 
     gen = _gen_helper( range(8 ) )
+
+List Contractions
++++++++++++++++++
+
+The list contractions of Python2 are different from those of Python3, in that
+they don't actually do any closure variable taking, and that no function object
+ever exists.
+
+.. code-block:: python
+
+   list_value = [ x*2 for x in range(8) if cond() ]
+
+.. code-block:: python
+
+    def _listcontr_helper( __iterator ):
+       result = []
+
+       for x in __iterator:
+          if cond():
+              result.append( x*2 )
+
+       return result
+
+    list_value = listcontr_helper( range(8) )
+
+The difference is that with Python3, the function "_listcontr_helper" is real
+and named ``<listcomp>``, whereas with Python2 the function must be considered
+in-lined.
+
+This in-inlining in case of Python2 causes difficulties, because it's statements
+that occur inside an expression, which means a lot of side effects, that may or
+may not be possible to unroll to outside.
+
+
+Set Contractions
+++++++++++++++++
+
+TODO.
+
+
+Dict Contractions
++++++++++++++++++
+
+TODO.
+
 
 Boolean expressions ``and`` and ``or``
 ++++++++++++++++++++++++++++++++++++++
@@ -2994,6 +3020,21 @@ etc.
   should be reset at the start, and the built up and judged at the end.
 
   The task to maintain this would be near ModuleRegistry.
+
+* Outline functions
+
+  The list contractions of Python2, and potentially other contractions or
+  in-lined functions too, in case they don't need any closure from it, could be
+  considered part of the surrounding function.
+
+  These would have function bodies, with proper return, and generate code as a
+  function would, but with the closure and local variables shared from arguments
+  in what is considered a direct call.
+
+  The outline functions would not be considered closure takers, nor closure
+  givers. They should be visited when they are used, almost like a statement
+  sequences, and returns would define their value.
+
 
 
 .. raw:: pdf
