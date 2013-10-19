@@ -211,7 +211,19 @@ elif "CXX" in os.environ:
 # default:
 def setupSpawn( env ):
     def spawn( sh, escape, cmd, args, env ):
-        newargs = ' '.join( args[1:] )
+        # For quoted arguments that end in a backslash, things don't work well
+        # this is a workaround for it.
+        def removeTrailingSlashQuote( arg ):
+            if arg.endswith( r'\"' ):
+                return arg[:-1] + '\\"'
+            else:
+                return arg
+
+        newargs = ' '.join(
+            removeTrailingSlashQuote( arg )
+            for arg in
+            args[1:]
+        )
         cmdline = cmd + " " + newargs
         startupinfo = subprocess.STARTUPINFO()
 
