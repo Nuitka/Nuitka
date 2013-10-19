@@ -110,6 +110,13 @@ target_arch = ARGUMENTS.get( "target_arch", "x86" )
 icon_path = ARGUMENTS.get( "icon_path", None )
 
 def createEnvironment( compiler_tools ):
+    args = {}
+
+    if os.name == "nt" and \
+       not mingw_mode and \
+       getExecutablePath( "cl", initial = True ) is not None:
+        args[ "MSVC_USE_SCRIPT" ] = False
+
     return Environment(
         # We want the outside environment to be passed through.
         ENV         = os.environ,
@@ -130,8 +137,7 @@ def createEnvironment( compiler_tools ):
 
         # If we are on Windows, and MinGW is not enforced, lets see if we can
         # find "cl.exe", and if we do, disable automatic scan.
-        MSVC_USE_SCRIPT = os.name == "nt" and not mingw_mode and \
-          getExecutablePath( "cl", initial = True ) is not None
+        **args
     )
 
 def getExecutablePath( filename, initial ):
@@ -232,6 +238,24 @@ def setupSpawn( env ):
 
         if cmd == "cl":
             data = data[ data.find( "\r\n" ) + 2 : ]
+
+            source_basenames = [
+                os.path.basename( source_file )
+                for source_file in
+                source_files
+            ]
+
+            def check( line ):
+                return line in ( "",  "Generating Code..." ) or \
+                       line in source_basenames
+
+            data = "\r\n".join(
+                line
+                for line in
+                data.split( "\r\n" )
+                if not check( line )
+            )
+
         elif cmd == "rc":
             data = data[ data.find( "reserved.\r" ) + 13 : ]
 
@@ -669,7 +693,7 @@ else:
 def discoverSourceFiles():
     result = []
 
-    def getStatic( sub_path):
+    def getStatic( sub_path ):
        return os.path.join( static_src, sub_path.replace( "/", os.path.sep ) )
 
     result.append( getStatic( "CompiledFunctionType.cpp" ) )
@@ -703,15 +727,11 @@ def discoverSourceFiles():
 
     # If more than one module is included, we need the unfreezer.
     if module_count > 1:
-        result.append( os.path.join( static_src, "ModuleUnfreezer.cpp" ) )
-
-    # Add the resource file for the manifest to be included in the executable.
-    if msvc_mode and not module_mode:
-        result.append(
-            env.RES( os.path.join( source_dir, "resources.rc" ) )
-        )
+        result.append( getStatic( "ModuleUnfreezer.cpp" ) )
 
     return result
+
+source_targets = []
 
 # Prepare the use of a custom specs file for windows targets. We change the used
 # specs for linking to avoid the use of the wrong (for CPython) run time
@@ -746,7 +766,9 @@ if msvc_mode and not module_mode:
     )
     manifest_file.close()
 
-    rc_file = open( os.path.join( source_dir, "resources.rc" ), "w" )
+    rc_filename = os.path.join( source_dir, "resources.rc" )
+
+    rc_file = open( rc_filename, "w" )
     rc_file.write( r"""
 #include "winuser.h"
 1 RT_MANIFEST resources.manifest
@@ -756,6 +778,12 @@ if msvc_mode and not module_mode:
         rc_file.write("2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE \"%s\"\n" % icon_path.replace("\\", "/"))
     rc_file.close()
 
+    source_targets.append(
+        env.RES( rc_filename )
+    )
+
+source_files = discoverSourceFiles()
+
 if module_mode:
     if win_target:
         module_suffix = ".pyd"
@@ -764,13 +792,13 @@ if module_mode:
 
     env[ "SHLIBSUFFIX" ] = module_suffix
 
-    target = env.SharedLibrary( result_basepath, discoverSourceFiles() )
+    target = env.SharedLibrary( result_basepath, source_files  + source_targets )
 else:
     # Avoid dependency on MinGW libraries.
     if win_target and gcc_mode:
         env.Append( LINKFLAGS = [ "-static-libgcc",  "-static-libstdc++" ] )
 
-    target = env.Program( result_basepath + ".exe", discoverSourceFiles() )
+    target = env.Program( result_basepath + ".exe", source_files + source_targets )
 
 if "CCFLAGS" in os.environ:
     env.Append( CCFLAGS = os.environ[ "CCFLAGS" ].split() )
