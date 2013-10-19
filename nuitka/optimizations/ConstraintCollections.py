@@ -69,9 +69,6 @@ class VariableUsageProfile:
     def isReadOnly( self ):
         return not self.written_to
 
-    def isUnused( self ):
-        return not self.written_to and not self.read_from
-
     def isWriteOnly( self ):
         return self.written_to and not self.read_from
 
@@ -93,22 +90,13 @@ class VariableUsageTrackingMixin:
             return self.variable_usages[ variable ]
 
     # TODO: This will be removed, to be replaced by variable trace information.
-    def setIndications( self, owner ):
-        temp_variables = set( owner.getTempVariables() )
-
+    def setIndications( self ):
         for variable, usage in iterItems( self.variable_usages ):
-            if variable.isTempVariable():
+            if variable.isTempKeeperVariable():
                 variable.setNeedsFree( usage.getNeedsFree() )
 
-                if not variable.isTempKeeperVariable():
-                    temp_variables.remove( variable )
-
-            if variable.isTempKeeperVariable():
                 if usage.isWriteOnly():
                     variable.setWriteOnly()
-
-        for temp_variable in temp_variables:
-            temp_variable.setNeedsFree( None )
 
     def setupVariableTraces( self, owner ):
         for variable in owner.getVariables():
@@ -499,7 +487,12 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
 
         self.parent.addVariableMergeTrace( variable, trace_yes, trace_no )
 
-    def onVariableSet( self, target_node ):
+    def onVariableSet( self, assign_node ):
+        if assign_node.isStatementAssignmentVariable():
+            target_node = assign_node.getTargetVariableRef()
+        else:
+            target_node = assign_node
+
         # Add a new trace, using the version allocated for the variable, and
         # remember the value friend.
         variable = target_node.getVariable()
@@ -514,7 +507,7 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
             variable = variable,
             version  = version,
             trace    = VariableAssignTrace(
-                target_node = target_node,
+                assign_node = assign_node,
                 variable    = variable,
                 version     = version
             )
@@ -841,7 +834,7 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
                 function_body.setBody( result )
 
         # TODO: Should become trace based as well.
-        self.setIndications( function_body )
+        self.setIndications()
 
         self.makeVariableTraceOptimizations( function_body )
 
@@ -864,7 +857,7 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
                 if variable_trace.isAssignTrace():
                     assign_node = variable_trace.getAssignNode()
 
-                    if not assign_node.parent.getAssignSource().mayHaveSideEffects():
+                    if not assign_node.getAssignSource().mayHaveSideEffects():
 
                         if not variable_trace.getPotentialUsages() and \
                            not variable_trace.isEscaped():
@@ -942,7 +935,7 @@ class ConstraintCollectionModule( CollectionStartpointMixin,
             if result is not module_body:
                 module.setBody( result )
 
-        self.setIndications( module )
+        self.setIndications()
 
         self.makeVariableTraceOptimizations( module )
 

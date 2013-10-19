@@ -147,20 +147,20 @@ class VariableUnknownTrace( VariableTraceBase ):
 
 
 class VariableAssignTrace( VariableTraceBase ):
-    def __init__( self, target_node, variable, version ):
+    def __init__( self, assign_node, variable, version ):
         VariableTraceBase.__init__(
             self,
             variable = variable,
             version  = version
         )
 
-        self.target_node = target_node
+        self.assign_node = assign_node
 
     def __repr__( self ):
         return "<VariableAssignTrace %s %d at %s>" % (
             self.variable,
             self.version,
-            self.target_node.getSourceReference()
+            self.assign_node.getSourceReference()
         )
 
     def dump( self ):
@@ -176,7 +176,7 @@ class VariableAssignTrace( VariableTraceBase ):
         return True
 
     def getAssignNode( self ):
-        return self.target_node
+        return self.assign_node
 
 
 class VariableMergeTrace( VariableTraceBase ):

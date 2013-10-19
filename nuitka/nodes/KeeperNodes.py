@@ -77,7 +77,7 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
             return source, "new_raise", "Keeper assignment raises."
 
         constraint_collection.onVariableSet(
-            target_node = self
+            assign_node = self
         )
 
         # TODO: This should not be done here.

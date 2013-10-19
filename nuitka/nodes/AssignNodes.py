@@ -62,7 +62,7 @@ class StatementAssignmentVariable( StatementChildrenHavingBase ):
         constraint_collection.onExpression( self.getAssignSource() )
 
         constraint_collection.onVariableSet(
-            target_node = self.getTargetVariableRef()
+            assign_node = self,
         )
 
         # TODO: Remove this, it's old.

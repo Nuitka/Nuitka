@@ -37,6 +37,10 @@ class FinalizeVariableVisibility( FinalizationVisitorBase ):
 
             uses = set()
 
+            # Will remain "None" only if no assignments are done, which is
+            # probably an error for at least temporary variables.
+            needs_free = None
+
             for variable_trace in variable_traces:
                 # Safe to ignore this likely, although the merge point may be
                 # important, but it should come up as potential use.
@@ -50,10 +54,28 @@ class FinalizeVariableVisibility( FinalizationVisitorBase ):
                     uses.add( use )
 
                 if variable_trace.isAssignTrace():
-                    uses.add( variable_trace.getAssignNode() )
+                    assign_node = variable_trace.getAssignNode()
+
+                    uses.add( assign_node.getTargetVariableRef() )
+
+                    # In preparation for code generation, we are here checking
+                    # if it's required to hold a reference in this variable,
+                    # because if it is not, we can create faster code.
+                    if assign_node.getAssignSource().mayProvideReference():
+                        needs_free = True
+                    elif needs_free is None:
+                        needs_free = False
 
                 for use in variable_trace.getReleases():
                     uses.add( use )
+
+            # For temporary variables, we can expect to know that as it should
+            # have been removed, if it's without assignments or if it has
+            # references left-over, these would be bogus and should be converted
+            # to some form of raise or assertion previously.
+            assert needs_free is not None or not uses, variable
+            assert variable.getNeedsFree() is None
+            variable.setNeedsFree( needs_free )
 
             best = None
             for use in uses:
