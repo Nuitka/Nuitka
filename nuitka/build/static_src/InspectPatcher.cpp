@@ -345,5 +345,46 @@ void patchBuiltinModule()
     }
 
     Py_DECREF( old_isinstance );
+}
 
+static richcmpfunc original_PyType_tp_richcompare;
+
+PyObject *_type_tp_richcompare( PyObject *a, PyObject *b, int op )
+{
+    if ( op == Py_EQ || op == Py_NE )
+    {
+        if ( a == (PyObject *)&Nuitka_Function_Type )
+        {
+            a = (PyObject *)&PyFunction_Type;
+        }
+        else if ( a == (PyObject *)&Nuitka_Method_Type )
+        {
+            a = (PyObject *)&PyMethod_Type;
+        }
+        else if ( a == (PyObject *)&Nuitka_Generator_Type )
+        {
+            a = (PyObject *)&PyGen_Type;
+        }
+
+        if ( b == (PyObject *)&Nuitka_Function_Type )
+        {
+            b = (PyObject *)&PyFunction_Type;
+        }
+        else if ( b == (PyObject *)&Nuitka_Method_Type )
+        {
+            b = (PyObject *)&PyMethod_Type;
+        }
+        else if ( b == (PyObject *)&Nuitka_Generator_Type )
+        {
+            b = (PyObject *)&PyGen_Type;
+        }
+    }
+
+    return original_PyType_tp_richcompare( a, b, op );
+}
+
+void patchTypeComparison()
+{
+    original_PyType_tp_richcompare = PyType_Type.tp_richcompare;
+    PyType_Type.tp_richcompare = _type_tp_richcompare;
 }

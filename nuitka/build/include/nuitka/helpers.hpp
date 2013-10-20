@@ -1375,6 +1375,10 @@ extern void patchInspectModule( void );
 // Replace builtin functions with ones that accept compiled types too.
 extern void patchBuiltinModule( void );
 
+// Replace type comparison with one that accepts compiled types too, will work
+// for "==" and "!=", but not for "is" checks.
+extern void patchTypeComparison( void );
+
 #if PYTHON_VERSION >= 300
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
 {
