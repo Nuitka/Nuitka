@@ -1526,7 +1526,7 @@ PyModuleObject *module_builtin = NULL;
 
 #define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( _python_str_plain_##name );
 
-PyTypeObject PyBuiltinModule_Type =
+static PyTypeObject Nuitka_BuiltinModule_Type =
 {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     "compiled_module",                           // tp_name
@@ -1613,30 +1613,30 @@ void _initBuiltinModule()
     dict_builtin = (PyDictObject *)module_builtin->md_dict;
     assert( PyDict_Check( dict_builtin ) );
 
-    /* init PyBuiltinModule_Type, PyType_Ready wont copy all member from base
-       type, so we need copy all members from PyModule_Type manual for safety.
-       PyType_Ready will change tp_flags, we need define it again.  set
-       tp_setattro to PyBuiltinModule_SetAttr and we can detect value change.
-       set tp_base to PyModule_Type and PyModule_Check will pass. */
-    PyBuiltinModule_Type.tp_dealloc = PyModule_Type.tp_dealloc;
-    PyBuiltinModule_Type.tp_repr = PyModule_Type.tp_repr;
-    PyBuiltinModule_Type.tp_setattro = (setattrofunc) Nuitka_BuiltinModule_SetAttr;
-    PyBuiltinModule_Type.tp_getattro = PyModule_Type.tp_getattro;
-    PyBuiltinModule_Type.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_BASETYPE;
-    PyBuiltinModule_Type.tp_doc = PyModule_Type.tp_doc;
-    PyBuiltinModule_Type.tp_traverse = PyModule_Type.tp_traverse;
-    PyBuiltinModule_Type.tp_members = PyModule_Type.tp_members;
-    PyBuiltinModule_Type.tp_base = &PyModule_Type;
-    PyBuiltinModule_Type.tp_dictoffset = PyModule_Type.tp_dictoffset;
-    PyBuiltinModule_Type.tp_init = PyModule_Type.tp_init;
-    PyBuiltinModule_Type.tp_alloc = PyModule_Type.tp_alloc;
-    PyBuiltinModule_Type.tp_new = PyModule_Type.tp_new;
-    PyBuiltinModule_Type.tp_free = PyModule_Type.tp_free;
-    int ret = PyType_Ready( &PyBuiltinModule_Type );
+    // init Nuitka_BuiltinModule_Type, PyType_Ready wont copy all member from
+    // base type, so we need copy all members from PyModule_Type manual for
+    // safety.  PyType_Ready will change tp_flags, we need define it again. Set
+    // tp_setattro to Nuitka_BuiltinModule_SetAttr and we can detect value
+    // change. Set tp_base to PyModule_Type and PyModule_Check will pass.
+    Nuitka_BuiltinModule_Type.tp_dealloc = PyModule_Type.tp_dealloc;
+    Nuitka_BuiltinModule_Type.tp_repr = PyModule_Type.tp_repr;
+    Nuitka_BuiltinModule_Type.tp_setattro = (setattrofunc)Nuitka_BuiltinModule_SetAttr;
+    Nuitka_BuiltinModule_Type.tp_getattro = PyModule_Type.tp_getattro;
+    Nuitka_BuiltinModule_Type.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_BASETYPE;
+    Nuitka_BuiltinModule_Type.tp_doc = PyModule_Type.tp_doc;
+    Nuitka_BuiltinModule_Type.tp_traverse = PyModule_Type.tp_traverse;
+    Nuitka_BuiltinModule_Type.tp_members = PyModule_Type.tp_members;
+    Nuitka_BuiltinModule_Type.tp_base = &PyModule_Type;
+    Nuitka_BuiltinModule_Type.tp_dictoffset = PyModule_Type.tp_dictoffset;
+    Nuitka_BuiltinModule_Type.tp_init = PyModule_Type.tp_init;
+    Nuitka_BuiltinModule_Type.tp_alloc = PyModule_Type.tp_alloc;
+    Nuitka_BuiltinModule_Type.tp_new = PyModule_Type.tp_new;
+    Nuitka_BuiltinModule_Type.tp_free = PyModule_Type.tp_free;
+    int ret = PyType_Ready( &Nuitka_BuiltinModule_Type );
     assert( ret == 0 );
 
-    // replace type of builtin module
-    ((PyObject *)module_builtin)->ob_type = &PyBuiltinModule_Type;
+    // Replace type of builtin module to take over.
+    ((PyObject *)module_builtin)->ob_type = &Nuitka_BuiltinModule_Type;
     assert( PyModule_Check( module_builtin ) == 1 );
 }
 
