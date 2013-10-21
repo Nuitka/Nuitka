@@ -123,6 +123,7 @@ def _getConstantDefaultPopulation():
         "__exit__",
         "__builtins__",
         "__all__",
+        "__cmp__",
 
         # Patched module name.
         "inspect",
@@ -136,7 +137,6 @@ def _getConstantDefaultPopulation():
         # COMPILE_CODE uses read/strip method lookups.
         "read",
         "strip",
-
     )
 
     # For Python3 modules

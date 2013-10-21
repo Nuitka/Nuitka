@@ -405,7 +405,6 @@ PyTypeObject Nuitka_Generator_Type =
     0,                                               // tp_print
     0,                                               // tp_getattr
     0,                                               // tp_setattr
-    // TODO: Compare should be easy, check the benefit of doing it.
     0,                                               // tp_compare
     (reprfunc)Nuitka_Generator_tp_repr,              // tp_repr
     0,                                               // tp_as_number
@@ -417,7 +416,8 @@ PyTypeObject Nuitka_Generator_Type =
     PyObject_GenericGetAttr,                         // tp_getattro
     0,                                               // tp_setattro
     0,                                               // tp_as_buffer
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,         // tp_flags
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+                                                     // tp_flags
     0,                                               // tp_doc
     (traverseproc)Nuitka_Generator_tp_traverse,      // tp_traverse
     0,                                               // tp_clear

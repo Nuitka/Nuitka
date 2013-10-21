@@ -1377,6 +1377,12 @@ extern void patchBuiltinModule( void );
 // for "==" and "!=", but not for "is" checks.
 extern void patchTypeComparison( void );
 
+#if PYTHON_VERSION < 300
+// Initialize value for tp_compare default.
+extern cmpfunc DefaultSlotCompare;
+extern void initSlotCompare( void );
+#endif
+
 #if PYTHON_VERSION >= 300
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
 {
