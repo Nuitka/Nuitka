@@ -675,6 +675,11 @@ else:
 if optimize_mode:
     if gcc_mode:
         env.Append( CCFLAGS = [ "-O3" ] )
+
+        # Check inlining of calls, except in debug mode, where it will all be
+        # wrong due to additional code.
+        # if not debug_mode:
+        #     env.Append( CCFLAGS = [ "-Winline" ] )
     elif msvc_mode:
         env.Append( CCFLAGS = [ "/Ox" ] )
 
