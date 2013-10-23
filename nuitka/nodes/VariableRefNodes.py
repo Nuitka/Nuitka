@@ -94,7 +94,11 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
         if _isReadOnlyUnterdeterminedModuleVariable( self.variable ):
             constraint_collection.assumeUnclearLocals()
-            constraint_collection.signalChange( "new_expression", self.source_ref, "Unclear module variable delays processing." )
+            constraint_collection.signalChange(
+                "new_expression",
+                self.source_ref,
+                "Unclear module variable delays processing."
+            )
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
@@ -107,7 +111,10 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
                 # TODO: More like "removed_variable and new_constant" probably
                 change_tags = "new_builtin"
-                change_desc = "Module variable '%s' found to be builtin exception reference." % self.variable_name
+                change_desc = """\
+Module variable '%s' found to be builtin exception reference.""" % (
+                    self.variable_name
+                )
             elif self.variable_name in Builtins.builtin_names:
                 from .BuiltinRefNodes import ExpressionBuiltinRef
 
@@ -118,15 +125,20 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
                 # TODO: More like "removed_variable and new_constant" probably
                 change_tags = "new_builtin"
-                change_desc = "Module variable '%s' found to be builtin reference." % self.variable_name
+                change_desc = """\
+Module variable '%s' found to be builtin reference.""" % (
+                    self.variable_name
+                )
             elif self.variable_name == "__name__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().getFullName(),
+                    constant   = self.variable.getReferenced().getOwner().\
+                        getFullName(),
                     source_ref = self.getSourceReference()
                 )
 
                 change_tags = "new_constant"
-                change_desc = "Replaced read-only module attribute '__name__' with constant value."
+                change_desc = """\
+Replaced read-only module attribute '__name__' with constant value."""
             elif self.variable_name == "__package__":
                 new_node = ExpressionConstantRef(
                     constant   = self.variable.getReferenced().getOwner().getPackage(),

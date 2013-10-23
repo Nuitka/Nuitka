@@ -199,7 +199,6 @@ class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
 
             return result, "new_raise", "Dictionary value raises exception"
 
-
         return self, None, None
 
 

@@ -62,9 +62,18 @@ def buildFunctionNode( provider, node, source_ref ):
     # Hack:
     function_body.parent = provider
 
-    decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
+    decorators = buildNodeList(
+        provider   = provider,
+        nodes      = reversed( node.decorator_list ),
+        source_ref = source_ref
+    )
 
-    defaults = buildNodeList( provider, node.args.defaults, source_ref )
+    defaults = buildNodeList(
+        provider   = provider,
+        nodes      = node.args.defaults,
+        source_ref = source_ref
+    )
+
     kw_defaults = buildParameterKwDefaults(
         provider, node, function_body, source_ref
     )

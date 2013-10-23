@@ -1232,11 +1232,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
     assertObject( list );
-
     assert( PyList_CheckExact( list ) );
 
     Py_ssize_t size = PyList_GET_SIZE( list );
-
     PyObject *result = PyList_New( size );
 
     if (unlikely( result == NULL ))

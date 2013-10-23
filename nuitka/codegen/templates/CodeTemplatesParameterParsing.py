@@ -205,7 +205,7 @@ else
             }
         }
 #else
-    if ( _PyDict_HasSplitTable( ((PyDictObject *)kw) ) )
+    if ( _PyDict_HasSplitTable( (PyDictObject *)kw) )
     {
         PyDictObject *mp = (PyDictObject *)kw;
 

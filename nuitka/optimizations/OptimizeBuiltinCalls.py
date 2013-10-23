@@ -192,7 +192,8 @@ def dict_extractor( node ):
     # The dict is a bit strange in that it accepts a position parameter, or not,
     # but won't have a default.
 
-    def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg, source_ref ):
+    def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg,
+                                           source_ref ):
         if len( positional_args ) > 1:
             from nuitka.nodes.NodeMakingHelpers import (
                 makeRaiseExceptionReplacementExpressionFromInstance,
@@ -202,7 +203,9 @@ def dict_extractor( node ):
             result = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = node,
                 exception      = TypeError(
-                    "dict expected at most 1 arguments, got %d" % len( positional_args )
+                    "dict expected at most 1 arguments, got %d" % (
+                        len( positional_args )
+                    )
                 )
             )
 
@@ -530,7 +533,8 @@ def super_extractor( node ):
                 )
             )
 
-            from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpression
+            from nuitka.nodes.NodeMakingHelpers import \
+                makeRaiseExceptionReplacementExpression
 
             if not type.getVariable().isClosureReference():
                 return makeRaiseExceptionReplacementExpression(

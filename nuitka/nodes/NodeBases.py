@@ -671,8 +671,6 @@ class ClosureGiverNodeBase( CodeNodeBase ):
     def allocateTempKeeperVariable( self ):
         name = "keeper_%d" % len( self.keeper_variables )
 
-        from nuitka import Variables
-
         result = Variables.TempKeeperVariable(
             owner         = self,
             variable_name = name

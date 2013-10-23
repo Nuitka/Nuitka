@@ -35,7 +35,9 @@ from ..Constants import HashableConstant, constant_builtin_types
 import re, struct
 
 def getConstantHandle( context, constant ):
-    return context.getConstantHandle( constant )
+    return context.getConstantHandle(
+        constant = constant
+    )
 
 def getConstantCode( context, constant ):
     constant_identifier = context.getConstantHandle(
@@ -314,15 +316,16 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
 
         return
 
-    if constant_type in ( set, frozenset, complex, unicode, int, long, bytes, range ):
-        emit(  _getUnstreamCode( constant_value, constant_identifier ) )
+    if constant_type in ( set, frozenset, complex, unicode, int, long, bytes,
+                          range ):
+        emit( _getUnstreamCode( constant_value, constant_identifier ) )
 
         return
 
     if constant_value in constant_builtin_types:
         return
 
-    assert False, (type(constant_value), constant_value, constant_identifier)
+    assert False, ( type(constant_value), constant_value, constant_identifier )
 
 def _lengthKey( value ):
     return len( value[1] ), value[1]

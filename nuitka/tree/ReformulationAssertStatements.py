@@ -15,7 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of assert statements.
 
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
 from nuitka import Utils
 
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -30,20 +35,21 @@ from nuitka.nodes.ConditionalNodes import StatementConditional
 from .Helpers import buildNode
 
 def buildAssertNode( provider, node, source_ref ):
-    # Build assert statements. These are re-formulated as described in the developer
-    # manual too. They end up as conditional statement with raises of AssertionError
-    # exceptions.
+    # Build assert statements. These are re-formulated as described in the
+    # developer manual too. They end up as conditional statement with raises of
+    # AssertionError exceptions.
 
     # Underlying assumption:
     #
     # Assert x, y is the same as:
     # if not x:
     #     raise AssertionError, y
+
+    # Therefore assert statements are really just conditional statements with a
+    # static raise contained.
     #
-    # Therefore assert statements are really just conditional statements with a static
-    # raise contained.
-    #
-    # Starting with CPython2.7, it is:
+    # Starting with CPython2.7, it is, which means the creation of the exception
+    # object is no more delayed:
     # if not x:
     #     raise AssertionError( y )
 
@@ -62,7 +68,9 @@ def buildAssertNode( provider, node, source_ref ):
         raise_statement = StatementRaiseException(
             exception_type  =  ExpressionBuiltinMakeException(
                 exception_name = "AssertionError",
-                args           = ( buildNode( provider, node.msg, source_ref, True ), ),
+                args           = (
+                    buildNode( provider, node.msg, source_ref, True ),
+                ),
                 source_ref     = source_ref
             ),
             exception_value = None,

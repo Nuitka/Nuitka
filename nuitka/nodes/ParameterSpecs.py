@@ -61,7 +61,11 @@ class ParameterSpecTuple:
 
         for count, normal_arg in enumerate( self.normal_args ):
             if type( normal_arg ) == str:
-                normal_variable = Variables.ParameterVariable( self.owner, normal_arg, False )
+                normal_variable = Variables.ParameterVariable(
+                    owner          = self.owner,
+                    parameter_name = normal_arg,
+                    kw_only        = False
+                )
             elif type( normal_arg ) == tuple:
                 sub_parameter_spec = ParameterSpecTuple(
                     normal_args = normal_arg,
@@ -75,9 +79,9 @@ class ParameterSpecTuple:
                 )
 
                 normal_variable = Variables.NestedParameterVariable(
-                    self.owner,
-                    sub_parameter_name,
-                    sub_parameter_spec
+                    owner          = self.owner,
+                    parameter_name = sub_parameter_name,
+                    parameter_spec = sub_parameter_spec
                 )
             else:
                 assert False, normal_arg
@@ -137,7 +141,8 @@ class ParameterSpecTuple:
 
 
 class ParameterSpec( ParameterSpecTuple ):
-    def __init__( self, name, normal_args, kw_only_args, list_star_arg, dict_star_arg, default_count ):
+    def __init__( self, name, normal_args, kw_only_args, list_star_arg,
+                  dict_star_arg, default_count ):
         assert None not in normal_args
 
         self.name = name
@@ -145,6 +150,11 @@ class ParameterSpec( ParameterSpecTuple ):
         self.nest_count = 1
 
         ParameterSpecTuple.__init__( self, normal_args )
+
+        assert list_star_arg is None or type( list_star_arg ) is str, \
+          list_star_arg
+        assert dict_star_arg is None or type( dict_star_arg ) is str, \
+          dict_star_arg
 
         self.list_star_arg = list_star_arg
         self.dict_star_arg = dict_star_arg
@@ -196,7 +206,11 @@ class ParameterSpec( ParameterSpecTuple ):
             self.list_star_variable = None
 
         if self.dict_star_arg:
-            self.dict_star_variable = Variables.ParameterVariable( owner, self.dict_star_arg, False )
+            self.dict_star_variable = Variables.ParameterVariable(
+                owner          = owner,
+                parameter_name = self.dict_star_arg,
+                kw_only        = False
+            )
         else:
             self.dict_star_variable = None
 
@@ -216,7 +230,8 @@ class ParameterSpec( ParameterSpecTuple ):
         return result[ len( self.normal_args ) - self.default_count : ]
 
     def getDefaultParameterNames( self ):
-        return self.normal_args[ len( self.normal_args ) - self.default_count : ]
+        return self.normal_args[ \
+            len( self.normal_args ) - self.default_count : ]
 
     def getDefaultCount( self ):
         return self.default_count
