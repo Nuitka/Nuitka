@@ -20,17 +20,21 @@
 """
 
 from .Pickling import getStreamedConstant
-from .CppStrings import encodeString
 
 from .TupleCodes import addMakeTupleUse
 from .ListCodes import addMakeListUse
 from .DictCodes import addMakeDictUse
 
+
+from .Identifiers import (
+    EmptyDictIdentifier,
+    Identifier
+)
 # pylint: disable=W0622
 from ..__past__ import unicode, long, iterItems
 # pylint: enable=W0622
 
-from ..Constants import HashableConstant, constant_builtin_types
+from ..Constants import HashableConstant, constant_builtin_types, isMutable
 
 import re, struct
 
@@ -432,3 +436,108 @@ def getConstantsDeclCode( context, for_header ):
         the_contained_constants = contained_constants
 
     return statements
+
+def getConstantAccess( context, constant ):
+    # Many cases, because for each type, we may copy or optimize by creating
+    # empty.  pylint: disable=R0911
+
+    if type( constant ) is dict:
+        if constant:
+            for key, value in iterItems( constant ):
+                # key cannot be mutable.
+                assert not isMutable( key )
+                if isMutable( value ):
+                    needs_deep = True
+                    break
+            else:
+                needs_deep = False
+
+            if needs_deep:
+                return Identifier(
+                    "DEEP_COPY( %s )" % getConstantCode(
+                        constant = constant,
+                        context  = context
+                    ),
+                    1
+                )
+            else:
+                return Identifier(
+                    "PyDict_Copy( %s )" % getConstantCode(
+                        constant = constant,
+                        context  = context
+                    ),
+                    1
+                )
+
+        else:
+            return EmptyDictIdentifier()
+    elif type( constant ) is set:
+        if constant:
+            return Identifier(
+                "PySet_New( %s )" % getConstantCode(
+                    constant = constant,
+                    context  = context
+                ),
+                1
+            )
+        else:
+            return Identifier(
+                "PySet_New( NULL )",
+                1
+            )
+    elif type( constant ) is list:
+        if constant:
+            for value in constant:
+                if isMutable( value ):
+                    needs_deep = True
+                    break
+            else:
+                needs_deep = False
+
+            if needs_deep:
+                return Identifier(
+                    "DEEP_COPY( %s )" % getConstantCode(
+                        constant = constant,
+                        context  = context
+                    ),
+                    1
+                )
+            else:
+                return Identifier(
+                    "LIST_COPY( %s )" % getConstantCode(
+                        constant = constant,
+                        context  = context
+                    ),
+                    1
+                )
+        else:
+            return Identifier(
+                "PyList_New( 0 )",
+                1
+            )
+    elif type( constant ) is tuple:
+        for value in constant:
+            if isMutable( value ):
+                needs_deep = True
+                break
+        else:
+            needs_deep = False
+
+        if needs_deep:
+            return Identifier(
+                "DEEP_COPY( %s )" % getConstantCode(
+                    constant = constant,
+                    context  = context
+                ),
+                1
+            )
+        else:
+            return getConstantHandle(
+                context  = context,
+                constant = constant
+            )
+    else:
+        return getConstantHandle(
+            context  = context,
+            constant = constant
+        )

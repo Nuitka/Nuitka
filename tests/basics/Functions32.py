@@ -98,7 +98,7 @@ print( kwonlyfunc.__kwdefaults__ )
 print( "Keyword only function" )
 kwonlyfunc( 7, a = 8, d = 12 )
 
-print( "Annotations come out as", kwonlyfunc.__annotations__ )
+print( "Annotations come out as", sorted( kwonlyfunc.__annotations__ ) )
 kwonlyfunc.__annotations__ = {}
 print( "After updating to None it is", kwonlyfunc.__annotations__ )
 

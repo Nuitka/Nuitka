@@ -37,6 +37,7 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBool,
     ExpressionBuiltinInt,
     ExpressionBuiltinStr,
+    ExpressionBuiltinSet
 )
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinBin,
@@ -321,6 +322,13 @@ def list_extractor( node ):
         node          = node,
         builtin_class = ExpressionBuiltinList,
         builtin_spec  = BuiltinOptimization.builtin_list_spec
+    )
+
+def set_extractor( node ):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = ExpressionBuiltinSet,
+        builtin_spec  = BuiltinOptimization.builtin_set_spec
     )
 
 def float_extractor( node ):
@@ -636,6 +644,7 @@ _dispatch_dict = {
     "tuple"      : tuple_extractor,
     "list"       : list_extractor,
     "dict"       : dict_extractor,
+    "set"        : set_extractor,
     "float"      : float_extractor,
     "str"        : str_extractor,
     "bool"       : bool_extractor,

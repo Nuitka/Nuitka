@@ -216,3 +216,24 @@ class HashableConstant:
         assert isinstance( other, self.__class__ )
 
         return compareConstants( self.constant, other.constant )
+
+
+def createConstantDict( keys, values, lazy_order ):
+    if lazy_order:
+        constant_value = {}
+
+        keys = list(keys)
+        keys.reverse()
+
+        values = list(values)
+        values.reverse()
+    else:
+        constant_value = dict.fromkeys(
+            [ key for key in keys ],
+            None
+        )
+
+    for key, value in zip( keys, values ):
+        constant_value[ key ] = value
+
+    return constant_value

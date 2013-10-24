@@ -188,6 +188,7 @@ def buildParameterKwDefaults( provider, node, function_body, source_ref ):
             kw_defaults = makeDictCreationOrConstant(
                 keys       = keys,
                 values     = values,
+                lazy_order = False,
                 source_ref = source_ref
             )
         else:
@@ -265,6 +266,7 @@ def buildParameterAnnotations( provider, node, source_ref ):
         return makeDictCreationOrConstant(
             keys       = keys,
             values     = values,
+            lazy_order = False,
             source_ref = source_ref
         )
     else:

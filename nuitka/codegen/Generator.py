@@ -73,16 +73,18 @@ from .CallCodes import (
     getCallsDecls,
     getCallsCode
 )
-# imported from here pylint: enable=W0611
 
 from .ConstantCodes import (
     getConstantsInitCode,
     getConstantsDeclCode,
+    getConstantAccess,
     getConstantHandle,
     getConstantCode,
     needsPickleInit,
     encodeStreamData
 )
+
+# imported from here pylint: enable=W0611
 
 # These are here to be imported from here
 # pylint: disable=W0611
@@ -123,55 +125,6 @@ from nuitka import (
 from ..__past__ import iterItems
 
 import sys
-
-def getConstantAccess( context, constant ):
-    # Many cases, because for each type, we may copy or optimize by creating
-    # empty.  pylint: disable=R0911
-
-    if type( constant ) is dict:
-        if constant:
-            return Identifier(
-                "PyDict_Copy( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                ),
-                1
-            )
-        else:
-            return EmptyDictIdentifier()
-    elif type( constant ) is set:
-        if constant:
-            return Identifier(
-                "PySet_New( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                ),
-                1
-            )
-        else:
-            return Identifier(
-                "PySet_New( NULL )",
-                1
-            )
-    elif type( constant ) is list:
-        if constant:
-            return Identifier(
-                "LIST_COPY( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                ),
-                1
-            )
-        else:
-            return Identifier(
-                "PyList_New( 0 )",
-                1
-            )
-    else:
-        return getConstantHandle(
-            context  = context,
-            constant = constant
-        )
 
 def _defaultToNullIdentifier( identifier ):
     if identifier is not None:
@@ -1790,6 +1743,9 @@ def getBuiltinTupleCode( identifier ):
 
 def getBuiltinListCode( identifier ):
     return HelperCallIdentifier( "TO_LIST", identifier )
+
+def getBuiltinSetCode( identifier ):
+    return HelperCallIdentifier( "TO_SET", identifier )
 
 def getBuiltinDictCode( seq_identifier, dict_identifier ):
     if dict_identifier.isConstantIdentifier() and dict_identifier.getConstant() == {}:

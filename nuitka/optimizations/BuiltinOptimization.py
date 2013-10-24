@@ -186,6 +186,8 @@ builtin_dict_spec = BuiltinParameterSpec( "dict", (), 0, "list_args", "dict_args
 builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
 builtin_tuple_spec = BuiltinParameterSpec( "tuple", ( "sequence", ), 1 )
 builtin_list_spec = BuiltinParameterSpec( "list", ( "sequence", ), 1 )
+builtin_set_spec = BuiltinParameterSpecNoKeywords( "set", ( "iterable", ), 1 )
+
 builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "locals", "fromlist", "level" ), 4 )
 builtin_open_spec = BuiltinParameterSpec( "open", ( "name", "mode", "buffering" ), 2 )
 builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 0 )

@@ -345,6 +345,7 @@ def _buildClassNode3( provider, node, source_ref ):
                     for keyword in
                     node.keywords
                 ],
+                lazy_order = False,
                 source_ref = source_ref
             ),
             source_ref = source_ref

@@ -728,7 +728,7 @@ def generateCallCode( call_node, context ):
                    ( None, ) * len( call_args.getConstant() ),
                 called_identifier = called_identifier,
                 arguments         = [
-                    Generator.getConstantHandle(
+                    Generator.getConstantAccess(
                         constant = element,
                         context  = context
                     )
@@ -1263,6 +1263,10 @@ def _generateExpressionCode( expression, context, allow_none ):
                 pairs    = expression.getNamedArgumentPairs(),
                 context  = context
             )
+        )
+    elif expression.isExpressionBuiltinSet():
+        identifier = Generator.getBuiltinSetCode(
+            identifier = makeExpressionCode( expression.getValue() )
         )
     elif Utils.python_version < 300 and expression.isExpressionBuiltinStr():
         identifier = Generator.getBuiltinStrCode(

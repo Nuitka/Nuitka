@@ -2435,3 +2435,169 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
 }
 
 #endif
+
+PyObject *DEEP_COPY( PyObject *value )
+{
+    if ( PyDict_Check( value ) )
+    {
+        // For Python3.3, this can be done much faster in the same way as it is
+        // done in parameter parsing.
+
+#if PYTHON_VERSION < 330
+        PyObject *result = _PyDict_NewPresized( ((PyDictObject *)value)->ma_used  );
+
+        for ( Py_ssize_t i = 0; i <= ((PyDictObject *)value)->ma_mask; i++ )
+        {
+            PyDictEntry *entry = &((PyDictObject *)value)->ma_table[ i ];
+
+            if ( entry->me_value != NULL )
+            {
+                int res = PyDict_SetItem(
+                    result,
+                    entry->me_key,
+                    PyObjectTemporary( DEEP_COPY( entry->me_value ) ).asObject0()
+                );
+
+                if (unlikely( res == -1 ))
+                {
+                    throw PythonException();
+                }
+            }
+        }
+
+        return result;
+#else
+        if ( _PyDict_HasSplitTable( (PyDictObject *)value) )
+        {
+            PyDictObject *mp = (PyDictObject *)value;
+
+            PyObject **newvalues = PyMem_NEW( PyObject *, mp->ma_keys->dk_size );
+            assert (newvalues != NULL);
+
+            PyDictObject *result = PyObject_GC_New( PyDictObject, &PyDict_Type );
+            assert( result != NULL );
+
+            result->ma_values = newvalues;
+            result->ma_keys = mp->ma_keys;
+            result->ma_used = mp->ma_used;
+
+            mp->ma_keys->dk_refcnt += 1;
+
+            Nuitka_GC_Track( result );
+
+            int size = mp->ma_keys->dk_size;
+            for ( Py_ssize_t i = 0; i < size; i++ )
+            {
+                PyDictKeyEntry *entry = &result->ma_keys->dk_entries[ i ];
+
+                if ( mp->ma_values[ i ] )
+                {
+                    result->ma_values[ i ] = DEEP_COPY( mp->ma_values[ i ] );
+                }
+                else
+                {
+                    result->ma_values[ i ] = NULL;
+                }
+            }
+
+            return (PyObject *)result;
+        }
+        else
+        {
+            PyObject *result = _PyDict_NewPresized( ((PyDictObject *)value)->ma_used  );
+
+            PyDictObject *mp = (PyDictObject *)value;
+
+            int size = mp->ma_keys->dk_size;
+            for ( Py_ssize_t i = 0; i < size; i++ )
+            {
+                PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+
+                PyObject *value;
+
+                if ( mp->ma_values )
+                {
+                    value = mp->ma_values[ i ];
+                }
+                else
+                {
+                    value = entry->me_value;
+                }
+
+                if ( value != NULL )
+                {
+                    int res = PyDict_SetItem(
+                        result,
+                        entry->me_key,
+                        PyObjectTemporary( DEEP_COPY( value ) ).asObject0()
+                    );
+                }
+            }
+
+            return result;
+        }
+#endif
+    }
+    else if ( PyTuple_Check( value ) )
+    {
+        Py_ssize_t n = PyTuple_Size( value );
+        PyObject *result = PyTuple_New( n );
+
+        for( Py_ssize_t i = 0; i < n; i++ )
+        {
+            PyTuple_SET_ITEM( result, i, DEEP_COPY( PyTuple_GET_ITEM( value, i ) ) );
+        }
+
+        return result;
+    }
+    else if ( PyList_Check( value ) )
+    {
+        Py_ssize_t n = PyList_GET_SIZE( value );
+        PyObject *result = PyList_New( n );
+
+        for( Py_ssize_t i = 0; i < n; i++ )
+        {
+            PyList_SET_ITEM( result, i, DEEP_COPY( PyList_GET_ITEM( value, i ) ) );
+        }
+
+        return result;
+    }
+    else if ( PySet_Check( value ) )
+    {
+        // Sets cannot contain unhashable types, so they must be immutable.
+        return PySet_New( value );
+    }
+    else if (
+#if PYTHON_VERSION < 300
+        PyString_Check( value ) ||
+#endif
+        PyUnicode_Check( value ) ||
+#if PYTHON_VERSION < 300
+        PyInt_Check( value ) ||
+#endif
+        PyLong_Check( value ) ||
+        value == Py_None ||
+        PyBool_Check( value ) ||
+        PyFloat_Check( value ) ||
+        PyBytes_Check( value ) ||
+#if PYTHON_VERSION >= 300
+        PyRange_Check( value ) ||
+#endif
+        PyType_Check( value ) ||
+        PyComplex_Check( value )
+
+        )
+    {
+        return INCREASE_REFCOUNT( value );
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "DEEP_COPY does not implement: %s",
+            value->ob_type->tp_name
+        );
+
+        throw PythonException();
+    }
+}

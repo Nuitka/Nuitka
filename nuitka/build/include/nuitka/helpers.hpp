@@ -1506,4 +1506,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE( PyObject **elements, Py_ssize_
     return result;
 }
 
+// Make a deep copy of an object.
+extern PyObject *DEEP_COPY( PyObject *value );
+
 #endif
