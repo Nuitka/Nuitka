@@ -95,7 +95,7 @@ def setupPlayground( commit_id ):
     # Unpack from git into playground.
     subprocess.check_output( ( "git archive --format=tar %s | tar xf -" % commit_id ), shell = True )
 
-    if commit_id not in ( "develop", ):
+    if commit_id not in ( "develop", "factory", ):
         search_id = commit_id
 
         if search_id[-1].isalpha():
@@ -312,12 +312,17 @@ def setNuitkaVersions():
 
     # false alarm, pylint: disable=E1103
 
-    # These were too bad for one reason of the other.
-    blacklist = ( "0.3.12c", "0.3.11", "0.3.11a", "0.3.11b", "0.3.11c" )
+    # These were technically too bad for one reason of the other.
+    blacklist = [ "0.3.12c", "0.3.11", "0.3.11a", "0.3.11b", "0.3.11c" ]
 
     # Collect the versions.
-    nuitka_versions = [ tag.name for tag in repo.tags if tag.name not in blacklist ]
-    nuitka_versions.append( "develop" )
+    nuitka_versions = [
+        tag.name
+        for tag in
+        repo.tags
+        if tag.name not in blacklist
+    ]
+    nuitka_versions += [ "develop", "factory" ]
 
     result = []
 
@@ -599,12 +604,15 @@ def createGraphs():
     mempeaks_pystone_27 = []
 
     def isInterestingVersion( name ):
-        if name in ( "master", "develop", "0.3.13a" ):
+        # These are always interesting.
+        if name in ( "master", "develop", "factory", "0.3.13a" ):
             return True
 
+        # Ignore older versions entirely.
         if name[-1].isalpha():
             return False
 
+        # Ignore hotfixes entirely.
         if name.count( "." ) == 3:
             return False
 
