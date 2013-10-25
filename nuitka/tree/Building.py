@@ -176,6 +176,12 @@ def buildVariableReferenceNode( provider, node, source_ref ):
         source_ref    = source_ref
     )
 
+# Python3.4 only, True and False, are not given as variables anymore.
+def buildNamedConstantNode( node, source_ref ):
+    return ExpressionConstantRef(
+        constant   = node.value,
+        source_ref = source_ref
+    )
 
 def buildSequenceCreationNode( provider, node, source_ref ):
     return makeSequenceCreationOrConstant(
@@ -792,6 +798,7 @@ setBuildDispatchers(
         "IfExp"        : buildConditionalExpressionNode,
     },
     path_args2 = {
+        "NameConstant" : buildNamedConstantNode,
         "Import"       : buildImportModulesNode,
         "Str"          : buildStringNode,
         "Num"          : buildNumberNode,

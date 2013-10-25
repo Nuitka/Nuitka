@@ -184,7 +184,6 @@ def buildParameterKwDefaults( provider, node, function_body, source_ref ):
                         buildNode( provider, kw_default, source_ref )
                     )
 
-
             kw_defaults = makeDictCreationOrConstant(
                 keys       = keys,
                 values     = values,
@@ -239,21 +238,27 @@ def buildParameterAnnotations( provider, node, source_ref ):
     for arg in node.args.kwonlyargs:
         extractArg( arg )
 
-    if node.args.varargannotation is not None:
-        addAnnotation(
-            key   = node.args.vararg,
-            value = buildNode(
-                provider, node.args.varargannotation, source_ref
+    if Utils.python_version < 340:
+        if node.args.varargannotation is not None:
+            addAnnotation(
+                key   = node.args.vararg,
+                value = buildNode(
+                    provider, node.args.varargannotation, source_ref
+                )
             )
-        )
 
-    if node.args.kwargannotation is not None:
-        addAnnotation(
-            key   = node.args.kwarg,
-            value = buildNode(
-                provider, node.args.kwargannotation, source_ref
+        if node.args.kwargannotation is not None:
+            addAnnotation(
+                key   = node.args.kwarg,
+                value = buildNode(
+                    provider, node.args.kwargannotation, source_ref
+                )
             )
-        )
+    else:
+        if node.args.vararg is not None:
+            extractArg( node.args.vararg )
+        if node.args.kwarg is not None:
+            extractArg( node.args.kwarg )
 
     # Return value annotation (not there for lambdas)
     if hasattr( node, "returns" ) and node.returns is not None:
@@ -278,7 +283,9 @@ def buildParameterSpec( name, node, source_ref ):
     assert kind in ( "FunctionDef", "Lambda" ), "unsupported for kind " + kind
 
     def extractArg( arg ):
-        if getKind( arg ) == "Name":
+        if type( arg ) is str or arg is None:
+            return arg
+        elif getKind( arg ) == "Name":
             return arg.id
         elif getKind( arg ) == "arg":
             return arg.arg
@@ -293,8 +300,8 @@ def buildParameterSpec( name, node, source_ref ):
         kw_only_args   = [ extractArg( arg ) for arg in node.args.kwonlyargs ]
                            if Utils.python_version >= 300 else
                          [],
-        list_star_arg  = node.args.vararg,
-        dict_star_arg  = node.args.kwarg,
+        list_star_arg  = extractArg( node.args.vararg ),
+        dict_star_arg  = extractArg( node.args.kwarg ),
         default_count  = len( node.args.defaults )
     )
 
