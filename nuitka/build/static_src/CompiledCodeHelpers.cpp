@@ -776,7 +776,7 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
             PyString_AsStringAndSize( object, &buffer, &length );
         assert( status != -1 );
 
-        softspace = length > 0 && buffer[ length - 1 ] == '\t';
+        softspace = length > 0 && ( buffer[ length - 1 ] == '\t' || buffer[ length - 1 ] == '\n' );
     }
     else
     {

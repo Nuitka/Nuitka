@@ -42,3 +42,8 @@ except Exception, e:
     print "then occured", repr(e)
 
 print "No newline at the end",
+
+x = 1
+print """
+New line is no soft space, is it
+""", x
