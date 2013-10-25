@@ -170,10 +170,8 @@ def isMutable( constant ):
         else:
             return False
     elif constant is Ellipsis:
-        # Note: Workaround for Ellipsis not being handled by the pickle module,
-        # pretend it would be mutable, then it doesn't get pickled as part of
-        # lists or tuples. This is a loss of efficiency, but usage of Ellipsis
-        # will be very limited normally anyway.
+        return False
+    elif constant in constant_builtin_types:
         return True
     else:
         assert False, constant_type

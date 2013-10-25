@@ -192,6 +192,9 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
     if constant_value is True:
         return
 
+    if constant_value is Ellipsis:
+        return
+
     if constant_type is dict:
         if constant_value == {}:
             emit( "%s = PyDict_New();" % constant_identifier )
@@ -376,6 +379,9 @@ def getConstantsDeclCode( context, for_header ):
             return
 
         if constant_value is True:
+            return
+
+        if constant_value is Ellipsis:
             return
 
         constant_type = type( constant_value )
