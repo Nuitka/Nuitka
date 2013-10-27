@@ -578,6 +578,8 @@ class TempVariable( Variable ):
 
         self.needs_free = None
 
+        self.delete_statement = None
+
     def __repr__( self ):
         return "<TempVariable '%s' of '%s'>" % (
             self.getName(),
@@ -620,6 +622,12 @@ class TempVariable( Variable ):
 
     def markAsDeclared( self ):
         self.late_declared = True
+
+    def markAsDeleteScope( self, delete_statement ):
+        self.delete_statement = delete_statement
+
+    def getDeleteScope( self ):
+        return self.delete_statement
 
     def isDeclared( self ):
         return self.late_declared

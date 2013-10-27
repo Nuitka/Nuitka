@@ -25,6 +25,35 @@ declaration.
 
 from .FinalizeBase import FinalizationVisitorBase
 
+def selectStatement( one, two, mode ):
+    merge = []
+
+    for c1, c2 in zip( one, two ):
+        if c1 is not c2:
+            break
+
+        merge.append( c1 )
+
+    # print( "M", merge )
+    # If it's both in an expression, go up until it's a statement.
+    if merge[-1].isExpression():
+        while merge[-1].isExpression():
+            del merge[-1]
+    elif merge[-1].isStatementsSequence():
+        if len( one ) > len( merge ):
+            c1 = one[ len( merge )  ]
+            c2 = two[ len( merge )  ]
+
+            statements = merge[-1].getStatements()
+            if statements.index( c1 ) < statements.index( c2 ):
+                merge.append( c1 if mode else c2 )
+            else:
+                merge.append( c2 if mode else c1 )
+
+    assert None not in merge
+
+    return merge
+
 class FinalizeVariableVisibility( FinalizationVisitorBase ):
     def onEnterNode( self, node ):
         collection = node.collection
@@ -77,49 +106,36 @@ class FinalizeVariableVisibility( FinalizationVisitorBase ):
             assert variable.getNeedsFree() is None
             variable.setNeedsFree( needs_free )
 
-            best = None
+            # Determine the first and last useing statements for a variable,
+            # which means for scopes that late initialisation might be used, or
+            # RAII style release.
+            first = None
+            last = None
+
             for use in uses:
                 other = use.getParents()
 
-                if best is None:
-                    best = other
+                if first is None:
+                    first = other
                 else:
-                    merge = []
+                    first = selectStatement( first, other, True )
 
-                    l = None
+                if last is None:
+                    last = other
+                else:
+                    last = selectStatement( last, other, False )
 
-                    for b, o in zip( best, other ):
-                        if b is not o:
-                            break
+            if first is not None and first[-1].isStatementAssignmentVariable():
+                assigned_to = first[-1].getTargetVariableRef().getVariable()
 
-                        merge.append( b )
-                        l = b
+                if assigned_to.isReference():
+                    assigned_to = assigned_to.getReferenced()
 
-                    while True:
-                        if merge[-1].isStatement():
-                            break
-                        elif merge[-1].isStatementsSequence():
-                            statements = merge[-1].getStatements()
+                assert assigned_to is variable, ( variable, assigned_to )
 
-                            # print use, best, other
+                variable.markAsNeedsLateDeclaration()
 
-                            c1 = best[ len( merge ) ]
-                            c2 = other[ len( merge ) ]
+                assert last is not None
 
-                            if statements.index( c1 ) < statements.index( c2 ):
-                                merge.append( c1 )
-                            else:
-                                merge.append( c2 )
-
-                            break
-                        elif merge[-1].isExpression():
-                            while merge[-1].isExpression():
-                                del merge[-1]
-                        else:
-                            assert False, merge[-1]
-
-                    best = merge
-                    assert None not in merge
-
-            if best is not None and best[-1].isStatementAssignmentVariable():
-                best[-1].getTargetVariableRef().getVariable().getReferenced().markAsNeedsLateDeclaration()
+                if last[-1].isStatementDelVariable():
+                    variable.markAsDeleteScope( last[-1] )
