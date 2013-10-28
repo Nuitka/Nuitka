@@ -693,9 +693,13 @@ old_stderr = sys.stderr
 try:
    sys.stderr = open( "/dev/null", "wb" )
 except Exception: # Windows
-   pass
-checkReferenceCount( simpleFunction63 )
-sys.stderr = old_stderr
+    checkReferenceCount( simpleFunction63 )
+else:
+    checkReferenceCount( simpleFunction63 )
+
+    new_stderr = sys.stderr
+    sys.stderr = old_stderr
+    new_stderr.close()
 
 checkReferenceCount( simpleFunction64 )
 checkReferenceCount( simpleFunction65 )

@@ -528,6 +528,9 @@ class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
 
         self.function_body = function_body
 
+        # SSA trace based information about the function.
+        self.collection = None
+
     def getDetails( self ):
         return {
             "function" : self.function_body.getCodeName()
@@ -554,10 +557,13 @@ class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
 
         from nuitka.optimizations.ConstraintCollections import ConstraintCollectionFunction
 
-        collector = ConstraintCollectionFunction( constraint_collection )
-        collector.process( self.getFunctionBody() )
+        collection = ConstraintCollectionFunction(
+            parent        = constraint_collection,
+            function_body = function_body
+        )
+        function_body.collection = collection
 
-        # TODO: Function body may know something.
+        # TODO: Function collection may now know something.
         return self, None, None
 
     def mayHaveSideEffects( self ):

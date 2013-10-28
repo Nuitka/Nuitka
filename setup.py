@@ -39,9 +39,11 @@ def find_packages():
     result = []
 
     for root, _dirnames, filenames in os.walk( "nuitka" ):
-        if "scons-2.0.1" in root:
+        # Ignore the inline copy of scons, these are not packages of Nuitka.
+        if "scons-" in root:
             continue
 
+        # Packages must contain "__init__.py" or they are merely directories.
         if "__init__.py" not in filenames:
             continue
 
@@ -113,6 +115,17 @@ def findSources():
 
     return result
 
+if os.path.exists( "/usr/bin/scons" ):
+    scons_files = []
+else:
+    scons_files = [
+        "inline_copy/*/*.py",
+        "inline_copy/*/*/*.py",
+        "inline_copy/*/*/*/*.py",
+        "inline_copy/*/*/*/*/*.py",
+        "inline_copy/*/*/*/*/*/*.py",
+    ]
+
 
 setup(
     name     = "Nuitka",
@@ -127,11 +140,6 @@ setup(
         "" : ['*.txt', '*.rst', '*.cpp', '*.hpp', '*.ui' ],
         "nuitka.build" : [
             "SingleExe.scons",
-            "inline_copy/*/*.py",
-            "inline_copy/*/*/*.py",
-            "inline_copy/*/*/*/*.py",
-            "inline_copy/*/*/*/*/*.py",
-            "inline_copy/*/*/*/*/*/*.py",
             "static_src/*.cpp",
             "static_src/*/*.cpp",
             "static_src/*/*.h",
@@ -140,7 +148,7 @@ setup(
             "include/*.hpp",
             "include/*/*.hpp",
             "include/*/*/*.hpp",
-        ],
+        ] + scons_files,
         "nuitka.gui" : [
             "dialogs/*.ui",
         ],

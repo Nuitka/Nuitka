@@ -37,6 +37,7 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBool,
     ExpressionBuiltinInt,
     ExpressionBuiltinStr,
+    ExpressionBuiltinSet
 )
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinBin,
@@ -192,7 +193,8 @@ def dict_extractor( node ):
     # The dict is a bit strange in that it accepts a position parameter, or not,
     # but won't have a default.
 
-    def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg, source_ref ):
+    def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg,
+                                           source_ref ):
         if len( positional_args ) > 1:
             from nuitka.nodes.NodeMakingHelpers import (
                 makeRaiseExceptionReplacementExpressionFromInstance,
@@ -202,7 +204,9 @@ def dict_extractor( node ):
             result = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = node,
                 exception      = TypeError(
-                    "dict expected at most 1 arguments, got %d" % len( positional_args )
+                    "dict expected at most 1 arguments, got %d" % (
+                        len( positional_args )
+                    )
                 )
             )
 
@@ -320,6 +324,13 @@ def list_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_list_spec
     )
 
+def set_extractor( node ):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = ExpressionBuiltinSet,
+        builtin_spec  = BuiltinOptimization.builtin_set_spec
+    )
+
 def float_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
@@ -409,11 +420,11 @@ if python_version < 300:
                     provider.markAsUnqualifiedExecContaining( source_ref )
 
             globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
-                provider   = provider,
-                globals    = globals,
-                locals     = locals,
-                exec_mode  = False,
-                source_ref = source_ref
+                provider     = provider,
+                globals_node = globals,
+                locals_node  = locals,
+                exec_mode    = False,
+                source_ref   = source_ref
             )
 
             return ExpressionBuiltinExecfile(
@@ -447,11 +458,11 @@ if python_version < 300:
 def eval_extractor( node ):
     def wrapEvalBuiltin( source, globals, locals, source_ref ):
         globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
-            provider   = node.getParentVariableProvider(),
-            globals    = globals,
-            locals     = locals,
-            exec_mode  = False,
-            source_ref = source_ref
+            provider     = node.getParentVariableProvider(),
+            globals_node = globals,
+            locals_node  = locals,
+            exec_mode    = False,
+            source_ref   = source_ref
         )
 
         return ExpressionBuiltinEval(
@@ -484,11 +495,11 @@ if python_version >= 300:
                     provider.markAsUnqualifiedExecContaining( source_ref )
 
             globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
-                provider   = provider,
-                globals    = globals,
-                locals     = locals,
-                exec_mode  = False,
-                source_ref = source_ref
+                provider     = provider,
+                globals_node = globals,
+                locals_node  = locals,
+                exec_mode    = False,
+                source_ref   = source_ref
             )
 
             return ExpressionBuiltinExec(
@@ -530,7 +541,8 @@ def super_extractor( node ):
                 )
             )
 
-            from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpression
+            from nuitka.nodes.NodeMakingHelpers import \
+                makeRaiseExceptionReplacementExpression
 
             if not type.getVariable().isClosureReference():
                 return makeRaiseExceptionReplacementExpression(
@@ -632,6 +644,7 @@ _dispatch_dict = {
     "tuple"      : tuple_extractor,
     "list"       : list_extractor,
     "dict"       : dict_extractor,
+    "set"        : set_extractor,
     "float"      : float_extractor,
     "str"        : str_extractor,
     "bool"       : bool_extractor,
@@ -669,11 +682,15 @@ def computeBuiltinCall( call_node, called ):
     if builtin_name in _dispatch_dict:
         new_node = _dispatch_dict[ builtin_name ]( call_node )
 
+        # Lets just have this contract to return "None" when no change is meant
+        # to be done.
+        assert new_node is not call_node
         if new_node is None:
             return call_node, None, None
 
+        # For traces, we are going to ignore side effects, and output traces
+        # only based on the basis of it.
         inspect_node = new_node
-
         if inspect_node.isExpressionSideEffects():
             inspect_node = inspect_node.getExpression()
 
@@ -735,6 +752,7 @@ def computeBuiltinCall( call_node, called ):
                 source_ref     = source_ref
             )
 
+        assert tags != ""
 
         return new_node, tags, message
     else:

@@ -26,18 +26,23 @@ assert inspect.isfunction( compiledFunction ) is True
 assert isinstance( compiledFunction, types.FunctionType )
 assert isinstance( compiledFunction, ( int, types.FunctionType ) )
 
+# Even this works.
+assert type( compiledFunction ) == types.FunctionType
+
 class compiledClass:
    def compiledMethod( self ):
       pass
 
 assert inspect.isfunction( compiledClass ) is False
-assert isinstance( compiledClass,types.FunctionType ) is False
+assert isinstance( compiledClass, types.FunctionType ) is False
 
 assert inspect.ismethod( compiledFunction ) is False
 assert inspect.ismethod( compiledClass ) is False
 
 assert inspect.ismethod( compiledClass.compiledMethod ) == ( sys.version_info < ( 3, ) )
 assert inspect.ismethod( compiledClass().compiledMethod ) is True
+
+assert bool( type( compiledClass.compiledMethod ) == types.MethodType ) == ( sys.version_info < ( 3, ) )
 
 def compiledGenerator():
    yield 1
@@ -46,6 +51,7 @@ assert inspect.isfunction( compiledGenerator ) is True
 assert inspect.isgeneratorfunction( compiledGenerator ) is True
 
 assert isinstance( compiledGenerator(), types.GeneratorType ) is True
+assert type( compiledGenerator() ) == types.GeneratorType
 assert isinstance( compiledGenerator, types.GeneratorType ) is False
 
 assert inspect.ismethod( compiledGenerator() ) is False

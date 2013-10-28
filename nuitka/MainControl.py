@@ -15,10 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" This is the main control actions of Nuitka, for use in several main programs.
+""" This is the main actions of Nuitka.
 
-This can do all the steps to translate one module to a target language using the Python
-C/API, to compile it to either an executable or an extension module.
+This can do all the steps to translate one module to a target language using
+the Python C/API, to compile it to either an executable or an extension module.
 
 """
 
@@ -94,8 +94,8 @@ def dumpTreeXML( tree ):
     TreeXML.dump( xml_root )
 
 def displayTree( tree ):
-    # Import only locally so the Qt4 dependency doesn't normally come into play when it's
-    # not strictly needed, pylint: disable=W0404
+    # Import only locally so the Qt4 dependency doesn't normally come into play
+    # when it's not strictly needed, pylint: disable=W0404
     from .gui import TreeDisplay
 
     TreeDisplay.displayTreeInspector( tree )
@@ -112,7 +112,7 @@ def getSourceDirectoryPath( main_module ):
         )
     )
 
-def getResultPath( main_module ):
+def getResultBasepath( main_module ):
     assert main_module.isPythonModule()
 
     return Options.getOutputPath(
@@ -186,7 +186,8 @@ def makeSourceDirectory( main_module ):
 
     source_dir = getSourceDirectoryPath( main_module )
 
-    # First remove old object files and old generated files, they can only do harm.
+    # First remove old object files and old generated files, they can only do
+    # harm.
     _cleanSourceDirectory( source_dir )
 
     # The global context used to generate code.
@@ -300,24 +301,26 @@ def runScons( main_module, quiet ):
 
     if hasattr( sys, "abiflags" ):
         # The Python3 for some platforms has sys.abiflags pylint: disable=E1101
-        if Options.options.python_debug is not None or hasattr( sys, "getobjects" ):
+        if Options.isPythonDebug() or \
+           hasattr( sys, "getobjects" ):
             if sys.abiflags.startswith( "d" ):
                 python_version += sys.abiflags
             else:
                 python_version += "d" + sys.abiflags
         else:
             python_version += sys.abiflags
-    elif Options.options.python_debug is not None or hasattr( sys, "getobjects" ):
-        python_version += "_d"
 
     def asBoolStr( value ):
         return "true" if value else "false"
 
     options = {
-        "name"           : Utils.basename( getTreeFilenameWithSuffix( main_module, "" ) ),
-        "result_file"    : getResultPath( main_module ),
+        "name"           : Utils.basename(
+            getTreeFilenameWithSuffix( main_module, "" )
+        ),
+        "result_name"    : getResultBasepath( main_module ),
         "source_dir"     : getSourceDirectoryPath( main_module ),
         "debug_mode"     : asBoolStr( Options.isDebug() ),
+        "python_debug"   : asBoolStr( Options.isPythonDebug() ),
         "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
@@ -326,9 +329,14 @@ def runScons( main_module, quiet ):
         "python_version" : python_version,
         "target_arch"    : Utils.getArchitecture(),
         "python_prefix"  : sys.prefix,
-        "lto_mode"       : asBoolStr( Options.isLto() ),
-        "clang_mode"     : asBoolStr( Options.isClang() )
+        "nuitka_src"     : Utils.joinpath(
+            SconsInterface.getSconsDataPath(),
+            "static_src"
+        )
     }
+
+    if Options.isLto():
+        options[ "lto_mode" ] = "true"
 
     if Options.isWindowsTarget():
         options[ "win_target" ] = "true"
@@ -339,11 +347,23 @@ def runScons( main_module, quiet ):
     if Options.isPortableMode():
         options[ "portable_mode" ] = "true"
 
+    if Options.isShowScons():
+        options[ "show_scons" ] = "true"
+
+    if Options.isMingw():
+        options[ "mingw_mode" ] = "true"
+
+    if Options.isClang():
+        options[ "clang_mode" ] = "true"
+
+    if Options.getIconPath():
+        options[ "icon_path" ] = Options.getIconPath()
+
     return SconsInterface.runScons( options, quiet ), options
 
 def writeSourceCode( filename, source_code ):
-    # Prevent accidental overwriting. When this happens the collision detection or
-    # something else has failed.
+    # Prevent accidental overwriting. When this happens the collision detection
+    # or something else has failed.
     assert not Utils.isFile( filename ), filename
 
     if Utils.python_version >= 300:
@@ -361,7 +381,10 @@ def callExec( args, clean_path, add_path ):
         os.environ[ "PYTHONPATH" ] = ""
 
     if add_path:
-        os.environ[ "PYTHONPATH" ] = os.environ.get( "PYTHONPATH", "" ) + ":" + Options.getOutputDir()
+        os.environ[ "PYTHONPATH" ] = \
+          os.environ.get( "PYTHONPATH", "" ) + \
+          ":" + \
+          Options.getOutputDir()
 
     # We better flush these, "os.execl" won't do it anymore.
     sys.stdout.flush()

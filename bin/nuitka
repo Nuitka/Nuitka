@@ -44,11 +44,22 @@ if libdir != '@' 'LIBDIR' '@':
         )
         libdir = os.path.abspath( libdir )
 
-    sys.path.insert( 0, libdir )
+    sys.path.insert(
+        0,
+        libdir
+    )
 else:
     # Unchanged, running from checkout, use the parent directory, the nuitka
     # package ought be there.
-    sys.path.insert( 0, os.path.join( os.path.dirname( __file__ ), ".." ) )
+    sys.path.insert(
+        0,
+        os.path.normpath(
+            os.path.join(
+                os.path.dirname( __file__ ),
+                ".."
+            )
+        )
+    )
 # LIBDIR trick end (marker for removal on platforms that don't need it)
 
 import logging
@@ -106,9 +117,8 @@ except (SyntaxError, IndentationError) as e:
         # False alarm, pylint: disable=E0611
         from nuitka.Utils import python_version
 
-        if python_version < 300 and python_version >= 275 and os.name != "nt":
-            complaint = "no-exist"
-        elif python_version >= 332 and os.name != "nt":
+        if ( python_version >= 332 and os.name != "nt" ) or \
+           "2.7.5+" in sys.version:
             complaint = "no-exist"
         else:
             complaint = "with BOM"
@@ -162,7 +172,7 @@ did you intend '--exe' or to use 'nuitka-python' instead.""" )
             (
                 "chmod",
                 "-x",
-                options[ "result_file" ] + ".so"
+                options[ "result_name" ] + ".so"
             )
         )
 
@@ -175,7 +185,7 @@ did you intend '--exe' or to use 'nuitka-python' instead.""" )
             )
         else:
             MainControl.executeMain(
-                binary_filename = options[ "result_file" ] + ".exe",
+                binary_filename = options[ "result_name" ] + ".exe",
                 tree            = tree,
                 clean_path      = Options.shallClearPythonPathEnvironment()
             )

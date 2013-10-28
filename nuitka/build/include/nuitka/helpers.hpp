@@ -887,7 +887,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         {
             PyObject *result = CALL_FUNCTION(
                 source_instance->in_class->cl_getattr,
-                PyObjectTemporary( MAKE_TUPLE2( source, attr_name ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE2( source, attr_name ) ).asObject0(),
                 NULL
             );
 
@@ -1010,7 +1010,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
         {
             PyObject *result = CALL_FUNCTION(
                 target_instance->in_class->cl_setattr,
-                PyObjectTemporary( MAKE_TUPLE3( target, attr_name, value ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE3( target, attr_name, value ) ).asObject0(),
                 NULL
             );
 
@@ -1232,11 +1232,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
     assertObject( list );
-
     assert( PyList_CheckExact( list ) );
 
     Py_ssize_t size = PyList_GET_SIZE( list );
-
     PyObject *result = PyList_New( size );
 
     if (unlikely( result == NULL ))
@@ -1367,13 +1365,23 @@ extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
 extern void enhancePythonTypes( void );
 
 // Parse the command line parameters and provide it to sys module.
-extern void setCommandLineParameters( int argc, char *argv[] );
+extern void setCommandLineParameters( int argc, char *argv[], bool initial );
 
 // Replace inspect functions with ones that accept compiled types too.
 extern void patchInspectModule( void );
 
 // Replace builtin functions with ones that accept compiled types too.
 extern void patchBuiltinModule( void );
+
+// Replace type comparison with one that accepts compiled types too, will work
+// for "==" and "!=", but not for "is" checks.
+extern void patchTypeComparison( void );
+
+#if PYTHON_VERSION < 300
+// Initialize value for tp_compare default.
+extern cmpfunc DefaultSlotCompare;
+extern void initSlotCompare( void );
+#endif
 
 #if PYTHON_VERSION >= 300
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
@@ -1497,5 +1505,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE( PyObject **elements, Py_ssize_
 
     return result;
 }
+
+// Make a deep copy of an object.
+extern PyObject *DEEP_COPY( PyObject *value );
 
 #endif

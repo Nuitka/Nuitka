@@ -69,7 +69,7 @@ def buildComparisonNode( provider, node, source_ref ):
             # "right" so it can be referenced by the next part that will
             # come. We do it by assining it to a temp variable to be shared with
             # the next part.
-            keeper_variable = provider.getTempKeeperVariable()
+            keeper_variable = provider.allocateTempKeeperVariable()
 
             right = ExpressionAssignmentTempKeeper(
                 variable   = keeper_variable.makeReference( provider ),

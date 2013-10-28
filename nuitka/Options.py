@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.4.5.3
+Nuitka V0.4.6
 Copyright (C) 2013 Kay Hayen."""
 
 from . import Utils
@@ -50,7 +50,8 @@ parser.add_option(
     dest    = "executable",
     default = is_nuitka_python,
     help    = """\
-Create a standalone executable instead of a compiled extension module. Default is %s.""" %
+Create a standalone executable instead of a compiled extension module. Default
+is %s.""" %
        ( "on" if is_nuitka_python else "off" )
 )
 
@@ -74,8 +75,8 @@ recurse_group.add_option(
     dest    = "recurse_none",
     default = False,
     help    = """\
-When --recurse-none is used, do not descend into any imported modules at all, overrides
-all other recursion options. Default %default."""
+When --recurse-none is used, do not descend into any imported modules at all,
+overrides all other recursion options. Default %default."""
 )
 
 recurse_group.add_option(
@@ -95,8 +96,8 @@ recurse_group.add_option(
     metavar = "MODULE/PACKAGE",
     default = [],
     help    = """\
-Recurse to that module, or if a package, to the whole package. Can be given multiple
-times. Default empty."""
+Recurse to that module, or if a package, to the whole package. Can be given
+multiple times. Default empty."""
 )
 
 recurse_group.add_option(
@@ -106,8 +107,9 @@ recurse_group.add_option(
     metavar = "MODULE/PACKAGE",
     default = [],
     help    = """\
-Do not recurse to that module, or if a package, to the whole package in any case,
-overrides all other options. Can be given multiple times. Default empty."""
+Do not recurse to that module, or if a package, to the whole package in any
+case, overrides all other options. Can be given multiple times. Default
+empty."""
 )
 
 recurse_group.add_option(
@@ -117,8 +119,9 @@ recurse_group.add_option(
     metavar = "MODULE/PACKAGE",
     default = [],
     help    = """\
-Recurse into that directory, no matter if it's used by the given main program in a
-visible form. Overrides all other options. Can be given multiple times. Default empty."""
+Recurse into that directory, no matter if it's used by the given main program
+in a visible form. Overrides all other options. Can be given multiple times.
+Default empty."""
 )
 
 parser.add_option_group( recurse_group )
@@ -134,8 +137,8 @@ execute_group.add_option(
     dest    = "immediate_execution",
     default = is_nuitka_python,
     help    = """\
-Execute immediately the created binary (or import the compiled module). Default
-is %s.""" %
+Execute immediately the created binary (or import the compiled module).
+Default is %s.""" %
        ( "on" if is_nuitka_python else "off" )
 )
 
@@ -145,8 +148,9 @@ execute_group.add_option(
     dest    = "keep_pythonpath",
     default = False,
     help    = """\
-When immediately executing the created binary (--execute), don't reset PYTHONPATH. When
-all modules are successfully included, you ought to not need PYTHONPATH anymore."""
+When immediately executing the created binary (--execute), don't reset
+PYTHONPATH. When all modules are successfully included, you ought to not need
+PYTHONPATH anymore."""
 )
 
 parser.add_option_group( execute_group )
@@ -177,7 +181,8 @@ dump_group.add_option(
     action  = "store_true",
     dest    = "display_tree",
     default = False,
-    help    = """Display the final result of optimization in a GUI, then exit."""
+    help    = """\
+Display the final result of optimization in a GUI, then exit."""
 )
 
 parser.add_option_group( dump_group )
@@ -188,7 +193,8 @@ parser.add_option(
     dest    = "python_version",
     choices = ( "2.6", "2.7", "3.2", "3.3" ),
     default = None,
-    help    = """Major version of Python to be used, one of '2.6', '2.7', or '3.2'."""
+    help    = """Major version of Python to be used, one of '2.6', '2.7',
+'3.2', or '3.3'."""
 )
 
 parser.add_option(
@@ -207,13 +213,24 @@ codegen_group = OptionGroup(
 )
 
 codegen_group.add_option(
+    "--improved", "--enhanced",
+    action  = "store_true",
+    dest    = "improved",
+    default = False,
+    help    = """\
+Allow minor devitations from CPython behaviour, e.g. better tracebacks, which
+are not really incompatible, but different.""",
+)
+
+
+codegen_group.add_option(
     "--code-gen-no-statement-lines",
     action  ="store_false",
     dest    = "statement_lines",
     default = True,
     help    = """\
-Statements shall have their line numbers set. Disable this for less precise exceptions and
-slightly faster code. Not recommended. Defaults to off."""
+Statements shall have their line numbers set. Disable this for less precise
+exceptions and slightly faster code. Not recommended. Defaults to off."""
 )
 
 codegen_group.add_option(
@@ -221,7 +238,8 @@ codegen_group.add_option(
     action  = "store_true",
     dest    = "no_optimize",
     default = False,
-    help    = """Disable all unnecessary optimizations on Python level. Defaults to off."""
+    help    = """\
+Disable all unnecessary optimizations on Python level. Defaults to off."""
 )
 
 parser.add_option_group( codegen_group )
@@ -239,7 +257,8 @@ outputdir_group.add_option(
     default = "",
     help    = """\
 Specify where intermediate and final output files should be put. DIRECTORY will
-be populated with C++ files, object files, etc. Defaults to current directory."""
+be populated with C++ files, object files, etc. Defaults to current directory.
+"""
 )
 
 outputdir_group.add_option(
@@ -314,8 +333,9 @@ debug_group.add_option(
     dest    = "cpp_only",
     default = False,
     help    = """\
-Compile the would-be regenerated source file. Allows compiling edited C++ files with the
-C++ compiler for quick debugging changes to the generated source. Defaults to off."""
+Compile the would-be regenerated source file. Allows compiling edited C++ files
+with the C++ compiler for quick debugging changes to the generated source.
+Defaults to off."""
 )
 
 debug_group.add_option(
@@ -324,8 +344,8 @@ debug_group.add_option(
     dest    = "experimental",
     default = False,
     help    = """\
-Use features declared as 'experimental'. May have no effect if no experimental features
-are present in the code. Defaults to off."""
+Use features declared as 'experimental'. May have no effect if no experimental
+features are present in the code. Defaults to off."""
 )
 
 parser.add_option_group( debug_group )
@@ -350,6 +370,16 @@ Enforce the use of clang (clang 3.0 or higher).
 Defaults to off."""
 )
 
+parser.add_option(
+    "--mingw",
+    action  = "store_true",
+    dest    = "mingw",
+    default = False,
+    help    = """\
+Enforce the use of MinGW on Windows.
+Defaults to off."""
+)
+
 tracing_group = OptionGroup(
     parser,
     "Tracing features"
@@ -361,7 +391,8 @@ tracing_group.add_option(
     dest    = "show_scons",
     default = False,
     help    = """\
-Operate Scons in non-quiet mode, showing the executed commands. Defaults to off."""
+Operate Scons in non-quiet mode, showing the executed commands.
+Defaults to off."""
 )
 
 tracing_group.add_option(
@@ -369,7 +400,8 @@ tracing_group.add_option(
     action  = "store_true",
     dest    = "show_progress",
     default = False,
-    help    = """Provide progress information and statistics. Defaults to off."""
+    help    = """Provide progress information and statistics.
+Defaults to off."""
 )
 
 tracing_group.add_option(
@@ -378,7 +410,8 @@ tracing_group.add_option(
     dest    = "verbose",
     default = False,
     help    = """\
-Output details of actions take, esp. in optimizations. Can become a lot."""
+Output details of actions take, esp. in optimizations. Can become a lot.
+Defaults to off."""
 )
 
 
@@ -391,19 +424,10 @@ parser.add_option(
     metavar = "N",
     default = Utils.getCoreCount(),
     help    = """\
-Specify the allowed number of parallel C++ compiler jobs. Defaults to the system
-CPU count.""",
+Specify the allowed number of parallel C++ compiler jobs. Defaults to the
+system CPU count.""",
 )
 
-parser.add_option(
-    "--improved",
-    action  = "store_true",
-    dest    = "improved",
-    default = False,
-    help    = """\
-Allow minor devitations from CPython behaviour, e.g. better tracebacks, which are not
-really incompatible, but different.""",
-)
 
 parser.add_option(
     "--warn-implicit-exceptions",
@@ -423,6 +447,15 @@ if False:
         help    = """\
 Enable portable mode in build.""",
     )
+
+parser.add_option(
+    "--icon",
+    action  = "store",
+    dest    = "icon_path",
+    metavar = "ICON_PATH",
+    default = None,
+    help    = """Add executable icon (windows only).""",
+)
 
 if is_nuitka_python:
     count = 0
@@ -533,6 +566,9 @@ def shallWarnImplicitRaises():
 def isDebug():
     return options.debug
 
+def isPythonDebug():
+    return options.python_debug or sys.flags.debug
+
 def isOptimize():
     return not options.no_optimize
 
@@ -572,6 +608,9 @@ def isLto():
 def isClang():
     return options.clang
 
+def isMingw():
+    return options.mingw
+
 def isWindowsTarget():
     return options.windows_target
 
@@ -597,3 +636,6 @@ def isPortableMode():
     # Temporarily disabled, until it becomes more usable.
     return False
     # return options.is_portable_mode
+
+def getIconPath():
+    return options.icon_path

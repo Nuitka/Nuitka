@@ -53,7 +53,7 @@ def getMakeDictsCode():
     for arg_count in sorted( make_dicts_used ):
         add_elements_code = []
 
-        for arg_index in reversed( range( arg_count ) ):
+        for arg_index in range( arg_count ):
             add_elements_code.append(
                 CodeTemplates.template_add_dict_element_code % {
                     "dict_key"   : "key%d" % ( arg_index + 1 ),

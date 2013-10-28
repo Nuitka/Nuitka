@@ -33,6 +33,33 @@ from .Identifiers import (
 
 from .ConstantCodes import getConstantCode
 
+def _getContextAccess( context, force_closure = False ):
+    # Context access is variant depending on if that's a created function or
+    # not. For generators, they even share closure variables in the common
+    # context.
+    if context.isPythonModule():
+        return ""
+    else:
+        function = context.getFunction()
+
+        if function.needsCreation():
+            if function.isGenerator():
+                if force_closure:
+                    return "_python_context->common_context->"
+                else:
+                    return "_python_context->"
+            else:
+                if force_closure:
+                    return "_python_context->"
+                else:
+                    return ""
+        else:
+            if function.isGenerator():
+                return "_python_context->"
+            else:
+                return ""
+
+
 def getVariableHandle( context, variable ):
     assert isinstance( variable, Variables.Variable ), variable
 
@@ -44,37 +71,33 @@ def getVariableHandle( context, variable ):
             from_context = context.getFunction().isGenerator()
         )
     elif variable.isTempVariableReference():
-        if not variable.getOwner().isStatementTempBlock():
+        variable = variable.getReferenced()
+
+        if variable.isTempVariableReference():
             variable = variable.getReferenced()
 
-        if not variable.getReferenced().getNeedsFree():
+        if variable.needsLateDeclaration():
+            from_context = ""
+        else:
+            from_context = _getContextAccess( context )
+
+        if not variable.getNeedsFree():
             return TempObjectIdentifier(
-                var_name = var_name
+                var_name     = var_name,
+                from_context = from_context
             )
         else:
             return TempVariableIdentifier(
-                var_name = var_name
+                var_name     = var_name,
+                from_context = from_context
             )
     elif variable.isClosureReference():
-        function = context.getFunction()
-
-        # Context access is variant depending on if that's a created function or
-        # not. For generators, they even share closure variables in the common
-        # context.
-        if function.needsCreation():
-            if function.isGenerator():
-                from_context = "_python_context->common_context->"
-            else:
-                from_context = "_python_context->"
-        else:
-            if function.isGenerator():
-                from_context = "_python_context->"
-            else:
-                from_context = ""
-
         return ClosureVariableIdentifier(
             var_name     = var_name,
-            from_context = from_context
+            from_context = _getContextAccess(
+                context       = context,
+                force_closure = True
+            )
         )
     elif variable.isMaybeLocalVariable():
         context.addGlobalVariableNameUsage( var_name )
@@ -129,12 +152,10 @@ def getLocalVariableInitCode( context, variable, init_from = None,
 
     if not in_context:
         if variable.isTempVariable():
-            if init_from is None:
+            assert init_from is None
+
+            if not variable.getNeedsFree():
                 result += " = " + variable.getDeclarationInitValueCode()
-            elif not variable.getNeedsFree():
-                result += " = %s" % init_from.getCodeTemporaryRef()
-            else:
-                result += "( %s )" % init_from.getCodeExportRef()
         else:
             result += "( "
 

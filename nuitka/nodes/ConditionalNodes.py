@@ -168,9 +168,10 @@ class StatementConditional( StatementChildrenHavingBase ):
                 yes_branch = None
 
         if yes_branch is not None:
-            branch_yes_collection = ConstraintCollectionBranch( constraint_collection )
-
-            branch_yes_collection.process( yes_branch )
+            branch_yes_collection = ConstraintCollectionBranch(
+                parent = constraint_collection,
+                branch = yes_branch
+            )
 
             # May have just gone away, so fetch it again.
             yes_branch = self.getBranchYes()
@@ -188,9 +189,10 @@ class StatementConditional( StatementChildrenHavingBase ):
                 no_branch = None
 
         if no_branch is not None:
-            branch_no_collection = ConstraintCollectionBranch( constraint_collection )
-
-            branch_no_collection.process( no_branch )
+            branch_no_collection = ConstraintCollectionBranch(
+                parent = constraint_collection,
+                branch = no_branch
+            )
 
             # May have just gone away, so fetch it again.
             no_branch = self.getBranchNo()
@@ -207,18 +209,6 @@ class StatementConditional( StatementChildrenHavingBase ):
             branch_no_collection
         )
 
-        if branch_yes_collection is not None and \
-           branch_no_collection is not None:
-            # TODO: Merging should be done by method.
-            constraint_collection.variables = constraint_collection.mergeBranchVariables(
-                branch_yes_collection.variables,
-                branch_no_collection.variables
-            )
-        elif branch_yes_collection is not None:
-            constraint_collection.mergeBranch( branch_yes_collection )
-        elif branch_no_collection is not None:
-            constraint_collection.mergeBranch( branch_no_collection )
-
         if yes_branch is None and no_branch is None:
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
@@ -233,7 +223,8 @@ class StatementConditional( StatementChildrenHavingBase ):
 Both branches have no effect, reduced to evaluate condition."""
 
         if yes_branch is None:
-            # Would be eliminated already, if there wasn't any "no" branch either.
+            # Would be eliminated already, if there wasn't any "no" branch
+            # either.
             assert no_branch is not None
 
             from .OperatorNodes import ExpressionOperationNOT

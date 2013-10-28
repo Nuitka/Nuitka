@@ -93,17 +93,23 @@ class StatementTryFinally( StatementChildrenHavingBase ):
         return self.return_value_exception_reraise
 
     def computeStatement( self, constraint_collection ):
-        # The tried block can be processed normally, if it is not empty already.
+        # The tried block must be considered as a branch, if it is not empty
+        # already.
         tried_statement_sequence = self.getBlockTry()
 
         # May be "None" from the outset, so guard against that, later in this
         # function we are going to remove it.
         if tried_statement_sequence is not None:
-            result = constraint_collection.onStatementsSequence( tried_statement_sequence )
+            from nuitka.optimizations.ConstraintCollections import \
+                ConstraintCollectionBranch
 
+            result = constraint_collection.onStatementsSequence(
+                tried_statement_sequence
+            )
+
+            # Might be changed.
             if result is not tried_statement_sequence:
-                self.setBlockTry( result )
-
+                tried_statement_sequence.replaceWith( result )
                 tried_statement_sequence = result
 
         final_statement_sequence = self.getBlockFinal()
@@ -113,11 +119,26 @@ class StatementTryFinally( StatementChildrenHavingBase ):
         # complex definition.
 
         if final_statement_sequence is not None:
-            # TODO: Can't really merge it yet.
-            constraint_collection.removeAllKnowledge()
+            if tried_statement_sequence is not None:
+                from nuitka.tree.Extractions import getVariablesWritten
+
+                variable_writes = getVariablesWritten(
+                    tried_statement_sequence
+                )
+
+
+                # Mark all variables as unknown that are written in the tried
+                # block, so it destroys the assumptions for loop turn around.
+                for variable, _variable_version in variable_writes:
+                    constraint_collection.markActiveVariableAsUnknown(
+                        variable = variable
+                    )
+
 
             # Then assuming no exception, the no raise block if present.
-            result = constraint_collection.onStatementsSequence( final_statement_sequence )
+            result = constraint_collection.onStatementsSequence(
+                final_statement_sequence
+            )
 
             if result is not final_statement_sequence:
                 self.setBlockFinal( result )
@@ -130,11 +151,13 @@ class StatementTryFinally( StatementChildrenHavingBase ):
         if tried_statement_sequence is None:
             # If the tried block is empty, go to the final block directly, if
             # any.
-            return final_statement_sequence, "new_statements", "Removed try/finally with empty tried block."
+            return final_statement_sequence, "new_statements", """\
+Removed try/finally with empty tried block."""
         elif final_statement_sequence is None:
             # If the final block is empty, just need to execute the tried block
             # then.
-            return tried_statement_sequence, "new_statements", "Removed try/finally with empty final block."
+            return tried_statement_sequence, "new_statements", """\
+Removed try/finally with empty final block."""
         else:
             # TODO: Can't really merge it yet.
             constraint_collection.removeAllKnowledge()
@@ -158,7 +181,9 @@ class StatementExceptHandler( StatementChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getExceptionTypes  = StatementChildrenHavingBase.childGetter( "exception_types" )
+    getExceptionTypes  = StatementChildrenHavingBase.childGetter(
+        "exception_types"
+    )
     getExceptionBranch = StatementChildrenHavingBase.childGetter( "body" )
     setExceptionBranch = StatementChildrenHavingBase.childSetter( "body" )
 
@@ -212,8 +237,8 @@ class StatementTryExcept( StatementChildrenHavingBase ):
 
                 if source.isExpressionBuiltinNext1():
                     if not source.getValue().mayRaiseException( BaseException ):
-                        # Note: Now we know the source lookup is the only thing that may
-                        # raise.
+                        # Note: Now we know the source lookup is the only thing
+                        # that may raise.
 
                         handlers = self.getExceptionHandlers()
 
@@ -248,13 +273,16 @@ class StatementTryExcept( StatementChildrenHavingBase ):
         if tried_statement_sequence is None:
             return None, "new_statements", "Removed try/except with empty tried block."
 
-        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionHandler
+        from nuitka.optimizations.ConstraintCollections import \
+            ConstraintCollectionHandler
         # The exception branches triggers in unknown state, any amount of tried
         # code may have happened. A similar approach to loops should be taken to
         # invalidate the state before.
         for handler in self.getExceptionHandlers():
-            exception_branch = ConstraintCollectionHandler( constraint_collection )
-            exception_branch.process( handler )
+            collection_exception_branch = ConstraintCollectionHandler(
+                parent  = constraint_collection,
+                handler = handler
+            )
 
         # Without exception handlers remaining, nothing else to do. They may
         # e.g. be removed as only re-raising.
@@ -263,7 +291,8 @@ class StatementTryExcept( StatementChildrenHavingBase ):
 
         # Give up, merging this is too hard for now, any amount of the tried
         # sequence may have executed together with one of the handlers, or all
-        # of tried and no handlers.
+        # of tried and no handlers. TODO: improve this to an actual merge, even
+        # if a pessimistic one.
         constraint_collection.removeAllKnowledge()
 
         return self, None, None

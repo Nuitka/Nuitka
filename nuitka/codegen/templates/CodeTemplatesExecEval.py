@@ -25,19 +25,19 @@ PyObjectTemporary locals( %(locals_identifier)s );
 
 PyObjectTemporary code( COMPILE_CODE( %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) );
 
-PyObject *result = EVAL_CODE( code.asObject(), globals.asObject(), locals.asObject() );
+PyObject *result = EVAL_CODE( code.asObject0(), globals.asObject0(), locals.asObject0() );
 Py_DECREF( result );"""
 
 exec_copy_back_template = """
 PyObject *locals_source = NULL;
 
-if ( locals.asObject() == locals_dict.asObject() )
+if ( locals.asObject0() == locals_dict.asObject0() )
 {
-    locals_source = locals.asObject();
+    locals_source = locals.asObject0();
 }
-else if ( globals.asObject() == locals_dict.asObject() )
+else if ( globals.asObject0() == locals_dict.asObject0() )
 {
-    locals_source = globals.asObject();
+    locals_source = globals.asObject0();
 }
 
 if ( locals_source != NULL )

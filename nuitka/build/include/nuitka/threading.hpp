@@ -58,7 +58,7 @@ NUITKA_MAY_BE_UNUSED static void CONSIDER_THREADING( void )
             PyObjectTemporary tmp_async_exc( tstate->async_exc );
             tstate->async_exc = NULL;
 
-            throw PythonException( tmp_async_exc.asObject() );
+            throw PythonException( tmp_async_exc.asObject0() );
         }
     }
 }

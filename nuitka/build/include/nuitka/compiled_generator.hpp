@@ -88,25 +88,25 @@ static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
     return ((Nuitka_GeneratorObject *)object)->m_name;
 }
 
-static inline void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
+static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
 {
-        assertObject( generator->m_exception_type );
+    assertObject( generator->m_exception_type );
 
-        Py_INCREF( generator->m_exception_type );
-        Py_XINCREF( generator->m_exception_value );
-        Py_XINCREF( generator->m_exception_tb );
+    Py_INCREF( generator->m_exception_type );
+    Py_XINCREF( generator->m_exception_value );
+    Py_XINCREF( generator->m_exception_tb );
 
-        PyErr_Restore(
-            generator->m_exception_type,
-            generator->m_exception_value,
-            (PyObject *)generator->m_exception_tb
-        );
+    PyErr_Restore(
+        generator->m_exception_type,
+        generator->m_exception_value,
+        (PyObject *)generator->m_exception_tb
+    );
 
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
+    generator->m_exception_type = NULL;
+    generator->m_exception_value = NULL;
+    generator->m_exception_tb = NULL;
 
-        throw PythonException();
+    throw PythonException();
 }
 
 static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )

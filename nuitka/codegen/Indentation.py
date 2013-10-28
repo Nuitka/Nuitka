@@ -18,10 +18,10 @@
 
 """ Indentation of code.
 
-Language independent, the amount of the spaces is not configurable, as it needs to
-be the same as in templates.
-
+Language independent, the amount of the spaces is not configurable, as it needs
+to be the same as in templates.
 """
+
 def _indentedCode( codes, count ):
     return "\n".join(
         " " * count + line if (line and not line.startswith( "#" )) else line for line in codes

@@ -179,7 +179,7 @@ public:
     }
 #endif
 
-    PyObject *asObject() const
+    PyObject *asObject0() const
     {
         assert( this->storage );
 
@@ -210,7 +210,7 @@ public:
 
     PyObject *asObject1() const
     {
-        return INCREASE_REFCOUNT( this->asObject() );
+        return INCREASE_REFCOUNT( this->asObject0() );
     }
 
     bool isInitialized() const
@@ -234,7 +234,7 @@ public:
 #endif
                 locals_dict,
                 this->getVariableName(),
-                this->asObject()
+                this->asObject0()
             );
 
             if (unlikely( status == -1 ))
@@ -284,7 +284,7 @@ public:
         this->storage = NULL;
     }
 
-    PyObject *asObject() const
+    PyObject *asObject0() const
     {
         assert( this->storage );
 

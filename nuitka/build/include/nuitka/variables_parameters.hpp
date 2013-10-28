@@ -80,7 +80,7 @@ public:
         Py_XDECREF( old_object );
     }
 
-    PyObject *asObject() const
+    PyObject *asObject0() const
     {
         if ( this->object == NULL )
         {
@@ -95,7 +95,7 @@ public:
 
     PyObject *asObject1() const
     {
-        return INCREASE_REFCOUNT( this->asObject() );
+        return INCREASE_REFCOUNT( this->asObject0() );
     }
 
     bool isInitialized() const
@@ -136,7 +136,7 @@ public:
             int status = PyDict_SetItem(
                 locals_dict,
                 this->getVariableName(),
-                this->asObject()
+                this->asObject0()
             );
 
             if (unlikely( status == -1 ))
@@ -239,7 +239,7 @@ public:
         Py_DECREF( old_object );
     }
 
-    PyObject *asObject() const
+    PyObject *asObject0() const
     {
         assertObject( this->object );
 
@@ -248,7 +248,7 @@ public:
 
     PyObject *asObject1() const
     {
-        return INCREASE_REFCOUNT( this->asObject() );
+        return INCREASE_REFCOUNT( this->asObject0() );
     }
 
     bool isInitialized() const
@@ -270,7 +270,7 @@ public:
             int status = PyDict_SetItem(
                 locals_dict,
                 this->getVariableName(),
-                this->asObject()
+                this->asObject0()
             );
 
             if (unlikely( status == -1 ))

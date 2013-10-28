@@ -1,3 +1,16 @@
 "pageSetup" : {
    "firstTemplate": "coverPage"
 }
+
+"styles" : [
+       [ "title" , {
+           "fontName": "NanumGothic-Bold",
+           "fontSize": 40
+       } ],
+       [ "heading1" , {
+           "fontName": "NanumGothic-Bold"
+       } ],
+       [ "heading2" , {
+           "fontName": "NanumGothic"
+       } ]
+]

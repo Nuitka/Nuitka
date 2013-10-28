@@ -50,7 +50,7 @@ public:
         this->value = NULL;
     }
 
-    PyObject *asObject()
+    PyObject *asObject0()
     {
         if ( this->value == NULL )
         {
@@ -72,7 +72,7 @@ public:
     PyObject *call()
     {
         return CALL_FUNCTION_NO_ARGS(
-            this->asObject()
+            this->asObject0()
         );
     }
 
@@ -80,7 +80,7 @@ public:
     PyObject *call1( PyObject *arg )
     {
         return CALL_FUNCTION_WITH_ARGS1(
-            this->asObject(),
+            this->asObject0(),
             arg
         );
     }
@@ -88,15 +88,15 @@ public:
     PyObject *call_args( PyObject *args )
     {
         return CALL_FUNCTION_WITH_POSARGS(
-            this->asObject(),
-            PyObjectTemporary( args ).asObject()
+            this->asObject0(),
+            PyObjectTemporary( args ).asObject0()
         );
     }
 
     PyObject *call_kw( PyObject *kw )
     {
         return CALL_FUNCTION_WITH_KEYARGS(
-            this->asObject(),
+            this->asObject0(),
             kw
         );
     }
@@ -104,7 +104,7 @@ public:
     PyObject *call_args_kw( PyObject *args, PyObject *kw )
     {
         return CALL_FUNCTION(
-            this->asObject(),
+            this->asObject0(),
             args,
             kw
         );

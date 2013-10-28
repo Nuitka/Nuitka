@@ -94,20 +94,6 @@ static long Nuitka_Function_tp_traverse( PyObject *function, visitproc visit, vo
     return 0;
 }
 
-#if PYTHON_VERSION < 300
-static int Nuitka_Function_tp_compare( Nuitka_FunctionObject *a, Nuitka_FunctionObject *b )
-{
-    if ( a->m_counter == b->m_counter )
-    {
-       return 0;
-    }
-    else
-    {
-       return a->m_counter < b->m_counter ? -1 : 1;
-    }
-}
-#endif
-
 static long Nuitka_Function_tp_hash( Nuitka_FunctionObject *function )
 {
     return function->m_counter;
@@ -472,11 +458,7 @@ PyTypeObject Nuitka_Function_Type =
     0,                                              // tp_print
     0,                                              // tp_getattr
     0,                                              // tp_setattr
-#if PYTHON_VERSION < 300
-    (cmpfunc)Nuitka_Function_tp_compare,            // tp_compare
-#else
-    0,
-#endif
+    0,                                              // tp_compare
     (reprfunc)Nuitka_Function_tp_repr,              // tp_repr
     0,                                              // tp_as_number
     0,                                              // tp_as_sequence
@@ -875,7 +857,7 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
 
                 list_str = PyUnicode_Concat(
                     list_str,
-                    current.asObject()
+                    current.asObject0()
                 );
             }
             else if ( missing == 1 )
@@ -890,7 +872,7 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
                 PyObjectTemporary old2( list_str );
 
                 list_str = PyUnicode_Concat(
-                    current.asObject(),
+                    current.asObject0(),
                     list_str
                 );
             }
@@ -906,7 +888,7 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
                 PyObjectTemporary old2( list_str );
 
                 list_str = PyUnicode_Concat(
-                    current.asObject(),
+                    current.asObject0(),
                     list_str
                 );
             }
@@ -974,7 +956,7 @@ void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
 
                 list_str = PyUnicode_Concat(
                     list_str,
-                    current.asObject()
+                    current.asObject0()
                 );
             }
             else if ( missing == 1 )
@@ -989,7 +971,7 @@ void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
                 PyObjectTemporary old2( list_str );
 
                 list_str = PyUnicode_Concat(
-                    current.asObject(),
+                    current.asObject0(),
                     list_str
                 );
             }
@@ -1005,7 +987,7 @@ void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
                 PyObjectTemporary old2( list_str );
 
                 list_str = PyUnicode_Concat(
-                    current.asObject(),
+                    current.asObject0(),
                     list_str
                 );
             }

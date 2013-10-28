@@ -94,7 +94,11 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
         if _isReadOnlyUnterdeterminedModuleVariable( self.variable ):
             constraint_collection.assumeUnclearLocals()
-            constraint_collection.signalChange( "new_expression", self.source_ref, "txt" )
+            constraint_collection.signalChange(
+                "new_expression",
+                self.source_ref,
+                "Unclear module variable delays processing."
+            )
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
@@ -107,7 +111,10 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
                 # TODO: More like "removed_variable and new_constant" probably
                 change_tags = "new_builtin"
-                change_desc = "Module variable '%s' found to be builtin exception reference." % self.variable_name
+                change_desc = """\
+Module variable '%s' found to be builtin exception reference.""" % (
+                    self.variable_name
+                )
             elif self.variable_name in Builtins.builtin_names:
                 from .BuiltinRefNodes import ExpressionBuiltinRef
 
@@ -118,15 +125,20 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
                 # TODO: More like "removed_variable and new_constant" probably
                 change_tags = "new_builtin"
-                change_desc = "Module variable '%s' found to be builtin reference." % self.variable_name
+                change_desc = """\
+Module variable '%s' found to be builtin reference.""" % (
+                    self.variable_name
+                )
             elif self.variable_name == "__name__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().getFullName(),
+                    constant   = self.variable.getReferenced().getOwner().\
+                        getFullName(),
                     source_ref = self.getSourceReference()
                 )
 
                 change_tags = "new_constant"
-                change_desc = "Replaced read-only module attribute '__name__' with constant value."
+                change_desc = """\
+Replaced read-only module attribute '__name__' with constant value."""
             elif self.variable_name == "__package__":
                 new_node = ExpressionConstantRef(
                     constant   = self.variable.getReferenced().getOwner().getPackage(),
@@ -237,6 +249,8 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
         return False
 
     def computeExpression( self, constraint_collection ):
+        constraint_collection.onVariableUsage( self )
+
         # Nothing to do here.
         return self, None, None
 
@@ -248,43 +262,12 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
         return False
 
     def isKnownToBeIterableAtMin( self, count ):
+        # TODO: See through the variable current trace.
         return None
-
-        friend = constraint_collection.getVariableValueFriend( self.variable )
-
-        if friend is not None:
-            return friend.isKnownToBeIterableAtMin(
-                count                 = count,
-                constraint_collection = constraint_collection
-            )
-        else:
-            return None
 
     def isKnownToBeIterableAtMax( self, count ):
+        # TODO: See through the variable current trace.
         return None
-
-        friend = constraint_collection.getVariableValueFriend( self.variable )
-
-        if friend is not None:
-            return friend.isKnownToBeIterableAtMax(
-                count                 = count,
-                constraint_collection = constraint_collection
-            )
-        else:
-            return None
-
-    def getIterationNext( self, constraint_collection ):
-        return None
-
-        friend = constraint_collection.getVariableValueFriend( self.variable )
-
-        if friend is not None:
-            return friend.getIterationNext(
-                constraint_collection = constraint_collection
-            )
-        else:
-            return None
-
 
     # Python3 only, it updates temporary variables that are closure variables.
     def setVariable( self, variable ):
@@ -313,54 +296,3 @@ class ExpressionTargetTempVariableRef( ExpressionTempVariableRef ):
         ExpressionTempVariableRef.setVariable( self, variable )
 
         self.variable_version = self.variable.allocateTargetNumber()
-
-
-class StatementTempBlock( StatementChildrenHavingBase ):
-    kind = "STATEMENT_TEMP_BLOCK"
-
-    named_children = ( "body", )
-
-    def __init__( self, source_ref ):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "body" : None
-            },
-            source_ref = source_ref.atInternal()
-        )
-
-        self.temp_variables = {}
-
-    getBody = StatementChildrenHavingBase.childGetter( "body" )
-    setBody = StatementChildrenHavingBase.childSetter( "body" )
-
-    def getTempVariable( self, name ):
-        assert name not in self.temp_variables, name
-
-        result = Variables.TempVariable(
-            owner         = self,
-            variable_name = name
-        )
-
-        self.temp_variables[ name ] = result
-
-        return result
-
-    def getTempVariables( self ):
-        return self.temp_variables.values()
-
-    def mayHaveSideEffects( self ):
-        return self.getBody().mayHaveSideEffects()
-
-    def computeStatement( self, constraint_collection ):
-        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionTempBlock
-
-        collection_temp_block = ConstraintCollectionTempBlock(
-            constraint_collection
-        )
-        collection_temp_block.process( self )
-
-        if self.getBody() is None:
-            return None, "new_statements", "Removed empty temporary block"
-
-        return self, None, None

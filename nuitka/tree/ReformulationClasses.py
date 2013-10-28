@@ -26,8 +26,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
     ExpressionTempVariableRef,
-    ExpressionVariableRef,
-    StatementTempBlock
+    ExpressionVariableRef
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
@@ -62,7 +61,10 @@ from nuitka.nodes.ConditionalNodes import (
     StatementConditional
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinLocals,
@@ -105,15 +107,28 @@ def _buildClassNode3( provider, node, source_ref ):
     # according to developer manual.
     class_statements, class_doc = extractDocFromBody( node )
 
-    # The result will be a temp block that holds the temporary variables.
-    result = StatementTempBlock(
-        source_ref = source_ref
+    # We need a scope for the temporary variables, and they might be closured.
+    temp_scope = provider.allocateTempScope(
+        name          = "class_creation",
+        allow_closure = True
     )
 
-    tmp_bases = result.getTempVariable( "bases" )
-    tmp_class_decl_dict = result.getTempVariable( "class_decl_dict" )
-    tmp_metaclass = result.getTempVariable( "metaclass" )
-    tmp_prepared = result.getTempVariable( "prepared" )
+    tmp_bases = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "bases"
+    )
+    tmp_class_decl_dict = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "class_decl_dict"
+    )
+    tmp_metaclass = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "metaclass"
+    )
+    tmp_prepared = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "prepared"
+    )
 
     class_creation_function = ExpressionFunctionBody(
         provider   = provider,
@@ -124,7 +139,8 @@ def _buildClassNode3( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    # Hack:
+    # Hack: This allows some APIs to work although this is not yet officially a
+    # child yet.
     class_creation_function.parent = provider
 
     body = buildStatementsNode(
@@ -144,7 +160,7 @@ def _buildClassNode3( provider, node, source_ref ):
     statements = [
         StatementSetLocals(
             new_locals = ExpressionTempVariableRef(
-                variable   = tmp_prepared.makeReference( result ),
+                variable   = tmp_prepared.makeReference( provider ),
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -179,6 +195,9 @@ def _buildClassNode3( provider, node, source_ref ):
             )
         )
 
+    # The __qualname__ is new in Python 3.3, and should contain some kind of
+    # full name descriptions for the closure to recognize and will be used for
+    # outputs.
     if Utils.python_version >= 330:
         if provider.isExpressionFunctionBody():
             qualname = provider.getFunctionQualname() + ".<locals>." + node.name
@@ -209,7 +228,7 @@ def _buildClassNode3( provider, node, source_ref ):
             ),
             source       = ExpressionCall(
                 called     = ExpressionTempVariableRef(
-                    variable   = tmp_metaclass.makeReference( result ),
+                    variable   = tmp_metaclass.makeReference( provider ),
                     source_ref = source_ref
                 ),
                 args       = makeSequenceCreationOrConstant(
@@ -221,7 +240,7 @@ def _buildClassNode3( provider, node, source_ref ):
                             user_provided = True
                         ),
                         ExpressionTempVariableRef(
-                            variable   = tmp_bases.makeReference( result ),
+                            variable   = tmp_bases.makeReference( provider ),
                             source_ref = source_ref
                         ),
                         ExpressionBuiltinLocals(
@@ -231,7 +250,7 @@ def _buildClassNode3( provider, node, source_ref ):
                     source_ref    = source_ref
                 ),
                 kw         = ExpressionTempVariableRef(
-                    variable   = tmp_class_decl_dict.makeReference( result ),
+                    variable   = tmp_class_decl_dict.makeReference( provider ),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -291,10 +310,10 @@ def _buildClassNode3( provider, node, source_ref ):
             source_ref = decorator.getSourceReference()
         )
 
-    statements = [
+    statements = (
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_bases.makeReference( result ),
+                variable   = tmp_bases.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       = makeSequenceCreationOrConstant(
@@ -308,7 +327,7 @@ def _buildClassNode3( provider, node, source_ref ):
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_class_decl_dict.makeReference( result ),
+                variable   = tmp_class_decl_dict.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       = makeDictCreationOrConstant(
@@ -326,13 +345,14 @@ def _buildClassNode3( provider, node, source_ref ):
                     for keyword in
                     node.keywords
                 ],
+                lazy_order = False,
                 source_ref = source_ref
             ),
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_metaclass.makeReference( result ),
+                variable   = tmp_metaclass.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       = ExpressionSelectMetaclass(
@@ -346,7 +366,7 @@ def _buildClassNode3( provider, node, source_ref ):
                         ),
                         right      = ExpressionTempVariableRef(
                             variable   = tmp_class_decl_dict.makeReference(
-                                result
+                                provider
                             ),
                             source_ref = source_ref
                         ),
@@ -355,7 +375,7 @@ def _buildClassNode3( provider, node, source_ref ):
                     yes_expression = ExpressionDictOperationGet(
                         dicte      = ExpressionTempVariableRef(
                             variable   = tmp_class_decl_dict.makeReference(
-                                result
+                                provider
                             ),
                             source_ref = source_ref
                         ),
@@ -368,7 +388,7 @@ def _buildClassNode3( provider, node, source_ref ):
                     ),
                     no_expression  = ExpressionConditional(
                         condition      = ExpressionTempVariableRef(
-                            variable   = tmp_bases.makeReference( result ),
+                            variable   = tmp_bases.makeReference( provider ),
                             source_ref = source_ref
                         ),
                         no_expression  = ExpressionBuiltinRef(
@@ -379,7 +399,7 @@ def _buildClassNode3( provider, node, source_ref ):
                             value      = ExpressionSubscriptLookup(
                                 expression = ExpressionTempVariableRef(
                                     variable   = tmp_bases.makeReference(
-                                        result
+                                        provider
                                     ),
                                     source_ref = source_ref
                                 ),
@@ -397,7 +417,7 @@ def _buildClassNode3( provider, node, source_ref ):
                     source_ref     = source_ref
                 ),
                 bases     = ExpressionTempVariableRef(
-                    variable   = tmp_bases.makeReference( result ),
+                    variable   = tmp_bases.makeReference( provider ),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -413,7 +433,9 @@ def _buildClassNode3( provider, node, source_ref ):
                     user_provided = True
                 ),
                 right      = ExpressionTempVariableRef(
-                    variable   = tmp_class_decl_dict.makeReference( result ),
+                    variable   = tmp_class_decl_dict.makeReference(
+                        provider
+                    ),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -423,7 +445,7 @@ def _buildClassNode3( provider, node, source_ref ):
                 statement = StatementDictOperationRemove(
                     dicte = ExpressionTempVariableRef(
                         variable   = tmp_class_decl_dict.makeReference(
-                            result
+                            provider
                         ),
                         source_ref = source_ref
                     ),
@@ -439,13 +461,17 @@ def _buildClassNode3( provider, node, source_ref ):
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_prepared.makeReference( result ),
+                variable   = tmp_prepared.makeReference(
+                    provider
+                ),
                 source_ref = source_ref
             ),
             source       = ExpressionConditional(
                 condition = ExpressionBuiltinHasattr(
                     object     = ExpressionTempVariableRef(
-                        variable   = tmp_metaclass.makeReference( result ),
+                        variable   = tmp_metaclass.makeReference(
+                            provider
+                        ),
                         source_ref = source_ref
                     ),
                     name       = ExpressionConstantRef(
@@ -463,7 +489,9 @@ def _buildClassNode3( provider, node, source_ref ):
                 yes_expression = ExpressionCall(
                     called     = ExpressionAttributeLookup(
                         expression     = ExpressionTempVariableRef(
-                            variable   = tmp_metaclass.makeReference( result ),
+                            variable   = tmp_metaclass.makeReference(
+                                provider
+                            ),
                             source_ref = source_ref
                         ),
                         attribute_name = "__prepare__",
@@ -477,7 +505,9 @@ def _buildClassNode3( provider, node, source_ref ):
                                 user_provided = True
                             ),
                             ExpressionTempVariableRef(
-                                variable   = tmp_bases.makeReference( result ),
+                                variable   = tmp_bases.makeReference(
+                                    provider
+                                ),
                                 source_ref = source_ref
                             )
                         ),
@@ -485,7 +515,7 @@ def _buildClassNode3( provider, node, source_ref ):
                     ),
                     kw         = ExpressionTempVariableRef(
                         variable   = tmp_class_decl_dict.makeReference(
-                            result
+                            provider
                         ),
                         source_ref = source_ref
                     ),
@@ -502,36 +532,55 @@ def _buildClassNode3( provider, node, source_ref ):
             ),
             source     = decorated_body,
             source_ref = source_ref
-        )
-    ]
-
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_bases.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = False,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_class_decl_dict.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = False,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_metaclass.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = False,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_prepared.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = False,
             source_ref = source_ref
         )
     )
 
-    return result
+    return StatementsSequence(
+        statements = statements,
+        source_ref = source_ref
+    )
+
 
 
 def _buildClassNode2( provider, node, source_ref ):
     class_statements, class_doc = extractDocFromBody( node )
 
-    # This function is the Python3 special case with special re-formulation as
+    # This function is the Python2 special case with special re-formulation as
     # according to developer manual.
 
-    # The result will be a temp block that holds the temporary variables.
-    result = StatementTempBlock(
-        source_ref = source_ref
-    )
-
-    tmp_bases = result.getTempVariable( "bases" )
-    tmp_class_dict = result.getTempVariable( "class_dict" )
-    tmp_metaclass = result.getTempVariable( "metaclass" )
-    tmp_class = result.getTempVariable( "class" )
-
-    class_creation_function = ExpressionFunctionBody(
+    function_body = ExpressionFunctionBody(
         provider   = provider,
         is_class   = True,
         parameters = make_class_parameters,
@@ -541,7 +590,7 @@ def _buildClassNode2( provider, node, source_ref ):
     )
 
     body = buildStatementsNode(
-        provider   = class_creation_function,
+        provider   = function_body,
         nodes      = class_statements,
         frame      = True,
         source_ref = source_ref
@@ -604,12 +653,19 @@ def _buildClassNode2( provider, node, source_ref ):
     # The class body is basically a function that implicitely, at the end
     # returns its locals and cannot have other return statements contained.
 
-    class_creation_function.setBody( body )
+    function_body.setBody( body )
+
+    temp_scope = provider.allocateTempScope( "class_creation" )
+
+    tmp_bases = provider.allocateTempVariable( temp_scope, "bases" )
+    tmp_class_dict = provider.allocateTempVariable( temp_scope, "class_dict" )
+    tmp_metaclass = provider.allocateTempVariable( temp_scope, "metaclass" )
+    tmp_class = provider.allocateTempVariable( temp_scope, "class" )
 
     statements = [
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_bases.makeReference( result ),
+                variable   = tmp_bases.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       = makeSequenceCreationOrConstant(
@@ -623,13 +679,13 @@ def _buildClassNode2( provider, node, source_ref ):
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_class_dict.makeReference( result ),
+                variable   = tmp_class_dict.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       =   ExpressionFunctionCall(
                 function = ExpressionFunctionCreation(
                     function_ref = ExpressionFunctionRef(
-                        function_body = class_creation_function,
+                        function_body = function_body,
                         source_ref    = source_ref
                     ),
                     defaults     = (),
@@ -644,7 +700,7 @@ def _buildClassNode2( provider, node, source_ref ):
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_metaclass.makeReference( result ),
+                variable   = tmp_metaclass.makeReference( provider ),
                 source_ref = source_ref
             ),
             source       = ExpressionConditional(
@@ -656,14 +712,14 @@ def _buildClassNode2( provider, node, source_ref ):
                         user_provided = True
                     ),
                     right      = ExpressionTempVariableRef(
-                        variable   = tmp_class_dict.makeReference( result ),
+                        variable   = tmp_class_dict.makeReference( provider ),
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
                 ),
                 yes_expression = ExpressionDictOperationGet(
                     dicte = ExpressionTempVariableRef(
-                        variable   = tmp_class_dict.makeReference( result ),
+                        variable   = tmp_class_dict.makeReference( provider ),
                         source_ref = source_ref
                     ),
                     key   = ExpressionConstantRef(
@@ -676,7 +732,7 @@ def _buildClassNode2( provider, node, source_ref ):
                 no_expression = ExpressionSelectMetaclass(
                     metaclass = None,
                     bases     = ExpressionTempVariableRef(
-                        variable   = tmp_bases.makeReference( result ),
+                        variable   = tmp_bases.makeReference( provider ),
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
@@ -687,12 +743,12 @@ def _buildClassNode2( provider, node, source_ref ):
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_class.makeReference( result ),
+                variable   = tmp_class.makeReference( provider ),
                 source_ref = source_ref
             ),
             source     = ExpressionCallNoKeywords(
                 called         = ExpressionTempVariableRef(
-                    variable   = tmp_metaclass.makeReference( result ),
+                    variable   = tmp_metaclass.makeReference( provider ),
                     source_ref = source_ref
                 ),
                 args           = ExpressionMakeTuple(
@@ -703,11 +759,13 @@ def _buildClassNode2( provider, node, source_ref ):
                             user_provided = True
                         ),
                         ExpressionTempVariableRef(
-                            variable   = tmp_bases.makeReference( result ),
+                            variable   = tmp_bases.makeReference( provider ),
                             source_ref = source_ref
                         ),
                         ExpressionTempVariableRef(
-                            variable   = tmp_class_dict.makeReference( result ),
+                            variable   = tmp_class_dict.makeReference(
+                                provider
+                            ),
                             source_ref = source_ref
                         )
                     ),
@@ -715,6 +773,30 @@ def _buildClassNode2( provider, node, source_ref ):
                 ),
                 source_ref = source_ref
             ),
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_bases.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = False,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_class_dict.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = False,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_metaclass.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = False,
             source_ref = source_ref
         )
     ]
@@ -727,7 +809,7 @@ def _buildClassNode2( provider, node, source_ref ):
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_class.makeReference( result ),
+                    variable   = tmp_class.makeReference( provider ),
                     source_ref = source_ref
                 ),
                 source       = ExpressionCallNoKeywords(
@@ -735,7 +817,9 @@ def _buildClassNode2( provider, node, source_ref ):
                     args       = ExpressionMakeTuple(
                         elements  = (
                             ExpressionTempVariableRef(
-                                variable   = tmp_class.makeReference( result ),
+                                variable   = tmp_class.makeReference(
+                                    provider
+                                ),
                                 source_ref = source_ref
                             ),
                         ),
@@ -754,21 +838,28 @@ def _buildClassNode2( provider, node, source_ref ):
                 source_ref    = source_ref
             ),
             source     = ExpressionTempVariableRef(
-                variable   = tmp_class.makeReference( result ),
+                variable   = tmp_class.makeReference( provider ),
                 source_ref = source_ref
             ),
             source_ref = source_ref
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    statements.append(
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_class.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = False,
             source_ref = source_ref
         )
     )
 
-    return result
+    return StatementsSequence(
+        statements = statements,
+        source_ref = source_ref
+    )
 
 def buildClassNode( provider, node, source_ref ):
     assert getKind( node ) == "ClassDef"

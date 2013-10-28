@@ -15,11 +15,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Globals/locals/dir0 nodes
+""" Globals/locals/dir0/dir1 nodes
 
-These nodes give access to variables, highly problematic, because using them, the code may
-change or access anything about them, so nothing can be trusted anymore, if we start to
-not know where their value goes.
+These nodes give access to variables, highly problematic, because using them,
+the code may change or access anything about them, so nothing can be trusted
+anymore, if we start to not know where their value goes.
 
 """
 
@@ -50,7 +50,20 @@ class ExpressionBuiltinLocals( NodeBase, ExpressionMixin ):
 
     def computeExpression( self, constraint_collection ):
         # Just inform the collection that all escaped.
-        constraint_collection.onLocalsAccess( self )
+        for variable_ref in constraint_collection.getActiveVariables():
+            variable = variable_ref
+
+            while variable.isReference():
+                variable = variable.getReferenced()
+
+            # TODO: Currently this is a bit difficult to express in a positive
+            # way
+            if not variable.isTempKeeperVariable() and not variable.isTempVariable():
+                variable_trace = constraint_collection.getVariableCurrentTrace(
+                    variable_ref
+                )
+
+                variable_trace.addUsage( self )
 
         return self, None, None
 

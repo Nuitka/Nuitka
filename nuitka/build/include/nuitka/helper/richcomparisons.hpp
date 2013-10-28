@@ -30,9 +30,11 @@ static inline bool IS_SANE_TYPE( PyTypeObject *type )
         type == &PyTuple_Type;
 }
 
+extern PyObject *MY_RICHCOMPARE( PyObject *v, PyObject *w, int op );
+
 NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LT( PyObject *operand1, PyObject *operand2 )
 {
-    PyObject *result = PyObject_RichCompare( operand1, operand2, Py_LT );
+    PyObject *result = MY_RICHCOMPARE( operand1, operand2, Py_LT );
 
     if (unlikely( result == NULL ))
     {
@@ -50,7 +52,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LE( PyObject *operand1, PyObj
         return INCREASE_REFCOUNT( Py_True );
     }
 
-    PyObject *result = PyObject_RichCompare( operand1, operand2, Py_LE );
+    PyObject *result = MY_RICHCOMPARE( operand1, operand2, Py_LE );
 
     if (unlikely( result == NULL ))
     {
@@ -68,7 +70,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_EQ( PyObject *operand1, PyObj
         return INCREASE_REFCOUNT( Py_True );
     }
 
-    PyObject *result = PyObject_RichCompare( operand1, operand2, Py_EQ );
+    PyObject *result = MY_RICHCOMPARE( operand1, operand2, Py_EQ );
 
     if (unlikely( result == NULL ))
     {
@@ -86,7 +88,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_NE( PyObject *operand1, PyObj
         return INCREASE_REFCOUNT( Py_False );
     }
 
-    PyObject *result = PyObject_RichCompare( operand1, operand2, Py_NE );
+    PyObject *result = MY_RICHCOMPARE( operand1, operand2, Py_NE );
 
     if (unlikely( result == NULL ))
     {
@@ -98,7 +100,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_NE( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_GT( PyObject *operand1, PyObject *operand2 )
 {
-    PyObject *result = PyObject_RichCompare( operand1, operand2, Py_GT );
+    PyObject *result = MY_RICHCOMPARE( operand1, operand2, Py_GT );
 
     if (unlikely( result == NULL ))
     {
@@ -110,7 +112,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_GT( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_GE( PyObject *operand1, PyObject *operand2 )
 {
-    PyObject *result = PyObject_RichCompare( operand1, operand2, Py_GE );
+    PyObject *result = MY_RICHCOMPARE( operand1, operand2, Py_GE );
 
     if (unlikely( result == NULL ))
     {
@@ -122,7 +124,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_GE( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LT( PyObject *operand1, PyObject *operand2 )
 {
-    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_LT );
+    PyObject *rich_result = MY_RICHCOMPARE( operand1, operand2, Py_LT );
 
     if (unlikely( rich_result == NULL ))
     {
@@ -159,7 +161,7 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LE( PyObject *operand1, PyObj
         return true;
     }
 
-    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_LE );
+    PyObject *rich_result = MY_RICHCOMPARE( operand1, operand2, Py_LE );
 
     if (unlikely( rich_result == NULL ))
     {
@@ -193,7 +195,7 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *oper
     assertObject( operand1 );
     assertObject( operand2 );
 
-    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
+    PyObject *rich_result = MY_RICHCOMPARE( operand1, operand2, Py_EQ );
 
     // String comparisons cannot fail they say.
     assertObject( rich_result );
@@ -228,7 +230,7 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ( PyObject *operand1, PyObj
         return true;
     }
 
-    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
+    PyObject *rich_result = MY_RICHCOMPARE( operand1, operand2, Py_EQ );
 
     if (unlikely( rich_result == NULL ))
     {
@@ -265,7 +267,7 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_NE( PyObject *operand1, PyObj
         return false;
     }
 
-    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_NE );
+    PyObject *rich_result = MY_RICHCOMPARE( operand1, operand2, Py_NE );
 
     if (unlikely( rich_result == NULL ))
     {
@@ -296,7 +298,7 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_NE( PyObject *operand1, PyObj
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_GT( PyObject *operand1, PyObject *operand2 )
 {
-    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_GT );
+    PyObject *rich_result = MY_RICHCOMPARE( operand1, operand2, Py_GT );
 
     if (unlikely( rich_result == NULL ))
     {
@@ -333,7 +335,7 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_GE( PyObject *operand1, PyObj
         return true;
     }
 
-    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_GE );
+    PyObject *rich_result = MY_RICHCOMPARE( operand1, operand2, Py_GE );
 
     if (unlikely( rich_result == NULL ))
     {

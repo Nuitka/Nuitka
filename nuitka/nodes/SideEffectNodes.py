@@ -17,8 +17,8 @@
 #
 """ Node that models side effects.
 
-Sometimes, the effect of an expression needs to be had, but the value itself does
-not matter at all.
+Sometimes, the effect of an expression needs to be had, but the value itself
+does not matter at all.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase

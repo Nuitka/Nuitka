@@ -22,6 +22,7 @@
 
 from .NodeBases import ExpressionChildrenHavingBase, SideEffectsFromChildrenMixin
 
+from nuitka import Constants
 
 class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
                                   ExpressionChildrenHavingBase ):
@@ -75,7 +76,7 @@ class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
 
         # TODO: CompileTimeConstant should be good enough.
         for element in elements:
-            if not element.isExpressionConstantRef() or element.isMutable():
+            if not element.isExpressionConstantRef():
                 return self, None, None
 
         simulator = self.getSimulator()
@@ -199,7 +200,6 @@ class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
 
             return result, "new_raise", "Dictionary value raises exception"
 
-
         return self, None, None
 
 
@@ -209,7 +209,7 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
 
     named_children = ( "pairs", )
 
-    def __init__( self, pairs, source_ref ):
+    def __init__( self, pairs, lazy_order, source_ref ):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -217,6 +217,8 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
             },
             source_ref = source_ref
         )
+
+        self.lazy_order = lazy_order
 
     getPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
 
@@ -239,25 +241,28 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
         for pair in pairs:
             key = pair.getKey()
 
+            # TODO: Mutable key should cause something problematic.
             if not key.isExpressionConstantRef() or key.isMutable():
                 return self, None, None
 
             value = pair.getValue()
 
-            if not value.isExpressionConstantRef() or value.isMutable():
+            if not value.isExpressionConstantRef():
                 return self, None, None
 
-        constant_value = dict.fromkeys(
-            [
+        constant_value = Constants.createConstantDict(
+            keys       = [
                 pair.getKey().getConstant()
                 for pair in
                 pairs
             ],
-            None
+            values     = [
+                pair.getValue().getConstant()
+                for pair in
+                pairs
+            ],
+            lazy_order = self.lazy_order
         )
-
-        for pair in pairs:
-            constant_value[ pair.getKey().getConstant() ] = pair.getValue().getConstant()
 
         from .NodeMakingHelpers import makeConstantReplacementNode
 

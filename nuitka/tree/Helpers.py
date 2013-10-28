@@ -36,7 +36,7 @@ from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeSet
 )
 
-from nuitka import Tracing
+from nuitka import Tracing, Constants
 
 from logging import warning
 
@@ -222,7 +222,7 @@ def makeSequenceCreationOrConstant( sequence_kind, elements, source_ref ):
     # elements. Would be caught by optimization, but would be useless churn. For
     # mutable constants we cannot do it though.
     for element in elements:
-        if not element.isExpressionConstantRef() or element.isMutable():
+        if not element.isExpressionConstantRef():
             constant = False
             break
     else:
@@ -271,15 +271,17 @@ def makeSequenceCreationOrConstant( sequence_kind, elements, source_ref ):
             assert False, sequence_kind
 
 
-def makeDictCreationOrConstant( keys, values, source_ref ):
+def makeDictCreationOrConstant( keys, values, lazy_order, source_ref ):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable.
 
     assert len( keys ) == len( values )
     for key, value in zip( keys, values ):
-        if not key.isExpressionConstantRef() or \
-           not value.isExpressionConstantRef() or \
-           not value.isMutable():
+        if not key.isExpressionConstantRef():
+            constant = False
+            break
+
+        if not value.isExpressionConstantRef():
             constant = False
             break
     else:
@@ -288,18 +290,15 @@ def makeDictCreationOrConstant( keys, values, source_ref ):
     # Note: This would happen in optimization instead, but lets just do it
     # immediately to save some time.
     if constant:
-        # Create the dictionary in its full size, so that no growing occurs and
-        # the constant becomes as similar as possible before being marshalled.
-        constant_value = dict.fromkeys(
-            [ key.getConstant() for key in keys ],
-            None
-        )
-
-        for key, value in zip( keys, values ):
-            constant_value[ key.getConstant() ] = value.getConstant()
-
+        # Unless tolder otherwise, create the dictionary in its full size, so
+        # that no growing occurs and the constant becomes as similar as possible
+        # before being marshalled.
         return ExpressionConstantRef(
-            constant      = constant_value,
+            constant      = Constants.createConstantDict(
+                lazy_order = not lazy_order,
+                keys       = [ key.getConstant() for key in keys ],
+                values     = [ value.getConstant() for value in values ]
+            ),
             source_ref    = source_ref,
             user_provided = True
         )
@@ -310,5 +309,6 @@ def makeDictCreationOrConstant( keys, values, source_ref ):
                 for key, value in
                 zip( keys, values )
             ],
+            lazy_order = lazy_order,
             source_ref = source_ref
         )

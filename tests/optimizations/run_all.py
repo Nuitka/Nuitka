@@ -84,6 +84,13 @@ def checkSequence( statements ):
 
             if getKind( print_arg ) != "ConstantRef":
                 sys.exit( "Error, print of non-constant %s." % getKind( print_arg ) )
+        elif kind == "Frame":
+            pass
+        elif kind == "AssignmentVariable":
+            assign_source = getRole( statement, "source" )[0]
+
+            if getKind( assign_source ) != "ConstantRef":
+                sys.exit( "Error, assignment from of non-constant %s." % getKind( assign_source ) )
         else:
             sys.exit( "Error, non-print statement of unknown kind '%s'." % kind )
 

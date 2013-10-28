@@ -45,7 +45,7 @@ public:
         Py_DECREF( this->object );
     }
 
-    PyObject *asObject() const
+    PyObject *asObject0() const
     {
         assertObject( this->object );
 
@@ -63,10 +63,82 @@ public:
         this->object = object;
     }
 
+    // TODO: Tolerance must die, really and this method should be avoidable, as
+    // it's only used to emulate block scopes.
+    void del( bool tolerant )
+    {
+        assertObject( this->object );
+
+        Py_DECREF( this->object );
+
+        this->object = INCREASE_REFCOUNT( Py_None );
+    }
+
 private:
 
     PyObjectTemporary( const PyObjectTemporary &object ) { assert( false ); }
     PyObjectTemporary() { assert( false ); };
+
+    PyObject *object;
+};
+
+
+class PyObjectTempVariable
+{
+public:
+    explicit PyObjectTempVariable()
+    {
+        this->object = NULL;
+    }
+
+    ~PyObjectTempVariable()
+    {
+        if ( this->object ) assertObject( this->object );
+
+        Py_XDECREF( this->object );
+    }
+
+    PyObject *asObject0() const
+    {
+        assertObject( this->object );
+
+        return this->object;
+    }
+
+    void assign1( PyObject *object )
+    {
+        if ( this->object ) assertObject( this->object );
+        Py_XDECREF( this->object );
+
+        assertObject( object );
+
+        this->object = object;
+    }
+
+    void assign0( PyObject *object )
+    {
+        if ( this->object ) assertObject( this->object );
+        Py_XDECREF( this->object );
+
+        assertObject( object );
+
+        this->object = INCREASE_REFCOUNT( object );
+    }
+
+    void del( bool tolerant )
+    {
+        if ( this->object ) assertObject( this->object );
+        Py_XDECREF( this->object );
+
+        this->object = NULL;
+    }
+
+private:
+
+    PyObjectTempVariable( const PyObjectTempVariable &object )
+    {
+        assert( false );
+    }
 
     PyObject *object;
 };
@@ -85,7 +157,7 @@ public:
         Py_XDECREF( this->object );
     }
 
-    inline PyObject *asObject() const
+    inline PyObject *asObject1() const
     {
         assertObject( this->object );
 
@@ -138,7 +210,7 @@ public:
         return this->object;
     }
 
-    inline PyObject *asObject() const
+    inline PyObject *asObject1() const
     {
         assertObject( this->object );
 

@@ -42,6 +42,19 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *TO_SET( PyObject *seq_obj )
+{
+    PyObject *result = PySet_New( seq_obj );
+
+    if (unlikely( result == NULL ))
+    {
+        throw PythonException();
+    }
+
+    return result;
+}
+
+
 NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *element, PyObject *sequence )
 {
     int result = PySequence_Contains( sequence, element );

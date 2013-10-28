@@ -47,6 +47,9 @@ class VariableTraceBase:
         # time action.
         self.escaped_at = None
 
+    def isNode( self ):
+        return False
+
     def getVariable( self ):
         return self.variable
 
@@ -71,10 +74,16 @@ class VariableTraceBase:
     def getDefiniteUsages( self ):
         return self.usages
 
+    def getReleases( self ):
+        return self.releases
+
     def isAssignTrace( self ):
         return False
 
     def isUninitTrace( self ):
+        return False
+
+    def isUnknownTrace( self ):
         return False
 
     def isMergeTrace( self ):
@@ -87,6 +96,12 @@ class VariableUninitTrace( VariableTraceBase ):
             self,
             variable = variable,
             version  = version
+        )
+
+    def __repr__( self ):
+        return "<VariableUninitTrace %s %d>" % (
+            self.variable,
+            self.version
         )
 
     def isUninitTrace( self ):
@@ -111,6 +126,12 @@ class VariableUnknownTrace( VariableTraceBase ):
             version  = version
         )
 
+    def __repr__( self ):
+        return "<VariableUnknownTrace %s %d>" % (
+            self.variable,
+            self.version
+        )
+
     def dump( self ):
         debug( "Trace of %s %d:", self.variable, self.version )
         debug( "  Starts unknown" )
@@ -121,27 +142,29 @@ class VariableUnknownTrace( VariableTraceBase ):
 
             debug( "  Used at %s", usage )
 
+    def isUnknownTrace( self ):
+        return True
+
 
 class VariableAssignTrace( VariableTraceBase ):
-    def __init__( self, target_node, variable, version, value_friend ):
+    def __init__( self, assign_node, variable, version ):
         VariableTraceBase.__init__(
             self,
             variable = variable,
             version  = version
         )
 
-        self.target_node = target_node
-        self.value_friend = value_friend
+        self.assign_node = assign_node
 
     def __repr__( self ):
-        return "<VariableAssignTrace %s %d>" % (
+        return "<VariableAssignTrace %s %d at %s>" % (
             self.variable,
-            self.version
+            self.version,
+            self.assign_node.getSourceReference()
         )
 
     def dump( self ):
         debug( "Trace of %s %d:", self.variable, self.version )
-        debug( "  Assigned from %s", self.value_friend )
 
         for count, usage in enumerate( self.usages ):
             if count == self.escaped_at:
@@ -153,7 +176,7 @@ class VariableAssignTrace( VariableTraceBase ):
         return True
 
     def getAssignNode( self ):
-        return self.target_node
+        return self.assign_node
 
 
 class VariableMergeTrace( VariableTraceBase ):

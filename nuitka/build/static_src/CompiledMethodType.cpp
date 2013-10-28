@@ -55,7 +55,7 @@ static PyObject *Nuitka_Method_reduce( Nuitka_MethodObject *method )
                 (PyObject *)method->m_function,
                 method->m_object
             )
-        ).asObject()
+        ).asObject0()
     );
 }
 
@@ -430,9 +430,11 @@ static PyObject *Nuitka_Method_tp_richcompare( Nuitka_MethodObject *a, Nuitka_Me
         return INCREASE_REFCOUNT( Py_NotImplemented );
     }
 
-    int result = PyObject_RichCompareBool( (PyObject *)a->m_function, (PyObject *)b->m_function, Py_EQ );
+    bool result = a->m_function->m_counter == b->m_function->m_counter;
 
-    if ( result != 0 )
+    // If the underlying function objects are the same, check the objects, which
+    // may be NULL in case of unbound methods, which would be the same again.
+    if ( result )
     {
         if ( a->m_object == NULL )
         {
@@ -444,17 +446,23 @@ static PyObject *Nuitka_Method_tp_richcompare( Nuitka_MethodObject *a, Nuitka_Me
         }
         else
         {
-            result = PyObject_RichCompareBool( a->m_object, b->m_object, Py_EQ );
+            int res = PyObject_RichCompareBool(
+                a->m_object,
+                b->m_object,
+                Py_EQ
+            );
+
+            result = res != 0;
         }
     }
 
     if ( op == Py_EQ )
     {
-        return INCREASE_REFCOUNT( result ? Py_True : Py_False );
+        return INCREASE_REFCOUNT( BOOL_FROM( result ) );
     }
     else
     {
-        return INCREASE_REFCOUNT( result ? Py_False : Py_True );
+        return INCREASE_REFCOUNT( BOOL_FROM( !result ) );
     }
 }
 

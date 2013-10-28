@@ -123,6 +123,7 @@ def _getConstantDefaultPopulation():
         "__exit__",
         "__builtins__",
         "__all__",
+        "__cmp__",
 
         # Patched module name.
         "inspect",
@@ -136,7 +137,6 @@ def _getConstantDefaultPopulation():
         # COMPILE_CODE uses read/strip method lookups.
         "read",
         "strip",
-
     )
 
     # For Python3 modules
@@ -170,7 +170,7 @@ def _getConstantDefaultPopulation():
     if not Options.shallMakeModule():
         result += ( "__main__", )
 
-        # The site module is referenced in inspect patching.
+        # The "site" module is referenced in inspect patching.
         result += ( "site", )
 
     # Builtin original values
@@ -426,7 +426,9 @@ class PythonStatementContext( PythonChildContextBase ):
         return self.temp_keepers[ variable_name ]
 
     def getTempKeeperUsages( self ):
-        return self.temp_keepers
+        result = self.temp_keepers
+        self.temp_keepers = {}
+        return result
 
     def allocateTryNumber( self ):
         return self.parent.allocateTryNumber()

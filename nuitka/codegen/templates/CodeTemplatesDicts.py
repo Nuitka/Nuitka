@@ -22,7 +22,7 @@
 template_make_dict_function = """\
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_DICT%(pair_count)d( %(argument_decl)s )
 {
-    PyObject *result = PyDict_New();
+    PyObject *result = _PyDict_NewPresized( %(pair_count)d );
 
     if (unlikely( result == NULL ))
     {

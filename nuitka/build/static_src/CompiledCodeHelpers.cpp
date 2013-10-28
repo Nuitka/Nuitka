@@ -79,8 +79,8 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
             source,
             file_name,
             mode,
-            future_flags.asObject(), // flags
-            Py_True                  // dont_inherit
+            future_flags.asObject0(), // flags
+            Py_True                   // dont_inherit
         )
     );
 }
@@ -372,7 +372,7 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
 {
     PyObject *result = PyType_Type.tp_new(
         &PyType_Type,
-        PyObjectTemporary( MAKE_TUPLE3( name, bases, dict ) ).asObject(),
+        PyObjectTemporary( MAKE_TUPLE3( name, bases, dict ) ).asObject0(),
         NULL
     );
 
@@ -506,13 +506,13 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
 #if PYTHON_VERSION < 300
     PyObjectTemporary boundary_temp( TO_RANGE_ARG( boundary, "end" ) );
 
-    long start = PyInt_AsLong( boundary_temp.asObject() );
+    long start = PyInt_AsLong( boundary_temp.asObject0() );
 
     if ( start == -1 && ERROR_OCCURED() )
     {
         PyErr_Clear();
 
-        return _python_builtin_range.call1( boundary_temp.asObject() );
+        return _python_builtin_range.call1( boundary_temp.asObject0() );
     }
 
     return _BUILTIN_RANGE_INT( start );
@@ -529,7 +529,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
     bool fallback = false;
 
-    long start = PyInt_AsLong( low_temp.asObject() );
+    long start = PyInt_AsLong( low_temp.asObject0() );
 
     if (unlikely( start == -1 && ERROR_OCCURED() ))
     {
@@ -537,7 +537,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
         fallback = true;
     }
 
-    long end = PyInt_AsLong( high_temp.asObject() );
+    long end = PyInt_AsLong( high_temp.asObject0() );
 
     if (unlikely( end == -1 && ERROR_OCCURED() ))
     {
@@ -549,8 +549,8 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
     {
         return _python_builtin_range.call_args(
             MAKE_TUPLE2(
-                low_temp.asObject(),
-                high_temp.asObject()
+                low_temp.asObject0(),
+                high_temp.asObject0()
             )
         );
     }
@@ -574,7 +574,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     bool fallback = false;
 
-    long start = PyInt_AsLong( low_temp.asObject() );
+    long start = PyInt_AsLong( low_temp.asObject0() );
 
     if (unlikely( start == -1 && ERROR_OCCURED() ))
     {
@@ -582,7 +582,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
         fallback = true;
     }
 
-    long end = PyInt_AsLong( high_temp.asObject() );
+    long end = PyInt_AsLong( high_temp.asObject0() );
 
     if (unlikely( end == -1 && ERROR_OCCURED() ))
     {
@@ -590,7 +590,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
         fallback = true;
     }
 
-    long step_long = PyInt_AsLong( step_temp.asObject() );
+    long step_long = PyInt_AsLong( step_temp.asObject0() );
 
     if (unlikely( step_long == -1 && ERROR_OCCURED() ))
     {
@@ -602,9 +602,9 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
     {
         return _python_builtin_range.call_args(
             MAKE_TUPLE3(
-                low_temp.asObject(),
-                high_temp.asObject(),
-                step_temp.asObject()
+                low_temp.asObject0(),
+                high_temp.asObject0(),
+                step_temp.asObject0()
             )
        );
     }
@@ -776,7 +776,7 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
             PyString_AsStringAndSize( object, &buffer, &length );
         assert( status != -1 );
 
-        softspace = length > 0 && buffer[ length - 1 ] == '\t';
+        softspace = length > 0 && ( buffer[ length - 1 ] == '\t' || buffer[ length - 1 ] == '\n' );
     }
     else
     {
@@ -828,8 +828,8 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
         );
 
         _python_builtin_print.call_args_kw(
-            print_args.asObject(),
-            print_kw.asObject()
+            print_args.asObject0(),
+            print_kw.asObject0()
         );
     }
 #endif
@@ -872,7 +872,7 @@ void PRINT_NEW_LINE_TO( PyObject *file )
         );
 
         _python_builtin_print.call_kw(
-            print_keyargs.asObject()
+            print_keyargs.asObject0()
         );
     }
 #endif
@@ -1247,48 +1247,64 @@ extern "C" wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t siz
 
 #include <locale.h>
 
-void setCommandLineParameters( int argc, char *argv[] )
+#if PYTHON_VERSION >= 300
+static wchar_t **argv_copy = NULL;
+#endif
+
+void setCommandLineParameters( int argc, char *argv[], bool initial )
 {
 #if PYTHON_VERSION < 300
-    PySys_SetArgv( argc, argv );
-#else
-// Originally taken from CPython3: There seems to be no sane way to use
-
-    wchar_t **argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
-    /* We need a second copies, as Python might modify the first one. */
-    wchar_t **argv_copy2 = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
-
-    char *oldloc;
-    /* 754 requires that FP exceptions run in "no stop" mode by default,
-     * and until C vendors implement C99's ways to control FP exceptions,
-     * Python requires non-stop mode.  Alas, some platforms enable FP
-     * exceptions by default.  Here we disable them.
-     */
-#ifdef __FreeBSD__
-    fp_except_t m;
-
-    m = fpgetmask();
-    fpsetmask(m & ~FP_X_OFL);
-#endif
-
-    oldloc = strdup( setlocale( LC_ALL, NULL ) );
-
-    setlocale( LC_ALL, "" );
-    for ( int i = 0; i < argc; i++ )
+    if ( initial )
     {
-#ifdef __APPLE__
-        argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
-#else
-        argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
-#endif
-        assert ( argv_copy[ i ] );
-
-        argv_copy2[ i ] = argv_copy[ i ];
+        Py_SetProgramName( argv[0] );
     }
-    setlocale( LC_ALL, oldloc );
-    free( oldloc );
+    else
+    {
+        PySys_SetArgv( argc, argv );
+    }
+#else
+    if ( initial )
+    {
+        // Originally taken from CPython3: There seems to be no sane way to use
+        argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
 
-    PySys_SetArgv( argc, argv_copy );
+#ifdef __FreeBSD__
+        // 754 requires that FP exceptions run in "no stop" mode by default, and
+        // until C vendors implement C99's ways to control FP exceptions, Python
+        // requires non-stop mode.  Alas, some platforms enable FP exceptions by
+        // default.  Here we disable them.
+
+        fp_except_t m;
+
+        m = fpgetmask();
+        fpsetmask( m & ~FP_X_OFL );
+#endif
+        char *oldloc = strdup( setlocale( LC_ALL, NULL ) );
+        setlocale( LC_ALL, "" );
+
+        for ( int i = 0; i < argc; i++ )
+        {
+#ifdef __APPLE__
+            argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
+#else
+            argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
+#endif
+            assert ( argv_copy[ i ] );
+        }
+
+        setlocale( LC_ALL, oldloc );
+        free( oldloc );
+    }
+
+
+    if ( initial )
+    {
+        Py_SetProgramName( argv_copy[0] );
+    }
+    else
+    {
+        PySys_SetArgv( argc, argv_copy );
+    }
 #endif
 }
 
@@ -1510,7 +1526,7 @@ PyModuleObject *module_builtin = NULL;
 
 #define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( _python_str_plain_##name );
 
-PyTypeObject PyBuiltinModule_Type =
+static PyTypeObject Nuitka_BuiltinModule_Type =
 {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     "compiled_module",                           // tp_name
@@ -1597,30 +1613,30 @@ void _initBuiltinModule()
     dict_builtin = (PyDictObject *)module_builtin->md_dict;
     assert( PyDict_Check( dict_builtin ) );
 
-    /* init PyBuiltinModule_Type, PyType_Ready wont copy all member from base
-       type, so we need copy all members from PyModule_Type manual for safety.
-       PyType_Ready will change tp_flags, we need define it again.  set
-       tp_setattro to PyBuiltinModule_SetAttr and we can detect value change.
-       set tp_base to PyModule_Type and PyModule_Check will pass. */
-    PyBuiltinModule_Type.tp_dealloc = PyModule_Type.tp_dealloc;
-    PyBuiltinModule_Type.tp_repr = PyModule_Type.tp_repr;
-    PyBuiltinModule_Type.tp_setattro = (setattrofunc) Nuitka_BuiltinModule_SetAttr;
-    PyBuiltinModule_Type.tp_getattro = PyModule_Type.tp_getattro;
-    PyBuiltinModule_Type.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_BASETYPE;
-    PyBuiltinModule_Type.tp_doc = PyModule_Type.tp_doc;
-    PyBuiltinModule_Type.tp_traverse = PyModule_Type.tp_traverse;
-    PyBuiltinModule_Type.tp_members = PyModule_Type.tp_members;
-    PyBuiltinModule_Type.tp_base = &PyModule_Type;
-    PyBuiltinModule_Type.tp_dictoffset = PyModule_Type.tp_dictoffset;
-    PyBuiltinModule_Type.tp_init = PyModule_Type.tp_init;
-    PyBuiltinModule_Type.tp_alloc = PyModule_Type.tp_alloc;
-    PyBuiltinModule_Type.tp_new = PyModule_Type.tp_new;
-    PyBuiltinModule_Type.tp_free = PyModule_Type.tp_free;
-    int ret = PyType_Ready( &PyBuiltinModule_Type );
+    // init Nuitka_BuiltinModule_Type, PyType_Ready wont copy all member from
+    // base type, so we need copy all members from PyModule_Type manual for
+    // safety.  PyType_Ready will change tp_flags, we need define it again. Set
+    // tp_setattro to Nuitka_BuiltinModule_SetAttr and we can detect value
+    // change. Set tp_base to PyModule_Type and PyModule_Check will pass.
+    Nuitka_BuiltinModule_Type.tp_dealloc = PyModule_Type.tp_dealloc;
+    Nuitka_BuiltinModule_Type.tp_repr = PyModule_Type.tp_repr;
+    Nuitka_BuiltinModule_Type.tp_setattro = (setattrofunc)Nuitka_BuiltinModule_SetAttr;
+    Nuitka_BuiltinModule_Type.tp_getattro = PyModule_Type.tp_getattro;
+    Nuitka_BuiltinModule_Type.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_BASETYPE;
+    Nuitka_BuiltinModule_Type.tp_doc = PyModule_Type.tp_doc;
+    Nuitka_BuiltinModule_Type.tp_traverse = PyModule_Type.tp_traverse;
+    Nuitka_BuiltinModule_Type.tp_members = PyModule_Type.tp_members;
+    Nuitka_BuiltinModule_Type.tp_base = &PyModule_Type;
+    Nuitka_BuiltinModule_Type.tp_dictoffset = PyModule_Type.tp_dictoffset;
+    Nuitka_BuiltinModule_Type.tp_init = PyModule_Type.tp_init;
+    Nuitka_BuiltinModule_Type.tp_alloc = PyModule_Type.tp_alloc;
+    Nuitka_BuiltinModule_Type.tp_new = PyModule_Type.tp_new;
+    Nuitka_BuiltinModule_Type.tp_free = PyModule_Type.tp_free;
+    int ret = PyType_Ready( &Nuitka_BuiltinModule_Type );
     assert( ret == 0 );
 
-    // replace type of builtin module
-    ((PyObject *)module_builtin)->ob_type = &PyBuiltinModule_Type;
+    // Replace type of builtin module to take over.
+    ((PyObject *)module_builtin)->ob_type = &Nuitka_BuiltinModule_Type;
     assert( PyModule_Check( module_builtin ) == 1 );
 }
 
@@ -1927,3 +1943,661 @@ void _initBuiltinOriginalValues()
 #if PYTHON_VERSION >= 300
 volatile int _Py_Ticker = _Py_CheckInterval;
 #endif
+
+// Reverse operation mapping.
+static int const swapped_op[] =
+{
+    Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE
+};
+
+#if PYTHON_VERSION < 300
+
+extern PyObject *_python_str_plain___cmp__;
+cmpfunc default_tp_compare;
+
+void initSlotCompare()
+{
+    // Create a class with "__cmp__" attribute, to get a hand at the default
+    // implementation of tp_compare. It's not part of the API and with shared
+    // libraries it's not accessible. The name does not matter, nor does the
+    // actual value used for "__cmp__".
+
+    PyObject *c = PyObject_CallFunctionObjArgs(
+        (PyObject *)&PyType_Type,
+        _python_str_plain___cmp__,
+        PyObjectTemporary( MAKE_TUPLE1( (PyObject *)&PyInt_Type ) ).asObject0(),
+        PyObjectTemporary( MAKE_DICT1( Py_True, _python_str_plain___cmp__ ) ).asObject0(),
+        NULL
+    );
+
+    PyObject *r = PyObject_CallFunctionObjArgs(
+        c,
+        NULL
+    );
+    Py_DECREF( c );
+
+    assertObject( r );
+    assert( Py_TYPE( r )->tp_compare );
+
+    default_tp_compare = Py_TYPE( r )->tp_compare;
+
+    Py_DECREF( r );
+}
+
+#define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
+
+static inline int adjust_tp_compare( int c )
+{
+    if ( PyErr_Occurred() )
+    {
+        return -2;
+    }
+    else if (c < -1 || c > 1)
+    {
+        return c < -1 ? -1 : 1;
+    }
+    else
+    {
+        return c;
+    }
+}
+
+static inline int coerce_objects( PyObject **pa, PyObject **pb )
+{
+    PyObject *a = *pa;
+    PyObject *b = *pb;
+
+    // Shortcut only for old-style types
+    if ( a->ob_type == b->ob_type && !PyType_HasFeature( a->ob_type, Py_TPFLAGS_CHECKTYPES ))
+    {
+        Py_INCREF( a );
+        Py_INCREF( b );
+
+        return 0;
+    }
+    if ( a->ob_type->tp_as_number && a->ob_type->tp_as_number->nb_coerce )
+    {
+        int res = (*a->ob_type->tp_as_number->nb_coerce)( pa, pb );
+
+        if ( res <= 0 )
+        {
+            return res;
+        }
+    }
+    if ( b->ob_type->tp_as_number && b->ob_type->tp_as_number->nb_coerce )
+    {
+        int res = (*b->ob_type->tp_as_number->nb_coerce)( pb, pa );
+
+        if ( res <= 0 )
+        {
+            return res;
+        }
+    }
+
+    return 1;
+}
+
+static int try_3way_compare( PyObject *a, PyObject *b )
+{
+    cmpfunc f1 = a->ob_type->tp_compare;
+    cmpfunc f2 = b->ob_type->tp_compare;
+    int c;
+
+    // Same compares, just use it.
+    if ( f1 != NULL && f1 == f2 )
+    {
+        c = (*f1)( a, b );
+        return adjust_tp_compare( c );
+    }
+
+    // If one slot is _PyObject_SlotCompare (which we got our hands on under a
+    // different name in case it's a shared library), prefer it.
+    if ( f1 == default_tp_compare || f2 == default_tp_compare )
+    {
+        return default_tp_compare( a, b );
+    }
+
+    // Try coercion.
+    c = coerce_objects( &a, &b );
+
+    if (c < 0)
+    {
+        return -2;
+    }
+    if (c > 0)
+    {
+        return 2;
+    }
+
+    f1 = a->ob_type->tp_compare;
+    if ( f1 != NULL && f1 == b->ob_type->tp_compare )
+    {
+        c = (*f1)( a, b );
+        Py_DECREF( a );
+        Py_DECREF( b );
+
+        return adjust_tp_compare(c);
+    }
+
+    // No comparison defined.
+    Py_DECREF( a );
+    Py_DECREF( b );
+    return 2;
+}
+
+PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
+{
+    // TODO: Type a-ware rich comparison would be really nice, but this is what
+    // CPython does, and should be even in "richcomparisons.hpp" as the first
+    // thing, so it's even cheaper.
+    if ( PyInt_CheckExact( a ) && PyInt_CheckExact( b ))
+    {
+        long aa, bb;
+#ifdef __NUITKA_NO_ASSERT__
+        bool res;
+#else
+        bool res = false;
+#endif
+
+        aa = PyInt_AS_LONG( a );
+        bb = PyInt_AS_LONG( b );
+
+        switch( op )
+        {
+            case Py_LT: res = aa <  bb; break;
+            case Py_LE: res = aa <= bb; break;
+            case Py_EQ: res = aa == bb; break;
+            case Py_NE: res = aa != bb; break;
+            case Py_GT: res = aa >  bb; break;
+            case Py_GE: res = aa >= bb; break;
+            default: assert( false );
+        }
+        return INCREASE_REFCOUNT( BOOL_FROM( res ) );
+    }
+
+    // TODO: Get hint from recursion control if that's needed.
+    if (unlikely( Py_EnterRecursiveCall((char *)" in cmp") ))
+    {
+        return NULL;
+    }
+
+    PyObject *result;
+
+    // If the types are equal, we may get away immediately.
+    if ( a->ob_type == b->ob_type && !PyInstance_Check( a ) )
+    {
+        richcmpfunc frich = RICHCOMPARE( a->ob_type );
+
+        if ( frich != NULL )
+        {
+            result = (*frich)( a, b, op );
+
+            if (result != Py_NotImplemented)
+            {
+                Py_LeaveRecursiveCall();
+                return result;
+            }
+
+            Py_DECREF( result );
+        }
+
+        // No rich comparison, but maybe compare works.
+        cmpfunc fcmp = a->ob_type->tp_compare;
+        if ( fcmp != NULL )
+        {
+            int c = (*fcmp)( a, b );
+            c = adjust_tp_compare( c );
+
+            Py_LeaveRecursiveCall();
+
+            if ( c == -2 )
+            {
+                return NULL;
+            }
+
+            switch( op )
+            {
+                case Py_LT: c = c <  0; break;
+                case Py_LE: c = c <= 0; break;
+                case Py_EQ: c = c == 0; break;
+                case Py_NE: c = c != 0; break;
+                case Py_GT: c = c >  0; break;
+                case Py_GE: c = c >= 0; break;
+            }
+
+            return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+        }
+    }
+
+    // Fast path was not successful or not taken
+    richcmpfunc f;
+
+    if ( a->ob_type != b->ob_type && PyType_IsSubtype( b->ob_type, a->ob_type ) )
+    {
+        f = RICHCOMPARE( b->ob_type );
+
+        if ( f != NULL)
+        {
+            result = (*f)( b, a, swapped_op[ op ] );
+
+            if ( result != Py_NotImplemented )
+            {
+                Py_LeaveRecursiveCall();
+                return result;
+            }
+
+           Py_DECREF( result );
+        }
+    }
+
+    f = RICHCOMPARE( a->ob_type );
+    if ( f != NULL )
+    {
+        result = (*f)( a, b, op );
+
+        if ( result != Py_NotImplemented )
+        {
+            Py_LeaveRecursiveCall();
+            return result;
+        }
+
+        Py_DECREF( result );
+    }
+
+    f = RICHCOMPARE( b->ob_type );
+    if ( f != NULL )
+    {
+        result = (*f)( b, a, swapped_op[ op ] );
+
+        if ( result != Py_NotImplemented )
+        {
+            Py_LeaveRecursiveCall();
+            return result;
+        }
+
+        Py_DECREF( result );
+    }
+
+    int c;
+
+    if ( PyInstance_Check( a ) )
+    {
+        c = (*a->ob_type->tp_compare)( a, b );
+    }
+    else if ( PyInstance_Check( b ) )
+    {
+        c = (*b->ob_type->tp_compare)( a, b );
+    }
+    else
+    {
+        c = try_3way_compare( a, b );
+    }
+
+    if ( c >= 2 )
+    {
+        if ( a->ob_type == b->ob_type )
+        {
+            Py_uintptr_t aa = (Py_uintptr_t)a;
+            Py_uintptr_t bb = (Py_uintptr_t)b;
+
+            c = ( aa < bb ) ? -1 : ( aa > bb ) ? 1 : 0;
+        }
+        else if ( a == Py_None )
+        {
+            // None is smaller than everything else
+            c = -1;
+        }
+        else if ( b == Py_None )
+        {
+            // None is smaller than everything else
+            c = 1;
+        }
+        else if ( PyNumber_Check( a ) )
+        {
+            // different type: compare type names but numbers are smaller than
+            // others.
+            if ( PyNumber_Check( b ) )
+            {
+                // Both numbers, need to make a decision based on types.
+                Py_uintptr_t aa = (Py_uintptr_t)Py_TYPE( a );
+                Py_uintptr_t bb = (Py_uintptr_t)Py_TYPE( b );
+
+                c = ( aa < bb ) ? -1 : ( aa > bb ) ? 1 : 0;
+            }
+            else
+            {
+                c = -1;
+            }
+        }
+        else if ( PyNumber_Check( b ) )
+        {
+            c = 1;
+        }
+        else
+        {
+            int s = strcmp( a->ob_type->tp_name, b->ob_type->tp_name );
+
+            if ( s < 0 )
+            {
+                c = -1;
+            }
+            else if ( s > 0 )
+            {
+                c = 1;
+            }
+            else
+            {
+                // Same type name need to make a decision based on types.
+                Py_uintptr_t aa = (Py_uintptr_t)Py_TYPE( a );
+                Py_uintptr_t bb = (Py_uintptr_t)Py_TYPE( b );
+
+                c = ( aa < bb ) ? -1 : ( aa > bb ) ? 1 : 0;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely( c <= -2 ))
+    {
+        return NULL;
+    }
+
+    switch( op )
+    {
+        case Py_LT: c = c <  0; break;
+        case Py_LE: c = c <= 0; break;
+        case Py_EQ: c = c == 0; break;
+        case Py_NE: c = c != 0; break;
+        case Py_GT: c = c >  0; break;
+        case Py_GE: c = c >= 0; break;
+    }
+
+    return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+}
+
+#else
+
+// Table for operation names as strings.
+static char const *op_strings[] =
+{
+    "<", "<=", "==", "!=", ">", ">="
+};
+
+PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
+{
+    if (unlikely( Py_EnterRecursiveCall( (char *)" in comparison" ) ))
+    {
+        return NULL;
+    }
+
+    bool checked_reverse_op = false;
+    PyObject *result = NULL;
+    richcmpfunc f;
+
+    if ( a->ob_type != b->ob_type && PyType_IsSubtype( b->ob_type, a->ob_type ) )
+    {
+        f = b->ob_type->tp_richcompare;
+        if ( f != NULL )
+        {
+            checked_reverse_op = true;
+
+            result = (*f)( b, a, swapped_op[ op ] );
+
+            if (unlikely( result == NULL ))
+            {
+                Py_LeaveRecursiveCall();
+                return NULL;
+            }
+
+            if ( result == Py_NotImplemented )
+            {
+                Py_DECREF( result );
+                result = NULL;
+            }
+
+        }
+    }
+
+    if ( result == NULL )
+    {
+        f = a->ob_type->tp_richcompare;
+
+        if ( f != NULL )
+        {
+            result = (*f)( a, b, op );
+
+            if (unlikely( result == NULL ))
+            {
+                Py_LeaveRecursiveCall();
+                return NULL;
+            }
+
+            if ( result == Py_NotImplemented )
+            {
+                Py_DECREF( result );
+                result = NULL;
+            }
+        }
+    }
+
+    if ( result == NULL && checked_reverse_op == false )
+    {
+        f = b->ob_type->tp_richcompare;
+
+        if ( f != NULL )
+        {
+            result = (*f)( b, a, swapped_op[ op ] );
+
+            if (unlikely( result == NULL ))
+            {
+                Py_LeaveRecursiveCall();
+                return NULL;
+            }
+
+            if ( result == Py_NotImplemented )
+            {
+                Py_DECREF( result );
+                result = NULL;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if ( result != NULL )
+    {
+        return result;
+    }
+
+    // If it is not implemented, do identify checks as "==" and "!=" and
+    // otherwise give an error
+    if ( op == Py_EQ )
+    {
+        return INCREASE_REFCOUNT( BOOL_FROM( a == b ) );
+    }
+    else if ( op == Py_NE )
+    {
+        return INCREASE_REFCOUNT( BOOL_FROM( a != b ) );
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "unorderable types: %s() %s %s()",
+            a->ob_type->tp_name,
+            op_strings[ op ],
+            b->ob_type->tp_name
+        );
+
+        return NULL;
+    }
+}
+
+#endif
+
+PyObject *DEEP_COPY( PyObject *value )
+{
+    if ( PyDict_Check( value ) )
+    {
+        // For Python3.3, this can be done much faster in the same way as it is
+        // done in parameter parsing.
+
+#if PYTHON_VERSION < 330
+        PyObject *result = _PyDict_NewPresized( ((PyDictObject *)value)->ma_used  );
+
+        for ( Py_ssize_t i = 0; i <= ((PyDictObject *)value)->ma_mask; i++ )
+        {
+            PyDictEntry *entry = &((PyDictObject *)value)->ma_table[ i ];
+
+            if ( entry->me_value != NULL )
+            {
+                int res = PyDict_SetItem(
+                    result,
+                    entry->me_key,
+                    PyObjectTemporary( DEEP_COPY( entry->me_value ) ).asObject0()
+                );
+
+                if (unlikely( res == -1 ))
+                {
+                    throw PythonException();
+                }
+            }
+        }
+
+        return result;
+#else
+        if ( _PyDict_HasSplitTable( (PyDictObject *)value) )
+        {
+            PyDictObject *mp = (PyDictObject *)value;
+
+            PyObject **newvalues = PyMem_NEW( PyObject *, mp->ma_keys->dk_size );
+            assert (newvalues != NULL);
+
+            PyDictObject *result = PyObject_GC_New( PyDictObject, &PyDict_Type );
+            assert( result != NULL );
+
+            result->ma_values = newvalues;
+            result->ma_keys = mp->ma_keys;
+            result->ma_used = mp->ma_used;
+
+            mp->ma_keys->dk_refcnt += 1;
+
+            Nuitka_GC_Track( result );
+
+            int size = mp->ma_keys->dk_size;
+            for ( Py_ssize_t i = 0; i < size; i++ )
+            {
+                PyDictKeyEntry *entry = &result->ma_keys->dk_entries[ i ];
+
+                if ( mp->ma_values[ i ] )
+                {
+                    result->ma_values[ i ] = DEEP_COPY( mp->ma_values[ i ] );
+                }
+                else
+                {
+                    result->ma_values[ i ] = NULL;
+                }
+            }
+
+            return (PyObject *)result;
+        }
+        else
+        {
+            PyObject *result = _PyDict_NewPresized( ((PyDictObject *)value)->ma_used  );
+
+            PyDictObject *mp = (PyDictObject *)value;
+
+            int size = mp->ma_keys->dk_size;
+            for ( Py_ssize_t i = 0; i < size; i++ )
+            {
+                PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+
+                PyObject *value;
+
+                if ( mp->ma_values )
+                {
+                    value = mp->ma_values[ i ];
+                }
+                else
+                {
+                    value = entry->me_value;
+                }
+
+                if ( value != NULL )
+                {
+                    int res = PyDict_SetItem(
+                        result,
+                        entry->me_key,
+                        PyObjectTemporary( DEEP_COPY( value ) ).asObject0()
+                    );
+                }
+            }
+
+            return result;
+        }
+#endif
+    }
+    else if ( PyTuple_Check( value ) )
+    {
+        Py_ssize_t n = PyTuple_Size( value );
+        PyObject *result = PyTuple_New( n );
+
+        for( Py_ssize_t i = 0; i < n; i++ )
+        {
+            PyTuple_SET_ITEM( result, i, DEEP_COPY( PyTuple_GET_ITEM( value, i ) ) );
+        }
+
+        return result;
+    }
+    else if ( PyList_Check( value ) )
+    {
+        Py_ssize_t n = PyList_GET_SIZE( value );
+        PyObject *result = PyList_New( n );
+
+        for( Py_ssize_t i = 0; i < n; i++ )
+        {
+            PyList_SET_ITEM( result, i, DEEP_COPY( PyList_GET_ITEM( value, i ) ) );
+        }
+
+        return result;
+    }
+    else if ( PySet_Check( value ) )
+    {
+        // Sets cannot contain unhashable types, so they must be immutable.
+        return PySet_New( value );
+    }
+    else if (
+#if PYTHON_VERSION < 300
+        PyString_Check( value ) ||
+#endif
+        PyUnicode_Check( value ) ||
+#if PYTHON_VERSION < 300
+        PyInt_Check( value ) ||
+#endif
+        PyLong_Check( value ) ||
+        value == Py_None ||
+        PyBool_Check( value ) ||
+        PyFloat_Check( value ) ||
+        PyBytes_Check( value ) ||
+#if PYTHON_VERSION >= 300
+        PyRange_Check( value ) ||
+#endif
+        PyType_Check( value ) ||
+        PyComplex_Check( value )
+
+        )
+    {
+        return INCREASE_REFCOUNT( value );
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "DEEP_COPY does not implement: %s",
+            value->ob_type->tp_name
+        );
+
+        throw PythonException();
+    }
+}

@@ -86,6 +86,7 @@ PythonExceptionKeeper _caught_%(try_count)d;
 %(rethrow_setups)s
 try
 {
+    // Tried block:
 %(tried_code)s
 }
 catch ( PythonException &_exception )
@@ -108,9 +109,10 @@ catch ( PythonException &_exception )
 #endif
 }
 %(rethrow_catchers)s
-// Final code:
+// Final block:
 %(final_code)s
 _caught_%(try_count)d.rethrow();
+// Final end
 %(rethrow_raisers)s"""
 
 try_finally_template_setup_continue = """\
@@ -165,28 +167,28 @@ if ( _break_%(try_count)d )
 try_finally_template_reraise_return_value = """\
 if ( _return_value_%(try_count)d.isKeeping() )
 {
-    throw ReturnValueException( _return_value_%(try_count)d.asObject() );
+    throw ReturnValueException( _return_value_%(try_count)d.asObject1() );
 }"""
 
 try_finally_template_direct_return_value = """\
 assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
-return _return_value_%(try_count)d.asObject();"""
+return _return_value_%(try_count)d.asObject1();"""
 
 try_finally_template_direct_generator_return_value = """\
 assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
-throw ReturnValueException( _return_value_%(try_count)d.asObject() );"""
+throw ReturnValueException( _return_value_%(try_count)d.asObject1() );"""
 
 
 try_finally_template_indirect_return_value = """\
 if ( _return_value_%(try_count)d.isKeeping() )
 {
-    return _return_value_%(try_count)d.asObject();
+    return _return_value_%(try_count)d.asObject1();
 }"""
 
 try_finally_template_indirect_generator_return_value = """\
 if ( _return_value_%(try_count)d.isKeeping() )
 {
-    throw ReturnValueException( _return_value_%(try_count)d.asObject() );
+    throw ReturnValueException( _return_value_%(try_count)d.asObject1() );
 }"""
 
 

@@ -73,16 +73,18 @@ from .CallCodes import (
     getCallsDecls,
     getCallsCode
 )
-# imported from here pylint: enable=W0611
 
 from .ConstantCodes import (
     getConstantsInitCode,
     getConstantsDeclCode,
+    getConstantAccess,
     getConstantHandle,
     getConstantCode,
     needsPickleInit,
     encodeStreamData
 )
+
+# imported from here pylint: enable=W0611
 
 # These are here to be imported from here
 # pylint: disable=W0611
@@ -123,55 +125,6 @@ from nuitka import (
 from ..__past__ import iterItems
 
 import sys
-
-def getConstantAccess( context, constant ):
-    # Many cases, because for each type, we may copy or optimize by creating
-    # empty.  pylint: disable=R0911
-
-    if type( constant ) is dict:
-        if constant:
-            return Identifier(
-                "PyDict_Copy( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                ),
-                1
-            )
-        else:
-            return EmptyDictIdentifier()
-    elif type( constant ) is set:
-        if constant:
-            return Identifier(
-                "PySet_New( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                ),
-                1
-            )
-        else:
-            return Identifier(
-                "PySet_New( NULL )",
-                1
-            )
-    elif type( constant ) is list:
-        if constant:
-            return Identifier(
-                "LIST_COPY( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                ),
-                1
-            )
-        else:
-            return Identifier(
-                "PyList_New( 0 )",
-                1
-            )
-    else:
-        return getConstantHandle(
-            context  = context,
-            constant = constant
-        )
 
 def _defaultToNullIdentifier( identifier ):
     if identifier is not None:
@@ -277,7 +230,7 @@ def getImportFromStarCode( context, module_identifier ):
             module_identifier.getCodeTemporaryRef()
         )
     else:
-        return "IMPORT_MODULE_STAR( locals_dict.asObject(), false, %s );" % (
+        return "IMPORT_MODULE_STAR( locals_dict.asObject0(), false, %s );" % (
             module_identifier.getCodeTemporaryRef()
         )
 
@@ -564,7 +517,9 @@ def getPrintCode( newline, identifiers, target_file ):
 
     if target_file is not None:
         return CodeTemplates.template_print_statement % {
-            "target_file"         : _defaultToNullIdentifier( target_file ).getCodeExportRef(),
+            "target_file"         : _defaultToNullIdentifier(
+                target_file
+            ).getCodeExportRef(),
             "print_elements_code" : indented( print_elements_code )
         }
     else:
@@ -588,7 +543,8 @@ def getClosureVariableProvisionCode( context, closure_variables ):
 
     return result
 
-def getConditionalExpressionCode( condition_code, identifier_no, identifier_yes ):
+def getConditionalExpressionCode( condition_code, identifier_no,
+                                  identifier_yes ):
     if identifier_yes.getCheapRefCount() == identifier_no.getCheapRefCount():
         if identifier_yes.getCheapRefCount() == 0:
             codes_yes = identifier_yes.getCodeTemporaryRef()
@@ -634,14 +590,18 @@ def getBranchCode( condition_code, yes_codes, no_codes ):
     if no_codes is None:
         return CodeTemplates.template_branch_one % {
             "condition"   : condition_code,
-            "branch_code" : indented( yes_codes if yes_codes is not None else "" )
+            "branch_code" : indented(
+                yes_codes if yes_codes is not None else ""
+            )
         }
     else:
         assert no_codes, no_codes
 
         return CodeTemplates.template_branch_two % {
             "condition"       : condition_code,
-            "branch_yes_code" : indented( yes_codes if yes_codes is not None else "" ),
+            "branch_yes_code" : indented(
+                yes_codes if yes_codes is not None else ""
+            ),
             "branch_no_code"  : indented( no_codes )
         }
 
@@ -847,15 +807,63 @@ def getVariableAssignmentCode( context, variable, identifier ):
     if variable.isTempVariableReference():
         referenced = variable.getReferenced()
 
-        if not referenced.isDeclared():
+        if referenced.needsLateDeclaration() and not referenced.isDeclared():
             referenced.markAsDeclared()
 
-            return getLocalVariableInitCode(
-                context   = context,
-                variable  = variable.getReferenced(),
-                init_from = identifier
+            variable_code = getVariableCode(
+                variable = variable,
+                context  = context
             )
-        elif not referenced.getNeedsFree():
+
+            local_inits = getTempKeeperDecl( context )
+
+            if referenced.getNeedsFree():
+                prefix = "PyObject *_%s;" % variable_code
+
+                if local_inits:
+                    result = "_%s = %s;" % (
+                        variable_code,
+                        identifier.getCodeExportRef()
+                    )
+
+                    result = getBlockCode(
+                        local_inits + result.split( "\n" )
+                    )
+
+                    postfix = "%s %s( _%s );" % (
+                        referenced.getDeclarationTypeCode( False ),
+                        variable_code,
+                        variable_code
+                    )
+
+                    return prefix + "\n" + result + "\n" + postfix
+                else:
+                    return "%s %s( %s );" % (
+                        referenced.getDeclarationTypeCode( False ),
+                        variable_code,
+                        identifier.getCodeExportRef()
+                    )
+            else:
+                if local_inits:
+                    prefix = "PyObject *%s;" % variable_code
+
+                    result = "%s = %s;" % (
+                        variable_code,
+                        identifier.getCodeTemporaryRef()
+                    )
+
+                    result = getBlockCode(
+                        local_inits + result.split( "\n" )
+                    )
+
+                    return prefix + "\n" + result
+                else:
+                    return "PyObject *%s = %s;" % (
+                        variable_code,
+                        identifier.getCodeTemporaryRef()
+                    )
+
+        if not referenced.getNeedsFree():
             # So won't get a reference, and take none, or else it may get lost,
             # which we don't want to happen.
 
@@ -919,7 +927,7 @@ def getTempKeeperHandle( variable, context ):
 
     if ref_count == 1:
         return KeeperAccessIdentifier(
-            "%s.asObject()" % variable_name
+            "%s.asObject1()" % variable_name
         )
     else:
         # TODO: Could create an identifier, where 0 is just cheap, and 1 is
@@ -943,6 +951,15 @@ def getVariableDelCode( context, tolerant, variable ):
             "true" if tolerant else "false"
         )
     else:
+        if variable.isTempVariableReference():
+            if not variable.getReferenced().getNeedsFree():
+                return "%s = NULL;" % (
+                    getVariableCode(
+                        variable = variable,
+                        context  = context
+                    )
+                )
+
         return "%s.del( %s );" % (
             getVariableCode(
                 variable = variable,
@@ -1383,7 +1400,7 @@ def getLoadLocalsCode( context, provider, mode ):
     else:
         if mode == "copy":
             return Identifier(
-                "PyDict_Copy( locals_dict.asObject() )",
+                "PyDict_Copy( locals_dict.asObject0() )",
                 1
             )
         elif mode == "updated":
@@ -1393,7 +1410,7 @@ def getLoadLocalsCode( context, provider, mode ):
             )
 
             result = Identifier(
-                "locals_dict.asObject()",
+                "locals_dict.asObject0()",
                 0
             )
 
@@ -1727,6 +1744,9 @@ def getBuiltinTupleCode( identifier ):
 def getBuiltinListCode( identifier ):
     return HelperCallIdentifier( "TO_LIST", identifier )
 
+def getBuiltinSetCode( identifier ):
+    return HelperCallIdentifier( "TO_SET", identifier )
+
 def getBuiltinDictCode( seq_identifier, dict_identifier ):
     if dict_identifier.isConstantIdentifier() and dict_identifier.getConstant() == {}:
         dict_identifier = None
@@ -1850,7 +1870,7 @@ def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
 def getModuleCode( context, module_name, codes, other_module_names,
-                   function_decl_codes, function_body_codes ):
+                   function_decl_codes, function_body_codes, temp_variables ):
     # For the module code, lots of attributes come together.
     # pylint: disable=R0914
     module_identifier = getModuleIdentifier( module_name )
@@ -1885,6 +1905,19 @@ def getModuleCode( context, module_name, codes, other_module_names,
             }
         )
 
+    # Temp local variable initializations
+    local_var_inits = [
+        getLocalVariableInitCode(
+            context  = context,
+            variable = variable
+        )
+        for variable in
+        temp_variables
+        # TODO: Should become uncessary to filter.
+        if variable.getNeedsFree() is not None
+        if not variable.needsLateDeclaration()
+    ]
+
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
         "module_name_obj"       : getConstantCode(
@@ -1895,6 +1928,7 @@ def getModuleCode( context, module_name, codes, other_module_names,
         "module_functions_decl" : function_decl_codes,
         "module_functions_code" : function_body_codes,
         "module_globals"        : module_globals,
+        "temps_decl"            : "\n".join( local_var_inits ),
         "module_code"           : indented( codes ),
         "module_inittab"        : indented( sorted( module_inittab ) ),
         "use_unfreezer"         : 1 if other_module_names else 0
@@ -2055,10 +2089,10 @@ def _getFuncAnnotationsValue( annotations_identifier ):
     else:
         return Identifier( "annotations", 1 )
 
-def getGeneratorFunctionCode( context, function_name,
-                              function_identifier, parameters,
-                              closure_variables, user_variables, function_codes,
-                              source_ref, function_doc ):
+def getGeneratorFunctionCode( context, function_name, function_identifier,
+                              parameters, closure_variables, user_variables,
+                              temp_variables, function_codes, source_ref,
+                              function_doc ):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables, with many
@@ -2099,6 +2133,7 @@ def getGeneratorFunctionCode( context, function_name,
                 variable.getName()
             )
         )
+        del variable
 
     function_var_inits = []
     local_var_decl = []
@@ -2118,6 +2153,24 @@ def getGeneratorFunctionCode( context, function_name,
                     constant = user_variable.getName(),
                     context  = context
                 )
+            )
+        )
+
+    for temp_variable in temp_variables:
+        assert temp_variable.isTempVariable(), variable
+
+        if temp_variable.needsLateDeclaration():
+            continue
+
+        # TODO: This filter should not be possible.
+        if temp_variable.getNeedsFree() is None:
+            continue
+
+        local_var_decl.append(
+            getLocalVariableInitCode(
+                context    = context,
+                variable   = temp_variable,
+                in_context = True
             )
         )
 
@@ -2255,6 +2308,7 @@ def getGeneratorFunctionCode( context, function_name,
 
 def getTempKeeperDecl( context ):
     tmp_keepers = context.getTempKeeperUsages()
+
     return [
         "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
         for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
@@ -2426,8 +2480,8 @@ def getFunctionContextDefinitionCode( context, function_identifier,
     }
 
 def getFunctionCode( context, function_name, function_identifier, parameters,
-                     closure_variables, user_variables, function_codes,
-                     function_doc, file_scope ):
+                     closure_variables, user_variables, temp_variables,
+                     function_codes, function_doc, file_scope ):
 
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=R0912,R0914
@@ -2458,7 +2512,14 @@ def getFunctionCode( context, function_name, function_identifier, parameters,
             variable = variable
         )
         for variable in
-        user_variables
+        user_variables + tuple(
+            variable
+            for variable in
+            temp_variables
+            if not variable.needsLateDeclaration()
+            # TODO: This filter should not be possible.
+            if variable.getNeedsFree() is not None
+        )
     ]
 
     function_doc = getConstantCode(

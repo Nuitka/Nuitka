@@ -48,6 +48,12 @@ class ExpressionBuiltinList( ExpressionBuiltinTypeBase ):
     builtin_spec = BuiltinOptimization.builtin_list_spec
 
 
+class ExpressionBuiltinSet( ExpressionBuiltinTypeBase ):
+    kind = "EXPRESSION_BUILTIN_SET"
+
+    builtin_spec = BuiltinOptimization.builtin_set_spec
+
+
 class ExpressionBuiltinFloat( ExpressionBuiltinTypeBase ):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 

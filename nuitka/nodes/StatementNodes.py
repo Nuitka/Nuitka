@@ -157,6 +157,8 @@ class StatementsFrame( StatementsSequence ):
         if python_version >= 300:
             result[ "kw_only_count" ] = self.kw_only_count
 
+        result.update( StatementsSequence.getDetails( self ) )
+
         return result
 
     def needsLineNumber( self ):

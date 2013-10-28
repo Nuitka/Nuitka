@@ -95,14 +95,15 @@ int main( int argc, char *argv[] )
     Py_NoSiteFlag = 1;
 
     // Initialize the embedded CPython interpreter.
+    setCommandLineParameters( argc, argv, true );
     Py_Initialize();
 
     // Lie about it, believe it or not, there are "site" files, that check
     // against later imports, see below.
     Py_NoSiteFlag = 0;
 
-    // Set the command line parameters
-    setCommandLineParameters( argc, argv );
+    // Set the command line parameters for run time usage.
+    setCommandLineParameters( argc, argv, false );
 
     // Initialize the constant values used.
     _initBuiltinModule();
@@ -124,6 +125,9 @@ int main( int argc, char *argv[] )
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
     PyType_Ready( &Nuitka_Frame_Type );
+#if PYTHON_VERSION < 300
+    initSlotCompare();
+#endif
 
     enhancePythonTypes();
 
@@ -136,6 +140,7 @@ int main( int argc, char *argv[] )
 
     patchInspectModule();
     patchBuiltinModule();
+    patchTypeComparison();
 
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
@@ -198,7 +203,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
             throw PythonException();
         }
 
-        PyObject *asObject() const
+        PyObject *asObject1() const
         {
             return INCREASE_REFCOUNT( this->asObject0() );
         }
@@ -349,10 +354,14 @@ MOD_INIT_DECL( %(module_identifier)s )
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
     PyType_Ready( &Nuitka_Frame_Type );
+#if PYTHON_VERSION < 300
+    initSlotCompare();
+#endif
 
     patchInspectModule();
-
     patchBuiltinModule();
+    patchTypeComparison();
+
 #endif
 
 #if _MODULE_UNFREEZER
@@ -432,6 +441,9 @@ MOD_INIT_DECL( %(module_identifier)s )
     PyDict_SetItem( module_dict, _python_str_plain___loader__, Py_None );
 #endif
 #endif
+
+    // Temp variables if any
+%(temps_decl)s
 
     // Module code
 %(module_code)s

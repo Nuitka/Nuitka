@@ -121,7 +121,7 @@ Coding Rules
 
 These rules should generally be adhered when working on Nuitka code. It's not
 library code and it's optimized for readability, and avoids all performance
-optimizations for itself.
+optimization for itself.
 
 
 Line Length
@@ -430,8 +430,8 @@ Compile Nuitka with Nuitka
 
 And there is the "compile itself" or "reflected" test. This test makes Nuitka
 compile itself and compare the resulting C++, which helps to find
-indeterminism. The test compiles every module of Nuitka into an extension module
-and all of Nuitka into a single binary.
+in-determinism. The test compiles every module of Nuitka into an extension
+module and all of Nuitka into a single binary.
 
 That test case also gives good coverage of the ``import`` mechanisms, because
 Nuitka uses a lot of packages.
@@ -446,6 +446,43 @@ Design Descriptions
 
 These should be a lot more and contain graphics from presentations given. It
 will be filled in, but not now.
+
+Nuitka Logo
+-----------
+
+The logo was submitted by "dr. Equivalent". It's source is contained in
+``misc/Logo`` where 3 variants of the logo in SVG are placed.
+
+* Symbol only (symbol)
+
+  .. image:: images/Nuitka-Logo-Symbol.png
+
+* Text next to symbol (horizontal)
+
+  .. image:: images/Nuitka-Logo-Horizontal.png
+
+* Text beneath symbol (vertical)
+
+  .. image:: images/Nuitka-Logo-Vertical.png
+
+From these logos, PNG images, "favicons", and a BMP file for the Windows
+installer are derived.
+
+The exact ImageMagick commands are in ``misc/make-doc.py``, but are now executed
+each time, the commands are also replicated here:
+
+.. code-block:: bash
+
+   convert -background none misc/Logo/Nuitka-Logo-Symbol.svg images/Nuitka-Logo-Symbol.png
+   convert -background none misc/Logo/Nuitka-Logo-Vertical.svg images/Nuitka-Logo-Vertical.png
+   convert -background none misc/Logo/Nuitka-Logo-Horizontal.svg images/Nuitka-Logo-Horizontal.png
+
+   optipng -o2 images/Nuitka-Logo-Symbol.png
+   optipng -o2 images/Nuitka-Logo-Vertical.png
+   optipng -o2 images/Nuitka-Logo-Horizontal.png
+
+   convert -background grey -resize 152x261 misc/Logo/Nuitka-Logo-Vertical.svg -alpha background images/Nuitka-Logo-WinInstaller.bmp
+
 
 Choice of the Target Language
 -----------------------------
@@ -515,6 +552,125 @@ be, and solving the problem with C++03 is feasible too, even if not pretty.
 For Ada would have spoken the time savings through run time checks, which would
 have shortened some debugging sessions quite some. But building the Python C-API
 bindings on our own, and potentially incorrectly, would have eaten that up.
+
+Use of Scons internally
+-----------------------
+
+Nuitka does not make its users interface with Scons at all, it's purely used
+internally. Nuitka itself, being pure Python, will run without any build process
+just fine.
+
+For interfacing, there is the module ``nuitka.build.SconsInterface`` that will
+support calling scons - potentially from an inline copy on Windows or when using
+source releases - and passing arguments to it. These arguments are passed as
+``key=value``, and decoded in the scons file of Nuitka.
+
+The scons file is named ``SingleExe.scons`` for lack of better name. It's really
+wrong now, but we have yet to find a better name. It once expressed the
+intention to be used to create executables, but the same works for modules too.
+
+It supports operation in multiple modes, and modules is just one of them. It
+runs outside of Nuitka process scope, even with a different Python version
+potentially, so all the information must be passed on the command line.
+
+What follows is the (lengthy) list of arguments that the scons file processes:
+
+* ``source_dir``
+
+  Where is the generated C++ source code. Scons will just compile everything it
+  finds there. No list of files is passed.
+
+* ``nuitka_src``
+
+  Where do the static C++ parts of Nuitka live. These provide e.g. the
+  implementation of compiled function, generators, and other helper codes, this
+  will point to where ``nuitka.build`` lives normally-
+
+* ``result_base``
+
+  This is not a full name, merely the basename for the result to be produced,
+  but with path included, and the suffix comes from module or executable mode.
+
+* ``module_mode``
+
+  Build a module instead of a program.
+
+* ``debug_mode``
+
+  Enable debug mode, which is a mode, where Nuitka tries to help identify errors
+  in itself, and will generate less optimal code. This also asks for warnings,
+  and makes the build fail if there are any.
+
+* ``python_debug``
+
+  Compile and link against Python debug mode, which does assertions and extra
+  checks, to identify errors, mostly related to reference counting. May make the
+  build fail, if no debug build library of CPython is available. On Windows it
+  typically is not installed.
+
+* ``optimize_mode``
+
+  Optimization mode, enable as much as currently possible. This refers to
+  building the binary.
+
+* ``full_compat_mode``
+
+  Full compatibility, even where it's stupid, i.e. do not provide information,
+  even if available, in order to assert maximum compatibility. Intended to
+  control level of compatability to absurd.
+
+* ``experimental_mode``
+
+  Do things that are not yet accepted to be safe.
+
+* ``lto_mode``
+
+  Make use of link time optimization of g++ compiler if available and known good
+  with the compiler in question. So far, this was not found to make major
+  differences.
+
+* ``win_target``
+
+  Windows target mode, cross compile for Windows or compiling on windows
+  native.
+
+* ``win_disable_console``
+
+  Windows subsystem mode: Disable console for windows builds.
+
+* ``unstriped_mode``
+
+  Unstriped mode: Do not remove debug symbols.
+
+* ``clang_mode``
+
+  Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
+
+* ``mingw_mode``
+
+  MinGW compiler mode, optional and interesting to Windows only.
+
+* ``portable_mode``
+
+  Portable mode, so far not functional.
+
+* ``show_scons``
+
+  Show scons mode, output information about Scons operation. This will e.g. also
+  output the actual compiler used, output from compilation process, and
+  generally debug information relating to be build process.
+
+* ``python_prefix``
+
+  Home of Python to be compiled against, used to locate headers and libraries.
+
+* ``target_arch``
+
+  Target architecture to build.
+
+* ``icon_path``
+
+  The icon to use for Windows programs if given.
 
 
 Locating Modules and Packages
@@ -738,7 +894,8 @@ faster code in the positive case.
 Argument tuple
 ++++++++++++++
 
-After this completed, the argument tuple is up for processing. The first thing it needs to do is to check if it's too many of them, and then to complain.
+After this completed, the argument tuple is up for processing. The first thing
+it needs to do is to check if it's too many of them, and then to complain.
 
 For arguments in Python2, there is the possibility of them being nested, in
 which case they cannot be provided in the keyword dictionary, and merely should
@@ -750,7 +907,7 @@ position and if possible, values should be taken from there. If it's already set
 
 
 Language Conversions to make things simpler
-===========================================
+-------------------------------------------
 
 There are some cases, where the Python language has things that can in fact be
 expressed in a simpler or more general way, and where we choose to do that at
@@ -758,7 +915,7 @@ either tree building or optimization time.
 
 
 The ``assert`` statement
-------------------------
+++++++++++++++++++++++++
 
 The ``assert`` statement is a special statement in Python, allowed by the
 syntax. It has two forms, with and without a second argument. The later is
@@ -791,7 +948,7 @@ have the branch statically executed or removed.
 
 
 The "comparison chain" expressions
-----------------------------------
+++++++++++++++++++++++++++++++++++
 
 .. code-block:: python
 
@@ -810,8 +967,8 @@ express the short circuit nature of comparison chains by using ``and``
 operations.
 
 
-The ``execfile`` builtin
-------------------------
+The ``execfile`` built-in
++++++++++++++++++++++++++
 
 Handling is:
 
@@ -831,7 +988,7 @@ such during optimization.
 
 
 Generator expressions with ``yield``
-------------------------------------
+++++++++++++++++++++++++++++++++++++
 
 These are converted at tree building time into a generator function body that
 yields the iterator given, which is the put into a for loop to iterate, created
@@ -841,8 +998,8 @@ That eliminates the generator expression for this case. It's a bizarre construct
 and with this trick needs no special code generation.
 
 
-Decorators
-----------
+Function Decorators
++++++++++++++++++++
 
 When one learns about decorators, you see that:
 
@@ -866,10 +1023,10 @@ This removes the need for optimization and code generation to support decorators
 at all. And it should make the two variants optimize equally well.
 
 
-Inplace Assignments
--------------------
+In-place Assignments
+++++++++++++++++++++
 
-Inplace assignments are re-formulated to an expression using temporary
+In-place assignments are re-formulated to an expression using temporary
 variables.
 
 These are not as much a reformulation of ``+=`` to ``+``, but instead one which
@@ -892,7 +1049,7 @@ type and value knowledge later on.
 
 
 Complex Assignments
--------------------
++++++++++++++++++++
 
 Complex assignments are defined as those with multiple targets to assign from a
 single source and are re-formulated to such using a temporary variable and
@@ -916,7 +1073,7 @@ calculate ``c`` twice, which the temporary variable takes care of.
 
 
 Unpacking Assignments
----------------------
++++++++++++++++++++++
 
 Unpacking assignments are re-formulated to use temporary variables as well.
 
@@ -965,7 +1122,7 @@ e.g. the source is a known tuple or list creation.
    if the iterator is not finished, i.e. there are more values to unpack.
 
 With Statements
----------------
++++++++++++++++
 
 The ``with`` statements are re-formulated to use temporary variables as
 well. The taking and calling of ``__enter__`` and ``__exit__`` with arguments,
@@ -1027,7 +1184,7 @@ is fulfilled by ``try``/``except`` clause instead.
 
 
 For Loops
----------
++++++++++
 
 The for loops use normal assignments and handle the iterator that is implicit in
 the code explicitly.
@@ -1081,7 +1238,7 @@ This is roughly equivalent to the following code:
 
 
 While Loops
------------
++++++++++++
 
 Loops in Nuitka have no condition attached anymore, so while loops are
 re-formulated like this:
@@ -1118,7 +1275,7 @@ loops.
 
 
 Exception Handler Values
-------------------------
+++++++++++++++++++++++++
 
 Exception handlers in Python may assign the caught exception value to a variable
 in the handler definition.
@@ -1146,7 +1303,7 @@ are called ``CaughtExceptionValueRef``.
 
 
 Statement ``try``/``except`` with ``else``
-------------------------------------------
+++++++++++++++++++++++++++++++++++++++++++
 
 Much like ``else`` branches of loops, an indicator variable is used to indicate
 the entry into any of the exception handlers.
@@ -1157,7 +1314,7 @@ branch.
 
 
 Class Creation (Python2)
-------------------------
+++++++++++++++++++++++++
 
 Classes in Python2 have a body that only serves to build the class dictionary
 and is a normal function otherwise. This is expressed with the following
@@ -1204,7 +1361,7 @@ understand ``make_class`` quite well, so it can recognize the created class
 again.
 
 Class Creation (Python3)
-------------------------
+++++++++++++++++++++++++
 
 In Python3, classes are a complicated way to write a function call, that can
 interact with its body. The body starts with a dictionary provided by the
@@ -1260,27 +1417,8 @@ not sure, what ``__prepare__`` is allowed to return.
    # Build and assign the class.
    SomeClass = _makeSomeClass()
 
-
-List Contractions
------------------
-
-TODO.
-
-
-Set Contractions
-----------------
-
-TODO.
-
-
-Dict Contractions
------------------
-
-TODO.
-
-
 Generator Expressions
----------------------
++++++++++++++++++++++
 
 There are re-formulated as functions.
 
@@ -1300,8 +1438,53 @@ nested) for loops:
 
     gen = _gen_helper( range(8 ) )
 
+List Contractions
++++++++++++++++++
+
+The list contractions of Python2 are different from those of Python3, in that
+they don't actually do any closure variable taking, and that no function object
+ever exists.
+
+.. code-block:: python
+
+   list_value = [ x*2 for x in range(8) if cond() ]
+
+.. code-block:: python
+
+    def _listcontr_helper( __iterator ):
+       result = []
+
+       for x in __iterator:
+          if cond():
+              result.append( x*2 )
+
+       return result
+
+    list_value = listcontr_helper( range(8) )
+
+The difference is that with Python3, the function "_listcontr_helper" is real
+and named ``<listcomp>``, whereas with Python2 the function must be considered
+in-lined.
+
+This in-inlining in case of Python2 causes difficulties, because it's statements
+that occur inside an expression, which means a lot of side effects, that may or
+may not be possible to unroll to outside.
+
+
+Set Contractions
+++++++++++++++++
+
+TODO.
+
+
+Dict Contractions
++++++++++++++++++
+
+TODO.
+
+
 Boolean expressions ``and`` and ``or``
---------------------------------------
+++++++++++++++++++++++++++++++++++++++
 
 The short circuit operators ``or`` and ``and`` tend to be only less general that
 the ``if``/``else`` expressions and are therefore re-formulated as such:
@@ -1330,7 +1513,7 @@ expense of having the assignment expression to the temporary variable, that one
 needs to create anyway.
 
 Simple Calls
-------------
+++++++++++++
 
 As seen below, even complex calls are simple calls. In simple calls of Python
 there is still some hidden semantic going on, that we expose.
@@ -1356,7 +1539,7 @@ needed for the types of the star arguments and it's directly translated to
 ``PyObject_Call``.
 
 Complex Calls
--------------
++++++++++++++
 
 The call operator in Python allows to provide arguments in 4 forms.
 
@@ -1428,7 +1611,7 @@ parsing overhead. And the call in its end, is a special call operation, which
 relates to the "PyObject_Call" C-API.
 
 Print statements
-----------------
+++++++++++++++++
 
 The ``print`` statement exists only in Python2. It implicitly coverts its
 arguments to strings before printing them. In order to make this accessible and
@@ -1447,10 +1630,10 @@ would only cause noise in optimization stage.
 
 
 Nodes that serve special purposes
-=================================
+---------------------------------
 
 Side Effects
-------------
+++++++++++++
 
 When an exception is bound to occur, and this can be determined at compile time,
 Nuitka will not generate the code the leads to the exception, but directly just
@@ -1500,7 +1683,7 @@ and allowing to drop the call to the tuple building and checking its length,
 only to release it.
 
 Caught Exception Type/Value References
---------------------------------------
+++++++++++++++++++++++++++++++++++++++
 
 When catching an exception, in C++, an exception object is used. Exception
 handler code is being re-formulated to assign the caught exception to a name, to
@@ -2807,6 +2990,51 @@ etc.
 
   If the "caller" or the "called" can declare that it cannot be called by
   itself, we could leave it out.
+
+* References
+
+  Currently Nuitka has "Variable" objects. Every variable reference node type
+  refers to a "VariableReference" node and there are multiple of them. Every
+  variable traces the reference objects created.
+
+  The idea of references started out with closure references and has expanded
+  from there. It's now used to decide that a variable is shared. You can ask it,
+  and because it knows its references, it can tell.
+
+  The thing is, this is not updated, so should a closure variable reference go
+  away, it's still shared, as the reference remains. The thing with replaced and
+  removed nodes, is that currently they do not remove themselves, there is no
+  ``__del__`` being called. I consider this too unreliable.
+
+  That makes the detection of "shared" unreliable and with false positives, that
+  so far do not harm much. There is an issue with Python3 not compiling with
+  debug mode that might be a cause of it.
+
+  Anyway, the problem is increased by the scope of code in use in each
+  optimization pass is only ever increasing, but starts out small. That a
+  variable is shared or merely used elsewhere, might be discovered late. By
+  starting from scratch again, over and over, we might discover this only later.
+
+  That may mean, we should do trace based optimization only after it's all
+  complete, and not before. During the collection, information about the sharing
+  should be reset at the start, and the built up and judged at the end.
+
+  The task to maintain this would be near ModuleRegistry.
+
+* Outline functions
+
+  The list contractions of Python2, and potentially other contractions or
+  in-lined functions too, in case they don't need any closure from it, could be
+  considered part of the surrounding function.
+
+  These would have function bodies, with proper return, and generate code as a
+  function would, but with the closure and local variables shared from arguments
+  in what is considered a direct call.
+
+  The outline functions would not be considered closure takers, nor closure
+  givers. They should be visited when they are used, almost like a statement
+  sequences, and returns would define their value.
+
 
 
 .. raw:: pdf
