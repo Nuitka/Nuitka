@@ -32,10 +32,12 @@ Bug Fixes
   <http://bugs.nuitka.net/issue106>`_. Fixed in 0.4.5.2 already.
 
 - Windows: User provided constants larger than 65k didn't work with
-  MSVC. `Issue#108 <http://bugs.nuitka.net/issue108>`. Fixed in 0.4.5.3 already.
+  MSVC. `Issue#108 <http://bugs.nuitka.net/issue108>`_. Fixed in 0.4.5.3
+  already.
 
-- Windows: The option ``--windows-distable-console`` was not effective with
-  MSVC. `Issue#107 <http://bugs.nuitka.net/issue107>`. Fixed in 0.4.5.3 already.
+- Windows: The option ``--windows-disable-console`` was not effective with
+  MSVC. `Issue#107 <http://bugs.nuitka.net/issue107>`_. Fixed in 0.4.5.3
+  already.
 
 - Windows: For some users, Scons was detecting their MSVC installation properly
   already from registry, but it didn't honor the target architecture. `Issue#99
@@ -71,7 +73,7 @@ New Features
      def f():
         pass
 
-     assert type( compiledFunction ) == types.FunctionType
+     assert type( f ) == types.FunctionType
 
   This of course also works for ``in`` operator, and is another step ahead in
   compatibility, and surprising too. And best of all, this works even if the
