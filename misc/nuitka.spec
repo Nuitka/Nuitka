@@ -20,15 +20,11 @@ Requires:       gcc-c++
 BuildArchitectures: noarch
 
 %description
-Nuitka is a good replacement for the Python interpreter and compiles
-every construct that CPython 2.6, 2.7 and 3.2 offer.
+Python compiler with full language support and CPython compatibility
 
-It translates the Python into a C++ program that then uses "libpython"
-to execute in the same way as CPython does, in a very compatible way.
-
-It is somewhat faster than CPython already, but currently it doesn't
-make all the optimizations possible, but a 258% factor on pystone is
-a good start (number is from version 0.3.11).
+This Python compiler achieves full language compatibility and compiles Python
+code into compiled objects that are not second class at all. Instead they can be
+used in the same way as pure Python objects.
 
 %prep
 %setup -q -n Nuitka-%{version}
