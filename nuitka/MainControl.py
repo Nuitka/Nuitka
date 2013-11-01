@@ -202,7 +202,7 @@ def makeSourceDirectory( main_module ):
         m
         for m in
         modules
-        if not m.isMainModule() and not m.isInternalModule()
+        if not m is main_module and not m.isInternalModule()
     )
 
     # Lets check if the recurse-to modules are actually present.
@@ -236,7 +236,7 @@ def makeSourceDirectory( main_module ):
             global_context = global_context,
             module         = module,
             module_name    = module.getFullName(),
-            other_modules  = other_modules if module.isMainModule() else ()
+            other_modules  = other_modules if module is main_module else ()
         )
 
         # The main of an executable module gets a bit different code.
