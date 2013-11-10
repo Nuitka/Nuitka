@@ -37,11 +37,6 @@ static const unsigned char stream_data[] =
 
 static void __initConstants( void )
 {
-    if ( %(needs_pickle)s )
-    {
-        UNSTREAM_INIT();
-    }
-
 %(constant_inits)s
 }
 

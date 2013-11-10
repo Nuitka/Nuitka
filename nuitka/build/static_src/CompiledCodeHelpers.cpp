@@ -931,30 +931,49 @@ void PRINT_NEW_LINE( void )
 
 #endif
 
-// We unstream some constant objects using the "cPickle" module function "loads"
-static PyObject *_module_cPickle = NULL;
-static PyObject *_module_cPickle_function_loads = NULL;
-
-void UNSTREAM_INIT()
-{
-#if PYTHON_VERSION < 300
-    _module_cPickle = PyImport_ImportModule( "cPickle" );
-#else
-    _module_cPickle = PyImport_ImportModule( "pickle" );
-#endif
-    assert( _module_cPickle );
-
-    _module_cPickle_function_loads = PyObject_GetAttrString( _module_cPickle, "loads" );
-    assert( _module_cPickle_function_loads );
-}
-
 PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
 {
     assert( buffer );
-    assert( _module_cPickle_function_loads );
+
+    // We unstream difficult constant objects using the "pickle" module, this is
+    // aimed at being the exception, e.g. unicode that doesn't fit into UTF-8
+    // will be dealt with like this.
+    static PyObject *module_pickle = NULL;
+
+    if ( module_pickle == NULL )
+    {
+#if PYTHON_VERSION < 300
+        module_pickle = PyImport_ImportModule( "cPickle" );
+#else
+        module_pickle = PyImport_ImportModule( "pickle" );
+#endif
+        if (unlikely( module_pickle == NULL ))
+        {
+            PyErr_Print();
+        }
+
+        assert( module_pickle );
+    }
+
+    static PyObject *function_pickle_loads = NULL;
+
+    if ( function_pickle_loads == NULL )
+    {
+        function_pickle_loads = PyObject_GetAttrString(
+            module_pickle,
+            "loads"
+        );
+
+        if (unlikely( function_pickle_loads == NULL ))
+        {
+            PyErr_Print();
+        }
+
+        assert( function_pickle_loads );
+    }
 
     PyObject *result = PyObject_CallFunction(
-        _module_cPickle_function_loads,
+        function_pickle_loads,
 #if PYTHON_VERSION < 300
         (char *)"(s#)", // TODO: Why the ()
 #else
@@ -964,7 +983,7 @@ PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
         size
     );
 
-    if ( !result )
+    if (unlikely( result == NULL ))
     {
         PyErr_Print();
     }
