@@ -149,3 +149,10 @@ class NameCollisionClosure:
         return x
 
 print NameCollisionClosure, NameCollisionClosure().x()
+
+class ClassesWithNestedClass:
+    class NestedClass( object ):
+        def getDict( self ):
+            return { 'a':2 }
+
+print ClassesWithNestedClass, ClassesWithNestedClass().NestedClass, ClassesWithNestedClass().NestedClass().getDict()
