@@ -335,6 +335,11 @@ def runScons( main_module, quiet ):
         )
     }
 
+    # Ask Scons to cache on Windows, except where the directory is thrown
+    # away. On non-Windows you can should use ccache instead.
+    if not Options.isRemoveBuildDir() and os.name == "nt":
+        options[ "cache_mode" ] = "true"
+
     if Options.isLto():
         options[ "lto_mode" ] = "true"
 

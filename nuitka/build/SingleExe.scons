@@ -49,6 +49,9 @@ def getBoolOption( option_name, default ):
 
     return value.lower() in ( "yes", "true", "1" )
 
+# The directory to use for cache directory.
+cache_mode = getBoolOption( "cache_mode", False )
+
 # Module mode: Create a Python extension module, create an executable otherwise.
 module_mode = getBoolOption( "module_mode", False )
 
@@ -133,7 +136,7 @@ def createEnvironment( compiler_tools ):
         TARGET_ARCH = target_arch,
 
         # Batch the compilation with MSVC under Windows if used.
-        MSVC_BATCH  = True,
+        # MSVC_BATCH  = True,
 
         # If we are on Windows, and MinGW is not enforced, lets see if we can
         # find "cl.exe", and if we do, disable automatic scan.
@@ -826,5 +829,9 @@ if "LDFLAGS" in os.environ:
 # Remove the target file to avoid cases where it falsely didn't get rebuilt.
 if os.path.exists( target[0].abspath ):
     os.unlink( target[0].abspath )
+
+if cache_mode:
+    CacheDir( os.path.join( source_dir, "cache" ) )
+    Decider( "MD5" )
 
 Default( target )
