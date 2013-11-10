@@ -72,12 +72,12 @@ def encodeStreamData():
         if count % 16 == 0:
             if count > 0:
                 yield "\n"
-            yield "    "
+            yield "   "
 
         if str is not unicode:
-            yield "0x%02x, " % ord( stream_byte )
+            yield " 0x%02x," % ord( stream_byte )
         else:
-            yield "0x%02x, " % stream_byte
+            yield " 0x%02x," % stream_byte
 
 def _getStreamDataCode( value, fixed_size = False ):
     global stream_data

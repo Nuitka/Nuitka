@@ -186,7 +186,7 @@ class Variable:
     def getMangledName( self ):
         """ Get the mangled name of the variable.
 
-            By default no manglin is applied.
+            By default no mangling is applied.
         """
 
         return self.getName()

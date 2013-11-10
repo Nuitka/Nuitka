@@ -70,7 +70,9 @@ logging.basicConfig( format = 'Nuitka:%(levelname)s:%(message)s' )
 import warnings
 warnings.simplefilter( "ignore", DeprecationWarning )
 
-from nuitka import Options
+# Import as little as possible initially, because we might be re-executing
+# soon.
+from nuitka import Options, Utils
 
 # We will run with the Python configuration as specified by the user, if it does
 # not match, we restart ourselves with matching configuration.
@@ -140,10 +142,7 @@ try:
     )
 except (SyntaxError, IndentationError) as e:
     if Options.isFullCompat() and e.args[0].startswith( "unknown encoding:" ):
-        # False alarm, pylint: disable=E0611
-        from nuitka.Utils import python_version
-
-        if ( python_version >= 332 and os.name != "nt" ) or \
+        if ( Utils.python_version >= 332 and os.name != "nt" ) or \
            "2.7.5+" in sys.version:
             complaint = "no-exist"
         else:

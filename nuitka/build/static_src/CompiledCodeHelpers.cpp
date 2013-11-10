@@ -33,8 +33,8 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
         return INCREASE_REFCOUNT( source_code );
     }
 
-    // Workaround leading whitespace causing a trouble to compile builtin, but
-    // not eval builtin
+    // Workaround leading whitespace causing a trouble to "compile" builtin, but
+    // not "eval" builtin
     PyObject *source;
 
     if (
@@ -2488,8 +2488,6 @@ PyObject *DEEP_COPY( PyObject *value )
             int size = mp->ma_keys->dk_size;
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
-                PyDictKeyEntry *entry = &result->ma_keys->dk_entries[ i ];
-
                 if ( mp->ma_values[ i ] )
                 {
                     result->ma_values[ i ] = DEEP_COPY( mp->ma_values[ i ] );
@@ -2526,7 +2524,7 @@ PyObject *DEEP_COPY( PyObject *value )
 
                 if ( value != NULL )
                 {
-                    int res = PyDict_SetItem(
+                    PyDict_SetItem(
                         result,
                         entry->me_key,
                         PyObjectTemporary( DEEP_COPY( value ) ).asObject0()

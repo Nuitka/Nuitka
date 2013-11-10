@@ -2373,7 +2373,9 @@ def _generateStatementCode( statement, context ):
         )
     elif statement.isStatementSetLocals():
         code = Generator.getSetLocalsCode(
-            new_locals_identifier = makeExpressionCode( statement.getNewLocals() )
+            new_locals_identifier = makeExpressionCode(
+                statement.getNewLocals()
+            )
         )
     else:
         assert False, statement.__class__

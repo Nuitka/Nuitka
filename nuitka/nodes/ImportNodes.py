@@ -74,7 +74,10 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
 
     def getLevel( self ):
         if self.level == 0:
-            return 0 if self.source_ref.getFutureSpec().isAbsoluteImport() else -1
+            if self.source_ref.getFutureSpec().isAbsoluteImport():
+                return 0
+            else:
+                return -1
         else:
             return self.level
 

@@ -246,8 +246,8 @@ def makeDiffable( output ):
 
         line = ran_re.sub( r"\1x.xxxs", line )
 
-        # This is a bug potentially, occurs only for CPython when re-directed, we are
-        # going to ignore the issue as Nuitka is fine.
+        # This is a bug potentially, occurs only for CPython when re-directed,
+        # we are going to ignore the issue as Nuitka is fine.
         if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":
             continue
 
@@ -259,7 +259,8 @@ def makeDiffable( output ):
         if line == "/usr/bin/ld: warning: .init_array section has zero size":
             continue
 
-        # This is for NetBSD, which seems to build libpython so it gives such warnings.
+        # This is for NetBSD, which seems to build libpython so it gives such
+        # warnings.
         if "() possibly used unsafely, use mkstemp() or mkdtemp()" in line:
             continue
 
@@ -302,7 +303,12 @@ else:
 exit_code_return = exit_cpython != exit_nuitka
 
 if exit_code_return:
-    print( "Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka ) )
+    print(
+        "Exit codes %d (CPython) != %d (Nuitka)" % (
+            exit_cpython,
+            exit_nuitka
+        )
+    )
 
 exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 

@@ -1083,7 +1083,7 @@ def getTryExceptHandlerCode( exception_identifiers, handler_code,
     return exception_code
 
 def getTryExceptCode( context, code_tried, handler_codes ):
-    exception_code = handler_codes
+    exception_code = list( handler_codes )
     exception_code += CodeTemplates.try_except_reraise_unmatched_template.split( "\n" )
 
     tb_making = getTracebackMakingIdentifier( context )
@@ -1100,7 +1100,8 @@ def getTryNextExceptStopIterationIdentifier( context ):
 
     return Identifier( "_tmp_unpack_%d" % try_count, 1 )
 
-def getTryNextExceptStopIterationCode( source_identifier, handler_code, assign_code, temp_identifier ):
+def getTryNextExceptStopIterationCode( source_identifier, handler_code,
+                                       assign_code, temp_identifier ):
     return CodeTemplates.template_try_next_except_stop_iteration % {
         "temp_var"          : temp_identifier.getCode(),
         "handler_code"      : indented( handler_code ),
@@ -1298,7 +1299,8 @@ def _getLocalVariableList( context, provider ):
 
         variables = start_part + end_part
 
-        include_closure = not provider.isUnoptimized() and not provider.isClassDictCreation()
+        include_closure = not provider.isUnoptimized() and \
+                          not provider.isClassDictCreation()
     else:
         variables = provider.getVariables()
 
@@ -1928,7 +1930,7 @@ def getModuleCode( context, module_name, codes, other_module_names,
         "module_functions_decl" : function_decl_codes,
         "module_functions_code" : function_body_codes,
         "module_globals"        : module_globals,
-        "temps_decl"            : "\n".join( local_var_inits ),
+        "temps_decl"            : indented( local_var_inits ),
         "module_code"           : indented( codes ),
         "module_inittab"        : indented( sorted( module_inittab ) ),
         "use_unfreezer"         : 1 if other_module_names else 0
@@ -2554,7 +2556,9 @@ def getFunctionCode( context, function_name, function_identifier, parameters,
             "file_scope"                   : file_scope,
             "function_identifier"          : function_identifier,
             "context_access_function_impl" : context_access_function_impl,
-            "direct_call_arg_spec"         : ",".join( parameter_objects_decl ),
+            "direct_call_arg_spec"         : ", ".join(
+                parameter_objects_decl
+            ),
             "function_locals"              : indented( function_locals ),
             "function_body"                : indented( function_codes ),
         }

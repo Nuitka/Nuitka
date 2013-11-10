@@ -133,7 +133,7 @@ public:
             assert( this->storage->ref_count > 0 );
             this->storage->ref_count -= 1;
 
-            if (this->storage->ref_count == 0)
+            if ( this->storage->ref_count == 0 )
             {
                 delete this->storage;
             }

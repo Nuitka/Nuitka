@@ -789,7 +789,12 @@ class ClosureTakerMixin:
     def getClosureVariables( self ):
         return tuple(
             sorted(
-                [ take for take in self.taken if take.isClosureReference() ],
+                [
+                    take
+                    for take in
+                    self.taken
+                    if take.isClosureReference()
+                ],
                 key = lambda x : x.getName()
             )
         )

@@ -158,7 +158,7 @@ def checkPluginPath( plugin_filename, module_package ):
     )
 
     if plugin_info is not None:
-        # File or package, handle that.
+        # File or package makes a difference, handle that.
         if Utils.isFile( plugin_info[0] ) or \
            Importing.isPackageDir( plugin_info[0] ):
             _checkPluginPath( plugin_filename, module_package )

@@ -413,10 +413,10 @@ def executeMain( binary_filename, tree, clean_path ):
 
     name = os.path.abspath( name )
 
-    if not Options.isWindowsTarget() or os.name == "nt":
-        args = ( binary_filename, name )
-    else:
+    if Options.isWindowsTarget() and os.name != "nt":
         args = ( "/usr/bin/wine", "wine", binary_filename )
+    else:
+        args = ( binary_filename, name )
 
     callExec(
         clean_path = clean_path,
