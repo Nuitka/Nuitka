@@ -1968,6 +1968,7 @@ def getMainCode( codes, code_identifier, context ):
         "python_sysflag_interactive" : sys.flags.interactive,
         "python_sysflag_optimize" : sys.flags.optimize,
         "python_sysflag_dont_write_bytecode" : sys.flags.dont_write_bytecode,
+        "python_sysflag_no_site" : sys.flags.no_site,
         "python_sysflag_no_user_site" : sys.flags.no_user_site,
         "python_sysflag_ignore_environment" : sys.flags.ignore_environment,
         "python_sysflag_tabcheck" : ( sys.flags.tabcheck

@@ -207,6 +207,17 @@ Use debug version or not. Default uses what you are using to run Nuitka, most
 likely a non-debug version."""
 )
 
+parser.add_option(
+    "--python-flag",
+    action  = "append",
+    dest    = "python_flags",
+    default = [],
+    help    = """\
+Python flags to use. Default uses what you are using to run Nuitka, this
+enforces a specific mode. These are options that also exist to standard
+Python executable. Currently supported "-S"."""
+)
+
 codegen_group = OptionGroup(
     parser,
     "Code generation choices"
@@ -639,3 +650,15 @@ def isPortableMode():
 
 def getIconPath():
     return options.icon_path
+
+def getPythonFlags():
+    result = []
+
+    for part in options.python_flags:
+        if part in ( "-S", "nosite", "no_site" ):
+            result.append( "no_site" )
+        else:
+            logging.warning( "Unsupported flag '%s'.", part )
+
+
+    return result
