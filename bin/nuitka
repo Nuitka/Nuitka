@@ -119,13 +119,7 @@ if needs_reexec:
     # Same arguments as before.
     args += sys.argv
 
-    # On Windows os.execl does not work properly
-    if os.name != "nt":
-        # The star arguments is the API of execl, pylint: disable=W0142
-        os.execl( *args )
-    else:
-        del args[1]
-        sys.exit( subprocess.call( args ) )
+    Utils.callExec( args )
 
 from nuitka import MainControl, SyntaxErrors, Importing
 

@@ -22,7 +22,7 @@ etc. that fit nowhere else and don't deserve their own names.
 
 """
 
-import sys, os
+import sys, os, subprocess
 
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
@@ -110,3 +110,19 @@ def getCoreCount():
         cpu_count = multiprocessing.cpu_count()
 
     return cpu_count
+
+def callExec( args ):
+    """ Do exec in a portable way preserving exit code.
+
+        On Windows, unfortunately there is no real exec, so we have to spawn
+        a new process instead.
+    """
+
+    # On Windows os.execl does not work properly
+    if os.name != "nt":
+        # The star arguments is the API of execl, pylint: disable=W0142
+        os.execl( *args )
+    else:
+        args = list( args )
+        del args[1]
+        sys.exit( subprocess.call( args ) )

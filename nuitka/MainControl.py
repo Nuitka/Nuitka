@@ -393,13 +393,7 @@ def callExec( args, clean_path, add_path ):
     args += Options.getMainArgs()
 
     # That's the API of execl, pylint: disable=W0142
-    os.execl( *args )
-
-    if old_python_path is not None:
-        os.environ[ "PYTHONPATH" ] = old_python_path
-    else:
-        del os.environ[ "PYTHONPATH" ]
-
+    Utils.callExec( args )
 
 def executeMain( binary_filename, tree, clean_path ):
     main_filename = tree.getFilename()
