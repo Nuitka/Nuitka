@@ -719,6 +719,14 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
         return result
 
+    def getTempVariable( self, temp_scope, name ):
+        if temp_scope is not None:
+            full_name = "%s__%s" % ( temp_scope, name )
+        else:
+            full_name = name
+
+        return self.temp_variables[ full_name ]
+
     def getTempVariables( self ):
         return tuple( self.temp_variables.values() )
 

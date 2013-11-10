@@ -133,9 +133,10 @@ class FinalizeVariableVisibility( FinalizationVisitorBase ):
 
                 assert assigned_to is variable, ( variable, assigned_to )
 
-                variable.markAsNeedsLateDeclaration()
+                if not variable.isShared():
+                    variable.markAsNeedsLateDeclaration()
 
-                assert last is not None
+                    assert last is not None
 
-                if last[-1].isStatementDelVariable():
-                    variable.markAsDeleteScope( last[-1] )
+                    if last[-1].isStatementDelVariable():
+                        variable.markAsDeleteScope( last[-1] )

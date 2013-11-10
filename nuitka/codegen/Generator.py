@@ -863,7 +863,7 @@ def getVariableAssignmentCode( context, variable, identifier ):
                         identifier.getCodeTemporaryRef()
                     )
 
-        if not referenced.getNeedsFree():
+        if not referenced.isShared( True ) and not referenced.getNeedsFree():
             # So won't get a reference, and take none, or else it may get lost,
             # which we don't want to happen.
 
@@ -871,11 +871,15 @@ def getVariableAssignmentCode( context, variable, identifier ):
             # in error.
             assert identifier.getCheapRefCount() == 0
 
+            left_side = getVariableCode(
+                variable = variable,
+                context  = context
+            )
+
+            assert "(" not in left_side
+
             return "%s = %s;" % (
-                getVariableCode(
-                    variable = variable,
-                    context  = context
-                ),
+                left_side,
                 identifier.getCodeTemporaryRef()
             )
 
@@ -952,7 +956,8 @@ def getVariableDelCode( context, tolerant, variable ):
         )
     else:
         if variable.isTempVariableReference():
-            if not variable.getReferenced().getNeedsFree():
+            if not variable.isShared( True ) and \
+               not variable.getReferenced().getNeedsFree():
                 return "%s = NULL;" % (
                     getVariableCode(
                         variable = variable,
@@ -1284,7 +1289,7 @@ def getMakeBuiltinExceptionCode( context, order_relevance, exception_type,
         context           = context
     )
 
-def _getLocalVariableList( context, provider ):
+def _getLocalVariableList( provider ):
     if provider.isExpressionFunctionBody():
         # Sort parameter variables of functions to the end.
 
@@ -1307,10 +1312,7 @@ def _getLocalVariableList( context, provider ):
         include_closure = True
 
     return [
-        "%s" % getVariableCode(
-            variable = variable,
-            context = context
-        )
+        variable
         for variable in
         variables
         if not variable.isModuleVariable()
@@ -1343,7 +1345,6 @@ def getLoadDirCode( context, provider ):
             )
         else:
             local_list = _getLocalVariableList(
-                context  = context,
                 provider = provider
             )
 
@@ -1354,13 +1355,32 @@ def getLoadDirCode( context, provider ):
             )
 
             for local_var in local_list:
-                result = Identifier(
-                    "%s.updateLocalsDir( %s )" % (
-                        local_var,
-                        result.getCodeTemporaryRef()
-                    ),
-                    0
-                )
+                if local_var.isTempVariableReference():
+                    result = Identifier(
+                        "%s.updateLocalsDir( %s, %s )" % (
+                            getVariableCode(
+                                context  = context,
+                                variable = local_var
+                            ),
+                            getConstantCode(
+                                constant = local_var.getReferenced().getName(),
+                                context  = context
+                            ),
+                            result.getCodeTemporaryRef()
+                        ),
+                        0
+                    )
+                else:
+                    result = Identifier(
+                        "%s.updateLocalsDir( %s )" % (
+                            getVariableCode(
+                                context  = context,
+                                variable = local_var
+                            ),
+                            result.getCodeTemporaryRef()
+                        ),
+                        0
+                    )
 
             return result
 
@@ -1379,23 +1399,52 @@ def getLoadGlobalsCode( context ):
     )
 
 def getLoadLocalsCode( context, provider, mode ):
+
+    def _getUpdateLocalsDictCode( context, result, local_var, ref_count ):
+        if local_var.isTempVariableReference():
+            result = Identifier(
+                "%s.updateLocalsDict( %s, %s )" % (
+                    getVariableCode(
+                        context  = context,
+                        variable = local_var
+                    ),
+                    getConstantCode(
+                        constant = local_var.getReferenced().getName(),
+                        context  = context
+                    ),
+                    result.getCodeExportRef() if ref_count else result.getCodeTemporaryRef()
+                ),
+                ref_count
+            )
+        else:
+            result = Identifier(
+                "%s.updateLocalsDict( %s )" % (
+                    getVariableCode(
+                        context  = context,
+                        variable = local_var
+                    ),
+                    result.getCodeExportRef() if ref_count else result.getCodeTemporaryRef()
+                ),
+                ref_count
+            )
+
+        return result
+
     if provider.isPythonModule():
         return getLoadGlobalsCode( context )
     elif not context.hasLocalsDict():
         local_list = _getLocalVariableList(
             provider = provider,
-            context  = context
         )
 
         result = EmptyDictIdentifier()
 
         for local_var in local_list:
-            result = Identifier(
-                "%s.updateLocalsDict( %s )" % (
-                    local_var,
-                    result.getCodeExportRef()
-                ),
-                1
+            result = _getUpdateLocalsDictCode(
+                local_var = local_var,
+                result    = result,
+                context   = context,
+                ref_count = result.getRefCount()
             )
 
         return result
@@ -1407,8 +1456,7 @@ def getLoadLocalsCode( context, provider, mode ):
             )
         elif mode == "updated":
             local_list = _getLocalVariableList(
-                provider = provider,
-                context  = context
+                provider = provider
             )
 
             result = Identifier(
@@ -1417,12 +1465,11 @@ def getLoadLocalsCode( context, provider, mode ):
             )
 
             for local_var in local_list:
-                result = Identifier(
-                    "%s.updateLocalsDict( %s )" % (
-                        local_var,
-                        result.getCodeTemporaryRef()
-                    ),
-                    0
+                result = _getUpdateLocalsDictCode(
+                    local_var = local_var,
+                    result    = result,
+                    context   = context,
+                    ref_count = result.getRefCount()
                 )
 
             return result
@@ -2017,7 +2064,12 @@ def _getFunctionCreationArgs( defaults_identifier, kw_defaults_identifier,
         result.append( "PyObject *annotations" )
 
     for closure_variable in closure_variables:
-        result.append( "PyObjectSharedLocalVariable &python_closure_%s" % closure_variable.getName() )
+        result.append(
+            "%s &%s" % (
+                "PyObjectSharedTempVariable" if closure_variable.isTempVariableReference() else "PyObjectSharedLocalVariable",
+                closure_variable.getCodeName()
+            )
+        )
 
     return result
 
@@ -2188,9 +2240,9 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
             )
         )
         context_copy.append(
-            "_python_context->python_closure_%s.shareWith( python_closure_%s );" % (
-                closure_variable.getName(),
-                closure_variable.getName()
+            "_python_context->%s.shareWith( %s );" % (
+                closure_variable.getCodeName(),
+                closure_variable.getCodeName()
             )
         )
 
@@ -2385,9 +2437,9 @@ def getFunctionMakerCode( context, function_name, function_qualname,
 
         for closure_variable in closure_variables:
             context_copy.append(
-                "_python_context->python_closure_%s.shareWith( python_closure_%s );" % (
-                    closure_variable.getName(),
-                    closure_variable.getName()
+                "_python_context->%s.shareWith( %s );" % (
+                    closure_variable.getCodeName(),
+                    closure_variable.getCodeName()
                 )
             )
 

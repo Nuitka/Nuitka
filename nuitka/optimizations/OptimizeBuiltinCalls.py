@@ -50,7 +50,10 @@ from nuitka.nodes.BuiltinDecodingNodes import (
     ExpressionBuiltinOrd0
 )
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinEval
-from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTempVariableRef,
+    ExpressionVariableRef
+)
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
     ExpressionBuiltinLocals,
@@ -529,22 +532,39 @@ def super_extractor( node ):
         if type is None and python_version >= 300:
             provider = node.getParentVariableProvider()
 
-            type = ExpressionVariableRef(
-                variable_name = "__class__",
-                source_ref    = source_ref
-            )
-
-            # Ought to be already closure taken.
-            type.setVariable(
-                provider.getVariableForReference(
-                    variable_name = "__class__"
+            if python_version < 340:
+                type = ExpressionVariableRef(
+                    variable_name = "__class__",
+                    source_ref    = source_ref
                 )
-            )
+
+                # Ought to be already closure taken.
+                type.setVariable(
+                    provider.getVariableForClosure(
+                        variable_name = "__class__"
+                    )
+                )
+
+                if not type.getVariable().isClosureReference():
+                    type = None
+            else:
+                parent_provider = provider.getParentVariableProvider()
+
+                class_var = parent_provider.getTempVariable(
+                    temp_scope = None,
+                    name       = "__class__"
+                )
+
+                type = ExpressionTempVariableRef(
+                    variable      = class_var.makeReference( parent_provider ).makeReference( provider ),
+                    source_ref    = source_ref
+                )
+
 
             from nuitka.nodes.NodeMakingHelpers import \
                 makeRaiseExceptionReplacementExpression
 
-            if not type.getVariable().isClosureReference():
+            if type is None:
                 return makeRaiseExceptionReplacementExpression(
                     expression      = node,
                     exception_type  = "SystemError"

@@ -285,14 +285,28 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         return result
 
     def getVariableForClosure( self, variable_name ):
-        # print( "createProvidedVariable", self, variable_name )
+        # print( "getVariableForClosure", self, variable_name )
 
-        # The class bodies provide no closure, except under CPython3,
-        # "__class__" and nothing else.
+        # The class bodies provide no closure, except under CPython3.x, there
+        # they provide "__class__" and nothing else.
 
-        if self.isClassDictCreation() and \
-           ( variable_name != "__class__" or Utils.python_version < 300 ):
-            return self.provider.getVariableForReference( variable_name )
+        if self.isClassDictCreation():
+            if variable_name == "__class__":
+                if Utils.python_version < 300:
+                    return self.provider.getVariableForReference(
+                        variable_name
+                    )
+                elif Utils.python_version >= 340:
+                    result = self.getTempVariable(
+                        temp_scope = None,
+                        name       = "__class__"
+                    )
+
+                    return result.makeReference( self )
+            else:
+                return self.provider.getVariableForReference(
+                    variable_name
+                )
 
         if self.hasProvidedVariable( variable_name ):
             return self.getProvidedVariable( variable_name )

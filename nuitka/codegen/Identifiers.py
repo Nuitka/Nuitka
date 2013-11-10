@@ -197,7 +197,7 @@ class LocalVariableIdentifier:
 
     def getCode( self ):
         if not self.from_context:
-            return "_python_var_" + encodeNonAscii( self.var_name )
+            return "python_var_" + encodeNonAscii( self.var_name )
         else:
             return "_python_context->python_var_%s" % (
                 encodeNonAscii( self.var_name )
@@ -228,20 +228,23 @@ class TempVariableIdentifier( Identifier ):
         if from_context:
             code = from_context + "python_tmp_" + var_name
         else:
-            code = "_python_tmp_" + var_name
+            code = "python_tmp_" + var_name
 
         Identifier.__init__( self, code, 0 )
 
         self.tempvar_name = var_name
 
     def __repr__( self ):
-        return "<TempVariableIdentifier %s >" % self.tempvar_name
+        return "<TempVariableIdentifier %s>" % self.tempvar_name
 
     def getCheapRefCount( self ):
         return 0
 
     def getCodeObject( self ):
         return "%s.asObject0()" % self.getCode()
+
+    def getCodeExportRef( self ):
+        return "%s.asObject1()" % self.getCode()
 
     def getClass( self ):
         return "PyObjectTemporary"
@@ -253,9 +256,14 @@ class TempObjectIdentifier( Identifier ):
         if from_context:
             code = from_context + "python_tmp_" + var_name
         else:
-            code = "_python_tmp_" + var_name
+            code = "python_tmp_" + var_name
 
         Identifier.__init__( self, code, 0 )
+
+        self.tempvar_name = var_name
+
+    def __repr__( self ):
+        return "<TempObjectIdentifier %s>" % self.tempvar_name
 
     def getCodeTemporaryRef( self ):
         return self.code
@@ -302,6 +310,9 @@ class ClosureVariableIdentifier( Identifier ):
 
     def getCodeObject( self ):
         return self.getCode() + ".asObject0()"
+
+    def getCodeExportRef( self ):
+        return self.getCode() + ".asObject1()"
 
 
 class NullIdentifier( Identifier ):

@@ -271,9 +271,21 @@ contains a nested function with free variables""" % parent_provider.getName(),
     if python_version >= 300:
         def onLeaveNode( self, node ):
             if node.isExpressionFunctionBody() and node.isClassClosureTaker():
-                node.getVariableForReference(
-                    variable_name = "__class__"
-                )
+                if python_version < 340:
+                    node.getVariableForReference(
+                        variable_name = "__class__"
+                    )
+                else:
+                    parent_provider = node.getParentVariableProvider()
+
+                    variable = parent_provider.getTempVariable(
+                        temp_scope = None,
+                        name       = "__class__"
+                    )
+
+                    variable = variable.makeReference( parent_provider )
+
+                    node.addClosureVariable( variable )
 
 
 class VariableClosureLookupVisitorPhase3( VisitorNoopMixin ):

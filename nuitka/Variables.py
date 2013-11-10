@@ -134,12 +134,15 @@ class Variable:
             # The generators and functions that are not created, get things
             # passed, and do not need the variable to share.
             while technical and \
+                  owner != top_owner and \
                   owner.isExpressionFunctionBody() and \
                   not owner.isGenerator() and not owner.needsCreation():
                 owner = owner.getParentVariableProvider()
 
             # List contractions in Python2 do not really own their variables.
             # TODO: They ought to not be variable providers/takers at all.
+            # TODO: This code seems unnecessary now due to "needsCreation" not
+            # being true.
             if Utils.python_version < 300:
                 while owner != top_owner and owner.code_prefix == "listcontr":
                     owner = owner.getParentVariableProvider()
@@ -519,7 +522,9 @@ class TempVariableClosureReference( VariableReferenceBase ):
         return True
 
     def getDeclarationTypeCode( self, in_context ):
-        if self.getReferenced().getReferenced().needs_free:
+        if self.isShared( True ):
+            return "PyObjectSharedTempVariable"
+        elif self.getReferenced().getReferenced().needs_free:
             if self.getReferenced().getReferenced().needsLateDeclaration():
                 return "PyObjectTemporary"
             else:
@@ -531,7 +536,7 @@ class TempVariableClosureReference( VariableReferenceBase ):
 
     def getCodeName( self ):
         # Abstract method, pylint: disable=R0201
-        return "_" + self.getReferenced().getReferenced().getCodeName()
+        return self.getReferenced().getReferenced().getCodeName()
 
     def getProviderVariable( self ):
         return self.getReferenced()
@@ -599,7 +604,9 @@ class TempVariable( Variable ):
     def getDeclarationTypeCode( self, in_context ):
         assert self.needs_free is not None, self
 
-        if self.needs_free:
+        if self.isShared( True ):
+            return "PyObjectSharedTempVariable"
+        elif self.needs_free:
             if self.late_declaration:
                 return "PyObjectTemporary"
             else:

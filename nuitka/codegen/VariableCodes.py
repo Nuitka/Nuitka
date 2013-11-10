@@ -70,6 +70,16 @@ def getVariableHandle( context, variable ):
             var_name     = var_name,
             from_context = context.getFunction().isGenerator()
         )
+    elif variable.isTempVariableReference() and \
+         variable.isClosureReference() and \
+         variable.isShared( True ):
+        return TempVariableIdentifier(
+            var_name     = var_name,
+            from_context = _getContextAccess(
+                context       = context,
+                force_closure = True
+            )
+        )
     elif variable.isTempVariableReference():
         variable = variable.getReferenced()
 
@@ -79,9 +89,17 @@ def getVariableHandle( context, variable ):
         if variable.needsLateDeclaration():
             from_context = ""
         else:
-            from_context = _getContextAccess( context )
+            from_context = _getContextAccess(
+                context,
+                variable.isShared( True )
+            )
 
-        if not variable.getNeedsFree():
+        if variable.isShared( True ):
+            return TempVariableIdentifier(
+                var_name     = var_name,
+                from_context = from_context
+            )
+        elif not variable.getNeedsFree():
             return TempObjectIdentifier(
                 var_name     = var_name,
                 from_context = from_context
@@ -145,16 +163,15 @@ def getLocalVariableInitCode( context, variable, init_from = None,
 
     store_name = variable.getMangledName()
 
-    if not in_context:
-        result += "_"
-
     result += encodeNonAscii( variable.getCodeName() )
 
     if not in_context:
         if variable.isTempVariable():
             assert init_from is None
 
-            if not variable.getNeedsFree():
+            if variable.isShared( True ):
+                result += "( NULL )"
+            elif not variable.getNeedsFree():
                 result += " = " + variable.getDeclarationInitValueCode()
         else:
             result += "( "

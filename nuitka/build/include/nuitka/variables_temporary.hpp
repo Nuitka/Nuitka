@@ -52,6 +52,11 @@ public:
         return this->object;
     }
 
+    PyObject *asObject1() const
+    {
+        return INCREASE_REFCOUNT( this->object );
+    }
+
     void assign1( PyObject *object )
     {
         assertObject( this->object );
@@ -103,6 +108,13 @@ public:
         assertObject( this->object );
 
         return this->object;
+    }
+
+    PyObject *asObject1() const
+    {
+        assertObject( this->object );
+
+        return INCREASE_REFCOUNT( this->object );
     }
 
     void assign1( PyObject *object )
@@ -231,5 +243,7 @@ private:
 
     PyObject *object;
 };
+
+
 
 #endif
