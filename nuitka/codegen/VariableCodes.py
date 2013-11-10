@@ -182,16 +182,7 @@ def getLocalVariableInitCode( context, variable, init_from = None,
             )
 
             if init_from is not None:
-                if context.hasLocalsDict():
-                    if init_from.getCheapRefCount() == 0:
-                        result += ", %s" % init_from.getCodeTemporaryRef()
-                    else:
-                        result += ", %s" % init_from.getCodeExportRef()
-
-                        if not variable.isParameterVariable():
-                            result += ", true"
-                else:
-                    result += ", %s" % init_from.getCodeExportRef()
+                result += ", %s" % init_from.getCodeExportRef()
 
             result += " )"
 

@@ -21,70 +21,50 @@
 class PyObjectSharedStorage
 {
 public:
-    explicit PyObjectSharedStorage( PyObject *var_name, PyObject *object, bool free_value )
+    explicit PyObjectSharedStorage( PyObject *var_name, PyObject *object )
     {
         assert( object == NULL || Py_REFCNT( object ) > 0 );
 
         this->var_name   = var_name;
         this->object     = object;
-        this->free_value = free_value;
         this->ref_count  = 1;
     }
 
     ~PyObjectSharedStorage()
     {
-        if ( this->free_value )
-        {
-            Py_DECREF( this->object );
-        }
+        Py_XDECREF( this->object );
+
     }
 
     void assign0( PyObject *object )
     {
         assertObject( object );
 
-        if ( this->free_value )
-        {
-            PyObject *old_object = this->object;
+        PyObject *old_object = this->object;
 
-            this->object = INCREASE_REFCOUNT( object );
+        this->object = INCREASE_REFCOUNT( object );
 
-            // Free old value if any available and owned.
-            Py_DECREF( old_object );
-        }
-        else
-        {
-            this->object = INCREASE_REFCOUNT( object );
-            this->free_value = true;
-        }
+        // Free old value if any available and owned.
+        Py_XDECREF( old_object );
     }
 
     void assign1( PyObject *object )
     {
         assertObject( object );
 
-        if ( this->free_value )
-        {
-            PyObject *old_object = this->object;
+        PyObject *old_object = this->object;
 
-            this->object = object;
+        this->object = object;
 
-            // Free old value if any available and owned.
-            Py_DECREF( old_object );
-        }
-        else
-        {
-            this->object = object;
-            this->free_value = true;
-        }
+        // Free old value if any available and owned.
+        Py_XDECREF( old_object );
     }
 
 #if PYTHON_VERSION >= 300
     void del( bool tolerant )
     {
-        if ( this->free_value )
+        if ( this->object )
         {
-            // Free old value if any available and owned.
             Py_DECREF( this->object );
         }
         else if ( !tolerant )
@@ -94,7 +74,6 @@ public:
         }
 
         this->object = NULL;
-        this->free_value = false;
     }
 #endif
 
@@ -105,7 +84,6 @@ public:
 
     PyObject *var_name;
     PyObject *object;
-    bool free_value;
     int ref_count;
 
 private:
@@ -117,9 +95,9 @@ private:
 class PyObjectSharedLocalVariable
 {
 public:
-    explicit PyObjectSharedLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
+    explicit PyObjectSharedLocalVariable( PyObject *var_name, PyObject *object = NULL )
     {
-        this->storage = new PyObjectSharedStorage( var_name, object, free_value );
+        this->storage = new PyObjectSharedStorage( var_name, object );
     }
 
     explicit PyObjectSharedLocalVariable() {
@@ -150,7 +128,7 @@ public:
     {
         assert( this->storage == NULL );
 
-        this->storage = new PyObjectSharedStorage( var_name, NULL, false );
+        this->storage = new PyObjectSharedStorage( var_name, NULL );
     }
 
     void shareWith( const PyObjectSharedLocalVariable &other )

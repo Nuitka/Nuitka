@@ -21,26 +21,21 @@
 class PyObjectLocalVariable
 {
 public:
-    explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
+    explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL  )
     {
         this->var_name   = var_name;
         this->object     = object;
-        this->free_value = free_value;
     }
 
     explicit PyObjectLocalVariable()
     {
         this->var_name   = NULL;
         this->object     = NULL;
-        this->free_value = false;
     }
 
     ~PyObjectLocalVariable()
     {
-        if ( this->free_value )
-        {
-            Py_DECREF( this->object );
-        }
+        Py_XDECREF( this->object );
     }
 
     void setVariableName( PyObject *var_name )
@@ -55,54 +50,18 @@ public:
     {
         assertObject( object );
 
-        if ( this->free_value )
-        {
-            PyObject *old_object = this->object;
-
-            this->object = INCREASE_REFCOUNT( object );
-
-#ifndef NDEBUG
-            if ( Py_REFCNT( old_object ) < 0 )
-            {
-                printf( "Bad at %s\n", Nuitka_String_AsString( this->var_name ) );
-            }
-#endif
-
-            // Free old value if any available and owned.
-            Py_DECREF( old_object );
-        }
-        else
-        {
-            this->object = INCREASE_REFCOUNT( object );
-            this->free_value = true;
-        }
+        PyObject *old_object = this->object;
+        this->object = INCREASE_REFCOUNT( object );
+        Py_XDECREF( old_object );
     }
 
     void assign1( PyObject *object )
     {
         assertObject( object );
 
-        if ( this->free_value )
-        {
-            PyObject *old_object = this->object;
-
-            this->object = object;
-
-#ifndef NDEBUG
-            if ( Py_REFCNT( old_object ) < 0 )
-            {
-                printf( "Bad at %s\n", Nuitka_String_AsString( this->var_name ) );
-            }
-#endif
-
-            // Free old value if any available and owned.
-            Py_DECREF( old_object );
-        }
-        else
-        {
-            this->object = object;
-            this->free_value = true;
-        }
+        PyObject *old_object = this->object;
+        this->object = object;
+        Py_XDECREF( old_object );
     }
 
     PyObject *asObject0() const
@@ -140,13 +99,9 @@ public:
         }
         else
         {
-            if ( this->free_value )
-            {
-                Py_DECREF( this->object );
-            }
-
+            PyObject *old_object = this->object;
             this->object = NULL;
-            this->free_value = false;
+            Py_DECREF( old_object );
         }
     }
 
@@ -206,7 +161,6 @@ private:
 
     PyObject *var_name;
     PyObject *object;
-    bool free_value;
 };
 
 #endif
