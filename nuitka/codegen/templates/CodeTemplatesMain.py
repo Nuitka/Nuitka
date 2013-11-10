@@ -146,6 +146,15 @@ int main( int argc, char *argv[] )
     patchBuiltinModule();
     patchTypeComparison();
 
+    // Allow to override the ticker value, to remove checks for threads in
+    // CPython core from impact on benchmarks.
+    char const *ticker_value = getenv( "NUITKA_TICKER" );
+    if ( ticker_value != NULL )
+    {
+        _Py_Ticker = atoi( ticker_value );
+        assert ( _Py_Ticker >= 20 );
+    }
+
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
 
