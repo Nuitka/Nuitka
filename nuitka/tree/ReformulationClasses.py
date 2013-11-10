@@ -195,14 +195,9 @@ def _buildClassNode3( provider, node, source_ref ):
             )
         )
 
-    # The __qualname__ is new in Python 3.3, and should contain some kind of
-    # full name descriptions for the closure to recognize and will be used for
-    # outputs.
+    # The "__qualname__" attribute is new in Python 3.3.
     if Utils.python_version >= 330:
-        if provider.isExpressionFunctionBody():
-            qualname = provider.getFunctionQualname() + ".<locals>." + node.name
-        else:
-            qualname = node.name
+        qualname = class_creation_function.getFunctionQualname()
 
         statements.append(
             StatementAssignmentVariable(

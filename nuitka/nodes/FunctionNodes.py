@@ -188,6 +188,12 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
             return self.name
 
     def getFunctionQualname( self ):
+        """ Function __qualname__ new in CPython3.3
+
+        Should contain some kind of full name descriptions for the closure to
+        recognize and will be used for outputs.
+        """
+
         function_name = self.getFunctionName()
 
         provider = self.getParentVariableProvider()
