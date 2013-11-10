@@ -1,3 +1,68 @@
+Nuitka Release 0.4.7 (Draft)
+============================
+
+This release includes important new features, lots of polishing cleanups, and
+some performance improvements as well.
+
+Bug Fixes
+---------
+
+- The RPM packages didn't build due to missing inline copy of Scons. Fixed in
+  0.4.6.1 already.
+
+- The recursion into modules and unfreezing them was not working for packages
+  and modules anymore. Fixed in 0.4.6.2 already.
+
+New Features
+------------
+
+- The "portable" mode allows to compile standalone binaries for programs that
+  use no DLLs.
+
+- New option ``--python-flags`` allows to specify flags to the compiler that the
+  "python" binary normally would. Initially ``-S`` is supported, with sane alias
+  ``no_site`` which disables the import of the ``site`` module.
+
+New Optimization
+----------------
+
+- Don't treat variables usages used in functions called directly by their owner
+  as shared. This leads to more efficient code generation for contractions and
+  class bodies.
+
+- Create ``unicode`` constants directly from their UTF-8 string representation
+  for Python2 as well instead of un-streaming. So far this was only done for
+  Python3.
+
+- Directly create ``int`` and ``long`` constants outside of ``2**31`` and
+  ``2**32-1``, but only limited according to actual platform values.
+
+- When creating ``set`` values, no longer use a temporary ``tuple`` value, but
+  use a properly generated helper functions instead.
+
+- Directly create ``set`` constants instead of un-streaming them.
+
+- Generally avoid using ``pickle`` and ``cPickle`` in most cases which reduces
+  the program start up time due to not importing these modules.
+
+- Windows: In order to speed up repeated compilation on a platform without
+  ``ccache``, added Scons level caching in the build directory.
+
+Organizational
+--------------
+
+- The "portable" code has been redone and activated.
+
+- Added package for Ubuntu 13.10 for download, removed packages for Ubuntu 11.04
+  and 11.10, no more supported.
+
+- Added package for openSUSE 13.1 for download.
+
+Summary
+-------
+
+This release is not complete yet.
+
 Nuitka Release 0.4.6
 ====================
 
