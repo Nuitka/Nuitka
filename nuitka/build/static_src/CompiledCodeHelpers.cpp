@@ -993,6 +993,18 @@ PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
     return result;
 }
 
+#if PYTHON_VERSION < 300
+PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size )
+{
+    PyObject *result = PyUnicode_FromStringAndSize( (char const  *)buffer, size );
+
+    assert( !ERROR_OCCURED() );
+    assertObject( result );
+
+    return result;
+}
+#endif
+
 PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern )
 {
 #if PYTHON_VERSION < 300

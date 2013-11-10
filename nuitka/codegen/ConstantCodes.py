@@ -142,38 +142,44 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
 
         return
 
-    # Strings that can be encoded as UTF-8 are done more or less directly. When
-    # they cannot be expressed as UTF-8, that is rare not we can indeed use
-    # pickling.
-    if constant_type is str:
-        if str is not unicode:
-            emit(
-                "%s = UNSTREAM_STRING( %s, %d );assert( %s );" % (
-                    constant_identifier,
-                    _getStreamDataCode( constant_value ),
-                    1 if _isAttributeName( constant_value ) else 0,
-                    constant_identifier
-                )
-            )
+    if constant_type is unicode:
+        try:
+            encoded = constant_value.encode( "utf-8" )
 
-            return
-        else:
-            try:
-                encoded = constant_value.encode( "utf-8" )
-
+            if str is not unicode:
                 emit(
-                    "%s = UNSTREAM_STRING( %s, %d );assert( %s );" % (
+                    "%s = UNSTREAM_UNICODE( %s );" % (
+                        constant_identifier,
+                        _getStreamDataCode( encoded )
+                    )
+                )
+            else:
+                emit(
+                    "%s = UNSTREAM_STRING( %s, %d );" % (
                         constant_identifier,
                         _getStreamDataCode( encoded ),
-                        1 if _isAttributeName( constant_value ) else 0,
-                        constant_identifier
+                        1 if _isAttributeName( constant_value ) else 0
                     )
                 )
 
-                return
-            except UnicodeEncodeError:
-                # So fall back to below code, which will unstream it then.
-                pass
+            return
+        except UnicodeEncodeError:
+            # So fall back to below code, which will unstream it then.
+            pass
+    elif constant_type is str:
+        # Python3: Strings that can be encoded as UTF-8 are done more or less
+        # directly. When they cannot be expressed as UTF-8, that is rare not we
+        # can indeed use pickling.
+        assert str is not unicode
+        emit(
+            "%s = UNSTREAM_STRING( %s, %d );" % (
+                constant_identifier,
+                _getStreamDataCode( constant_value ),
+                1 if _isAttributeName( constant_value ) else 0
+            )
+        )
+
+        return
 
     if constant_type is float:
         emit(

@@ -1332,6 +1332,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
 extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern );
+#if PYTHON_VERSION < 300
+extern PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size );
+#endif
 extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
 
 extern void enhancePythonTypes( void );
