@@ -62,7 +62,10 @@ from .DictCodes import (
     getDictionaryCreationCode,
     getMakeDictsCode
 )
-from .SetCodes import getSetCreationCode
+from .SetCodes import (
+    getSetCreationCode,
+    getMakeSetsCode
+)
 
 from .CallCodes import (
     getCallCodePosKeywordArgs,

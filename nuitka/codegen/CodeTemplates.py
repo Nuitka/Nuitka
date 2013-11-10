@@ -37,6 +37,7 @@ from .templates.CodeTemplatesLists import *
 from .templates.CodeTemplatesDicts import *
 from .templates.CodeTemplatesCalls import *
 from .templates.CodeTemplatesLoops import *
+from .templates.CodeTemplatesSets import *
 
 from .templates.CodeTemplatesExecEval import *
 

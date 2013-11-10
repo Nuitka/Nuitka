@@ -24,6 +24,7 @@ from .Pickling import getStreamedConstant
 from .TupleCodes import addMakeTupleUse
 from .ListCodes import addMakeListUse
 from .DictCodes import addMakeDictUse
+from .SetCodes import addMakeSetUse
 
 
 from .Identifiers import (
@@ -313,13 +314,41 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
 
         return
 
-    if constant_type is list and constant_value == []:
-        emit( "%s = PyList_New( 0 );" % constant_identifier )
+    if constant_type is set:
+        if constant_value == set():
+            emit( "%s = PySet_New( NULL );" % constant_identifier )
+        else:
+            length = len( constant_value )
+            addMakeSetUse( length )
 
-        return
+            # Make elements earlier than list itself.
+            for element in constant_value:
+                _addConstantInitCode(
+                    emit                = emit,
+                    constant_type       = type( element ),
+                    constant_value      = element,
+                    constant_identifier = getConstantCodeName(
+                        context  = context,
+                        constant = element
+                    ),
+                    context             = context
+                )
 
-    if constant_type is set and constant_value == set():
-        emit( "%s = PySet_New( NULL );" % constant_identifier )
+            emit(
+                "%s = MAKE_SET%d( %s );" % (
+                    constant_identifier,
+                    length,
+                    ", ".join(
+                        getConstantCodeName(
+                            context  = context,
+                            constant = element
+                        )
+                        for element
+                        in
+                        constant_value
+                    )
+                )
+            )
 
         return
 
@@ -400,7 +429,7 @@ def getConstantsDeclCode( context, for_header ):
 
             contained_constants[ key ] = constant_identifier
 
-            if constant_type in ( tuple, list ):
+            if constant_type in ( tuple, list, set, frozenset ):
                 for element in constant_value:
                     considerForDeferral( element )
 
@@ -420,7 +449,7 @@ def getConstantsDeclCode( context, for_header ):
         if for_header:
             declaration = "extern " + declaration
         else:
-            if constant_type in ( tuple, dict, list ):
+            if constant_type in ( tuple, dict, list, set, frozenset ):
                 considerForDeferral( constant_value.getConstant() )
 
         statements.append( declaration )

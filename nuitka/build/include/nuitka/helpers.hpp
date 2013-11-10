@@ -422,34 +422,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     return result;
 }
 
-
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET()
-{
-    PyObject *result = PySet_New( NULL );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET( PyObject *tuple )
-{
-    assertObject( tuple );
-    assert( PyTuple_Check( tuple ) );
-
-    PyObject *result = PySet_New( tuple );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 {
     assertObject( method );

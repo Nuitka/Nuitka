@@ -2637,6 +2637,7 @@ def generateHelpersCode():
     header_code = Generator.getMakeTuplesCode() + \
                   Generator.getMakeListsCode() + \
                   Generator.getMakeDictsCode() + \
+                  Generator.getMakeSetsCode() + \
                   Generator.getCallsDecls()
 
     body_code = Generator.getCallsCode()
