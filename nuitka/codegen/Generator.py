@@ -1338,11 +1338,15 @@ def getLoadDirCode( context, provider ):
         )
     else:
         if context.hasLocalsDict():
+            locals_identifier = getLoadLocalsCode(
+                context  = context,
+                provider = provider,
+                mode     = "updated"
+            )
+
             return Identifier(
-                "PyDict_Keys( %s )" % getLoadLocalsCode(
-                    context  = context,
-                    provider = provider,
-                    mode     = "updated"
+                "PyDict_Keys( %s )" % (
+                    locals_identifier.getCodeTemporaryRef()
                 ),
                 1
             )
