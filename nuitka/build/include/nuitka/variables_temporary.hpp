@@ -57,15 +57,25 @@ public:
         return INCREASE_REFCOUNT( this->object );
     }
 
-    void assign1( PyObject *object )
+    void assign0( PyObject *object )
     {
+        assertObject( object );
         assertObject( this->object );
 
-        Py_DECREF( this->object );
+        PyObject *old = this->object;
+        this->object = INCREASE_REFCOUNT( object );
+        Py_DECREF( old );
+    }
 
+
+    void assign1( PyObject *object )
+    {
         assertObject( object );
+        assertObject( this->object );
 
+        PyObject *old_object = this->object;
         this->object = object;
+        Py_XDECREF( old_object );
     }
 
     // TODO: Tolerance must die, really and this method should be avoidable, as
@@ -75,7 +85,6 @@ public:
         assertObject( this->object );
 
         Py_DECREF( this->object );
-
         this->object = INCREASE_REFCOUNT( Py_None );
     }
 
@@ -243,7 +252,5 @@ private:
 
     PyObject *object;
 };
-
-
 
 #endif
