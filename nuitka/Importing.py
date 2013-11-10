@@ -362,6 +362,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # Very old modules with older names
         "simplejson", "sets",
+
+        # Portable mode "site" import flexibilities
+        "sitecustomize", "usercustomize"
     )
 
     # TODO: Turn this into a warning that encourages reporting.
