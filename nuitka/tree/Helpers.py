@@ -129,6 +129,27 @@ def buildNodeList( provider, nodes, source_ref, allow_none = False ):
     else:
         return []
 
+def makeModuleFrame( module, statements, source_ref ):
+    assert module.isPythonModule()
+
+    if module.isMainModule():
+        code_name = "<module>"
+    else:
+        code_name = module.getName()
+
+    return StatementsFrame(
+        statements    = statements,
+        guard_mode    = "once",
+        var_names     = (),
+        arg_count     = 0,
+        kw_only_count = 0,
+        code_name     = code_name,
+        has_starlist  = False,
+        has_stardict  = False,
+        source_ref    = source_ref
+    )
+
+
 def buildStatementsNode( provider, nodes, source_ref, frame = False ):
     # We are not creating empty statement sequences.
     if nodes is None:
@@ -155,28 +176,24 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
             guard_mode    = "generator" if provider.isGenerator() else "full"
             has_starlist  = parameters.getStarListArgumentName() is not None
             has_stardict  = parameters.getStarDictArgumentName() is not None
+
+            return StatementsFrame(
+                statements    = statements,
+                guard_mode    = guard_mode,
+                var_names     = arg_names,
+                arg_count     = len( arg_names ),
+                kw_only_count = kw_only_count,
+                code_name     = code_name,
+                has_starlist  = has_starlist,
+                has_stardict  = has_stardict,
+                source_ref    = source_ref
+            )
         else:
-            assert provider.isPythonModule()
-
-            arg_names     = ()
-            kw_only_count = 0
-            code_name     = "<module>" if provider.isMainModule() else provider.getName()
-            guard_mode    = "once"
-            has_starlist  = False
-            has_stardict  = False
-
-
-        return StatementsFrame(
-            statements    = statements,
-            guard_mode    = guard_mode,
-            var_names     = arg_names,
-            arg_count     = len( arg_names ),
-            kw_only_count = kw_only_count,
-            code_name     = code_name,
-            has_starlist  = has_starlist,
-            has_stardict  = has_stardict,
-            source_ref    = source_ref
-        )
+            return makeModuleFrame(
+                module     = provider,
+                statements = statements,
+                source_ref = source_ref
+            )
     else:
         return StatementsSequence(
             statements = statements,

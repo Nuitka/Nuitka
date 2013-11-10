@@ -63,6 +63,7 @@ from nuitka.nodes.SliceNodes import (
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
+    StatementsFrame
 )
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
@@ -152,6 +153,7 @@ from .Helpers import (
     buildStatementsNode,
     setBuildDispatchers,
     extractDocFromBody,
+    makeModuleFrame,
     buildNodeList,
     buildNode,
     getKind
@@ -811,7 +813,8 @@ setBuildDispatchers(
     }
 )
 
-def buildParseTree( provider, source_code, source_ref, is_module ):
+def buildParseTree( provider, source_code, source_ref, is_module,
+                    is_main ):
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
     if not source_code.endswith( "\n" ):
@@ -832,8 +835,7 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
     result = buildStatementsNode(
         provider   = provider,
         nodes      = body,
-        source_ref = source_ref,
-        frame      = is_module
+        source_ref = source_ref
     )
 
     # Check if a __future__ imports really were at the beginning of the file.
@@ -857,6 +859,21 @@ from __future__ imports must occur at the beginning of the file""",
     statements = []
 
     if is_module:
+        # Add import of "site" module of main programs visibly in the node tree,
+        # so recursion and optimization can pick it up, checking its effects.
+        if is_main and not sys.flags.no_site:
+            statements.append(
+                StatementExpressionOnly(
+                    expression = ExpressionImportModule(
+                        module_name    = "site",
+                        import_list    = (),
+                        level          = 0,
+                        source_ref     = source_ref,
+                    ),
+                    source_ref  = source_ref
+                )
+            )
+
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
@@ -979,16 +996,15 @@ from __future__ imports must occur at the beginning of the file""",
             )
         )
 
-    if result is None:
-        result = makeStatementsSequence(
+
+    if is_module:
+        return makeModuleFrame(
+            module = provider,
             statements = statements,
-            source_ref = internal_source_ref,
-            allow_none = False
+            source_ref = source_ref
         )
     else:
-        result.setStatements( statements )
-
-    return result
+        assert False
 
 def decideModuleTree( filename, package, is_top, is_main ):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
@@ -1089,27 +1105,9 @@ def createModuleTree( module, source_ref, source_filename, is_main ):
         provider    = module,
         source_code = source_code,
         source_ref  = source_ref,
-        is_module   = True
+        is_module   = True,
+        is_main     = is_main
     )
-
-    # Add import of "site" module visibly in the node tree.
-    if is_main:
-        module_body = makeStatementsSequence(
-            statements = (
-                StatementExpressionOnly(
-                    expression = ExpressionImportModule(
-                        module_name    = "site",
-                        import_list    = (),
-                        level          = 0,
-                        source_ref     = source_ref,
-                    ),
-                    source_ref  = source_ref.atInternal()
-                ),
-                module_body
-            ),
-            allow_none = True,
-            source_ref = source_ref
-        )
 
     module.setBody( module_body )
 
