@@ -17,213 +17,124 @@
 #
 """ Pack and copy files for portable mode.
 
-usage: PortableSetup.py mainscript outputdir
+This is in heavy flux now, cannot be expected to work or make sense.
 
 """
 
-import sys
-import os
-import zipfile
+import sys, subprocess
 
-python_library_archive_name = "_python.zip"
+from nuitka import Utils
+import nuitka.codegen.CodeTemplates
+from nuitka.codegen.ConstantCodes import needsPickleInit
+
 python_dll_dir_name = "_python"
 
-python_executable_suffixes = ( ".py", ".pyc", ".pyo" )
-builtin_module_names = list( sys.builtin_module_names ) + [ "_io" ]
-
-def importList( *names ):
-    for name in names:
-        __import__( name )
-
-dependency_resolver = {
-    "_ssl": ( importList, "socket", "_socket" ),
-    "PyQt4.QtGui" : ( importList, "sip" ),
-}
-
-def isPythonScript( path ):
-    for end in python_executable_suffixes:
-        if path.endswith( end ):
-            return 1
-    return 0
-
-def copyFile( src, dst ):
-    target_dir = os.path.dirname( dst )
-
-    if not os.path.isdir( target_dir ):
-        os.makedirs( target_dir )
-
-    if os.path.isfile( dst ):
-        os.remove( dst )
-    with open( src, "rb" ) as p:
-        data = p.read()
-    with open( dst, "wb" ) as p:
-        p.write( data )
-        p.flush()
-
-def getImportedDict( mainscript ):
-    # importing a lot of stuff, just because they are dependencies.
-    # pylint: disable=W0612,R0914
-
-    # chdir to mainscript directory and add it to sys.path
-    main_dir = os.path.dirname( mainscript )
-    os.chdir( main_dir )
-    sys.path.insert( 0, main_dir )
-
-    # import modules needed but not listed in sys.modules
-    import imp, zipimport, site, io, marshal, pickle
-    import encodings, encodings.aliases, codecs
-    import zlib, inspect, threading, traceback
-    import ctypes
-    if sys.version_info < ( 3, 0, 0 ):
-        import StringIO, cStringIO
-        import cPickle
-        import thread
-    for code in encodings.aliases.aliases.keys():
-        try:
-            encodings.search_function( code )
-        except ( ImportError, AttributeError ):
-            pass
-
-    # get modules from main script
-    import modulefinder
-    finder = modulefinder.ModuleFinder()
-    finder.run_script( mainscript )
-
-    # resolve dependency
-    for name in finder.modules:
-        method = dependency_resolver.get( name )
-        if not method:
-            continue
-        method[0]( *method[1:] )
-
-    # merge sys.modules
-    imported_dict = {}
-    imported_dict.update( sys.modules )
-    imported_dict.update( finder.modules )
-    return imported_dict
-
-def yieldImportedPaths( imported_dict ):
-    module_base = os.path.dirname( os.__file__ )
-    if os.name == "nt":
-        module_base_dlls = os.path.join(
-            os.path.dirname( sys.executable ),
-            "DLLs"
+def detectEarlyImports():
+    # When we are using pickle internally (for some hard constant cases we do),
+    # we need to make sure it will be available as well.
+    if needsPickleInit():
+        command = "import %s" % (
+            "pickle" if str is unicode else "cPickle"
         )
-    for name, mod in imported_dict.items():
-        if not mod:
-            continue
-
-        if not hasattr( mod, "__file__" ) or mod.__file__ is None:
-            # builtin module, if mod is modulefinder.Module then __file__ will
-            # be None
-            if name not in builtin_module_names:
-                import warnings
-                warnings.warn( "unknown builtin module %s\n" % repr( name ), Warning )
-            continue
-
-        path = mod.__file__
-        if path.startswith( module_base ):
-            yield name, path
-        elif os.name == "nt" and not isPythonScript( path ) and \
-           path.startswith( module_base_dlls ):
-            yield name, path
-            continue
-
-def copyPythonLibrary( outputdir ):
-    if os.name == "posix" and os.uname()[0] == "Linux":
-        with open( "/proc/%s/smaps" % os.getpid() ) as pmap:
-            for line in pmap:
-                if line.find("libpython") != -1:
-                    src = line[ line.find( "/" ): ].strip()
-                    dst = os.path.join( outputdir, os.path.basename ( src ) )
-                    copyFile( src, dst )
-                    break
-    elif os.name == "nt":
-        import ctypes
-        from ctypes import windll
-        from ctypes.wintypes import HANDLE, LPCSTR, DWORD
-        dll = getattr( windll, "python%s%s" % ( sys.version_info[:2] ) )
-        getname = windll.kernel32.GetModuleFileNameA
-        getname.argtypes = ( HANDLE, LPCSTR, DWORD )
-        getname.restype = DWORD
-        result = ctypes.create_string_buffer( 1024 )
-        size = getname( dll._handle, result, 1024 ) # needed for this call, pylint: disable=W0212
-        src = result.value[ :size ]
-        dst = os.path.join( outputdir, os.path.basename ( src ) )
-        copyFile( src, dst )
     else:
-        # TODO: Add support for bsd and osx here
-        sys.exit( "Error, unsupported platform for portable binaries." )
+        command = ""
 
-def main( mainscript, outputdir ):
-    imported_dict = getImportedDict( mainscript )
+    process = subprocess.Popen(
+        args   = [ sys.executable, "-s", "-S", "-v", "-c", command ],
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE
+    )
 
-    zip_list = []
-    bin_list = []
+    stdout, stderr = process.communicate()
 
-    for name, path in yieldImportedPaths( imported_dict ):
-        if isPythonScript( path ):
-            path_base = path.rsplit( ".", 1 )[0]
-            for end in python_executable_suffixes:
-                path_pack = path_base + end
-                if os.path.isfile( path_pack ):
-                    if path_base.endswith( "__init__" ):
-                        import_base = os.path.dirname( path_base )
-                    else:
-                        import_base = path_base
+    result = []
 
-                    for _i in range( name.count(".") + 1 ):
-                        import_base = os.path.dirname( import_base )
+    for line in stderr.replace( "\r", "" ).split( "\n" ):
+        if line.startswith( "import " ):
+            parts = line.split( " # ", 2 )
 
-                    zip_list.append( ( path_pack, import_base ) )
-                    break
+            module_name = parts[0].split( " ", 2 )[1]
+            origin = parts[1].split()[0]
+
+            if origin == "builtin":
+                # Built into CPython library, so we can ignore it.
+                pass
+            elif origin == "directory":
+                # This is a directory, likely a package, but the __init__.py
+                # will come anyway, so we can ignore it here.
+                pass
+            elif origin == "precompiled":
+                # This is a ".pyc" file that was imported, even before we have a
+                # chance to do anything, we need to preserve it.
+
+                result.append(
+                    (
+                        module_name,
+                        parts[1][ len( "precompiled from " ): ]
+                    )
+                )
+
+    return result
+
+# TODO: This _encodeStreamData and _getStreamDataCode is taken from
+# nuitka.codegen.ConstantCodes, could shared data with that as well, worst case
+# it could reduce sizes.
+stream_data = bytes()
+
+def encodeStreamData():
+    for count, stream_byte in enumerate( stream_data ):
+        if count % 16 == 0:
+            if count > 0:
+                yield "\n"
+            yield "   "
+
+        if str is not unicode:
+            yield " 0x%02x," % ord( stream_byte )
         else:
-            import_base = path
-            for _i in range( name.count(".") + 1 ):
-                import_base = os.path.dirname( import_base )
+            yield " 0x%02x," % stream_byte
 
-            export_path = path[ len( import_base ) + 1 : ]
+def _getStreamDataCode( value, fixed_size = False ):
+    global stream_data
+    offset = stream_data.find( value )
+    if offset == -1:
+        offset = len( stream_data )
+        stream_data += value
 
-            bin_list.append( ( path, export_path ) )
+    if fixed_size:
+        return "&portable_stream_data[ %d ]" % offset
+    else:
+        return "&portable_stream_data[ %d ], %d" % ( offset, len( value ) )
 
-    # pack scripts to archive
-    zip_path = os.path.join( outputdir, python_library_archive_name )
-    if not os.path.exists( outputdir ):
-        os.makedirs( outputdir )
-    zip_file = zipfile.ZipFile( zip_path, "w", zipfile.ZIP_STORED )
-    for path_pack, import_base in sorted( zip_list ):
-        zip_file.write( path_pack, path_pack[ len( import_base ): ] )
-    zip_file.close()
+def loadCodeObjectData( precompiled_path ):
+    # Unclear, if that is how it can be done for Python3.
+    assert Utils.python_version < 300
 
-    # copy extensions to directory
-    import shutil
-    library_directory = os.path.join( outputdir, python_dll_dir_name )
-    if os.path.isdir( library_directory ):
-        shutil.rmtree( library_directory )
-    if not os.path.isdir( library_directory ):
-        os.makedirs( library_directory )
-    for src, export_path in bin_list:
-        dst = os.path.join( library_directory, export_path )
-        copyFile( src, dst )
+    # Ignoring magic numbers, etc. which we don't have to care for much as
+    # CPython already checked them (would have rejected it otherwise).
+    return open( precompiled_path, "rb" ).read()[ 8 : ]
 
-    # copy libpython
-    copyPythonLibrary( outputdir )
+def generatePrecompileFrozenCode():
+    frozen_modules = []
 
-def setup( mainscript, outputdir ):
-    # if use this script as module, use this method
-    import subprocess
-    proc = subprocess.Popen(
-        args   = ( sys.executable, __file__, mainscript, outputdir ),
-        stdout = sys.stdout,
-        stderr = sys.stderr,
-        stdin  = sys.stdin,
-        shell  = 0
-    )
-    proc.wait()
-    return proc.poll() == 0
+    for module_name, precompiled_path in detectEarlyImports():
+        code_data = loadCodeObjectData( precompiled_path )
+        size = len( code_data )
 
-if __name__ == "__main__":
-    main(
-        mainscript = os.path.abspath( sys.argv[1] ),
-        outputdir  = os.path.abspath( sys.argv[2] )
-    )
+        # Packages are indicated with negative size.
+        if "." in module_name:
+            size = -size
+
+        frozen_modules.append(
+            """(char *)"%s", (unsigned char *)%s, %d,""" % (
+                module_name,
+                _getStreamDataCode( code_data, fixed_size = True ),
+                size
+            )
+        )
+
+    from nuitka.codegen.Indentation import indented
+
+    return nuitka.codegen.CodeTemplates.template_portable_frozen_modules % {
+        "stream_data"    : "".join( encodeStreamData() ),
+        "frozen_modules" : indented( frozen_modules ),
+    }

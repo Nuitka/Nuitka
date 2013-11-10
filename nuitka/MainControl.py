@@ -443,11 +443,26 @@ def executeModule( tree, clean_path ):
     )
 
 def compileTree( main_module ):
+    source_dir = getSourceDirectoryPath( main_module )
+
     if not Options.shallOnlyExecGcc():
         # Now build the target language code for the whole tree.
         makeSourceDirectory(
             main_module = main_module
         )
+
+        if Options.isPortableMode():
+            from nuitka import PortableSetup
+
+            portable_code = PortableSetup.generatePrecompileFrozenCode()
+
+            writeSourceCode(
+                filename = Utils.joinpath(
+                    source_dir,
+                    "__portable.cpp"
+                ),
+                source_code = portable_code
+            )
     else:
         source_dir = getSourceDirectoryPath( main_module )
 

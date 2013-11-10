@@ -182,12 +182,6 @@ else:
     if Options.isRemoveBuildDir():
         shutil.rmtree( MainControl.getSourceDirectoryPath( tree ) )
 
-    # Pack and copy files in portable mode
-    if Options.isPortableMode():
-        from nuitka import PortableSetup
-        if not PortableSetup.setup( filename, Options.getOutputDir() ):
-            sys.exit( 1 )
-
     # Sanity check, warn people if "__main__" is used in the compiled module, it
     # may not be the appropiate usage.
     if Options.shallMakeModule() and Options.shallExecuteImmediately():

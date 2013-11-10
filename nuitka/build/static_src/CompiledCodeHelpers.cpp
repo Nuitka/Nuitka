@@ -1854,21 +1854,20 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 }
 
 #ifdef _NUITKA_PORTABLE
-char *getBinaryDirectory( char *binary_path )
+
+#ifndef PATH_MAX
+// The Windows document speaks of 32768 as an approximate value, because
+// volume names might be expanded too.
+#define PATH_MAX (33000)
+#endif
+
+static char *getBinaryDirectory( char const *binary_path )
 {
-    int i;
     char *path = ( char* ) malloc( PATH_MAX + 1 );
-    memset ( path, 0, PATH_MAX + 1 );
+    memset( path, 0, PATH_MAX + 1 );
 #if defined( _WIN32 )
-    HMODULE hModule = GetModuleHandle( NULL );
-    if ( !hModule )
-    {
-        fprintf( stderr, "getBinaryDirectory: get module handle failed\n" );
-        free( path );
-        return NULL;
-    }
-    GetModuleFileName( hModule , path, PATH_MAX + 1 );
-    char sep = '\\';
+    GetModuleFileName( NULL, path, PATH_MAX + 1 );
+    char const sep = '\\';
 #else
     if ( !realpath( binary_path, path ) )
     {
@@ -1876,9 +1875,10 @@ char *getBinaryDirectory( char *binary_path )
         free( path );
         return NULL;
     }
-    char sep = '/';
+    char const sep = '/';
 #endif
-    for ( i = PATH_MAX; i > 0; i-- )
+    // There must be API to filenames to do that in a better way.
+    for ( int i = PATH_MAX; i > 0; i-- )
     {
         // need handle unicode here ?
         if ( path[i] == sep )
@@ -1887,11 +1887,20 @@ char *getBinaryDirectory( char *binary_path )
             break;
         }
     }
+
     return path;
 }
 
-void _initPortableEnvironment( char *binary_path )
+extern struct _frozen PortableMode_FrozenModules[];
+
+void preparePortableEnvironment( char *binary_path )
 {
+    // Tell the CPython library to use our precompiled modules as frozen
+    // modules. This for those modules/packages like "encoding" that will be
+    // loaded during "Py_Initialize" already, for the others they may be
+    // compiled.
+    PyImport_FrozenModules = PortableMode_FrozenModules;
+
     // setup environ
     // orignal_value;binary_directory/_python;binary_directory/_python.zip
     char *binary_directory = getBinaryDirectory( binary_path );
@@ -1909,13 +1918,12 @@ void _initPortableEnvironment( char *binary_path )
     char *insert_path = (char *) malloc( insert_size );
     memset( insert_path, 0, insert_size );
 #if defined( _WIN32 )
-    char env_string[] = "%s\\%s;%s\\%s;";
+    char env_string[] = "%s\\%s;";
 #else
-    char env_string[] = "%s/%s:%s/%s:";
+    char env_string[] = "%s/%s:";
 #endif
     snprintf( insert_path, insert_size, env_string,
-        binary_directory, "_python",
-        binary_directory, "_python.zip"
+        binary_directory, "_python"
     );
 
     // set environment
@@ -1929,6 +1937,7 @@ void _initPortableEnvironment( char *binary_path )
         insert_path, orignal_home ? orignal_home : "" );
     snprintf( python_path, python_path_size, "%s%s",
         insert_path, orignal_path ? orignal_path : "" );
+
 #if defined( _WIN32 )
     Py_SetPythonHome( python_home );
 #else

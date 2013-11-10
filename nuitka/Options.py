@@ -449,15 +449,16 @@ parser.add_option(
 Given warnings for implicit exceptions detected at compile time.""",
 )
 
-if False:
-    parser.add_option(
-        "--portable",
-        action  = "store_true",
-        dest    = "is_portable_mode",
-        default = False,
-        help    = """\
-Enable portable mode in build.""",
-    )
+
+parser.add_option(
+    "--portable",
+    action  = "store_true",
+    dest    = "is_portable_mode",
+    default = False,
+    help    = """\
+Enable portable mode in build. This allows you to transfer the created binary
+to other machines without it relying on an existing Python installation.""",
+)
 
 parser.add_option(
     "--icon",
@@ -644,9 +645,7 @@ def isExperimental():
     return hasattr( options, "experimental" ) and options.experimental
 
 def isPortableMode():
-    # Temporarily disabled, until it becomes more usable.
-    return False
-    # return options.is_portable_mode
+    return options.is_portable_mode
 
 def getIconPath():
     return options.icon_path

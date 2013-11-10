@@ -59,7 +59,7 @@ int main( int argc, char *argv[] )
 {
 #endif
 #ifdef _NUITKA_PORTABLE
-    _initPortableEnvironment( argv[0] );
+    preparePortableEnvironment( argv[0] );
 #endif
 
     // Initialize Python environment.
@@ -469,4 +469,24 @@ template_header_guard = """\
 
 %(header_body)s
 #endif
+"""
+
+template_portable_frozen_modules = """
+#include <Python.h>
+
+// Blob from which modules are unstreamed.
+static const unsigned char portable_stream_data[] =
+{
+%(stream_data)s
+};
+
+// These modules must be loadable during "Py_Initialize" already, these are
+// not compiled by Nuitka, and not accelerated, merely bundled with the
+// binary, so that Python library can start out.
+struct _frozen PortableMode_FrozenModules[] =
+{
+%(frozen_modules)s
+    { NULL, NULL, 0 }
+};
+
 """
