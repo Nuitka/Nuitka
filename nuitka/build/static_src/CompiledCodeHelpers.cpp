@@ -1422,6 +1422,11 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
         return true;
     }
 
+    if ( cls == (PyObject *)&PyFrame_Type && Nuitka_Frame_Check( inst ) )
+    {
+        return true;
+    }
+
     if ( PyTuple_Check( cls ) )
     {
         for ( Py_ssize_t i = 0, size = PyTuple_GET_SIZE( cls ); i < size; i++ )

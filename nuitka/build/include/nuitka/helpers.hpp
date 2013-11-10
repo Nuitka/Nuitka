@@ -1367,9 +1367,6 @@ extern void enhancePythonTypes( void );
 // Parse the command line parameters and provide it to sys module.
 extern void setCommandLineParameters( int argc, char *argv[], bool initial );
 
-// Replace inspect functions with ones that accept compiled types too.
-extern void patchInspectModule( void );
-
 // Replace builtin functions with ones that accept compiled types too.
 extern void patchBuiltinModule( void );
 

@@ -143,7 +143,6 @@ int main( int argc, char *argv[] )
         %(sys_executable)s
     );
 
-    patchInspectModule();
     patchBuiltinModule();
     patchTypeComparison();
 
@@ -363,7 +362,6 @@ MOD_INIT_DECL( %(module_identifier)s )
     initSlotCompare();
 #endif
 
-    patchInspectModule();
     patchBuiltinModule();
     patchTypeComparison();
 
