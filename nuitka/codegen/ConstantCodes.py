@@ -112,35 +112,52 @@ def _getUnstreamCode( constant_value, constant_identifier ):
 def _packFloat( value ):
     return struct.pack( "<d", value )
 
+import ctypes
+sizeof_long = ctypes.sizeof( ctypes.c_long )
+
+max_unsigned_long = 2**(sizeof_long*8)-1
+
+# The gcc gives a warning for -2**sizeof_long*8-1, which is still an "int", but
+# seems to not work (without warning) as literal, so avoid it.
+min_signed_long = -(2**(sizeof_long*8-1)-1)
+
 def _addConstantInitCode( context, emit, constant_type, constant_value,
                           constant_identifier ):
     # This has many cases, that all return, and do a lot.
     #  pylint: disable=R0911,R0912,R0915
 
-    # Use shortest code for ints and longs, except when they are big, then fall
-    # fallback to pickling. TODO: Avoid the use of pickle even for larger
-    # values.
-    if constant_type is int and abs( constant_value ) < 2**31:
-        emit(
-            "%s = PyInt_FromLong( %s );" % (
-                constant_identifier,
-                constant_value
+    # Use shortest code for ints and longs.
+    if constant_type is long:
+        # See above, same for long values. Note: These are of course not
+        # existant with Python3 which would have covered it before.
+        if constant_value >= 0 and constant_value <= max_unsigned_long:
+            emit (
+                "%s = PyLong_FromUnsignedLong( %sul );" % (
+                    constant_identifier,
+                    constant_value
+                )
             )
-        )
 
-        return
-
-    # See above, same for long values. Note: These are of course not existant
-    # with Python3 which would have covered it before.
-    if constant_type is long and abs( constant_value ) < 2**31:
-        emit (
-            "%s = PyLong_FromLong( %s );" % (
-                constant_identifier,
-                constant_value
+            return
+        elif constant_value < 0 and constant_value >= min_signed_long:
+            emit (
+                "%s = PyLong_FromLong( %sl );" % (
+                    constant_identifier,
+                    constant_value
+                )
             )
-        )
 
-        return
+            return
+    elif constant_type is int:
+        if constant_value >= min_signed_long:
+            emit(
+                "%s = PyInt_FromLong( %sl );" % (
+                    constant_identifier,
+                    constant_value
+                )
+            )
+
+            return
 
     if constant_type is unicode:
         try:
