@@ -830,6 +830,9 @@ if "LDFLAGS" in os.environ:
 if os.path.exists( target[0].abspath ):
     os.unlink( target[0].abspath )
 
+if show_scons_mode:
+    print "scons: Told to run compilation on %d CPUs." % GetOption( 'num_jobs' )
+
 if cache_mode:
     CacheDir( os.path.join( source_dir, "cache" ) )
     Decider( "MD5" )

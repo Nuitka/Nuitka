@@ -133,7 +133,13 @@ def runScons( options, quiet ):
 
         # Do not warn about deprecations of Scons
         "--warn=no-deprecated",
+
+        # Don't load "site_scons" at all.
+        "--no-site-dir",
     ]
+
+    if Options.isShowScons():
+        scons_command.append( "--debug=explain" )
 
     # Option values to provide to scons.
     for key, value in options.items():
