@@ -325,7 +325,7 @@ for filename in os.listdir( "dist" ):
     if os.path.isfile( "dist/" + filename ):
         assert 0 == os.system( "chmod 644 dist/" + filename )
         assert 0 == os.system(
-            "gpg --local-user 0BCF7396 --detach-sign dist/" + filename
+            "gpg --local-user 2912B99C --detach-sign dist/" + filename
         )
 
 # Cleanup the build directory, not needed.
