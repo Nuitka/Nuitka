@@ -115,7 +115,9 @@ def findSources():
 
     return result
 
-if os.path.exists( "/usr/bin/scons" ) and not "sdist" in sys.argv:
+if os.path.exists( "/usr/bin/scons" ) and \
+   "sdist" not in sys.argv and \
+   "bdist_wininst" not in sys.argv:
     scons_files = []
 else:
     scons_files = [
