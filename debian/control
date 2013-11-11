@@ -1,5 +1,5 @@
 Source: nuitka
-Maintainer: Kay Hayen <kayhayen@gmx.de>
+Maintainer: Kay Hayen <kay.hayen@gmail.com>
 Section: python
 Priority: optional
 Build-Depends: debhelper (>= 7.4.3),
