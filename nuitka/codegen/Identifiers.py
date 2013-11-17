@@ -26,20 +26,6 @@ part is where getCheapRefCount allows to not allocate references not needed.
 
 from nuitka import Utils
 
-def encodeNonAscii( var_name ):
-    """ Encode variable name that is potentially not ASCII to ASCII only.
-
-    """
-    if Utils.python_version < 300:
-        return var_name
-    else:
-        var_name = var_name.encode( "ascii", "xmlcharrefreplace" )
-        var_name = var_name.decode( "ascii" )
-
-        # TODO: Is this truly safe of collisions, I think it is not. It might be
-        # necessary to use something that is not allowed otherwise.
-        return var_name.replace( "&#", "$$" ).replace( ";", "" )
-
 class Identifier:
     def __init__( self, code, ref_count ):
         self.code = code
@@ -166,7 +152,7 @@ class ModuleVariableIdentifier:
     def getCode( self ):
         return "_mvar_%s_%s" % (
             self.module_code_name,
-            encodeNonAscii( self.var_name )
+            self.var_name
         )
 
 
@@ -183,8 +169,8 @@ class MaybeModuleVariableIdentifier( Identifier ):
 
 
 class LocalVariableIdentifier:
-    def __init__( self, var_name, from_context = False ):
-        assert type( var_name ) == str
+    def __init__( self, var_name, from_context ):
+        assert type( var_name ) is str
 
         self.from_context = from_context
         self.var_name = var_name
@@ -197,10 +183,10 @@ class LocalVariableIdentifier:
 
     def getCode( self ):
         if not self.from_context:
-            return "python_var_" + encodeNonAscii( self.var_name )
+            return "var_" + self.var_name
         else:
-            return "_python_context->python_var_%s" % (
-                encodeNonAscii( self.var_name )
+            return "_python_context->var_%s" % (
+                self.var_name
             )
 
     def getRefCount( self ):
@@ -221,6 +207,25 @@ class LocalVariableIdentifier:
     def getCodeDropRef( self ):
         return self.getCodeTemporaryRef()
 
+
+class ParameterVariableIdentifier( LocalVariableIdentifier ):
+    def __init__( self, var_name, from_context ):
+        LocalVariableIdentifier.__init__(
+            self,
+            var_name     = var_name,
+            from_context = from_context
+        )
+
+    def __repr__( self ):
+        return "<ParameterVariableIdentifier %s>" % self.var_name
+
+    def getCode( self ):
+        if not self.from_context:
+            return "par_" + self.var_name
+        else:
+            return "_python_context->par_%s" % (
+                self.var_name
+            )
 
 class TempVariableIdentifier( Identifier ):
     def __init__( self, var_name, from_context ):
@@ -289,7 +294,7 @@ class ClosureVariableIdentifier( Identifier ):
                 self,
                 code = "%spython_closure_%s" % (
                     self.from_context,
-                    encodeNonAscii( self.var_name )
+                    self.var_name
                 ),
                 ref_count = 0
             )
@@ -298,7 +303,7 @@ class ClosureVariableIdentifier( Identifier ):
 
             Identifier.__init__(
                 self,
-                code      = "python_closure_" + encodeNonAscii( self.var_name ),
+                code      = "python_closure_" + self.var_name,
                 ref_count = 0
             )
 

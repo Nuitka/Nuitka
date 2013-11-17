@@ -23,12 +23,12 @@ from nuitka import Variables
 
 from .Identifiers import (
     MaybeModuleVariableIdentifier,
+    ParameterVariableIdentifier,
     ClosureVariableIdentifier,
     ModuleVariableIdentifier,
     LocalVariableIdentifier,
     TempVariableIdentifier,
-    TempObjectIdentifier,
-    encodeNonAscii
+    TempObjectIdentifier
 )
 
 from .ConstantCodes import getConstantCode
@@ -65,6 +65,11 @@ def getVariableHandle( context, variable ):
 
     var_name = variable.getName()
 
+    if variable.isParameterVariable():
+        return ParameterVariableIdentifier(
+            var_name     = var_name,
+            from_context = context.getFunction().isGenerator()
+        )
     if variable.isLocalVariable() or variable.isClassVariable():
         return LocalVariableIdentifier(
             var_name     = var_name,
@@ -163,7 +168,7 @@ def getLocalVariableInitCode( context, variable, init_from = None,
 
     store_name = variable.getMangledName()
 
-    result += encodeNonAscii( variable.getCodeName() )
+    result += variable.getCodeName()
 
     if not in_context:
         if variable.isTempVariable():

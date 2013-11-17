@@ -94,7 +94,8 @@ def makePath( path ):
 def getCoreCount():
     cpu_count = 0
 
-    # Try to sum up the CPU cores, if the kernel shows them, pylint: disable=W0702
+    # Try to sum up the CPU cores, if the kernel shows them, pylint:
+    # disable=W0702
     try:
         # Try to get the number of logical processors
         with open( "/proc/cpuinfo" ) as cpuinfo_file:
@@ -103,8 +104,8 @@ def getCoreCount():
         pass
 
     if not cpu_count:
-        # false alarm, no re-import, just a function level import to avoid it unless it is
-        # absolutely necessary, pylint: disable=W0404
+        # false alarm, no re-import, just a function level import to avoid it
+        # unless it is absolutely necessary, pylint: disable=W0404
 
         import multiprocessing
         cpu_count = multiprocessing.cpu_count()
@@ -126,3 +127,19 @@ def callExec( args ):
         args = list( args )
         del args[1]
         sys.exit( subprocess.call( args ) )
+
+def encodeNonAscii( var_name ):
+    """ Encode variable name that is potentially not ASCII to ASCII only.
+
+        For Python3, unicode identifiers can be used, but these are not
+        possible in C++03, so we need to replace them.
+    """
+    if python_version < 300:
+        return var_name
+    else:
+        var_name = var_name.encode( "ascii", "xmlcharrefreplace" )
+        var_name = var_name.decode( "ascii" )
+
+        # TODO: Is this truly safe of collisions, I think it is not. It might be
+        # necessary to use something that is not allowed otherwise.
+        return var_name.replace( "&#", "$$" ).replace( ";", "" )

@@ -2186,8 +2186,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
 
     for variable in parameter_variables:
         parameter_context_assign.append(
-            "_python_context->python_var_%s.setVariableNameAndValue( %s, _python_par_%s );" % (
-                variable.getName(),
+            "_python_context->%s.setVariableNameAndValue( %s, _python_par_%s );" % (
+                variable.getCodeName(),
                 getConstantCode(
                     constant = variable.getName(),
                     context = context
@@ -2209,8 +2209,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
             )
         )
         function_var_inits.append(
-            "_python_context->python_var_%s.setVariableName( %s );" % (
-                user_variable.getName(),
+            "_python_context->%s.setVariableName( %s );" % (
+                user_variable.getCodeName(),
                 getConstantCode(
                     constant = user_variable.getName(),
                     context  = context

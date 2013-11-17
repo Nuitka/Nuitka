@@ -46,9 +46,6 @@ static void _context_%(function_identifier)s_destructor( void *context_voidptr )
 }
 """
 
-function_context_variable_init_template = """\
-_python_context->python_closure_%s(variable_name).shareWith( python_closure_%(variable_name)s );"""
-
 make_function_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {

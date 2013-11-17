@@ -292,7 +292,7 @@ class ClosureVariableReference( VariableReferenceBase ):
             )
 
     def getCodeName( self ):
-        return "python_closure_%s" % self.getName()
+        return "python_closure_%s" % Utils.encodeNonAscii( self.getName() )
 
 
 class ModuleVariableReference( VariableReferenceBase ):
@@ -366,7 +366,7 @@ class LocalVariable( Variable ):
         return True
 
     def getCodeName( self ):
-        return "python_var_" + self.getName()
+        return "var_" + Utils.encodeNonAscii( self.getName() )
 
     def getDeclarationTypeCode( self, in_context ):
         if self.isShared( True ):
@@ -440,6 +440,9 @@ class ParameterVariable( LocalVariable ):
 
     def isParameterVariableKwOnly( self ):
         return self.kw_only
+
+    def getCodeName( self ):
+        return "par_" + Utils.encodeNonAscii( self.getName() )
 
     def getDeclarationTypeCode( self, in_context ):
         if self.isShared( True ):
