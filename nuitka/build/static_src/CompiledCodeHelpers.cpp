@@ -712,7 +712,8 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     {
         assert( Nuitka_String_Check( item ) );
 
-        // TODO: Not yet clear, what happens with __all__ and "_" of its contents.
+        // TODO: Not yet clear, what happens with __all__ and "_" of its
+        // contents.
         if ( all_case == false )
         {
             if ( Nuitka_String_AsString_Unchecked( item )[0] == '_' )
@@ -735,7 +736,8 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     }
 }
 
-// Helper functions for print. Need to play nice with Python softspace behaviour.
+// Helper functions for print. Need to play nice with Python softspace
+// behaviour.
 
 #if PYTHON_VERSION >= 300
 extern PyObject *const_str_plain_print;

@@ -303,6 +303,8 @@ def getUnpackCheckCode( iterator_identifier, count ):
     )
 
 def getSpecialAttributeLookupCode( attribute, source ):
+    assert attribute.getConstant not in ( "__dict__", "__class__" )
+
     return Identifier(
         "LOOKUP_SPECIAL( %s, %s )" % (
             source.getCodeTemporaryRef(),
@@ -312,10 +314,29 @@ def getSpecialAttributeLookupCode( attribute, source ):
     )
 
 def getAttributeLookupCode( attribute, source ):
+    assert attribute.getConstant not in ( "__dict__", "__class__" )
+
     return Identifier(
         "LOOKUP_ATTRIBUTE( %s, %s )" % (
             source.getCodeTemporaryRef(),
             attribute.getCodeTemporaryRef()
+        ),
+        1
+    )
+
+
+def getAttributeLookupDictSlotCode( source ):
+    return Identifier(
+        "LOOKUP_ATTRIBUTE_DICT_SLOT( %s )" % (
+            source.getCodeTemporaryRef(),
+        ),
+        1
+    )
+
+def getAttributeLookupClassSlotCode( source ):
+    return Identifier(
+        "LOOKUP_ATTRIBUTE_CLASS_SLOT( %s )" % (
+            source.getCodeTemporaryRef(),
         ),
         1
     )
@@ -743,11 +764,33 @@ def getFalseExpressionCode():
 
 def getAttributeAssignmentCode( order_relevance, target, attribute,
                                 identifier ):
+    assert attribute.getConstant not in ( "__dict__", "__class__" )
+
     return getOrderRelevanceEnforcedCallCode(
         order_relevance = order_relevance,
         helper          = "SET_ATTRIBUTE",
         names           = ( "identifier", "target", "attribute" ),
         values          = ( identifier, target, attribute )
+    )
+
+
+def getAttributeAssignmentDictSlotCode( order_relevance, target, identifier ):
+    """ Get code for special case target.__dict__ = value """
+    return getOrderRelevanceEnforcedCallCode(
+        order_relevance = order_relevance,
+        helper          = "SET_ATTRIBUTE_DICT_SLOT",
+        names           = ( "identifier", "target" ),
+        values          = ( identifier, target )
+    )
+
+
+def getAttributeAssignmentClassSlotCode( order_relevance, target, identifier ):
+    """ Get code for special case target.__class__ = value """
+    return getOrderRelevanceEnforcedCallCode(
+        order_relevance = order_relevance,
+        helper          = "SET_ATTRIBUTE_CLASS_SLOT",
+        names           = ( "identifier", "target" ),
+        values          = ( identifier, target )
     )
 
 def getAttributeDelCode( target, attribute ):

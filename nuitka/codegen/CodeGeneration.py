@@ -446,6 +446,20 @@ def generateFunctionBodyCode( function_body, context ):
 
     return function_code
 
+def generateAttributeLookupCode( source, attribute_name, context ):
+    if attribute_name == "__dict__":
+        return Generator.getAttributeLookupDictSlotCode( source )
+    elif attribute_name == "__class__":
+        return Generator.getAttributeLookupClassSlotCode( source )
+    else:
+        return Generator.getAttributeLookupCode(
+            attribute = Generator.getConstantHandle(
+                context  = context,
+                constant = attribute_name
+            ),
+            source    = source
+        )
+
 def generateOperationCode( operator, operands, context ):
     return Generator.getOperationCode(
         order_relevance = getOrderRelevance( operands ),
@@ -933,12 +947,10 @@ def _generateExpressionCode( expression, context, allow_none ):
             context   = context
         )
     elif expression.isExpressionAttributeLookup():
-        identifier = Generator.getAttributeLookupCode(
-            attribute = Generator.getConstantHandle(
-                context  = context,
-                constant = expression.getAttributeName()
-            ),
-            source    = makeExpressionCode( expression.getLookupSource() ),
+        identifier = generateAttributeLookupCode(
+            source         = makeExpressionCode( expression.getLookupSource() ),
+            attribute_name = expression.getAttributeName(),
+            context        = context
         )
     elif expression.isExpressionSpecialAttributeLookup():
         identifier = Generator.getSpecialAttributeLookupCode(
@@ -1548,24 +1560,41 @@ def generateAssignmentVariableCode( variable_ref, value, context ):
 
 def generateAssignmentAttributeCode( lookup_source, attribute_name, value,
                                      context ):
-    order_relevance = getOrderRelevance( ( value, lookup_source ) )
-    order_relevance.append( None )
-
-    return Generator.getAttributeAssignmentCode(
-        order_relevance = order_relevance,
-        target          = generateExpressionCode(
-            expression = lookup_source,
-            context    = context
-        ),
-        attribute       = Generator.getConstantHandle(
-            context  = context,
-            constant = attribute_name
-        ),
-        identifier      = generateExpressionCode(
-            expression = value,
-            context    = context
-        )
+    target          = generateExpressionCode(
+        expression = lookup_source,
+        context    = context
     )
+    identifer = generateExpressionCode(
+        expression = value,
+        context    = context
+    )
+
+    order_relevance = getOrderRelevance( ( value, lookup_source ) )
+
+    if attribute_name == "__dict__":
+        return Generator.getAttributeAssignmentDictSlotCode(
+            order_relevance = order_relevance,
+            target          = target,
+            identifier      = identifer
+        )
+    elif attribute_name == "__class__":
+        return Generator.getAttributeAssignmentClassSlotCode(
+            order_relevance = order_relevance,
+            target          = target,
+            identifier      = identifer
+        )
+    else:
+        order_relevance.append( None )
+
+        return Generator.getAttributeAssignmentCode(
+            order_relevance = order_relevance,
+            target          = target,
+            attribute       = Generator.getConstantHandle(
+                context  = context,
+                constant = attribute_name
+            ),
+            identifier      = identifer
+        )
 
 def generateAssignmentSliceCode( lookup_source, lower, upper, value, context ):
     value_identifier = generateExpressionCode(
