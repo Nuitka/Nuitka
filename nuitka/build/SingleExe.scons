@@ -38,7 +38,7 @@ static_src = os.path.join( source_dir, "static" )
 
 # We tell Scons that it is a variant to be built, so object files don't end up
 # inside that directory which need not be writable.
-VariantDir( static_src, nuitka_src, 0 )
+VariantDir( static_src, os.path.join( nuitka_src, "static_src" ), 0 )
 
 # The name of executable or loadable module that we produce.
 result_basepath = ARGUMENTS[ "result_name" ]
@@ -650,7 +650,7 @@ else:
         if gcc_mode:
             env.Append( LINKFLAGS = [ "-export-dynamic" ] )
 
-nuitka_include = os.path.join( os.environ[ "NUITKA_SCONS" ], "include" )
+nuitka_include = os.path.join( nuitka_src, "include" )
 env.Append( CPPPATH = [ source_dir, nuitka_include ] )
 
 if debug_mode or unstriped_mode:

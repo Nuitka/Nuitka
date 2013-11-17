@@ -582,9 +582,9 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``nuitka_src``
 
-  Where do the static C++ parts of Nuitka live. These provide e.g. the
-  implementation of compiled function, generators, and other helper codes, this
-  will point to where ``nuitka.build`` lives normally-
+  Where do the include files and static C++ parts of Nuitka live. These provide
+  e.g. the implementation of compiled function, generators, and other helper
+  codes, this will point to where ``nuitka.build`` package lives normally.
 
 * ``result_base``
 
