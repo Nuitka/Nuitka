@@ -68,6 +68,37 @@ class Identifier:
         return False
 
 
+class NameIdentifier( Identifier ):
+    def __init__( self, name, hint, code, ref_count ):
+        self.name = name
+        self.hint = hint
+
+        Identifier.__init__(
+            self,
+            code      = code,
+            ref_count = ref_count
+        )
+
+    def __repr__( self ):
+        return "<NameIdentifier %s '%s' %s>" % (
+            self.hint,
+            self.name,
+            self.code
+        )
+
+    def getCodeObject( self ):
+        return "%s.asObject0()" % self.getCode()
+
+    def getCodeTemporaryRef( self ):
+        return "%s.asObject0()" % self.getCode()
+
+    def getCodeExportRef( self ):
+        return "%s.asObject1()" % self.getCode()
+
+    def getCodeDropRef( self ):
+        return self.getCodeTemporaryRef()
+
+
 class ConstantIdentifier( Identifier ):
     def __init__( self, constant_code, constant_value ):
         Identifier.__init__( self, constant_code, 0 )
@@ -167,65 +198,6 @@ class MaybeModuleVariableIdentifier( Identifier ):
             0
         )
 
-
-class LocalVariableIdentifier:
-    def __init__( self, var_name, from_context ):
-        assert type( var_name ) is str
-
-        self.from_context = from_context
-        self.var_name = var_name
-
-    def isConstantIdentifier( self ):
-        return False
-
-    def __repr__( self ):
-        return "<LocalVariableIdentifier %s>" % self.var_name
-
-    def getCode( self ):
-        if not self.from_context:
-            return "var_" + self.var_name
-        else:
-            return "_python_context->var_%s" % (
-                self.var_name
-            )
-
-    def getRefCount( self ):
-        return 0
-
-    def getCheapRefCount( self ):
-        return 0
-
-    def getCodeObject( self ):
-        return "%s.asObject0()" % self.getCode()
-
-    def getCodeTemporaryRef( self ):
-        return "%s.asObject0()" % self.getCode()
-
-    def getCodeExportRef( self ):
-        return "%s.asObject1()" % self.getCode()
-
-    def getCodeDropRef( self ):
-        return self.getCodeTemporaryRef()
-
-
-class ParameterVariableIdentifier( LocalVariableIdentifier ):
-    def __init__( self, var_name, from_context ):
-        LocalVariableIdentifier.__init__(
-            self,
-            var_name     = var_name,
-            from_context = from_context
-        )
-
-    def __repr__( self ):
-        return "<ParameterVariableIdentifier %s>" % self.var_name
-
-    def getCode( self ):
-        if not self.from_context:
-            return "par_" + self.var_name
-        else:
-            return "_python_context->par_%s" % (
-                self.var_name
-            )
 
 class TempVariableIdentifier( Identifier ):
     def __init__( self, var_name, from_context ):
