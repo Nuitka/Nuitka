@@ -209,6 +209,19 @@ class NodeBase( NodeMetaClassBase ):
 
         return parent
 
+    def getParentStatementsFrame( self ):
+        current = self.getParent()
+
+        while True:
+            if current.isStatementsFrame():
+                return current
+
+            if current.isParentVariableProvider():
+                return None
+
+            current = current.getParent()
+
+
     def getSourceReference( self ):
         return self.source_ref
 

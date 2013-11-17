@@ -143,14 +143,108 @@ static inline void dumpFrameStack( void )
 }
 #endif
 
-// Make a replacement for the current top frame, that we again own exclusively enough so
-// that the line numbers are detached.
+// Make a replacement for the current top frame, that we again own exclusively
+// enough so that the line numbers are detached.
 extern PyFrameObject *detachCurrentFrame();
 
 class FrameGuard
 {
 public:
     explicit FrameGuard( PyFrameObject *frame_object )
+    {
+        assertFrameObject( frame_object );
+
+        // Remember it.
+        this->frame_object = frame_object;
+
+        // Push the new frame as the currently active one.
+        pushFrameStack( frame_object );
+
+        // Keep the frame object alive for this C++ objects live time.
+        Py_INCREF( frame_object );
+
+#if _DEBUG_REFRAME
+        // dumpFrameStack();
+#endif
+    }
+
+    ~FrameGuard()
+    {
+        // Our frame should be on top.
+        assert( PyThreadState_GET()->frame == this->frame_object );
+
+        // Put the previous frame on top instead.
+        popFrameStack();
+
+        assert( PyThreadState_GET()->frame != this->frame_object );
+
+        // Should still be good.
+        assertFrameObject( this->frame_object );
+
+        // Now release our frame object reference.
+        Py_DECREF( this->frame_object );
+    }
+
+    inline PyFrameObject *getFrame() const
+    {
+        return INCREASE_REFCOUNT( this->frame_object );
+    }
+
+    inline PyFrameObject *getFrame0() const
+    {
+        return this->frame_object;
+    }
+
+    // Use this to set the current line of the frame
+    inline void setLineNumber( int lineno ) const
+    {
+        assertFrameObject( this->frame_object );
+        assert( lineno >= 1 );
+
+        // Make sure f_lineno is the actually used information.
+        assert( this->frame_object->f_trace == Py_None );
+
+        this->frame_object->f_lineno = lineno;
+    }
+
+    inline int getLineNumber() const
+    {
+        assertFrameObject( this->frame_object );
+
+        return this->frame_object->f_lineno;
+    }
+
+    void check() const
+    {
+        assertFrameObject( this->frame_object );
+
+        // Make sure f_lineno is the actually used information.
+        assert( this->frame_object->f_trace == Py_None );
+    }
+
+    // Replace the frame object by a newer one.
+    void detachFrame( void )
+    {
+        // Our old frame should be on top.
+        assert( PyThreadState_GET()->frame == this->frame_object );
+
+        this->frame_object = detachCurrentFrame();
+
+        // Our new frame should be on top.
+        assert( PyThreadState_GET()->frame == this->frame_object );
+    }
+
+
+private:
+
+    PyFrameObject *frame_object;
+
+};
+
+class FrameGuardWithExceptionPreservation
+{
+public:
+    explicit FrameGuardWithExceptionPreservation( PyFrameObject *frame_object )
     {
         assertFrameObject( frame_object );
 
@@ -170,7 +264,7 @@ public:
 #endif
     }
 
-    ~FrameGuard()
+    ~FrameGuardWithExceptionPreservation()
     {
         // Our frame should be on top.
         assert( PyThreadState_GET()->frame == this->frame_object );
@@ -200,18 +294,18 @@ public:
         Py_DECREF( this->frame_object );
     }
 
-    PyFrameObject *getFrame() const
+    inline PyFrameObject *getFrame() const
     {
         return INCREASE_REFCOUNT( this->frame_object );
     }
 
-    PyFrameObject *getFrame0() const
+    inline PyFrameObject *getFrame0() const
     {
         return this->frame_object;
     }
 
     // Use this to set the current line of the frame
-    void setLineNumber( int lineno ) const
+    inline void setLineNumber( int lineno ) const
     {
         assertFrameObject( this->frame_object );
         assert( lineno >= 1 );
@@ -222,7 +316,7 @@ public:
         this->frame_object->f_lineno = lineno;
     }
 
-    int getLineNumber() const
+    inline int getLineNumber() const
     {
         assertFrameObject( this->frame_object );
 
@@ -296,7 +390,6 @@ private:
 
     bool preserving;
     PyFrameObject *frame_object;
-
 };
 
 class FrameGuardLight
@@ -477,7 +570,7 @@ public:
 class ExceptionRestorerFrameGuard
 {
 public:
-    explicit ExceptionRestorerFrameGuard( FrameGuard *frame_guard )
+    explicit ExceptionRestorerFrameGuard( FrameGuardWithExceptionPreservation *frame_guard )
     {
         this->frame_guard = frame_guard;
     }
@@ -488,7 +581,7 @@ public:
     }
 
 private:
-    FrameGuard *frame_guard;
+    FrameGuardWithExceptionPreservation *frame_guard;
 };
 
 class ExceptionRestorerFrameGuardLight

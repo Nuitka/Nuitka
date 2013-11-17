@@ -147,6 +147,8 @@ class StatementsFrame( StatementsSequence ):
         self.has_starlist = has_starlist
         self.has_stardict = has_stardict
 
+        self.needs_frame_exception_preserve = False
+
     def getDetails( self ):
         result = {
             "code_name"  : self.code_name,
@@ -181,6 +183,12 @@ class StatementsFrame( StatementsSequence ):
 
     def makeCloneAt( self, source_ref ):
         assert False
+
+    def markAsFrameExceptionPreserving( self ):
+        self.needs_frame_exception_preserve = True
+
+    def needsFrameExceptionPreversing( self ):
+        return self.needs_frame_exception_preserve
 
     def getCodeObjectHandle( self, context ):
         provider = self.getParentVariableProvider()

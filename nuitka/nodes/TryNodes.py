@@ -224,7 +224,7 @@ class StatementTryExcept( StatementChildrenHavingBase ):
 
         return True
 
-    def isStatementTryFinallyOptimized( self ):
+    def isStatementTryExceptOptimized( self ):
         tried_block = self.getBlockTry()
 
         tried_statements = tried_block.getStatements()

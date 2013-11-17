@@ -149,7 +149,7 @@ if ( isFrameUnusable( frame_%(frame_identifier)s ) )
     frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
 }
 
-FrameGuard frame_guard( frame_%(frame_identifier)s );
+%(frame_class_name)s frame_guard( frame_%(frame_identifier)s );
 try
 {
     assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
@@ -190,7 +190,7 @@ FrameGuardVeryLight frame_guard;
 frame_guard_once_template = """\
 PyFrameObject *frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
 
-FrameGuard frame_guard( frame_%(frame_identifier)s );
+%(frame_class_name)s frame_guard( frame_%(frame_identifier)s );
 try
 {
     assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack

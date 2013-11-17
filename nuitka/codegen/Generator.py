@@ -2781,7 +2781,7 @@ def getFrameLocalsUpdateCode( locals_identifier ):
         }
 
 def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes,
-                            locals_code, context ):
+                            locals_code, needs_preserve, context ):
     if context.isForDirectCall():
         return_code = CodeTemplates.frame_guard_cpp_return
     else:
@@ -2789,8 +2789,14 @@ def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes,
 
     tb_making = getTracebackMakingIdentifier( context )
 
+    if needs_preserve:
+        frame_class_name = "FrameGuardWithExceptionPreservation"
+    else:
+        frame_class_name = "FrameGuard"
+
     return CodeTemplates.frame_guard_full_template % {
         "frame_identifier"  : frame_identifier,
+        "frame_class_name"  : frame_class_name,
         "code_identifier"   : code_identifier.getCodeTemporaryRef(),
         "codes"             : indented( codes ),
         "module_identifier" : getModuleAccessCode( context = context ),
@@ -2800,11 +2806,17 @@ def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes,
     }
 
 def getFrameGuardOnceCode( frame_identifier, code_identifier, locals_identifier,
-                           codes, context ):
+                           codes, needs_preserve, context ):
     tb_making = getTracebackMakingIdentifier( context )
+
+    if needs_preserve:
+        frame_class_name = "FrameGuardWithExceptionPreservation"
+    else:
+        frame_class_name = "FrameGuard"
 
     return CodeTemplates.frame_guard_once_template % {
         "frame_identifier"  : frame_identifier,
+        "frame_class_name"  : frame_class_name,
         "code_identifier"   : code_identifier.getCodeTemporaryRef(),
         "codes"             : indented( codes ),
         "module_identifier" : getModuleAccessCode( context = context ),

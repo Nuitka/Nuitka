@@ -1875,7 +1875,7 @@ def generateTryExceptCode( statement, context ):
 
     assert tried_block.mayRaiseException( BaseException )
 
-    if statement.isStatementTryFinallyOptimized():
+    if statement.isStatementTryExceptOptimized():
         tried_statements = tried_block.getStatements()
 
         assert len( tried_statements ) == 1
@@ -2494,8 +2494,13 @@ def generateStatementSequenceCode( statement_sequence, context,
 
         source_ref = statement_sequence.getSourceReference()
 
+        needs_preserve = statement_sequence.needsFrameExceptionPreversing()
+
         if guard_mode == "generator":
             assert provider.isExpressionFunctionBody() and provider.isGenerator()
+
+            # TODO: This case should care about "needs_preserve", as for
+            # Python3 it is actually not a stub of empty code.
 
             code = Generator.getFrameGuardLightCode(
                 frame_identifier = provider.getCodeName(),
@@ -2506,6 +2511,8 @@ def generateStatementSequenceCode( statement_sequence, context,
         elif guard_mode == "pass_through":
             assert provider.isExpressionFunctionBody()
 
+            # This case does not care about "needs_preserve", as for that kind
+            # of frame, it is an empty code stub anyway.
             code = Generator.getFrameGuardVeryLightCode(
                 codes = codes,
             )
@@ -2522,21 +2529,27 @@ def generateStatementSequenceCode( statement_sequence, context,
 
             code = Generator.getFrameGuardHeavyCode(
                 frame_identifier = provider.getCodeName(),
-                code_identifier  = statement_sequence.getCodeObjectHandle( context ),
+                code_identifier  = statement_sequence.getCodeObjectHandle(
+                    context
+                ),
                 locals_code      = locals_code,
                 codes            = codes,
+                needs_preserve   = needs_preserve,
                 context          = context
             )
         elif guard_mode == "once":
             code = Generator.getFrameGuardOnceCode(
                 frame_identifier  = provider.getCodeName(),
-                code_identifier   = statement_sequence.getCodeObjectHandle( context ),
+                code_identifier   = statement_sequence.getCodeObjectHandle(
+                    context
+                ),
                 locals_identifier = Generator.getLoadLocalsCode(
                     context  = context,
                     provider = provider,
                     mode     = "updated"
                 ),
                 codes             = codes,
+                needs_preserve    = needs_preserve,
                 context           = context
             )
         else:
