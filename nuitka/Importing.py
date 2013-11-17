@@ -364,7 +364,8 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "simplejson", "sets",
 
         # Portable mode "site" import flexibilities
-        "sitecustomize", "usercustomize"
+        "sitecustomize", "usercustomize", "apport_python_hook",
+        "_frozen_importlib",
     )
 
     # TODO: Turn this into a warning that encourages reporting.

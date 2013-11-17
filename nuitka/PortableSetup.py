@@ -21,7 +21,7 @@ This is in heavy flux now, cannot be expected to work or make sense.
 
 """
 
-import sys, subprocess
+import sys, os, subprocess, marshal
 
 from nuitka import Utils
 
@@ -36,11 +36,17 @@ def detectEarlyImports():
     # When we are using pickle internally (for some hard constant cases we do),
     # we need to make sure it will be available as well.
     if needsPickleInit():
-        command = "import %s" % (
+        command = "import %s;" % (
             "pickle" if Utils.python_version >= 300 else "cPickle"
         )
     else:
         command = ""
+
+    if Utils.python_version >= 300:
+        command += "import inspect;"
+
+    if Utils.python_version >= 300:
+        command += r'import sys; print( "\n".join( sorted( "import " + module.__name__ + " # sourcefile " + module.__file__ for module in sys.modules.values() if hasattr( module, "__file__" ) and module.__file__ != "<frozen>" ) ), file = sys.stderr )'
 
     process = subprocess.Popen(
         args   = [ sys.executable, "-s", "-S", "-v", "-c", command ],
@@ -61,21 +67,30 @@ def detectEarlyImports():
             module_name = parts[0].split( b" ", 2 )[1]
             origin = parts[1].split()[0]
 
-            if origin == "builtin":
-                # Built into CPython library, so we can ignore it.
-                pass
-            elif origin == "directory":
-                # This is a directory, likely a package, but the __init__.py
-                # will come anyway, so we can ignore it here.
-                pass
-            elif origin == "precompiled":
+            if origin == b"precompiled":
                 # This is a ".pyc" file that was imported, even before we have a
                 # chance to do anything, we need to preserve it.
 
                 result.append(
                     (
                         module_name,
-                        parts[1][ len( "precompiled from " ): ]
+                        loadCodeObjectData(
+                            parts[1][ len( b"precompiled from " ): ]
+                        ),
+                        "." in module_name
+                    )
+                )
+
+            elif origin == b"sourcefile":
+                filename = parts[1][ len( b"sourcefile " ): ]
+
+                result.append(
+                    (
+                        module_name,
+                        marshal.dumps(
+                            compile( open( filename ).read(), filename, "exec" )
+                        ),
+                        Utils.basename( filename ) == b"__init__.py"
                     )
                 )
 
@@ -93,10 +108,7 @@ def encodeStreamData():
                 yield "\n"
             yield "   "
 
-        if str is not unicode:
-            yield " 0x%02x," % ord( stream_byte )
-        else:
-            yield " 0x%02x," % stream_byte
+        yield " 0x%02x," % stream_byte
 
 def _getStreamDataCode( value, fixed_size = False ):
     global stream_data
@@ -123,17 +135,17 @@ frozen_count = 0
 def generatePrecompileFrozenCode():
     frozen_modules = []
 
-    for module_name, precompiled_path in detectEarlyImports():
-        code_data = loadCodeObjectData( precompiled_path )
+    for module_name, code_data, is_package in detectEarlyImports():
         size = len( code_data )
 
         # Packages are indicated with negative size.
-        if "." in module_name:
+        if is_package:
             size = -size
 
         frozen_modules.append(
             """(char *)"%s", (unsigned char *)%s, %d,""" % (
-                module_name,
+                ( module_name if Utils.python_version < 300 else \
+                  module_name.decode() ),
                 _getStreamDataCode( code_data, fixed_size = True ),
                 size
             )

@@ -1899,6 +1899,10 @@ void preparePortableEnvironment( char *binary_path )
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
     // compiled.
+
+
+    // The CPython library has some pre-existing frozen modules, we only append
+    // to that.
     _frozen *search = PyImport_FrozenModules;
     while( search->name )
     {
@@ -1906,12 +1910,20 @@ void preparePortableEnvironment( char *binary_path )
     }
     int pre_existing_count = search - PyImport_FrozenModules;
 
-    printf( "pre-existing %d\n", pre_existing_count );
+    // Allocate new memory and merge the tables.
+    _frozen *merged = new _frozen[ _NUITKA_FROZEN + pre_existing_count + 1 ];
+    memcpy(
+        merged,
+        PyImport_FrozenModules,
+        pre_existing_count * sizeof( struct _frozen )
+    );
+    memcpy(
+        merged + pre_existing_count,
+        PortableMode_FrozenModules,
+        ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen )
+    );
 
-    PyImport_FrozenModules = PortableMode_FrozenModules;
-
-    _frozen *new_ones = new _frozen[ _NUITKA_FROZEN + pre_existing_count + 1 ];
-    memcpy( new_ones, PyImport_FrozenModules, pre_existing_count * sizeof( struct _frozen ) );
+    PyImport_FrozenModules = merged;
 
     // setup environ
     // orignal_value;binary_directory/_python;binary_directory/_python.zip
