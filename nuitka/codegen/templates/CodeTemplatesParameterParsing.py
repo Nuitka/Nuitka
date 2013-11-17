@@ -479,7 +479,7 @@ if (unlikely( %(parameter_test)s ))
 template_dparser = """
 static PyObject *dparse_%(function_identifier)s( Nuitka_FunctionObject *self, PyObject **args, int size )
 {
-    if ( size == %(arg_count)d)
+    if ( size == %(arg_count)d )
     {
         return impl_%(function_identifier)s( self%(args_forward)s );
     }

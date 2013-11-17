@@ -41,7 +41,7 @@ class PythonContextBase:
 
         self.try_finally_counts = []
 
-        self.call_temp_count = 0
+        self.temp_counts = {}
 
     def isPythonModule( self ):
         return False
@@ -66,10 +66,10 @@ class PythonContextBase:
         else:
             return None
 
-    def allocateCallTempNumber( self ):
-        self.call_temp_count += 1
-
-        return self.call_temp_count
+    def allocateTempNumber( self, tmp_scope ):
+        result = self.temp_counts.get( tmp_scope, 0 ) + 1
+        self.temp_counts[ tmp_scope ] = result
+        return result
 
 
 class PythonChildContextBase( PythonContextBase ):

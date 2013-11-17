@@ -1841,6 +1841,35 @@ def generateExecCode( exec_def, context ):
         source_ref         = exec_def.getSourceReference()
     )
 
+def generateTryFinallyCode( statement, context ):
+    try_count = context.allocateTryNumber()
+
+    context.setTryFinallyCount( try_count )
+
+    code_final             = generateStatementSequenceCode(
+        statement_sequence = statement.getBlockFinal(),
+        context            = context
+    )
+
+    context.removeFinallyCount()
+
+    code_tried             = generateStatementSequenceCode(
+        statement_sequence = statement.getBlockTry(),
+        context            = context
+    )
+
+    return Generator.getTryFinallyCode(
+        code_tried                 = code_tried,
+        code_final                 = code_final,
+        needs_break                = statement.needsExceptionBreak(),
+        needs_continue             = statement.needsExceptionContinue(),
+        needs_return_value_catch   = statement.needsExceptionReturnValueCatcher(),
+        needs_return_value_reraise = statement.needsExceptionReturnValueReraiser(),
+        aborting                   = statement.isStatementAborting(),
+        try_count                  = try_count,
+        context                    = context
+    )
+
 def generateTryExceptCode( statement, context ):
     tried_block = statement.getBlockTry()
 
@@ -1864,29 +1893,41 @@ def generateTryExceptCode( statement, context ):
             context = context
         )
 
+        source_identifier = generateExpressionCode(
+            expression = source.getValue(),
+            context    = context
+        )
+
         assign_code = generateAssignmentVariableCode(
             variable_ref = tried_statement.getTargetVariableRef(),
             value        = temp_identifier,
             context      = context
         )
 
+        handler_code      = generateStatementSequenceCode(
+            statement_sequence = handlers[0].getExceptionBranch(),
+            allow_none         = True,
+            context            = context
+        )
+
         return Generator.getTryNextExceptStopIterationCode(
-            handler_code      = generateStatementSequenceCode(
-                statement_sequence = handlers[0].getExceptionBranch(),
-                allow_none         = True,
-                context            = context
-            ),
             temp_identifier   = temp_identifier,
             assign_code       = assign_code,
-            source_identifier =         generateExpressionCode(
-                expression = source.getValue(),
-                context    = context
-            )
+            handler_code      = handler_code,
+            source_identifier = source_identifier
         )
 
     handler_codes = []
 
+    code_tried = generateStatementSequenceCode(
+        statement_sequence = tried_block,
+        context            = context,
+    )
+
+
     for count, handler in enumerate( statement.getExceptionHandlers() ):
+        Generator.pushLineNumberBranch()
+
         exception_identifiers = generateExpressionsCode(
             expressions = handler.getExceptionTypes(),
             allow_none  = True,
@@ -1905,15 +1946,18 @@ def generateTryExceptCode( statement, context ):
             exception_identifiers = exception_identifiers,
             handler_code          = handler_code,
             first_handler         = count == 0,
-            needs_frame_detach    = exception_branch is not None # TODO: Check if the code may access traceback or not.
+            # TODO: Check if the code may access traceback or not, we can create
+            # more efficient code if not, which ought to be the common case.
+            needs_frame_detach    = exception_branch is not None
         )
+
+        Generator.popLineNumberBranch()
+
+    Generator.mergeLineNumberBranches()
 
     return Generator.getTryExceptCode(
         context       = context,
-        code_tried    = generateStatementSequenceCode(
-            statement_sequence = tried_block,
-            context            = context,
-        ),
+        code_tried    = code_tried,
         handler_codes = handler_codes
     )
 
@@ -2118,32 +2162,42 @@ def generatePrintCode( statement, target_file, context ):
     )
 
 def generateBranchCode( statement, context ):
+    condition_code = generateConditionCode(
+        condition = statement.getCondition(),
+        context   = context
+    )
+
+    Generator.pushLineNumberBranch()
     yes_codes      = generateStatementSequenceCode(
         statement_sequence = statement.getBranchYes(),
         allow_none         = True,
         context            = context
     )
+    Generator.popLineNumberBranch()
 
+    Generator.pushLineNumberBranch()
     no_codes       = generateStatementSequenceCode(
         statement_sequence = statement.getBranchNo(),
         allow_none         = True,
         context            = context
     )
+    Generator.popLineNumberBranch()
+    Generator.mergeLineNumberBranches()
 
-    condition = statement.getCondition()
-
+    # Do not allow this, optimization must have avoided it.
     assert yes_codes is not None, statement
 
     return Generator.getBranchCode(
-        condition_code = generateConditionCode(
-            condition = condition,
-            context   = context
-        ),
+        condition_code = condition_code,
         yes_codes      = yes_codes,
         no_codes       = no_codes
     )
 
 def generateLoopCode( statement, context ):
+    # The loop is re-entrant, therefore force setting the line number at start
+    # again, even if the same as before.
+    Generator.resetLineNumber()
+
     loop_body_codes = generateStatementSequenceCode(
         statement_sequence = statement.getLoopBody(),
         allow_none         = True,
@@ -2319,32 +2373,9 @@ def _generateStatementCode( statement, context ):
             context   = context
         )
     elif statement.isStatementTryFinally():
-        try_count = context.allocateTryNumber()
-
-        context.setTryFinallyCount( try_count )
-
-        code_final             = generateStatementSequenceCode(
-            statement_sequence = statement.getBlockFinal(),
-            context            = context
-        )
-
-        context.removeFinallyCount()
-
-        code_tried             = generateStatementSequenceCode(
-            statement_sequence = statement.getBlockTry(),
-            context            = context
-        )
-
-        code = Generator.getTryFinallyCode(
-            code_tried                 = code_tried,
-            code_final                 = code_final,
-            needs_break                = statement.needsExceptionBreak(),
-            needs_continue             = statement.needsExceptionContinue(),
-            needs_return_value_catch   = statement.needsExceptionReturnValueCatcher(),
-            needs_return_value_reraise = statement.needsExceptionReturnValueReraiser(),
-            aborting                   = statement.isStatementAborting(),
-            try_count                  = try_count,
-            context                    = context
+        code = generateTryFinallyCode(
+            statement = statement,
+            context   = context
         )
     elif statement.isStatementTryExcept():
         code = generateTryExceptCode(
@@ -2403,8 +2434,6 @@ def generateStatementSequenceCode( statement_sequence, context,
 
     codes = []
 
-    last_ref = None
-
     for statement in statements:
         source_ref = statement.getSourceReference()
 
@@ -2429,7 +2458,16 @@ def generateStatementSequenceCode( statement_sequence, context,
             )
 
             code = code.strip()
+
+            line_code = ""
         else:
+            if statement.needsLineNumber():
+                line_code = Generator.getLineNumberCode(
+                    source_ref = source_ref
+                )
+            else:
+                line_code = ""
+
             code = generateStatementCode(
                 statement = statement,
                 context   = context
@@ -2438,22 +2476,16 @@ def generateStatementSequenceCode( statement_sequence, context,
         # Cannot happen
         assert code != "", statement
 
-        if source_ref != last_ref and \
-           statement.needsLineNumber() and \
-           source_ref.shallSetCurrentLine():
-
-            line_code = Generator.getLineNumberCode(
-                line_number = source_ref.getLineNumber()
-            )
-
+        if line_code:
             code = line_code + ";\n" + code
 
-            last_ref = source_ref
 
         statement_codes = code.split( "\n" )
 
-        assert statement_codes[0].strip() != "", ( "Code '%s'" % code, statement )
-        assert statement_codes[-1].strip() != "", ( "Code '%s'" % code, statement )
+        assert statement_codes[0].strip() != "", (
+            "Code '%s'" % code, statement )
+        assert statement_codes[-1].strip() != "", (
+            "Code '%s'" % code, statement )
 
         codes += statement_codes
 

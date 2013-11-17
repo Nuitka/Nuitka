@@ -46,8 +46,15 @@ from .OrderedEvaluation import (
     getOrderRelevanceEnforcedCallCode,
     getOrderRelevanceEnforcedArgsCode,
     _getAssignmentTempKeeperCode,
-    getLineNumberCode,
     pickFirst
+)
+
+from .LineNumberCodes import (
+    mergeLineNumberBranches,
+    pushLineNumberBranch,
+    popLineNumberBranch,
+    getLineNumberCode,
+    resetLineNumber
 )
 
 from .TupleCodes import (
