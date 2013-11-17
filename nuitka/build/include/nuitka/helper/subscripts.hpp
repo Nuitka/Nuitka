@@ -26,11 +26,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
     assertObject( const_subscript );
 
     PyTypeObject *type = Py_TYPE( source );
-    PyMappingMethods *m = type->tp_as_mapping;
+    PyMappingMethods *mapping_methods = type->tp_as_mapping;
 
     PyObject *result;
 
-    if ( m && m->mp_subscript )
+    if ( mapping_methods && mapping_methods->mp_subscript )
     {
         if ( PyList_CheckExact( source ) )
         {
@@ -88,7 +88,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
 #endif
         else
         {
-            result = m->mp_subscript( source, const_subscript );
+            result = mapping_methods->mp_subscript( source, const_subscript );
         }
     }
     else if ( type->tp_as_sequence )
@@ -177,6 +177,98 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
     }
 
     return result;
+}
+
+NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT_CONST( PyObject *value, PyObject *target, PyObject *subscript, Py_ssize_t int_subscript )
+{
+    assertObject( value );
+    assertObject( target );
+    assertObject( subscript );
+
+    PyMappingMethods *mapping_methods = Py_TYPE( target )->tp_as_mapping;
+
+    if ( mapping_methods != NULL && mapping_methods->mp_ass_subscript )
+    {
+        if ( PyList_CheckExact( target ) )
+        {
+            Py_ssize_t list_size = PyList_GET_SIZE( target );
+
+            if ( int_subscript < 0 )
+            {
+                if ( -int_subscript > list_size )
+                {
+                    PyErr_Format(
+                        PyExc_IndexError,
+                        "list assignment index out of range"
+                    );
+
+                    throw PythonException();
+                }
+
+                int_subscript += list_size;
+            }
+
+            PyListObject *target_list = (PyListObject *)target;
+
+            PyObject *old_value = target_list->ob_item[ int_subscript ];
+            target_list->ob_item[ int_subscript ] = INCREASE_REFCOUNT( value );
+            Py_DECREF( old_value );
+        }
+        else
+        {
+            int res = mapping_methods->mp_ass_subscript( target, subscript, value );
+
+            if (unlikely( res == -1 ))
+            {
+                throw PythonException();
+            }
+        }
+    }
+    else if ( Py_TYPE( target )->tp_as_sequence )
+    {
+        if ( PyIndex_Check( subscript ) )
+        {
+            Py_ssize_t key_value = PyNumber_AsSsize_t( subscript, PyExc_IndexError );
+
+            if ( key_value == -1 )
+            {
+                THROW_IF_ERROR_OCCURED();
+            }
+
+            SEQUENCE_SETITEM( target, key_value, value );
+
+        }
+        else if ( Py_TYPE( target )->tp_as_sequence->sq_ass_item )
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "sequence index must be integer, not '%s'",
+                Py_TYPE( subscript )->tp_name
+            );
+
+            throw PythonException();
+        }
+        else
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "'%s' object does not support item assignment",
+                Py_TYPE( target )->tp_name
+            );
+
+            throw PythonException();
+        }
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'%s' object does not support item assignment",
+            Py_TYPE( target )->tp_name
+        );
+
+        throw PythonException();
+    }
 }
 
 NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *value, PyObject *target, PyObject *subscript )

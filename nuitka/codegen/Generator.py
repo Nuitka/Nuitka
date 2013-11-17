@@ -826,11 +826,25 @@ def getTempKeeperHandle( variable, context ):
 
 def getSubscriptAssignmentCode( order_relevance, subscribed, subscript,
                                 identifier ):
+    helper = "SET_SUBSCRIPT"
+    suffix_args = []
+
+    if subscript.isConstantIdentifier():
+        constant = subscript.getConstant()
+
+        if Constants.isIndexConstant( constant ):
+            constant_value = int( constant )
+
+            if abs( constant_value ) < 2**31:
+                helper = "SET_SUBSCRIPT_CONST"
+                suffix_args = [ "%d" % constant ]
+
     return getOrderRelevanceEnforcedCallCode(
         order_relevance = order_relevance,
-        helper          = "SET_SUBSCRIPT",
+        helper          = helper,
         names           = ( "identifier", "subscribed", "subscript" ),
-        values          = ( identifier, subscribed, subscript )
+        values          = ( identifier, subscribed, subscript ),
+        suffix_args     = suffix_args
     )
 
 def getSubscriptDelCode( order_relevance, subscribed, subscript ):

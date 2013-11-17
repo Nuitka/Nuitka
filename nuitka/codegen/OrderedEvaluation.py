@@ -223,11 +223,20 @@ def _getTempDeclCode( order_relevance, names, values ):
 
     return scoped, decls, usages
 
-def getOrderRelevanceEnforcedCallCode( helper, order_relevance, names, values ):
+def getOrderRelevanceEnforcedCallCode( helper, order_relevance, names, values,
+                                       prefix_args = None, suffix_args = None ):
+    if prefix_args is None:
+        prefix_args = []
+
+    if suffix_args is None:
+        suffix_args = []
+
     scoped, decls, usages = _getTempDeclCode( order_relevance, names, values )
 
+    args = prefix_args + usages + suffix_args
+
     if decls:
-        code = decls + [ "%s( %s );" % ( helper, ", ".join( usages ) ) ]
+        code = decls + [ "%s( %s );" % ( helper, ", ".join( args ) ) ]
 
         if scoped:
             return getBlockCode(
@@ -236,4 +245,4 @@ def getOrderRelevanceEnforcedCallCode( helper, order_relevance, names, values ):
         else:
             return "\n".join( code )
     else:
-        return "%s( %s );" % ( helper, ", ".join( usages ) )
+        return "%s( %s );" % ( helper, ", ".join( args ) )
