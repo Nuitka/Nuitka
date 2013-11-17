@@ -34,7 +34,7 @@ while( true )
        break;
     }
 
-   CONSIDER_THREADING();
+    CONSIDER_THREADING();
 }"""
 
 template_loop_break_catching = """\
@@ -49,7 +49,7 @@ while( true )
        break;
     }
 
-   CONSIDER_THREADING();
+    CONSIDER_THREADING();
 }"""
 
 template_loop_continue_catching = """\
@@ -63,7 +63,7 @@ while( true )
     { /* Nothing to do */
     }
 
-   CONSIDER_THREADING();
+    CONSIDER_THREADING();
 }"""
 
 template_loop_simple = """\
@@ -71,5 +71,5 @@ while( true )
 {
 %(loop_body_codes)s
 
-   CONSIDER_THREADING();
+    CONSIDER_THREADING();
 }"""
