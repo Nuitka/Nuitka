@@ -40,7 +40,7 @@ Requirements
 
   * Visual Studion 2008 and 2010 on Windows
 
-- Python: Version 2.6, 2.7 or 3.2, 3.3 (partially)
+- Python: Version 2.6, 2.7 or 3.2, 3.3 (support for 3.4 exists partially)
 
   You need CPython to execute Nuitka, because itis tightly bound to the
   reference implementation of Python, called "CPython".
@@ -90,7 +90,7 @@ License
 -------
 
 Nuitka is licensed under the Apache License, Version 2.0; you may not use
-it file except in compliance with the License.
+it except in compliance with the License.
 
 You may obtain a copy of the License at
 http://www.apache.org/licenses/LICENSE-2.0
@@ -278,6 +278,13 @@ The development of Nuitka occurs in git. We currently have these 2 branches:
   This branch contains the ongoing development. It may at times contain little
   regressions, but also new features. On this branch the integration work is
   done, whereas new features might be developed on feature branches.
+
+- `factory <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`_:
+
+  This branch contains potentially unfinished and incomplete work. It is very
+  frequently subject ``git rebase`` and the public staging ground, where my work
+  for develop branch lives first. It is intended for testing only and
+  recommended to base any of your own development on.
 
 .. note::
 
