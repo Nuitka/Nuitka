@@ -656,8 +656,9 @@ def getPythonFlags():
     for part in options.python_flags:
         if part in ( "-S", "nosite", "no_site" ):
             result.append( "no_site" )
+        elif part in ( "-v", "trace_imports", "trace_import" ):
+            result.append( "trace_imports" )
         else:
             logging.warning( "Unsupported flag '%s'.", part )
-
 
     return result

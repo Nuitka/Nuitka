@@ -19,9 +19,9 @@ New Features
 - The "portable" mode allows to compile standalone binaries for programs that
   use no DLLs.
 
-- New option ``--python-flags`` allows to specify flags to the compiler that the
-  "python" binary normally would. Initially ``-S`` is supported, with sane alias
-  ``no_site`` which disables the import of the ``site`` module.
+- New option ``--python-flag`` allows to specify flags to the compiler that the
+  "python" binary normally would. So far ``-S`` and ``-v`` are supported, with
+  sane aliases ``no_site`` and ``trace_imports``.
 
 New Optimization
 ----------------

@@ -105,6 +105,9 @@ python_flags = Options.getPythonFlags()
 if sys.flags.no_site == 0 and "no_site" in python_flags:
     needs_reexec = True
 
+if sys.flags.verbose == 0 and "trace_imports" in python_flags:
+    needs_reexec = True
+
 # The hash randomization totally destroys the created source code created,
 # changing it every single time Nuitka is run. This kills any attempt at
 # caching it, and comparing generated source code. While the created binary
@@ -124,6 +127,9 @@ if needs_reexec:
     # Potentially give Python command line flags as necessary.
     if "no_site" in python_flags:
         args.append( "-S" )
+
+    if "trace_imports" in python_flags:
+        args.append( "-v" )
 
     # Same arguments as before.
     args += sys.argv
