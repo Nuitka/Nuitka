@@ -58,7 +58,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
             return INCREASE_REFCOUNT( ((PyListObject *)source)->ob_item[ int_subscript ] );
         }
 #if PYTHON_VERSION < 300
-        // TODO: May also be useful for Python3.
         else if ( PyString_CheckExact( source ) )
         {
             Py_ssize_t string_size = PyString_GET_SIZE( source );
@@ -84,6 +83,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
 
             unsigned char c = ((PyStringObject *)source)->ob_sval[ int_subscript ];
             return BUILTIN_CHR( c );
+        }
+#else
+        else if ( PyUnicode_CheckExact( source ) )
+        {
+            if ( int_subscript < 0 )
+            {
+#if PYTHON_VERSION < 330
+                int_subscript += PyUnicode_GET_SIZE( source );
+#else
+                int_subscript += PyUnicode_GET_LENGTH( source );
+#endif
+            }
+
+            result = type->tp_as_sequence->sq_item( source, int_subscript );
         }
 #endif
         else
