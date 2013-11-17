@@ -146,7 +146,12 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             search = node.getParent()
 
         if node.isStatementDelVariable():
-            node.getTargetVariableRef().getVariable().setHasDelIndicator()
+            variable = node.getTargetVariableRef().getVariable()
+
+            while variable.isReference():
+                variable = variable.getReferenced()
+
+            variable.setHasDelIndicator()
 
         if node.isStatementTryExcept():
             provider = node.getParentVariableProvider()

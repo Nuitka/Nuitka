@@ -525,17 +525,10 @@ class TempVariableClosureReference( VariableReferenceBase ):
         return True
 
     def getDeclarationTypeCode( self, in_context ):
-        if self.isShared( True ):
-            return "PyObjectSharedTempVariable"
-        elif self.getReferenced().getReferenced().needs_free:
-            if self.getReferenced().getReferenced().needsLateDeclaration():
-                return "PyObjectTemporary"
-            else:
-                return "PyObjectTempVariable"
+        return self.getReferenced().getReferenced().getDeclarationTypeCode(
+            in_context = in_context
+        )
 
-            return "PyObjectTempVariable"
-        else:
-            return "PyObject *"
 
     def getCodeName( self ):
         # Abstract method, pylint: disable=R0201
@@ -611,7 +604,10 @@ class TempVariable( Variable ):
             return "PyObjectSharedTempVariable"
         elif self.needs_free:
             if self.late_declaration:
-                return "PyObjectTemporary"
+                if self.getHasDelIndicator():
+                    return "PyObjectTemporaryWithDel"
+                else:
+                    return "PyObjectTemporary"
             else:
                 return "PyObjectTempVariable"
         else:
