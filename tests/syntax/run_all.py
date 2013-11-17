@@ -19,7 +19,13 @@
 
 from __future__ import print_function
 
-import os, sys, subprocess, tempfile, shutil
+import os, sys, subprocess
+
+# Make sure we flush after every print, the "-u" option does more than that
+# and this is easy enough.
+def my_print( *args, **kwargs ):
+    print( *args, **kwargs )
+    sys.stdout.flush()
 
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
@@ -60,7 +66,7 @@ python_version = version_output.split()[1]
 
 os.environ[ "PYTHONPATH" ] = os.getcwd()
 
-print( "Using concrete python", python_version )
+my_print( "Using concrete python", python_version )
 
 for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ) or filename == "run_all.py":
@@ -97,7 +103,7 @@ for filename in sorted( os.listdir( "." ) ):
             sys.exit( 2 )
 
         if result != 0 and search_mode:
-            print( "Error exit!", result )
+            my_print( "Error exit!", result )
             sys.exit( result )
     else:
-        print( "Skipping", filename )
+        my_print( "Skipping", filename )

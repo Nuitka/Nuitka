@@ -21,13 +21,18 @@
 
 from __future__ import print_function
 
-
 import os, sys, subprocess, tempfile, shutil
 
 try:
     import lxml.etree
 except ImportError:
     sys.exit( "Error, no 'lxml' module installed, cannot run XML based tests." )
+
+# Make sure we flush after every print, the "-u" option does more than that
+# and this is easy enough.
+def my_print( *args, **kwargs ):
+    print( *args, **kwargs )
+    sys.stdout.flush()
 
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
@@ -68,7 +73,7 @@ python_version = version_output.split()[1]
 
 os.environ[ "PYTHONPATH" ] = os.getcwd()
 
-print( "Using concrete python", python_version )
+my_print( "Using concrete python", python_version )
 
 def checkSequence( statements ):
     for statement in module_statements:
@@ -145,7 +150,7 @@ for filename in sorted( os.listdir( "." ) ):
                 stderr = open( os.devnull, "w" ),
             )
 
-        print( "Consider", path, end = " " )
+        my_print( "Consider", path, end = " " )
 
         command = [
             os.environ[ "PYTHON" ],
@@ -191,11 +196,10 @@ for filename in sorted( os.listdir( "." ) ):
 
         # TODO: Detect error case
         if result != 0 and search_mode:
-            print( "Error exit!", result )
+            my_print( "Error exit!", result )
             sys.exit( result )
 
 
-        print( "OK." )
-
+        my_print( "OK." )
     else:
-        print("Skipping", filename)
+        my_print( "Skipping", filename )

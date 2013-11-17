@@ -21,6 +21,12 @@ from __future__ import print_function
 
 import os, sys, subprocess, tempfile, shutil
 
+# Make sure we flush after every print, the "-u" option does more than that
+# and this is easy enough.
+def my_print( *args, **kwargs ):
+    print( *args, **kwargs )
+    sys.stdout.flush()
+
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 
@@ -63,7 +69,7 @@ python_version = version_output.split()[1]
 
 os.environ[ "PYTHONPATH" ] = os.getcwd()
 
-print( "Using concrete python", python_version )
+my_print( "Using concrete python", python_version )
 
 # Create large constants test on the fly, if it's not there, not going to
 # add it to release archives for no good reason.
@@ -107,11 +113,11 @@ for filename in sorted( os.listdir( "." ) ):
                 debug_python += "-dbg"
 
             if os.name == "nt" or "--windows-target" in os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ):
-                print( "Skip reference count test, CPython debug not on Windows." )
+                my_print( "Skip reference count test, CPython debug not on Windows." )
                 continue
 
             if not os.path.exists( os.path.join( "/usr/bin", debug_python ) ):
-                print( "Skip reference count test, CPython debug version not found." )
+                my_print( "Skip reference count test, CPython debug version not found." )
                 continue
 
             extra_flags.append( "ignore_stderr" )
@@ -170,10 +176,10 @@ for filename in sorted( os.listdir( "." ) ):
             sys.exit( 2 )
 
         if result != 0 and search_mode:
-            print("Error exit!", result)
+            my_print("Error exit!", result)
             sys.exit( result )
 
         if python_version.startswith( b"3" ) and not filename.endswith( "32.py" ):
             os.unlink( new_path )
     else:
-        print("Skipping", filename)
+        my_print( "Skipping", filename )

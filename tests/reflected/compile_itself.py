@@ -21,6 +21,12 @@ from __future__ import print_function
 
 import os, sys, shutil, tempfile, time, difflib, subprocess
 
+# Make sure we flush after every print, the "-u" option does more than that
+# and this is easy enough.
+def my_print( *args, **kwargs ):
+    print( *args, **kwargs )
+    sys.stdout.flush()
+
 # No random hashing, it makes comparing outputs futile.
 if "PYTHONHASHSEED" not in os.environ:
     os.environ[ "PYTHONHASHSEED" ] = "0"
@@ -55,7 +61,7 @@ version_output = check_output(
 
 python_version = version_output.split()[1]
 
-print( "Using concrete python", python_version )
+my_print( "Using concrete python", python_version )
 
 tmp_dir = tempfile.gettempdir()
 
@@ -118,7 +124,7 @@ def diffRecursive( dir1, dir2 ):
 
             if result:
                 for line in result:
-                    print( line )
+                    my_print( line )
 
                 sys.exit( 1 )
         else:
@@ -135,7 +141,7 @@ def diffRecursive( dir1, dir2 ):
             sys.exit( "Only in %s: %s" % ( dir2, filename ))
 
 def executePASS1():
-    print( "PASS 1: Compiling from compiler running from .py files." )
+    my_print( "PASS 1: Compiling from compiler running from .py files." )
 
     base_dir = os.path.join( "..", ".." )
 
@@ -163,7 +169,7 @@ def executePASS1():
             path = os.path.join( source_dir, filename )
 
             if filename != "__init__.py":
-                print( "Compiling", path )
+                my_print( "Compiling", path )
 
                 command = [
                     os.environ[ "PYTHON" ],
@@ -184,7 +190,7 @@ def executePASS1():
                 shutil.copyfile( path, os.path.join( target_dir, filename ) )
 
 
-    print( "Compiling", nuitka_main_path )
+    my_print( "Compiling", nuitka_main_path )
 
     shutil.copyfile( nuitka_main_path, "nuitka.py" )
 
@@ -241,7 +247,7 @@ def compileAndCompareWith( nuitka ):
             path = os.path.join( source_dir, filename )
 
             if filename != "__init__.py":
-                print( "Compiling", path )
+                my_print( "Compiling", path )
 
                 target = filename.replace( ".py", ".build" )
 
@@ -270,7 +276,7 @@ def compileAndCompareWith( nuitka ):
                 shutil.rmtree( target_dir )
 
 def executePASS2():
-    print( "PASS 2: Compiling from compiler running from .exe and many .so files." )
+    my_print( "PASS 2: Compiling from compiler running from .exe and many .so files." )
 
     # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we have
     # to add it.
@@ -283,10 +289,10 @@ def executePASS2():
     if os.name == "nt":
         del os.environ[ "PYTHONPATH" ]
 
-    print( "OK." )
+    my_print( "OK." )
 
 def executePASS3():
-    print( "PASS 3: Compiling from compiler running from .py files to single .exe." )
+    my_print( "PASS 3: Compiling from compiler running from .py files to single .exe." )
 
     exe_path = os.path.join( tmp_dir, "nuitka.exe" )
 
@@ -300,7 +306,7 @@ def executePASS3():
 
     path = os.path.join( "..", "..", "bin", "nuitka" )
 
-    print( "Compiling", path )
+    my_print( "Compiling", path )
 
     command = [
         os.environ[ "PYTHON" ],
@@ -319,19 +325,19 @@ def executePASS3():
 
     shutil.rmtree( build_path )
 
-    print( "OK." )
+    my_print( "OK." )
 
 def executePASS4():
-    print( "PASS 4: Compiling the compiler running from single exe" )
+    my_print( "PASS 4: Compiling the compiler running from single exe" )
 
     exe_path = os.path.join( tmp_dir, "nuitka.exe" )
 
     compileAndCompareWith( exe_path )
 
-    print( "OK." )
+    my_print( "OK." )
 
 def executePASS5():
-    print( "PASS 5: Compiling the compiler 'nuitka' package to a single '.so' file." )
+    my_print( "PASS 5: Compiling the compiler 'nuitka' package to a single '.so' file." )
 
     path = os.path.join( "..", "..", "nuitka" )
 
@@ -360,13 +366,13 @@ cross_compilation = "--windows-target" in os.environ.get( "NUITKA_EXTRA_OPTIONS"
 executePASS1()
 
 if cross_compilation:
-    print( "PASS 2: Skipped for cross-compilation case." )
+    my_print( "PASS 2: Skipped for cross-compilation case." )
 else:
     executePASS2()
 executePASS3()
 
 if cross_compilation:
-    print( "PASS 4: Skipped for cross-compilation case." )
+    my_print( "PASS 4: Skipped for cross-compilation case." )
 else:
     executePASS4()
 
