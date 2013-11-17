@@ -199,51 +199,15 @@ class MaybeModuleVariableIdentifier( Identifier ):
         )
 
 
-class TempVariableIdentifier( Identifier ):
-    def __init__( self, var_name, from_context ):
-
-        if from_context:
-            code = from_context + "python_tmp_" + var_name
-        else:
-            code = "python_tmp_" + var_name
-
-        Identifier.__init__( self, code, 0 )
-
-        self.tempvar_name = var_name
-
-    def __repr__( self ):
-        return "<TempVariableIdentifier %s>" % self.tempvar_name
-
-    def getCheapRefCount( self ):
-        return 0
-
-    def getCodeObject( self ):
-        return "%s.asObject0()" % self.getCode()
-
-    def getCodeExportRef( self ):
-        return "%s.asObject1()" % self.getCode()
-
-    def getClass( self ):
-        return "PyObjectTemporary"
-
-
 class TempObjectIdentifier( Identifier ):
-    def __init__( self, var_name, from_context ):
-
-        if from_context:
-            code = from_context + "python_tmp_" + var_name
-        else:
-            code = "python_tmp_" + var_name
+    def __init__( self, var_name, code ):
+        self.var_name = var_name
 
         Identifier.__init__( self, code, 0 )
 
-        self.tempvar_name = var_name
-
     def __repr__( self ):
-        return "<TempObjectIdentifier %s>" % self.tempvar_name
+        return "<TempObjectIdentifier %s>" % self.var_name
 
-    def getCodeTemporaryRef( self ):
-        return self.code
 
 
 class KeeperAccessIdentifier( Identifier ):
@@ -252,44 +216,6 @@ class KeeperAccessIdentifier( Identifier ):
 
     def getCheapRefCount( self ):
         return 0
-
-
-class ClosureVariableIdentifier( Identifier ):
-    def __init__( self, var_name, from_context ):
-        assert type( from_context ) is str
-
-        self.var_name = var_name
-        self.from_context = from_context
-
-        if self.from_context:
-            Identifier.__init__(
-                self,
-                code = "%spython_closure_%s" % (
-                    self.from_context,
-                    self.var_name
-                ),
-                ref_count = 0
-            )
-        else:
-            # TODO: Use a variable object to decide naming policy
-
-            Identifier.__init__(
-                self,
-                code      = "python_closure_" + self.var_name,
-                ref_count = 0
-            )
-
-    def __repr__( self ):
-        return "<ClosureVariableIdentifier %s >" % self.var_name
-
-    def getCheapRefCount( self ):
-        return 0
-
-    def getCodeObject( self ):
-        return self.getCode() + ".asObject0()"
-
-    def getCodeExportRef( self ):
-        return self.getCode() + ".asObject1()"
 
 
 class NullIdentifier( Identifier ):

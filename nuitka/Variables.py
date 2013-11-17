@@ -292,7 +292,7 @@ class ClosureVariableReference( VariableReferenceBase ):
             )
 
     def getCodeName( self ):
-        return "python_closure_%s" % Utils.encodeNonAscii( self.getName() )
+        return "closure_%s" % Utils.encodeNonAscii( self.getName() )
 
 
 class ModuleVariableReference( VariableReferenceBase ):
@@ -618,7 +618,7 @@ class TempVariable( Variable ):
             return "PyObject *"
 
     def getCodeName( self ):
-        return "python_tmp_%s" % self.getName()
+        return "tmp_%s" % self.getName()
 
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201

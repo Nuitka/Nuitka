@@ -23,9 +23,7 @@ from nuitka import Variables
 
 from .Identifiers import (
     MaybeModuleVariableIdentifier,
-    ClosureVariableIdentifier,
     ModuleVariableIdentifier,
-    TempVariableIdentifier,
     TempObjectIdentifier,
     NameIdentifier
 )
@@ -66,16 +64,21 @@ def getVariableHandle( context, variable ):
 
     if variable.isParameterVariable() or \
        variable.isLocalVariable() or \
-       variable.isClassVariable():
-        code = variable.getCodeName()
+       variable.isClassVariable() or \
+       ( variable.isClosureReference() and not variable.isTempVariableReference() ):
+        from_context = _getContextAccess(
+            context       = context,
+            force_closure = variable.isClosureReference()
+        )
 
-        if context.getFunction().isGenerator():
-            code = "_python_context->" + code
+        code = from_context + variable.getCodeName()
 
         if variable.isParameterVariable():
             hint = "parameter"
         elif variable.isClassVariable():
             hint = "classvar"
+        elif variable.isClosureReference():
+            hint = "closure"
         else:
             hint = "localvar"
 
@@ -110,28 +113,24 @@ def getVariableHandle( context, variable ):
             )
 
         if variable.isShared( True ):
-            return TempVariableIdentifier(
-                var_name     = var_name,
-                from_context = from_context
+            return NameIdentifier(
+                hint      = "tempvar",
+                name      = var_name,
+                code      = from_context + variable.getCodeName(),
+                ref_count = 0
             )
         elif not variable.getNeedsFree():
             return TempObjectIdentifier(
                 var_name     = var_name,
-                from_context = from_context
+                code         = from_context + variable.getCodeName()
             )
         else:
-            return TempVariableIdentifier(
-                var_name     = var_name,
-                from_context = from_context
+            return NameIdentifier(
+                hint      = "tempvar",
+                name      = var_name,
+                code      = from_context + variable.getCodeName(),
+                ref_count = 0
             )
-    elif variable.isClosureReference():
-        return ClosureVariableIdentifier(
-            var_name     = var_name,
-            from_context = _getContextAccess(
-                context       = context,
-                force_closure = True
-            )
-        )
     elif variable.isMaybeLocalVariable():
         context.addGlobalVariableNameUsage( var_name )
 
