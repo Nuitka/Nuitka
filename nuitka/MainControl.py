@@ -352,6 +352,12 @@ def runScons( main_module, quiet ):
     if Options.isPortableMode():
         options[ "portable_mode" ] = "true"
 
+    if "nuitka.PortableSetup" in sys.modules:
+        from nuitka import PortableSetup
+
+        if PortableSetup.getFozenModuleCount():
+            options[ "frozen_modules" ] = str( PortableSetup.getFozenModuleCount() )
+
     if Options.isShowScons():
         options[ "show_scons" ] = "true"
 

@@ -1853,7 +1853,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     );
 }
 
-#ifdef _NUITKA_PORTABLE
+#if _NUITKA_FROZEN
 
 #ifndef PATH_MAX
 // The Windows document speaks of 32768 as an approximate value, because
@@ -1899,7 +1899,19 @@ void preparePortableEnvironment( char *binary_path )
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
     // compiled.
+    _frozen *search = PyImport_FrozenModules;
+    while( search->name )
+    {
+        search++;
+    }
+    int pre_existing_count = search - PyImport_FrozenModules;
+
+    printf( "pre-existing %d\n", pre_existing_count );
+
     PyImport_FrozenModules = PortableMode_FrozenModules;
+
+    _frozen *new_ones = new _frozen[ _NUITKA_FROZEN + pre_existing_count + 1 ];
+    memcpy( new_ones, PyImport_FrozenModules, pre_existing_count * sizeof( struct _frozen ) );
 
     // setup environ
     // orignal_value;binary_directory/_python;binary_directory/_python.zip

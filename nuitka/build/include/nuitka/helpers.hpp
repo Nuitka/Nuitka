@@ -1460,7 +1460,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 #endif
 }
 
-#ifdef _NUITKA_PORTABLE
+#if _NUITKA_FROZEN
 extern void preparePortableEnvironment( char *binary_path );
 #endif
 

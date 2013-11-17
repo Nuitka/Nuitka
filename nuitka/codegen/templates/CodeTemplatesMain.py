@@ -58,7 +58,7 @@ int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmd
 int main( int argc, char *argv[] )
 {
 #endif
-#ifdef _NUITKA_PORTABLE
+#if _NUITKA_FROZEN
     preparePortableEnvironment( argv[0] );
 #endif
 

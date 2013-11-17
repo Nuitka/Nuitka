@@ -24,8 +24,11 @@ This is in heavy flux now, cannot be expected to work or make sense.
 import sys, subprocess
 
 from nuitka import Utils
+
 import nuitka.codegen.CodeTemplates
+
 from nuitka.codegen.ConstantCodes import needsPickleInit
+from nuitka.codegen.Indentation import indented
 
 python_dll_dir_name = "_python"
 
@@ -34,7 +37,7 @@ def detectEarlyImports():
     # we need to make sure it will be available as well.
     if needsPickleInit():
         command = "import %s" % (
-            "pickle" if str is unicode else "cPickle"
+            "pickle" if Utils.python_version >= 300 else "cPickle"
         )
     else:
         command = ""
@@ -49,11 +52,13 @@ def detectEarlyImports():
 
     result = []
 
-    for line in stderr.replace( "\r", "" ).split( "\n" ):
-        if line.startswith( "import " ):
-            parts = line.split( " # ", 2 )
+    for line in stderr.replace( b"\r", b"" ).split( b"\n" ):
+        if line.startswith( b"import " ):
+            # print( line )
 
-            module_name = parts[0].split( " ", 2 )[1]
+            parts = line.split( b" # ", 2 )
+
+            module_name = parts[0].split( b" ", 2 )[1]
             origin = parts[1].split()[0]
 
             if origin == "builtin":
@@ -113,6 +118,8 @@ def loadCodeObjectData( precompiled_path ):
     # CPython already checked them (would have rejected it otherwise).
     return open( precompiled_path, "rb" ).read()[ 8 : ]
 
+frozen_count = 0
+
 def generatePrecompileFrozenCode():
     frozen_modules = []
 
@@ -132,9 +139,13 @@ def generatePrecompileFrozenCode():
             )
         )
 
-    from nuitka.codegen.Indentation import indented
+    global frozen_count
+    frozen_count = len( frozen_modules )
 
     return nuitka.codegen.CodeTemplates.template_portable_frozen_modules % {
         "stream_data"    : "".join( encodeStreamData() ),
-        "frozen_modules" : indented( frozen_modules ),
+        "frozen_modules" : indented( frozen_modules )
     }
+
+def getFozenModuleCount():
+    return frozen_count

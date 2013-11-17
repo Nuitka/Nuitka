@@ -97,6 +97,9 @@ if sys.platform == "darwin" or "freebsd" in sys.platform:
 # MinGW compiler mode, optional and interesting to Windows only.
 mingw_mode = getBoolOption( "mingw_mode", False )
 
+# Frozen modules count
+frozen_modules = int( ARGUMENTS.get( "frozen_modules", 0 ) )
+
 # Portable mode
 portable_mode = getBoolOption( "portable_mode", False )
 
@@ -690,6 +693,8 @@ if optimize_mode:
 # Set load libpython from binary directory default
 if portable_mode and gcc_mode:
     env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
+
+env.Append( CPPDEFINES = [ "_NUITKA_FROZEN=%d" % frozen_modules ] )
 
 # Tell compiler to create a shared library or program.
 if module_mode:

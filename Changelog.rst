@@ -51,7 +51,9 @@ New Optimization
 Organizational
 --------------
 
-- The "portable" code has been redone and activated.
+- The "portable" code has been redone and activated. This is a feature that a
+  lot of people expect from a compiler, although the major goal is of course
+  acceleration, packaging is one of the areas where Python severely lacks.
 
 - Added package for Ubuntu 13.10 for download, removed packages for Ubuntu 11.04
   and 11.10, no more supported.
