@@ -13,6 +13,10 @@ Bug Fixes
 - The recursion into modules and unfreezing them was not working for packages
   and modules anymore. Fixed in 0.4.6.2 already.
 
+- Python3.3: The ``__qualname__`` of nested classes was corrected.
+
+- The Windows installer was not including Scons. Fixed in 0.4.6.3 already.
+
 New Features
 ------------
 
@@ -26,27 +30,39 @@ New Features
 New Optimization
 ----------------
 
+- Faster frame stack handling for functions without ``try``/``except`` (or
+  ``try``/``finally`` in Python3). This gives a speed boost to PyStone of
+  ca. 2.5% overall.
+
+- Python2: Faster attribute getting and setting, handling special cases at
+  compile time. This gives a minor speed boost to PyStone of ca. 0.5% overall.
+
+- Python2: Much quicker calls of ``__getattr__`` and ``__setattr__`` as this is
+  now using the quicker call method avoiding temporary tuples.
+
 - Don't treat variables usages used in functions called directly by their owner
   as shared. This leads to more efficient code generation for contractions and
   class bodies.
 
 - Create ``unicode`` constants directly from their UTF-8 string representation
   for Python2 as well instead of un-streaming. So far this was only done for
-  Python3.
+  Python3. Affects only program start-up.
 
 - Directly create ``int`` and ``long`` constants outside of ``2**31`` and
-  ``2**32-1``, but only limited according to actual platform values.
+  ``2**32-1``, but only limited according to actual platform values. Affects
+  only program start-up.
 
 - When creating ``set`` values, no longer use a temporary ``tuple`` value, but
-  use a properly generated helper functions instead.
+  use a properly generated helper functions instead. This makes creating sets
+  much faster.
 
-- Directly create ``set`` constants instead of un-streaming them.
+- Directly create ``set`` constants instead of un-streaming them. Affects only
+  program start-up.
 
-- Generally avoid using ``pickle`` and ``cPickle`` in most cases which reduces
-  the program start up time due to not importing these modules.
+- For correct line numbers in traceback, the current frame line number must be
+  updated during execution. This was done more often than necessary, e.g. loops
+  set the line number before loop entry, and at first statement.
 
-- Windows: In order to speed up repeated compilation on a platform without
-  ``ccache``, added Scons level caching in the build directory.
 
 Organizational
 --------------
@@ -59,6 +75,21 @@ Organizational
   and 11.10, no more supported.
 
 - Added package for openSUSE 13.1 for download.
+
+- Experimental support for the (yet unreleased) Python 3.4 was added.
+
+- Windows: In order to speed up repeated compilation on a platform without
+  ``ccache``, added Scons level caching in the build directory.
+
+- Disabled hash randomization inside Nuitka (but not in created binaries) for a
+  more stable output, because dictionary constants will not change around. This
+  makes the build results possible to cache for ``ccache`` and Scons as well.
+
+Cleanups
+--------
+
+- The generated code uses ``const_``, ``var_``, ``par_`` prefixes in the
+  generated code and centralized the decision about these into single place.
 
 Summary
 -------
