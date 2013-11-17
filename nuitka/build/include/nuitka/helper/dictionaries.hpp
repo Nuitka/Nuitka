@@ -46,8 +46,8 @@ static PyDictEntry *GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_StringObje
     long hash = key->hash;
 #endif
 
-    // Only improvement would be to identify how to ensure that the hash is computed
-    // already. Calling hash early on could do that potentially.
+    // Only improvement would be to identify how to ensure that the hash is
+    // computed already. Calling hash early on could do that potentially.
     if ( hash == -1 )
     {
 #if PYTHON_VERSION < 300
@@ -61,8 +61,8 @@ static PyDictEntry *GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_StringObje
 
     PyDictEntry *entry = dict->ma_lookup( dict, (PyObject *)key, hash );
 
-    // The "entry" cannot be NULL, it can only be empty for a string dict lookup, but at
-    // least assert it.
+    // The "entry" cannot be NULL, it can only be empty for a string dict
+    // lookup, but at least assert it.
     assert( entry != NULL );
 
     return entry;

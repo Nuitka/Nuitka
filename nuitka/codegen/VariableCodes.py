@@ -30,6 +30,10 @@ from .Identifiers import (
 
 from .ConstantCodes import getConstantCode
 
+from .Indentation import (
+    getBlockCode,
+)
+
 def _getContextAccess( context, force_closure = False ):
     # Context access is variant depending on if that's a created function or
     # not. For generators, they even share closure variables in the common
@@ -132,22 +136,22 @@ def getVariableHandle( context, variable ):
                 ref_count = 0
             )
     elif variable.isMaybeLocalVariable():
-        context.addGlobalVariableNameUsage( var_name )
-
         assert context.getFunction().hasLocalsDict(), context
 
         return MaybeModuleVariableIdentifier(
-            var_name         = var_name,
-            module_code_name = context.getModuleCodeName()
+            var_name      = var_name,
+            var_code_name = getConstantCode(
+                context  = context,
+                constant = var_name
+            )
         )
     elif variable.isModuleVariable():
-        context.addGlobalVariableNameUsage(
-            var_name = var_name
-        )
-
         return ModuleVariableIdentifier(
-            var_name         = var_name,
-            module_code_name = context.getModuleCodeName()
+            var_name      = var_name,
+            var_code_name = getConstantCode(
+                context  = context,
+                constant = var_name
+            )
         )
     else:
         assert False, variable
@@ -203,3 +207,146 @@ def getLocalVariableInitCode( context, variable, init_from = None,
     result += ";"
 
     return result
+
+def getVariableAssignmentCode( context, variable, identifier ):
+    assert isinstance( variable, Variables.Variable ), variable
+
+    # This ought to be impossible to happen, as an assignment to an overflow
+    # variable would have made it a local one.
+    assert not variable.isMaybeLocalVariable()
+
+    if variable.isTempVariableReference():
+        referenced = variable.getReferenced()
+
+        if referenced.needsLateDeclaration() and not referenced.isDeclared():
+            referenced.markAsDeclared()
+
+            variable_code = getVariableCode(
+                variable = variable,
+                context  = context
+            )
+
+            local_inits = context.getTempKeeperDecl()
+
+            if referenced.getNeedsFree():
+                prefix = "PyObject *_%s;" % variable_code
+
+                if local_inits:
+                    result = "_%s = %s;" % (
+                        variable_code,
+                        identifier.getCodeExportRef()
+                    )
+
+                    result = getBlockCode(
+                        local_inits + result.split( "\n" )
+                    )
+
+                    postfix = "%s %s( _%s );" % (
+                        referenced.getDeclarationTypeCode( False ),
+                        variable_code,
+                        variable_code
+                    )
+
+                    return prefix + "\n" + result + "\n" + postfix
+                else:
+                    return "%s %s( %s );" % (
+                        referenced.getDeclarationTypeCode( False ),
+                        variable_code,
+                        identifier.getCodeExportRef()
+                    )
+            else:
+                if local_inits:
+                    prefix = "PyObject *%s;" % variable_code
+
+                    result = "%s = %s;" % (
+                        variable_code,
+                        identifier.getCodeTemporaryRef()
+                    )
+
+                    result = getBlockCode(
+                        local_inits + result.split( "\n" )
+                    )
+
+                    return prefix + "\n" + result
+                else:
+                    return "PyObject *%s = %s;" % (
+                        variable_code,
+                        identifier.getCodeTemporaryRef()
+                    )
+
+        if not referenced.isShared( True ) and not referenced.getNeedsFree():
+            # So won't get a reference, and take none, or else it may get lost,
+            # which we don't want to happen.
+
+            # This must be true, otherwise the needs no free statement was made
+            # in error.
+            assert identifier.getCheapRefCount() == 0
+
+            left_side = getVariableCode(
+                variable = variable,
+                context  = context
+            )
+
+            assert "(" not in left_side
+
+            return "%s = %s;" % (
+                left_side,
+                identifier.getCodeTemporaryRef()
+            )
+
+    if identifier.getCheapRefCount() == 0:
+        identifier_code = identifier.getCodeTemporaryRef()
+        assign_code = "0"
+    else:
+        identifier_code = identifier.getCodeExportRef()
+        assign_code = "1"
+
+    if variable.isModuleVariable():
+        return "UPDATE_STRING_DICT%s( moduledict_%s, (Nuitka_StringObject *)%s, %s );" % (
+            assign_code,
+            context.getModuleCodeName(),
+            getConstantCode(
+                constant = variable.getName(),
+                context  = context
+            ),
+            identifier_code
+        )
+
+    return "%s.assign%s( %s );" % (
+        getVariableCode(
+            variable = variable,
+            context  = context
+        ),
+        assign_code,
+        identifier_code
+    )
+
+def getVariableDelCode( context, tolerant, variable ):
+    assert isinstance( variable, Variables.Variable ), variable
+
+    if variable.isModuleVariable():
+        return "DEL_MODULE_VALUE( %s, %s );" % (
+            getConstantCode(
+                context  = context,
+                constant = variable.getName()
+            ),
+            "true" if tolerant else "false"
+        )
+    else:
+        if variable.isTempVariableReference():
+            if not variable.isShared( True ) and \
+               not variable.getReferenced().getNeedsFree():
+                return "%s = NULL;" % (
+                    getVariableCode(
+                        variable = variable,
+                        context  = context
+                    )
+                )
+
+        return "%s.del( %s );" % (
+            getVariableCode(
+                variable = variable,
+                context  = context
+            ),
+            "true" if tolerant else "false"
+        )

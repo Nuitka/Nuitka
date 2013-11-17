@@ -161,7 +161,7 @@ int main( int argc, char *argv[] )
     if ( ERROR_OCCURED() )
     {
         // Cleanup code may need a frame, so put one back.
-        PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, _module___main__ );
+        PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, module___main__ );
 
         PyErr_PrintEx( 0 );
         Py_Exit( 1 );
@@ -179,98 +179,8 @@ module_header_template = """\
 
 MOD_INIT_DECL( %(module_identifier)s );
 
-extern PyObject *_module_%(module_identifier)s;
-extern PyDictObject *_moduledict_%(module_identifier)s;
-
-class PyObjectGlobalVariable_%(module_identifier)s
-{
-    public:
-        explicit PyObjectGlobalVariable_%(module_identifier)s( PyObject **dummy, PyObject **var_name )
-        {
-            assert( var_name );
-
-            this->var_name = (Nuitka_StringObject **)var_name;
-        }
-
-        PyObject *asObject0() const
-        {
-            PyObject *result = GET_STRING_DICT_VALUE( _moduledict_%(module_identifier)s, *this->var_name );
-
-            if (likely( result != NULL ))
-            {
-                assertObject( result );
-
-                return result;
-            }
-
-            result = GET_STRING_DICT_VALUE( dict_builtin, *this->var_name );
-
-            if (likely( result != NULL ))
-            {
-                assertObject( result );
-
-                return result;
-            }
-
-            PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-            throw PythonException();
-        }
-
-        PyObject *asObject1() const
-        {
-            return INCREASE_REFCOUNT( this->asObject0() );
-        }
-
-        PyObject *asObject0( PyObject *dict ) const
-        {
-            PyObject *result = PyDict_GetItem( dict, (PyObject *)*this->var_name );
-
-            if ( result != NULL )
-            {
-                return result;
-            }
-            else
-            {
-                return this->asObject0();
-            }
-        }
-
-        void del( bool tolerant ) const
-        {
-            int status = PyDict_DelItem( (PyObject *)_moduledict_%(module_identifier)s, (PyObject *)*this->var_name );
-
-            if (unlikely( status == -1 && tolerant == false ))
-            {
-                PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-                throw PythonException();
-            }
-        }
-
-        bool isInitialized( bool allow_builtins = true ) const
-        {
-            PyObject *result = GET_STRING_DICT_VALUE( _moduledict_%(module_identifier)s, *this->var_name );
-
-            if (likely( result ))
-            {
-                return true;
-            }
-
-            if ( allow_builtins )
-            {
-                result = GET_STRING_DICT_VALUE( dict_builtin, *this->var_name );
-
-                return result != NULL;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-    private:
-
-        Nuitka_StringObject **var_name;
-};
+extern PyObject *module_%(module_identifier)s;
+extern PyDictObject *moduledict_%(module_identifier)s;
 
 // Declarations from this module to other modules if any.
 %(extra_declarations)s
@@ -289,11 +199,84 @@ module_body_template = """
 // needs to go through it except for cases where the module cannot possibly
 // have changed in the mean time.
 
-PyObject *_module_%(module_identifier)s;
-PyDictObject *_moduledict_%(module_identifier)s;
+PyObject *module_%(module_identifier)s;
+PyDictObject *moduledict_%(module_identifier)s;
 
-// The module level variables.
-%(module_globals)s
+NUITKA_MAY_BE_UNUSED static PyObject *GET_MODULE_VALUE0( PyObject *var_name )
+{
+    // For module variable values, need to lookup in module dictionary or in
+    // built-in dictionary.
+
+    PyObject *result = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)var_name );
+
+    if (likely( result != NULL ))
+    {
+        assertObject( result );
+
+        return result;
+    }
+
+    result = GET_STRING_DICT_VALUE( dict_builtin, (Nuitka_StringObject *)var_name );
+
+    if (likely( result != NULL ))
+    {
+        assertObject( result );
+
+        return result;
+    }
+
+    PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( var_name ) );
+    throw PythonException();
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *GET_MODULE_VALUE1( PyObject *var_name )
+{
+    return INCREASE_REFCOUNT( GET_MODULE_VALUE0( var_name ) );
+}
+
+NUITKA_MAY_BE_UNUSED void static DEL_MODULE_VALUE( PyObject *var_name, bool tolerant )
+{
+    int status = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, var_name );
+
+    if (unlikely( status == -1 && tolerant == false ))
+    {
+        PyErr_Format(
+            PyExc_NameError,
+            "global name '%%s' is not defined",
+            Nuitka_String_AsString( var_name )
+        );
+
+        throw PythonException();
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *GET_LOCALS_OR_MODULE_VALUE0( PyObject *locals_dict, PyObject *var_name )
+{
+    PyObject *result = PyDict_GetItem( locals_dict, var_name );
+
+    if ( result != NULL )
+    {
+        return result;
+    }
+    else
+    {
+        return GET_MODULE_VALUE0( var_name );
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *GET_LOCALS_OR_MODULE_VALUE1( PyObject *locals_dict, PyObject *var_name )
+{
+    PyObject *result = PyDict_GetItem( locals_dict, var_name );
+
+    if ( result != NULL )
+    {
+        return INCREASE_REFCOUNT( result );
+    }
+    else
+    {
+        return GET_MODULE_VALUE1( var_name );
+    }
+}
 
 // The module function declarations.
 %(module_functions_decl)s
@@ -302,7 +285,7 @@ PyDictObject *_moduledict_%(module_identifier)s;
 %(module_functions_code)s
 
 #if PYTHON_VERSION >= 300
-static struct PyModuleDef _moduledef =
+static struct PyModuleDef mdef_%(module_identifier)s =
 {
     PyModuleDef_HEAD_INIT,
     "%(module_name)s",   /* m_name */
@@ -345,7 +328,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Packages can be imported recursively in deep executables.
     if ( _init_done )
     {
-        return MOD_RETURN_VALUE( _module_%(module_identifier)s );
+        return MOD_RETURN_VALUE( module_%(module_identifier)s );
     }
     else
     {
@@ -388,7 +371,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // are instead set in early module code.  No "self" for modules, we have no
     // use for it.
 #if PYTHON_VERSION < 300
-    _module_%(module_identifier)s = Py_InitModule4(
+    module_%(module_identifier)s = Py_InitModule4(
         "%(module_name)s",       // Module Name
         NULL,                    // No methods initially, all are added
                                  // dynamically in actual module code only.
@@ -399,12 +382,12 @@ MOD_INIT_DECL( %(module_identifier)s )
         PYTHON_API_VERSION
     );
 #else
-    _module_%(module_identifier)s = PyModule_Create( &_moduledef );
+    module_%(module_identifier)s = PyModule_Create( &mdef_%(module_identifier)s );
 #endif
 
-    _moduledict_%(module_identifier)s = (PyDictObject *)((PyModuleObject *)_module_%(module_identifier)s)->md_dict;
+    moduledict_%(module_identifier)s = (PyDictObject *)((PyModuleObject *)module_%(module_identifier)s)->md_dict;
 
-    assertObject( _module_%(module_identifier)s );
+    assertObject( module_%(module_identifier)s );
 
 #ifndef _NUITKA_MODULE
 // Seems to work for Python2.7 out of the box, but for Python3.2, the module
@@ -412,7 +395,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 // do it manually.
 #if PYTHON_VERSION >= 300
     {
-        int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, _module_%(module_identifier)s );
+        int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, module_%(module_identifier)s );
 
         assert( r != -1 );
     }
@@ -423,14 +406,14 @@ MOD_INIT_DECL( %(module_identifier)s )
     // it ourselves in the same way than CPython does. Note: This must be done
     // before the frame object is allocated, or else it may fail.
 
-    PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
+    PyObject *module_dict = PyModule_GetDict( module_%(module_identifier)s );
 
     if ( PyDict_GetItem( module_dict, const_str_plain___builtins__ ) == NULL )
     {
         PyObject *value = ( PyObject *)module_builtin;
 
 #ifdef _NUITKA_EXE
-        if ( _module_%(module_identifier)s != _module___main__ )
+        if ( module_%(module_identifier)s != module___main__ )
         {
 #endif
             value = PyModule_GetDict( value );
@@ -460,7 +443,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Module code
 %(module_code)s
 
-   return MOD_RETURN_VALUE( _module_%(module_identifier)s );
+   return MOD_RETURN_VALUE( module_%(module_identifier)s );
 }
 """
 

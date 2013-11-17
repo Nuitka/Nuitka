@@ -76,7 +76,7 @@ def getCodeObjectHandle( context, filename, code_name, line_number, var_names,
 
     if key not in code_objects:
         code_objects[ key ] = Identifier(
-            "_codeobj_%s" % _calcHash( key ),
+            "codeobj_%s" % _calcHash( key ),
             0
         )
 

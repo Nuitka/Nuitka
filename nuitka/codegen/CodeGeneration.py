@@ -2265,7 +2265,7 @@ def generateStatementCode( statement, context ):
     try:
         statement_context = Contexts.PythonStatementContext( context )
         result = _generateStatementCode( statement, statement_context )
-        local_inits = Generator.getTempKeeperDecl( statement_context )
+        local_inits = statement_context.getTempKeeperDecl()
 
         if local_inits:
             result = Generator.getBlockCode(

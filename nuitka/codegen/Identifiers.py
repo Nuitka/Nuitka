@@ -24,8 +24,6 @@ part is where getCheapRefCount allows to not allocate references not needed.
 # The method signatures do not always require usage of self, sometimes can be
 # decided based on class. pylint: disable=R0201
 
-from nuitka import Utils
-
 class Identifier:
     def __init__( self, code, ref_count ):
         self.code = code
@@ -147,9 +145,10 @@ class EmptyDictIdentifier( Identifier ):
 
 
 class ModuleVariableIdentifier:
-    def __init__( self, var_name, module_code_name ):
+    def __init__( self, var_name, var_code_name ):
         self.var_name = var_name
-        self.module_code_name = module_code_name
+
+        self.var_code_name = var_code_name
 
     def isConstantIdentifier( self ):
         return False
@@ -166,36 +165,39 @@ class ModuleVariableIdentifier:
         return 0
 
     def getCodeTemporaryRef( self ):
-        return "_mvar_%s_%s.asObject0()" % (
-            self.module_code_name,
-            self.var_name
+        return "GET_MODULE_VALUE0( %s )" % (
+            self.var_code_name
         )
 
     def getCodeExportRef( self ):
-        return "_mvar_%s_%s.asObject1()" % (
-            self.module_code_name,
-            self.var_name
+        return "GET_MODULE_VALUE1( %s )" % (
+            self.var_code_name
         )
 
     def getCodeDropRef( self ):
         return self.getCodeTemporaryRef()
 
-    def getCode( self ):
-        return "_mvar_%s_%s" % (
-            self.module_code_name,
-            self.var_name
+
+
+class MaybeModuleVariableIdentifier( ModuleVariableIdentifier ):
+    def __init__( self, var_name, var_code_name ):
+        ModuleVariableIdentifier.__init__(
+            self,
+            var_name         = var_name,
+            var_code_name    = var_code_name
         )
 
+    def __repr__( self ):
+        return "<MaybeModuleVariableIdentifier %s>" % self.var_name
 
-class MaybeModuleVariableIdentifier( Identifier ):
-    def __init__( self, var_name, module_code_name ):
-        Identifier.__init__(
-            self,
-            "_mvar_%s_%s.asObject0( locals_dict.asObject0() )" % (
-                module_code_name,
-                var_name
-            ),
-            0
+    def getCodeTemporaryRef( self ):
+        return "GET_LOCALS_OR_MODULE_VALUE0( locals_dict.asObject0(), %s )" % (
+            self.var_code_name
+        )
+
+    def getCodeExportRef( self ):
+        return "GET_LOCALS_OR_MODULE_VALUE1( locals_dict.asObject0(), %s )" % (
+            self.var_code_name
         )
 
 
@@ -286,3 +288,15 @@ def getCodeExportRefs( identifiers ):
     """
 
     return [ identifier.getCodeExportRef() for identifier in identifiers ]
+
+def defaultToNullIdentifier( identifier ):
+    if identifier is not None:
+        return identifier
+    else:
+        return NullIdentifier()
+
+def defaultToNoneIdentifier( identifier ):
+    if identifier is not None:
+        return identifier
+    else:
+        return SpecialConstantIdentifier( constant_value = None )
