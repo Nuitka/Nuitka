@@ -232,13 +232,13 @@ class PythonGlobalContext:
                 key = ( type( constant ), HashableConstant( constant ) )
 
                 if key not in self.constants:
-                    self.constants[ key ] = "_python_" + namifyConstant(
+                    self.constants[ key ] = "const_" + namifyConstant(
                         constant
                     )
 
                 return ConstantIdentifier( self.constants[ key ], constant )
             else:
-                return Identifier( "_python_" + namifyConstant( constant ), 0 )
+                return Identifier( "const_" + namifyConstant( constant ), 0 )
 
     def getConstants( self ):
         return self.constants

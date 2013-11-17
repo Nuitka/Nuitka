@@ -163,7 +163,7 @@ if ( args_given > %(top_level_parameter_count)d )
 }
 else
 {
-    _python_par_%(list_star_parameter_name)s = INCREASE_REFCOUNT( _python_tuple_empty );
+    _python_par_%(list_star_parameter_name)s = INCREASE_REFCOUNT( const_tuple_empty );
 }
 """
 

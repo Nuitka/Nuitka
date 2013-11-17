@@ -213,7 +213,7 @@ static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject 
 
                 if ( close_method )
                 {
-                    PyObject *close_value = PyObject_Call( close_method, _python_tuple_empty, NULL );
+                    PyObject *close_value = PyObject_Call( close_method, const_tuple_empty, NULL );
                     Py_DECREF( close_method );
 
                     if (unlikely( close_value == NULL ))

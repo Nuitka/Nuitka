@@ -34,7 +34,7 @@ def addMakeTupleUse( value ):
 
 def getTupleCreationCode( context, order_relevance, element_identifiers ):
     if len( element_identifiers ) == 0:
-        return ConstantIdentifier( "_python_tuple_empty", () )
+        return ConstantIdentifier( "const_tuple_empty", () )
 
     from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 

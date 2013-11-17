@@ -90,7 +90,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TRACEBACK( PyFrameObject *frame )
 }
 
 #if PYTHON_VERSION < 300
-extern PyObject *_python_str_plain_exc_type, *_python_str_plain_exc_value, *_python_str_plain_exc_traceback;
+extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_str_plain_exc_traceback;
 #endif
 
 // Helper that sets the current thread exception, releasing the current one, for
@@ -116,9 +116,9 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     PyObject *sys_dict = thread_state->interp->sysdict;
     assertObject( sys_dict );
 
-    PyDict_SetItem( sys_dict, _python_str_plain_exc_type, exception_type ? exception_type : Py_None );
-    PyDict_SetItem( sys_dict, _python_str_plain_exc_value, exception_value ? exception_value : Py_None );
-    PyDict_SetItem( sys_dict, _python_str_plain_exc_traceback, exception_tb ? (PyObject *)exception_tb : Py_None );
+    PyDict_SetItem( sys_dict, const_str_plain_exc_type, exception_type ? exception_type : Py_None );
+    PyDict_SetItem( sys_dict, const_str_plain_exc_value, exception_value ? exception_value : Py_None );
+    PyDict_SetItem( sys_dict, const_str_plain_exc_traceback, exception_tb ? (PyObject *)exception_tb : Py_None );
 #endif
 }
 

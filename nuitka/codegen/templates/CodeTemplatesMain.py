@@ -117,11 +117,11 @@ int main( int argc, char *argv[] )
     // for Python3.3, more uses may exist.
 #if %(python_sysflag_no_site)d == 0
 #if PYTHON_VERSION >= 330
-    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, _python_int_0 );
+    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, const_int_0 );
 #elif PYTHON_VERSION >= 320
-    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 7, _python_int_0 );
+    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 7, const_int_0 );
 #elif PYTHON_VERSION >= 260
-    PyStructSequence_SET_ITEM( PySys_GetObject( (char *)"flags" ), 9, _python_int_0 );
+    PyStructSequence_SET_ITEM( PySys_GetObject( (char *)"flags" ), 9, const_int_0 );
 #endif
 #endif
 
@@ -425,7 +425,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
 
-    if ( PyDict_GetItem( module_dict, _python_str_plain___builtins__ ) == NULL )
+    if ( PyDict_GetItem( module_dict, const_str_plain___builtins__ ) == NULL )
     {
         PyObject *value = ( PyObject *)module_builtin;
 
@@ -441,16 +441,16 @@ MOD_INIT_DECL( %(module_identifier)s )
 #ifndef __NUITKA_NO_ASSERT__
         int res =
 #endif
-            PyDict_SetItem( module_dict, _python_str_plain___builtins__, value );
+            PyDict_SetItem( module_dict, const_str_plain___builtins__, value );
 
         assert( res == 0 );
     }
 
 #if PYTHON_VERSION >= 330
 #if _MODULE_UNFREEZER
-    PyDict_SetItem( module_dict, _python_str_plain___loader__, loader_frozen_modules );
+    PyDict_SetItem( module_dict, const_str_plain___loader__, loader_frozen_modules );
 #else
-    PyDict_SetItem( module_dict, _python_str_plain___loader__, Py_None );
+    PyDict_SetItem( module_dict, const_str_plain___loader__, Py_None );
 #endif
 #endif
 

@@ -196,7 +196,7 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_mod
 #else
         PyUnicode_FromString( "_nuitka_compiled_modules_loader" ),
 #endif
-        _python_tuple_empty,
+        const_tuple_empty,
         method_dict,
         NULL
     );

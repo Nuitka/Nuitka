@@ -22,11 +22,11 @@
 #define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
 
-extern PyObject *_python_tuple_empty;
-extern PyObject *_python_str_plain___dict__;
-extern PyObject *_python_str_plain___class__;
-extern PyObject *_python_str_plain___enter__;
-extern PyObject *_python_str_plain___exit__;
+extern PyObject *const_tuple_empty;
+extern PyObject *const_str_plain___dict__;
+extern PyObject *const_str_plain___class__;
+extern PyObject *const_str_plain___enter__;
+extern PyObject *const_str_plain___exit__;
 
 // From CPython, to allow us quick access to the dictionary of an module, the
 // structure is normally private, but we need it for quick access to the module
@@ -725,7 +725,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 {
     assertObject( source );
 
-    PyObject *result = PyObject_GetAttr( source, _python_str_plain___dict__ );
+    PyObject *result = PyObject_GetAttr( source, const_str_plain___dict__ );
 
     if (unlikely( result == NULL ))
     {
@@ -802,11 +802,11 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
     // TODO: The special cases should get their own SET_ATTRIBUTE variant on the
     // code generation level as SET_ATTRIBUTE is called with constants only.
-    if (unlikely( attr_name == _python_str_plain___dict__ ))
+    if (unlikely( attr_name == const_str_plain___dict__ ))
     {
         return INCREASE_REFCOUNT( source_instance->in_dict );
     }
-    else if (unlikely( attr_name == _python_str_plain___class__ ))
+    else if (unlikely( attr_name == const_str_plain___class__ ))
     {
         return INCREASE_REFCOUNT( (PyObject *)source_instance->in_class );
     }
@@ -952,7 +952,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 
     // TODO: The special cases should get their own SET_ATTRIBUTE variant on the
     // code generation level as SET_ATTRIBUTE is called with constants only.
-    if (unlikely( attr_name == _python_str_plain___dict__ ))
+    if (unlikely( attr_name == const_str_plain___dict__ ))
     {
         if (unlikely( !PyDict_Check( value ) ))
         {
@@ -964,7 +964,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 
         target_instance->in_dict = INCREASE_REFCOUNT( value );
     }
-    else if (unlikely( attr_name == _python_str_plain___class__ ))
+    else if (unlikely( attr_name == const_str_plain___class__ ))
     {
         if (unlikely( !PyClass_Check( value ) ))
         {
@@ -1118,18 +1118,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
 NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source )
 {
 #if PYTHON_VERSION < 270
-    return LOOKUP_ATTRIBUTE( source, _python_str_plain___enter__ );
+    return LOOKUP_ATTRIBUTE( source, const_str_plain___enter__ );
 #else
-    return LOOKUP_SPECIAL( source, _python_str_plain___enter__ );
+    return LOOKUP_SPECIAL( source, const_str_plain___enter__ );
 #endif
 }
 
 NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source )
 {
 #if PYTHON_VERSION < 270
-    return LOOKUP_ATTRIBUTE( source, _python_str_plain___exit__ );
+    return LOOKUP_ATTRIBUTE( source, const_str_plain___exit__ );
 #else
-    return LOOKUP_SPECIAL( source, _python_str_plain___exit__ );
+    return LOOKUP_SPECIAL( source, const_str_plain___exit__ );
 #endif
 }
 
@@ -1282,7 +1282,7 @@ extern PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObjec
 // For quicker setattr() functionality.
 extern void BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value );
 
-extern PyObject *_python_str_plain___builtins__;
+extern PyObject *const_str_plain___builtins__;
 
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
@@ -1304,9 +1304,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     }
 
     // Set the __builtins__ in globals, it is expected to be present.
-    if ( PyDict_GetItem( globals, _python_str_plain___builtins__ ) == NULL )
+    if ( PyDict_GetItem( globals, const_str_plain___builtins__ ) == NULL )
     {
-        if ( PyDict_SetItem( globals, _python_str_plain___builtins__, (PyObject *)module_builtin ) == -1 )
+        if ( PyDict_SetItem( globals, const_str_plain___builtins__, (PyObject *)module_builtin ) == -1 )
         {
             throw PythonException();
         }
@@ -1421,7 +1421,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
     {
         PyObject *base = PyTuple_GET_ITEM( bases, 0 );
 
-        metaclass = PyObject_GetAttr( base, _python_str_plain___class__ );
+        metaclass = PyObject_GetAttr( base, const_str_plain___class__ );
 
         if ( metaclass == NULL )
         {

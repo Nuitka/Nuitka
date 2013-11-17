@@ -22,9 +22,9 @@
 
 
 #if PYTHON_VERSION >= 300
-extern PyObject *_python_str_plain_inspect;
-extern PyObject *_python_str_plain_site;
-extern PyObject *_python_int_0;
+extern PyObject *const_str_plain_inspect;
+extern PyObject *const_str_plain_site;
+extern PyObject *const_int_0;
 
 static PyObject *module_inspect;
 
@@ -89,7 +89,7 @@ static void patchInspectModule( void )
     {
         try
         {
-            IMPORT_MODULE( _python_str_plain_site, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+            IMPORT_MODULE( const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0 );
         }
         catch( PythonException & )
         {
@@ -101,7 +101,7 @@ static void patchInspectModule( void )
 
     try
     {
-        module_inspect = IMPORT_MODULE( _python_str_plain_inspect, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+        module_inspect = IMPORT_MODULE( const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0 );
     }
     catch( PythonException &e )
     {

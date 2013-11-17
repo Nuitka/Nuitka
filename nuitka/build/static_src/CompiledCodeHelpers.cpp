@@ -18,11 +18,11 @@
 
 #include "nuitka/prelude.hpp"
 
-extern PyObject *_python_str_plain_compile;
-extern PyObject *_python_str_plain_strip;
-extern PyObject *_python_str_plain_read;
+extern PyObject *const_str_plain_compile;
+extern PyObject *const_str_plain_strip;
+extern PyObject *const_str_plain_read;
 
-static PythonBuiltin _python_builtin_compile( &_python_str_plain_compile );
+static PythonBuiltin _python_builtin_compile( &const_str_plain_compile );
 
 PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
 {
@@ -47,7 +47,7 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
         strcmp( Nuitka_String_AsString( mode ), "exec" ) != 0
        )
     {
-        source = PyObject_CallMethodObjArgs( source_code, _python_str_plain_strip, NULL );
+        source = PyObject_CallMethodObjArgs( source_code, const_str_plain_strip, NULL );
 
         if (unlikely( source == NULL ))
         {
@@ -58,7 +58,7 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     // Note: Python3 does not support "exec" with file handles.
     else if ( PyFile_Check( source_code ) && strcmp( Nuitka_String_AsString( mode ), "exec" ) == 0 )
     {
-        source = PyObject_CallMethodObjArgs( source_code, _python_str_plain_read, NULL );
+        source = PyObject_CallMethodObjArgs( source_code, const_str_plain_read, NULL );
 
         if (unlikely( source == NULL ))
         {
@@ -85,9 +85,9 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     );
 }
 
-extern PyObject *_python_str_plain_open;
+extern PyObject *const_str_plain_open;
 
-static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
+static PythonBuiltin _python_builtin_open( &const_str_plain_open );
 
 PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
@@ -366,7 +366,7 @@ PyObject *BUILTIN_TYPE1( PyObject *arg )
     return INCREASE_REFCOUNT( (PyObject *)Py_TYPE( arg ) );
 }
 
-extern PyObject *_python_str_plain___module__;
+extern PyObject *const_str_plain___module__;
 
 PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
 {
@@ -402,7 +402,7 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
         }
     }
 
-    int res = PyObject_SetAttr( result, _python_str_plain___module__, module_name );
+    int res = PyObject_SetAttr( result, const_str_plain___module__, module_name );
 
     if ( res == -1 )
     {
@@ -497,9 +497,9 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 }
 #endif
 
-extern PyObject *_python_str_plain_range;
+extern PyObject *const_str_plain_range;
 
-static PythonBuiltin _python_builtin_range( &_python_str_plain_range );
+static PythonBuiltin _python_builtin_range( &const_str_plain_range );
 
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
@@ -653,9 +653,9 @@ PyObject *BUILTIN_DIR1( PyObject *arg )
     return result;
 }
 
-extern PyObject *_python_str_plain___import__;
+extern PyObject *const_str_plain___import__;
 
-static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
+static PythonBuiltin _python_builtin_import( &const_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
@@ -680,7 +680,7 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     return import_result;
 }
 
-extern PyObject *_python_str_plain___all__;
+extern PyObject *const_str_plain___all__;
 
 void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 {
@@ -691,7 +691,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     PyObject *iter;
     bool all_case;
 
-    if ( PyObject *all = PyObject_GetAttr( module, _python_str_plain___all__ ) )
+    if ( PyObject *all = PyObject_GetAttr( module, const_str_plain___all__ ) )
     {
         iter = MAKE_ITERATOR( all );
         all_case = true;
@@ -738,12 +738,12 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 // Helper functions for print. Need to play nice with Python softspace behaviour.
 
 #if PYTHON_VERSION >= 300
-extern PyObject *_python_str_plain_print;
-extern PyObject *_python_str_plain_end;
-extern PyObject *_python_str_plain_file;
-extern PyObject *_python_str_empty;
+extern PyObject *const_str_plain_print;
+extern PyObject *const_str_plain_end;
+extern PyObject *const_str_plain_file;
+extern PyObject *const_str_empty;
 
-static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
+static PythonBuiltin _python_builtin_print( &const_str_plain_print );
 #endif
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
@@ -818,8 +818,8 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     {
         PyObjectTemporary print_kw(
             MAKE_DICT2(
-                _python_str_empty, _python_str_plain_end,
-                GET_STDOUT(), _python_str_plain_file
+                const_str_empty, const_str_plain_end,
+                GET_STDOUT(), const_str_plain_file
             )
         );
 
@@ -867,7 +867,7 @@ void PRINT_NEW_LINE_TO( PyObject *file )
     {
         PyObjectTemporary print_keyargs(
             MAKE_DICT1( // Note: Values for first for MAKE_DICT
-                GET_STDOUT(), _python_str_plain_file
+                GET_STDOUT(), const_str_plain_file
             )
         );
 
@@ -1059,15 +1059,15 @@ static void set_slot( PyObject **slot, PyObject *value )
     Py_XDECREF( temp );
 }
 
-extern PyObject *_python_str_plain___getattr__;
-extern PyObject *_python_str_plain___setattr__;
-extern PyObject *_python_str_plain___delattr__;
+extern PyObject *const_str_plain___getattr__;
+extern PyObject *const_str_plain___setattr__;
+extern PyObject *const_str_plain___delattr__;
 
 static void set_attr_slots( PyClassObject *klass )
 {
-    set_slot( &klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___getattr__ ) );
-    set_slot( &klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___setattr__ ) );
-    set_slot( &klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___delattr__ ) );
+    set_slot( &klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS( klass, const_str_plain___getattr__ ) );
+    set_slot( &klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS( klass, const_str_plain___setattr__ ) );
+    set_slot( &klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS( klass, const_str_plain___delattr__ ) );
 }
 
 static bool set_dict( PyClassObject *klass, PyObject *value )
@@ -1346,7 +1346,7 @@ typedef struct {
     PyTypeObject *obj_type;
 } superobject;
 
-extern PyObject *_python_str_plain___class__;
+extern PyObject *const_str_plain___class__;
 
 PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 {
@@ -1381,7 +1381,7 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
         }
         else
         {
-            PyObject *class_attr = PyObject_GetAttr( object, _python_str_plain___class__);
+            PyObject *class_attr = PyObject_GetAttr( object, const_str_plain___class__);
 
             if (likely( class_attr != NULL && PyType_Check( class_attr ) && (PyTypeObject *)class_attr != Py_TYPE( object ) ))
             {
@@ -1560,7 +1560,7 @@ void BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value )
 PyDictObject *dict_builtin = NULL;
 PyModuleObject *module_builtin = NULL;
 
-#define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( _python_str_plain_##name );
+#define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( const_str_plain_##name );
 
 static PyTypeObject Nuitka_BuiltinModule_Type =
 {
@@ -1569,7 +1569,7 @@ static PyTypeObject Nuitka_BuiltinModule_Type =
     sizeof(PyModuleObject),                      // tp_size
 };
 
-extern PyObject *_python_str_plain_open;
+extern PyObject *const_str_plain_open;
 
 int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObject *value )
 {
@@ -1583,7 +1583,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
     // many value to check maybe need create a dict first.
     bool found = false;
 
-    int res = PyObject_RichCompareBool( name, _python_str_plain_open, Py_EQ );
+    int res = PyObject_RichCompareBool( name, const_str_plain_open, Py_EQ );
 
     if (unlikely( res == -1 ))
     {
@@ -1597,7 +1597,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 
     if ( found == false )
     {
-        res = PyObject_RichCompareBool( name, _python_str_plain___import__, Py_EQ );
+        res = PyObject_RichCompareBool( name, const_str_plain___import__, Py_EQ );
 
         if (unlikely( res == -1 ))
         {
@@ -1614,7 +1614,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 #if PYTHON_VERSION >= 300
     if ( found == false )
     {
-        res = PyObject_RichCompareBool( name, _python_str_plain_print, Py_EQ );
+        res = PyObject_RichCompareBool( name, const_str_plain_print, Py_EQ );
 
         if (unlikely( res == -1 ))
         {
@@ -1848,7 +1848,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 
     return CALL_FUNCTION(
         called,
-        _python_tuple_empty,
+        const_tuple_empty,
         NULL
     );
 }
@@ -1979,7 +1979,7 @@ void preparePortableEnvironment( char *binary_path )
 
 #ifdef _NUITKA_EXE
 
-#define DEFINE_BUILTIN( name ) extern PyObject *_python_str_plain_##name; PyObject *_python_original_builtin_value_##name = NULL;
+#define DEFINE_BUILTIN( name ) extern PyObject *const_str_plain_##name; PyObject *_python_original_builtin_value_##name = NULL;
 
 DEFINE_BUILTIN( type )
 DEFINE_BUILTIN( len )
@@ -2021,7 +2021,7 @@ static int const swapped_op[] =
 
 #if PYTHON_VERSION < 300
 
-extern PyObject *_python_str_plain___cmp__;
+extern PyObject *const_str_plain___cmp__;
 cmpfunc default_tp_compare;
 
 void initSlotCompare()
@@ -2033,9 +2033,9 @@ void initSlotCompare()
 
     PyObject *c = PyObject_CallFunctionObjArgs(
         (PyObject *)&PyType_Type,
-        _python_str_plain___cmp__,
+        const_str_plain___cmp__,
         PyObjectTemporary( MAKE_TUPLE1( (PyObject *)&PyInt_Type ) ).asObject0(),
-        PyObjectTemporary( MAKE_DICT1( Py_True, _python_str_plain___cmp__ ) ).asObject0(),
+        PyObjectTemporary( MAKE_DICT1( Py_True, const_str_plain___cmp__ ) ).asObject0(),
         NULL
     );
 
