@@ -251,11 +251,6 @@ public:
         return INCREASE_REFCOUNT( this->asObject0() );
     }
 
-    bool isInitialized() const
-    {
-        return true;
-    }
-
     PyObject *getVariableName() const
     {
         assertObject( this->var_name );
@@ -265,18 +260,15 @@ public:
 
     PyObject *updateLocalsDict( PyObject *locals_dict ) const
     {
-        if ( this->isInitialized() )
-        {
-            int status = PyDict_SetItem(
-                locals_dict,
-                this->getVariableName(),
-                this->asObject0()
-            );
+        int status = PyDict_SetItem(
+            locals_dict,
+            this->getVariableName(),
+            this->asObject0()
+        );
 
-            if (unlikely( status == -1 ))
-            {
-                throw PythonException();
-            }
+        if (unlikely( status == -1 ))
+        {
+            throw PythonException();
         }
 
         return locals_dict;
@@ -286,17 +278,14 @@ public:
     {
         assert( PyList_Check( locals_list ) );
 
-        if ( this->isInitialized() )
-        {
-            int status = PyList_Append(
-                locals_list,
-                this->getVariableName()
-            );
+        int status = PyList_Append(
+            locals_list,
+            this->getVariableName()
+        );
 
-            if (unlikely( status == -1 ))
-            {
-                throw PythonException();
-            }
+        if (unlikely( status == -1 ))
+        {
+            throw PythonException();
         }
 
         return locals_list;
