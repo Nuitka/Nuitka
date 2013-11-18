@@ -120,3 +120,15 @@ d = { "qual" :  [], "storage" : [], "type2" : [], "function" : [] }
 print "c", d
 d = { "qual" :  1, "storage" : 2, "type2" : 3, "function" : 4 }
 print "c", d
+
+# Constants that might be difficult
+min_signed_int = int( -(2**(8*8-1)-1)-1 )
+print "small int", min_signed_int, type(min_signed_int)
+min_signed_int = int( -(2**(8*4-1)-1)-1 )
+print "small int", min_signed_int, type(min_signed_int)
+
+# Constants that might be difficult
+min_signed_long = long( -(2**(8*8-1)-1)-1 )
+print "small long", min_signed_long, type(min_signed_long)
+min_signed_long = long( -(2**(8*4-1)-1)-1 )
+print "small long", min_signed_long, type(min_signed_long)

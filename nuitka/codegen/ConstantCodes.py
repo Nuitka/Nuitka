@@ -149,12 +149,37 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
             )
 
             return
+        elif constant_value == min_signed_long-1:
+            emit(
+                "%s = PyLong_FromLong( %sl ); %s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );" % (
+                    constant_identifier,
+                    min_signed_long,
+                    constant_identifier,
+                    constant_identifier
+                )
+            )
+
+            return
+
     elif constant_type is int:
         if constant_value >= min_signed_long:
             emit(
                 "%s = PyInt_FromLong( %sl );" % (
                     constant_identifier,
                     constant_value
+                )
+            )
+
+            return
+        else:
+            assert constant_value == min_signed_long-1
+
+            emit(
+                "%s = PyInt_FromLong( %sl ); %s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );" % (
+                    constant_identifier,
+                    min_signed_long,
+                    constant_identifier,
+                    constant_identifier
                 )
             )
 

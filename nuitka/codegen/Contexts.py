@@ -105,6 +105,7 @@ def _getConstantDefaultPopulation():
         True,
         False,
         0,
+        1,
 
         # For Python3 empty bytes, no effect for Python2, same as "", used for
         # code objects.

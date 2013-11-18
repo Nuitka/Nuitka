@@ -179,7 +179,8 @@ feasible, use Nuitka like this:
 Use Case 4 - Cross compilation to Windows
 -----------------------------------------
 
-Nuitka can cross compile to Windows from other platforms, specifically Linux, and these are the instructions on how to do it.
+Nuitka can cross compile to Windows from other platforms, specifically Linux,
+and these are the instructions on how to do it.
 
 1. Make sure to have the latest wine installed.
 
@@ -728,11 +729,6 @@ Projects used by Nuitka
 
   Thanks for porting the best compiler to Windows. This allows portability of
   Nuitka with relatively little effort.
-
-* The `mingw-cross-env project <http://mingw-cross-env.nongnu.org>`_
-
-  Thanks for enabling us to easily setup a cross compiler for my Debian that
-  will produce working Windows binaries.
 
 * The `Wine project <http://www.winehq.org>`_
 
