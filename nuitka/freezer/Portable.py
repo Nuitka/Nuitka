@@ -21,16 +21,20 @@ This is in heavy flux now, cannot be expected to work or make sense.
 
 """
 
-import sys, os, subprocess, marshal
+import sys, subprocess, marshal
+from logging import debug
 
 from nuitka import Utils
 
-import nuitka.codegen.CodeTemplates
-
 from nuitka.codegen.ConstantCodes import needsPickleInit
-from nuitka.codegen.Indentation import indented
 
 python_dll_dir_name = "_python"
+
+def loadCodeObjectData( precompiled_path ):
+    # Ignoring magic numbers, etc. which we don't have to care for much as
+    # CPython already checked them (would have rejected it otherwise).
+    return open( precompiled_path, "rb" ).read()[ 8 : ]
+
 
 def detectEarlyImports():
     # When we are using pickle internally (for some hard constant cases we do),
@@ -58,6 +62,8 @@ def detectEarlyImports():
 
     result = []
 
+    debug( "Detecting early imports:" )
+
     for line in stderr.replace( b"\r", b"" ).split( b"\n" ):
         if line.startswith( b"import " ):
             # print( line )
@@ -70,19 +76,30 @@ def detectEarlyImports():
             if origin == b"precompiled":
                 # This is a ".pyc" file that was imported, even before we have a
                 # chance to do anything, we need to preserve it.
+                filename = parts[1][ len( b"precompiled from " ): ]
+
+                debug(
+                    "Freezing module '%s' (from '%s').",
+                    module_name,
+                    filename
+                )
 
                 result.append(
                     (
                         module_name,
-                        loadCodeObjectData(
-                            parts[1][ len( b"precompiled from " ): ]
-                        ),
-                        "." in module_name
+                        loadCodeObjectData( filename ),
+                        b"__init__" in filename
                     )
                 )
 
             elif origin == b"sourcefile":
                 filename = parts[1][ len( b"sourcefile " ): ]
+
+                debug(
+                    "Freezing module '%s' (from '%s').",
+                    module_name,
+                    filename
+                )
 
                 result.append(
                     (
@@ -94,70 +111,7 @@ def detectEarlyImports():
                     )
                 )
 
+
+    debug( "Finished detecting early imports." )
+
     return result
-
-# TODO: This _encodeStreamData and _getStreamDataCode is taken from
-# nuitka.codegen.ConstantCodes, could shared data with that as well, worst case
-# it could reduce sizes.
-stream_data = bytes()
-
-def encodeStreamData():
-    for count, stream_byte in enumerate( stream_data ):
-        if count % 16 == 0:
-            if count > 0:
-                yield "\n"
-            yield "   "
-
-        yield " 0x%02x," % stream_byte
-
-def _getStreamDataCode( value, fixed_size = False ):
-    global stream_data
-    offset = stream_data.find( value )
-    if offset == -1:
-        offset = len( stream_data )
-        stream_data += value
-
-    if fixed_size:
-        return "&portable_stream_data[ %d ]" % offset
-    else:
-        return "&portable_stream_data[ %d ], %d" % ( offset, len( value ) )
-
-def loadCodeObjectData( precompiled_path ):
-    # Unclear, if that is how it can be done for Python3.
-    assert Utils.python_version < 300
-
-    # Ignoring magic numbers, etc. which we don't have to care for much as
-    # CPython already checked them (would have rejected it otherwise).
-    return open( precompiled_path, "rb" ).read()[ 8 : ]
-
-frozen_count = 0
-
-def generatePrecompileFrozenCode():
-    frozen_modules = []
-
-    for module_name, code_data, is_package in detectEarlyImports():
-        size = len( code_data )
-
-        # Packages are indicated with negative size.
-        if is_package:
-            size = -size
-
-        frozen_modules.append(
-            """(char *)"%s", (unsigned char *)%s, %d,""" % (
-                ( module_name if Utils.python_version < 300 else \
-                  module_name.decode() ),
-                _getStreamDataCode( code_data, fixed_size = True ),
-                size
-            )
-        )
-
-    global frozen_count
-    frozen_count = len( frozen_modules )
-
-    return nuitka.codegen.CodeTemplates.template_portable_frozen_modules % {
-        "stream_data"    : "".join( encodeStreamData() ),
-        "frozen_modules" : indented( frozen_modules )
-    }
-
-def getFrozenModuleCount():
-    return frozen_count

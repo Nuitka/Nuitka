@@ -561,6 +561,10 @@ if experimental_mode:
 if portable_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_PORTABLE" ] )
 
+    if win_target:
+        # This is used for "PathRemoveFileSpec" used in portable Windows code.
+        env.Append( LIBS = [ "Shlwapi.lib" ] )
+
 if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
     # to target as well as to automatically import everything used.

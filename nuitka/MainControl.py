@@ -42,6 +42,13 @@ from .codegen import CodeGeneration
 from .optimizations import Optimization
 from .finalizations import Finalization
 
+from nuitka.freezer.Portable import detectEarlyImports
+from nuitka.freezer.PrecompiledModuleFreezer import (
+    generatePrecompiledFrozenCode,
+    getFrozenModuleCount,
+    addFrozenModule
+)
+
 import sys, os
 
 from logging import warning
@@ -349,13 +356,10 @@ def runScons( main_module, quiet ):
     if Options.isPortableMode():
         options[ "portable_mode" ] = "true"
 
-    if "nuitka.PortableSetup" in sys.modules:
-        from nuitka import PortableSetup
-
-        if PortableSetup.getFrozenModuleCount():
-            options[ "frozen_modules" ] = str(
-                PortableSetup.getFrozenModuleCount()
-            )
+    if getFrozenModuleCount():
+        options[ "frozen_modules" ] = str(
+            getFrozenModuleCount()
+        )
 
     if Options.isShowScons():
         options[ "show_scons" ] = "true"
@@ -457,14 +461,16 @@ def compileTree( main_module ):
         )
 
         if Options.isPortableMode():
-            from nuitka import PortableSetup
+            for early_import in detectEarlyImports():
+                addFrozenModule( early_import )
 
-            portable_code = PortableSetup.generatePrecompileFrozenCode()
+        if getFrozenModuleCount():
+            portable_code = generatePrecompiledFrozenCode()
 
             writeSourceCode(
                 filename = Utils.joinpath(
                     source_dir,
-                    "__portable.cpp"
+                    "__frozen.cpp"
                 ),
                 source_code = portable_code
             )

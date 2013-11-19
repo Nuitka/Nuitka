@@ -67,3 +67,8 @@ def remainingCount():
 
 def getDoneModules():
     return list( done_modules )
+
+shared_libraries = set()
+
+def addSharedLibrary( filename ):
+    shared_libraries.add( filename )

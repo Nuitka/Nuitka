@@ -463,7 +463,9 @@ template_header_guard = """\
 #endif
 """
 
-template_portable_frozen_modules = """
+template_frozen_modules = """\
+// This provides the frozen (precompiled bytecode) files that are included if
+// any.
 #include <Python.h>
 
 // Blob from which modules are unstreamed.

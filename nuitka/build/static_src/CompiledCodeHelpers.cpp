@@ -15,6 +15,15 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+// Implementations of compiled code helpers.
+
+// The definition of a compiled code helper is that it's being used in
+// generated C++ code and provides part of the operations implementation.
+
+// Currently we also have portable code here, patches to CPython runtime
+// that we do, and e.g. the built-in module. TODO: Move these to their own
+// files for clarity.
+
 
 #include "nuitka/prelude.hpp"
 
@@ -1857,16 +1866,22 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 
 #if _NUITKA_FROZEN
 
-#ifndef PATH_MAX
-// The Windows document speaks of 32768 as an approximate value, because
-// volume names might be expanded too.
-#define PATH_MAX (33000)
+#include <osdefs.h>
+#if defined( _WIN32 )
+#include <Shlwapi.h>
+#else
+#include <libgen.h>
+#endif
+
+#if defined( _WIN32 )
+#define PATH_MAX MAXPATHLEN
 #endif
 
 static char *getBinaryDirectory( char const *binary_path )
 {
     char *path = ( char* ) malloc( PATH_MAX + 1 );
     memset( path, 0, PATH_MAX + 1 );
+
 #if defined( _WIN32 )
     GetModuleFileName( NULL, path, PATH_MAX + 1 );
     char const sep = '\\';
@@ -1879,18 +1894,13 @@ static char *getBinaryDirectory( char const *binary_path )
     }
     char const sep = '/';
 #endif
-    // There must be API to filenames to do that in a better way.
-    for ( int i = PATH_MAX; i > 0; i-- )
-    {
-        // need handle unicode here ?
-        if ( path[i] == sep )
-        {
-            path[i] = '\x00';
-            break;
-        }
-    }
 
+#if defined( _WIN32 )
+    PathRemoveFileSpec( path );
     return path;
+#else
+    return dirname( path );
+#endif
 }
 
 extern struct _frozen PortableMode_FrozenModules[];
@@ -1927,11 +1937,14 @@ void preparePortableEnvironment( char *binary_path )
 
     PyImport_FrozenModules = merged;
 
-    // setup environ
-    // orignal_value;binary_directory/_python;binary_directory/_python.zip
+    // Setup environment variables to tell CPython that we would like it to use
+    // the provided "_python" directory near the executable as the place to look
+    // for DLLs.
     char *binary_directory = getBinaryDirectory( binary_path );
-    if ( !binary_directory )
+    if (unlikely( binary_directory == NULL ))
+    {
         abort();
+    }
 
     // get orignal value
     char *orignal_home = getenv( "PYTHONHOME" );
@@ -1943,11 +1956,13 @@ void preparePortableEnvironment( char *binary_path )
     size_t insert_size = strlen( binary_directory ) * 2 + 50;
     char *insert_path = (char *) malloc( insert_size );
     memset( insert_path, 0, insert_size );
+
 #if defined( _WIN32 )
-    char env_string[] = "%s\\%s;";
+    char const env_string[] = "%s\\%s;";
 #else
-    char env_string[] = "%s/%s:";
+    char const env_string[] = "%s/%s:";
 #endif
+
     snprintf( insert_path, insert_size, env_string,
         binary_directory, "_python"
     );
@@ -1964,14 +1979,22 @@ void preparePortableEnvironment( char *binary_path )
     snprintf( python_path, python_path_size, "%s%s",
         insert_path, orignal_path ? orignal_path : "" );
 
-#if defined( _WIN32 )
-    Py_SetPythonHome( python_home );
-#else
     if ( !( orignal_home && strstr( orignal_home, insert_path ) ) )
+    {
+#if defined( _WIN32 )
+        SetEnvironmentVariable( "PYTHONHOME", python_home );
+#else
         setenv( "PYTHONHOME", python_home, 1 );
+#endif
+    }
     if ( !( orignal_path && strstr( orignal_path, insert_path ) ) )
+    {
+#if defined( _WIN32 )
+        SetEnvironmentVariable( "PYTHONPATH", python_path );
+#else
         setenv( "PYTHONPATH", python_path, 1 );
 #endif
+    }
 
     // clean up
     free( binary_directory );

@@ -198,6 +198,18 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
             module_name = Utils.basename( module_filename )
         elif module_filename.endswith( ".py" ):
             module_name = Utils.basename( module_filename )[:-3]
+        elif module_filename.endswith( ".so" ) or \
+             module_filename.endswith( ".pyd" ):
+            # Remember the list of used shared library modules separately, and
+            # then act as if they were not found, because there is not much we
+            # can say about them. TODO: We might one day have module-alike
+            # objects that can provide information about some of them, once we
+            # have that for Python modules.
+
+            from nuitka.ModuleRegistry import addSharedLibrary
+            addSharedLibrary( module_filename )
+
+            module_name = None
         else:
             module_name = None
 
