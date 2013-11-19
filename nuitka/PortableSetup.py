@@ -159,5 +159,5 @@ def generatePrecompileFrozenCode():
         "frozen_modules" : indented( frozen_modules )
     }
 
-def getFozenModuleCount():
+def getFrozenModuleCount():
     return frozen_count

@@ -181,15 +181,16 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
                 "Requested to recurse to all non-standard library modules."
             )
 
-
         # Means, we were not given instructions how to handle things.
         return (
             None,
             "Default behaviour, not recursing without request."
         )
 
-    def _consider( self, constraint_collection, module_filename, module_package ):
-        assert module_package is None or ( type( module_package ) is str and module_package != "" )
+    def _consider( self, constraint_collection, module_filename,
+                   module_package ):
+        assert module_package is None or \
+              ( type( module_package ) is str and module_package != "" )
 
         module_filename = Utils.normpath( module_filename )
 
@@ -275,7 +276,8 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 if import_list and imported_module.isPythonPackage():
                     for import_item in import_list:
 
-                        module_package, _module_name, module_filename = Importing.findModule(
+                        module_package, _module_name, module_filename = \
+                          Importing.findModule(
                             source_ref     = self.source_ref,
                             module_name    = import_item,
                             parent_package = imported_module.getFullName(),
@@ -363,8 +365,9 @@ class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
         # on the fromlist that much, but normally it's not used for anything but
         # packages, so it will be rare.
 
-        if module_name.isExpressionConstantRef() and fromlist.isExpressionConstantRef() \
-             and level.isExpressionConstantRef():
+        if module_name.isExpressionConstantRef() and \
+           fromlist.isExpressionConstantRef() and \
+           level.isExpressionConstantRef():
             new_node = ExpressionImportModule(
                 module_name = module_name.getConstant(),
                 import_list = fromlist.getConstant(),

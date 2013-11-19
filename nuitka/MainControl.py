@@ -352,8 +352,10 @@ def runScons( main_module, quiet ):
     if "nuitka.PortableSetup" in sys.modules:
         from nuitka import PortableSetup
 
-        if PortableSetup.getFozenModuleCount():
-            options[ "frozen_modules" ] = str( PortableSetup.getFozenModuleCount() )
+        if PortableSetup.getFrozenModuleCount():
+            options[ "frozen_modules" ] = str(
+                PortableSetup.getFrozenModuleCount()
+            )
 
     if Options.isShowScons():
         options[ "show_scons" ] = "true"

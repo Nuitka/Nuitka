@@ -56,7 +56,7 @@ def setMainScriptDirectory( main_dir ):
 
 def isPackageDir( dirname ):
     return Utils.isDir( dirname ) and \
-           Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
+           Utils.isFile( Utils.joinpath( dirname, "__init__.py" ) )
 
 def findModule( source_ref, module_name, parent_package, level, warn ):
     # We have many branches here, because there are a lot of cases to try.
@@ -122,7 +122,8 @@ def findModule( source_ref, module_name, parent_package, level, warn ):
         module_filename = None
 
     if _debug_module_finding:
-        print( "findModule: Result", module_package_name, module_name, module_filename )
+        print( "findModule: Result", module_package_name, module_name,
+               module_filename )
 
     return module_package_name, module_name, module_filename
 
@@ -163,7 +164,8 @@ def _findModuleInPath( module_name, package_name ):
                 module_fh.close()
 
             if _debug_module_finding:
-                print( "_findModuleInPath: imp.find_module worked", module_filename, package_name )
+                print( "_findModuleInPath: imp.find_module worked",
+                       module_filename, package_name )
 
             return module_filename, package_name
         except ImportError:
@@ -175,9 +177,6 @@ def _findModuleInPath( module_name, package_name ):
                 "%s: Module cannot be imported due to syntax errors",
                 module_name,
             )
-
-            if _debug_module_finding:
-                print( "_findModuleInPath: imp.find_module failed with syntax error" )
 
     ext_path = extra_paths + sys.path
 
@@ -194,9 +193,6 @@ def _findModuleInPath( module_name, package_name ):
             "%s: Module cannot be imported due to syntax errors",
             module_name,
         )
-
-        if _debug_module_finding:
-            print( "_findModuleInPath: imp.find_module failed with syntax error" )
 
         module_filename = None
 
@@ -216,7 +212,9 @@ def _findModule( module_name, parent_package ):
         parent_package = "os"
 
         if not Options.isWindowsTarget():
-            module_name = Utils.basename( os.path.__file__ ).replace( ".pyc", "" )
+            module_name = Utils.basename( os.path.__file__ )
+            if module_name.endswith( ".pyc" ):
+                module_name = module_name[ : -4 ]
         else:
             module_name = "ntpath"
 
