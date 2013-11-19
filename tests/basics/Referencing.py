@@ -18,6 +18,7 @@
 import sys, gc
 
 if not hasattr( sys, "gettotalrefcount" ):
+    print( "Warning, using non-debug Python makes this test ineffective." )
     sys.gettotalrefcount = lambda : 0
 
 gc.disable()

@@ -17,18 +17,27 @@
 #     limitations under the License.
 #
 
-from __future__ import print_function
-
 import os, sys, subprocess
 
-# Make sure we flush after every print, the "-u" option does more than that
-# and this is easy enough.
-def my_print( *args, **kwargs ):
-    print( *args, **kwargs )
-    sys.stdout.flush()
+# Find common code relative in file system. Not using packages for test stuff.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname( os.path.abspath( __file__ ) ),
+            ".."
+        )
+    )
+)
+from test_common import (
+    my_print,
+    setup,
+    convertUsing2to3,
+    decideFilenameVersionSkip,
+    compareWithCPython
+)
 
-# Go its own directory, to have it easy with path knowledge.
-os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
+python_version = setup()
 
 search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
 
@@ -38,35 +47,6 @@ if start_at:
     active = False
 else:
     active = True
-
-if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = sys.executable
-
-def check_output(*popenargs, **kwargs):
-    from subprocess import Popen, PIPE, CalledProcessError
-
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = Popen(stdout=PIPE, *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise CalledProcessError(retcode, cmd, output=output)
-    return output
-
-version_output = check_output(
-    [ os.environ[ "PYTHON" ], "--version" ],
-    stderr = subprocess.STDOUT
-)
-
-python_version = version_output.split()[1]
-
-os.environ[ "PYTHONPATH" ] = os.getcwd()
-
-my_print( "Using concrete python", python_version )
 
 for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ) or filename == "run_all.py":
@@ -86,24 +66,11 @@ for filename in sorted( os.listdir( "." ) ):
         extra_flags = [ "expect_failure",  "remove_output" ]
 
     if active:
-        command = [
-            sys.executable,
-            os.path.join( "..", "..", "bin", "compare_with_cpython" ),
-            path,
-            "silent"
-        ]
-        command += extra_flags
-
-        result = subprocess.call(
-            command
+        compareWithCPython(
+            path        = path,
+            extra_flags = extra_flags,
+            search_mode = search_mode,
+            needs_2to3  = False
         )
-
-        if result == 2:
-            sys.stderr.write( "Interruped, with CTRL-C\n" )
-            sys.exit( 2 )
-
-        if result != 0 and search_mode:
-            my_print( "Error exit!", result )
-            sys.exit( result )
     else:
         my_print( "Skipping", filename )

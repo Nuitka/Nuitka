@@ -156,8 +156,9 @@ try:
     )
 except (SyntaxError, IndentationError) as e:
     if Options.isFullCompat() and e.args[0].startswith( "unknown encoding:" ):
-        if ( Utils.python_version >= 332 and os.name != "nt" ) or \
-           "2.7.5+" in sys.version:
+        if Utils.python_version >= 340 or \
+           "2.7.5+" in sys.version or \
+           "3.3.2+" in sys.version: # Debian backports have "+" versions
             complaint = "no-exist"
         else:
             complaint = "with BOM"

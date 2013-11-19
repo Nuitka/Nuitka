@@ -17,64 +17,42 @@
 #     limitations under the License.
 #
 
-from __future__ import print_function
-
 import os, sys, shutil, tempfile, time, difflib, subprocess
 
-# Make sure we flush after every print, the "-u" option does more than that
-# and this is easy enough.
-def my_print( *args, **kwargs ):
-    print( *args, **kwargs )
-    sys.stdout.flush()
+# Find common code relative in file system. Not using packages for test stuff.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname( os.path.abspath( __file__ ) ),
+            ".."
+        )
+    )
+)
+from test_common import (
+    my_print,
+    setup,
+    getTempDir
+)
 
+python_version = setup()
+
+# TODO: This ought to no longer be necessary, removing it could highlight bugs.
 # No random hashing, it makes comparing outputs futile.
 if "PYTHONHASHSEED" not in os.environ:
     os.environ[ "PYTHONHASHSEED" ] = "0"
 
-# Go its own directory, to have it easy with path knowledge.
-os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
-
 nuitka_main_path = os.path.join( "..", "..", "bin", "nuitka" )
 
-if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = sys.executable
+tmp_dir = getTempDir()
 
-def check_output(*popenargs, **kwargs):
-    from subprocess import Popen, PIPE, CalledProcessError
-
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = Popen(stdout=PIPE, *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise CalledProcessError(retcode, cmd, output=output)
-    return output
-
-version_output = check_output(
-    [ os.environ[ "PYTHON" ], "--version" ],
-    stderr = subprocess.STDOUT
-)
-
-python_version = version_output.split()[1]
-
-my_print( "Using concrete python", python_version )
-
-tmp_dir = tempfile.gettempdir()
-
-# Try to avoid RAM disk /tmp and use the disk one instead.
-if tmp_dir == "/tmp" and os.path.exists( "/var/tmp" ):
-    tmp_dir = "/var/tmp"
-
-# Could detect this more automatic.
+# TODO: Could detect this more automatic.
 PACKAGE_LIST = (
     'nuitka',
     'nuitka/nodes',
     'nuitka/tree',
     'nuitka/build',
+    'nuitka/freezer',
     'nuitka/gui',
     'nuitka/codegen',
     'nuitka/codegen/templates',
@@ -278,8 +256,8 @@ def compileAndCompareWith( nuitka ):
 def executePASS2():
     my_print( "PASS 2: Compiling from compiler running from .exe and many .so files." )
 
-    # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we have
-    # to add it.
+    # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
+    # have to add it.
     if os.name == "nt":
         os.environ[ "PYTHONPATH" ] = ":".join( PACKAGE_LIST )
 
