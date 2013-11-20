@@ -17,8 +17,8 @@
 #     limitations under the License.
 #
 
-# The Nuitka scons file. If you have Scons or platform knowledge, please feel
-# free and contribute improvements.
+# The Nuitka scons file. If you have Scons or platform knowledge, please be
+# especially invited and contribute improvements.
 #
 # This file is used to build an executable or shared library. Nuitka needs no
 # build process for itself, although it can be compiled using the same method.
@@ -137,9 +137,6 @@ def createEnvironment( compiler_tools ):
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
         TARGET_ARCH = target_arch,
-
-        # Batch the compilation with MSVC under Windows if used.
-        # MSVC_BATCH  = True,
 
         # If we are on Windows, and MinGW is not enforced, lets see if we can
         # find "cl.exe", and if we do, disable automatic scan.
@@ -295,9 +292,6 @@ def setupSpawn( env ):
             if not show_scons_mode:
                 print cmdline
             print data,
-
-        if rv:
-            raise RuntimeError( err )
 
         return rv
 
