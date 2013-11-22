@@ -94,13 +94,12 @@ def makePath( path ):
 def getCoreCount():
     cpu_count = 0
 
-    # Try to sum up the CPU cores, if the kernel shows them, pylint:
-    # disable=W0702
+    # Try to sum up the CPU cores, if the kernel shows them.
     try:
         # Try to get the number of logical processors
         with open( "/proc/cpuinfo" ) as cpuinfo_file:
             cpu_count = cpuinfo_file.read().count( "processor\t:" )
-    except:
+    except IOError:
         pass
 
     if not cpu_count:

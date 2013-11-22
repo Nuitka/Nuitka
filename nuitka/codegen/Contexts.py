@@ -248,12 +248,14 @@ class PythonModuleContext( PythonContextBase ):
     # Plent of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
-    def __init__( self, module_name, code_name, filename, global_context ):
+    def __init__( self, module_name, code_name, filename, is_empty,
+                  global_context ):
         PythonContextBase.__init__( self )
 
         self.name = module_name
         self.code_name = code_name
         self.filename = filename
+        self.is_empty = is_empty
 
         self.global_context = global_context
 
@@ -277,6 +279,12 @@ class PythonModuleContext( PythonContextBase ):
 
     def getName( self ):
         return self.name
+
+    def getFilename( self ):
+        return self.filename
+
+    def isEmptyModule( self ):
+        return self.is_empty
 
     getModuleName = getName
 

@@ -176,7 +176,8 @@ def _pickSourceFilenames( source_dir, modules ):
         collision_filename = Utils.normcase( base_filename )
 
         if collision_filename in collision_filenames:
-            collision_counts[ collision_filename ] = collision_counts.get( collision_filename, 0 ) + 1
+            collision_counts[ collision_filename ] = \
+              collision_counts.get( collision_filename, 0 ) + 1
             hash_suffix = "@%d" % collision_counts[ collision_filename ]
         else:
             hash_suffix = ""
@@ -191,6 +192,9 @@ def _pickSourceFilenames( source_dir, modules ):
     return module_filenames
 
 def makeSourceDirectory( main_module ):
+    # We deal with a lot of details here, but rather one by one, and split makes
+    # no sense, pylint: disable=R0914
+
     assert main_module.isPythonModule()
 
     source_dir = getSourceDirectoryPath( main_module )
@@ -252,7 +256,6 @@ def makeSourceDirectory( main_module ):
         if module is main_module and not Options.shallMakeModule():
             source_code = CodeGeneration.generateMainCode(
                 context = module_context,
-                module  = module,
                 codes   = source_code
             )
 
@@ -306,6 +309,9 @@ def makeSourceDirectory( main_module ):
     )
 
 def runScons( main_module, quiet ):
+    # Scons gets transported many details, that we express as variables, and
+    # have checks for them, leading to many branches, pylint: disable=R0912
+
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
     if hasattr( sys, "abiflags" ):
@@ -502,6 +508,8 @@ def main():
         representation of the internal node tree after optimization, etc.
     """
 
+    # Main has to fullfil many options, leading to many branches
+    # pylint: disable=R0912
 
     positional_args = Options.getPositionalArgs()
     assert len( positional_args ) > 0

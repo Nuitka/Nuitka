@@ -62,8 +62,7 @@ from nuitka.nodes.SliceNodes import (
 )
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
-    StatementsSequence,
-    StatementsFrame
+    StatementsSequence
 )
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
@@ -149,7 +148,6 @@ from .Helpers import (
     makeStatementsSequenceOrStatement,
     makeSequenceCreationOrConstant,
     makeDictCreationOrConstant,
-    makeStatementsSequence,
     buildStatementsNode,
     setBuildDispatchers,
     extractDocFromBody,

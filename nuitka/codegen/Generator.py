@@ -25,8 +25,6 @@ else.
 """
 
 from .Identifiers import (
-    SpecialConstantIdentifier,
-    ModuleVariableIdentifier,
     defaultToNullIdentifier,
     defaultToNoneIdentifier,
     KeeperAccessIdentifier,
@@ -97,10 +95,14 @@ from .ConstantCodes import (
 )
 
 from .FunctionCodes import (
+    getFunctionContextDefinitionCode,
     getDirectionFunctionCallCode,
+    getGeneratorFunctionCode,
     getFunctionCreationCode,
+    getFunctionDirectDecl,
     getFunctionMakerCode,
-    getFunctionMakerDecl
+    getFunctionMakerDecl,
+    getFunctionCode,
 )
 
 from .ModuleCodes import (
@@ -109,6 +111,8 @@ from .ModuleCodes import (
     getModuleIdentifier,
     getModuleCode
 )
+
+from .MainCodes import getMainCode
 
 # imported from here pylint: enable=W0611
 
@@ -123,17 +127,9 @@ from .VariableCodes import (
 )
 # pylint: enable=W0611
 
-from .ParameterParsing import (
-    getDirectFunctionEntryPointIdentifier,
-    getParameterEntryPointIdentifier,
-    getQuickEntryPointIdentifier,
-    getParameterParsingCode,
-)
-
 from .CodeObjectCodes import (
     getCodeObjectsDeclCode,
     getCodeObjectsInitCode,
-    getCodeObjectHandle,
 )
 
 from . import (
@@ -143,7 +139,6 @@ from . import (
 )
 
 from nuitka import (
-    Variables,
     Constants,
     Builtins,
     Options,
@@ -1778,424 +1773,11 @@ def getTracebackMakingIdentifier( context ):
         1
     )
 
-
-def getMainCode( codes, code_identifier, context ):
-    if code_identifier is None:
-        code_identifier = NullIdentifier()
-
-    main_code        = CodeTemplates.main_program % {
-        "sys_executable"       : getConstantCode(
-            constant = "python.exe"
-                         if Options.isWindowsTarget()
-                       else sys.executable,
-            context  = context
-        ),
-        "python_sysflag_debug" : sys.flags.debug,
-        "python_sysflag_py3k_warning" : ( sys.flags.py3k_warning
-            if hasattr( sys.flags, "py3k_warning" ) else 0 ),
-        "python_sysflag_division_warning" : ( sys.flags.division_warning
-            if hasattr( sys.flags, "division_warning" ) else 0 ),
-        #"python_sysflag_division_new" : sys.flags.division_new, #not supported
-        "python_sysflag_inspect" : sys.flags.inspect,
-        "python_sysflag_interactive" : sys.flags.interactive,
-        "python_sysflag_optimize" : sys.flags.optimize,
-        "python_sysflag_dont_write_bytecode" : sys.flags.dont_write_bytecode,
-        "python_sysflag_no_site" : sys.flags.no_site,
-        "python_sysflag_no_user_site" : sys.flags.no_user_site,
-        "python_sysflag_ignore_environment" : sys.flags.ignore_environment,
-        "python_sysflag_tabcheck" : ( sys.flags.tabcheck
-            if hasattr( sys.flags, "tabcheck" ) else 0 ),
-        "python_sysflag_verbose" : sys.flags.verbose,
-        "python_sysflag_unicode" : ( sys.flags.unicode
-            if hasattr( sys.flags, "unicode" ) else 0 ),
-        "python_sysflag_bytes_warning" : sys.flags.bytes_warning,
-        "python_sysflag_hash_randomization" : ( sys.flags.hash_randomization
-            if hasattr( sys.flags, "hash_randomization" ) else 0 ),
-        "code_identifier"      : code_identifier.getCodeTemporaryRef()
-    }
-
-    return codes + main_code
-
-def getFunctionsCode( context ):
-    result = ""
-
-    for _code_name, ( _function_decl, function_code ) in sorted( context.getFunctionsCodes().items() ):
-        result += function_code
-
-    return result
-
-def getFunctionsDecl( context ):
-    result = ""
-
-    for _code_name, ( function_decl, _function_code ) in sorted( context.getFunctionsCodes().items() ):
-        result += function_decl
-
-    return result
-
-
 def getExportScopeCode( cross_module ):
     if cross_module:
         return "NUITKA_CROSS_MODULE"
     else:
         return "NUITKA_LOCAL_MODULE"
-
-def getFunctionDirectDecl( function_identifier, closure_variables,
-                           parameter_variables, file_scope ):
-
-    parameter_objects_decl = [
-        "PyObject *_python_par_" + variable.getName()
-        for variable in
-        parameter_variables
-    ]
-
-    for closure_variable in closure_variables:
-        parameter_objects_decl.append(
-            closure_variable.getDeclarationCode()
-        )
-
-    result = CodeTemplates.template_function_direct_declaration % {
-        "file_scope"           : file_scope,
-        "function_identifier"  : function_identifier,
-        "direct_call_arg_spec" : ", ".join( parameter_objects_decl ),
-    }
-
-    return result
-
-
-def getGeneratorFunctionCode( context, function_name, function_identifier,
-                              parameters, closure_variables, user_variables,
-                              temp_variables, function_codes, source_ref,
-                              function_doc ):
-    # We really need this many parameters here. pylint: disable=R0913
-
-    # Functions have many details, that we express as variables, with many
-    # branches to decide, pylint: disable=R0912,R0914,R0915
-
-    parameter_variables, entry_point_code, parameter_objects_decl = getParameterParsingCode(
-        function_identifier     = function_identifier,
-        function_name           = function_name,
-        parameters              = parameters,
-        needs_creation          = context.isForCreatedFunction(),
-        context                 = context,
-    )
-
-    context_decl = []
-    context_copy = []
-    context_free = []
-
-    function_parameter_decl = [
-        getLocalVariableInitCode(
-            context    = context,
-            variable   = variable,
-            in_context = True
-        )
-        for variable in
-        parameter_variables
-    ]
-
-    parameter_context_assign = []
-
-    for variable in parameter_variables:
-        parameter_context_assign.append(
-            "_python_context->%s.setVariableNameAndValue( %s, _python_par_%s );" % (
-                variable.getCodeName(),
-                getConstantCode(
-                    constant = variable.getName(),
-                    context = context
-                ),
-                variable.getName()
-            )
-        )
-        del variable
-
-    function_var_inits = []
-    local_var_decl = []
-
-    for user_variable in user_variables:
-        local_var_decl.append(
-            getLocalVariableInitCode(
-                context    = context,
-                variable   = user_variable,
-                in_context = True
-            )
-        )
-        function_var_inits.append(
-            "_python_context->%s.setVariableName( %s );" % (
-                user_variable.getCodeName(),
-                getConstantCode(
-                    constant = user_variable.getName(),
-                    context  = context
-                )
-            )
-        )
-
-    for temp_variable in temp_variables:
-        assert temp_variable.isTempVariable(), variable
-
-        if temp_variable.needsLateDeclaration():
-            continue
-
-        # TODO: This filter should not be possible.
-        if temp_variable.getNeedsFree() is None:
-            continue
-
-        local_var_decl.append(
-            getLocalVariableInitCode(
-                context    = context,
-                variable   = temp_variable,
-                in_context = True
-            )
-        )
-
-    for closure_variable in closure_variables:
-        assert closure_variable.isShared()
-
-        context_decl.append(
-            getLocalVariableInitCode(
-                context    = context,
-                variable   = closure_variable,
-                in_context = True
-            )
-        )
-        context_copy.append(
-            "_python_context->%s.shareWith( %s );" % (
-                closure_variable.getCodeName(),
-                closure_variable.getCodeName()
-            )
-        )
-
-    function_doc = getConstantCode(
-        context  = context,
-        constant = function_doc
-    )
-
-    function_name_obj = getConstantCode(
-        constant = function_name,
-        context  = context,
-    )
-
-    instance_context_decl = function_parameter_decl + local_var_decl
-
-    if context.isForDirectCall():
-        instance_context_decl = context_decl + instance_context_decl
-        context_decl = []
-
-    if context_decl:
-        result = CodeTemplates.genfunc_context_body_template % {
-            "function_identifier"            : function_identifier,
-            "function_common_context_decl"   : indented( context_decl ),
-            "function_instance_context_decl" : indented( instance_context_decl ),
-            "context_free"                   : indented( context_free, 2 ),
-        }
-    elif instance_context_decl:
-        result = CodeTemplates.genfunc_context_local_only_template % {
-            "function_identifier"            : function_identifier,
-            "function_instance_context_decl" : indented( instance_context_decl )
-        }
-    else:
-        result = ""
-
-    if instance_context_decl or context_decl:
-        context_access_instance = CodeTemplates.generator_context_access_template2  % {
-            "function_identifier" : function_identifier
-        }
-    else:
-        context_access_instance = ""
-
-    function_locals = []
-
-    if context.hasLocalsDict():
-        function_locals += CodeTemplates.function_dict_setup.split( "\n" )
-
-    function_locals += function_var_inits
-
-    result += CodeTemplates.genfunc_yielder_template % {
-        "function_identifier" : function_identifier,
-        "function_body"       : indented( function_codes, 2 ),
-        "function_var_inits"  : indented( function_locals, 2 ),
-        "context_access"      : indented( context_access_instance, 2 ),
-    }
-
-    code_identifier = getCodeObjectHandle(
-        context       = context,
-        filename      = source_ref.getFilename(),
-        var_names     = parameters.getCoArgNames(),
-        arg_count     = parameters.getArgumentCount(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        line_number   = source_ref.getLineNumber(),
-        code_name     = function_name,
-        is_generator  = True,
-        is_optimized  = not context.hasLocalsDict(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-    )
-
-    if context_decl or instance_context_decl:
-        if context_decl:
-            context_making = CodeTemplates.genfunc_common_context_use_template % {
-                "function_identifier" : function_identifier,
-            }
-        else:
-            context_making = CodeTemplates.genfunc_local_context_use_template  % {
-                "function_identifier" : function_identifier,
-            }
-
-        context_making = context_making.split( "\n" )
-
-        if context.isForDirectCall():
-            context_making += context_copy
-
-        generator_making = CodeTemplates.genfunc_generator_with_context_making  % {
-            "function_name_obj"   : function_name_obj,
-            "function_identifier" : function_identifier,
-            "code_identifier"     : code_identifier.getCodeTemporaryRef()
-        }
-    else:
-        generator_making = CodeTemplates.genfunc_generator_without_context_making  % {
-            "function_name_obj"   : function_name_obj,
-            "function_identifier" : function_identifier,
-            "code_identifier"     : code_identifier.getCodeTemporaryRef()
-        }
-
-        context_making = []
-
-    if context.isForDirectCall():
-        for closure_variable in closure_variables:
-            parameter_objects_decl.append(
-                closure_variable.getDeclarationCode()
-            )
-
-    result += CodeTemplates.genfunc_function_maker_template % {
-        "function_name"              : function_name,
-        "function_identifier"        : function_identifier,
-        "context_making"             : indented( context_making, 1 ),
-        "context_copy"               : indented( parameter_context_assign, 2 ),
-        "generator_making"           : generator_making,
-        "parameter_objects_decl"     : ", ".join( parameter_objects_decl ),
-    }
-
-    if context.isForCreatedFunction():
-        result += entry_point_code
-
-    return result
-
-def getFunctionContextDefinitionCode( context, function_identifier,
-                                      closure_variables ):
-    context_decl = []
-
-    # Always empty now, but we may not use C++ destructors for everything in the
-    # future, so leave it.
-    context_free = []
-
-    for closure_variable in closure_variables:
-        context_decl.append(
-            getLocalVariableInitCode(
-                context    = context,
-                variable   = closure_variable,
-                in_context = True
-            )
-        )
-
-    return CodeTemplates.function_context_body_template % {
-        "function_identifier" : function_identifier,
-        "context_decl"        : indented( context_decl ),
-        "context_free"        : indented( context_free ),
-    }
-
-def getFunctionCode( context, function_name, function_identifier, parameters,
-                     closure_variables, user_variables, temp_variables,
-                     function_codes, function_doc, file_scope ):
-
-    # Functions have many details, that we express as variables, with many
-    # branches to decide, pylint: disable=R0912,R0914
-
-    parameter_variables, entry_point_code, parameter_objects_decl = getParameterParsingCode(
-        function_identifier = function_identifier,
-        function_name       = function_name,
-        parameters          = parameters,
-        needs_creation      = context.isForCreatedFunction(),
-        context             = context,
-    )
-
-    function_parameter_decl = [
-        getLocalVariableInitCode(
-            context   = context,
-            variable  = variable,
-            init_from = Identifier( "_python_par_" + variable.getName(), 1 )
-        )
-        for variable in
-        parameter_variables
-    ]
-
-
-    # User local variable initializations
-    local_var_inits = [
-        getLocalVariableInitCode(
-            context  = context,
-            variable = variable
-        )
-        for variable in
-        user_variables + tuple(
-            variable
-            for variable in
-            temp_variables
-            if not variable.needsLateDeclaration()
-            # TODO: This filter should not be possible.
-            if variable.getNeedsFree() is not None
-        )
-    ]
-
-    function_doc = getConstantCode(
-        context  = context,
-        constant = function_doc
-    )
-
-    function_locals = []
-
-    if context.hasLocalsDict():
-        function_locals += CodeTemplates.function_dict_setup.split("\n")
-
-    function_locals += function_parameter_decl + local_var_inits
-
-    result = ""
-
-    if closure_variables and context.isForCreatedFunction():
-        context_access_function_impl = CodeTemplates.function_context_access_template % {
-            "function_identifier" : function_identifier,
-        }
-    else:
-        context_access_function_impl = str( CodeTemplates.function_context_unused_template )
-
-    if context.isForDirectCall():
-        for closure_variable in closure_variables:
-            parameter_objects_decl.append(
-                closure_variable.getDeclarationCode()
-            )
-
-        result += CodeTemplates.function_direct_body_template % {
-            "file_scope"                   : file_scope,
-            "function_identifier"          : function_identifier,
-            "context_access_function_impl" : context_access_function_impl,
-            "direct_call_arg_spec"         : ", ".join(
-                parameter_objects_decl
-            ),
-            "function_locals"              : indented( function_locals ),
-            "function_body"                : indented( function_codes ),
-        }
-    else:
-        result += CodeTemplates.function_body_template % {
-            "function_identifier"          : function_identifier,
-            "context_access_function_impl" : context_access_function_impl,
-            "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
-            "function_locals"              : indented( function_locals ),
-            "function_body"                : indented( function_codes ),
-        }
-
-    if context.isForCreatedFunction():
-        result += entry_point_code
-
-    return result
-
 
 def getSelectMetaclassCode( metaclass_identifier, bases_identifier, context ):
     if Utils.python_version < 300:

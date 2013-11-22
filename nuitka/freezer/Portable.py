@@ -50,7 +50,7 @@ def detectEarlyImports():
         command += "import inspect;"
 
     if Utils.python_version >= 300:
-        command += r'import sys; print( "\n".join( sorted( "import " + module.__name__ + " # sourcefile " + module.__file__ for module in sys.modules.values() if hasattr( module, "__file__" ) and module.__file__ != "<frozen>" ) ), file = sys.stderr )'
+        command += r'import sys; print( "\n".join( sorted( "import " + module.__name__ + " # sourcefile " + module.__file__ for module in sys.modules.values() if hasattr( module, "__file__" ) and module.__file__ != "<frozen>" ) ), file = sys.stderr )' # do not read it, pylint: disable=C0301
 
     process = subprocess.Popen(
         args   = [ sys.executable, "-s", "-S", "-v", "-c", command ],
@@ -58,12 +58,13 @@ def detectEarlyImports():
         stderr = subprocess.PIPE
     )
 
-    stdout, stderr = process.communicate()
+    _stdout, stderr = process.communicate()
 
     result = []
 
     debug( "Detecting early imports:" )
 
+    # bug of PyLint, pylint: disable=E1103
     for line in stderr.replace( b"\r", b"" ).split( b"\n" ):
         if line.startswith( b"import " ):
             # print( line )

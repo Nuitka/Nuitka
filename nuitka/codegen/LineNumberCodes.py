@@ -24,7 +24,6 @@
 source_ref_stack = [ None ]
 
 def resetLineNumber():
-    global source_ref_stack
     source_ref_stack[-1] = None
 
 def pushLineNumberBranch():

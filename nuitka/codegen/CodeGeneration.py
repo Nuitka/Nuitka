@@ -2598,6 +2598,7 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
         code_name      = Generator.getModuleIdentifier( module_name ),
         filename       = module.getFilename(),
         global_context = global_context,
+        is_empty       = module.getBody() is None
     )
 
     statement_sequence = module.getBody()
@@ -2672,28 +2673,10 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
     return module_source_code, module_header_code, context
 
 
-def generateMainCode( module, codes, context ):
-    if module.getBody() is not None:
-        code_identifier = Generator.getCodeObjectHandle(
-            context       = context,
-            filename      = module.source_ref.getFilename(),
-            var_names     = (),
-            arg_count     = 0,
-            kw_only_count = 0,
-            line_number   = 0,
-            code_name     = "<module>",
-            is_generator  = False,
-            is_optimized  = False,
-            has_starlist  = False,
-            has_stardict  = False
-        )
-    else:
-        code_identifier = None
-
+def generateMainCode( codes, context ):
     return Generator.getMainCode(
-        context         = context,
-        code_identifier = code_identifier,
-        codes           = codes
+        context = context,
+        codes   = codes
     )
 
 def generateConstantsDeclarationCode( context ):

@@ -509,7 +509,7 @@ class ModuleVariable( Variable ):
     def getModuleName( self ):
         return self.module.getFullName()
 
-    def _checkShared( self, variable ):
+    def _checkShared( self, variable, technical ):
         assert False, variable
 
 

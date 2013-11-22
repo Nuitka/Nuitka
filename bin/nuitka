@@ -28,8 +28,6 @@ other modules.
 
 import sys, os
 
-from logging import warning
-
 # LIBDIR trick start (marker for removal on platforms that don't need it)
 libdir = '@LIBDIR@'
 
