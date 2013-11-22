@@ -26,7 +26,8 @@ from nuitka import Utils
 
 from nuitka.codegen.Indentation import indented
 
-from nuitka.codegen import CodeTemplates
+from nuitka.codegen import CodeTemplates, BlobCodes
+
 
 frozen_modules = []
 
@@ -36,34 +37,7 @@ def addFrozenModule( frozen_module ):
 def getFrozenModuleCount():
     return len( frozen_modules )
 
-# TODO: This _encodeStreamData and _getStreamDataCode is taken from
-# nuitka.codegen.ConstantCodes, could shared data with that as well, worst case
-# it could reduce sizes.
-stream_data = bytes()
-
-def _getStreamDataCode( value, fixed_size = False ):
-    global stream_data
-    offset = stream_data.find( value )
-    if offset == -1:
-        offset = len( stream_data )
-        stream_data += value
-
-    if fixed_size:
-        return "&portable_stream_data[ %d ]" % offset
-    else:
-        return "&portable_stream_data[ %d ], %d" % ( offset, len( value ) )
-
-def encodeStreamData():
-    for count, stream_byte in enumerate( stream_data ):
-        if count % 16 == 0:
-            if count > 0:
-                yield "\n"
-            yield "   "
-
-        if Utils.python_version < 300:
-            yield " 0x%02x," % ord( stream_byte )
-        else:
-            yield " 0x%02x," % stream_byte
+stream_data = BlobCodes.StreamData()
 
 def generatePrecompiledFrozenCode():
     frozen_defs = []
@@ -81,12 +55,12 @@ def generatePrecompiledFrozenCode():
             """(char *)"%s", (unsigned char *)%s, %d,""" % (
                 ( module_name if Utils.python_version < 300 else \
                   module_name.decode() ),
-                _getStreamDataCode( code_data, fixed_size = True ),
+                stream_data.getStreamDataCode( code_data, fixed_size = True ),
                 size
             )
         )
 
     return CodeTemplates.template_frozen_modules % {
-        "stream_data"    : "".join( encodeStreamData() ),
+        "stream_data"    : "".join( stream_data.encodeStreamData() ),
         "frozen_modules" : indented( frozen_defs )
     }

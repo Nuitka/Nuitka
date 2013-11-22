@@ -83,7 +83,7 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
 
             is_added = False
 
-        assert not module_relpath.endswith( "/__init__.py" )
+        assert not module_relpath.endswith( "/__init__.py" ), module
 
         return module, is_added
     else:

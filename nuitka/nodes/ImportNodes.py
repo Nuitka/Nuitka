@@ -102,26 +102,6 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
         self._setModule( module )
         module.parent = None
 
-    def _recurseTo( self, constraint_collection, module_package,
-                    module_filename, module_relpath, reason ):
-        from nuitka.tree import Recursion
-
-        imported_module, added_flag = Recursion.recurseTo(
-            module_package  = module_package,
-            module_filename = module_filename,
-            module_relpath  = module_relpath,
-            reason          = reason
-        )
-
-        if added_flag:
-            constraint_collection.signalChange(
-                "new_code",
-                imported_module.getSourceReference(),
-                "Recursed to module."
-            )
-
-        return imported_module
-
     @staticmethod
     def _decide( module_filename, module_name, module_package ):
         # Many branches, which make decisions immediately, pylint: disable=R0911
@@ -223,13 +203,21 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
             if decision:
                 module_relpath = Utils.relpath( module_filename )
 
-                return self._recurseTo(
-                    constraint_collection = constraint_collection,
-                    module_package        = module_package,
-                    module_filename       = module_filename,
-                    module_relpath        = module_relpath,
-                    reason                = reason
+                from nuitka.tree import Recursion
+
+                imported_module, added_flag = Recursion.recurseTo(
+                    module_package  = module_package,
+                    module_filename = module_filename,
+                    module_relpath  = module_relpath,
+                    reason          = reason
                 )
+
+                if added_flag:
+                    constraint_collection.signalChange(
+                        "new_code",
+                        imported_module.getSourceReference(),
+                        "Recursed to module."
+                    )
             elif decision is None:
                 if module_package is None:
                     module_fullpath = module_name

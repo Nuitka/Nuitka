@@ -93,7 +93,9 @@ def _getFunctionCreationArgs( defaults_identifier, kw_defaults_identifier,
     for closure_variable in closure_variables:
         result.append(
             "%s &%s" % (
-                "PyObjectSharedTempVariable" if closure_variable.isTempVariableReference() else "PyObjectSharedLocalVariable",
+                ( "PyObjectSharedTempVariable" if
+                  closure_variable.isTempVariableReference() else
+                  "PyObjectSharedLocalVariable" ),
                 closure_variable.getCodeName()
             )
         )
@@ -147,6 +149,10 @@ def getFunctionMakerCode( context, function_name, function_qualname,
                           closure_variables, defaults_identifier,
                           kw_defaults_identifier, annotations_identifier,
                           source_ref, function_doc, is_generator ):
+    # We really need this many parameters here. pylint: disable=R0913
+
+    # Functions have many details, that we express as variables
+    # pylint: disable=R0914
 
     function_name_obj = getConstantCode(
         context  = context,
