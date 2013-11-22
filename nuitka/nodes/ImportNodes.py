@@ -187,7 +187,11 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
             # have that for Python modules.
 
             from nuitka.ModuleRegistry import addSharedLibrary
-            addSharedLibrary( module_filename )
+            addSharedLibrary(
+                module_name   = Utils.basename( module_filename ),
+                package_name  = module_package,
+                filename      = module_filename
+            )
 
             module_name = None
         else:
