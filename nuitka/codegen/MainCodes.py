@@ -15,6 +15,14 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Main program code generation.
+
+This is for the actual entry point code, which is mostly fed by a template,
+but also customized through a lot of runtime configuration values.
+
+Examples of these are sys.executable, and sys.flags, but of course also the
+frame object data (filename, etc).
+"""
 
 from .ConstantCodes import getConstantCode
 from .CodeObjectCodes import getCodeObjectHandle

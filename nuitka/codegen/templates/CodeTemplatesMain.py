@@ -469,7 +469,7 @@ template_frozen_modules = """\
 #include <Python.h>
 
 // Blob from which modules are unstreamed.
-static const unsigned char portable_stream_data[] =
+static const unsigned char stream_data[] =
 {
 %(stream_data)s
 };

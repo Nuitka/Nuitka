@@ -55,6 +55,8 @@ def _getAssignmentTempKeeperCode( source_identifier, variable_name, context ):
 def getOrderRelevanceEnforcedArgsCode( helper, tmp_scope, order_relevance, args,
                                        export_ref, context, ref_count,
                                        prefix_args = None, suffix_args = None ):
+    # Preserving order with line numbers, and special purpose arguments needs
+    # many variables, with many branches to decide, pylint: disable=R0912,R0914
 
     if prefix_args is None:
         prefix_args = []

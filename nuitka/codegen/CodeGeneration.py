@@ -1887,13 +1887,16 @@ def generateTryFinallyCode( statement, context ):
         context            = context
     )
 
+    needs_return_value_catch   = statement.needsExceptionReturnValueCatcher()
+    needs_return_value_reraise = statement.needsExceptionReturnValueReraiser()
+
     return Generator.getTryFinallyCode(
         code_tried                 = code_tried,
         code_final                 = code_final,
         needs_break                = statement.needsExceptionBreak(),
         needs_continue             = statement.needsExceptionContinue(),
-        needs_return_value_catch   = statement.needsExceptionReturnValueCatcher(),
-        needs_return_value_reraise = statement.needsExceptionReturnValueReraiser(),
+        needs_return_value_catch   = needs_return_value_catch,
+        needs_return_value_reraise = needs_return_value_reraise,
         aborting                   = statement.isStatementAborting(),
         try_count                  = try_count,
         context                    = context
@@ -2526,14 +2529,17 @@ def generateStatementSequenceCode( statement_sequence, context,
         needs_preserve = statement_sequence.needsFrameExceptionPreversing()
 
         if guard_mode == "generator":
-            assert provider.isExpressionFunctionBody() and provider.isGenerator()
+            assert provider.isExpressionFunctionBody() and \
+                   provider.isGenerator()
 
             # TODO: This case should care about "needs_preserve", as for
             # Python3 it is actually not a stub of empty code.
 
             code = Generator.getFrameGuardLightCode(
                 frame_identifier = provider.getCodeName(),
-                code_identifier  = statement_sequence.getCodeObjectHandle( context ),
+                code_identifier  = statement_sequence.getCodeObjectHandle(
+                    context = context
+                ),
                 codes            = codes,
                 context          = context
             )
@@ -2570,7 +2576,7 @@ def generateStatementSequenceCode( statement_sequence, context,
             code = Generator.getFrameGuardOnceCode(
                 frame_identifier  = provider.getCodeName(),
                 code_identifier   = statement_sequence.getCodeObjectHandle(
-                    context
+                    context = context
                 ),
                 locals_identifier = Generator.getLoadLocalsCode(
                     context  = context,
