@@ -29,6 +29,8 @@ from .tree import (
 
 from . import (
     ModuleRegistry,
+    SyntaxErrors,
+    Importing,
     Tracing,
     TreeXML,
     Options,
@@ -49,7 +51,7 @@ from nuitka.freezer.PrecompiledModuleFreezer import (
     addFrozenModule
 )
 
-import sys, os
+import sys, os, subprocess
 
 from logging import warning
 
@@ -488,3 +490,102 @@ def compileTree( main_module ):
     )
 
     return result, options
+
+def main():
+    """ Main program flow of Nuitka
+
+        At this point, options will be parsed already, Nuitka will be executing
+        in the desired version of Python with desired flags, and we just get
+        to execute the task assigned.
+
+        We might be asked to only re-compile generated C++, dump only an XML
+        representation of the internal node tree after optimization, etc.
+    """
+
+
+    positional_args = Options.getPositionalArgs()
+    assert len( positional_args ) > 0
+
+    filename = Options.getPositionalArgs()[0]
+
+    # Inform the importing layer about the main script directory, so it can use
+    # it when attempting to follow imports.
+    Importing.setMainScriptDirectory(
+        main_dir = os.path.dirname( os.path.abspath( filename ) )
+    )
+
+    # Turn that source code into a node tree structure.
+    try:
+        tree = createNodeTree(
+            filename = filename
+        )
+    except (SyntaxError, IndentationError) as e:
+        if Options.isFullCompat() and e.args[0].startswith( "unknown encoding:" ):
+            if Utils.python_version >= 333 or \
+               "2.7.6" in sys.version or \
+               "2.7.5+" in sys.version or \
+               "3.3.2+" in sys.version: # Debian backports have "+" versions
+                complaint = "no-exist"
+            else:
+                complaint = "with BOM"
+
+            e.args = (
+                "encoding problem: %s" % complaint,
+                ( e.args[1][0], 1, None, None )
+            )
+
+        sys.exit( SyntaxErrors.formatOutput( e ) )
+
+    if Options.shallDumpBuiltTree():
+        dumpTree( tree )
+    elif Options.shallDumpBuiltTreeXML():
+        dumpTreeXML( tree )
+    elif Options.shallDisplayBuiltTree():
+        displayTree( tree )
+    else:
+        import shutil
+
+        result, options = compileTree( tree )
+
+        # Exit if compilation failed.
+        if not result:
+            sys.exit( 1 )
+
+        # Remove the source directory (now build directory too) if asked to.
+        if Options.isRemoveBuildDir():
+            shutil.rmtree( getSourceDirectoryPath( tree ) )
+
+        # Sanity check, warn people if "__main__" is used in the compiled
+        # module, it may not be the appropiate usage.
+        if Options.shallMakeModule() and Options.shallExecuteImmediately():
+            for variable in tree.getVariables():
+                if variable.getName() == "__name__":
+                    warning( """\
+Compiling to extension module, which will not have '__name__' as '__main__', \
+did you intend '--exe' or to use 'nuitka-python' instead.""" )
+                    break
+
+        # Modules should not be executable, but Scons creates them like it, fix
+        # it up here.
+        if os.name != "nt" and Options.shallMakeModule():
+            subprocess.call(
+                (
+                    "chmod",
+                    "-x",
+                    options[ "result_name" ] + ".so"
+                )
+            )
+
+        # Execute the module immediately if option was given.
+        if Options.shallExecuteImmediately():
+            if Options.shallMakeModule():
+                executeModule(
+                    tree       = tree,
+                    clean_path = Options.shallClearPythonPathEnvironment()
+                )
+            else:
+                executeMain(
+                    binary_filename = options[ "result_name" ] + ".exe",
+                    tree            = tree,
+                    clean_path      = Options.shallClearPythonPathEnvironment()
+                )
