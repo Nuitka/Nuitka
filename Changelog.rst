@@ -20,22 +20,28 @@ Bug Fixes
 New Features
 ------------
 
-- The "portable" mode allows to compile standalone binaries for programs that
-  use no DLLs.
+- The "portable" mode allows to compile standalone binaries for programs,
+  currently that is limited to programs that use no modules in shared
+  libraries. To achieve it, Nuitka learned to freeze bytecode as an alternative
+  to compiling modules.
 
 - New option ``--python-flag`` allows to specify flags to the compiler that the
   "python" binary normally would. So far ``-S`` and ``-v`` are supported, with
   sane aliases ``no_site`` and ``trace_imports``.
 
+  The recommended use of ``--python-flag=-S`` is to avoid dependency creep in
+  portable mode compilations, because the ``site`` module often imports many
+  useless things that often don't apply to target systems.
+
 New Optimization
 ----------------
 
 - Faster frame stack handling for functions without ``try``/``except`` (or
-  ``try``/``finally`` in Python3). This gives a speed boost to PyStone of
+  ``try``/``finally`` in Python3). This gives a speed boost to "PyStone" of
   ca. 2.5% overall.
 
 - Python2: Faster attribute getting and setting, handling special cases at
-  compile time. This gives a minor speed boost to PyStone of ca. 0.5% overall.
+  compile time. This gives a minor speed boost to "PyStone" of ca. 0.5% overall.
 
 - Python2: Much quicker calls of ``__getattr__`` and ``__setattr__`` as this is
   now using the quicker call method avoiding temporary tuples.
@@ -63,6 +69,9 @@ New Optimization
   updated during execution. This was done more often than necessary, e.g. loops
   set the line number before loop entry, and at first statement.
 
+- Module variables are now accessed even faster, the gain for "PyStone" is only
+  0.1% and mostly the result of leaner code.
+
 
 Organizational
 --------------
@@ -71,10 +80,21 @@ Organizational
   lot of people expect from a compiler, although the major goal is of course
   acceleration, packaging is one of the areas where Python severely lacks.
 
+  .. note::
+
+     Currently it breaks down when shared libraries are involved, but this is
+     being worked on for future releases.
+
 - Added package for Ubuntu 13.10 for download, removed packages for Ubuntu 11.04
   and 11.10, no more supported.
 
 - Added package for openSUSE 13.1 for download.
+
+- Using `Buildbot <http://buildbot.net>`_ for continuous integration testing and
+  release creation internally.
+
+- The `Downloads <http://nuitka.net/pages/download.html>`_ now offers MSI files
+  for Win64 as well.
 
 - Experimental support for the (yet unreleased) Python 3.4 was added.
 
@@ -90,6 +110,27 @@ Cleanups
 
 - The generated code uses ``const_``, ``var_``, ``par_`` prefixes in the
   generated code and centralized the decision about these into single place.
+
+- The test runners now share common code in a dedicated module, previously they
+  replicated it all, but that turned out to be too tedious.
+
+- Moved portable and freeze related codes to dedicated module ``nuitka.freezer``
+  to not pollute the ``nuitka`` package name space.
+
+- The assignment of identifiers to variables and their accesses was cleaned up.
+
+- Module variables no longer use C++ classes for their access, leading to much
+  less code generated for module variable and removing the need to trace their
+  usage during code generation.
+
+- Removed several not-so special case identifier classes because they now behave
+  more identical and all work the same way, so a parameters can be used to
+  distinguish them.
+
+- Moved main program, function object, set related code generation to dedicated
+  modules.
+
+- Massive general cleanups.
 
 Summary
 -------
