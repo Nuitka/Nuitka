@@ -35,6 +35,8 @@ from nuitka import Options
 import sys
 
 def getMainCode( codes, context ):
+    python_flags = Options.getPythonFlags()
+
     if context.isEmptyModule():
         code_identifier = NullIdentifier()
     else:
@@ -74,7 +76,7 @@ def getMainCode( codes, context ):
         "python_sysflag_ignore_environment" : sys.flags.ignore_environment,
         "python_sysflag_tabcheck" : ( sys.flags.tabcheck
             if hasattr( sys.flags, "tabcheck" ) else 0 ),
-        "python_sysflag_verbose" : sys.flags.verbose,
+        "python_sysflag_verbose" : 1 if "trace_imports" in python_flags else 0,
         "python_sysflag_unicode" : ( sys.flags.unicode
             if hasattr( sys.flags, "unicode" ) else 0 ),
         "python_sysflag_bytes_warning" : sys.flags.bytes_warning,
