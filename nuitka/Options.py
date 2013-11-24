@@ -66,7 +66,8 @@ recurse_group.add_option(
     action  = "store_true",
     dest    = "recurse_stdlib",
     default = False,
-    help    = "Also descend into imported modules from standard library."
+    help    = """\
+Also descend into imported modules from standard library. Defaults to off."""
 )
 
 recurse_group.add_option(
@@ -76,7 +77,7 @@ recurse_group.add_option(
     default = False,
     help    = """\
 When --recurse-none is used, do not descend into any imported modules at all,
-overrides all other recursion options. Default %default."""
+overrides all other recursion options. Defaults to off."""
 )
 
 recurse_group.add_option(
@@ -86,7 +87,7 @@ recurse_group.add_option(
     default = False,
     help    = """\
 When --recurse-all is used, attempt to descend into all imported modules.
-Default %default."""
+Defaults to off."""
 )
 
 recurse_group.add_option(
@@ -138,7 +139,7 @@ execute_group.add_option(
     default = is_nuitka_python,
     help    = """\
 Execute immediately the created binary (or import the compiled module).
-Default is %s.""" %
+Defaults to %s.""" %
        ( "on" if is_nuitka_python else "off" )
 )
 
@@ -215,7 +216,7 @@ parser.add_option(
     help    = """\
 Python flags to use. Default uses what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
-Python executable. Currently supported "-S"."""
+Python executable. Currently supported "-S" (alias nosite). Default empty."""
 )
 
 codegen_group = OptionGroup(
@@ -279,7 +280,7 @@ outputdir_group.add_option(
     default = False,
     help    = """\
 Removes the build directory after producing the module or exe file.
-Default %default."""
+Defaults to off."""
 )
 
 parser.add_option_group( outputdir_group )
@@ -457,7 +458,9 @@ parser.add_option(
     default = False,
     help    = """\
 Enable portable mode in build. This allows you to transfer the created binary
-to other machines without it relying on an existing Python installation.""",
+to other machines without it relying on an existing Python installation. It
+implies these options: "--exe --python-flag=-S --recurse-stdlib". Defaults to
+off.""",
 )
 
 parser.add_option(
@@ -496,6 +499,11 @@ Error, need positional argument with python module or main program.""" )
 
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
+
+if options.is_portable_mode:
+    options.executable = True
+    options.python_flags.append( "nosite" )
+
 
 def shallTraceExecution():
     return options.trace_execution
