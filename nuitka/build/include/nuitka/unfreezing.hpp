@@ -21,16 +21,22 @@
 // This define guards these definitions from being used without the unfreezing
 // mode actually being active at all.
 
+#define NUITKA_COMPILED_MODULE 0
+#define NUITKA_SHLIB_MODULE 1
+
 struct Nuitka_FreezeTableEntry
 {
-    char *name; // Full module name, including package
+    // Full module name, including package
+    char *name;
 
+    // Entry function if compiled module, otherwise NULL.
 #if PYTHON_VERSION < 300
     void (*python_initfunc)( void );
 #else
     PyObject * (*python_initfunc)( void );
 #endif
 
+    // Flags: NUITKA_COMPILED_MODULE or NUITKA_SHLIB_MODULE
     int flags;
 };
 

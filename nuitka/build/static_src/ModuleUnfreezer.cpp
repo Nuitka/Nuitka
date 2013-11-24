@@ -19,6 +19,8 @@
 // registered a "sys.meta_path" loader, that gets asked for module names, and
 // responds if it is an embedded one.
 
+#include <osdefs.h>
+
 #include "nuitka/prelude.hpp"
 #include "nuitka/unfreezing.hpp"
 
@@ -80,6 +82,153 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
     return INCREASE_REFCOUNT( Py_None );
 }
 
+#ifdef _NUITKA_PORTABLE
+
+#if PYTHON_VERSION < 300
+typedef void (*entrypoint_t)( void );
+#else
+typedef PyObject * (*entrypoint_t)( void );
+#endif
+
+#ifndef _WIN32
+// Shared libraries loading.
+#include <dlfcn.h>
+#endif
+
+PyObject *callIntoShlibModule( const char *full_name, const char *filename )
+{
+    // Determine the package name and basename of the module to load.
+    char const *dot = strrchr( full_name, '.' );
+    char const *name;
+    char const *package;
+
+    if ( dot == NULL )
+    {
+        package = NULL;
+        name = full_name;
+    }
+    else {
+        package = (char *)full_name;
+        name = dot+1;
+    }
+
+    char entry_function_name[1024];
+    snprintf(
+        entry_function_name, sizeof( entry_function_name ),
+#if PYTHON_VERSION < 300
+        "init%s",
+#else
+        "PyInit_%s",
+#endif
+        name
+    );
+
+#ifdef _WIN32
+
+    unsigned int old_mode = SetErrorMode( SEM_FAILCRITICALERRORS );
+
+    char abs_filename[ 260 ];
+    LPTSTR unused;
+
+    // Need to use absolute filename for Win9x to work correctly, however
+    // important that is.
+    GetFullPathName( filename, sizeof( abs_filename ), abs_filename, &unused );
+
+    HINSTANCE hDLL = LoadLibraryEx( abs_filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH );
+    assert( hDLL );
+
+    entrypoint_t entrypoint = (entrypoint_t)GetProcAddress( hDLL, entry_function_name );
+
+    SetErrorMode( old_mode );
+#else
+    int dlopenflags = PyThreadState_GET()->interp->dlopenflags;
+
+    if ( Py_VerboseFlag )
+    {
+        PySys_WriteStderr(
+            "import %s # dlopen(\"%s\", %x);\n",
+            full_name,
+            filename,
+            dlopenflags
+        );
+    }
+
+    void *handle = dlopen( filename, dlopenflags );
+
+    if (unlikely( handle == NULL ))
+    {
+        const char *error = dlerror();
+
+        if (unlikely( error == NULL ))
+        {
+            error = "unknown dlopen() error";
+        }
+
+        PyErr_SetString( PyExc_ImportError, error );
+        MOD_RETURN_VALUE( NULL );
+    }
+
+    entrypoint_t entrypoint = (entrypoint_t)dlsym(
+        handle,
+        entry_function_name
+    );
+
+#endif
+    assert( entrypoint );
+
+    char *old_context = _Py_PackageContext;
+    _Py_PackageContext = (char *)package;
+
+    // Finally call into the DLL.
+#if PYTHON_VERSION < 300
+    (*entrypoint)();
+#else
+    PyObject *module = (*entrypoint)();
+#endif
+
+    _Py_PackageContext = old_context;
+
+#if PYTHON_VERSION < 300
+    PyObject *module = PyDict_GetItemString( PyImport_GetModuleDict(), name );
+#endif
+
+    assert( module );
+
+    if (unlikely( module == NULL ))
+    {
+        PyErr_Format(
+            PyExc_SystemError,
+            "dynamic module not initialized properly"
+        );
+
+        return NULL;
+    }
+
+
+#if PYTHON_VERSION >= 300
+    struct PyModuleDef *def = PyModule_GetDef( module );
+    def->m_base.m_init = entrypoint;
+#endif
+
+    // Set filename attribute
+    int res = PyModule_AddStringConstant( module, "__file__", filename );
+    if (unlikely( res < 0 ))
+    {
+        // Might be refuted, which wouldn't be harmful.
+        PyErr_Clear();
+    }
+
+#if PYTHON_VERSION >= 300
+    PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
+    PyDict_SetItemString( PyImport_GetModuleDict(), full_name, module );
+#endif
+
+    return module;
+}
+
+#endif
+
+
 static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, PyObject *kwds )
 {
     PyObject *module_name;
@@ -114,8 +263,44 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
            printf( "Loading %s\n", name );
 #endif
 
-           // Check prelude on why this is necessary.
-           current->python_initfunc();
+#ifdef _NUITKA_PORTABLE
+           if ( ( current->flags & NUITKA_SHLIB_MODULE ) != 0 )
+           {
+               char filename[1024];
+
+               strcpy( filename, "_python" );
+               filename[7] = SEP;
+
+               char *s = current->name;
+               char *d = filename + 8;
+
+               while( *s )
+               {
+                   if ( *s == '.' )
+                   {
+                       *d++ = SEP;
+                   }
+                   else
+                   {
+                       *d++ = *s++;
+                   }
+               }
+               *d = 0;
+
+#ifdef _WIN32
+               strcat( filename, ".pyd" );
+#else
+               strcat( filename, ".so" );
+#endif
+
+               callIntoShlibModule( current->name,  filename );
+           }
+           else
+#endif
+           {
+               assert( ( current->flags & NUITKA_SHLIB_MODULE ) == 0 );
+               current->python_initfunc();
+           }
 
            if (unlikely( ERROR_OCCURED() ))
            {

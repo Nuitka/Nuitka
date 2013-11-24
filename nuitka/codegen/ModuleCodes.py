@@ -51,7 +51,19 @@ def getModuleDeclarationCode( module_name, extra_declarations ):
         "header_body"       : module_header_code
     }
 
-def getModuleCode( context, module_name, codes, other_module_names,
+def getModuleMetapathLoaderEntryCode( module_name, is_shlib ):
+    if is_shlib:
+        return CodeTemplates.template_metapath_loader_shlib_module_entry % {
+            "module_name" : module_name
+        }
+    else:
+        return CodeTemplates.template_metapath_loader_compiled_module_entry % {
+            "module_name"       : module_name,
+            "module_identifier" : getModuleIdentifier( module_name ),
+        }
+
+
+def getModuleCode( context, module_name, codes, metapath_loader_inittab,
                    function_decl_codes, function_body_codes, temp_variables ):
     # For the module code, lots of attributes come together.
     # pylint: disable=R0914
@@ -61,17 +73,6 @@ def getModuleCode( context, module_name, codes, other_module_names,
         "name"    : module_name,
         "version" : Options.getVersion()
     }
-
-    # Create for for "inittab" to use in unfreezing of modules if that is used.
-    module_inittab = []
-
-    for other_module_name in other_module_names:
-        module_inittab.append (
-            CodeTemplates.module_inittab_entry % {
-                "module_name"       : other_module_name,
-                "module_identifier" : getModuleIdentifier( other_module_name ),
-            }
-        )
 
     # Temp local variable initializations
     local_var_inits = [
@@ -92,13 +93,15 @@ def getModuleCode( context, module_name, codes, other_module_names,
             context  = context,
             constant = module_name
         ),
-        "module_identifier"     : module_identifier,
-        "module_functions_decl" : function_decl_codes,
-        "module_functions_code" : function_body_codes,
-        "temps_decl"            : indented( local_var_inits ),
-        "module_code"           : indented( codes ),
-        "module_inittab"        : indented( sorted( module_inittab ) ),
-        "use_unfreezer"         : 1 if other_module_names else 0
+        "module_identifier"       : module_identifier,
+        "module_functions_decl"   : function_decl_codes,
+        "module_functions_code"   : function_body_codes,
+        "temps_decl"              : indented( local_var_inits ),
+        "module_code"             : indented( codes ),
+        "metapath_loader_inittab" : indented(
+            sorted( metapath_loader_inittab )
+        ),
+        "use_unfreezer"           : 1 if metapath_loader_inittab else 0
     }
 
     return header + module_code

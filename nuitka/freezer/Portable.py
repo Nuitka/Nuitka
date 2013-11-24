@@ -27,12 +27,13 @@ This is in heavy flux now, cannot be expected to work or make sense.
 
 """
 
-
+import os
 import subprocess
 import sys
 from logging import debug
-
 import marshal
+import re
+
 from nuitka import Utils
 from nuitka.codegen.ConstantCodes import needsPickleInit
 
@@ -124,3 +125,51 @@ def detectEarlyImports():
     debug("Finished detecting early imports.")
 
     return result
+
+def detectPythonDLLs( binary_filename ):
+    if os.name == "posix" and os.uname()[0] == "Linux":
+        # Ask "ldd" about the libraries being used by the created binary, these
+        # are the ones that interest us.
+        process = subprocess.Popen(
+            args   = [ "ldd", binary_filename ],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE
+        )
+
+        stdout, _stderr = process.communicate()
+
+        result = set()
+
+        for line in stdout.split( "\n" ):
+            if not line:
+                continue
+
+            if "=>" not in line:
+                continue
+
+            part = line.split( " => ", 2 )[1]
+            filename = part[ : part.rfind( "(" ) - 1 ]
+
+            result.add( filename )
+        return result
+    elif os.name == "nt":
+        import ctypes
+        from ctypes import windll
+        from ctypes.wintypes import HANDLE, LPCSTR, DWORD
+        dll = getattr( windll, "python%s%s" % ( sys.version_info[:2] ) )
+        getname = windll.kernel32.GetModuleFileNameA
+        getname.argtypes = ( HANDLE, LPCSTR, DWORD )
+        getname.restype = DWORD
+        result = ctypes.create_string_buffer( 1024 )
+        size = getname( dll._handle, result, 1024 )
+        path = result.value[ :size ]
+
+        if Utils.python_version >= 300:
+            path = path.decode( "utf-8" )
+
+        result = set()
+        result.add( path )
+        return result
+    else:
+        # Support your platform above.
+        assert False

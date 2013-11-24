@@ -44,14 +44,17 @@ from .codegen import CodeGeneration
 from .optimizations import Optimization
 from .finalizations import Finalization
 
-from nuitka.freezer.Portable import detectEarlyImports
+from nuitka.freezer.Portable import (
+    detectEarlyImports,
+    detectPythonDLLs
+)
 from nuitka.freezer.PrecompiledModuleFreezer import (
     generatePrecompiledFrozenCode,
     getFrozenModuleCount,
     addFrozenModule
 )
 
-import sys, os, subprocess
+import sys, os, subprocess, shutil
 
 from logging import warning
 
@@ -121,6 +124,12 @@ def getSourceDirectoryPath( main_module ):
         )
     )
 
+def getPortableDirectoryPath():
+    return Options.getOutputPath(
+        path = "_python"
+    )
+
+
 def getResultBasepath( main_module ):
     assert main_module.isPythonModule()
 
@@ -130,7 +139,7 @@ def getResultBasepath( main_module ):
         )
     )
 
-def _cleanSourceDirectory( source_dir ):
+def cleanSourceDirectory( source_dir ):
     if Utils.isDir( source_dir ):
         for path, _filename in Utils.listDir( source_dir ):
             if Utils.getExtension( path ) in ( ".cpp", ".hpp", ".o", ".os" ):
@@ -145,7 +154,7 @@ def _cleanSourceDirectory( source_dir ):
             if Utils.getExtension( path ) in ( ".o", ".os" ):
                 Utils.deleteFile( path, True )
 
-def _pickSourceFilenames( source_dir, modules ):
+def pickSourceFilenames( source_dir, modules ):
     collision_filenames = set()
     seen_filenames = set()
 
@@ -201,7 +210,12 @@ def makeSourceDirectory( main_module ):
 
     # First remove old object files and old generated files, they can only do
     # harm.
-    _cleanSourceDirectory( source_dir )
+    cleanSourceDirectory( source_dir )
+
+    # Remove the DLL directory created for portable mode if any.
+    portable_dir = getPortableDirectoryPath()
+    shutil.rmtree( portable_dir, ignore_errors = True )
+    Utils.makePath( portable_dir )
 
     # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
@@ -211,12 +225,7 @@ def makeSourceDirectory( main_module ):
     assert main_module in modules
 
     # Sometimes we need to talk about all modules except main module.
-    other_modules = tuple(
-        m
-        for m in
-        modules
-        if not m is main_module and not m.isInternalModule()
-    )
+    other_modules = ModuleRegistry.getDoneUserModules()
 
     # Lets check if the recurse-to modules are actually present.
     for any_case_module in Options.getShallFollowModules():
@@ -231,10 +240,11 @@ def makeSourceDirectory( main_module ):
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in sorted( modules, key = lambda x : x.getFullName() ):
-        Finalization.prepareCodeGeneration( module )
+        if module.isPythonModule():
+            Finalization.prepareCodeGeneration( module )
 
     # Pick filenames.
-    module_filenames = _pickSourceFilenames(
+    module_filenames = pickSourceFilenames(
         source_dir = source_dir,
         modules    = modules
     )
@@ -244,32 +254,57 @@ def makeSourceDirectory( main_module ):
     for module in sorted( modules, key = lambda x : x.getFullName() ):
         cpp_filename, hpp_filename = module_filenames[ module ]
 
-        source_code, header_code, module_context = \
-          CodeGeneration.generateModuleCode(
-            global_context = global_context,
-            module         = module,
-            module_name    = module.getFullName(),
-            other_modules  = other_modules if module is main_module else ()
-        )
-
-        # The main of an executable module gets a bit different code.
-        if module is main_module and not Options.shallMakeModule():
-            source_code = CodeGeneration.generateMainCode(
-                context = module_context,
-                codes   = source_code
+        if module.isPythonModule():
+            source_code, header_code, module_context = \
+              CodeGeneration.generateModuleCode(
+                  global_context = global_context,
+                  module         = module,
+                  module_name    = module.getFullName(),
+                  other_modules  = other_modules
+                                     if module is main_module else
+                                   ()
             )
 
-        module_hpps.append( hpp_filename )
+            # The main of an executable module gets a bit different code.
+            if module is main_module and not Options.shallMakeModule():
+                source_code = CodeGeneration.generateMainCode(
+                    context = module_context,
+                    codes   = source_code
+                )
 
-        writeSourceCode(
-            filename     = cpp_filename,
-            source_code  = source_code
-        )
+            module_hpps.append( hpp_filename )
 
-        writeSourceCode(
-            filename     = hpp_filename,
-            source_code  = header_code
-        )
+            writeSourceCode(
+                filename     = cpp_filename,
+                source_code  = source_code
+            )
+
+            writeSourceCode(
+                filename     = hpp_filename,
+                source_code  = header_code
+            )
+        elif module.isPythonShlibModule():
+            target_filename = Utils.joinpath(
+                getPortableDirectoryPath(),
+                *module.getFullName().split( "." )
+            )
+
+            if Options.isWindowsTarget():
+                target_filename += ".pyd"
+            else:
+                target_filename += ".so"
+
+            target_dir = Utils.dirname( target_filename )
+
+            if not Utils.isDir( target_dir ):
+                Utils.makePath( target_dir )
+
+            shutil.copy(
+                module.getFilename(),
+                target_filename
+            )
+        else:
+            assert False, module
 
     writeSourceCode(
         filename    = Utils.joinpath( source_dir, "__constants.hpp" ),
@@ -345,6 +380,9 @@ def runScons( main_module, quiet ):
         "target_arch"    : Utils.getArchitecture(),
         "python_prefix"  : sys.prefix,
         "nuitka_src"     : SconsInterface.getSconsDataPath(),
+        "module_count"   : "%d" % (
+            len( ModuleRegistry.getDoneUserModules() ) + 1
+        )
     }
 
     # Ask Scons to cache on Windows, except where the directory is thrown
@@ -551,8 +589,6 @@ def main():
     elif Options.shallDisplayBuiltTree():
         displayTree( tree )
     else:
-        import shutil
-
         result, options = compileTree( tree )
 
         # Exit if compilation failed.
@@ -562,6 +598,18 @@ def main():
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
             shutil.rmtree( getSourceDirectoryPath( tree ) )
+
+        if Options.isPortableMode():
+            binary_filename = options[ "result_name" ] + ".exe"
+
+            for early_dll in detectPythonDLLs( binary_filename ):
+                shutil.copy(
+                    early_dll,
+                    Utils.joinpath(
+                        getPortableDirectoryPath(),
+                        Utils.basename( early_dll )
+                    )
+                )
 
         # Sanity check, warn people if "__main__" is used in the compiled
         # module, it may not be the appropiate usage.

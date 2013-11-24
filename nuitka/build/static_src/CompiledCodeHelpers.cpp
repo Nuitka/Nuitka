@@ -1864,7 +1864,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     );
 }
 
-#if _NUITKA_FROZEN
+#ifdef _NUITKA_PORTABLE
 
 #include <osdefs.h>
 #if defined( _WIN32 )
@@ -1884,7 +1884,6 @@ static char *getBinaryDirectory( char const *binary_path )
 
 #if defined( _WIN32 )
     GetModuleFileName( NULL, path, PATH_MAX + 1 );
-    char const sep = '\\';
 #else
     if ( !realpath( binary_path, path ) )
     {
@@ -1892,7 +1891,6 @@ static char *getBinaryDirectory( char const *binary_path )
         free( path );
         return NULL;
     }
-    char const sep = '/';
 #endif
 
 #if defined( _WIN32 )
@@ -1903,8 +1901,13 @@ static char *getBinaryDirectory( char const *binary_path )
 #endif
 }
 
-extern struct _frozen PortableMode_FrozenModules[];
+#endif
 
+#if _NUITKA_FROZEN > 0
+extern struct _frozen PortableMode_FrozenModules[];
+#endif
+
+#if defined(_NUITKA_PORTABLE) || _NUITKA_FROZEN > 0
 void preparePortableEnvironment( char *binary_path )
 {
     // Tell the CPython library to use our precompiled modules as frozen
@@ -1912,7 +1915,7 @@ void preparePortableEnvironment( char *binary_path )
     // loaded during "Py_Initialize" already, for the others they may be
     // compiled.
 
-
+#if _NUITKA_FROZEN > 0
     // The CPython library has some pre-existing frozen modules, we only append
     // to that.
     _frozen *search = PyImport_FrozenModules;
@@ -1920,7 +1923,7 @@ void preparePortableEnvironment( char *binary_path )
     {
         search++;
     }
-    int pre_existing_count = search - PyImport_FrozenModules;
+    int pre_existing_count = int( search - PyImport_FrozenModules );
 
     // Allocate new memory and merge the tables.
     _frozen *merged = new _frozen[ _NUITKA_FROZEN + pre_existing_count + 1 ];
@@ -1936,7 +1939,9 @@ void preparePortableEnvironment( char *binary_path )
     );
 
     PyImport_FrozenModules = merged;
+#endif
 
+#ifdef _NUITKA_PORTABLE
     // Setup environment variables to tell CPython that we would like it to use
     // the provided "_python" directory near the executable as the place to look
     // for DLLs.
@@ -1966,6 +1971,15 @@ void preparePortableEnvironment( char *binary_path )
     snprintf( insert_path, insert_size, env_string,
         binary_directory, "_python"
     );
+
+#if defined( _NUITKA_PORTABLE ) && _WIN32
+    char *insert_path2 = (char *) malloc( insert_size );
+    strcpy( insert_path2, insert_path );
+    insert_path2[ strlen( insert_path2 ) -1] = 0;
+
+    SetDllDirectory( insert_path2 );
+#endif
+
 
     // set environment
     size_t python_home_size = orignal_home_size + insert_size;
@@ -1999,6 +2013,7 @@ void preparePortableEnvironment( char *binary_path )
     // clean up
     free( binary_directory );
     free( insert_path );
+#endif
 }
 #endif
 
@@ -2579,7 +2594,7 @@ PyObject *DEEP_COPY( PyObject *value )
 
             Nuitka_GC_Track( result );
 
-            int size = mp->ma_keys->dk_size;
+            Py_ssize_t size = mp->ma_keys->dk_size;
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
                 if ( mp->ma_values[ i ] )
@@ -2600,7 +2615,7 @@ PyObject *DEEP_COPY( PyObject *value )
 
             PyDictObject *mp = (PyDictObject *)value;
 
-            int size = mp->ma_keys->dk_size;
+            Py_ssize_t size = mp->ma_keys->dk_size;
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
                 PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];

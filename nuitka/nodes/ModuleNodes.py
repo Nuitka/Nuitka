@@ -23,7 +23,8 @@ together and cross-module optimizations are the most difficult to tackle.
 
 from .NodeBases import (
     ClosureGiverNodeBase,
-    ChildrenHavingMixin
+    ChildrenHavingMixin,
+    NodeBase
 )
 
 from .IndicatorMixins import MarkContainsTryExceptIndicator
@@ -34,8 +35,38 @@ from nuitka import Variables, Utils
 
 from nuitka.oset import OrderedSet
 
-class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
-                    MarkContainsTryExceptIndicator ):
+class PythonModuleMixin:
+    def __init__( self, name, package_name ):
+        assert type(name) is str, type(name)
+        assert "." not in name, name
+        assert package_name is None or \
+               ( type( package_name ) is str and package_name != "" )
+
+        self.name = name
+        self.package_name = package_name
+        self.package = None
+
+    def getName( self ):
+        return self.name
+
+    def getPackage( self ):
+        return self.package_name
+
+    def getFullName( self ):
+        if self.package_name:
+            return self.package_name + "." + self.getName()
+        else:
+            return self.getName()
+
+    def isMainModule( self ):
+        return False
+
+    def isInternalModule( self ):
+        return False
+
+
+class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
+                    ClosureGiverNodeBase, MarkContainsTryExceptIndicator ):
     """ Module
 
         The module is the only possible root of a tree. When there are many
@@ -47,10 +78,6 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
     named_children = ( "body", )
 
     def __init__( self, name, package_name, source_ref ):
-        assert type(name) is str, type(name)
-        assert "." not in name, name
-        assert package_name is None or \
-               ( type( package_name ) is str and package_name != "" )
 
         ClosureGiverNodeBase.__init__(
             self,
@@ -66,8 +93,11 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
 
         MarkContainsTryExceptIndicator.__init__( self )
 
-        self.package_name = package_name
-        self.package = None
+        PythonModuleMixin.__init__(
+            self,
+            name         = name,
+            package_name = package_name
+        )
 
         self.variables = set()
 
@@ -113,15 +143,6 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
     def getFilename( self ):
         return self.source_ref.getFilename()
 
-    def getPackage( self ):
-        return self.package_name
-
-    def getFullName( self ):
-        if self.package_name:
-            return self.package_name + "." + self.getName()
-        else:
-            return self.getName()
-
     def getVariableForAssignment( self, variable_name ):
         result = self.getProvidedVariable( variable_name )
 
@@ -152,12 +173,6 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
         # Modules should immediately closure variables on use.
         # pylint: disable=R0201
         return True
-
-    def isMainModule( self ):
-        return False
-
-    def isInternalModule( self ):
-        return False
 
     def getCodeName( self ):
         return "module_" + self.getFullName().replace( ".", "__" ).replace( "-", "_" )
@@ -211,7 +226,8 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
                 module_package  = package_package,
                 module_filename = package_filename,
                 module_relpath  = Utils.relpath( package_filename ),
-                reason          = "Containing package of recursed module."
+                module_kind     = "py",
+                reason          = "Containing package of recursed module.",
             )
 
             self.package = imported_module
@@ -305,3 +321,28 @@ class PythonPackage( PythonModule ):
 
     def getOutputFilename( self ):
         return Utils.dirname( self.getFilename() )
+
+
+class PythonShlibModule( PythonModuleMixin, NodeBase ):
+    kind = "PYTHON_SHLIB_MODULE"
+
+    def __init__( self, name, package_name, source_ref ):
+        NodeBase.__init__( self, source_ref )
+
+        PythonModuleMixin.__init__(
+            self,
+            name         = name,
+            package_name = package_name
+        )
+
+    def getDetails( self ):
+        return {
+            "name": self.name,
+            "package_name" : self.package_name
+        }
+
+    def getFilename( self ):
+        return self.getSourceReference().getFilename()
+
+    def startTraversal( self ):
+        pass

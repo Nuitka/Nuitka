@@ -2655,18 +2655,25 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
     function_body_codes = "\n\n".join( function_body_codes )
     function_decl_codes = "\n\n".join( function_decl_codes )
 
+    metapath_loader_inittab = []
+
+    for other_module in other_modules:
+        metapath_loader_inittab.append(
+            Generator.getModuleMetapathLoaderEntryCode(
+                module_name = other_module.getFullName(),
+                is_shlib    = other_module.isPythonShlibModule()
+            )
+        )
+
+
     module_source_code = Generator.getModuleCode(
-        module_name        = module_name,
-        codes              = codes,
-        other_module_names = [
-            other_module.getFullName()
-            for other_module in
-            other_modules
-        ],
-        function_decl_codes = function_decl_codes,
-        function_body_codes = function_body_codes,
-        temp_variables      = module.getTempVariables(),
-        context             = context,
+        module_name             = module_name,
+        codes                   = codes,
+        metapath_loader_inittab = metapath_loader_inittab,
+        function_decl_codes     = function_decl_codes,
+        function_body_codes     = function_body_codes,
+        temp_variables          = module.getTempVariables(),
+        context                 = context,
     )
 
     extra_declarations = "\n".join( extra_declarations )

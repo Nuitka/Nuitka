@@ -105,6 +105,7 @@ from .FunctionCodes import (
 )
 
 from .ModuleCodes import (
+    getModuleMetapathLoaderEntryCode,
     getModuleDeclarationCode,
     getModuleAccessCode,
     getModuleIdentifier,

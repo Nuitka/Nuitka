@@ -114,14 +114,17 @@ def optimize():
             if current_module is None:
                 break
 
+            if current_module.isPythonShlibModule():
+                continue
+
             if _progress:
                 printLine(
-                    "Optimizing module '{}', {} more modules to go after that.".
-                    format(
+                    """\
+Optimizing module '{}', {:d} more modules to go after that.""".format(
                         current_module.getFullName(),
                         ModuleRegistry.remainingCount()
-                        )
                     )
+                )
 
             changed = optimizeModule(current_module)
 

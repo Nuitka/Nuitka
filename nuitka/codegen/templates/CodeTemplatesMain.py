@@ -41,8 +41,12 @@ global_copyright = """\
 // limitations under the License.
 """
 
-module_inittab_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0 },"""
+template_metapath_loader_compiled_module_entry = """\
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_MODULE },"""
+
+template_metapath_loader_shlib_module_entry = """\
+{ (char *)"%(module_name)s", NULL, NUITKA_SHLIB_MODULE },"""
+
 
 main_program = """\
 // The main program for C++. It needs to prepare the interpreter and then
@@ -58,7 +62,7 @@ int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmd
 int main( int argc, char *argv[] )
 {
 #endif
-#if _NUITKA_FROZEN
+#ifdef _NUITKA_PORTABLE
     preparePortableEnvironment( argv[0] );
 #endif
 
@@ -309,7 +313,7 @@ static struct PyModuleDef mdef_%(module_identifier)s =
 // or along this binary.
 static struct Nuitka_FreezeTableEntry _frozen_modules[] =
 {
-%(module_inittab)s
+%(metapath_loader_inittab)s
     { NULL, NULL, 0 }
 };
 

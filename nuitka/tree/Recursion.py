@@ -19,19 +19,21 @@
 
 """
 
-from nuitka import Utils, Importing, ModuleRegistry
+from nuitka import Options, Utils, Importing, ModuleRegistry
 
 from . import ImportCache, Building
 
 from logging import info, warning
 
-def recurseTo( module_package, module_filename, module_relpath, reason ):
+def recurseTo( module_package, module_filename, module_relpath, module_kind,
+               reason ):
     if not ImportCache.isImportedModuleByPath( module_relpath ):
         module, source_ref, source_filename = Building.decideModuleTree(
             filename = module_filename,
             package  = module_package,
             is_top   = False,
-            is_main  = False
+            is_main  = False,
+            is_shlib = module_kind == "shlib"
         )
 
         # Check if the module name is known. In order to avoid duplicates,
@@ -44,26 +46,27 @@ def recurseTo( module_package, module_filename, module_relpath, reason ):
                 reason
             )
 
-            try:
-                Building.createModuleTree(
-                    module          = module,
-                    source_ref      = source_ref,
-                    source_filename = source_filename,
-                    is_main         = False
-                )
-            except ( SyntaxError, IndentationError ) as e:
-                if module_filename not in Importing.warned_about:
-                    Importing.warned_about.add( module_filename )
-
-                    warning(
-                        """\
-Cannot recurse to import module '%s' (%s) because of '%s'""",
-                        module_relpath,
-                        module_filename,
-                        e.__class__.__name__
+            if module_kind == "py":
+                try:
+                    Building.createModuleTree(
+                        module          = module,
+                        source_ref      = source_ref,
+                        source_filename = source_filename,
+                        is_main         = False
                     )
+                except ( SyntaxError, IndentationError ) as e:
+                    if module_filename not in Importing.warned_about:
+                        Importing.warned_about.add( module_filename )
 
-                return None, False
+                        warning(
+                            """\
+Cannot recurse to import module '%s' (%s) because of '%s'""",
+                            module_relpath,
+                            module_filename,
+                            e.__class__.__name__
+                        )
+
+                    return None, False
 
             ImportCache.addImportedModule(
                 module_relpath,
@@ -88,6 +91,77 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
         return module, is_added
     else:
         return ImportCache.getImportedModuleByPath( module_relpath ), False
+
+def decideRecursion( module_filename, module_name, module_package,
+                     module_kind ):
+    # Many branches, which make decisions immediately, pylint: disable=R0911
+
+    if module_kind == "shlib":
+        if Options.isPortableMode():
+            return True, "Shared library for inclusion."
+        else:
+            return False, "Shared library cannot be inspected."
+
+    no_case_modules = Options.getShallFollowInNoCase()
+
+    if module_package is None:
+        full_name = module_name
+    else:
+        full_name = module_package + "." + module_name
+
+    for no_case_module in no_case_modules:
+        if full_name == no_case_module:
+            return (
+                False,
+                "Module listed explicitely to not recurse to."
+            )
+
+        if full_name.startswith( no_case_module + "." ):
+            return (
+                False,
+                "Module in package listed explicitely to not recurse to."
+            )
+
+    any_case_modules = Options.getShallFollowModules()
+
+    for any_case_module in any_case_modules:
+        if full_name == any_case_module:
+            return (
+                True,
+                "Module listed explicitely to recurse to."
+            )
+
+        if full_name.startswith( any_case_module + "." ):
+            return (
+                True,
+                "Module in package listed explicitely to recurse to."
+            )
+
+    if Options.shallFollowNoImports():
+        return (
+            False,
+            "Requested to not recurse at all."
+        )
+
+    if Importing.isStandardLibraryPath( module_filename ):
+        return (
+            Options.shallFollowStandardLibrary(),
+            "Requested to %srecurse to standard library." % (
+                "" if Options.shallFollowStandardLibrary() else "not "
+            )
+        )
+
+    if Options.shallFollowAllImports():
+        return (
+            True,
+            "Requested to recurse to all non-standard library modules."
+        )
+
+    # Means, we were not given instructions how to handle things.
+    return (
+        None,
+        "Default behaviour, not recursing without request."
+    )
 
 
 def considerFilename( module_filename, module_package ):
@@ -122,6 +196,7 @@ def _checkPluginPath( plugin_filename, module_package ):
             module_filename = plugin_info[0],
             module_relpath  = plugin_info[1],
             module_package  = module_package,
+            module_kind     = "py",
             reason          = "Lives in plugin directory."
         )
 

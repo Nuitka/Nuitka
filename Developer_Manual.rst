@@ -11,7 +11,7 @@ Nuitka Developer Manual
    SetPageCounter 1
 
 The purpose of this developer manual is to present the current design of Nuitka,
-the coding rules, and the intentions of choices made. It is intended to be a
+the coding rules, and the motivations for choices made. It is intended to be a
 guide to the source code, and to give explanations that don't fit into the
 source code in comments form.
 

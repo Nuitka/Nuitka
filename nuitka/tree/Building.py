@@ -84,9 +84,10 @@ from nuitka.nodes.ConditionalNodes import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ModuleNodes import (
+    PythonShlibModule,
+    PythonMainModule,
     PythonPackage,
-    PythonModule,
-    PythonMainModule
+    PythonModule
 )
 from nuitka.nodes.TryNodes import StatementTryFinally
 
@@ -1004,7 +1005,7 @@ from __future__ imports must occur at the beginning of the file""",
     else:
         assert False
 
-def decideModuleTree( filename, package, is_top, is_main ):
+def decideModuleTree( filename, package, is_shlib, is_top, is_main ):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
 
     assert package is None or type( package ) is str
@@ -1043,6 +1044,9 @@ def decideModuleTree( filename, package, is_top, is_main ):
             if module_name.endswith( ".py" ):
                 module_name = module_name[:-3]
 
+            if is_shlib:
+                module_name = module_name.split(".")[0]
+
             if "." in module_name:
                 sys.stderr.write(
                     "Error, '%s' is not a proper python module name.\n" % (
@@ -1052,7 +1056,13 @@ def decideModuleTree( filename, package, is_top, is_main ):
 
                 sys.exit( 2 )
 
-        if is_main:
+        if is_shlib:
+            result = PythonShlibModule(
+                name         = module_name,
+                source_ref   = source_ref,
+                package_name = package,
+            )
+        elif is_main:
             result = PythonMainModule(
                 source_ref = source_ref,
                 main_added = main_added
@@ -1116,7 +1126,8 @@ def buildModuleTree( filename, package, is_top, is_main ):
         filename = filename,
         package  = package,
         is_top   = is_top,
-        is_main  = is_main
+        is_main  = is_main,
+        is_shlib = False
     )
 
     addImportedModule( Utils.relpath( filename ), module )

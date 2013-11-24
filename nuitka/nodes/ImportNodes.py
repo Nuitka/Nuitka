@@ -86,13 +86,6 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
     def getVisitableNodes( self ):
         return ()
 
-    # TODO: No need for these accessor functions anymore.
-    def hasAttemptedRecurse( self ):
-        return self.attempted_recurse
-
-    def setAttemptedRecurse( self ):
-        self.attempted_recurse = True
-
     getModule = ExpressionChildrenHavingBase.childGetter( "module" )
     _setModule = ExpressionChildrenHavingBase.childSetter( "module" )
 
@@ -101,71 +94,6 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
         assert module.parent is None
         self._setModule( module )
         module.parent = None
-
-    @staticmethod
-    def _decide( module_filename, module_name, module_package ):
-        # Many branches, which make decisions immediately, pylint: disable=R0911
-
-        no_case_modules = Options.getShallFollowInNoCase()
-
-        if module_package is None:
-            full_name = module_name
-        else:
-            full_name = module_package + "." + module_name
-
-        for no_case_module in no_case_modules:
-            if full_name == no_case_module:
-                return (
-                    False,
-                    "Module listed explicitely to not recurse to."
-                )
-
-            if full_name.startswith( no_case_module + "." ):
-                return (
-                    False,
-                    "Module in package listed explicitely to not recurse to."
-                )
-
-        any_case_modules = Options.getShallFollowModules()
-
-        for any_case_module in any_case_modules:
-            if full_name == any_case_module:
-                return (
-                    True,
-                    "Module listed explicitely to recurse to."
-                )
-
-            if full_name.startswith( any_case_module + "." ):
-                return (
-                    True,
-                    "Module in package listed explicitely to recurse to."
-                )
-
-        if Options.shallFollowNoImports():
-            return (
-                False,
-                "Requested to not recurse at all."
-            )
-
-        if Importing.isStandardLibraryPath( module_filename ):
-            return (
-                Options.shallFollowStandardLibrary(),
-                "Requested to %srecurse to standard library." % (
-                    "" if Options.shallFollowStandardLibrary() else "not "
-                )
-            )
-
-        if Options.shallFollowAllImports():
-            return (
-                True,
-                "Requested to recurse to all non-standard library modules."
-            )
-
-        # Means, we were not given instructions how to handle things.
-        return (
-            None,
-            "Default behaviour, not recursing without request."
-        )
 
     def _consider( self, constraint_collection, module_filename,
                    module_package ):
@@ -176,43 +104,38 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
 
         if Utils.isDir( module_filename ):
             module_name = Utils.basename( module_filename )
+            module_kind = "py"
         elif module_filename.endswith( ".py" ):
             module_name = Utils.basename( module_filename )[:-3]
-        elif module_filename.endswith( ".so" ) or \
-             module_filename.endswith( ".pyd" ):
-            # Remember the list of used shared library modules separately, and
-            # then act as if they were not found, because there is not much we
-            # can say about them. TODO: We might one day have module-alike
-            # objects that can provide information about some of them, once we
-            # have that for Python modules.
-
-            from nuitka.ModuleRegistry import addSharedLibrary
-            addSharedLibrary(
-                module_name   = Utils.basename( module_filename ),
-                package_name  = module_package,
-                filename      = module_filename
-            )
-
-            module_name = None
+            module_kind = "py"
+        elif module_filename.endswith( ".so" ):
+            module_kind = "shlib"
+            module_name = Utils.basename( module_filename )[:-3]
+        elif module_filename.endswith( ".pyd" ):
+            module_kind = "shlib"
+            module_name = Utils.basename( module_filename )[:-4]
         else:
+            module_kind = None
             module_name = None
 
-        if module_name is not None:
-            decision, reason = self._decide(
+        if module_kind is not None:
+            from nuitka.tree import Recursion
+
+            decision, reason = Recursion.decideRecursion(
                 module_filename = module_filename,
                 module_name     = module_name,
-                module_package  = module_package
+                module_package  = module_package,
+                module_kind     = module_kind
             )
 
             if decision:
                 module_relpath = Utils.relpath( module_filename )
 
-                from nuitka.tree import Recursion
-
                 imported_module, added_flag = Recursion.recurseTo(
                     module_package  = module_package,
                     module_filename = module_filename,
                     module_relpath  = module_relpath,
+                    module_kind     = module_kind,
                     reason          = reason
                 )
 
@@ -224,7 +147,7 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
                     )
 
                 return imported_module
-            elif decision is None:
+            elif decision is None and module_kind == "py":
                 if module_package is None:
                     module_fullpath = module_name
                 else:
@@ -304,12 +227,12 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
     def computeExpression( self, constraint_collection ):
         # Attempt to recurse if not already done.
-        if not self.hasAttemptedRecurse():
+        if not self.attempted_recurse:
             self._attemptRecursion(
                 constraint_collection = constraint_collection
             )
 
-            self.setAttemptedRecurse()
+            self.attempted_recurse = True
 
         if self.getModule() is not None:
             from nuitka.ModuleRegistry import addUsedModule

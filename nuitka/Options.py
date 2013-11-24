@@ -25,7 +25,7 @@ from . import Utils
 
 from optparse import OptionParser, OptionGroup
 
-import sys, logging
+import os, sys, logging
 
 # Indicator if we were called as "nuitka-python" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -288,9 +288,9 @@ parser.add_option(
     "--windows-target",
     action  = "store_true",
     dest    = "windows_target",
-    default = False,
+    default = os.name == "nt",
     help    = """\
-Force compilation for windows, useful for cross-compilation. Defaults to off."""
+Force compilation for windows, useful for cross-compilation. Defaults %default."""
 )
 
 parser.add_option(

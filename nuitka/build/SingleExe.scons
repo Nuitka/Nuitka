@@ -100,6 +100,9 @@ mingw_mode = getBoolOption( "mingw_mode", False )
 # Frozen modules count
 frozen_modules = int( ARGUMENTS.get( "frozen_modules", 0 ) )
 
+# Shared library and compiled modules count
+module_count = int( ARGUMENTS.get( "module_count", 0 ) )
+
 # Portable mode
 portable_mode = getBoolOption( "portable_mode", False )
 
@@ -556,8 +559,11 @@ if portable_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_PORTABLE" ] )
 
     if win_target:
-        # This is used for "PathRemoveFileSpec" used in portable Windows code.
-        env.Append( LIBS = [ "Shlwapi.lib" ] )
+        if msvc_mode:
+            # This is used for "PathRemoveFileSpec" used in portable Windows code.
+            env.Append( LIBS = [ "Shlwapi.lib" ] )
+    else:
+        env.Append( LIBS = [ "dl" ] )
 
 if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
@@ -691,7 +697,7 @@ if optimize_mode:
 
 # Set load libpython from binary directory default
 if portable_mode and gcc_mode:
-    env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
+    env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN/_python'" ] )
 
 env.Append( CPPDEFINES = [ "_NUITKA_FROZEN=%d" % frozen_modules ] )
 
@@ -740,14 +746,9 @@ def discoverSourceFiles():
         # Variant based on getcontext/setcontext/swapcontext/makecontext
         result.append( getStatic(  "gen_ucontext_src/fibers_gen.cpp" ) )
 
-    module_count = 0
-
     for filename in os.listdir( source_dir ):
         if filename.endswith( ".cpp" ):
             result.append( os.path.join( source_dir, filename ) )
-
-            if filename.startswith( "module." ):
-                module_count += 1
 
     # If more than one module is included, we need the unfreezer.
     if module_count > 1:
@@ -761,50 +762,42 @@ source_targets = []
 # specs for linking to avoid the use of the wrong (for CPython) run time
 # library.
 if msvc_mode and not module_mode:
-    manifest_file = open(
-        os.path.join( source_dir, "resources.manifest" ),
-        "w"
-    )
-    manifest_file.write( r"""
-<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
-    <security>
-      <requestedPrivileges>
-        <requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel>
-      </requestedPrivileges>
-    </security>
-  </trustInfo>
-  <dependency>
-    <dependentAssembly>
-      <assemblyIdentity
-         type="win32"
-         name="Microsoft.VC90.CRT"
-         version="9.0.21022.8"
-         processorArchitecture="x86"
-         publicKeyToken="1fc8b3b9a1e18e3b">
-      </assemblyIdentity>
-    </dependentAssembly>
-  </dependency>
-</assembly>
-"""
-    )
-    manifest_file.close()
+    rc_content = []
 
-    rc_filename = os.path.join( source_dir, "resources.rc" )
+    if python_version < "3.0":
+        manifest_filename = os.path.join( source_dir, "resources.manifest" )
 
-    rc_file = open( rc_filename, "w" )
-    rc_file.write( r"""
-#include "winuser.h"
-1 RT_MANIFEST resources.manifest
-"""
-    )
+        assert 0 == subprocess.call(
+            (
+                "mt",
+                "-inputresource:%s;#1" % os.path.join( python_prefix, "python.exe" ),
+                "-out:%s" % manifest_filename
+            ),
+            stdout = subprocess.PIPE
+        )
+
+        rc_content.append( "1 RT_MANIFEST resources.manifest" )
+
     if icon_path:
-        rc_file.write("2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE \"%s\"\n" % icon_path.replace("\\", "/"))
-    rc_file.close()
+        rc_content.append(
+            '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"' % (
+                icon_path.replace( "\\", "/" )
+            )
+        )
 
-    source_targets.append(
-        env.RES( rc_filename )
-    )
+    if rc_content:
+        rc_filename = os.path.join( source_dir, "resources.rc" )
+
+        rc_file = open( rc_filename, "w" )
+
+        rc_content.insert( 0, '#include "winuser.h"' )
+        rc_file.write( "\n".join( rc_content ) )
+
+        rc_file.close()
+
+        source_targets.append(
+            env.RES( rc_filename )
+        )
 
 source_files = discoverSourceFiles()
 

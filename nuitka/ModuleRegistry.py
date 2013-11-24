@@ -68,10 +68,11 @@ def remainingCount():
 def getDoneModules():
     return list( done_modules )
 
-shared_libraries = {}
-
-def addSharedLibrary( package_name, module_name, filename ):
-    if package_name is None:
-        shared_libraries[ module_name ] = filename
-    else:
-        shared_libraries[ package_name + "." + module_name ] = filename
+def getDoneUserModules():
+    return [
+        module
+        for module in
+        done_modules
+        if not module.isInternalModule()
+        if not module.isMainModule()
+    ]
