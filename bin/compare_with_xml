@@ -30,12 +30,14 @@ import sys
 import tempfile
 
 
-nuitka1 = sys.argv[1]
-nuitka2 = sys.argv[2]
+nuitka1  = sys.argv[1]
+nuitka2  = sys.argv[2]
 filename = sys.argv[3]
 
 print("Comparing output of '{}' using '{}' <-> '{}' ...".format(filename,
-                                                              nuitka1, nuitka2))
+                                                                nuitka1,
+                                                                nuitka2)
+)
 
 
 extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
@@ -43,22 +45,23 @@ extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
 nuitka1_cmd = "{} --dump-xml {}".format(nuitka1, filename)
 
 process = subprocess.Popen(
-    args = nuitka1_cmd,
+    args   = nuitka1_cmd,
     stdout = subprocess.PIPE,
     stderr = subprocess.PIPE,
-    shell = True
+    shell  = True
 )
 
 stdout_nuitka1, stderr_nuitka1 = process.communicate()
 exit_nuitka1 = process.returncode
 
-nuitka2_cmd = "{} --dump-xml {}".format(nuitka2, filename)
+nuitka2_cmd = "{} --dump-xml {}".format(nuitka2,
+                                        filename)
 
 process = subprocess.Popen(
-    args = nuitka2_cmd,
+    args   = nuitka2_cmd,
     stdout = subprocess.PIPE,
     stderr = subprocess.PIPE,
-    shell = True
+    shell  = True
 )
 
 stdout_nuitka2, stderr_nuitka2 = process.communicate()
@@ -75,7 +78,7 @@ def makeDiffable(output):
     return result
 
 fromdate = None
-todate = None
+todate   = None
 
 
 def compareOutput(kind, out1, out2):
@@ -102,8 +105,12 @@ exit_code_stdout = compareOutput("stdout", stdout_nuitka1, stdout_nuitka2)
 exit_code_return = exit_nuitka1 != exit_nuitka2
 
 if exit_code_return:
-    print("Exit codes {:d} ({}) != {:d} ({})".format(exit_nuitka1, nuitka1,
-                                                 exit_nuitka2, nuitka2))
+    print("Exit codes {:d} ({}) != {:d} ({})".format(exit_nuitka1,
+                                                     nuitka1,
+                                                     exit_nuitka2,
+                                                     nuitka2
+                                                     )
+    )
 
 exit_code = exit_code_stdout or exit_code_return
 
