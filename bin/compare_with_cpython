@@ -53,9 +53,11 @@ if python_debug and os.path.exists(os.path.join("/usr/bin/",
     os.environ["PYTHON"] += "-dbg"
 
 
-print("Comparing output of '{}' using '{}' ...".format(filename,
-                                                       os.environ["PYTHON"]
-                                                       )
+print(
+    "Comparing output of '{}' using '{}' ...".format(
+        filename,
+        os.environ["PYTHON"]
+    )
 )
 
 if not silent_mode:
