@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
@@ -103,7 +102,7 @@ exit_code_stdout = compareOutput("stdout", stdout_nuitka1, stdout_nuitka2)
 exit_code_return = exit_nuitka1 != exit_nuitka2
 
 if exit_code_return:
-    print("Exit codes {} ({}) != {} ({})".format(exit_nuitka1, nuitka1,
+    print("Exit codes {:d} ({}) != {:d} ({})".format(exit_nuitka1, nuitka1,
                                                  exit_nuitka2, nuitka2))
 
 exit_code = exit_code_stdout or exit_code_return

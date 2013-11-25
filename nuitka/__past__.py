@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
