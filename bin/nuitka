@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -17,6 +20,7 @@
 #     limitations under the License.
 #
 
+
 """
 
 This is the main program of Nuitka, it checks the options and then translates
@@ -26,7 +30,12 @@ other modules.
 
 """
 
-import sys, os
+
+import logging
+import os
+import sys
+import warnings
+from logging import warning
 
 # LIBDIR trick start (marker for removal on platforms that don't need it)
 libdir = '@LIBDIR@'
@@ -35,12 +44,12 @@ libdir = '@LIBDIR@'
 if libdir != '@' 'LIBDIR' '@':
     # Changed by our distutils hook, then use the given path.
 
-    if not os.path.isabs( libdir ):
+    if not os.path.isabs(libdir):
         libdir = os.path.join(
-            os.path.dirname( os.path.realpath( __file__ ) ),
+            os.path.dirname(os.path.realpath(__file__)),
             libdir
         )
-        libdir = os.path.abspath( libdir )
+        libdir = os.path.abspath(libdir)
 
     sys.path.insert(
         0,
@@ -53,30 +62,31 @@ else:
         0,
         os.path.normpath(
             os.path.join(
-                os.path.dirname( __file__ ),
+                os.path.dirname(__file__),
                 ".."
             )
         )
     )
 # LIBDIR trick end (marker for removal on platforms that don't need it)
 
-import logging
-logging.basicConfig( format = 'Nuitka:%(levelname)s:%(message)s' )
+from nuitka import Options, Utils
+
+logging.basicConfig(format = 'Nuitka:%(levelname)s:%(message)s')
 
 # We don't care, and these are triggered by run time calculations of "range" and
 # others, while on python2.7 they are disabled by default.
-import warnings
-warnings.simplefilter( "ignore", DeprecationWarning )
+
+warnings.simplefilter("ignore", DeprecationWarning)
 
 # Import as little as possible initially, because we might be re-executing
 # soon.
-from nuitka import Options, Utils
+
 
 # We will run with the Python configuration as specified by the user, if it does
 # not match, we restart ourselves with matching configuration.
 needs_reexec = False
 
-current_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
+current_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
 
 # We support to execute with a specified version.
 intended_version = Options.getIntendedPythonVersion()
@@ -86,7 +96,7 @@ if intended_version is None:
 # If it's a different version, we find it by guessing it, otherwise we use the
 # one previously used.
 if current_version != intended_version:
-    assert intended_version in ( "2.6", "2.7", "3.2", "3.3", "3.4" )
+    assert intended_version in ("2.6", "2.7", "3.2", "3.3", "3.4")
 
     if os.name == "nt":
         python_binary = r"C:\Python%s\python.exe" % \
@@ -119,21 +129,22 @@ if needs_reexec:
     # Execute with "python" as the processs name.
     args = [
         python_binary,
-        os.path.basename( python_binary )
+        os.path.basename(python_binary)
     ]
 
     # Potentially give Python command line flags as necessary.
     if "no_site" in python_flags:
-        args.append( "-S" )
+        args.append("-S")
 
     if "trace_imports" in python_flags:
-        args.append( "-v" )
+        args.append("-v")
 
     # Same arguments as before.
     args += sys.argv
 
-    Utils.callExec( args )
+    Utils.callExec(args)
+
 
 # Now the main program.
-from nuitka import MainControl
+from nuitka import MainControl  # isort:skip
 MainControl.main()
