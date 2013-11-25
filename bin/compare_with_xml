@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -17,89 +20,96 @@
 #     limitations under the License.
 #
 
+
 from __future__ import print_function
 
-import os, sys, subprocess, difflib, re, tempfile
+import difflib
+import os
+import re
+import subprocess
+import sys
+import tempfile
 
 
 nuitka1 = sys.argv[1]
 nuitka2 = sys.argv[2]
 filename = sys.argv[3]
 
-print( "Comparing output of '%s' using '%s' <-> '%s' ..." % ( filename, nuitka1, nuitka2 ))
+print("Comparing output of '{}' using '{}' <-> '{}' ...".format(filename,
+                                                              nuitka1, nuitka2))
 
 
-extra_options = os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
+extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
 
-nuitka1_cmd = "%s --dump-xml %s" % ( nuitka1, filename )
+nuitka1_cmd = "{} --dump-xml {}".format(nuitka1, filename)
 
 process = subprocess.Popen(
-    args   = nuitka1_cmd,
+    args = nuitka1_cmd,
     stdout = subprocess.PIPE,
     stderr = subprocess.PIPE,
-    shell  = True
+    shell = True
 )
 
 stdout_nuitka1, stderr_nuitka1 = process.communicate()
 exit_nuitka1 = process.returncode
 
-nuitka2_cmd = "%s --dump-xml %s" % ( nuitka2, filename )
+nuitka2_cmd = "{} --dump-xml {}".format(nuitka2, filename)
 
 process = subprocess.Popen(
-    args   = nuitka2_cmd,
+    args = nuitka2_cmd,
     stdout = subprocess.PIPE,
     stderr = subprocess.PIPE,
-    shell  = True
+    shell = True
 )
 
 stdout_nuitka2, stderr_nuitka2 = process.communicate()
 exit_nuitka2 = process.returncode
 
-def makeDiffable( output ):
+
+def makeDiffable(output):
     result = []
 
-    for line in output.split( b"\n" ):
-        line = str( line )
-
-
-        result.append( line )
+    for line in output.split(b"\n"):
+        line = str(line)
+        result.append(line)
 
     return result
 
 fromdate = None
 todate = None
 
-def compareOutput( kind, out1, out2 ):
+
+def compareOutput(kind, out1, out2):
     diff = difflib.unified_diff(
-        makeDiffable( out1 ),
-        makeDiffable( out2 ),
-        "%s (%s)" % ( "nuitka1 " + filename, kind ),
-        "%s (%s)" % ( "nuitka2 " + filename, kind ),
+        makeDiffable(out1),
+        makeDiffable(out2),
+        "{} ({})".format("nuitka1 " + filename, kind),
+        "{} ({})".format("nuitka2 " + filename, kind),
         fromdate,
         todate,
         n=3
     )
 
-    result = list( diff )
+    result = list(diff)
 
     if result:
         for line in result:
-            print( line, end = "\n" if not line.startswith( "---" ) else "" )
-
+            print(line, end = "\n" if not line.startswith( "---" ) else "")
         return 1
     else:
         return 0
 
-exit_code_stdout = compareOutput( "stdout", stdout_nuitka1, stdout_nuitka2 )
+exit_code_stdout = compareOutput("stdout", stdout_nuitka1, stdout_nuitka2)
 exit_code_return = exit_nuitka1 != exit_nuitka2
 
 if exit_code_return:
-    print( "Exit codes %d (%s) != %d (%s)" % ( exit_nuitka1, nuitka1, exit_nuitka2, nuitka2 ) )
+    print("Exit codes {} ({}) != {} ({})".format(exit_nuitka1, nuitka1,
+                                                 exit_nuitka2, nuitka2))
 
 exit_code = exit_code_stdout or exit_code_return
 
 if exit_code:
-    sys.exit( "Error, outputs differed." )
+    sys.exit("Error, outputs differed.")
 
 
-print( "OK, same outputs." )
+print("OK, same outputs.")
