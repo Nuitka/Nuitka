@@ -36,7 +36,8 @@ filename = sys.argv[3]
 
 print("Comparing output of '{}' using '{}' <-> '{}' ...".format(filename,
                                                                 nuitka1,
-                                                                nuitka2)
+                                                                nuitka2
+    )
 )
 
 
@@ -109,7 +110,7 @@ if exit_code_return:
                                                      nuitka1,
                                                      exit_nuitka2,
                                                      nuitka2
-                                                     )
+          )
     )
 
 exit_code = exit_code_stdout or exit_code_return

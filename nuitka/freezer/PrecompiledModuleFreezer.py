@@ -56,10 +56,13 @@ def generatePrecompiledFrozenCode():
         if is_package:
             size = -size
 
-        frozen_defs.append("""(char *)"{}", (unsigned char *){}, {},""".format(
+        frozen_defs.append(
+            """(char *)"{}", (unsigned char *){}, {},""".format(
             module_name if Utils.python_version < 300 else module_name.decode(),
             stream_data.getStreamDataCode(code_data, fixed_size=True),
-            size))
+            size
+            )
+        )
 
     return CodeTemplates.template_frozen_modules % {
         "stream_data": "".join(stream_data.encodeStreamData()),

@@ -46,11 +46,18 @@ def _optimizeModulePass(module, tag_set):
         """ Indicate a change to the optimization framework.
 
         """
-        debug("{} : {} : {}".format(source_ref.getAsString(), tags, message))
+        debug("{} : {} : {}".format(
+            source_ref.getAsString(),
+            tags,
+            message
+            )
+        )
         tag_set.onSignal(tags)
 
-    module.collection = ConstraintCollectionModule(signal_change=signalChange,
-                                                   module=module)
+    module.collection = ConstraintCollectionModule(
+        signal_change=signalChange,
+        module=module
+    )
 
     written_variables = module.collection.getWrittenVariables()
 
@@ -66,7 +73,8 @@ def _optimizeModulePass(module, tag_set):
                 "read_only_mvar",
                 module.getSourceReference(),
                 "Determined variable '{}' is only read.".format(
-                                                             variable.getName())
+                    variable.getName()
+                )
             )
 
             variable.setReadOnlyIndicator(new_value)
@@ -75,7 +83,9 @@ def _optimizeModulePass(module, tag_set):
 def optimizeModule(module):
     if _progress:
         printLine("Doing module local optimizations for '{}'.".format(
-                                                          module.getFullName()))
+            module.getFullName()
+            )
+        )
 
     tag_set = TagSet()
     touched = False
@@ -107,8 +117,11 @@ def optimize():
             if _progress:
                 printLine(
                     "Optimizing module '{}', {} more modules to go after that.".
-                    format(current_module.getFullName(),
-                           ModuleRegistry.remainingCount()))
+                    format(
+                        current_module.getFullName(),
+                        ModuleRegistry.remainingCount()
+                        )
+                    )
 
             changed = optimizeModule(current_module)
 
