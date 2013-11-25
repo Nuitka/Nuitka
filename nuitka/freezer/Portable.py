@@ -50,8 +50,9 @@ def detectEarlyImports():
     # When we are using pickle internally (for some hard constant cases we do),
     # we need to make sure it will be available as well.
     if needsPickleInit():
-        command = "import {};".format("pickle"
-            if Utils.python_version >= 300 else "cPickle")
+        command = "import {};".format(
+            "pickle" if Utils.python_version >= 300 else "cPickle"
+        )
     else:
         command = ""
 

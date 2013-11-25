@@ -30,17 +30,17 @@ import sys
 import tempfile
 
 
-filename = sys.argv[1]
-silent_mode = "silent" in sys.argv
-ignore_stderr = "ignore_stderr" in sys.argv
-ignore_warnings = "ignore_warnings" in sys.argv
-exec_in_tmp = "exec_in_tmp" in sys.argv
-expect_success = "expect_success" in sys.argv
-expect_failure = "expect_failure" in sys.argv
-python_debug = "python_debug" in sys.argv
+filename           = sys.argv[1]
+silent_mode        = "silent" in sys.argv
+ignore_stderr      = "ignore_stderr" in sys.argv
+ignore_warnings    = "ignore_warnings" in sys.argv
+exec_in_tmp        = "exec_in_tmp" in sys.argv
+expect_success     = "expect_success" in sys.argv
+expect_failure     = "expect_failure" in sys.argv
+python_debug       = "python_debug" in sys.argv
 two_step_execution = "two_step_execution" in sys.argv or os.name == "nt"
-trace_command = "trace_command" in sys.argv
-remove_output = "remove_output" in sys.argv
+trace_command      = "trace_command" in sys.argv
+remove_output      = "remove_output" in sys.argv
 
 if "PYTHONHASHSEED" not in os.environ:
     os.environ["PYTHONHASHSEED"] = "0"
@@ -54,7 +54,9 @@ if python_debug and os.path.exists(os.path.join("/usr/bin/",
 
 
 print("Comparing output of '{}' using '{}' ...".format(filename,
-                                                       os.environ["PYTHON"]))
+                                                       os.environ["PYTHON"]
+                                                       )
+)
 
 if not silent_mode:
     print("*" * 80)
@@ -172,8 +174,10 @@ else:
         stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
     else:
         path_sep = ";" if os.name == "nt" else ":"
-        os.environ[ "PYTHONPATH" ] = path_sep.join([os.path.dirname(filename)] +
-                               os.environ.get("PYTHONPATH", "").split(path_sep))
+        os.environ[ "PYTHONPATH" ] = path_sep.join(
+            [os.path.dirname(filename)] +
+            os.environ.get("PYTHONPATH", "").split(path_sep)
+        )
 
         process = subprocess.Popen(
             args   = [ nuitka_cmd2 ],
@@ -192,20 +196,26 @@ if not silent_mode:
     if stderr_nuitka:
         print(stderr_nuitka)
 
-ran_re = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
-instance_re = re.compile(r"at (?:0x)?[0-9a-fA-F]+")
-compiled_function_re = re.compile(r"\<compiled function")
-compiled_frame_re = re.compile(r"\<compiled_frame")
-compiled_genexpr_re = re.compile(r"\<compiled generator object \<(.*?)\>")
-compiled_generator_re = re.compile(r"\<compiled generator object (.*?) at")
-unbound_method_re = re.compile(r"bound compiled_method ")
-compiled_type_re = re.compile(r"type 'compiled_")
+ran_re                       = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
+instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+")
+compiled_function_re         = re.compile(r"\<compiled function")
+compiled_frame_re            = re.compile(r"\<compiled_frame")
+compiled_genexpr_re          = re.compile(r"\<compiled generator object \<(.*?)\>")
+compiled_generator_re        = re.compile(r"\<compiled generator object (.*?) at")
+unbound_method_re            = re.compile(r"bound compiled_method ")
+compiled_type_re             = re.compile(r"type 'compiled_")
 compiled_generator_object_re = re.compile(r"'compiled_generator' object")
-global_name_error_re = re.compile(r"global (name ')(.*?)(' is not defined)")
-module_repr_re = re.compile(r"(\<module '.*?' from ').*?('\>)")
-non_ascii_error_rt = re.compile(
-                           r"(SyntaxError: Non-ASCII character.*? on line) \d+")
-python_win_lib_re = re.compile(r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib")
+module_repr_re               = re.compile(r"(\<module '.*?' from ').*?('\>)")
+
+global_name_error_re         = re.compile(
+                                   r"global (name ')(.*?)(' is not defined)"
+                                   )
+non_ascii_error_rt           = re.compile(
+                            r"(SyntaxError: Non-ASCII character.*? on line) \d+"
+                            )
+python_win_lib_re            = re.compile(
+                                   r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib"
+                                   )
 
 
 def makeDiffable(output):
@@ -317,8 +327,12 @@ else:
 exit_code_return = exit_cpython != exit_nuitka
 
 if exit_code_return:
-    print("Exit codes {} (CPython) != {} (Nuitka)".format(exit_cpython,
-                                                          exit_nuitka))
+    print(
+        "Exit codes {:d} (CPython) != {:d} (Nuitka)".format(
+            exit_cpython,
+            exit_nuitka
+        )
+    )
 
 exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 
