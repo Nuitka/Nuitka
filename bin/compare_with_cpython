@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
