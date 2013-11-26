@@ -251,7 +251,15 @@ def compileAndCompareWith( nuitka ):
 
                 diffRecursive( os.path.join( package, target ), target_dir )
 
-                shutil.rmtree( target_dir )
+                shutil.rmtree(target_dir)
+
+                if os.name == "nt":
+                    target_filename = filename.replace(".py", ".pyd")
+                else:
+                    target_filename = filename.replace(".py", ".so")
+
+                os.unlink(os.path.join(tmp_dir, target_filename))
+
 
 def executePASS2():
     my_print( "PASS 2: Compiling from compiler running from .exe and many .so files." )
@@ -357,3 +365,6 @@ else:
 shutil.rmtree( "nuitka" )
 
 executePASS5()
+
+os.unlink(os.path.join(tmp_dir, "nuitka.exe" ))
+os.rmdir(tmp_dir)
