@@ -412,8 +412,13 @@ b) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
 
-if os.name == "nt":
+if os.name == "nt" and msvc_mode:
     setupSpawn( env )
+
+if os.name == "nt" and gcc_mode and target_arch == "x86_64":
+    sys.exit( """\
+Error, MinGW does not support 64 bit Python. Use MSVC or 32 bit Python instead.""" )
+
 
 env[ "BUILD_DIR" ] = source_dir
 
