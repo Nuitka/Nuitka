@@ -68,13 +68,26 @@ def createNodeTree( filename ):
     """
 
     # First, build the raw node tree from the source code.
-    result = Building.buildModuleTree(
+    main_module = Building.buildModuleTree(
         filename = filename,
         package  = None,
         is_top   = True,
         is_main  = not Options.shallMakeModule()
     )
-    ModuleRegistry.addRootModule( result )
+    ModuleRegistry.addRootModule( main_module )
+
+    # First remove old object files and old generated files, old binary or
+    # module, and portable program directory if any, they can only do harm.
+    source_dir = getSourceDirectoryPath( main_module )
+    cleanSourceDirectory( source_dir )
+    if Options.isPortableMode():
+        portable_dir = getPortableDirectoryPath( main_module )
+        shutil.rmtree( portable_dir, ignore_errors = True )
+        Utils.makePath( portable_dir )
+    Utils.deleteFile(
+        path       = getResultFullpath( main_module ),
+        must_exist = False
+    )
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
@@ -86,7 +99,7 @@ def createNodeTree( filename ):
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize()
 
-    return result
+    return main_module
 
 def dumpTree( tree ):
     Tracing.printLine( "Analysis -> Tree Result" )
@@ -148,6 +161,19 @@ def getResultBasepath( main_module ):
                 getTreeFilenameWithSuffix( main_module, "" )
             )
         )
+
+def getResultFullpath(main_module):
+    result = getResultBasepath(main_module)
+
+    if Options.shallMakeModule():
+        if Options.isWindowsTarget():
+            result += ".pyd"
+        else:
+            result += ".so"
+    else:
+        result += ".exe"
+
+    return result
 
 def cleanSourceDirectory( source_dir ):
     if Utils.isDir( source_dir ):
@@ -216,18 +242,6 @@ def makeSourceDirectory( main_module ):
 
     assert main_module.isPythonModule()
 
-    source_dir = getSourceDirectoryPath( main_module )
-
-    # First remove old object files and old generated files, they can only do
-    # harm.
-    cleanSourceDirectory( source_dir )
-
-    # Remove the DLL directory created for portable mode if any.
-    if Options.isPortableMode():
-        portable_dir = getPortableDirectoryPath( main_module )
-        shutil.rmtree( portable_dir, ignore_errors = True )
-        Utils.makePath( portable_dir )
-
     # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
 
@@ -255,6 +269,8 @@ def makeSourceDirectory( main_module ):
             Finalization.prepareCodeGeneration( module )
 
     # Pick filenames.
+    source_dir = getSourceDirectoryPath( main_module )
+
     module_filenames = pickSourceFilenames(
         source_dir = source_dir,
         modules    = modules
@@ -573,7 +589,7 @@ def main():
 
     # Turn that source code into a node tree structure.
     try:
-        tree = createNodeTree(
+        main_module = createNodeTree(
             filename = filename
         )
     except (SyntaxError, IndentationError) as e:
@@ -595,13 +611,13 @@ def main():
         sys.exit( SyntaxErrors.formatOutput( e ) )
 
     if Options.shallDumpBuiltTree():
-        dumpTree( tree )
+        dumpTree( main_module )
     elif Options.shallDumpBuiltTreeXML():
-        dumpTreeXML( tree )
+        dumpTreeXML( main_module )
     elif Options.shallDisplayBuiltTree():
-        displayTree( tree )
+        displayTree( main_module )
     else:
-        result, options = compileTree( tree )
+        result, options = compileTree( main_module )
 
         # Exit if compilation failed.
         if not result:
@@ -609,7 +625,7 @@ def main():
 
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
-            shutil.rmtree( getSourceDirectoryPath( tree ) )
+            shutil.rmtree( getSourceDirectoryPath( main_module ) )
 
         if Options.isPortableMode():
             binary_filename = options[ "result_name" ] + ".exe"
@@ -618,7 +634,7 @@ def main():
                 shutil.copy(
                     early_dll,
                     Utils.joinpath(
-                        getPortableDirectoryPath( tree ),
+                        getPortableDirectoryPath( main_module ),
                         Utils.basename( early_dll )
                     )
                 )
@@ -626,7 +642,7 @@ def main():
         # Sanity check, warn people if "__main__" is used in the compiled
         # module, it may not be the appropiate usage.
         if Options.shallMakeModule() and Options.shallExecuteImmediately():
-            for variable in tree.getVariables():
+            for variable in main_module.getVariables():
                 if variable.getName() == "__name__":
                     warning( """\
 Compiling to extension module, which will not have '__name__' as '__main__', \
@@ -640,7 +656,7 @@ did you intend '--exe' or to use 'nuitka-python' instead.""" )
                 (
                     "chmod",
                     "-x",
-                    options[ "result_name" ] + ".so"
+                    getResultFullpath( main_module )
                 )
             )
 
@@ -648,12 +664,12 @@ did you intend '--exe' or to use 'nuitka-python' instead.""" )
         if Options.shallExecuteImmediately():
             if Options.shallMakeModule():
                 executeModule(
-                    tree       = tree,
+                    tree       = main_module,
                     clean_path = Options.shallClearPythonPathEnvironment()
                 )
             else:
                 executeMain(
-                    binary_filename = options[ "result_name" ] + ".exe",
-                    tree            = tree,
+                    binary_filename = getResultFullpath( main_module ),
+                    tree            = main_module,
                     clean_path      = Options.shallClearPythonPathEnvironment()
                 )
