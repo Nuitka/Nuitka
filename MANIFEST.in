@@ -26,6 +26,7 @@ recursive-include lib *.py
 # Core tests are included along with Nuitka itself.
 recursive-include tests/basics *.py
 recursive-include tests/syntax *.py
+recursive-include tests/packages *.py
 recursive-include tests/programs *.py
 recursive-include tests/reflected *.py
 include tests/test_common.py

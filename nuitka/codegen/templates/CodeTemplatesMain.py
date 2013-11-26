@@ -393,17 +393,14 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     assertObject( module_%(module_identifier)s );
 
-#ifndef _NUITKA_MODULE
-// Seems to work for Python2.7 out of the box, but for Python3.2, the module
-// doesn't automatically enter "sys.modules" with the object that it should, so
-// do it manually.
+// Seems to work for Python2.7 out of the box, but for Python3, the module
+// doesn't automatically enter "sys.modules", so do it manually.
 #if PYTHON_VERSION >= 300
     {
         int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, module_%(module_identifier)s );
 
         assert( r != -1 );
     }
-#endif
 #endif
 
     // For deep importing of a module we need to have "__builtins__", so we set

@@ -45,10 +45,14 @@ ignore_warnings    = hasArg("ignore_warnings")
 expect_success     = hasArg("expect_success")
 expect_failure     = hasArg("expect_failure")
 python_debug       = hasArg("python_debug")
+module_mode        = hasArg("module_mode")
 two_step_execution = hasArg("two_step_execution")
 binary_python_path = hasArg("binary_python_path")
 trace_command      = hasArg("trace_command")
 remove_output      = hasArg("remove_output")
+
+if args:
+    sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
 
 if "PYTHONHASHSEED" not in os.environ:
     os.environ["PYTHONHASHSEED"] = "0"
@@ -76,11 +80,18 @@ if not silent_mode:
 if two_step_execution:
     filename = os.path.abspath(filename)
 
-cpython_cmd = [
-    os.environ["PYTHON"],
-    "-W", "ignore",
-    filename
-]
+if module_mode:
+    cpython_cmd = [
+        os.environ[ "PYTHON" ],
+        "-W", "ignore",
+        "-c", "import %s" % os.path.basename( filename )
+    ]
+else:
+    cpython_cmd = [
+        os.environ[ "PYTHON" ],
+        "-W", "ignore",
+        filename
+    ]
 
 if "NUITKA" in os.environ:
     nuitka_call = [os.environ["NUITKA"]]
@@ -120,14 +131,22 @@ if filename.endswith(".py"):
 exe_filename += ".exe"
 
 if not two_step_execution:
-    nuitka_cmd = nuitka_call + extra_options.split() + \
-        ["--exe", "--execute", filename]
+    if module_mode:
+        nuitka_cmd = nuitka_call + extra_options.split() + \
+          ["--execute", filename]
+    else:
+        nuitka_cmd = nuitka_call + extra_options.split() + \
+          ["--exe", "--execute", filename]
 
     if trace_command:
         print("Nuitka command:", nuitka_cmd)
 else:
-    nuitka_cmd1 = nuitka_call + extra_options.split() + \
-        ["--exe", filename]
+    if module_mode:
+        nuitka_cmd1 = nuitka_call + extra_options.split() + \
+          [filename]
+    else:
+        nuitka_cmd1 = nuitka_call + extra_options.split() + \
+          ["--exe", filename]
 
 dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_options)
 
