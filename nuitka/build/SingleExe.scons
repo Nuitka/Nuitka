@@ -703,7 +703,7 @@ if optimize_mode:
 
 # Set load libpython from binary directory default
 if portable_mode and gcc_mode:
-    env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN/_python'" ] )
+    env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
 
 env.Append( CPPDEFINES = [ "_NUITKA_FROZEN=%d" % frozen_modules ] )
 
@@ -776,7 +776,10 @@ if msvc_mode and not module_mode:
         assert 0 == subprocess.call(
             (
                 "mt",
-                "-inputresource:%s;#1" % os.path.join( python_prefix, "python.exe" ),
+                "-inputresource:%s;#1" % os.path.join(
+                    python_prefix,
+                    "python.exe"
+                ),
                 "-out:%s" % manifest_filename
             ),
             stdout = subprocess.PIPE
@@ -815,13 +818,19 @@ if module_mode:
 
     env[ "SHLIBSUFFIX" ] = module_suffix
 
-    target = env.SharedLibrary( result_basepath, source_files  + source_targets )
+    target = env.SharedLibrary(
+        result_basepath,
+        source_files  + source_targets
+    )
 else:
     # Avoid dependency on MinGW libraries.
     if win_target and gcc_mode:
         env.Append( LINKFLAGS = [ "-static-libgcc",  "-static-libstdc++" ] )
 
-    target = env.Program( result_basepath + ".exe", source_files + source_targets )
+    target = env.Program(
+        result_basepath + ".exe",
+        source_files + source_targets
+    )
 
 if "CCFLAGS" in os.environ:
     env.Append( CCFLAGS = os.environ[ "CCFLAGS" ].split() )

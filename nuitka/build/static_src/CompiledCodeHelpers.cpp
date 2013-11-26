@@ -1864,11 +1864,13 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     );
 }
 
-#ifdef _NUITKA_PORTABLE
+#if defined(_NUITKA_PORTABLE) || _NUITKA_FROZEN > 0
 
 #include <osdefs.h>
 #if defined( _WIN32 )
 #include <Shlwapi.h>
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
 #else
 #include <libgen.h>
 #endif
@@ -1877,38 +1879,48 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 #define PATH_MAX MAXPATHLEN
 #endif
 
-static char *getBinaryDirectory( char const *binary_path )
+char *getBinaryDirectory()
 {
-    char *path = ( char* ) malloc( PATH_MAX + 1 );
-    memset( path, 0, PATH_MAX + 1 );
+    static char binary_directory[ PATH_MAX + 1 ];
+    static bool init_done = false;
 
-#if defined( _WIN32 )
-    GetModuleFileName( NULL, path, PATH_MAX + 1 );
-#else
-    if ( !realpath( binary_path, path ) )
+    if ( init_done )
     {
-        fprintf( stderr, "getBinaryDirectory: get real path failed\n" );
-        free( path );
-        return NULL;
+        return binary_directory;
     }
-#endif
 
 #if defined( _WIN32 )
-    PathRemoveFileSpec( path );
-    return path;
-#else
-    return dirname( path );
-#endif
-}
+    GetModuleFileName( NULL, binary_directory, PATH_MAX + 1 );
+    PathRemoveFileSpec( binary_directory );
+#elif defined(__APPLE__)
+    uint32_t bufsize = PATH_MAX + 1;
+    int res =_NSGetExecutablePath( binary_directory, &bufsize );
 
+    if (unlikely( res != 0 ))
+    {
+        abort();
+    }
+#else
+    // Readlink does not terminate result.
+    memset( binary_directory, 0, PATH_MAX + 1 );
+    ssize_t res = readlink( "/proc/self/exe", binary_directory, PATH_MAX + 1 );
+
+    if (unlikely( res == -1 ))
+    {
+        abort();
+    }
+
+    strcpy( binary_directory, dirname( binary_directory ) );
 #endif
+    init_done = true;
+    return binary_directory;
+}
 
 #if _NUITKA_FROZEN > 0
 extern struct _frozen PortableMode_FrozenModules[];
 #endif
 
-#if defined(_NUITKA_PORTABLE) || _NUITKA_FROZEN > 0
-void preparePortableEnvironment( char *binary_path )
+void preparePortableEnvironment()
 {
     // Tell the CPython library to use our precompiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
@@ -1943,13 +1955,8 @@ void preparePortableEnvironment( char *binary_path )
 
 #ifdef _NUITKA_PORTABLE
     // Setup environment variables to tell CPython that we would like it to use
-    // the provided "_python" directory near the executable as the place to look
-    // for DLLs.
-    char *binary_directory = getBinaryDirectory( binary_path );
-    if (unlikely( binary_directory == NULL ))
-    {
-        abort();
-    }
+    // the provided binary directory as the place to look for DLLs.
+    char *binary_directory = getBinaryDirectory();
 
     // get orignal value
     char *orignal_home = getenv( "PYTHONHOME" );
@@ -1960,26 +1967,19 @@ void preparePortableEnvironment( char *binary_path )
     // get insert value
     size_t insert_size = strlen( binary_directory ) * 2 + 50;
     char *insert_path = (char *) malloc( insert_size );
-    memset( insert_path, 0, insert_size );
 
 #if defined( _WIN32 )
-    char const env_string[] = "%s\\%s;";
+    char const env_string[] = "%s;";
 #else
-    char const env_string[] = "%s/%s:";
+    char const env_string[] = "%s:";
 #endif
 
-    snprintf( insert_path, insert_size, env_string,
-        binary_directory, "_python"
-    );
+    memset( insert_path, 0, insert_size );
+    snprintf( insert_path, insert_size, env_string, binary_directory );
 
 #if defined( _NUITKA_PORTABLE ) && _WIN32
-    char *insert_path2 = (char *) malloc( insert_size );
-    strcpy( insert_path2, insert_path );
-    insert_path2[ strlen( insert_path2 ) -1] = 0;
-
-    SetDllDirectory( insert_path2 );
+    SetDllDirectory( binary_directory );
 #endif
-
 
     // set environment
     size_t python_home_size = orignal_home_size + insert_size;
@@ -2011,7 +2011,6 @@ void preparePortableEnvironment( char *binary_path )
     }
 
     // clean up
-    free( binary_directory );
     free( insert_path );
 #endif
 }

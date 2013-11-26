@@ -1094,7 +1094,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 }
 
 #if defined(_NUITKA_PORTABLE) || _NUITKA_FROZEN > 0
-extern void preparePortableEnvironment( char *binary_path );
+extern void preparePortableEnvironment();
+extern char *getBinaryDirectory();
 #endif
 
 #include <nuitka/threading.hpp>

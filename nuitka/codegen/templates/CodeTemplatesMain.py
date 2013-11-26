@@ -63,7 +63,7 @@ int main( int argc, char *argv[] )
 {
 #endif
 #ifdef _NUITKA_PORTABLE
-    preparePortableEnvironment( argv[0] );
+    preparePortableEnvironment();
 #endif
 
     // Initialize Python environment.

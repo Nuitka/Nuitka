@@ -124,20 +124,30 @@ def getSourceDirectoryPath( main_module ):
         )
     )
 
-def getPortableDirectoryPath():
+def getPortableDirectoryPath( main_module ):
     return Options.getOutputPath(
-        path = "_python"
+        path = Utils.basename(
+            getTreeFilenameWithSuffix( main_module, ".dist" )
+        )
     )
 
 
 def getResultBasepath( main_module ):
     assert main_module.isPythonModule()
 
-    return Options.getOutputPath(
-        path = Utils.basename(
-            getTreeFilenameWithSuffix( main_module, "" )
+    if Options.isPortableMode():
+        return Utils.joinpath(
+            getPortableDirectoryPath( main_module ),
+            Utils.basename(
+                getTreeFilenameWithSuffix( main_module, "" )
+            )
         )
-    )
+    else:
+        return Options.getOutputPath(
+            path = Utils.basename(
+                getTreeFilenameWithSuffix( main_module, "" )
+            )
+        )
 
 def cleanSourceDirectory( source_dir ):
     if Utils.isDir( source_dir ):
@@ -213,9 +223,10 @@ def makeSourceDirectory( main_module ):
     cleanSourceDirectory( source_dir )
 
     # Remove the DLL directory created for portable mode if any.
-    portable_dir = getPortableDirectoryPath()
-    shutil.rmtree( portable_dir, ignore_errors = True )
-    Utils.makePath( portable_dir )
+    if Options.isPortableMode():
+        portable_dir = getPortableDirectoryPath( main_module )
+        shutil.rmtree( portable_dir, ignore_errors = True )
+        Utils.makePath( portable_dir )
 
     # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
@@ -285,7 +296,7 @@ def makeSourceDirectory( main_module ):
             )
         elif module.isPythonShlibModule():
             target_filename = Utils.joinpath(
-                getPortableDirectoryPath(),
+                portable_dir,
                 *module.getFullName().split( "." )
             )
 
@@ -566,7 +577,8 @@ def main():
             filename = filename
         )
     except (SyntaxError, IndentationError) as e:
-        if Options.isFullCompat() and e.args[0].startswith( "unknown encoding:" ):
+        if Options.isFullCompat() and \
+           e.args[0].startswith( "unknown encoding:" ):
             if Utils.python_version >= 333 or \
                "2.7.6" in sys.version or \
                "2.7.5+" in sys.version or \
@@ -606,7 +618,7 @@ def main():
                 shutil.copy(
                     early_dll,
                     Utils.joinpath(
-                        getPortableDirectoryPath(),
+                        getPortableDirectoryPath( tree ),
                         Utils.basename( early_dll )
                     )
                 )

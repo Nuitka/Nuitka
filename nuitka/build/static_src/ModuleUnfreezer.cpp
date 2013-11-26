@@ -268,11 +268,12 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
            {
                char filename[1024];
 
-               strcpy( filename, "_python" );
-               filename[7] = SEP;
+               strcpy( filename, getBinaryDirectory() );
+               char *d = filename;
+               d += strlen( filename );
+               *d++ = SEP;
 
                char *s = current->name;
-               char *d = filename + 8;
 
                while( *s )
                {
