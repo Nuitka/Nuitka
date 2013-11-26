@@ -40,7 +40,8 @@ Requirements
 
   * Visual Studion 2008 and 2010 on Windows
 
-- Python: Version 2.6, 2.7 or 3.2, 3.3 (support for 3.4 exists partially)
+- Python: Version 2.6, 2.7 or 3.2, 3.3 (support for upcoming 3.4 exists
+  partially)
 
   You need CPython to execute Nuitka, because itis tightly bound to the
   reference implementation of Python, called "CPython".
@@ -49,8 +50,6 @@ Requirements
 
      The created binaries can be made executable independent of the Python
      installation, with ``--portable`` option.
-
-     CURRENTLY not FINISHED code, so disabled.
 
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits),
 
@@ -128,20 +127,21 @@ given directory shall also be included in the executable:
 
 .. note::
 
-   If you don't do any dynamic imports, setting your ``PYTHONPATH`` at
-   compilation time will be sufficient for all your needs normally. Use
-   ``--recurse-directory`` only if you make ``__import__()`` calls that Nuitka
-   cannot predict, because they e.g. depend on command line parameters. Nuitka
-   also warns about these, and point to the option.
+   If you don't do any dynamic imports, simply setting your ``PYTHONPATH`` at
+   compilation time will be sufficient for all your needs normally.
+
+   Use ``--recurse-directory`` only if you make ``__import__()`` calls that
+   Nuitka cannot predict, because they e.g. depend on command line
+   parameters. Nuitka also warns about these, and point to the option.
 
 .. note::
 
    The resulting binary still depends on CPython and used C extension modules
-   being installed. If you want to be able to copy it to another machine, use
-   ``--portable`` and copy the generated "_python" directory and "_python.zip"
-   archives as well.
+   being installed.
 
-   CURRENTLY not FINISHED code, so disabled.
+   If you want to be able to copy it to another machine, use ``--portable`` and
+   copy the created ``program.dist`` directory and execute the ``program.exe``
+   put inside.
 
 Use Case 2 - Extension Module compilation
 -----------------------------------------
@@ -328,7 +328,7 @@ Constant Folding
 ----------------
 
 The most important form of optimization is the constant folding. This is when an
-operation can be predicted. Currently Nuitka does these for some builtins (but
+operation can be predicted. Currently Nuitka does these for some built-ins (but
 not all yet), and it does it for binary/unary operations and comparisons.
 
 Constants currently recognized:
@@ -337,7 +337,7 @@ Constants currently recognized:
 
     5 + 6     # operations
     5 < 6     # comparisons
-    range(3)  # builtins
+    range(3)  # built-ins
 
 Literals are the one obvious source of constants, but also most likely other
 optimization steps like constant propagation or function inlining will be. So
@@ -372,7 +372,7 @@ can then be used as input to the constant folding.
 From modules attributes, only ``__name__`` is currently actually optimized. Also
 possible would be at least ``__doc__``.
 
-Also builtins exception name references are optimized if they are uses as module
+Also built-in exception name references are optimized if they are uses as module
 level read only variables:
 
 .. code-block:: python
@@ -400,11 +400,11 @@ folding or code path folding.
 
 The builtin call prediction is considered implemented. We can simply during
 compile time emulate the call and use its result or raised exception. But we may
-not cover all the builtins there are yet.
+not cover all the built-ins there are yet.
 
-Sometimes builtins should not be predicted when the result is big. A ``range()``
-call e.g. may give too big values to include the result in the binary. Then it
-is not done.
+Sometimes the result of a built-in should not be predicted when the result is
+big. A ``range()`` call e.g. may give too big values to include the result in
+the binary. Then it is not done.
 
 .. code-block:: python
 
@@ -677,8 +677,13 @@ The order is sorted by time.
 
 - Pete Hunt: Submitted patches for MacOS X support.
 
-- "ownssh": Submitted patches for builtins module guarding, and made massive
-  efforts to make high quality bug reports.
+- "ownssh": Submitted patches for built-ins module guarding, and made massive
+  efforts to make high quality bug reports. Also the initial "portable" mode
+  implementation was created by him.
+
+- Juan Carlos Paco: Submitted cleanup patches, creator of the `Nuitka GUI
+  <https://github.com/juancarlospaco/nuitka-gui>`_, creator of the `Ninja IDE
+  plugin <https://github.com/juancarlospaco/nuitka-ninja>`_ for Nuitka.
 
 - "dr. Equivalent": Submitted the Nuitka Logo.
 
@@ -727,13 +732,16 @@ Projects used by Nuitka
 
 * The `MinGW project <http://www.mingw.org>`_
 
-  Thanks for porting the best compiler to Windows. This allows portability of
-  Nuitka with relatively little effort.
+  Thanks for porting the gcc to Windows. This allowed portability of Nuitka with
+  relatively little effort. Unfortunately this is currently limited to compiling
+  CPython with 32 bits, and 64 bits requires MSVC compiler.
 
 * The `Wine project <http://www.winehq.org>`_
 
   Thanks for enabling us to run the cross compiled binaries without have to
-  maintain a windows installation at all.
+  maintain a windows installation at all. Unfortunately this is currently
+  limited to compiling CPython with 32 bits, for 64 bits there is no solution
+  yet.
 
 Updates for this Manual
 =======================
