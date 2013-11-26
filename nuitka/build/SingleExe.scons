@@ -832,6 +832,10 @@ else:
         source_files + source_targets
     )
 
+# Avoid IO for compilation as far as possible.
+if gcc_mode:
+    env.Append( CCFLAGS = "-pipe" )
+
 if "CCFLAGS" in os.environ:
     env.Append( CCFLAGS = os.environ[ "CCFLAGS" ].split() )
 
