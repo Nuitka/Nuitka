@@ -19,7 +19,7 @@ print( "some_package.star_importing, doing the star import" )
 
 print( "Before", sorted( dir() ) )
 
-from posix import *
+from .pyexpat import *
 
 lala = 1
 print( "After", sorted( dir() ) )

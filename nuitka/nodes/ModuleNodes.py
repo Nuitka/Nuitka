@@ -219,7 +219,7 @@ class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
                 module_name    = self.package_name,
                 parent_package = None,
                 level          = 1,
-                warn           = True
+                warn           = Utils.python_version < 330
             )
 
             imported_module, added_flag = Recursion.recurseTo(

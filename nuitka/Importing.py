@@ -56,7 +56,10 @@ def setMainScriptDirectory( main_dir ):
 
 def isPackageDir( dirname ):
     return Utils.isDir( dirname ) and \
-           Utils.isFile( Utils.joinpath( dirname, "__init__.py" ) )
+           (
+               Utils.python_version >= 330 or
+               Utils.isFile( Utils.joinpath( dirname, "__init__.py" ) )
+           )
 
 def findModule( source_ref, module_name, parent_package, level, warn ):
     # We have many branches here, because there are a lot of cases to try.
@@ -127,12 +130,52 @@ def findModule( source_ref, module_name, parent_package, level, warn ):
 
     return module_package_name, module_name, module_filename
 
+def _impFindModuleWrapper( module_name, search_path ):
+    """ This wraps imp.find_module because Python3.3 bugs.
+
+    Python3.3 accepts imports on directory names in PYTHONPATH, but does not
+    return them from imp.find_module, which it also deprecated, but would be
+    asking us to use the many variants in importlib manually. So this only
+    fixes up the one issue it has, that it won't accept these namespace dirs.
+
+    TODO: That probably is not sufficient to cover actual namespace packages,
+    where multiple such directories are to be logically joined.
+    """
+    try:
+        # Does not accept keyword arguments, another thing this wrapper gives
+        # us then.
+        module_fh, module_filename, _module_desc = imp.find_module(
+            module_name,
+            search_path
+        )
+    except ImportError:
+        if Utils.python_version >= 330:
+            for path_element in search_path:
+                candidate = Utils.joinpath( path_element, module_name )
+
+                if Utils.isDir( candidate ):
+                    module_filename = candidate
+                    module_fh = None
+
+                    break
+            else:
+                raise
+        else:
+            raise
+
+    # Close the file handle, we won't use it.
+    if module_fh is not None:
+        module_fh.close()
+
+    return module_filename
+
+
 def _findModuleInPath( module_name, package_name ):
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
 
     if _debug_module_finding:
-        print( "_findModuleInPath: Enter", module_name, package_name )
+        print( "_findModuleInPath: Enter", module_name, "in", package_name )
 
     assert main_path is not None
     extra_paths = [ os.getcwd(), main_path  ]
@@ -159,9 +202,10 @@ def _findModuleInPath( module_name, package_name ):
             print( "_findModuleInPath: Package, using extended path", ext_path )
 
         try:
-            module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
-            if module_fh is not None:
-                module_fh.close()
+            module_filename = _impFindModuleWrapper(
+                module_name = module_name,
+                search_path = ext_path
+            )
 
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module worked",
@@ -183,18 +227,10 @@ def _findModuleInPath( module_name, package_name ):
     if _debug_module_finding:
         print( "_findModuleInPath: Non-package, using extended path", ext_path )
 
-    try:
-        module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
-        if module_fh is not None:
-            module_fh.close()
-    except SyntaxError:
-        # Warn user, as this is kind of unusual.
-        warning(
-            "%s: Module cannot be imported due to syntax errors",
-            module_name,
-        )
-
-        module_filename = None
+    module_filename = _impFindModuleWrapper(
+        module_name = module_name,
+        search_path = ext_path
+    )
 
     if _debug_module_finding:
         print( "_findModuleInPath: imp.find_module gave", module_filename )

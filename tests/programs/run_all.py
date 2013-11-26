@@ -19,7 +19,7 @@
 
 from __future__ import print_function
 
-import os, sys, subprocess, shutil
+import os, sys
 
 # Find common code relative in file system. Not using packages for test stuff.
 sys.path.insert(
@@ -78,8 +78,20 @@ for filename in sorted( os.listdir( "." ) ):
 
     extra_flags.append( "remove_output" )
 
+    # Cannot include the files with syntax errors, these would then become
+    # ImportError, but that's not the test. In all other cases, use two
+    # step execution, which will not add the program original source to
+    # PYTHONPATH.
+    if filename != "syntax_errors":
+        extra_flags.append("two_step_execution")
+    else:
+        extra_flags.append("binary_python_path")
+
     if filename == "plugin_import":
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all --recurse-directory=%s/some_package" % filename
+        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = \
+          "--recurse-all --recurse-directory=%s/some_package" % (
+              os.path.abspath( filename )
+          )
     else:
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all"
 
@@ -93,7 +105,12 @@ for filename in sorted( os.listdir( "." ) ):
             if filename_main.endswith( "Main" ):
                 break
         else:
-            sys.exit( "Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case" % filename )
+            sys.exit(
+                """\
+Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case.""" % (
+                    filename
+                )
+            )
 
         compareWithCPython(
             path        = os.path.join( filename, filename_main ),

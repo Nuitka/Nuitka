@@ -42,6 +42,7 @@ from nuitka.__past__ import long, unicode
 from nuitka import (
     SourceCodeReferences,
     SyntaxErrors,
+    Importing,
     Options,
     Utils
 )
@@ -143,6 +144,8 @@ from .ReformulationCallExpressions import buildCallNode
 from .ReformulationExecStatements import buildExecNode
 
 from .ReformulationYieldExpressions import buildYieldNode, buildYieldFromNode
+
+from .ReformulationNamespacePackages import createNamespacePackage
 
 # Some helpers.
 from .Helpers import (
@@ -1073,25 +1076,33 @@ def decideModuleTree( filename, package, is_shlib, is_top, is_main ):
                 package_name = package,
                 source_ref   = source_ref
             )
-    elif Utils.isDir( filename ) and \
-         Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
-        source_filename = Utils.joinpath( filename, "__init__.py" )
-
-        source_ref = SourceCodeReferences.fromFilename(
-            filename    = Utils.abspath( source_filename ),
-            future_spec = FutureSpec()
-        )
-
+    elif Importing.isPackageDir(filename):
         if is_top:
-            package_name = Utils.splitpath( filename )[-1]
+            package_name = Utils.splitpath(filename)[-1]
         else:
-            package_name = Utils.basename( filename )
+            package_name = Utils.basename(filename)
 
-        result = PythonPackage(
-            name         = package_name,
-            package_name = package,
-            source_ref   = source_ref
-        )
+        source_filename = Utils.joinpath(filename, "__init__.py")
+
+        if not Utils.isFile( source_filename ):
+            assert Utils.python_version >= 330, source_filename
+
+            source_ref, result = createNamespacePackage(
+                package_name = package_name,
+                module_relpath = filename
+            )
+            source_filename = None
+        else:
+            source_ref = SourceCodeReferences.fromFilename(
+                filename    = Utils.abspath( source_filename ),
+                future_spec = FutureSpec()
+            )
+
+            result = PythonPackage(
+                name         = package_name,
+                package_name = package,
+                source_ref   = source_ref
+            )
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (
@@ -1132,11 +1143,14 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
     addImportedModule( Utils.relpath( filename ), module )
 
-    createModuleTree(
-        module          = module,
-        source_ref      = source_ref,
-        source_filename = source_filename,
-        is_main         = is_main
-    )
+    # If there is source code associated (not the case for namespace packages of
+    # Python3.3 or higher, then read it.
+    if source_filename is not None:
+        createModuleTree(
+            module          = module,
+            source_ref      = source_ref,
+            source_filename = source_filename,
+            is_main         = is_main
+        )
 
     return module

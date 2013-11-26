@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-import os, sys, subprocess
+import os, sys
 
 # Find common code relative in file system. Not using packages for test stuff.
 sys.path.insert(
@@ -32,8 +32,6 @@ sys.path.insert(
 from test_common import (
     my_print,
     setup,
-    convertUsing2to3,
-    decideFilenameVersionSkip,
     compareWithCPython
 )
 

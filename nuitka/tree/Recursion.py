@@ -20,6 +20,8 @@
 """
 
 from nuitka import Options, Utils, Importing, ModuleRegistry
+from nuitka.nodes.ModuleNodes import PythonPackage
+from nuitka.SourceCodeReferences import SourceCodeReference
 
 from . import ImportCache, Building
 
@@ -46,7 +48,7 @@ def recurseTo( module_package, module_filename, module_relpath, module_kind,
                 reason
             )
 
-            if module_kind == "py":
+            if module_kind == "py" and source_filename is not None:
                 try:
                     Building.createModuleTree(
                         module          = module,
@@ -91,6 +93,7 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
         return module, is_added
     else:
         return ImportCache.getImportedModuleByPath( module_relpath ), False
+
 
 def decideRecursion( module_filename, module_name, module_package,
                      module_kind ):
@@ -209,20 +212,40 @@ def _checkPluginPath( plugin_filename, module_package ):
                     plugin_info[0]
                 )
 
-            ModuleRegistry.addRootModule( module )
-
             if module.isPythonPackage():
-                package_dir = Utils.dirname( module.getFilename() )
+                package_filename = module.getFilename()
 
-                for sub_path, sub_filename in Utils.listDir( package_dir ):
-                    if sub_filename == "__init__.py":
+                if Utils.isDir( package_filename ):
+                    # Must be a namespace package.
+                    assert Utils.python_version >= 330
+
+                    package_dir = package_filename
+
+                    # Only include it, if it contains actual modules, which will
+                    # recurse to this one and find it again.
+                    useful = False
+                else:
+                    package_dir = Utils.dirname(package_filename)
+
+                    # Real packages will always be included.
+                    useful = True
+
+                for sub_path, sub_filename in Utils.listDir(package_dir):
+                    if sub_filename in ("__init__.py", "__pycache__"):
                         continue
 
-                    assert sub_path != plugin_filename, package_dir
+                    assert sub_path != plugin_filename
 
-                    if Importing.isPackageDir( sub_path ) or \
-                       sub_path.endswith( ".py" ):
-                        _checkPluginPath( sub_path, module.getFullName() )
+                    if Importing.isPackageDir(sub_path) or \
+                       sub_path.endswith(".py"):
+                        _checkPluginPath(sub_path, module.getFullName())
+            else:
+                # Modules should always be included.
+                useful = True
+
+            if useful:
+                ModuleRegistry.addRootModule(module)
+
         else:
             warning( "Failed to include module from '%s'.", plugin_info[0] )
 

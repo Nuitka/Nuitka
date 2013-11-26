@@ -15,9 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print( "Main importing from package" )
-
+print("Main importing nearby package")
+import pyexpat
+print( pyexpat.defined_in_pyexpat )
+print( "Main importing from package doing star import" )
 from some_package import star_importing
+print( "Main importing from package doing normal import" )
 from some_package import normal_importing
 
 print( "Done." )
