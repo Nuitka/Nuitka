@@ -17,6 +17,15 @@ Bug Fixes
 
 - The Windows installer was not including Scons. Fixed in 0.4.6.3 already.
 
+- Windows: The immediate execution as performed by ``nuitka-python`` was not
+  preserving the exit code. `Issue#26 <http://bugs.nuitka.net/issue26>`_.
+
+- Python3.3: Packages without ``__init.py__`` were not properly embedding the
+  name-space package as well.
+
+- Python3: Fix, modules and packages didn't add themselves to ``sys.modules``
+  which they should, happened only for programs.
+
 New Features
 ------------
 
@@ -72,7 +81,6 @@ New Optimization
 - Module variables are now accessed even faster, the gain for "PyStone" is only
   0.1% and mostly the result of leaner code.
 
-
 Organizational
 --------------
 
@@ -101,9 +109,26 @@ Organizational
 - Windows: In order to speed up repeated compilation on a platform without
   ``ccache``, added Scons level caching in the build directory.
 
-- Disabled hash randomization inside Nuitka (but not in created binaries) for a
-  more stable output, because dictionary constants will not change around. This
-  makes the build results possible to cache for ``ccache`` and Scons as well.
+- Disabled hash randomization for inside Nuitka (but not in ultimately created
+  binaries) for a more stable output, because dictionary constants will not
+  change around. This makes the build results possible to cache for ``ccache``
+  and Scons as well.
+
+Tests
+-----
+
+- The ``programs`` tests cases now fail if module or directory recursion is not
+  working
+
+- Added test case for package with recursion and sub-packages.
+
+- Made some test cases more strict by reducing ``PYTHONPATH`` provision.
+
+- Detect use of extra flags in tests that don't get consumed avoiding
+  ineffective flags.
+
+- Use ``--execute`` on Windows as well, the issue that prevented it has been
+  solved after all.
 
 Cleanups
 --------
@@ -114,28 +139,35 @@ Cleanups
 - The test runners now share common code in a dedicated module, previously they
   replicated it all, but that turned out to be too tedious.
 
-- Moved portable and freeze related codes to dedicated module ``nuitka.freezer``
-  to not pollute the ``nuitka`` package name space.
+- Massive general cleanups, many of which were contributed by new contributor
+  Juan Carlos Paco.
 
-- The assignment of identifiers to variables and their accesses was cleaned up.
+- Moved portable and freeze related codes to dedicated package
+  ``nuitka.freezer`` to not pollute the ``nuitka`` package name space.
 
-- Module variables no longer use C++ classes for their access, leading to much
-  less code generated for module variable and removing the need to trace their
-  usage during code generation.
+- The code generation use variable identifiers and their accesses was cleaned
+  up.
 
-- Removed several not-so special case identifier classes because they now behave
+- Module variables no longer use C++ classes for their access, but instead
+  accessor functions, leading to much less code generated per module variable
+  and removing the need to trace their usage during code generation.
+
+- Removed several not-so-special case identifier classes because they now behave
   more identical and all work the same way, so a parameters can be used to
   distinguish them.
 
 - Moved main program, function object, set related code generation to dedicated
   modules.
 
-- Massive general cleanups.
-
 Summary
 -------
 
-This release is not complete yet.
+This release marks major technological progress with the introduction of the
+much sought portable mode and performance improvements.
+
+The major break through for SSA optimization was not yet achieved, but this is
+again making progress in the direction of it.
+
 
 Nuitka Release 0.4.6
 ====================
