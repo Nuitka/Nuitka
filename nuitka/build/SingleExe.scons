@@ -212,7 +212,6 @@ elif "CXX" in os.environ:
     # If the environment variable CXX is set, use that.
     env[ "CXX" ] = os.environ[ "CXX" ]
 
-
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
 def setupSpawn( env ):
@@ -582,9 +581,31 @@ if win_target:
     if win_disable_console:
         env.Append( CPPDEFINES = [ "_NUITKA_WINMAIN_ENTRY_POINT" ] )
 
+
+if python_debug:
+    env.Append( CPPDEFINES = [ "Py_DEBUG" ] )
+
+def detectHostMultiarch():
+    import commands
+
+    for line in commands.getoutput( "dpkg-architecture" ).split("\n"):
+        if line.startswith( "DEB_HOST_MULTIARCH=" ):
+            return line.split( "=", 1 )[1]
+    else:
+        return None
+
+if gcc_mode and "linux" in sys.platform:
+    if python_version.startswith( "3.3" ):
+        host_multiarch = detectHostMultiarch()
+
+        if host_multiarch is not None:
+            env.Append( CCFLAGS = [
+                "-I/usr/include/" + host_multiarch + "/python" + python_version
+                ]
+            )
+
 if os.name == "nt":
     # On Windows, the installation layout is relatively fixed.
-    env.Append( LIBPATH = [ os.path.join( python_prefix, "libs" ) ] )
     python_header_path = os.path.join( python_prefix, "include" )
 else:
     # The python header path is a combination of python version and debug
@@ -609,39 +630,10 @@ not satisfied!""" % (
         )
     )
 
-if python_debug:
-    env.Append( CPPDEFINES = [ "Py_DEBUG" ] )
-
 env.Append( CPPPATH  = [ python_header_path ] )
 
-# Add the python library path to the library path
-python_lib_path = os.path.join( python_prefix, "lib" )
-env.Append( LIBPATH = [ python_lib_path ] )
-
-# For NetBSD the rpath is required, on FreeBSD it's warned as unused.
-if "netbsd" in sys.platform:
-    env.Append( LINKFLAGS = [ "-rpath=" + python_lib_path ] )
-
-def detectHostMultiarch():
-    import commands
-
-    for line in commands.getoutput( "dpkg-architecture" ).split("\n"):
-        if line.startswith( "DEB_HOST_MULTIARCH=" ):
-            return line.split( "=", 1 )[1]
-    else:
-        return None
-
-if gcc_mode and "linux" in sys.platform:
-    if python_version.startswith( "3.3" ):
-        host_multiarch = detectHostMultiarch()
-
-        if host_multiarch is not None:
-            env.Append( CCFLAGS = [
-                "-I/usr/include/" + host_multiarch + "/python" + python_version
-                ]
-            )
-
 if win_target:
+    env.Append( LIBPATH = [ os.path.join( python_prefix, "libs" ) ] )
     env.Append( LIBS = [ "python" + python_version.replace( ".", "" ) ] )
 else:
     # Debian and Ubuntu distinguish the system libraries like this.
@@ -658,6 +650,15 @@ else:
 
         if gcc_mode:
             env.Append( LINKFLAGS = [ "-export-dynamic" ] )
+
+
+    # Add the python library path to the library path
+    python_lib_path = os.path.join( python_prefix, "lib" )
+    env.Append( LIBPATH = [ python_lib_path ] )
+
+    # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
+    if "netbsd" in sys.platform:
+        env.Append( LINKFLAGS = [ "-rpath=" + python_lib_path ] )
 
 nuitka_include = os.path.join( nuitka_src, "include" )
 env.Append( CPPPATH = [ source_dir, nuitka_include ] )
