@@ -15,8 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
 """
 Module like __future__ for things that are no more in CPython3,
 

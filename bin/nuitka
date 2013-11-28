@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-
-
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -68,7 +66,7 @@ else:
     )
 # LIBDIR trick end (marker for removal on platforms that don't need it)
 
-from nuitka import Options, Utils
+from nuitka import Options, Utils   # isort:skip
 
 logging.basicConfig(format = 'Nuitka:%(levelname)s:%(message)s')
 

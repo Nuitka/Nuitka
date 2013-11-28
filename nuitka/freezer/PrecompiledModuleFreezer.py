@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -18,8 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
 """
 Freezer for precompiled modules. Not compiled modules.
 
@@ -56,11 +51,19 @@ def generatePrecompiledFrozenCode():
         if is_package:
             size = -size
 
+        if Utils.python_version >= 300:
+            module_name = module_name.decode()
+
+
         frozen_defs.append(
-            """(char *)"{}", (unsigned char *){}, {},""".format(
-            module_name if Utils.python_version < 300 else module_name.decode(),
-            stream_data.getStreamDataCode(code_data, fixed_size=True),
-            size
+            """\
+(char *)"{module_name}", (unsigned char *){data}, {size},""".format(
+                module_name = module_name,
+                data        = stream_data.getStreamDataCode(
+                    value      = code_data,
+                    fixed_size = True
+                ),
+                size        = size
             )
         )
 

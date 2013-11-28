@@ -223,16 +223,17 @@ class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
             )
 
             imported_module, added_flag = Recursion.recurseTo(
+            imported_module, is_added = Recursion.recurseTo(
                 module_package  = package_package,
                 module_filename = package_filename,
-                module_relpath  = Utils.relpath( package_filename ),
+                module_relpath  = Utils.relpath(package_filename),
                 module_kind     = "py",
                 reason          = "Containing package of recursed module.",
             )
 
             self.package = imported_module
 
-            if added_flag:
+            if is_added:
                 constraint_collection.signalChange(
                     "new_code",
                     imported_module.getSourceReference(),

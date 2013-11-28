@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -18,10 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
-"""
-Control the flow of optimizations applied to node tree.
+""" Control the flow of optimizations applied to node tree.
 
 Applies constraint collection on all so far known modules until no more
 optimization is possible. Every successful optimization to anything might
@@ -46,17 +40,18 @@ def _optimizeModulePass(module, tag_set):
         """ Indicate a change to the optimization framework.
 
         """
-        debug("{} : {} : {}".format(
-            source_ref.getAsString(),
-            tags,
-            message
+        debug(
+            "{source_ref} : {tags} : {message}".format(
+                source_ref = source_ref.getAsString(),
+                tags       = tags,
+                message    = message
             )
         )
         tag_set.onSignal(tags)
 
     module.collection = ConstraintCollectionModule(
-        signal_change=signalChange,
-        module=module
+        signal_change = signalChange,
+        module        = module
     )
 
     written_variables = module.collection.getWrittenVariables()
@@ -72,8 +67,8 @@ def _optimizeModulePass(module, tag_set):
             module.collection.signalChange(
                 "read_only_mvar",
                 module.getSourceReference(),
-                "Determined variable '{}' is only read.".format(
-                    variable.getName()
+                "Determined variable '{variable_name}' is only read.".format(
+                    variable_name = variable.getName()
                 )
             )
 
@@ -82,8 +77,9 @@ def _optimizeModulePass(module, tag_set):
 
 def optimizeModule(module):
     if _progress:
-        printLine("Doing module local optimizations for '{}'.".format(
-            module.getFullName()
+        printLine(
+            "Doing module local optimizations for '{module_name}'.".format(
+                module_name = module.getFullName()
             )
         )
 
@@ -120,9 +116,10 @@ def optimize():
             if _progress:
                 printLine(
                     """\
-Optimizing module '{}', {:d} more modules to go after that.""".format(
-                        current_module.getFullName(),
-                        ModuleRegistry.remainingCount()
+Optimizing module '{module_name}', {remaining:d} more modules to go \
+after that.""".format(
+                        module_name = current_module.getFullName(),
+                        remaining   = ModuleRegistry.remainingCount()
                     )
                 )
 

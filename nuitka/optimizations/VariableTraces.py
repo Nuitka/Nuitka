@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -18,10 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
-"""
-Variable trace objects.
+""" Variable trace objects.
 
 Variable traces indicate the flow of variables and merges their versions for
 the SSA (Single State Assignment) form being used in Nuitka.
@@ -98,14 +92,18 @@ class VariableTraceBase:
         return False
 
 
-class VariableUninitTrace(VariableTraceBase):
-    def __init__(self, variable, version):
-        VariableTraceBase.__init__(self, variable=variable, version=version)
+class VariableUninitTrace( VariableTraceBase ):
+    def __init__( self, variable, version ):
+        VariableTraceBase.__init__(
+            self,
+            variable = variable,
+            version  = version
+        )
 
     def __repr__( self ):
-        return "<VariableUninitTrace {} {}>".format(
-            self.variable,
-            self.version
+        return "<VariableUninitTrace {variable} {version}>".format(
+            variable = self.variable,
+            version  = self.version
         )
 
     def isUninitTrace(self):
@@ -127,12 +125,16 @@ class VariableUninitTrace(VariableTraceBase):
 
 class VariableUnknownTrace( VariableTraceBase ):
     def __init__( self, variable, version ):
-        VariableTraceBase.__init__(self, variable=variable, version=version)
+        VariableTraceBase.__init__(
+            self,
+            variable = variable,
+            version  = version
+        )
 
     def __repr__(self):
-        return "<VariableUnknownTrace {} {}>".format(
-            self.variable,
-            self.version
+        return "<VariableUnknownTrace {variable} {version}>".format(
+            variable = self.variable,
+            version  = self.version
         )
 
     def dump( self ):
@@ -156,17 +158,18 @@ class VariableAssignTrace(VariableTraceBase):
     def __init__(self, assign_node, variable, version):
         VariableTraceBase.__init__(
             self,
-            variable=variable,
-            version=version
+            variable = variable,
+            version  = version
         )
 
         self.assign_node = assign_node
 
     def __repr__(self):
-        return "<VariableAssignTrace {} {} at {}>".format(
-            self.variable,
-            self.version,
-            self.assign_node.getSourceReference()
+        return """\
+<VariableAssignTrace {variable} {version} at {source_ref}>""".format(
+            variable   = self.variable,
+            version    = self.version,
+            source_ref = self.assign_node.getSourceReference()
         )
 
     def dump(self):

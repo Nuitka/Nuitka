@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-
-
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -244,14 +242,14 @@ compiled_generator_object_re = re.compile(r"'compiled_generator' object")
 module_repr_re               = re.compile(r"(\<module '.*?' from ').*?('\>)")
 
 global_name_error_re         = re.compile(
-                                   r"global (name ')(.*?)(' is not defined)"
-                                   )
+    r"global (name ')(.*?)(' is not defined)"
+)
 non_ascii_error_rt           = re.compile(
-                            r"(SyntaxError: Non-ASCII character.*? on line) \d+"
-                            )
+    r"(SyntaxError: Non-ASCII character.*? on line) \d+"
+)
 python_win_lib_re            = re.compile(
-                                   r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib"
-                                   )
+    r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib"
+)
 
 
 def makeDiffable(output):

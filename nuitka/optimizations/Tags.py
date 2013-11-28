@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -18,10 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
-"""
-Tags and set of it.
+""" Tags and set of it.
 
 Used by optimization to keep track of the current state of optimization, these tags
 trigger the execution of optimization steps, which in turn may emit these tags to execute

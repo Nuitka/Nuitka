@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -18,10 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
-"""
-Pack and copy files for portable mode.
+""" Pack and copy files for portable mode.
 
 This is in heavy flux now, cannot be expected to work or make sense.
 
@@ -51,8 +45,8 @@ def detectEarlyImports():
     # When we are using pickle internally (for some hard constant cases we do),
     # we need to make sure it will be available as well.
     if needsPickleInit():
-        command = "import {};".format(
-            "pickle" if Utils.python_version >= 300 else "cPickle"
+        command = "import {pickle};".format(
+            pickle = "pickle" if Utils.python_version >= 300 else "cPickle"
         )
     else:
         command = ""
@@ -64,9 +58,9 @@ def detectEarlyImports():
         command += r'import sys; print("\n".join(sorted("import " + module.__name__ + " # sourcefile " + module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301  lint:ok
 
     process = subprocess.Popen(
-        args=[sys.executable, "-s", "-S", "-v", "-c", command],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        args   = [sys.executable, "-s", "-S", "-v", "-c", command],
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE
     )
 
     _stdout, stderr = process.communicate()
@@ -78,7 +72,7 @@ def detectEarlyImports():
     # bug of PyLint, pylint: disable=E1103
     for line in stderr.replace(b"\r", b"").split(b"\n"):
         if line.startswith(b"import "):
-            print(line)
+            # print(line)
 
             parts = line.split(b" # ", 2)
 
@@ -90,7 +84,8 @@ def detectEarlyImports():
                 # chance to do anything, we need to preserve it.
                 filename = parts[1][len(b"precompiled from "):]
 
-                debug("Freezing module '%s' (from '%s').",
+                debug(
+                    "Freezing module '%s' (from '%s').",
                     module_name,
                     filename
                 )
@@ -98,7 +93,7 @@ def detectEarlyImports():
                 result.append(
                     (
                         module_name,
-                        loadCodeObjectData(filename),
+                        loadCodeObjectData( filename ),
                         b"__init__" in filename
                     )
                 )

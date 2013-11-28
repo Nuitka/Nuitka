@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -18,8 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
 """
 Scons interface.
 
@@ -82,7 +77,10 @@ def _getPython2ExePathWindows():
                     winreg.KEY_READ | arch_key
                 )
 
-                return os.path.join(winreg.QueryValue(key, ''), "python.exe")
+                return Utils.joinpath(
+                    winreg.QueryValue(key, ''),
+                    "python.exe"
+                )
             except WindowsError:  # lint:ok
                 pass
 
@@ -113,8 +111,11 @@ def runScons(options, quiet):
 
     if os.name == "nt":
         # On Windows this Scons variable must be set by us.
-        os.environ["SCONS_LIB_DIR"] = Utils.joinpath(getSconsInlinePath(),
-                                                     "lib", "scons-2.3.0")
+        os.environ["SCONS_LIB_DIR"] = Utils.joinpath(
+            getSconsInlinePath(),
+            "lib",
+            "scons-2.3.0"
+        )
 
         # Also, for MinGW we can avoid the user having to add the path if he
         # used the default path or installed it on the same drive by appending
