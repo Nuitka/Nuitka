@@ -125,8 +125,12 @@ def findModule( source_ref, module_name, parent_package, level, warn ):
         module_filename = None
 
     if _debug_module_finding:
-        print( "findModule: Result", module_package_name, module_name,
-               module_filename )
+        print(
+            "findModule: Result",
+            module_package_name,
+            module_name,
+            module_filename
+        )
 
     return module_package_name, module_name, module_filename
 
@@ -255,6 +259,10 @@ def _findModule( module_name, parent_package ):
             module_name = "ntpath"
 
     assert module_name != "" or parent_package is not None
+
+    # Built-in module names must not be searched any further.
+    if module_name in sys.builtin_module_names:
+        return None, None
 
     if "." in module_name:
         package_part = module_name[ : module_name.rfind( "." ) ]
