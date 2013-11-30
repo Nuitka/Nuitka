@@ -188,14 +188,28 @@ def considerFilename( module_filename, module_package ):
     else:
         return None
 
+def isSameModulePath( path1, path2 ):
+    if Utils.basename(path1) == "__init__.py":
+        path1 = Utils.dirname(path1)
+    if Utils.basename(path2) == "__init__.py":
+        path2 = Utils.dirname(path2)
+
+    return Utils.abspath(path1) == Utils.abspath(path2)
+
 def _checkPluginPath( plugin_filename, module_package ):
+    info(
+        "Checking detail plugin path %s %s",
+        plugin_filename,
+        module_package
+    )
+
     plugin_info = considerFilename(
         module_package  = module_package,
         module_filename = plugin_filename
     )
 
     if plugin_info is not None:
-        module, added = recurseTo(
+        module, is_added = recurseTo(
             module_filename = plugin_info[0],
             module_relpath  = plugin_info[1],
             module_package  = module_package,
@@ -204,7 +218,7 @@ def _checkPluginPath( plugin_filename, module_package ):
         )
 
         if module:
-            if not added:
+            if not is_added:
                 warning(
                     "Recursed to %s '%s' at '%s' twice.",
                     "package" if module.isPythonPackage() else "module",
@@ -212,10 +226,25 @@ def _checkPluginPath( plugin_filename, module_package ):
                     plugin_info[0]
                 )
 
+                if not isSameModulePath(module.getFilename(),plugin_info[0]):
+                    warning(
+                        "Duplicate ignored '%s'.",
+                        plugin_info[1]
+                    )
+
+                    return
+
+            info(
+                "Recursed to %s %s %s",
+                module.getName(),
+                module.getPackage(),
+                module
+            )
+
             if module.isPythonPackage():
                 package_filename = module.getFilename()
 
-                if Utils.isDir( package_filename ):
+                if Utils.isDir(package_filename):
                     # Must be a namespace package.
                     assert Utils.python_version >= 330
 
@@ -229,6 +258,8 @@ def _checkPluginPath( plugin_filename, module_package ):
 
                     # Real packages will always be included.
                     useful = True
+
+                info("Package directory %s", package_dir)
 
                 for sub_path, sub_filename in Utils.listDir(package_dir):
                     if sub_filename in ("__init__.py", "__pycache__"):
@@ -250,13 +281,19 @@ def _checkPluginPath( plugin_filename, module_package ):
             warning( "Failed to include module from '%s'.", plugin_info[0] )
 
 def checkPluginPath( plugin_filename, module_package ):
+    info(
+        "Checking top level plugin path %s %s",
+        plugin_filename,
+        module_package
+    )
+
     plugin_info = considerFilename(
         module_package  = module_package,
         module_filename = plugin_filename
     )
 
     if plugin_info is not None:
-        # File or package makes a difference, handle that.
+        # File or package makes a difference, handle that
         if Utils.isFile( plugin_info[0] ) or \
            Importing.isPackageDir( plugin_info[0] ):
             _checkPluginPath( plugin_filename, module_package )

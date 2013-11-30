@@ -222,7 +222,11 @@ class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
                 warn           = Utils.python_version < 330
             )
 
-            imported_module, added_flag = Recursion.recurseTo(
+            # TODO: Temporary, if we can't find the package for Python3.3 that
+            # is semi-OK, maybe.
+            if Utils.python_version >= 330 and not package_filename:
+                return
+
             imported_module, is_added = Recursion.recurseTo(
                 module_package  = package_package,
                 module_filename = package_filename,
