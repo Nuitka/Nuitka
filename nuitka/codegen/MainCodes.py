@@ -57,8 +57,10 @@ def getMainCode( codes, context ):
     main_code        = CodeTemplates.main_program % {
         "sys_executable"       : getConstantCode(
             constant = "python.exe"
-                         if Options.isWindowsTarget()
-                       else sys.executable,
+                         if Options.isWindowsTarget() and
+                         Options.isPortableMode()
+                         else
+                       sys.executable,
             context  = context
         ),
         "python_sysflag_debug" : sys.flags.debug,
