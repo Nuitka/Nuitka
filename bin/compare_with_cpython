@@ -37,6 +37,9 @@ def hasArg(arg):
     else:
         return False
 
+# For output keep it
+arguments = list( args )
+
 silent_mode        = hasArg("silent")
 ignore_stderr      = hasArg("ignore_stderr")
 ignore_warnings    = hasArg("ignore_warnings")
@@ -64,9 +67,10 @@ if python_debug and os.path.exists(os.path.join("/usr/bin/",
 
 
 print(
-    "Comparing output of '{}' using '{}' ...".format(
-        filename,
-        os.environ["PYTHON"]
+    "Comparing output of '{filename}' using '{python}' with flags {args} ...".format(
+        filename = filename,
+        python   = os.environ["PYTHON"],
+        args     = ", ".join(arguments)
     )
 )
 
@@ -82,7 +86,10 @@ if module_mode:
     cpython_cmd = [
         os.environ[ "PYTHON" ],
         "-W", "ignore",
-        "-c", "import %s" % os.path.basename( filename )
+        "-c", "import sys; sys.path.append(%s); import %s" % (
+            repr(os.path.dirname(filename)),
+            os.path.basename(filename)
+        )
     ]
 else:
     cpython_cmd = [
@@ -121,13 +128,6 @@ if binary_python_path:
         [os.path.dirname(os.path.abspath(filename))]
     )
 
-exe_filename = os.path.basename(filename)
-
-if filename.endswith(".py"):
-    exe_filename = exe_filename[:-3]
-
-exe_filename += ".exe"
-
 if not two_step_execution:
     if module_mode:
         nuitka_cmd = nuitka_call + extra_options.split() + \
@@ -136,12 +136,10 @@ if not two_step_execution:
         nuitka_cmd = nuitka_call + extra_options.split() + \
           ["--exe", "--execute", filename]
 
-    if trace_command:
-        print("Nuitka command:", nuitka_cmd)
 else:
     if module_mode:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
-          [filename]
+          [os.path.abspath(filename)]
     else:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
           ["--exe", filename]
@@ -149,23 +147,28 @@ else:
 dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_options)
 
 if dir_match:
-    nuitka_cmd2 = os.path.join(dir_match.group(1), exe_filename)
+    output_dir = dir_match.group(1)
 else:
-    nuitka_cmd2 = os.path.join(".", exe_filename)
+    output_dir = "."
 
-if two_step_execution:
-    if trace_command:
-        print("Nuitka command 1:", nuitka_cmd1)
-        print("Nuitka command 2:", nuitka_cmd2)
+if module_mode:
+    nuitka_cmd2 = [
+        os.environ["PYTHON"],
+        "-W", "ignore",
+        "-c", "import %s" % os.path.basename(filename)
+    ]
+else:
+    exe_filename = os.path.basename(filename)
 
-if two_step_execution:
-    tmp_dir = tempfile.gettempdir()
+    if filename.endswith(".py"):
+        exe_filename = exe_filename[:-3]
 
-    # Try to avoid RAM disk /tmp and use the disk one instead.
-    if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
-        tmp_dir = "/var/tmp"
+    exe_filename += ".exe"
 
-    os.chdir(tmp_dir)
+    nuitka_cmd2 = [
+        os.path.join(output_dir, exe_filename)
+    ]
+
 
 process = subprocess.Popen(
     args   = cpython_cmd,
@@ -189,8 +192,24 @@ if not silent_mode:
     print("Nuitka:")
     print("*" * 80)
 
+if two_step_execution:
+    if output_dir:
+        os.chdir(output_dir)
+    else:
+        tmp_dir = tempfile.gettempdir()
+
+        # Try to avoid RAM disk /tmp and use the disk one instead.
+        if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
+            tmp_dir = "/var/tmp"
+
+        os.chdir(tmp_dir)
+
+    if trace_command:
+        print("Going to output directory", os.getcwd())
 
 if not two_step_execution:
+    if trace_command:
+        print("Nuitka command:", nuitka_cmd)
     process = subprocess.Popen(
         args   = nuitka_cmd,
         stdout = subprocess.PIPE,
@@ -200,6 +219,9 @@ if not two_step_execution:
     stdout_nuitka, stderr_nuitka = process.communicate()
     exit_nuitka = process.returncode
 else:
+    if trace_command:
+        print("Nuitka command 1:", nuitka_cmd1)
+
     process = subprocess.Popen(
         args   = nuitka_cmd1,
         stdout = subprocess.PIPE,
@@ -213,8 +235,11 @@ else:
         exit_nuitka = exit_nuitka1
         stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
     else:
+        if trace_command:
+             print("Nuitka command 2:", nuitka_cmd2)
+
         process = subprocess.Popen(
-            args   = [ nuitka_cmd2 ],
+            args   = nuitka_cmd2,
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE
         )
@@ -382,15 +407,26 @@ if expect_success and exit_cpython != 0:
 if expect_failure and exit_cpython == 0:
     sys.exit("Unexpected success exit from CPython.")
 
-if remove_output and os.path.exists(nuitka_cmd2):
-    if os.name == "nt":
-        # It appears there is a tiny lock race that we randonly cause, likely
-        # because --execute spawns a subprocess that might still be doing the
-        # cleanup work.
-        os.rename(nuitka_cmd2, nuitka_cmd2+".away")
-        os.unlink(nuitka_cmd2+".away")
+if remove_output:
+    if not module_mode:
+        if os.path.exists(nuitka_cmd2[0]):
+            if os.name == "nt":
+                # It appears there is a tiny lock race that we randonly cause,
+                # likely because --execute spawns a subprocess that might still
+                # be doing the cleanup work.
+                os.rename(nuitka_cmd2[0], nuitka_cmd2[0]+".away")
+                os.unlink(nuitka_cmd2[0]+".away")
+            else:
+                os.unlink(nuitka_cmd2[0])
     else:
-        os.unlink(nuitka_cmd2)
+        if os.name == "nt":
+            module_filename = os.path.basename(filename) + ".pyd"
+        else:
+            module_filename = os.path.basename(filename) + ".so"
+
+        if os.path.exists(module_filename):
+            os.unlink(module_filename)
+
 
 if not silent_mode:
     print("OK, same outputs.")

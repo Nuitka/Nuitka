@@ -37,7 +37,8 @@ from test_common import (
     my_print,
     setup,
     convertUsing2to3,
-    compareWithCPython
+    compareWithCPython,
+    getTempDir
 )
 
 python_version = setup()
@@ -60,7 +61,12 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
-    extra_flags = ["expect_success","remove_output","module_mode"]
+    extra_flags = [
+        "expect_success",
+        "remove_output",
+        "module_mode",
+        "two_step_execution"
+    ]
 
     # The use of "__main__" in the test package gives a warning.
     if filename == "sub_package":
@@ -83,6 +89,10 @@ Error, no package in dir '%s' found, incomplete test case.""" % filename
 
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = \
           "--recurse-to %s" % os.path.basename(filename_main)
+
+        os.environ[ "NUITKA_EXTRA_OPTIONS" ] += \
+          " --output-dir=%s" % getTempDir()
+
 
         compareWithCPython(
             path        = os.path.join( filename, filename_main ),
