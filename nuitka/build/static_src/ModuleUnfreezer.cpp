@@ -403,6 +403,14 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_mod
     }
 
     // And also provide it as a meta path loader.
-    int res = PyList_Insert( PySys_GetObject( ( char *)"meta_path" ), 0, loader_frozen_modules );
+    int res = PyList_Insert(
+        PySys_GetObject( ( char *)"meta_path" ),
+#if PYTHON_VERSION < 330
+        0,
+#else
+        2,
+#endif
+        loader_frozen_modules
+    );
     assert( res == 0 );
 }
