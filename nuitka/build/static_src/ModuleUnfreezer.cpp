@@ -57,27 +57,33 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
         return NULL;
     }
 
-    char *name = Nuitka_String_AsString( module_name );
+    char const *name = Nuitka_String_AsString( module_name );
 
-#if _DEBUG_UNFREEZER
-    printf( "Looking for module '%s'...\n", name );
-#endif
+    if ( Py_VerboseFlag )
+    {
+        PySys_WriteStderr( "import %s # considering responsibility\n", name );
+    }
 
     struct Nuitka_FreezeTableEntry *current = frozen_modules;
 
     while ( current->name != NULL )
     {
-       if ( strcmp( name, current->name ) == 0 )
-       {
-           return INCREASE_REFCOUNT( loader_frozen_modules );
-       }
+        if ( strcmp( name, current->name ) == 0 )
+        {
+            if ( Py_VerboseFlag )
+            {
+                PySys_WriteStderr( "import %s # claimed responsibility\n", name );
+            }
+            return INCREASE_REFCOUNT( loader_frozen_modules );
+        }
 
-       current++;
+        current++;
     }
 
-#if _DEBUG_UNFREEZER
-    printf( "Didn't find module '%s'.\n", name );
-#endif
+    if ( Py_VerboseFlag )
+    {
+        PySys_WriteStderr( "import %s # denied responsibility\n", name );
+    }
 
     return INCREASE_REFCOUNT( Py_None );
 }
@@ -257,64 +263,66 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 
     while ( current->name != NULL )
     {
-       if ( strcmp( name, current->name ) == 0 )
-       {
-#if _DEBUG_UNFREEZER
-           printf( "Loading %s\n", name );
-#endif
+        if ( strcmp( name, current->name ) == 0 )
+        {
+            if ( Py_VerboseFlag )
+            {
+                PySys_WriteStderr( "Loading %s\n", name );
+            }
 
 #ifdef _NUITKA_PORTABLE
-           if ( ( current->flags & NUITKA_SHLIB_MODULE ) != 0 )
-           {
-               char filename[1024];
+            if ( ( current->flags & NUITKA_SHLIB_MODULE ) != 0 )
+            {
+                char filename[1024];
 
-               strcpy( filename, getBinaryDirectory() );
-               char *d = filename;
-               d += strlen( filename );
-               *d++ = SEP;
+                strcpy( filename, getBinaryDirectory() );
+                char *d = filename;
+                d += strlen( filename );
+                *d++ = SEP;
 
-               char *s = current->name;
+                char *s = current->name;
 
-               while( *s )
-               {
-                   if ( *s == '.' )
-                   {
-                       *d++ = SEP;
-                   }
-                   else
-                   {
-                       *d++ = *s++;
-                   }
-               }
-               *d = 0;
+                while( *s )
+                {
+                    if ( *s == '.' )
+                    {
+                        *d++ = SEP;
+                    }
+                    else
+                    {
+                        *d++ = *s++;
+                    }
+                }
+                *d = 0;
 
 #ifdef _WIN32
-               strcat( filename, ".pyd" );
+                strcat( filename, ".pyd" );
 #else
-               strcat( filename, ".so" );
+                strcat( filename, ".so" );
 #endif
 
-               callIntoShlibModule( current->name,  filename );
-           }
-           else
+                callIntoShlibModule( current->name,  filename );
+            }
+            else
 #endif
-           {
-               assert( ( current->flags & NUITKA_SHLIB_MODULE ) == 0 );
-               current->python_initfunc();
-           }
+            {
+                assert( ( current->flags & NUITKA_SHLIB_MODULE ) == 0 );
+                current->python_initfunc();
+            }
 
-           if (unlikely( ERROR_OCCURED() ))
-           {
-               return NULL;
-           }
+            if (unlikely( ERROR_OCCURED() ))
+            {
+                return NULL;
+            }
 
-           PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
+            PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
 
-#if _DEBUG_UNFREEZER
-           printf( "Loaded %s\n", name );
-#endif
+            if ( Py_VerboseFlag )
+            {
+                PySys_WriteStderr( "Loaded %s\n", name );
+            }
 
-           return LOOKUP_SUBSCRIPT( sys_modules, module_name );
+            return LOOKUP_SUBSCRIPT( sys_modules, module_name );
        }
 
        current++;
@@ -388,6 +396,11 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_mod
     );
 
     assertObject( loader_frozen_modules );
+
+    if ( Py_VerboseFlag )
+    {
+        PySys_WriteStderr( "setup nuitka compiled module/shlib importer\n" );
+    }
 
     // And also provide it as a meta path loader.
     int res = PyList_Insert( PySys_GetObject( ( char *)"meta_path" ), 0, loader_frozen_modules );
