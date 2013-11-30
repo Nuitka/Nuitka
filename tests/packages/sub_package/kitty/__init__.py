@@ -18,10 +18,10 @@
 #     limitations under the License.
 #
 
-print(__name__)
-print(__package__)
+print("__name__ is ", __name__)
+print("__package__ is ", __package__)
 
 import sys
-print(sys.modules["kitty"])
+print("From sys.modules", sys.modules["kitty"])
 
 from kitty.speak.hello import speak
