@@ -596,7 +596,10 @@ def main():
         if Options.isFullCompat() and \
            e.args[0].startswith( "unknown encoding:" ):
             if Utils.python_version >= 333 or \
-               "2.7.6" in sys.version or \
+               (
+                   Utils.python_version >= 276 and \
+                   Utils.python_version < 300
+               ) or \
                "2.7.5+" in sys.version or \
                "3.3.2+" in sys.version: # Debian backports have "+" versions
                 complaint = "no-exist"
