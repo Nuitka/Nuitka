@@ -952,7 +952,9 @@ from __future__ imports must occur at the beginning of the file""",
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant      = provider.getPackage(),
+                    constant      = provider.getFullName()
+                                      if provider.isPythonPackage() else
+                                    provider.getPackage(),
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
