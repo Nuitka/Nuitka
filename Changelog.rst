@@ -26,6 +26,9 @@ Bug Fixes
 - Python3: Fix, modules and packages didn't add themselves to ``sys.modules``
   which they should, happened only for programs.
 
+- Python3.3: Packages should set ``__package`` to their own name, not the one of
+  their parents.
+
 New Features
 ------------
 
@@ -118,9 +121,10 @@ Tests
 -----
 
 - The ``programs`` tests cases now fail if module or directory recursion is not
-  working
+  working, being executed in another directory.
 
-- Added test case for package with recursion and sub-packages.
+- Added test runner for packages, with initial test case for package with
+  recursion and sub-packages.
 
 - Made some test cases more strict by reducing ``PYTHONPATH`` provision.
 
