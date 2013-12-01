@@ -17,7 +17,6 @@
 #     limitations under the License.
 #
 
-
 from __future__ import print_function
 
 import difflib
@@ -67,7 +66,9 @@ if python_debug and os.path.exists(os.path.join("/usr/bin/",
 
 
 print(
-    "Comparing output of '{filename}' using '{python}' with flags {args} ...".format(
+    """\
+Comparing output of '{filename}' using '{python}' with flags {args} ...""".
+format(
         filename = filename,
         python   = os.environ["PYTHON"],
         args     = ", ".join(arguments)
@@ -359,8 +360,14 @@ def compareOutput(kind, out_cpython, out_nuitka):
     diff = difflib.unified_diff(
         makeDiffable(out_cpython),
         makeDiffable(out_nuitka),
-        "{} ({})".format(os.environ[ "PYTHON" ], kind),
-        "{} ({})".format("nuitka", kind),
+        "{program} ({detail})".format(
+            program = os.environ[ "PYTHON" ],
+            detail  = kind
+        ),
+        "{program} ({detail})".format(
+            program = "nuitka",
+            detail  = kind
+        ),
         fromdate,
         todate,
         n=3
@@ -387,9 +394,10 @@ exit_code_return = exit_cpython != exit_nuitka
 
 if exit_code_return:
     print(
-        "Exit codes {:d} (CPython) != {:d} (Nuitka)".format(
-            exit_cpython,
-            exit_nuitka
+        """\
+Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
+            exit_cpython = exit_cpython,
+            exit_nuitka  = exit_nuitka
         )
     )
 
