@@ -16,11 +16,14 @@
 #     limitations under the License.
 #
 """
-Freezer for precompiled modules. Not compiled modules.
+Freezer for bytecode compiled modules. Not C++ compiled modules.
 
 This is including modules as bytecode and mostly intended for modules, where
-we know compiling it useless or does not make much sense, or for portable mode
-to access modules during CPython library init that cannot be avoided.
+we know compiling it useless or does not make much sense, or for standalone
+mode to access modules during CPython library init that cannot be avoided.
+
+The level of compatibility for C++ compiled stuff is so high that this is not
+needed except for technical reasons.
 """
 
 

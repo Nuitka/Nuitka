@@ -650,9 +650,9 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
   MinGW compiler mode, optional and interesting to Windows only.
 
-* ``portable_mode``
+* ``standalone_mode``
 
-  Portable mode, so far not functional.
+  Building a standalone distribution for the binary.
 
 * ``show_scons``
 

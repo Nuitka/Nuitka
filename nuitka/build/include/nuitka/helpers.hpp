@@ -1092,8 +1092,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 #endif
 }
 
-#if defined(_NUITKA_PORTABLE) || _NUITKA_FROZEN > 0
-extern void preparePortableEnvironment();
+#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
+extern void prepareStandaloneEnvironment();
 extern char *getBinaryDirectory();
 #endif
 

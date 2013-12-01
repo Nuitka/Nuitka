@@ -15,10 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Pack and copy files for portable mode.
+""" Pack and copy files for standalone mode.
 
-This is in heavy flux now, cannot be expected to work or make sense.
-
+This is in heavy flux now, cannot be expected to work or make sense on all
+the platforms.
 """
 
 import os
@@ -172,10 +172,10 @@ def _detectPythonDLLs( binary_filename ):
     return result
 
 
-def detectPythonDLLs( portable_entry_points ):
+def detectPythonDLLs( standalone_entry_points ):
     result = set()
 
-    for binary_filename in portable_entry_points:
+    for binary_filename in standalone_entry_points:
         result.update(
             _detectPythonDLLs(binary_filename)
         )

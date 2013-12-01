@@ -58,7 +58,7 @@ def getMainCode( codes, context ):
         "sys_executable"       : getConstantCode(
             constant = "python.exe"
                          if Options.isWindowsTarget() and
-                         Options.isPortableMode()
+                         Options.isStandaloneMode()
                          else
                        sys.executable,
             context  = context

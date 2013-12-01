@@ -20,10 +20,9 @@
 // The definition of a compiled code helper is that it's being used in
 // generated C++ code and provides part of the operations implementation.
 
-// Currently we also have portable code here, patches to CPython runtime
-// that we do, and e.g. the built-in module. TODO: Move these to their own
-// files for clarity.
-
+// Currently we also have standalone mode related code here, patches to CPython
+// runtime that we do, and e.g. the built-in module. TODO: Move these to their
+// own files for clarity.
 
 #include "nuitka/prelude.hpp"
 
@@ -1864,7 +1863,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     );
 }
 
-#if defined(_NUITKA_PORTABLE) || _NUITKA_FROZEN > 0
+#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 
 #include <osdefs.h>
 #if defined( _WIN32 )
@@ -1917,10 +1916,10 @@ char *getBinaryDirectory()
 }
 
 #if _NUITKA_FROZEN > 0
-extern struct _frozen PortableMode_FrozenModules[];
+extern struct _frozen Embedded_FrozenModules[];
 #endif
 
-void preparePortableEnvironment()
+void prepareStandaloneEnvironment()
 {
     // Tell the CPython library to use our precompiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
@@ -1946,14 +1945,14 @@ void preparePortableEnvironment()
     );
     memcpy(
         merged + pre_existing_count,
-        PortableMode_FrozenModules,
+        Embedded_FrozenModules,
         ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen )
     );
 
     PyImport_FrozenModules = merged;
 #endif
 
-#ifdef _NUITKA_PORTABLE
+#ifdef _NUITKA_STANDALONE
     // Setup environment variables to tell CPython that we would like it to use
     // the provided binary directory as the place to look for DLLs.
     char *binary_directory = getBinaryDirectory();
@@ -1977,7 +1976,7 @@ void preparePortableEnvironment()
     memset( insert_path, 0, insert_size );
     snprintf( insert_path, insert_size, env_string, binary_directory );
 
-#if defined( _NUITKA_PORTABLE ) && _WIN32
+#if defined( _NUITKA_STANDALONE ) && _WIN32
     SetDllDirectory( binary_directory );
 #endif
 

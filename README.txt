@@ -49,7 +49,7 @@ Requirements
   .. note::
 
      The created binaries can be made executable independent of the Python
-     installation, with ``--portable`` option.
+     installation, with ``--standalone`` option.
 
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits),
 
@@ -139,9 +139,9 @@ given directory shall also be included in the executable:
    The resulting binary still depends on CPython and used C extension modules
    being installed.
 
-   If you want to be able to copy it to another machine, use ``--portable`` and
-   copy the created ``program.dist`` directory and execute the ``program.exe``
-   put inside.
+   If you want to be able to copy it to another machine, use ``--standalone``
+   and copy the created ``program.dist`` directory and execute the
+   ``program.exe`` put inside.
 
 Use Case 2 - Extension Module compilation
 -----------------------------------------
@@ -678,7 +678,7 @@ The order is sorted by time.
 - Pete Hunt: Submitted patches for MacOS X support.
 
 - "ownssh": Submitted patches for built-ins module guarding, and made massive
-  efforts to make high quality bug reports. Also the initial "portable" mode
+  efforts to make high quality bug reports. Also the initial "standalone" mode
   implementation was created by him.
 
 - Juan Carlos Paco: Submitted cleanup patches, creator of the `Nuitka GUI

@@ -64,7 +64,7 @@ def getConstantCodeName( context, constant ):
 def _isAttributeName( value ):
     return _match_attribute_names.match( value )
 
-# Indicator to portable mode, if we need cPickle or pickle module.
+# Indicator to standalone mode code, if we need pickling module early on.
 _needs_pickle = False
 
 def needsPickleInit():

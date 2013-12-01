@@ -454,13 +454,13 @@ Given warnings for implicit exceptions detected at compile time.""",
 parser.add_option(
     "--standalone", "--portable",
     action  = "store_true",
-    dest    = "is_portable_mode",
+    dest    = "is_standalone",
     default = False,
     help    = """\
-Enable portable mode in build. This allows you to transfer the created binary
+Enable standalone mode in build. This allows you to transfer the created binary
 to other machines without it relying on an existing Python installation. It
-implies these options: "--exe --python-flag=-S --recurse-stdlib". Defaults to
-off.""",
+implies these options: "--exe --python-flag=-S --recurse-all --recurse-stdlib".
+Defaults to off.""",
 )
 
 parser.add_option(
@@ -500,7 +500,10 @@ Error, need positional argument with python module or main program.""" )
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
 
-if options.is_portable_mode:
+# Standalone mode implies an executable, not importing "site" module, which is
+# only for this machine, recursing to all modules, and even including the
+# standard library.
+if options.is_standalone:
     options.executable = True
     options.python_flags.append( "nosite" )
     options.recurse_all = True
@@ -653,8 +656,8 @@ def getIntendedPythonVersion():
 def isExperimental():
     return hasattr( options, "experimental" ) and options.experimental
 
-def isPortableMode():
-    return options.is_portable_mode
+def isStandaloneMode():
+    return options.is_standalone
 
 def getIconPath():
     return options.icon_path

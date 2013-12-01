@@ -103,8 +103,8 @@ frozen_modules = int( ARGUMENTS.get( "frozen_modules", 0 ) )
 # Shared library and compiled modules count
 module_count = int( ARGUMENTS.get( "module_count", 0 ) )
 
-# Portable mode
-portable_mode = getBoolOption( "portable_mode", False )
+# Standalone mode
+standalone_mode = getBoolOption( "standalone_mode", False )
 
 # Show scons mode, output information about Scons operation
 show_scons_mode = getBoolOption( "show_scons", False )
@@ -559,12 +559,13 @@ if full_compat_mode:
 if experimental_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_EXPERIMENTAL" ] )
 
-if portable_mode:
-    env.Append( CPPDEFINES = [ "_NUITKA_PORTABLE" ] )
+if standalone_mode:
+    env.Append( CPPDEFINES = [ "_NUITKA_STANDALONE" ] )
 
     if win_target:
         if msvc_mode:
-            # This is used for "PathRemoveFileSpec" used in portable Windows code.
+            # This is used for "PathRemoveFileSpec" used in standalone mode
+            # Windows code.
             env.Append( LIBS = [ "Shlwapi.lib" ] )
     else:
         env.Append( LIBS = [ "dl" ] )
@@ -702,7 +703,7 @@ if optimize_mode:
 
 
 # Set load libpython from binary directory default
-if portable_mode and gcc_mode:
+if standalone_mode and gcc_mode:
     env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
 
 env.Append( CPPDEFINES = [ "_NUITKA_FROZEN=%d" % frozen_modules ] )

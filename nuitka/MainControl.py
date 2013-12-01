@@ -44,7 +44,7 @@ from .codegen import CodeGeneration
 from .optimizations import Optimization
 from .finalizations import Finalization
 
-from nuitka.freezer.Portable import (
+from nuitka.freezer.Standalone import (
     detectEarlyImports,
     detectPythonDLLs
 )
@@ -77,13 +77,14 @@ def createNodeTree( filename ):
     ModuleRegistry.addRootModule( main_module )
 
     # First remove old object files and old generated files, old binary or
-    # module, and portable program directory if any, they can only do harm.
+    # module, and standalone mode program directory if any, they can only do
+    # harm.
     source_dir = getSourceDirectoryPath( main_module )
     cleanSourceDirectory( source_dir )
-    if Options.isPortableMode():
-        portable_dir = getPortableDirectoryPath( main_module )
-        shutil.rmtree( portable_dir, ignore_errors = True )
-        Utils.makePath( portable_dir )
+    if Options.isStandaloneMode():
+        standalone_dir = getStandaloneDirectoryPath( main_module )
+        shutil.rmtree( standalone_dir, ignore_errors = True )
+        Utils.makePath( standalone_dir )
     Utils.deleteFile(
         path       = getResultFullpath( main_module ),
         must_exist = False
@@ -137,7 +138,7 @@ def getSourceDirectoryPath( main_module ):
         )
     )
 
-def getPortableDirectoryPath( main_module ):
+def getStandaloneDirectoryPath( main_module ):
     return Options.getOutputPath(
         path = Utils.basename(
             getTreeFilenameWithSuffix( main_module, ".dist" )
@@ -148,9 +149,9 @@ def getPortableDirectoryPath( main_module ):
 def getResultBasepath( main_module ):
     assert main_module.isPythonModule()
 
-    if Options.isPortableMode():
+    if Options.isStandaloneMode():
         return Utils.joinpath(
-            getPortableDirectoryPath( main_module ),
+            getStandaloneDirectoryPath( main_module ),
             Utils.basename(
                 getTreeFilenameWithSuffix( main_module, "" )
             )
@@ -236,7 +237,7 @@ def pickSourceFilenames( source_dir, modules ):
 
     return module_filenames
 
-portable_entry_points = []
+standalone_entry_points = []
 
 def makeSourceDirectory( main_module ):
     # We deal with a lot of details here, but rather one by one, and split makes
@@ -314,7 +315,7 @@ def makeSourceDirectory( main_module ):
             )
         elif module.isPythonShlibModule():
             target_filename = Utils.joinpath(
-                getPortableDirectoryPath( main_module ),
+                getStandaloneDirectoryPath( main_module ),
                 *module.getFullName().split( "." )
             )
 
@@ -333,7 +334,7 @@ def makeSourceDirectory( main_module ):
                 target_filename
             )
 
-            portable_entry_points.append( target_filename )
+            standalone_entry_points.append( target_filename )
         else:
             assert False, module
 
@@ -430,8 +431,8 @@ def runScons( main_module, quiet ):
     if Options.shallDisableConsoleWindow():
         options[ "win_disable_console" ] = "true"
 
-    if Options.isPortableMode():
-        options[ "portable_mode" ] = "true"
+    if Options.isStandaloneMode():
+        options[ "standalone_mode" ] = "true"
 
     if getFrozenModuleCount():
         options[ "frozen_modules" ] = str(
@@ -489,7 +490,7 @@ def callExec( args, clean_path, add_path ):
 def executeMain( binary_filename, tree, clean_path ):
     main_filename = tree.getFilename()
 
-    if Options.isPortableMode():
+    if Options.isStandaloneMode():
         name = binary_filename
     elif main_filename.endswith( ".py" ):
         name = main_filename[:-3]
@@ -537,19 +538,19 @@ def compileTree( main_module ):
             main_module = main_module
         )
 
-        if Options.isPortableMode():
+        if Options.isStandaloneMode():
             for early_import in detectEarlyImports():
                 addFrozenModule( early_import )
 
         if getFrozenModuleCount():
-            portable_code = generatePrecompiledFrozenCode()
+            frozen_code = generatePrecompiledFrozenCode()
 
             writeSourceCode(
                 filename = Utils.joinpath(
                     source_dir,
                     "__frozen.cpp"
                 ),
-                source_code = portable_code
+                source_code = frozen_code
             )
     else:
         source_dir = getSourceDirectoryPath( main_module )
@@ -634,16 +635,16 @@ def main():
         if Options.isRemoveBuildDir():
             shutil.rmtree( getSourceDirectoryPath( main_module ) )
 
-        if Options.isPortableMode():
+        if Options.isStandaloneMode():
             binary_filename = options[ "result_name" ] + ".exe"
 
-            portable_entry_points.append( binary_filename )
+            standalone_entry_points.append( binary_filename )
 
-            for early_dll in detectPythonDLLs( portable_entry_points ):
+            for early_dll in detectPythonDLLs( standalone_entry_points ):
                 shutil.copy(
                     early_dll,
                     Utils.joinpath(
-                        getPortableDirectoryPath( main_module ),
+                        getStandaloneDirectoryPath( main_module ),
                         Utils.basename( early_dll )
                     )
                 )

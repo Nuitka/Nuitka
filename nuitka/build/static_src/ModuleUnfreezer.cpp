@@ -88,7 +88,7 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
     return INCREASE_REFCOUNT( Py_None );
 }
 
-#ifdef _NUITKA_PORTABLE
+#ifdef _NUITKA_STANDALONE
 
 #if PYTHON_VERSION < 300
 typedef void (*entrypoint_t)( void );
@@ -270,7 +270,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
                 PySys_WriteStderr( "Loading %s\n", name );
             }
 
-#ifdef _NUITKA_PORTABLE
+#ifdef _NUITKA_STANDALONE
             if ( ( current->flags & NUITKA_SHLIB_MODULE ) != 0 )
             {
                 char filename[1024];

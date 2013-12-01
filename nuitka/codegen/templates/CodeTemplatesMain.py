@@ -62,8 +62,8 @@ int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmd
 int main( int argc, char *argv[] )
 {
 #endif
-#ifdef _NUITKA_PORTABLE
-    preparePortableEnvironment();
+#ifdef _NUITKA_STANDALONE
+    prepareStandaloneEnvironment();
 #endif
 
     // Initialize Python environment.
@@ -475,10 +475,12 @@ static const unsigned char stream_data[] =
 %(stream_data)s
 };
 
-// These modules must be loadable during "Py_Initialize" already, these are
-// not compiled by Nuitka, and not accelerated, merely bundled with the
-// binary, so that Python library can start out.
-struct _frozen PortableMode_FrozenModules[] =
+// These modules should be loaded as bytecode. They must e.g. be loadable
+// during "Py_Initialize" already, or for irrelevance, they are only included
+// in this un-optimized form. These are not compiled by Nuitka, and therefore
+// are not accelerated at all, merely bundled with the binary or module, so
+// that Python library can start out.
+struct _frozen Embedded_FrozenModules[] =
 {
 %(frozen_modules)s
     { NULL, NULL, 0 }

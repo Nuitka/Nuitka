@@ -100,7 +100,7 @@ def decideRecursion( module_filename, module_name, module_package,
     # Many branches, which make decisions immediately, pylint: disable=R0911
 
     if module_kind == "shlib":
-        if Options.isPortableMode():
+        if Options.isStandaloneMode():
             return True, "Shared library for inclusion."
         else:
             return False, "Shared library cannot be inspected."

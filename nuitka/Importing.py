@@ -405,7 +405,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # Very old modules with older names
         "simplejson", "sets",
 
-        # Portable mode "site" import flexibilities
+        # Standalone mode "site" import flexibilities
         "sitecustomize", "usercustomize", "apport_python_hook",
         "_frozen_importlib",
     )
