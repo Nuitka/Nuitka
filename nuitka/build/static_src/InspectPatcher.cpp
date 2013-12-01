@@ -183,11 +183,11 @@ void patchBuiltinModule()
 #endif
 }
 
-static richcmpfunc original_PyType_tp_richcompare;
+static richcmpfunc original_PyType_tp_richcompare = NULL;
 
-PyObject *_type_tp_richcompare( PyObject *a, PyObject *b, int op )
+static PyObject *Nuitka_type_tp_richcompare( PyObject *a, PyObject *b, int op )
 {
-    if ( op == Py_EQ || op == Py_NE )
+    if (likely( op == Py_EQ || op == Py_NE ))
     {
         if ( a == (PyObject *)&Nuitka_Function_Type )
         {
@@ -216,11 +216,16 @@ PyObject *_type_tp_richcompare( PyObject *a, PyObject *b, int op )
         }
     }
 
+    assertObject( a );
+    assertObject( b );
+
+    assert( original_PyType_tp_richcompare );
+
     return original_PyType_tp_richcompare( a, b, op );
 }
 
 void patchTypeComparison()
 {
     original_PyType_tp_richcompare = PyType_Type.tp_richcompare;
-    PyType_Type.tp_richcompare = _type_tp_richcompare;
+    PyType_Type.tp_richcompare = Nuitka_type_tp_richcompare;
 }
