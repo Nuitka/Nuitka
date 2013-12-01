@@ -226,6 +226,9 @@ static PyObject *Nuitka_type_tp_richcompare( PyObject *a, PyObject *b, int op )
 
 void patchTypeComparison()
 {
-    original_PyType_tp_richcompare = PyType_Type.tp_richcompare;
-    PyType_Type.tp_richcompare = Nuitka_type_tp_richcompare;
+    if ( original_PyType_tp_richcompare == NULL )
+    {
+        original_PyType_tp_richcompare = PyType_Type.tp_richcompare;
+        PyType_Type.tp_richcompare = Nuitka_type_tp_richcompare;
+    }
 }

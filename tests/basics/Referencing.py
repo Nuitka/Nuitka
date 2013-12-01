@@ -541,6 +541,9 @@ def simpleFunction65():
     z = eval( repr(d), d )
 
 
+def simpleFunction66():
+    import types
+    return type(simpleFunction65) == types.FunctionType
 
 x = 17
 
@@ -704,3 +707,4 @@ else:
 
 checkReferenceCount( simpleFunction64 )
 checkReferenceCount( simpleFunction65 )
+checkReferenceCount( simpleFunction66 )

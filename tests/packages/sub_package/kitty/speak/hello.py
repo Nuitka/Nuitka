@@ -19,3 +19,7 @@
 #
 def speak():
     print( "hello kitty" )
+
+# Test Issue#115, in recursing modules, this was misbehaving.
+import types
+assert type(speak) == types.FunctionType
