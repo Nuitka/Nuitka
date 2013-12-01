@@ -452,7 +452,7 @@ Given warnings for implicit exceptions detected at compile time.""",
 
 
 parser.add_option(
-    "--portable",
+    "--standalone", "--portable",
     action  = "store_true",
     dest    = "is_portable_mode",
     default = False,
@@ -503,7 +503,8 @@ if options.verbose:
 if options.is_portable_mode:
     options.executable = True
     options.python_flags.append( "nosite" )
-
+    options.recurse_all = True
+    options.recurse_stdlib = True
 
 def shallTraceExecution():
     return options.trace_execution

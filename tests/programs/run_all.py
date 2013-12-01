@@ -17,8 +17,6 @@
 #     limitations under the License.
 #
 
-from __future__ import print_function
-
 import os, sys
 
 # Find common code relative in file system. Not using packages for test stuff.

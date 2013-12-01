@@ -121,7 +121,9 @@ def detectEarlyImports():
 
     return result
 
-def detectPythonDLLs( binary_filename ):
+def _detectPythonDLLs( binary_filename ):
+    result = set()
+
     if os.name == "posix" and os.uname()[0] == "Linux":
         # Ask "ldd" about the libraries being used by the created binary, these
         # are the ones that interest us.
@@ -133,20 +135,20 @@ def detectPythonDLLs( binary_filename ):
 
         stdout, _stderr = process.communicate()
 
-        result = set()
-
-        for line in stdout.split( "\n" ):
+        for line in stdout.split( b"\n" ):
             if not line:
                 continue
 
-            if "=>" not in line:
+            if b"=>" not in line:
                 continue
 
-            part = line.split( " => ", 2 )[1]
-            filename = part[ : part.rfind( "(" ) - 1 ]
+            part = line.split(b" => ", 2)[1]
+            filename = part[:part.rfind(b"(")-1]
 
-            result.add( filename )
-        return result
+            if Utils.python_version >= 300:
+                filename = filename.decode("utf-8")
+
+            result.add(filename)
     elif os.name == "nt":
         import ctypes
         from ctypes import windll
@@ -160,11 +162,22 @@ def detectPythonDLLs( binary_filename ):
         path = result.value[ :size ]
 
         if Utils.python_version >= 300:
-            path = path.decode( "utf-8" )
+            path = path.decode("utf-8")
 
-        result = set()
-        result.add( path )
-        return result
+        result.add(path)
     else:
         # Support your platform above.
         assert False
+
+    return result
+
+
+def detectPythonDLLs( portable_entry_points ):
+    result = set()
+
+    for binary_filename in portable_entry_points:
+        result.update(
+            _detectPythonDLLs(binary_filename)
+        )
+
+    return result

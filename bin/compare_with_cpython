@@ -50,6 +50,9 @@ two_step_execution = hasArg("two_step_execution")
 binary_python_path = hasArg("binary_python_path")
 trace_command      = hasArg("trace_command")
 remove_output      = hasArg("remove_output")
+standalone_mode    = hasArg("standalone")
+
+assert not standalone_mode or not module_mode
 
 if args:
     sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
@@ -133,14 +136,19 @@ if not two_step_execution:
     if module_mode:
         nuitka_cmd = nuitka_call + extra_options.split() + \
           ["--execute", filename]
+    elif standalone_mode:
+        nuitka_cmd = nuitka_call + extra_options.split() + \
+          ["--standalone", "--execute", filename]
     else:
         nuitka_cmd = nuitka_call + extra_options.split() + \
           ["--exe", "--execute", filename]
-
 else:
     if module_mode:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
           [os.path.abspath(filename)]
+    elif standalone_mode:
+        nuitka_cmd1 = nuitka_call + extra_options.split() + \
+          ["--standalone", filename]
     else:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
           ["--exe", filename]

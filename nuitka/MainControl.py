@@ -236,6 +236,8 @@ def pickSourceFilenames( source_dir, modules ):
 
     return module_filenames
 
+portable_entry_points = []
+
 def makeSourceDirectory( main_module ):
     # We deal with a lot of details here, but rather one by one, and split makes
     # no sense, pylint: disable=R0914
@@ -330,6 +332,8 @@ def makeSourceDirectory( main_module ):
                 module.getFilename(),
                 target_filename
             )
+
+            portable_entry_points.append( target_filename )
         else:
             assert False, module
 
@@ -633,7 +637,9 @@ def main():
         if Options.isPortableMode():
             binary_filename = options[ "result_name" ] + ".exe"
 
-            for early_dll in detectPythonDLLs( binary_filename ):
+            portable_entry_points.append( binary_filename )
+
+            for early_dll in detectPythonDLLs( portable_entry_points ):
                 shutil.copy(
                     early_dll,
                     Utils.joinpath(

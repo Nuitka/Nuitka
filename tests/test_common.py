@@ -18,7 +18,7 @@
 
 from __future__ import print_function
 
-import os, sys, subprocess, tempfile, atexit, shutil
+import os, sys, subprocess, tempfile, atexit, shutil, re
 
 # Make sure we flush after every print, the "-u" option does more than that
 # and this is easy enough.
@@ -194,3 +194,37 @@ def hasDebugPython():
 
     # Otherwise no.
     return False
+
+def getRuntimeTraceOfLoadedFiles( path ):
+    """ Returns the files loaded when executing a binary. """
+
+    if os.name == "posix":
+        args = (
+            "strace",
+            "-e", "file",
+            path
+        )
+
+        process = subprocess.Popen(
+            args   = args,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE
+        )
+
+        stdout_strace, stderr_strace = process.communicate()
+
+        result = []
+
+        for line in stderr_strace.split("\n"):
+            if not line:
+                continue
+
+            result.extend(
+                os.path.abspath(match)
+                for match in
+                re.findall('"(.*?)"', line)
+            )
+
+    result = list(sorted(set(result)))
+
+    return result

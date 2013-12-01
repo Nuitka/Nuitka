@@ -19,7 +19,7 @@
 #     limitations under the License.
 #
 
-import os, sys
+import os, sys, shutil
 
 # Find common code relative in file system. Not using packages for test stuff.
 sys.path.insert(
@@ -34,9 +34,9 @@ sys.path.insert(
 from test_common import (
     my_print,
     setup,
-    convertUsing2to3,
     compareWithCPython,
-    getTempDir
+    decideFilenameVersionSkip,
+    getRuntimeTraceOfLoadedFiles
 )
 
 python_version = setup()
@@ -51,7 +51,10 @@ else:
     active = True
 
 for filename in sorted( os.listdir( "." ) ):
-    if not os.path.isdir( filename ) or filename.endswith( ".build" ):
+    if not filename.endswith( ".py" ):
+        continue
+
+    if not decideFilenameVersionSkip( filename ):
         continue
 
     path = os.path.relpath( filename )
@@ -59,44 +62,52 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
-    extra_flags = [
-        "expect_success",
-        "remove_output",
-        "module_mode",
-        "two_step_execution"
-    ]
-
-    # The use of "__main__" in the test package gives a warning.
-    if filename == "sub_package":
-        extra_flags.append( "ignore_warnings" )
+    extra_flags = [ "standalone", "remove_output" ]
 
     if active:
-        my_print( "Consider output of recursively compiled program:", path )
+        my_print( "Consider output of recursively compiled program:", filename )
 
-        for filename_main in os.listdir( filename ):
-            if not os.path.isdir(os.path.join(filename,filename_main)):
-                continue
-
-            if filename_main not in ( "..", "." ):
-                break
-        else:
-            sys.exit(
-                """\
-Error, no package in dir '%s' found, incomplete test case.""" % filename
-            )
-
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = \
-          "--recurse-to %s" % os.path.basename(filename_main)
-
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] += \
-          " --output-dir=%s" % getTempDir()
-
-
+        # First compare so we know the program behaves identical.
         compareWithCPython(
-            path        = os.path.join( filename, filename_main ),
+            path        = filename,
             extra_flags = extra_flags,
             search_mode = search_mode,
             needs_2to3  = False
         )
+
+        # Second use strace on the result.
+        loaded_filenames = getRuntimeTraceOfLoadedFiles(
+            path = os.path.join(
+                filename[:-3] + ".dist",
+                filename[:-3] + ".exe"
+            )
+        )
+
+        current_dir = os.path.normpath(os.getcwd())
+
+        for loaded_filename in loaded_filenames:
+            loaded_filename = os.path.normpath(loaded_filename)
+
+            if loaded_filename.startswith(current_dir):
+                continue
+
+            if loaded_filename.startswith("/etc/"):
+                continue
+
+            if loaded_filename.startswith("/proc/"):
+                continue
+
+            if loaded_filename.startswith("/dev/"):
+                continue
+
+            if loaded_filename == "/usr/lib/locale/locale-archive":
+                continue
+
+            if os.path.basename(loaded_filename) == "gconv-modules.cache":
+                continue
+
+            sys.exit("Should not access '%s'." % loaded_filename)
+
+        shutil.rmtree(filename[:-3] + ".dist")
     else:
         my_print( "Skipping", filename )
