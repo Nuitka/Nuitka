@@ -312,7 +312,7 @@ def makeSourceDirectory( main_module ):
             )
         elif module.isPythonShlibModule():
             target_filename = Utils.joinpath(
-                portable_dir,
+                getPortableDirectoryPath( main_module ),
                 *module.getFullName().split( "." )
             )
 
