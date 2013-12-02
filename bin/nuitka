@@ -27,12 +27,12 @@ other modules.
 
 """
 
-
+# Import as little as possible initially, because we might be re-executing
+# soon.
 import logging
 import os
 import sys
 import warnings
-from logging import warning
 
 # LIBDIR trick start (marker for removal on platforms that don't need it)
 libdir = '@LIBDIR@'
@@ -75,10 +75,6 @@ logging.basicConfig(format = 'Nuitka:%(levelname)s:%(message)s')
 
 warnings.simplefilter("ignore", DeprecationWarning)
 
-# Import as little as possible initially, because we might be re-executing
-# soon.
-
-
 # We will run with the Python configuration as specified by the user, if it does
 # not match, we restart ourselves with matching configuration.
 needs_reexec = False
@@ -120,10 +116,11 @@ if os.environ.get( "PYTHONHASHSEED", "-1" ) != "0":
 
 # In case we need to re-execute.
 if needs_reexec:
-    # Execute with "python" as the processs name.
+    # Execute with full path as the process name, so it can find itself and its
+    # libraries.
     args = [
         python_binary,
-        os.path.basename(python_binary)
+        python_binary,
     ]
 
     # Potentially give Python command line flags as necessary.
