@@ -743,6 +743,12 @@ Projects used by Nuitka
   limited to compiling CPython with 32 bits, for 64 bits there is no solution
   yet.
 
+* The Builtbot project <http://buildbot.net>_
+
+  Thanks for creating an easy to deploy and use continous integration framework
+  that also runs on Windows and written and configured in Python. This allows to
+  run the Nuitka tests long before release time.
+
 Updates for this Manual
 =======================
 

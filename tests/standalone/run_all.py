@@ -62,7 +62,7 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
-    extra_flags = [ "standalone", "remove_output" ]
+    extra_flags = [ "expect_success", "standalone", "remove_output" ]
 
     if active:
         my_print( "Consider output of recursively compiled program:", filename )

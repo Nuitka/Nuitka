@@ -107,11 +107,16 @@ def detectEarlyImports():
                     filename
                 )
 
+                source_code = open(filename,"rb").read()
+
+                if Utils.python_version >= 300:
+                    source_code = source_code.decode( "utf-8" )
+
                 result.append(
                     (
                         module_name,
                         marshal.dumps(
-                            compile(open(filename).read(), filename, "exec")
+                            compile(source_code, filename, "exec")
                         ),
                         Utils.basename(filename) == b"__init__.py"
                     )

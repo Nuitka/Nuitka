@@ -43,7 +43,7 @@ Bug Fixes
 
 - The Windows installer was not including Scons. Fixed in 0.4.6.3 already.
 
-- Windows: The immediate execution as performed by ``nuitka-python`` was not
+- Windows: The immediate execution as performed by ``nuitka --execute`` was not
   preserving the exit code. `Issue#26 <http://bugs.nuitka.net/issue26>`_.
 
 - Python3.3: Packages without ``__init.py__`` were not properly embedding the
@@ -56,6 +56,10 @@ Bug Fixes
   their parents.
 
 - Python3.3: The ``__qualname__`` of nested classes was corrected.
+
+- For modules that recursed to other modules, an infinite loop could be
+  triggered when comparing types with rich comparisons. `Issue#115
+  <http://bugs.nuitka.net/issue115>`_
 
 New Features
 ------------
@@ -74,7 +78,7 @@ New Features
   sane aliases ``no_site`` and ``trace_imports``.
 
   The recommended use of ``--python-flag=-S`` is to avoid dependency creep in
-  portable mode compilations, because the ``site`` module often imports many
+  standalone mode compilations, because the ``site`` module often imports many
   useless things that often don't apply to target systems.
 
 New Optimization
@@ -165,21 +169,21 @@ Cleanups
 - The generated code uses ``const_``, ``var_``, ``par_`` prefixes in the
   generated code and centralized the decision about these into single place.
 
+- Module variables no longer use C++ classes for their access, but instead
+  accessor functions, leading to much less code generated per module variable
+  and removing the need to trace their usage during code generation.
+
 - The test runners now share common code in a dedicated module, previously they
   replicated it all, but that turned out to be too tedious.
 
-- Massive general cleanups, many of which were contributed by new contributor
-  Juan Carlos Paco.
+- Massive general cleanups, many of which came from new contributor Juan Carlos
+  Paco.
 
-- Moved portable and freeze related codes to dedicated package
+- Moved standalone and freezer related codes to dedicated package
   ``nuitka.freezer`` to not pollute the ``nuitka`` package name space.
 
 - The code generation use variable identifiers and their accesses was cleaned
   up.
-
-- Module variables no longer use C++ classes for their access, but instead
-  accessor functions, leading to much less code generated per module variable
-  and removing the need to trace their usage during code generation.
 
 - Removed several not-so-special case identifier classes because they now behave
   more identical and all work the same way, so a parameters can be used to
@@ -192,10 +196,16 @@ Summary
 -------
 
 This release marks major technological progress with the introduction of the
-much sought portable mode and performance improvements.
+much sought standalone mode and performance improvements from improved code
+generation.
 
 The major break through for SSA optimization was not yet achieved, but this is
-again making progress in the direction of it.
+again making progress in the direction of it. Harmonizing variables of different
+kinds was an important step ahead.
+
+Also very nice is the packaging progress, Nuitka was accepted into Arch after
+being in Debian Testing for a while already. Hope is to see more of this kind of
+integration in the future.
 
 
 Nuitka Release 0.4.6
