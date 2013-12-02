@@ -36,16 +36,13 @@ class ExpressionBuiltinEval( ExpressionChildrenHavingBase ):
 
     named_children = ( "source", "globals", "locals" )
 
-    # Need to accept globals and local keyword argument, that is just the API of
-    # eval, pylint: disable=W0622
-
-    def __init__( self, source, globals, locals, source_ref ):
+    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"  : source,
-                "globals" : globals,
-                "locals"  : locals,
+                "source"  : source_code,
+                "globals" : globals_arg,
+                "locals"  : locals_arg,
             },
             source_ref = source_ref
         )
@@ -64,6 +61,15 @@ if Utils.python_version >= 300:
     class ExpressionBuiltinExec( ExpressionBuiltinEval ):
         kind = "EXPRESSION_BUILTIN_EXEC"
 
+        def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
+            ExpressionBuiltinEval.__init__(
+                self,
+                source_code = source_code,
+                globals_arg = globals_arg,
+                locals_arg  = locals_arg,
+                source_ref  = source_ref
+            )
+
         def needsLocalsDict( self ):
             return True
 
@@ -80,7 +86,13 @@ if Utils.python_version < 300:
         named_children = ( "source", "globals", "locals" )
 
         def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-            ExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
+            ExpressionBuiltinEval.__init__(
+                self,
+                source_code = source_code,
+                globals_arg = globals_arg,
+                locals_arg  = locals_arg,
+                source_ref  = source_ref
+            )
 
         def needsLocalsDict( self ):
             return True
@@ -92,8 +104,10 @@ def _couldBeNone( node ):
         return True
     elif node.isExpressionMakeDict():
         return False
-    elif node.isExpressionBuiltinGlobals() or node.isExpressionBuiltinLocals() or \
-           node.isExpressionBuiltinDir0() or node.isExpressionBuiltinVars():
+    elif node.isExpressionBuiltinGlobals() or \
+         node.isExpressionBuiltinLocals() or \
+         node.isExpressionBuiltinDir0() or \
+         node.isExpressionBuiltinVars():
         return False
     else:
         # assert False, node
@@ -130,7 +144,9 @@ class StatementExec( StatementChildrenHavingBase ):
     def needsLocalsDict( self ):
         return _couldBeNone( self.getGlobals() ) or \
                self.getGlobals().isExpressionBuiltinLocals() or \
-               self.getLocals() is not None and self.getLocals().isExpressionBuiltinLocals()
+               ( self.getLocals() is not None and \
+                 self.getLocals().isExpressionBuiltinLocals()
+               )
 
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getSourceCode() )
@@ -139,12 +155,21 @@ class StatementExec( StatementChildrenHavingBase ):
         if source_code.willRaiseException( BaseException ):
             result = source_code
 
-            return result, "new_raise", "Exec statement raises implicitely when determining source code argument."
+            return (
+                result,
+                "new_raise",
+                """\
+Exec statement raises implicitely when determining source code argument."""
+            )
 
-        constraint_collection.onExpression( self.getGlobals(), allow_none = True )
+        constraint_collection.onExpression(
+            expression = self.getGlobals(),
+            allow_none = True
+        )
         globals_arg = self.getGlobals()
 
-        if globals_arg is not None and globals_arg.willRaiseException( BaseException ):
+        if globals_arg is not None and \
+           globals_arg.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -154,12 +179,21 @@ class StatementExec( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Exec statement raises implicitely when determining globals argument."
+            return (
+                result,
+                "new_raise",
+                """\
+Exec statement raises implicitely when determining globals argument."""
+            )
 
-        constraint_collection.onExpression( self.getLocals(), allow_none = True )
+        constraint_collection.onExpression(
+            expression = self.getLocals(),
+            allow_none = True
+        )
         locals_arg = self.getLocals()
 
-        if locals_arg is not None and locals_arg.willRaiseException( BaseException ):
+        if locals_arg is not None and \
+           locals_arg.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -170,25 +204,40 @@ class StatementExec( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Exec statement raises implicitely when determining locals argument."
+            return (
+                result,
+                "new_raise",
+                """\
+Exec statement raises implicitely when determining locals argument."""
+            )
 
         str_value = self.getSourceCode().getStrValue()
 
         # TODO: This is not yet completely working
         if False and str_value is not None:
-            from nuitka.tree.Building import buildParseTree, completeVariableClosures
+            from nuitka.tree.Building import (
+                buildParseTree,
+                completeVariableClosures
+            )
 
             exec_body = buildParseTree(
                 provider    = self.getParentVariableProvider(),
                 source_code = str_value.getConstant(),
-                source_ref  = str_value.getSourceReference().getExecReference( True ),
-                is_module   = False
+                source_ref  = str_value.getSourceReference().getExecReference(
+                    value = True
+                ),
+                is_module   = False,
+                is_main     = False
             )
 
             # Need to re-visit things.
             self.replaceWith( exec_body )
             completeVariableClosures( self.getParentModule() )
 
-            return exec_body, "new_statements", "Inlined constant exec statement"
+            return (
+                exec_body,
+                "new_statements",
+                "Inlined constant exec statement."
+            )
 
         return self, None, None

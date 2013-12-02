@@ -67,3 +67,12 @@ def remainingCount():
 
 def getDoneModules():
     return list( done_modules )
+
+def getDoneUserModules():
+    return [
+        module
+        for module in
+        done_modules
+        if not module.isInternalModule()
+        if not module.isMainModule()
+    ]

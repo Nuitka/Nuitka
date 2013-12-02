@@ -18,15 +18,14 @@
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
 
-#define _DEBUG_UNFREEZER 0
 #define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
 
-extern PyObject *_python_tuple_empty;
-extern PyObject *_python_str_plain___dict__;
-extern PyObject *_python_str_plain___class__;
-extern PyObject *_python_str_plain___enter__;
-extern PyObject *_python_str_plain___exit__;
+extern PyObject *const_tuple_empty;
+extern PyObject *const_str_plain___dict__;
+extern PyObject *const_str_plain___class__;
+extern PyObject *const_str_plain___enter__;
+extern PyObject *const_str_plain___exit__;
 
 // From CPython, to allow us quick access to the dictionary of an module, the
 // structure is normally private, but we need it for quick access to the module
@@ -422,34 +421,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     return result;
 }
 
-
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET()
-{
-    PyObject *result = PySet_New( NULL );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET( PyObject *tuple )
-{
-    assertObject( tuple );
-    assert( PyTuple_Check( tuple ) );
-
-    PyObject *result = PySet_New( tuple );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 {
     assertObject( method );
@@ -753,7 +724,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 {
     assertObject( source );
 
-    PyObject *result = PyObject_GetAttr( source, _python_str_plain___dict__ );
+    PyObject *result = PyObject_GetAttr( source, const_str_plain___dict__ );
 
     if (unlikely( result == NULL ))
     {
@@ -792,374 +763,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 #include "nuitka/helper/indexes.hpp"
 #include "nuitka/helper/subscripts.hpp"
 #include "nuitka/helper/slices.hpp"
-
-#if PYTHON_VERSION < 300
-NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
-{
-    PyObject *result = GET_STRING_DICT_VALUE( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name );
-
-    if ( result == NULL )
-    {
-        Py_ssize_t base_count = PyTuple_Size( klass->cl_bases );
-
-        for ( Py_ssize_t i = 0; i < base_count; i++ )
-        {
-            result = FIND_ATTRIBUTE_IN_CLASS( (PyClassObject *)PyTuple_GetItem( klass->cl_bases, i ), attr_name );
-
-            if ( result )
-            {
-                break;
-            }
-        }
-    }
-
-    return result;
-}
-#endif
-
-#if PYTHON_VERSION < 300
-static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
-{
-    assertObject( source );
-    assertObject( attr_name );
-
-    assert( PyInstance_Check( source ) );
-    assert( PyString_Check( attr_name ) );
-
-    PyInstanceObject *source_instance = (PyInstanceObject *)source;
-
-    // TODO: The special cases should get their own SET_ATTRIBUTE variant on the
-    // code generation level as SET_ATTRIBUTE is called with constants only.
-    if (unlikely( attr_name == _python_str_plain___dict__ ))
-    {
-        return INCREASE_REFCOUNT( source_instance->in_dict );
-    }
-    else if (unlikely( attr_name == _python_str_plain___class__ ))
-    {
-        return INCREASE_REFCOUNT( (PyObject *)source_instance->in_class );
-    }
-    else
-    {
-        // Try the instance dict first.
-        PyObject *result = GET_STRING_DICT_VALUE( (PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name );
-
-        if ( result )
-        {
-            return INCREASE_REFCOUNT( result );
-        }
-
-        // Next see if a class has it
-        result = FIND_ATTRIBUTE_IN_CLASS( source_instance->in_class, attr_name );
-
-        if ( result )
-        {
-            descrgetfunc func = Py_TYPE( result )->tp_descr_get;
-
-            if ( func )
-            {
-                result = func( result, source, (PyObject *)source_instance->in_class );
-
-                if (unlikely( result == NULL ))
-                {
-                    throw PythonException();
-                }
-
-                assertObject( result );
-
-                return result;
-            }
-            else
-            {
-                return INCREASE_REFCOUNT( result );
-            }
-        }
-
-        THROW_IF_ERROR_OCCURED_NOT( PyExc_AttributeError );
-
-        // Finally allow a __getattr__ to handle it or else it's an error.
-        if ( source_instance->in_class->cl_getattr == NULL )
-        {
-            PyErr_Format( PyExc_AttributeError, "%s instance has no attribute '%s'", PyString_AS_STRING( source_instance->in_class->cl_name ), PyString_AS_STRING( attr_name ) );
-
-            throw PythonException();
-        }
-        else
-        {
-            PyObject *result = CALL_FUNCTION(
-                source_instance->in_class->cl_getattr,
-                PyObjectTemporary( MAKE_TUPLE2( source, attr_name ) ).asObject0(),
-                NULL
-            );
-
-            assertObject( result );
-
-            return result;
-        }
-    }
-}
-#endif
-
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
-{
-    assertObject( source );
-    assertObject( attr_name );
-
-#if PYTHON_VERSION < 300
-    if ( PyInstance_Check( source ) )
-    {
-        PyObject *result = LOOKUP_INSTANCE( source, attr_name );
-
-        assertObject( result );
-
-        return result;
-    }
-    else
-#endif
-    {
-        PyTypeObject *type = Py_TYPE( source );
-
-        if ( type->tp_getattro != NULL )
-        {
-            PyObject *result = (*type->tp_getattro)( source, attr_name );
-
-            if (unlikely( result == NULL ))
-            {
-                throw PythonException();
-            }
-
-            assertObject( result );
-            return result;
-        }
-        else if ( type->tp_getattr != NULL )
-        {
-            PyObject *result = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attr_name ) );
-
-            if (unlikely( result == NULL ))
-            {
-                throw PythonException();
-            }
-
-            assertObject( result );
-            return result;
-        }
-        else
-        {
-            PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name, Nuitka_String_AsString_Unchecked( attr_name ) );
-            throw PythonException();
-        }
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static bool HAS_ATTRIBUTE( PyObject *source, PyObject *attr_name )
-{
-    assertObject( source );
-    assertObject( attr_name );
-
-    int res = PyObject_HasAttr( source, attr_name );
-
-    if (unlikely( res == -1 ))
-    {
-        throw PythonException();
-    }
-
-    return res == 1;
-}
-
-#if PYTHON_VERSION < 300
-static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value )
-{
-    assertObject( target );
-    assertObject( attr_name );
-    assertObject( value );
-
-    assert( PyInstance_Check( target ) );
-    assert( PyString_Check( attr_name ) );
-
-
-    PyInstanceObject *target_instance = (PyInstanceObject *)target;
-
-    // TODO: The special cases should get their own SET_ATTRIBUTE variant on the
-    // code generation level as SET_ATTRIBUTE is called with constants only.
-    if (unlikely( attr_name == _python_str_plain___dict__ ))
-    {
-        if (unlikely( !PyDict_Check( value ) ))
-        {
-            PyErr_SetString( PyExc_TypeError, "__dict__ must be set to a dictionary" );
-            throw PythonException();
-        }
-
-        PyObjectTemporary old_dict( target_instance->in_dict );
-
-        target_instance->in_dict = INCREASE_REFCOUNT( value );
-    }
-    else if (unlikely( attr_name == _python_str_plain___class__ ))
-    {
-        if (unlikely( !PyClass_Check( value ) ))
-        {
-            PyErr_SetString( PyExc_TypeError, "__class__ must be set to a class" );
-            throw PythonException();
-        }
-
-        PyObjectTemporary old_class( (PyObject *)target_instance->in_class );
-
-        target_instance->in_class = (PyClassObject *)INCREASE_REFCOUNT( value );
-    }
-    else
-    {
-        if ( target_instance->in_class->cl_setattr != NULL )
-        {
-            PyObject *result = CALL_FUNCTION(
-                target_instance->in_class->cl_setattr,
-                PyObjectTemporary( MAKE_TUPLE3( target, attr_name, value ) ).asObject0(),
-                NULL
-            );
-
-            Py_DECREF( result );
-        }
-        else
-        {
-            int status = PyDict_SetItem( target_instance->in_dict, attr_name, value );
-
-            if (unlikely( status == -1 ))
-            {
-                throw PythonException();
-            }
-        }
-    }
-}
-#endif
-
-NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *value, PyObject *target, PyObject *attr_name )
-{
-    assertObject( target );
-    assertObject( attr_name );
-    assertObject( value );
-
-#if PYTHON_VERSION < 300
-    if ( PyInstance_Check( target ) )
-    {
-        SET_INSTANCE( target, attr_name, value );
-    }
-    else
-#endif
-    {
-        PyTypeObject *type = Py_TYPE( target );
-
-        if ( type->tp_setattro != NULL )
-        {
-            int status = (*type->tp_setattro)( target, attr_name, value );
-
-            if (unlikely( status == -1 ))
-            {
-                throw PythonException();
-            }
-        }
-        else if ( type->tp_setattr != NULL )
-        {
-            int status = (*type->tp_setattr)( target, Nuitka_String_AsString_Unchecked( attr_name ), value );
-
-            if (unlikely( status == -1 ))
-            {
-                throw PythonException();
-            }
-        }
-        else if ( type->tp_getattr == NULL && type->tp_getattro == NULL )
-        {
-            PyErr_Format(
-                PyExc_TypeError,
-                "'%s' object has no attributes (assign to %s)",
-                type->tp_name,
-                Nuitka_String_AsString_Unchecked( attr_name )
-            );
-
-            throw PythonException();
-        }
-        else
-        {
-            PyErr_Format(
-                PyExc_TypeError,
-                "'%s' object has only read-only attributes (assign to %s)",
-                type->tp_name,
-                Nuitka_String_AsString_Unchecked( attr_name )
-            );
-
-            throw PythonException();
-        }
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
-{
-    assertObject( target );
-    assertObject( attr_name );
-
-    int status = PyObject_DelAttr( target, attr_name );
-
-    if (unlikely( status == -1 ))
-    {
-        throw PythonException();
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject *attr_name )
-{
-#if PYTHON_VERSION < 300
-    if ( PyInstance_Check( source ) )
-    {
-        return LOOKUP_INSTANCE( source, attr_name );
-    }
-#endif
-
-    // TODO: There is heavy optimization in CPython to avoid it. Potentially that's worth
-    // it to imitate that.
-
-    PyObject *result = _PyType_Lookup( Py_TYPE( source ), attr_name );
-
-    if (likely( result ))
-    {
-        descrgetfunc func = Py_TYPE( result )->tp_descr_get;
-
-        if ( func == NULL )
-        {
-            return INCREASE_REFCOUNT( result );
-        }
-        else
-        {
-            PyObject *func_result = func( result, source, (PyObject *)( Py_TYPE( source ) ) );
-
-            if (unlikely( func_result == NULL ))
-            {
-                throw PythonException();
-            }
-
-            return func_result;
-        }
-    }
-
-    PyErr_SetObject( PyExc_AttributeError, attr_name );
-    throw PythonException();
-}
-
-// Necessary to abstract the with statement lookup difference between
-// pre-Python2.7 and others. Since Python 2.7 the code does no full attribute
-// lookup anymore, but instead treats enter and exit as specials.
-NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source )
-{
-#if PYTHON_VERSION < 270
-    return LOOKUP_ATTRIBUTE( source, _python_str_plain___enter__ );
-#else
-    return LOOKUP_SPECIAL( source, _python_str_plain___enter__ );
-#endif
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source )
-{
-#if PYTHON_VERSION < 270
-    return LOOKUP_ATTRIBUTE( source, _python_str_plain___exit__ );
-#else
-    return LOOKUP_SPECIAL( source, _python_str_plain___exit__ );
-#endif
-}
+#include "nuitka/helper/attributes.hpp"
 
 NUITKA_MAY_BE_UNUSED static void APPEND_TO_LIST( PyObject *list, PyObject *item )
 {
@@ -1310,7 +914,7 @@ extern PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObjec
 // For quicker setattr() functionality.
 extern void BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value );
 
-extern PyObject *_python_str_plain___builtins__;
+extern PyObject *const_str_plain___builtins__;
 
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
@@ -1332,9 +936,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     }
 
     // Set the __builtins__ in globals, it is expected to be present.
-    if ( PyDict_GetItem( globals, _python_str_plain___builtins__ ) == NULL )
+    if ( PyDict_GetItem( globals, const_str_plain___builtins__ ) == NULL )
     {
-        if ( PyDict_SetItem( globals, _python_str_plain___builtins__, (PyObject *)module_builtin ) == -1 )
+        if ( PyDict_SetItem( globals, const_str_plain___builtins__, (PyObject *)module_builtin ) == -1 )
         {
             throw PythonException();
         }
@@ -1360,15 +964,15 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
 extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern );
+#if PYTHON_VERSION < 300
+extern PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size );
+#endif
 extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
 
 extern void enhancePythonTypes( void );
 
 // Parse the command line parameters and provide it to sys module.
 extern void setCommandLineParameters( int argc, char *argv[], bool initial );
-
-// Replace inspect functions with ones that accept compiled types too.
-extern void patchInspectModule( void );
 
 // Replace builtin functions with ones that accept compiled types too.
 extern void patchBuiltinModule( void );
@@ -1449,7 +1053,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
     {
         PyObject *base = PyTuple_GET_ITEM( bases, 0 );
 
-        metaclass = PyObject_GetAttr( base, _python_str_plain___class__ );
+        metaclass = PyObject_GetAttr( base, const_str_plain___class__ );
 
         if ( metaclass == NULL )
         {
@@ -1488,8 +1092,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 #endif
 }
 
-#ifdef _NUITKA_PORTABLE
-extern void _initPortableEnvironment( char *binary_path );
+#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
+extern void prepareStandaloneEnvironment();
+extern char *getBinaryDirectory();
 #endif
 
 #include <nuitka/threading.hpp>

@@ -255,7 +255,8 @@ class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):
                     exec_line_number = parent_provider.getExecSourceRef().getLineNumber()
 
                     raise SyntaxError(
-                        """unqualified exec is not allowed in function '%s' it \
+                        """\
+unqualified exec is not allowed in function '%s' it \
 contains a nested function with free variables""" % parent_provider.getName(),
                         (
                             node.source_ref.getFilename(),
@@ -263,17 +264,28 @@ contains a nested function with free variables""" % parent_provider.getName(),
                             None,
                             lines[ exec_line_number - 1 ]
                         )
-
                     )
 
-    # For Python3, every function is supposed to take "__class__" as a
-    # reference, so make sure that happens.
+    # For Python3, every function in a class is supposed to take "__class__" as
+    # a reference, so make sure that happens.
     if python_version >= 300:
         def onLeaveNode( self, node ):
             if node.isExpressionFunctionBody() and node.isClassClosureTaker():
-                node.getVariableForReference(
-                    variable_name = "__class__"
-                )
+                if python_version < 340:
+                    node.getVariableForReference(
+                        variable_name = "__class__"
+                    )
+                else:
+                    parent_provider = node.getParentVariableProvider()
+
+                    variable = parent_provider.getTempVariable(
+                        temp_scope = None,
+                        name       = "__class__"
+                    )
+
+                    variable = variable.makeReference( parent_provider )
+
+                    node.addClosureVariable( variable )
 
 
 class VariableClosureLookupVisitorPhase3( VisitorNoopMixin ):

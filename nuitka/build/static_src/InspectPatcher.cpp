@@ -15,102 +15,21 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+// This is responsible for updating parts of CPython to better work with Nuitka
+// by replacing CPython implementations with enhanced versions.
 
 #include "nuitka/prelude.hpp"
 
-extern PyObject *_python_str_plain_inspect;
-extern PyObject *_python_str_plain_site;
-extern PyObject *_python_int_0;
+
+#if PYTHON_VERSION >= 300
+extern PyObject *const_str_plain_inspect;
+extern PyObject *const_str_plain_site;
+extern PyObject *const_int_0;
 
 static PyObject *module_inspect;
 
 static char *kwlist[] = { (char *)"object", NULL };
 
-static PyObject *_inspect_isfunction_replacement( PyObject *self, PyObject *args, PyObject *kwds )
-{
-    PyObject *object;
-
-    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:isfunction", kwlist, &object, NULL ))
-    {
-        return NULL;
-    }
-
-    if ( Nuitka_Function_Check( object ) || PyFunction_Check( object ) )
-    {
-        return INCREASE_REFCOUNT( Py_True );
-    }
-    else
-    {
-        return INCREASE_REFCOUNT( Py_False );
-    }
-}
-
-static PyObject *_inspect_ismethod_replacement( PyObject *self, PyObject *args, PyObject *kwds )
-{
-    PyObject *object;
-
-    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:ismethod", kwlist, &object, NULL ))
-    {
-        return NULL;
-    }
-
-    if ( Nuitka_Method_Check( object ) )
-    {
-#if PYTHON_VERSION < 300
-        return INCREASE_REFCOUNT( Py_True );
-#else
-        return INCREASE_REFCOUNT( ((Nuitka_MethodObject *)object)->m_object ? Py_True : Py_False );
-#endif
-    }
-    else if ( PyMethod_Check( object ) )
-    {
-        return INCREASE_REFCOUNT( Py_True );
-    }
-    else
-    {
-        return INCREASE_REFCOUNT( Py_False );
-    }
-}
-
-static PyObject *_inspect_isgenerator_replacement( PyObject *self, PyObject *args, PyObject *kwds )
-{
-    PyObject *object;
-
-    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:isgenerator", kwlist, &object, NULL ))
-    {
-        return NULL;
-    }
-
-    if ( Nuitka_Generator_Check( object ) || PyGen_Check( object ) )
-    {
-        return INCREASE_REFCOUNT( Py_True );
-    }
-    else
-    {
-        return INCREASE_REFCOUNT( Py_False );
-    }
-}
-
-static PyObject *_inspect_isframe_replacement( PyObject *self, PyObject *args, PyObject *kwds )
-{
-    PyObject *object;
-
-    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:isframe", kwlist, &object, NULL ))
-    {
-        return NULL;
-    }
-
-    if ( Nuitka_Frame_Check( object ) || PyFrame_Check( object ) )
-    {
-        return INCREASE_REFCOUNT( Py_True );
-    }
-    else
-    {
-        return INCREASE_REFCOUNT( Py_False );
-    }
-}
-
-#if PYTHON_VERSION >= 300
 static PyObject *old_getgeneratorstate = NULL;
 
 static PyObject *_inspect_getgeneratorstate_replacement( PyObject *self, PyObject *args, PyObject *kwds )
@@ -122,7 +41,7 @@ static PyObject *_inspect_getgeneratorstate_replacement( PyObject *self, PyObjec
         return NULL;
     }
 
-    if ( Nuitka_Generator_Check( object ))
+    if ( Nuitka_Generator_Check( object ) )
     {
         Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)object;
 
@@ -150,38 +69,6 @@ static PyObject *_inspect_getgeneratorstate_replacement( PyObject *self, PyObjec
 }
 #endif
 
-static PyMethodDef _method_def_inspect_isfunction_replacement =
-{
-    "isfunction",
-    (PyCFunction)_inspect_isfunction_replacement,
-    METH_VARARGS | METH_KEYWORDS,
-    NULL
-};
-
-static PyMethodDef _method_def_inspect_ismethod_replacement =
-{
-    "ismethod",
-    (PyCFunction)_inspect_ismethod_replacement,
-    METH_VARARGS | METH_KEYWORDS,
-    NULL
-};
-
-static PyMethodDef _method_def_inspect_isgenerator_replacement =
-{
-    "isgenerator",
-    (PyCFunction)_inspect_isgenerator_replacement,
-    METH_VARARGS | METH_KEYWORDS,
-    NULL
-};
-
-static PyMethodDef _method_def_inspect_isframe_replacement =
-{
-    "isframe",
-    (PyCFunction)_inspect_isframe_replacement,
-    METH_VARARGS | METH_KEYWORDS,
-    NULL
-};
-
 #if PYTHON_VERSION >= 300
 static PyMethodDef _method_def_inspect_getgeneratorstate_replacement =
 {
@@ -190,10 +77,11 @@ static PyMethodDef _method_def_inspect_getgeneratorstate_replacement =
     METH_VARARGS | METH_KEYWORDS,
     NULL
 };
-#endif
 
-void patchInspectModule( void )
+// Replace inspect functions with ones that accept compiled types too.
+static void patchInspectModule( void )
 {
+#if PYTHON_VERSION >= 300
 #ifdef _NUITKA_EXE
     // May need to import the "site" module, because otherwise the patching can
     // fail with it being unable to load it.
@@ -201,7 +89,7 @@ void patchInspectModule( void )
     {
         try
         {
-            IMPORT_MODULE( _python_str_plain_site, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+            IMPORT_MODULE( const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0 );
         }
         catch( PythonException & )
         {
@@ -213,7 +101,7 @@ void patchInspectModule( void )
 
     try
     {
-        module_inspect = IMPORT_MODULE( _python_str_plain_inspect, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+        module_inspect = IMPORT_MODULE( const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0 );
     }
     catch( PythonException &e )
     {
@@ -224,63 +112,6 @@ void patchInspectModule( void )
     }
     assertObject( module_inspect );
 
-    // Patch "inspect.isfunction" unless it is already patched.
-    PyObject *old_isfunction = PyObject_GetAttrString( module_inspect, "isfunction" );
-    assertObject( old_isfunction );
-
-    if ( PyFunction_Check( old_isfunction ) )
-    {
-        PyObject *inspect_isfunction_replacement = PyCFunction_New( &_method_def_inspect_isfunction_replacement, NULL );
-        assertObject( inspect_isfunction_replacement );
-
-        PyObject_SetAttrString( module_inspect, "isfunction", inspect_isfunction_replacement );
-    }
-
-    Py_DECREF( old_isfunction );
-
-    // Patch "inspect.ismethod" unless it is already patched.
-    PyObject *old_ismethod = PyObject_GetAttrString( module_inspect, "ismethod" );
-    assertObject( old_ismethod );
-
-    if ( PyFunction_Check( old_ismethod ) )
-    {
-        PyObject *inspect_ismethod_replacement = PyCFunction_New( &_method_def_inspect_ismethod_replacement, NULL );
-        assertObject( inspect_ismethod_replacement );
-
-        PyObject_SetAttrString( module_inspect, "ismethod", inspect_ismethod_replacement );
-    }
-
-    Py_DECREF( old_ismethod );
-
-    // Patch "inspect.isgenerator" unless it is already patched.
-    PyObject *old_isgenerator = PyObject_GetAttrString( module_inspect, "isgenerator" );
-    assertObject( old_isgenerator );
-
-    if ( PyFunction_Check( old_isgenerator ) )
-    {
-        PyObject *inspect_isgenerator_replacement = PyCFunction_New( &_method_def_inspect_isgenerator_replacement, NULL );
-        assertObject( inspect_isgenerator_replacement );
-
-        PyObject_SetAttrString( module_inspect, "isgenerator", inspect_isgenerator_replacement );
-    }
-
-    Py_DECREF( old_isgenerator );
-
-    // Patch "inspect.isframe" unless it is already patched.
-    PyObject *old_isframe = PyObject_GetAttrString( module_inspect, "isframe" );
-    assertObject( old_isframe );
-
-    if ( PyFunction_Check( old_isframe ) )
-    {
-        PyObject *inspect_isframe_replacement = PyCFunction_New( &_method_def_inspect_isframe_replacement, NULL );
-        assertObject( inspect_isframe_replacement );
-
-        PyObject_SetAttrString( module_inspect, "isframe", inspect_isframe_replacement );
-    }
-
-    Py_DECREF( old_isframe );
-
-#if PYTHON_VERSION >= 300
     // Patch "inspect.getgeneratorstate" unless it is already patched.
     old_getgeneratorstate = PyObject_GetAttrString( module_inspect, "getgeneratorstate" );
     assertObject( old_getgeneratorstate );
@@ -295,6 +126,7 @@ void patchInspectModule( void )
 #endif
 
 }
+#endif
 
 extern int Nuitka_IsInstance( PyObject *inst, PyObject *cls );
 
@@ -345,13 +177,17 @@ void patchBuiltinModule()
     }
 
     Py_DECREF( old_isinstance );
+
+#if PYTHON_VERSION >= 300
+    patchInspectModule();
+#endif
 }
 
-static richcmpfunc original_PyType_tp_richcompare;
+static richcmpfunc original_PyType_tp_richcompare = NULL;
 
-PyObject *_type_tp_richcompare( PyObject *a, PyObject *b, int op )
+static PyObject *Nuitka_type_tp_richcompare( PyObject *a, PyObject *b, int op )
 {
-    if ( op == Py_EQ || op == Py_NE )
+    if (likely( op == Py_EQ || op == Py_NE ))
     {
         if ( a == (PyObject *)&Nuitka_Function_Type )
         {
@@ -380,11 +216,19 @@ PyObject *_type_tp_richcompare( PyObject *a, PyObject *b, int op )
         }
     }
 
+    assertObject( a );
+    assertObject( b );
+
+    assert( original_PyType_tp_richcompare );
+
     return original_PyType_tp_richcompare( a, b, op );
 }
 
 void patchTypeComparison()
 {
-    original_PyType_tp_richcompare = PyType_Type.tp_richcompare;
-    PyType_Type.tp_richcompare = _type_tp_richcompare;
+    if ( original_PyType_tp_richcompare == NULL )
+    {
+        original_PyType_tp_richcompare = PyType_Type.tp_richcompare;
+        PyType_Type.tp_richcompare = Nuitka_type_tp_richcompare;
+    }
 }

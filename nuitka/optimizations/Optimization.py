@@ -22,26 +22,32 @@ optimization is possible. Every successful optimization to anything might
 make others possible.
 """
 
-from .Tags import TagSet
-
-from nuitka import ModuleRegistry, Options
-
-from nuitka.Tracing import printLine
-
-from .ConstraintCollections import ConstraintCollectionModule
 
 from logging import debug
 
+from nuitka import ModuleRegistry, Options
+from nuitka.Tracing import printLine
+
+from .ConstraintCollections import ConstraintCollectionModule
+from .Tags import TagSet
+
+
 _progress = Options.isShowProgress()
 
-def _optimizeModulePass( module, tag_set ):
-    def signalChange( tags, source_ref, message ):
+
+def _optimizeModulePass(module, tag_set):
+    def signalChange(tags, source_ref, message):
         """ Indicate a change to the optimization framework.
 
         """
-        debug( "%s : %s : %s" % ( source_ref.getAsString(), tags, message ) )
-
-        tag_set.onSignal( tags )
+        debug(
+            "{source_ref} : {tags} : {message}".format(
+                source_ref = source_ref.getAsString(),
+                tags       = tags,
+                message    = message
+            )
+        )
+        tag_set.onSignal(tags)
 
     module.collection = ConstraintCollectionModule(
         signal_change = signalChange,
@@ -61,14 +67,21 @@ def _optimizeModulePass( module, tag_set ):
             module.collection.signalChange(
                 "read_only_mvar",
                 module.getSourceReference(),
-                "Determined variable '%s' is only read." % variable.getName()
+                "Determined variable '{variable_name}' is only read.".format(
+                    variable_name = variable.getName()
+                )
             )
 
-            variable.setReadOnlyIndicator( new_value )
+            variable.setReadOnlyIndicator(new_value)
 
-def optimizeModule( module ):
+
+def optimizeModule(module):
     if _progress:
-        printLine( "Doing module local optimizations for '%s'." % module.getFullName() )
+        printLine(
+            "Doing module local optimizations for '{module_name}'.".format(
+                module_name = module.getFullName()
+            )
+        )
 
     tag_set = TagSet()
     touched = False
@@ -76,10 +89,7 @@ def optimizeModule( module ):
     while True:
         tag_set.clear()
 
-        _optimizeModulePass(
-            module  = module,
-            tag_set = tag_set
-        )
+        _optimizeModulePass(module=module, tag_set=tag_set)
 
         if not tag_set:
             break
@@ -87,6 +97,7 @@ def optimizeModule( module ):
         touched = True
 
     return touched
+
 
 def optimize():
     while True:
@@ -99,15 +110,20 @@ def optimize():
             if current_module is None:
                 break
 
+            if current_module.isPythonShlibModule():
+                continue
+
             if _progress:
                 printLine(
-                    "Optimizing module '%s', %d more modules to go after that." % (
-                        current_module.getFullName(),
-                        ModuleRegistry.remainingCount()
+                    """\
+Optimizing module '{module_name}', {remaining:d} more modules to go \
+after that.""".format(
+                        module_name = current_module.getFullName(),
+                        remaining   = ModuleRegistry.remainingCount()
                     )
                 )
 
-            changed = optimizeModule( current_module )
+            changed = optimizeModule(current_module)
 
             if changed:
                 finished = False

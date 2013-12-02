@@ -146,21 +146,31 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             search = node.getParent()
 
         if node.isStatementDelVariable():
-            node.getTargetVariableRef().getVariable().setHasDelIndicator()
+            variable = node.getTargetVariableRef().getVariable()
+
+            while variable.isReference():
+                variable = variable.getReferenced()
+
+            variable.setHasDelIndicator()
 
         if node.isStatementTryExcept():
             provider = node.getParentVariableProvider()
-
             provider.markAsTryExceptContaining()
+
+            if not node.isStatementTryExceptOptimized():
+                parent_frame = node.getParentStatementsFrame()
+                parent_frame.markAsFrameExceptionPreserving()
 
         if node.isStatementTryFinally():
             provider = node.getParentVariableProvider()
-
             provider.markAsTryFinallyContaining()
+
+            if Utils.python_version >= 300:
+                parent_frame = node.getParentStatementsFrame()
+                parent_frame.markAsFrameExceptionPreserving()
 
         if node.isStatementRaiseException():
             provider = node.getParentVariableProvider()
-
             provider.markAsRaiseContaining()
 
         if node.isExpressionBuiltinImport() and \

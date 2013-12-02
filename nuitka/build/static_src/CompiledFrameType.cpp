@@ -336,7 +336,7 @@ static void tb_dealloc( PyTracebackObject *tb )
     // Py_TRASHCAN_SAFE_END(tb)
 }
 
-extern PyObject *_python_str_plain___module__;
+extern PyObject *const_str_plain___module__;
 
 PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 {
@@ -395,7 +395,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
             throw PythonException();
         }
 
-        PyDict_SetItem( frame->f_locals, _python_str_plain___module__, MODULE_NAME( module ) );
+        PyDict_SetItem( frame->f_locals, const_str_plain___module__, MODULE_NAME( module ) );
     }
     else
     {
@@ -412,8 +412,8 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     return (PyFrameObject *)result;
 }
 
-extern PyObject *_python_str_empty;
-extern PyObject *_python_bytes_empty;
+extern PyObject *const_str_empty;
+extern PyObject *const_bytes_empty;
 
 #if PYTHON_VERSION < 300
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int flags )
@@ -439,22 +439,22 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
         0,                   // stacksize
         flags,               // flags
 #if PYTHON_VERSION < 300
-        _python_str_empty,   // code (bytecode)
+        const_str_empty,     // code (bytecode)
 #else
-        _python_bytes_empty, // code (bytecode)
+        const_bytes_empty,   // code (bytecode)
 #endif
-        _python_tuple_empty, // consts (we are not going to be compatible)
-        _python_tuple_empty, // names (we are not going to be compatible)
+        const_tuple_empty,   // consts (we are not going to be compatible)
+        const_tuple_empty,   // names (we are not going to be compatible)
         argnames,            // varnames (we are not going to be compatible)
-        _python_tuple_empty, // freevars (we are not going to be compatible)
-        _python_tuple_empty, // cellvars (we are not going to be compatible)
+        const_tuple_empty,   // freevars (we are not going to be compatible)
+        const_tuple_empty,   // cellvars (we are not going to be compatible)
         filename,            // filename
         function_name,       // name
         line,                // firstlineno (offset of the code object)
 #if PYTHON_VERSION < 300
-        _python_str_empty    // lnotab (table to translate code object)
+        const_str_empty      // lnotab (table to translate code object)
 #else
-        _python_bytes_empty  // lnotab (table to translate code object)
+        const_bytes_empty    // lnotab (table to translate code object)
 #endif
     );
 

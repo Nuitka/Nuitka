@@ -15,8 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import posix
+import pyexpat
 
-print( "Importing posix, should use our one." )
+print( "Imported pyexpat, should use our one." )
 
-print( dir( posix ) )
+print( dir( pyexpat ) )

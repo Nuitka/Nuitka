@@ -24,7 +24,9 @@ from .Pickling import getStreamedConstant
 from .TupleCodes import addMakeTupleUse
 from .ListCodes import addMakeListUse
 from .DictCodes import addMakeDictUse
+from .SetCodes import addMakeSetUse
 
+from .BlobCodes import StreamData
 
 from .Identifiers import (
     EmptyDictIdentifier,
@@ -37,6 +39,8 @@ from ..__past__ import unicode, long, iterItems
 from ..Constants import HashableConstant, constant_builtin_types, isMutable
 
 import re, struct
+
+stream_data = StreamData()
 
 def getConstantHandle( context, constant ):
     return context.getConstantHandle(
@@ -60,36 +64,11 @@ def getConstantCodeName( context, constant ):
 def _isAttributeName( value ):
     return _match_attribute_names.match( value )
 
+# Indicator to standalone mode code, if we need pickling module early on.
 _needs_pickle = False
 
 def needsPickleInit():
     return _needs_pickle
-
-stream_data = bytes()
-
-def encodeStreamData():
-    for count, stream_byte in enumerate( stream_data ):
-        if count % 16 == 0:
-            if count > 0:
-                yield "\n"
-            yield "    "
-
-        if str is not unicode:
-            yield "0x%02x, " % ord( stream_byte )
-        else:
-            yield "0x%02x, " % stream_byte
-
-def _getStreamDataCode( value, fixed_size = False ):
-    global stream_data
-    offset = stream_data.find( value )
-    if offset == -1:
-        offset = len( stream_data )
-        stream_data += value
-
-    if fixed_size:
-        return "&stream_data[ %d ]" % offset
-    else:
-        return "&stream_data[ %d ], %d" % ( offset, len( value ) )
 
 def _getUnstreamCode( constant_value, constant_identifier ):
     saved = getStreamedConstant(
@@ -104,81 +83,128 @@ def _getUnstreamCode( constant_value, constant_identifier ):
 
     return "%s = UNSTREAM_CONSTANT( %s );" % (
         constant_identifier,
-        _getStreamDataCode( saved )
+        stream_data.getStreamDataCode( saved )
     )
-
 
 def _packFloat( value ):
     return struct.pack( "<d", value )
+
+import ctypes
+sizeof_long = ctypes.sizeof( ctypes.c_long )
+
+max_unsigned_long = 2**(sizeof_long*8)-1
+
+# The gcc gives a warning for -2**sizeof_long*8-1, which is still an "int", but
+# seems to not work (without warning) as literal, so avoid it.
+min_signed_long = -(2**(sizeof_long*8-1)-1)
 
 def _addConstantInitCode( context, emit, constant_type, constant_value,
                           constant_identifier ):
     # This has many cases, that all return, and do a lot.
     #  pylint: disable=R0911,R0912,R0915
 
-    # Use shortest code for ints and longs, except when they are big, then fall
-    # fallback to pickling. TODO: Avoid the use of pickle even for larger
-    # values.
-    if constant_type is int and abs( constant_value ) < 2**31:
-        emit(
-            "%s = PyInt_FromLong( %s );" % (
-                constant_identifier,
-                constant_value
-            )
-        )
-
-        return
-
-    # See above, same for long values. Note: These are of course not existant
-    # with Python3 which would have covered it before.
-    if constant_type is long and abs( constant_value ) < 2**31:
-        emit (
-            "%s = PyLong_FromLong( %s );" % (
-                constant_identifier,
-                constant_value
-            )
-        )
-
-        return
-
-    # Strings that can be encoded as UTF-8 are done more or less directly. When
-    # they cannot be expressed as UTF-8, that is rare not we can indeed use
-    # pickling.
-    if constant_type is str:
-        if str is not unicode:
-            emit(
-                "%s = UNSTREAM_STRING( %s, %d );assert( %s );" % (
+    # Use shortest code for ints and longs.
+    if constant_type is long:
+        # See above, same for long values. Note: These are of course not
+        # existant with Python3 which would have covered it before.
+        if constant_value >= 0 and constant_value <= max_unsigned_long:
+            emit (
+                "%s = PyLong_FromUnsignedLong( %sul );" % (
                     constant_identifier,
-                    _getStreamDataCode( constant_value ),
-                    1 if _isAttributeName( constant_value ) else 0,
+                    constant_value
+                )
+            )
+
+            return
+        elif constant_value < 0 and constant_value >= min_signed_long:
+            emit (
+                "%s = PyLong_FromLong( %sl );" % (
+                    constant_identifier,
+                    constant_value
+                )
+            )
+
+            return
+        elif constant_value == min_signed_long-1:
+            emit(
+                "%s = PyLong_FromLong( %sl ); %s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );" % (
+                    constant_identifier,
+                    min_signed_long,
+                    constant_identifier,
                     constant_identifier
                 )
             )
 
             return
-        else:
-            try:
-                encoded = constant_value.encode( "utf-8" )
 
+    elif constant_type is int:
+        if constant_value >= min_signed_long:
+            emit(
+                "%s = PyInt_FromLong( %sl );" % (
+                    constant_identifier,
+                    constant_value
+                )
+            )
+
+            return
+        else:
+            assert constant_value == min_signed_long-1
+
+            emit(
+                "%s = PyInt_FromLong( %sl ); %s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );" % (
+                    constant_identifier,
+                    min_signed_long,
+                    constant_identifier,
+                    constant_identifier
+                )
+            )
+
+            return
+
+    if constant_type is unicode:
+        try:
+            encoded = constant_value.encode( "utf-8" )
+
+            if str is not unicode:
                 emit(
-                    "%s = UNSTREAM_STRING( %s, %d );assert( %s );" % (
+                    "%s = UNSTREAM_UNICODE( %s );" % (
                         constant_identifier,
-                        _getStreamDataCode( encoded ),
-                        1 if _isAttributeName( constant_value ) else 0,
-                        constant_identifier
+                        stream_data.getStreamDataCode( encoded )
+                    )
+                )
+            else:
+                emit(
+                    "%s = UNSTREAM_STRING( %s, %d );" % (
+                        constant_identifier,
+                        stream_data.getStreamDataCode( encoded ),
+                        1 if _isAttributeName( constant_value ) else 0
                     )
                 )
 
-                return
-            except UnicodeEncodeError:
-                # So fall back to below code, which will unstream it then.
-                pass
+            return
+        except UnicodeEncodeError:
+            # So fall back to below code, which will unstream it then.
+            pass
+    elif constant_type is str:
+        # Python3: Strings that can be encoded as UTF-8 are done more or less
+        # directly. When they cannot be expressed as UTF-8, that is rare not we
+        # can indeed use pickling.
+        assert str is not unicode
+        emit(
+            "%s = UNSTREAM_STRING( %s, %d );" % (
+                constant_identifier,
+                stream_data.getStreamDataCode( constant_value ),
+                1 if _isAttributeName( constant_value ) else 0
+            )
+        )
+
+        return
 
     if constant_type is float:
         emit(
             "%s = UNSTREAM_FLOAT( %s );" % (
                 constant_identifier,
-                _getStreamDataCode(
+                stream_data.getStreamDataCode(
                     value      = _packFloat( constant_value ),
                     fixed_size = True
                 )
@@ -313,13 +339,41 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
 
         return
 
-    if constant_type is list and constant_value == []:
-        emit( "%s = PyList_New( 0 );" % constant_identifier )
+    if constant_type is set:
+        if constant_value == set():
+            emit( "%s = PySet_New( NULL );" % constant_identifier )
+        else:
+            length = len( constant_value )
+            addMakeSetUse( length )
 
-        return
+            # Make elements earlier than list itself.
+            for element in constant_value:
+                _addConstantInitCode(
+                    emit                = emit,
+                    constant_type       = type( element ),
+                    constant_value      = element,
+                    constant_identifier = getConstantCodeName(
+                        context  = context,
+                        constant = element
+                    ),
+                    context             = context
+                )
 
-    if constant_type is set and constant_value == set():
-        emit( "%s = PySet_New( NULL );" % constant_identifier )
+            emit(
+                "%s = MAKE_SET%d( %s );" % (
+                    constant_identifier,
+                    length,
+                    ", ".join(
+                        getConstantCodeName(
+                            context  = context,
+                            constant = element
+                        )
+                        for element
+                        in
+                        constant_value
+                    )
+                )
+            )
 
         return
 
@@ -400,7 +454,7 @@ def getConstantsDeclCode( context, for_header ):
 
             contained_constants[ key ] = constant_identifier
 
-            if constant_type in ( tuple, list ):
+            if constant_type in ( tuple, list, set, frozenset ):
                 for element in constant_value:
                     considerForDeferral( element )
 
@@ -420,7 +474,7 @@ def getConstantsDeclCode( context, for_header ):
         if for_header:
             declaration = "extern " + declaration
         else:
-            if constant_type in ( tuple, dict, list ):
+            if constant_type in ( tuple, dict, list, set, frozenset ):
                 considerForDeferral( constant_value.getConstant() )
 
         statements.append( declaration )
@@ -432,6 +486,8 @@ def getConstantsDeclCode( context, for_header ):
             statements.append( declaration )
 
     if not for_header:
+        # Using global here, as this is really a singleton, in the form of a
+        # module, pylint: disable=W0603
         global the_contained_constants
         the_contained_constants = contained_constants
 
@@ -439,7 +495,7 @@ def getConstantsDeclCode( context, for_header ):
 
 def getConstantAccess( context, constant ):
     # Many cases, because for each type, we may copy or optimize by creating
-    # empty.  pylint: disable=R0911
+    # empty.  pylint: disable=R0911,R0912
 
     if type( constant ) is dict:
         if constant:

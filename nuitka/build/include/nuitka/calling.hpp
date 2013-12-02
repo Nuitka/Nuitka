@@ -20,7 +20,7 @@
 
 #include "__helpers.hpp"
 
-extern PyObject *_python_tuple_empty;
+extern PyObject *const_tuple_empty;
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, PyObject *positional_args, PyObject *named_args )
 {
@@ -85,7 +85,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *func
 {
     return CALL_FUNCTION(
         function_object,
-        _python_tuple_empty,
+        const_tuple_empty,
         named_args
     );
 }

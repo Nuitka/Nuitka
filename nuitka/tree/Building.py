@@ -42,6 +42,7 @@ from nuitka.__past__ import long, unicode
 from nuitka import (
     SourceCodeReferences,
     SyntaxErrors,
+    Importing,
     Options,
     Utils
 )
@@ -62,7 +63,7 @@ from nuitka.nodes.SliceNodes import (
 )
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
-    StatementsSequence,
+    StatementsSequence
 )
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
@@ -84,9 +85,10 @@ from nuitka.nodes.ConditionalNodes import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ModuleNodes import (
+    PythonShlibModule,
+    PythonMainModule,
     PythonPackage,
-    PythonModule,
-    PythonMainModule
+    PythonModule
 )
 from nuitka.nodes.TryNodes import StatementTryFinally
 
@@ -143,15 +145,17 @@ from .ReformulationExecStatements import buildExecNode
 
 from .ReformulationYieldExpressions import buildYieldNode, buildYieldFromNode
 
+from .ReformulationNamespacePackages import createNamespacePackage
+
 # Some helpers.
 from .Helpers import (
     makeStatementsSequenceOrStatement,
     makeSequenceCreationOrConstant,
     makeDictCreationOrConstant,
-    makeStatementsSequence,
     buildStatementsNode,
     setBuildDispatchers,
     extractDocFromBody,
+    makeModuleFrame,
     buildNodeList,
     buildNode,
     getKind
@@ -811,7 +815,8 @@ setBuildDispatchers(
     }
 )
 
-def buildParseTree( provider, source_code, source_ref, is_module ):
+def buildParseTree( provider, source_code, source_ref, is_module,
+                    is_main ):
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
     if not source_code.endswith( "\n" ):
@@ -832,8 +837,7 @@ def buildParseTree( provider, source_code, source_ref, is_module ):
     result = buildStatementsNode(
         provider   = provider,
         nodes      = body,
-        source_ref = source_ref,
-        frame      = is_module
+        source_ref = source_ref
     )
 
     # Check if a __future__ imports really were at the beginning of the file.
@@ -857,6 +861,21 @@ from __future__ imports must occur at the beginning of the file""",
     statements = []
 
     if is_module:
+        # Add import of "site" module of main programs visibly in the node tree,
+        # so recursion and optimization can pick it up, checking its effects.
+        if is_main and not sys.flags.no_site:
+            statements.append(
+                StatementExpressionOnly(
+                    expression = ExpressionImportModule(
+                        module_name    = "site",
+                        import_list    = (),
+                        level          = 0,
+                        source_ref     = source_ref,
+                    ),
+                    source_ref  = source_ref
+                )
+            )
+
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
@@ -933,7 +952,9 @@ from __future__ imports must occur at the beginning of the file""",
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant      = provider.getPackage(),
+                    constant      = provider.getFullName()
+                                      if provider.isPythonPackage() else
+                                    provider.getPackage(),
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
@@ -979,18 +1000,17 @@ from __future__ imports must occur at the beginning of the file""",
             )
         )
 
-    if result is None:
-        result = makeStatementsSequence(
+
+    if is_module:
+        return makeModuleFrame(
+            module = provider,
             statements = statements,
-            source_ref = internal_source_ref,
-            allow_none = False
+            source_ref = source_ref
         )
     else:
-        result.setStatements( statements )
+        assert False
 
-    return result
-
-def decideModuleTree( filename, package, is_top, is_main ):
+def decideModuleTree( filename, package, is_shlib, is_top, is_main ):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
 
     assert package is None or type( package ) is str
@@ -1029,6 +1049,9 @@ def decideModuleTree( filename, package, is_top, is_main ):
             if module_name.endswith( ".py" ):
                 module_name = module_name[:-3]
 
+            if is_shlib:
+                module_name = module_name.split(".")[0]
+
             if "." in module_name:
                 sys.stderr.write(
                     "Error, '%s' is not a proper python module name.\n" % (
@@ -1038,7 +1061,13 @@ def decideModuleTree( filename, package, is_top, is_main ):
 
                 sys.exit( 2 )
 
-        if is_main:
+        if is_shlib:
+            result = PythonShlibModule(
+                name         = module_name,
+                source_ref   = source_ref,
+                package_name = package,
+            )
+        elif is_main:
             result = PythonMainModule(
                 source_ref = source_ref,
                 main_added = main_added
@@ -1049,25 +1078,33 @@ def decideModuleTree( filename, package, is_top, is_main ):
                 package_name = package,
                 source_ref   = source_ref
             )
-    elif Utils.isDir( filename ) and \
-         Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
-        source_filename = Utils.joinpath( filename, "__init__.py" )
-
-        source_ref = SourceCodeReferences.fromFilename(
-            filename    = Utils.abspath( source_filename ),
-            future_spec = FutureSpec()
-        )
-
+    elif Importing.isPackageDir(filename):
         if is_top:
-            package_name = Utils.splitpath( filename )[-1]
+            package_name = Utils.splitpath(filename)[-1]
         else:
-            package_name = Utils.basename( filename )
+            package_name = Utils.basename(filename)
 
-        result = PythonPackage(
-            name         = package_name,
-            package_name = package,
-            source_ref   = source_ref
-        )
+        source_filename = Utils.joinpath(filename, "__init__.py")
+
+        if not Utils.isFile( source_filename ):
+            assert Utils.python_version >= 330, source_filename
+
+            source_ref, result = createNamespacePackage(
+                package_name = package_name,
+                module_relpath = filename
+            )
+            source_filename = None
+        else:
+            source_ref = SourceCodeReferences.fromFilename(
+                filename    = Utils.abspath( source_filename ),
+                future_spec = FutureSpec()
+            )
+
+            result = PythonPackage(
+                name         = package_name,
+                package_name = package,
+                source_ref   = source_ref
+            )
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (
@@ -1089,27 +1126,9 @@ def createModuleTree( module, source_ref, source_filename, is_main ):
         provider    = module,
         source_code = source_code,
         source_ref  = source_ref,
-        is_module   = True
+        is_module   = True,
+        is_main     = is_main
     )
-
-    # Add import of "site" module visibly in the node tree.
-    if is_main:
-        module_body = makeStatementsSequence(
-            statements = (
-                StatementExpressionOnly(
-                    expression = ExpressionImportModule(
-                        module_name    = "site",
-                        import_list    = (),
-                        level          = 0,
-                        source_ref     = source_ref,
-                    ),
-                    source_ref  = source_ref.atInternal()
-                ),
-                module_body
-            ),
-            allow_none = True,
-            source_ref = source_ref
-        )
 
     module.setBody( module_body )
 
@@ -1120,16 +1139,20 @@ def buildModuleTree( filename, package, is_top, is_main ):
         filename = filename,
         package  = package,
         is_top   = is_top,
-        is_main  = is_main
+        is_main  = is_main,
+        is_shlib = False
     )
 
     addImportedModule( Utils.relpath( filename ), module )
 
-    createModuleTree(
-        module          = module,
-        source_ref      = source_ref,
-        source_filename = source_filename,
-        is_main         = is_main
-    )
+    # If there is source code associated (not the case for namespace packages of
+    # Python3.3 or higher, then read it.
+    if source_filename is not None:
+        createModuleTree(
+            module          = module,
+            source_ref      = source_ref,
+            source_filename = source_filename,
+            is_main         = is_main
+        )
 
     return module

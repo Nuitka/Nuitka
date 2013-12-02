@@ -134,12 +134,15 @@ class Variable:
             # The generators and functions that are not created, get things
             # passed, and do not need the variable to share.
             while technical and \
+                  owner != top_owner and \
                   owner.isExpressionFunctionBody() and \
                   not owner.isGenerator() and not owner.needsCreation():
                 owner = owner.getParentVariableProvider()
 
             # List contractions in Python2 do not really own their variables.
             # TODO: They ought to not be variable providers/takers at all.
+            # TODO: This code seems unnecessary now due to "needsCreation" not
+            # being true.
             if Utils.python_version < 300:
                 while owner != top_owner and owner.code_prefix == "listcontr":
                     owner = owner.getParentVariableProvider()
@@ -186,7 +189,7 @@ class Variable:
     def getMangledName( self ):
         """ Get the mangled name of the variable.
 
-            By default no manglin is applied.
+            By default no mangling is applied.
         """
 
         return self.getName()
@@ -289,7 +292,7 @@ class ClosureVariableReference( VariableReferenceBase ):
             )
 
     def getCodeName( self ):
-        return "python_closure_%s" % self.getName()
+        return "closure_%s" % Utils.encodeNonAscii( self.getName() )
 
 
 class ModuleVariableReference( VariableReferenceBase ):
@@ -363,7 +366,7 @@ class LocalVariable( Variable ):
         return True
 
     def getCodeName( self ):
-        return "python_var_" + self.getName()
+        return "var_" + Utils.encodeNonAscii( self.getName() )
 
     def getDeclarationTypeCode( self, in_context ):
         if self.isShared( True ):
@@ -438,6 +441,9 @@ class ParameterVariable( LocalVariable ):
     def isParameterVariableKwOnly( self ):
         return self.kw_only
 
+    def getCodeName( self ):
+        return "par_" + Utils.encodeNonAscii( self.getName() )
+
     def getDeclarationTypeCode( self, in_context ):
         if self.isShared( True ):
             return "PyObjectSharedLocalVariable"
@@ -503,7 +509,7 @@ class ModuleVariable( Variable ):
     def getModuleName( self ):
         return self.module.getFullName()
 
-    def _checkShared( self, variable ):
+    def _checkShared( self, variable, technical ):
         assert False, variable
 
 
@@ -519,19 +525,14 @@ class TempVariableClosureReference( VariableReferenceBase ):
         return True
 
     def getDeclarationTypeCode( self, in_context ):
-        if self.getReferenced().getReferenced().needs_free:
-            if self.getReferenced().getReferenced().needsLateDeclaration():
-                return "PyObjectTemporary"
-            else:
-                return "PyObjectTempVariable"
+        return self.getReferenced().getReferenced().getDeclarationTypeCode(
+            in_context = in_context
+        )
 
-            return "PyObjectTempVariable"
-        else:
-            return "PyObject *"
 
     def getCodeName( self ):
         # Abstract method, pylint: disable=R0201
-        return "_" + self.getReferenced().getReferenced().getCodeName()
+        return self.getReferenced().getReferenced().getCodeName()
 
     def getProviderVariable( self ):
         return self.getReferenced()
@@ -599,16 +600,21 @@ class TempVariable( Variable ):
     def getDeclarationTypeCode( self, in_context ):
         assert self.needs_free is not None, self
 
-        if self.needs_free:
+        if self.isShared( True ):
+            return "PyObjectSharedTempVariable"
+        elif self.needs_free:
             if self.late_declaration:
-                return "PyObjectTemporary"
+                if self.getHasDelIndicator():
+                    return "PyObjectTemporaryWithDel"
+                else:
+                    return "PyObjectTemporary"
             else:
                 return "PyObjectTempVariable"
         else:
             return "PyObject *"
 
     def getCodeName( self ):
-        return "python_tmp_%s" % self.getName()
+        return "tmp_%s" % self.getName()
 
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201

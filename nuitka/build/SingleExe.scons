@@ -17,8 +17,8 @@
 #     limitations under the License.
 #
 
-# The Nuitka scons file. If you have Scons or platform knowledge, please feel
-# free and contribute improvements.
+# The Nuitka scons file. If you have Scons or platform knowledge, please be
+# especially invited and contribute improvements.
 #
 # This file is used to build an executable or shared library. Nuitka needs no
 # build process for itself, although it can be compiled using the same method.
@@ -38,7 +38,7 @@ static_src = os.path.join( source_dir, "static" )
 
 # We tell Scons that it is a variant to be built, so object files don't end up
 # inside that directory which need not be writable.
-VariantDir( static_src, nuitka_src, 0 )
+VariantDir( static_src, os.path.join( nuitka_src, "static_src" ), 0 )
 
 # The name of executable or loadable module that we produce.
 result_basepath = ARGUMENTS[ "result_name" ]
@@ -48,6 +48,9 @@ def getBoolOption( option_name, default ):
     value = ARGUMENTS.get( option_name, "True" if default else "False" )
 
     return value.lower() in ( "yes", "true", "1" )
+
+# The directory to use for cache directory.
+cache_mode = getBoolOption( "cache_mode", False )
 
 # Module mode: Create a Python extension module, create an executable otherwise.
 module_mode = getBoolOption( "module_mode", False )
@@ -94,8 +97,14 @@ if sys.platform == "darwin" or "freebsd" in sys.platform:
 # MinGW compiler mode, optional and interesting to Windows only.
 mingw_mode = getBoolOption( "mingw_mode", False )
 
-# Portable mode
-portable_mode = getBoolOption( "portable_mode", False )
+# Frozen modules count
+frozen_modules = int( ARGUMENTS.get( "frozen_modules", 0 ) )
+
+# Shared library and compiled modules count
+module_count = int( ARGUMENTS.get( "module_count", 0 ) )
+
+# Standalone mode
+standalone_mode = getBoolOption( "standalone_mode", False )
 
 # Show scons mode, output information about Scons operation
 show_scons_mode = getBoolOption( "show_scons", False )
@@ -131,9 +140,6 @@ def createEnvironment( compiler_tools ):
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
         TARGET_ARCH = target_arch,
-
-        # Batch the compilation with MSVC under Windows if used.
-        MSVC_BATCH  = True,
 
         # If we are on Windows, and MinGW is not enforced, lets see if we can
         # find "cl.exe", and if we do, disable automatic scan.
@@ -205,7 +211,6 @@ if clang_mode:
 elif "CXX" in os.environ:
     # If the environment variable CXX is set, use that.
     env[ "CXX" ] = os.environ[ "CXX" ]
-
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
@@ -290,9 +295,6 @@ def setupSpawn( env ):
                 print cmdline
             print data,
 
-        if rv:
-            raise RuntimeError( err )
-
         return rv
 
     env[ "SPAWN" ] = spawn
@@ -368,7 +370,8 @@ if "g++" in env[ "CXX" ]:
 # Detect compiler to be used from supported ones, if there is no usable g++
 # link.
 if os.name != "nt" and "CXX" not in env:
-    for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4", "clang" ):
+    for candidate in ( "g++-4.8", "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4",
+                       "clang" ):
         if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
             env[ "CXX" ] = candidate
 
@@ -408,8 +411,13 @@ b) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
 
-if os.name == "nt":
+if os.name == "nt" and msvc_mode:
     setupSpawn( env )
+
+if os.name == "nt" and gcc_mode and target_arch == "x86_64":
+    sys.exit( """\
+Error, MinGW does not support 64 bit Python. Use MSVC or 32 bit Python instead.""" )
+
 
 env[ "BUILD_DIR" ] = source_dir
 
@@ -551,8 +559,16 @@ if full_compat_mode:
 if experimental_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_EXPERIMENTAL" ] )
 
-if portable_mode:
-    env.Append( CPPDEFINES = [ "_NUITKA_PORTABLE" ] )
+if standalone_mode:
+    env.Append( CPPDEFINES = [ "_NUITKA_STANDALONE" ] )
+
+    if win_target:
+        if msvc_mode:
+            # This is used for "PathRemoveFileSpec" used in standalone mode
+            # Windows code.
+            env.Append( LIBS = [ "Shlwapi.lib" ] )
+    else:
+        env.Append( LIBS = [ "dl" ] )
 
 if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
@@ -566,9 +582,31 @@ if win_target:
     if win_disable_console:
         env.Append( CPPDEFINES = [ "_NUITKA_WINMAIN_ENTRY_POINT" ] )
 
+
+if python_debug:
+    env.Append( CPPDEFINES = [ "Py_DEBUG" ] )
+
+def detectHostMultiarch():
+    import commands
+
+    for line in commands.getoutput( "dpkg-architecture" ).split("\n"):
+        if line.startswith( "DEB_HOST_MULTIARCH=" ):
+            return line.split( "=", 1 )[1]
+    else:
+        return None
+
+if gcc_mode and "linux" in sys.platform:
+    if python_version.startswith( "3.3" ):
+        host_multiarch = detectHostMultiarch()
+
+        if host_multiarch is not None:
+            env.Append( CCFLAGS = [
+                "-I/usr/include/" + host_multiarch + "/python" + python_version
+                ]
+            )
+
 if os.name == "nt":
     # On Windows, the installation layout is relatively fixed.
-    env.Append( LIBPATH = [ os.path.join( python_prefix, "libs" ) ] )
     python_header_path = os.path.join( python_prefix, "include" )
 else:
     # The python header path is a combination of python version and debug
@@ -593,39 +631,10 @@ not satisfied!""" % (
         )
     )
 
-if python_debug:
-    env.Append( CPPDEFINES = [ "Py_DEBUG" ] )
-
 env.Append( CPPPATH  = [ python_header_path ] )
 
-# Add the python library path to the library path
-python_lib_path = os.path.join( python_prefix, "lib" )
-env.Append( LIBPATH = [ python_lib_path ] )
-
-# For NetBSD the rpath is required, on FreeBSD it's warned as unused.
-if "netbsd" in sys.platform:
-    env.Append( LINKFLAGS = [ "-rpath=" + python_lib_path ] )
-
-def detectHostMultiarch():
-    import commands
-
-    for line in commands.getoutput( "dpkg-architecture" ).split("\n"):
-        if line.startswith( "DEB_HOST_MULTIARCH=" ):
-            return line.split( "=", 1 )[1]
-    else:
-        return None
-
-if gcc_mode and "linux" in sys.platform:
-    if python_version.startswith( "3.3" ):
-        host_multiarch = detectHostMultiarch()
-
-        if host_multiarch is not None:
-            env.Append( CCFLAGS = [
-                "-I/usr/include/" + host_multiarch + "/python" + python_version
-                ]
-            )
-
 if win_target:
+    env.Append( LIBPATH = [ os.path.join( python_prefix, "libs" ) ] )
     env.Append( LIBS = [ "python" + python_version.replace( ".", "" ) ] )
 else:
     # Debian and Ubuntu distinguish the system libraries like this.
@@ -643,7 +652,16 @@ else:
         if gcc_mode:
             env.Append( LINKFLAGS = [ "-export-dynamic" ] )
 
-nuitka_include = os.path.join( os.environ[ "NUITKA_SCONS" ], "include" )
+
+    # Add the python library path to the library path
+    python_lib_path = os.path.join( python_prefix, "lib" )
+    env.Append( LIBPATH = [ python_lib_path ] )
+
+    # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
+    if "netbsd" in sys.platform:
+        env.Append( LINKFLAGS = [ "-rpath=" + python_lib_path ] )
+
+nuitka_include = os.path.join( nuitka_src, "include" )
 env.Append( CPPPATH = [ source_dir, nuitka_include ] )
 
 if debug_mode or unstriped_mode:
@@ -685,8 +703,10 @@ if optimize_mode:
 
 
 # Set load libpython from binary directory default
-if portable_mode and gcc_mode:
+if standalone_mode and gcc_mode:
     env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
+
+env.Append( CPPDEFINES = [ "_NUITKA_FROZEN=%d" % frozen_modules ] )
 
 # Tell compiler to create a shared library or program.
 if module_mode:
@@ -733,18 +753,13 @@ def discoverSourceFiles():
         # Variant based on getcontext/setcontext/swapcontext/makecontext
         result.append( getStatic(  "gen_ucontext_src/fibers_gen.cpp" ) )
 
-    module_count = 0
-
     for filename in os.listdir( source_dir ):
         if filename.endswith( ".cpp" ):
             result.append( os.path.join( source_dir, filename ) )
 
-            if filename.startswith( "module." ):
-                module_count += 1
-
     # If more than one module is included, we need the unfreezer.
     if module_count > 1:
-        result.append( getStatic( "ModuleUnfreezer.cpp" ) )
+        result.append( getStatic( "MetaPathBasedLoader.cpp" ) )
 
     return result
 
@@ -754,50 +769,45 @@ source_targets = []
 # specs for linking to avoid the use of the wrong (for CPython) run time
 # library.
 if msvc_mode and not module_mode:
-    manifest_file = open(
-        os.path.join( source_dir, "resources.manifest" ),
-        "w"
-    )
-    manifest_file.write( r"""
-<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
-    <security>
-      <requestedPrivileges>
-        <requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel>
-      </requestedPrivileges>
-    </security>
-  </trustInfo>
-  <dependency>
-    <dependentAssembly>
-      <assemblyIdentity
-         type="win32"
-         name="Microsoft.VC90.CRT"
-         version="9.0.21022.8"
-         processorArchitecture="x86"
-         publicKeyToken="1fc8b3b9a1e18e3b">
-      </assemblyIdentity>
-    </dependentAssembly>
-  </dependency>
-</assembly>
-"""
-    )
-    manifest_file.close()
+    rc_content = []
 
-    rc_filename = os.path.join( source_dir, "resources.rc" )
+    if python_version < "3.0":
+        manifest_filename = os.path.join( source_dir, "resources.manifest" )
 
-    rc_file = open( rc_filename, "w" )
-    rc_file.write( r"""
-#include "winuser.h"
-1 RT_MANIFEST resources.manifest
-"""
-    )
+        assert 0 == subprocess.call(
+            (
+                "mt",
+                "-inputresource:%s;#1" % os.path.join(
+                    python_prefix,
+                    "python.exe"
+                ),
+                "-out:%s" % manifest_filename
+            ),
+            stdout = subprocess.PIPE
+        )
+
+        rc_content.append( "1 RT_MANIFEST resources.manifest" )
+
     if icon_path:
-        rc_file.write("2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE \"%s\"\n" % icon_path.replace("\\", "/"))
-    rc_file.close()
+        rc_content.append(
+            '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"' % (
+                icon_path.replace( "\\", "/" )
+            )
+        )
 
-    source_targets.append(
-        env.RES( rc_filename )
-    )
+    if rc_content:
+        rc_filename = os.path.join( source_dir, "resources.rc" )
+
+        rc_file = open( rc_filename, "w" )
+
+        rc_content.insert( 0, '#include "winuser.h"' )
+        rc_file.write( "\n".join( rc_content ) )
+
+        rc_file.close()
+
+        source_targets.append(
+            env.RES( rc_filename )
+        )
 
 source_files = discoverSourceFiles()
 
@@ -809,13 +819,23 @@ if module_mode:
 
     env[ "SHLIBSUFFIX" ] = module_suffix
 
-    target = env.SharedLibrary( result_basepath, source_files  + source_targets )
+    target = env.SharedLibrary(
+        result_basepath,
+        source_files  + source_targets
+    )
 else:
     # Avoid dependency on MinGW libraries.
     if win_target and gcc_mode:
         env.Append( LINKFLAGS = [ "-static-libgcc",  "-static-libstdc++" ] )
 
-    target = env.Program( result_basepath + ".exe", source_files + source_targets )
+    target = env.Program(
+        result_basepath + ".exe",
+        source_files + source_targets
+    )
+
+# Avoid IO for compilation as far as possible.
+if gcc_mode:
+    env.Append( CCFLAGS = "-pipe" )
 
 if "CCFLAGS" in os.environ:
     env.Append( CCFLAGS = os.environ[ "CCFLAGS" ].split() )
@@ -826,5 +846,12 @@ if "LDFLAGS" in os.environ:
 # Remove the target file to avoid cases where it falsely didn't get rebuilt.
 if os.path.exists( target[0].abspath ):
     os.unlink( target[0].abspath )
+
+if show_scons_mode:
+    print "scons: Told to run compilation on %d CPUs." % GetOption( 'num_jobs' )
+
+if cache_mode:
+    CacheDir( os.path.join( source_dir, "cache" ) )
+    Decider( "MD5" )
 
 Default( target )

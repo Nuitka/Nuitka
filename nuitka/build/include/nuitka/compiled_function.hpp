@@ -43,9 +43,6 @@ struct Nuitka_FunctionObject {
     PyObject_HEAD
 
     PyObject *m_name;
-#if PYTHON_VERSION >= 330
-    PyObject *m_qualname;
-#endif
 
     void *m_context;
     releaser m_cleanup;
@@ -72,6 +69,10 @@ struct Nuitka_FunctionObject {
 
     // Annotations to the function arguments and return value.
     PyObject *m_annotations;
+#endif
+
+#if PYTHON_VERSION >= 330
+    PyObject *m_qualname;
 #endif
 
     long m_counter;

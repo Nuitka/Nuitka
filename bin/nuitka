@@ -17,6 +17,7 @@
 #     limitations under the License.
 #
 
+
 """
 
 This is the main program of Nuitka, it checks the options and then translates
@@ -26,9 +27,12 @@ other modules.
 
 """
 
-import sys, os, subprocess
-
-from logging import warning
+# Import as little as possible initially, because we might be re-executing
+# soon.
+import logging
+import os
+import sys
+import warnings
 
 # LIBDIR trick start (marker for removal on platforms that don't need it)
 libdir = '@LIBDIR@'
@@ -37,12 +41,12 @@ libdir = '@LIBDIR@'
 if libdir != '@' 'LIBDIR' '@':
     # Changed by our distutils hook, then use the given path.
 
-    if not os.path.isabs( libdir ):
+    if not os.path.isabs(libdir):
         libdir = os.path.join(
-            os.path.dirname( os.path.realpath( __file__ ) ),
+            os.path.dirname(os.path.realpath(__file__)),
             libdir
         )
-        libdir = os.path.abspath( libdir )
+        libdir = os.path.abspath(libdir)
 
     sys.path.insert(
         0,
@@ -55,137 +59,80 @@ else:
         0,
         os.path.normpath(
             os.path.join(
-                os.path.dirname( __file__ ),
+                os.path.dirname(__file__),
                 ".."
             )
         )
     )
 # LIBDIR trick end (marker for removal on platforms that don't need it)
 
-import logging
-logging.basicConfig( format = 'Nuitka:%(levelname)s:%(message)s' )
+from nuitka import Options, Utils   # isort:skip
+
+logging.basicConfig(format = 'Nuitka:%(levelname)s:%(message)s')
 
 # We don't care, and these are triggered by run time calculations of "range" and
 # others, while on python2.7 they are disabled by default.
-import warnings
-warnings.simplefilter( "ignore", DeprecationWarning )
 
-from nuitka import Options
+warnings.simplefilter("ignore", DeprecationWarning)
 
+# We will run with the Python configuration as specified by the user, if it does
+# not match, we restart ourselves with matching configuration.
+needs_reexec = False
+
+current_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
+
+# We support to execute with a specified version.
 intended_version = Options.getIntendedPythonVersion()
+if intended_version is None:
+    intended_version = current_version
 
-# Make sure on the promise to execute with a specific version. When compiled,
-# this may not be supported.
-if intended_version is not None:
-    current_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
+# If it's a different version, we find it by guessing it, otherwise we use the
+# one previously used.
+if current_version != intended_version:
+    assert intended_version in ("2.6", "2.7", "3.2", "3.3", "3.4")
 
-    if current_version != intended_version:
-        assert intended_version in ( "2.6", "2.7", "3.2", "3.3" )
+    if os.name == "nt":
+        python_binary = r"C:\Python%s\python.exe" % \
+          intended_version.replace( ".", "" )
+    else:
+        python_binary = "/usr/bin/python" + intended_version
 
-        if os.name == "nt":
-            python_binary = r"C:\Python%s\python.exe" % \
-              intended_version.replace( ".", "" )
-        else:
-            python_binary = "/usr/bin/python" + intended_version
-
-        args = [ python_binary, os.path.basename( python_binary ) ] + sys.argv
-
-        # That's the API of execl, pylint: disable=W0142
-        os.execl( *args )
-
-
-from nuitka import MainControl, SyntaxErrors, Importing
-
-positional_args = Options.getPositionalArgs()
-assert len( positional_args ) > 0
-
-filename = Options.getPositionalArgs()[0]
-
-# Inform the importing layer about the main script directory, so it can use it
-# when attempting to follow imports.
-Importing.setMainScriptDirectory(
-    main_dir = os.path.dirname( os.path.abspath( filename ) )
-)
-
-# Turn that source code into a node tree structure.
-try:
-    tree = MainControl.createNodeTree(
-        filename = filename
-    )
-except (SyntaxError, IndentationError) as e:
-    if Options.isFullCompat() and e.args[0].startswith( "unknown encoding:" ):
-        # False alarm, pylint: disable=E0611
-        from nuitka.Utils import python_version
-
-        if ( python_version >= 332 and os.name != "nt" ) or \
-           "2.7.5+" in sys.version:
-            complaint = "no-exist"
-        else:
-            complaint = "with BOM"
-
-        e.args = (
-            "encoding problem: %s" % complaint,
-            ( e.args[1][0], 1, None, None )
-        )
-
-    sys.exit( SyntaxErrors.formatOutput( e ) )
-
-if Options.shallDumpBuiltTree():
-    MainControl.dumpTree( tree )
-elif Options.shallDumpBuiltTreeXML():
-    MainControl.dumpTreeXML( tree )
-elif Options.shallDisplayBuiltTree():
-    MainControl.displayTree( tree )
+    needs_reexec = True
 else:
-    import shutil
+    python_binary = sys.executable
 
-    result, options = MainControl.compileTree( tree )
+python_flags = Options.getPythonFlags()
 
-    # Exit if compilation failed.
-    if not result:
-        sys.exit( 1 )
+if sys.flags.no_site == 0 and "no_site" in python_flags:
+    needs_reexec = True
 
-    # Remove the source directory (now build directory too) if asked to.
-    if Options.isRemoveBuildDir():
-        shutil.rmtree( MainControl.getSourceDirectoryPath( tree ) )
+# The hash randomization totally destroys the created source code created,
+# changing it every single time Nuitka is run. This kills any attempt at
+# caching it, and comparing generated source code. While the created binary
+# actually should use it, we don't want to. So lets disable it.
+if os.environ.get( "PYTHONHASHSEED", "-1" ) != "0":
+    os.environ[ "PYTHONHASHSEED" ] = "0"
+    needs_reexec = True
 
-    # Pack and copy files in portable mode
-    if Options.isPortableMode():
-        from nuitka import PortableSetup
-        if not PortableSetup.setup( filename, Options.getOutputDir() ):
-            sys.exit( 1 )
+# In case we need to re-execute.
+if needs_reexec:
+    # Execute with full path as the process name, so it can find itself and its
+    # libraries.
+    args = [
+        python_binary,
+        python_binary,
+    ]
 
-    # Sanity check, warn people if "__main__" is used in the compiled module, it
-    # may not be the appropiate usage.
-    if Options.shallMakeModule() and Options.shallExecuteImmediately():
-        for variable in tree.getVariables():
-            if variable.getName() == "__name__":
-                warning( """\
-Compiling to extension module, which will not have '__name__' as '__main__', \
-did you intend '--exe' or to use 'nuitka-python' instead.""" )
-                break
+    # Potentially give Python command line flags as necessary.
+    if "no_site" in python_flags:
+        args.append("-S")
 
-    # Modules should not be executable, but Scons creates them like it, fix it
-    # up here.
-    if os.name != "nt" and Options.shallMakeModule():
-        subprocess.call(
-            (
-                "chmod",
-                "-x",
-                options[ "result_name" ] + ".so"
-            )
-        )
+    # Same arguments as before.
+    args += sys.argv
 
-    # Execute the module immediately if option was given.
-    if Options.shallExecuteImmediately():
-        if Options.shallMakeModule():
-            MainControl.executeModule(
-                tree       = tree,
-                clean_path = Options.shallClearPythonPathEnvironment()
-            )
-        else:
-            MainControl.executeMain(
-                binary_filename = options[ "result_name" ] + ".exe",
-                tree            = tree,
-                clean_path      = Options.shallClearPythonPathEnvironment()
-            )
+    Utils.callExec(args)
+
+
+# Now the main program.
+from nuitka import MainControl  # isort:skip
+MainControl.main()

@@ -21,25 +21,31 @@
 // This define guards these definitions from being used without the unfreezing
 // mode actually being active at all.
 
-struct Nuitka_FreezeTableEntry
-{
-    char *name; // Full module name, including package
+#define NUITKA_COMPILED_MODULE 0
+#define NUITKA_SHLIB_MODULE 1
 
+struct Nuitka_MetaPathBasedLoaderEntry
+{
+    // Full module name, including package
+    char *name;
+
+    // Entry function if compiled module, otherwise NULL.
 #if PYTHON_VERSION < 300
     void (*python_initfunc)( void );
 #else
     PyObject * (*python_initfunc)( void );
 #endif
 
+    // Flags: NUITKA_COMPILED_MODULE or NUITKA_SHLIB_MODULE
     int flags;
 };
 
 // For embedded modules, to be unpacked. Used by main program/package only
-extern void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_modules );
+extern void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *loader_entries );
 
-// For the "__loader__" attribute of modules.
+// For use as the "__loader__" attribute of compiled modules.
 #if PYTHON_VERSION >= 330
-extern PyObject *loader_frozen_modules;
+extern PyObject *metapath_based_loader;
 #endif
 
 #endif

@@ -52,15 +52,90 @@ public:
         return this->object;
     }
 
-    void assign1( PyObject *object )
+    PyObject *asObject1() const
     {
+        return INCREASE_REFCOUNT( this->object );
+    }
+
+    void assign0( PyObject *object )
+    {
+        assertObject( object );
         assertObject( this->object );
 
-        Py_DECREF( this->object );
+        PyObject *old = this->object;
+        this->object = INCREASE_REFCOUNT( object );
+        Py_DECREF( old );
+    }
 
+
+    void assign1( PyObject *object )
+    {
+        assertObject( object );
+        assertObject( this->object );
+
+        PyObject *old_object = this->object;
+        this->object = object;
+        Py_XDECREF( old_object );
+    }
+
+
+private:
+
+    PyObjectTemporary( const PyObjectTemporary &object ) { assert( false ); }
+    PyObjectTemporary() { assert( false ); };
+
+    PyObject *object;
+};
+
+
+class PyObjectTemporaryWithDel
+{
+public:
+    explicit PyObjectTemporaryWithDel( PyObject *object )
+    {
         assertObject( object );
 
         this->object = object;
+    }
+
+    ~PyObjectTemporaryWithDel()
+    {
+        if ( this->object ) assertObject( this->object );
+
+        Py_XDECREF( this->object );
+    }
+
+    PyObject *asObject0() const
+    {
+        assertObject( this->object );
+
+        return this->object;
+    }
+
+    PyObject *asObject1() const
+    {
+        return INCREASE_REFCOUNT( this->object );
+    }
+
+    void assign0( PyObject *object )
+    {
+        assertObject( object );
+        if ( this->object ) assertObject( this->object );
+
+        PyObject *old = this->object;
+        this->object = INCREASE_REFCOUNT( object );
+        Py_XDECREF( old );
+    }
+
+
+    void assign1( PyObject *object )
+    {
+        assertObject( object );
+        if ( this->object ) assertObject( this->object );
+
+        PyObject *old_object = this->object;
+        this->object = object;
+        Py_XDECREF( old_object );
     }
 
     // TODO: Tolerance must die, really and this method should be avoidable, as
@@ -69,15 +144,14 @@ public:
     {
         assertObject( this->object );
 
-        Py_DECREF( this->object );
-
-        this->object = INCREASE_REFCOUNT( Py_None );
+        Py_XDECREF( this->object );
+        this->object = NULL;
     }
 
 private:
 
-    PyObjectTemporary( const PyObjectTemporary &object ) { assert( false ); }
-    PyObjectTemporary() { assert( false ); };
+    PyObjectTemporaryWithDel( const PyObjectTemporary &object ) { assert( false ); }
+    PyObjectTemporaryWithDel() { assert( false ); };
 
     PyObject *object;
 };
@@ -103,6 +177,13 @@ public:
         assertObject( this->object );
 
         return this->object;
+    }
+
+    PyObject *asObject1() const
+    {
+        assertObject( this->object );
+
+        return INCREASE_REFCOUNT( this->object );
     }
 
     void assign1( PyObject *object )

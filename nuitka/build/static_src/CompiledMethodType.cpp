@@ -65,7 +65,7 @@ static PyMethodDef Nuitka_Method_methods[] =
     { NULL }
 };
 
-extern PyObject *_python_str_plain___name__;
+extern PyObject *const_str_plain___name__;
 
 static char const *GET_CLASS_NAME( PyObject *klass )
 {
@@ -75,7 +75,7 @@ static char const *GET_CLASS_NAME( PyObject *klass )
     }
     else
     {
-        PyObject *name = PyObject_GetAttr( klass, _python_str_plain___name__ );
+        PyObject *name = PyObject_GetAttr( klass, const_str_plain___name__ );
 
         if (unlikely( name == NULL ))
         {
@@ -487,7 +487,6 @@ static void Nuitka_Method_tp_dealloc( Nuitka_MethodObject *method )
         PyObject_ClearWeakRefs( (PyObject *)method );
     }
 
-    Py_XDECREF( method->m_dict );
     Py_XDECREF( method->m_object );
     Py_XDECREF( method->m_class );
 
@@ -627,9 +626,6 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
     result->m_object = INCREASE_REFCOUNT_X( object );
     result->m_class = INCREASE_REFCOUNT_X( klass );
 
-    result->m_module = function->m_module;
-
-    result->m_dict   = NULL;
     result->m_weakrefs = NULL;
 
     Nuitka_GC_Track( result );

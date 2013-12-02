@@ -50,7 +50,10 @@ from nuitka.nodes.BuiltinDecodingNodes import (
     ExpressionBuiltinOrd0
 )
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinEval
-from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTempVariableRef,
+    ExpressionVariableRef
+)
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
     ExpressionBuiltinLocals,
@@ -408,6 +411,9 @@ if python_version < 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExecfile
 
     def execfile_extractor( node ):
+        # Need to accept globals and local keyword argument, that is just the
+        # API of execfile, pylint: disable=W0622
+
         def wrapExpressionBuiltinExecfileCreation( filename, globals, locals,
                                                    source_ref ):
             provider = node.getParentVariableProvider()
@@ -456,6 +462,9 @@ if python_version < 300:
         )
 
 def eval_extractor( node ):
+    # Need to accept globals and local keyword argument, that is just the API of
+    # eval, pylint: disable=W0622
+
     def wrapEvalBuiltin( source, globals, locals, source_ref ):
         globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
             provider     = node.getParentVariableProvider(),
@@ -466,10 +475,10 @@ def eval_extractor( node ):
         )
 
         return ExpressionBuiltinEval(
-            source     = source,
-            globals    = globals_wrap,
-            locals     = locals_wrap,
-            source_ref = source_ref
+            source_code = source,
+            globals_arg = globals_wrap,
+            locals_arg  = locals_wrap,
+            source_ref  = source_ref
         )
 
     return BuiltinOptimization.extractBuiltinArgs(
@@ -483,6 +492,9 @@ if python_version >= 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 
     def exec_extractor( node ):
+        # Need to accept globals and local keyword argument, that is just the
+        # API of exec, pylint: disable=W0622
+
         def wrapExpressionBuiltinExecCreation( source, globals, locals,
                                                source_ref ):
             provider = node.getParentVariableProvider()
@@ -503,10 +515,10 @@ if python_version >= 300:
             )
 
             return ExpressionBuiltinExec(
-                source     = source,
-                globals    = globals_wrap,
-                locals     = locals_wrap,
-                source_ref = source_ref
+                source_code = source,
+                globals_arg = globals_wrap,
+                locals_arg  = locals_wrap,
+                source_ref  = source_ref
             )
 
         return BuiltinOptimization.extractBuiltinArgs(
@@ -529,22 +541,39 @@ def super_extractor( node ):
         if type is None and python_version >= 300:
             provider = node.getParentVariableProvider()
 
-            type = ExpressionVariableRef(
-                variable_name = "__class__",
-                source_ref    = source_ref
-            )
-
-            # Ought to be already closure taken.
-            type.setVariable(
-                provider.getVariableForReference(
-                    variable_name = "__class__"
+            if python_version < 340:
+                type = ExpressionVariableRef(
+                    variable_name = "__class__",
+                    source_ref    = source_ref
                 )
-            )
+
+                # Ought to be already closure taken.
+                type.setVariable(
+                    provider.getVariableForClosure(
+                        variable_name = "__class__"
+                    )
+                )
+
+                if not type.getVariable().isClosureReference():
+                    type = None
+            else:
+                parent_provider = provider.getParentVariableProvider()
+
+                class_var = parent_provider.getTempVariable(
+                    temp_scope = None,
+                    name       = "__class__"
+                )
+
+                type = ExpressionTempVariableRef(
+                    variable      = class_var.makeReference( parent_provider ).makeReference( provider ),
+                    source_ref    = source_ref
+                )
+
 
             from nuitka.nodes.NodeMakingHelpers import \
                 makeRaiseExceptionReplacementExpression
 
-            if not type.getVariable().isClosureReference():
+            if type is None:
                 return makeRaiseExceptionReplacementExpression(
                     expression      = node,
                     exception_type  = "SystemError"

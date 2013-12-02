@@ -53,8 +53,13 @@ for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
         args.append( '--footer="###Title### - page ###Page### - ###Section###"' )
 
     assert 0 == subprocess.call(
-        "rst2pdf %(args)s  %(document)s" %
+        "%(rst2pdf)s %(args)s  %(document)s" %
         {
+            "rst2pdf"  : (
+                "rst2pdf"
+                    if os.name != "nt" else
+                r"C:\Python27_32\Scripts\rst2pdf.exe"
+            ),
             "args"     : " ".join( args ),
             "document" : document
         },
@@ -62,52 +67,52 @@ for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
     )
 
 
+if os.name != "nt":
+    if not os.path.exists( "man" ):
+        os.mkdir( "man" )
 
-if not os.path.exists( "man" ):
-    os.mkdir( "man" )
+    assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt ./bin/nuitka >doc/nuitka.1", shell = True )
+    assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-python >doc/nuitka-python.1", shell = True )
 
-assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt ./bin/nuitka >doc/nuitka.1", shell = True )
-assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-python >doc/nuitka-python.1", shell = True )
+    for manpage in ( "doc/nuitka.1", "doc/nuitka-python.1" ):
+        manpage_contents = open( manpage ).readlines()
+        new_contents = []
+        mark = False
 
-for manpage in ( "doc/nuitka.1", "doc/nuitka-python.1" ):
-    manpage_contents = open( manpage ).readlines()
-    new_contents = []
-    mark = False
+        for count, line in enumerate( manpage_contents ):
+            if mark:
+                line = ".SS " + line + ".BR\n"
+                mark = False
+            elif line == ".IP\n" and manpage_contents[ count + 1 ].endswith( ":\n" ):
+                mark = True
+                continue
 
-    for count, line in enumerate( manpage_contents ):
-        if mark:
-            line = ".SS " + line + ".BR\n"
-            mark = False
-        elif line == ".IP\n" and manpage_contents[ count + 1 ].endswith( ":\n" ):
-            mark = True
-            continue
+            if line == r"\fB\-\-g\fR++\-only" + "\n":
+                line = r"\fB\-\-g\++\-only\fR" + "\n"
 
-        if line == r"\fB\-\-g\fR++\-only" + "\n":
-            line = r"\fB\-\-g\++\-only\fR" + "\n"
+            new_contents.append( line )
 
-        new_contents.append( line )
+        open( manpage, "w" ).writelines( new_contents )
 
-    open( manpage, "w" ).writelines( new_contents )
+    assert 0 == subprocess.call( "man2html doc/nuitka.1 >doc/man-nuitka.html", shell = True )
+    assert 0 == subprocess.call( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html", shell = True )
 
-assert 0 == subprocess.call( "man2html doc/nuitka.1 >doc/man-nuitka.html", shell = True )
-assert 0 == subprocess.call( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html", shell = True )
+    def getFile( filename ):
+        return open( filename ).read()
 
-def getFile( filename ):
-    return open( filename ).read()
+    contents = getFile( "doc/man-nuitka.html" )
+    new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
+    assert new_contents != contents
+    contents = new_contents
+    new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
+    assert new_contents != contents
+    open( "doc/man-nuitka.html", "w" ).write( new_contents )
 
-contents = getFile( "doc/man-nuitka.html" )
-new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
-assert new_contents != contents
-contents = new_contents
-new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
-assert new_contents != contents
-open( "doc/man-nuitka.html", "w" ).write( new_contents )
+    contents = getFile( "doc/man-nuitka-python.html" )
+    new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
+    assert new_contents != contents
+    contents = new_contents
+    new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
+    assert new_contents != contents
 
-contents = getFile( "doc/man-nuitka-python.html" )
-new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
-assert new_contents != contents
-contents = new_contents
-new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
-assert new_contents != contents
-
-open( "doc/man-nuitka-python.html", "w" ).write( new_contents )
+    open( "doc/man-nuitka-python.html", "w" ).write( new_contents )

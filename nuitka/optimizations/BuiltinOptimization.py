@@ -52,8 +52,8 @@ class BuiltinParameterSpec( ParameterSpec ):
             return True
 
     def simulateCall( self, given_values ):
-        # Using star dict call for simulation and catch any exception as really fatal,
-        # pylint: disable=W0142,W0703
+        # Using star dict call for simulation and catch any exception as really
+        # fatal, pylint: disable=W0142,W0703
 
         try:
             given_normal_args = given_values[ : len( self.normal_args ) ]

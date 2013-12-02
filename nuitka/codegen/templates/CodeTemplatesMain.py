@@ -17,6 +17,9 @@
 #
 """ Main module code templates
 
+This for the main program in case of executables, the module templates and
+stuff related to importing, and of course the generated code license.
+
 """
 
 global_copyright = """\
@@ -38,8 +41,12 @@ global_copyright = """\
 // limitations under the License.
 """
 
-module_inittab_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0 },"""
+template_metapath_loader_compiled_module_entry = """\
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_MODULE },"""
+
+template_metapath_loader_shlib_module_entry = """\
+{ (char *)"%(module_name)s", NULL, NUITKA_SHLIB_MODULE },"""
+
 
 main_program = """\
 // The main program for C++. It needs to prepare the interpreter and then
@@ -55,8 +62,8 @@ int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmd
 int main( int argc, char *argv[] )
 {
 #endif
-#ifdef _NUITKA_PORTABLE
-    _initPortableEnvironment( argv[0] );
+#ifdef _NUITKA_STANDALONE
+    prepareStandaloneEnvironment();
 #endif
 
     // Initialize Python environment.
@@ -100,7 +107,7 @@ int main( int argc, char *argv[] )
 
     // Lie about it, believe it or not, there are "site" files, that check
     // against later imports, see below.
-    Py_NoSiteFlag = 0;
+    Py_NoSiteFlag = %(python_sysflag_no_site)d;
 
     // Set the command line parameters for run time usage.
     setCommandLineParameters( argc, argv, false );
@@ -112,12 +119,14 @@ int main( int argc, char *argv[] )
 
     // Revert the wrong sys.flags value, it's used by "site" on at least Debian
     // for Python3.3, more uses may exist.
+#if %(python_sysflag_no_site)d == 0
 #if PYTHON_VERSION >= 330
-    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, _python_int_0 );
+    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, const_int_0 );
 #elif PYTHON_VERSION >= 320
-    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 7, _python_int_0 );
+    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 7, const_int_0 );
 #elif PYTHON_VERSION >= 260
-    PyStructSequence_SET_ITEM( PySys_GetObject( (char *)"flags" ), 9, _python_int_0 );
+    PyStructSequence_SET_ITEM( PySys_GetObject( (char *)"flags" ), 9, const_int_0 );
+#endif
 #endif
 
     // Initialize the compiled types of Nuitka.
@@ -138,9 +147,17 @@ int main( int argc, char *argv[] )
         %(sys_executable)s
     );
 
-    patchInspectModule();
     patchBuiltinModule();
     patchTypeComparison();
+
+    // Allow to override the ticker value, to remove checks for threads in
+    // CPython core from impact on benchmarks.
+    char const *ticker_value = getenv( "NUITKA_TICKER" );
+    if ( ticker_value != NULL )
+    {
+        _Py_Ticker = atoi( ticker_value );
+        assert ( _Py_Ticker >= 20 );
+    }
 
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
@@ -148,7 +165,7 @@ int main( int argc, char *argv[] )
     if ( ERROR_OCCURED() )
     {
         // Cleanup code may need a frame, so put one back.
-        PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, _module___main__ );
+        PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, module___main__ );
 
         PyErr_PrintEx( 0 );
         Py_Exit( 1 );
@@ -166,98 +183,8 @@ module_header_template = """\
 
 MOD_INIT_DECL( %(module_identifier)s );
 
-extern PyObject *_module_%(module_identifier)s;
-extern PyDictObject *_moduledict_%(module_identifier)s;
-
-class PyObjectGlobalVariable_%(module_identifier)s
-{
-    public:
-        explicit PyObjectGlobalVariable_%(module_identifier)s( PyObject **dummy, PyObject **var_name )
-        {
-            assert( var_name );
-
-            this->var_name = (Nuitka_StringObject **)var_name;
-        }
-
-        PyObject *asObject0() const
-        {
-            PyObject *result = GET_STRING_DICT_VALUE( _moduledict_%(module_identifier)s, *this->var_name );
-
-            if (likely( result != NULL ))
-            {
-                assertObject( result );
-
-                return result;
-            }
-
-            result = GET_STRING_DICT_VALUE( dict_builtin, *this->var_name );
-
-            if (likely( result != NULL ))
-            {
-                assertObject( result );
-
-                return result;
-            }
-
-            PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-            throw PythonException();
-        }
-
-        PyObject *asObject1() const
-        {
-            return INCREASE_REFCOUNT( this->asObject0() );
-        }
-
-        PyObject *asObject0( PyObject *dict ) const
-        {
-            PyObject *result = PyDict_GetItem( dict, (PyObject *)*this->var_name );
-
-            if ( result != NULL )
-            {
-                return result;
-            }
-            else
-            {
-                return this->asObject0();
-            }
-        }
-
-        void del( bool tolerant ) const
-        {
-            int status = PyDict_DelItem( (PyObject *)_moduledict_%(module_identifier)s, (PyObject *)*this->var_name );
-
-            if (unlikely( status == -1 && tolerant == false ))
-            {
-                PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-                throw PythonException();
-            }
-        }
-
-        bool isInitialized( bool allow_builtins = true ) const
-        {
-            PyObject *result = GET_STRING_DICT_VALUE( _moduledict_%(module_identifier)s, *this->var_name );
-
-            if (likely( result ))
-            {
-                return true;
-            }
-
-            if ( allow_builtins )
-            {
-                result = GET_STRING_DICT_VALUE( dict_builtin, *this->var_name );
-
-                return result != NULL;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-    private:
-
-        Nuitka_StringObject **var_name;
-};
+extern PyObject *module_%(module_identifier)s;
+extern PyDictObject *moduledict_%(module_identifier)s;
 
 // Declarations from this module to other modules if any.
 %(extra_declarations)s
@@ -276,11 +203,84 @@ module_body_template = """
 // needs to go through it except for cases where the module cannot possibly
 // have changed in the mean time.
 
-PyObject *_module_%(module_identifier)s;
-PyDictObject *_moduledict_%(module_identifier)s;
+PyObject *module_%(module_identifier)s;
+PyDictObject *moduledict_%(module_identifier)s;
 
-// The module level variables.
-%(module_globals)s
+NUITKA_MAY_BE_UNUSED static PyObject *GET_MODULE_VALUE0( PyObject *var_name )
+{
+    // For module variable values, need to lookup in module dictionary or in
+    // built-in dictionary.
+
+    PyObject *result = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)var_name );
+
+    if (likely( result != NULL ))
+    {
+        assertObject( result );
+
+        return result;
+    }
+
+    result = GET_STRING_DICT_VALUE( dict_builtin, (Nuitka_StringObject *)var_name );
+
+    if (likely( result != NULL ))
+    {
+        assertObject( result );
+
+        return result;
+    }
+
+    PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( var_name ) );
+    throw PythonException();
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *GET_MODULE_VALUE1( PyObject *var_name )
+{
+    return INCREASE_REFCOUNT( GET_MODULE_VALUE0( var_name ) );
+}
+
+NUITKA_MAY_BE_UNUSED void static DEL_MODULE_VALUE( PyObject *var_name, bool tolerant )
+{
+    int status = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, var_name );
+
+    if (unlikely( status == -1 && tolerant == false ))
+    {
+        PyErr_Format(
+            PyExc_NameError,
+            "global name '%%s' is not defined",
+            Nuitka_String_AsString( var_name )
+        );
+
+        throw PythonException();
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *GET_LOCALS_OR_MODULE_VALUE0( PyObject *locals_dict, PyObject *var_name )
+{
+    PyObject *result = PyDict_GetItem( locals_dict, var_name );
+
+    if ( result != NULL )
+    {
+        return result;
+    }
+    else
+    {
+        return GET_MODULE_VALUE0( var_name );
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *GET_LOCALS_OR_MODULE_VALUE1( PyObject *locals_dict, PyObject *var_name )
+{
+    PyObject *result = PyDict_GetItem( locals_dict, var_name );
+
+    if ( result != NULL )
+    {
+        return INCREASE_REFCOUNT( result );
+    }
+    else
+    {
+        return GET_MODULE_VALUE1( var_name );
+    }
+}
 
 // The module function declarations.
 %(module_functions_decl)s
@@ -289,7 +289,7 @@ PyDictObject *_moduledict_%(module_identifier)s;
 %(module_functions_code)s
 
 #if PYTHON_VERSION >= 300
-static struct PyModuleDef _moduledef =
+static struct PyModuleDef mdef_%(module_identifier)s =
 {
     PyModuleDef_HEAD_INIT,
     "%(module_name)s",   /* m_name */
@@ -311,9 +311,9 @@ static struct PyModuleDef _moduledef =
 
 // Table for lookup to find "frozen" modules or DLLs, i.e. the ones included in
 // or along this binary.
-static struct Nuitka_FreezeTableEntry _frozen_modules[] =
+static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
 {
-%(module_inittab)s
+%(metapath_loader_inittab)s
     { NULL, NULL, 0 }
 };
 
@@ -332,7 +332,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Packages can be imported recursively in deep executables.
     if ( _init_done )
     {
-        return MOD_RETURN_VALUE( _module_%(module_identifier)s );
+        return MOD_RETURN_VALUE( module_%(module_identifier)s );
     }
     else
     {
@@ -358,14 +358,13 @@ MOD_INIT_DECL( %(module_identifier)s )
     initSlotCompare();
 #endif
 
-    patchInspectModule();
     patchBuiltinModule();
     patchTypeComparison();
 
 #endif
 
 #if _MODULE_UNFREEZER
-    registerMetaPathBasedUnfreezer( _frozen_modules );
+    registerMetaPathBasedUnfreezer( meta_path_loader_entries );
 #endif
 
     // puts( "in init%(module_identifier)s" );
@@ -376,7 +375,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // are instead set in early module code.  No "self" for modules, we have no
     // use for it.
 #if PYTHON_VERSION < 300
-    _module_%(module_identifier)s = Py_InitModule4(
+    module_%(module_identifier)s = Py_InitModule4(
         "%(module_name)s",       // Module Name
         NULL,                    // No methods initially, all are added
                                  // dynamically in actual module code only.
@@ -387,38 +386,35 @@ MOD_INIT_DECL( %(module_identifier)s )
         PYTHON_API_VERSION
     );
 #else
-    _module_%(module_identifier)s = PyModule_Create( &_moduledef );
+    module_%(module_identifier)s = PyModule_Create( &mdef_%(module_identifier)s );
 #endif
 
-    _moduledict_%(module_identifier)s = (PyDictObject *)((PyModuleObject *)_module_%(module_identifier)s)->md_dict;
+    moduledict_%(module_identifier)s = (PyDictObject *)((PyModuleObject *)module_%(module_identifier)s)->md_dict;
 
-    assertObject( _module_%(module_identifier)s );
+    assertObject( module_%(module_identifier)s );
 
-#ifndef _NUITKA_MODULE
-// Seems to work for Python2.7 out of the box, but for Python3.2, the module
-// doesn't automatically enter "sys.modules" with the object that it should, so
-// do it manually.
+// Seems to work for Python2.7 out of the box, but for Python3, the module
+// doesn't automatically enter "sys.modules", so do it manually.
 #if PYTHON_VERSION >= 300
     {
-        int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, _module_%(module_identifier)s );
+        int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, module_%(module_identifier)s );
 
         assert( r != -1 );
     }
-#endif
 #endif
 
     // For deep importing of a module we need to have "__builtins__", so we set
     // it ourselves in the same way than CPython does. Note: This must be done
     // before the frame object is allocated, or else it may fail.
 
-    PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
+    PyObject *module_dict = PyModule_GetDict( module_%(module_identifier)s );
 
-    if ( PyDict_GetItem( module_dict, _python_str_plain___builtins__ ) == NULL )
+    if ( PyDict_GetItem( module_dict, const_str_plain___builtins__ ) == NULL )
     {
         PyObject *value = ( PyObject *)module_builtin;
 
 #ifdef _NUITKA_EXE
-        if ( _module_%(module_identifier)s != _module___main__ )
+        if ( module_%(module_identifier)s != module___main__ )
         {
 #endif
             value = PyModule_GetDict( value );
@@ -429,16 +425,16 @@ MOD_INIT_DECL( %(module_identifier)s )
 #ifndef __NUITKA_NO_ASSERT__
         int res =
 #endif
-            PyDict_SetItem( module_dict, _python_str_plain___builtins__, value );
+            PyDict_SetItem( module_dict, const_str_plain___builtins__, value );
 
         assert( res == 0 );
     }
 
 #if PYTHON_VERSION >= 330
 #if _MODULE_UNFREEZER
-    PyDict_SetItem( module_dict, _python_str_plain___loader__, loader_frozen_modules );
+    PyDict_SetItem( module_dict, const_str_plain___loader__, metapath_based_loader );
 #else
-    PyDict_SetItem( module_dict, _python_str_plain___loader__, Py_None );
+    PyDict_SetItem( module_dict, const_str_plain___loader__, Py_None );
 #endif
 #endif
 
@@ -448,7 +444,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Module code
 %(module_code)s
 
-   return MOD_RETURN_VALUE( _module_%(module_identifier)s );
+   return MOD_RETURN_VALUE( module_%(module_identifier)s );
 }
 """
 
@@ -466,4 +462,28 @@ template_header_guard = """\
 
 %(header_body)s
 #endif
+"""
+
+template_frozen_modules = """\
+// This provides the frozen (precompiled bytecode) files that are included if
+// any.
+#include <Python.h>
+
+// Blob from which modules are unstreamed.
+static const unsigned char stream_data[] =
+{
+%(stream_data)s
+};
+
+// These modules should be loaded as bytecode. They must e.g. be loadable
+// during "Py_Initialize" already, or for irrelevance, they are only included
+// in this un-optimized form. These are not compiled by Nuitka, and therefore
+// are not accelerated at all, merely bundled with the binary or module, so
+// that Python library can start out.
+struct _frozen Embedded_FrozenModules[] =
+{
+%(frozen_modules)s
+    { NULL, NULL, 0 }
+};
+
 """

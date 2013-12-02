@@ -29,12 +29,14 @@ Variable version can start out:
 
 """
 
+
 from logging import debug
 
+
 class VariableTraceBase:
-    def __init__( self, variable, version ):
-        self.variable     = variable
-        self.version      = version
+    def __init__(self, variable, version):
+        self.variable = variable
+        self.version = version
 
         # List of references.
         self.usages = []
@@ -47,46 +49,46 @@ class VariableTraceBase:
         # time action.
         self.escaped_at = None
 
-    def isNode( self ):
+    def isNode(self):
         return False
 
-    def getVariable( self ):
+    def getVariable(self):
         return self.variable
 
-    def getVersion( self ):
+    def getVersion(self):
         return self.version
 
-    def addUsage( self, ref_node ):
-        self.usages.append( ref_node )
+    def addUsage(self, ref_node):
+        self.usages.append(ref_node)
 
-    def addRelease( self, release_node ):
-        self.releases.append( release_node )
+    def addRelease(self, release_node):
+        self.releases.append(release_node)
 
-    def onValueEscape( self ):
-        self.escaped_at = len( self.usages )
+    def onValueEscape(self):
+        self.escaped_at = len(self.usages)
 
-    def isEscaped( self ):
+    def isEscaped(self):
         return self.escaped_at is not None
 
-    def getPotentialUsages( self ):
+    def getPotentialUsages(self):
         return self.usages
 
-    def getDefiniteUsages( self ):
+    def getDefiniteUsages(self):
         return self.usages
 
-    def getReleases( self ):
+    def getReleases(self):
         return self.releases
 
-    def isAssignTrace( self ):
+    def isAssignTrace(self):
         return False
 
-    def isUninitTrace( self ):
+    def isUninitTrace(self):
         return False
 
-    def isUnknownTrace( self ):
+    def isUnknownTrace(self):
         return False
 
-    def isMergeTrace( self ):
+    def isMergeTrace(self):
         return False
 
 
@@ -99,23 +101,26 @@ class VariableUninitTrace( VariableTraceBase ):
         )
 
     def __repr__( self ):
-        return "<VariableUninitTrace %s %d>" % (
+        return "<VariableUninitTrace {variable} {version}>".format(
+            variable = self.variable,
+            version  = self.version
+        )
+
+    def isUninitTrace(self):
+        return True
+
+    def dump(self):
+        debug("Trace of %s %d:",
             self.variable,
             self.version
         )
+        debug("  Starts out uninitialized")
 
-    def isUninitTrace( self ):
-        return True
-
-    def dump( self ):
-        debug( "Trace of %s %d:", self.variable, self.version )
-        debug( "  Starts out uninitialized" )
-
-        for count, usage in enumerate( self.usages ):
+        for count, usage in enumerate(self.usages):
             if count == self.escaped_at:
-                debug( "  Escaped value" )
+                debug("  Escaped value")
 
-            debug( "  Used at %s", usage )
+            debug("  Used at %s", usage)
 
 
 class VariableUnknownTrace( VariableTraceBase ):
@@ -126,28 +131,31 @@ class VariableUnknownTrace( VariableTraceBase ):
             version  = version
         )
 
-    def __repr__( self ):
-        return "<VariableUnknownTrace %s %d>" % (
-            self.variable,
-            self.version
+    def __repr__(self):
+        return "<VariableUnknownTrace {variable} {version}>".format(
+            variable = self.variable,
+            version  = self.version
         )
 
     def dump( self ):
-        debug( "Trace of %s %d:", self.variable, self.version )
-        debug( "  Starts unknown" )
+        debug("Trace of %s %d:",
+            self.variable,
+            self.version
+        )
+        debug("  Starts unknown")
 
-        for count, usage in enumerate( self.usages ):
+        for count, usage in enumerate(self.usages):
             if count == self.escaped_at:
-                debug( "  Escaped value" )
+                debug("  Escaped value")
 
-            debug( "  Used at %s", usage )
+            debug("  Used at %s", usage)
 
-    def isUnknownTrace( self ):
+    def isUnknownTrace(self):
         return True
 
 
-class VariableAssignTrace( VariableTraceBase ):
-    def __init__( self, assign_node, variable, version ):
+class VariableAssignTrace(VariableTraceBase):
+    def __init__(self, assign_node, variable, version):
         VariableTraceBase.__init__(
             self,
             variable = variable,
@@ -156,37 +164,41 @@ class VariableAssignTrace( VariableTraceBase ):
 
         self.assign_node = assign_node
 
-    def __repr__( self ):
-        return "<VariableAssignTrace %s %d at %s>" % (
-            self.variable,
-            self.version,
-            self.assign_node.getSourceReference()
+    def __repr__(self):
+        return """\
+<VariableAssignTrace {variable} {version} at {source_ref}>""".format(
+            variable   = self.variable,
+            version    = self.version,
+            source_ref = self.assign_node.getSourceReference()
         )
 
-    def dump( self ):
-        debug( "Trace of %s %d:", self.variable, self.version )
+    def dump(self):
+        debug("Trace of %s %d:",
+            self.variable,
+            self.version
+        )
 
-        for count, usage in enumerate( self.usages ):
+        for count, usage in enumerate(self.usages):
             if count == self.escaped_at:
-                debug( "  Escaped value" )
+                debug("  Escaped value")
 
-            debug( "  Used at %s", usage )
+            debug("  Used at %s", usage)
 
-    def isAssignTrace( self ):
+    def isAssignTrace(self):
         return True
 
-    def getAssignNode( self ):
+    def getAssignNode(self):
         return self.assign_node
 
 
 class VariableMergeTrace( VariableTraceBase ):
-    def __init__( self, variable, version, trace_yes, trace_no ):
-        assert trace_no is not trace_yes, ( variable, version, trace_no )
+    def __init__(self, variable, version, trace_yes, trace_no):
+        assert trace_no is not trace_yes, (variable, version, trace_no)
 
         VariableTraceBase.__init__(
             self,
-            variable = variable,
-            version  = version
+            variable=variable,
+            version=version
         )
 
         self.trace_yes = trace_yes
@@ -194,21 +206,27 @@ class VariableMergeTrace( VariableTraceBase ):
 
         self.forwarded = True
 
-    def isMergeTrace( self ):
+    def isMergeTrace(self):
         return True
 
-    def addUsage( self, ref_node ):
+    def addUsage(self, ref_node):
         if not self.usages:
             # Merging is usage.
-            self.trace_yes.addUsage( self )
+            self.trace_yes.addUsage(self)
             if self.trace_no is not None:
-                self.trace_no.addUsage( self )
+                self.trace_no.addUsage(self)
 
-        VariableTraceBase.addUsage( self, ref_node )
+        VariableTraceBase.addUsage(self, ref_node)
 
-    def getPotentialUsages( self ):
+    def getPotentialUsages(self):
         assert False
 
-    def dump( self ):
-        debug( "Trace of %s %d:", self.variable, self.version )
-        debug( "  Merge of %s <-> %s", self.trace_yes, self.trace_no )
+    def dump(self):
+        debug("Trace of %s %d:",
+            self.variable,
+            self.version
+        )
+        debug("  Merge of %s <-> %s",
+            self.trace_yes,
+            self.trace_no
+        )

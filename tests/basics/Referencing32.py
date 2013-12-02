@@ -33,6 +33,18 @@ def simpleFunction2():
     except (ValueError, TypeError):
         pass
 
+def simpleFunction3():
+    a = 1
+
+    def nonlocal_writer():
+        nonlocal a
+
+        for a in range(10):
+            pass
+
+    nonlocal_writer()
+
+    assert a == 9, a
 
 m1 = {}
 m2 = {}
@@ -115,3 +127,4 @@ def checkReferenceCount( checked_function, max_rounds = 10 ):
 
 checkReferenceCount( simpleFunction1 )
 checkReferenceCount( simpleFunction2 )
+checkReferenceCount( simpleFunction3 )

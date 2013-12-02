@@ -50,7 +50,7 @@ def namifyConstant( constant ):
         else:
             result = "int_neg_%d" % abs( constant )
 
-        if len( result ) > 20:
+        if len( result ) > 32:
             result = _digest( result )
 
         return result
@@ -62,7 +62,7 @@ def namifyConstant( constant ):
         else:
             result = "long_neg_%d" % abs( constant )
 
-        if len( result ) > 20:
+        if len( result ) > 32:
             result = _digest( result )
 
         return result

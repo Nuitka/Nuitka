@@ -23,8 +23,8 @@ Right now only the creation is done here. But more should be added later on.
 from .Identifiers import ConstantIdentifier
 from . import CodeTemplates
 
-# Have EVAL_ORDER for 1..6 in any case, so we can use it in the C++ code freely
-# without concern.
+# Take note of the MAKE_TUPLE variants actually used, but have EVAL_ORDER for
+# 1..6 in any case, so we can use it in the C++ code freely without concern.
 make_tuples_used = set( range( 1, 6 ) )
 
 def addMakeTupleUse( value ):
@@ -34,7 +34,7 @@ def addMakeTupleUse( value ):
 
 def getTupleCreationCode( context, order_relevance, element_identifiers ):
     if len( element_identifiers ) == 0:
-        return ConstantIdentifier( "_python_tuple_empty", () )
+        return ConstantIdentifier( "const_tuple_empty", () )
 
     from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 
@@ -77,6 +77,7 @@ def getMakeTuplesCode():
             }
         )
 
+    # TODO: Why is this not a helper function.
     return CodeTemplates.template_header_guard % {
         "header_guard_name" : "__NUITKA_TUPLES_H__",
         "header_body"       : "\n".join( make_tuples_codes )

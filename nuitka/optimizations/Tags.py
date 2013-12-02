@@ -25,7 +25,8 @@ other steps.
 
 
 allowed_tags = (
-    # New code means new statements. Could be a new module, or an inlined exec statement.
+    # New code means new statements.
+    # Could be a new module, or an inlined exec statement.
     "new_code",
 
     # Added new import.
@@ -51,18 +52,18 @@ allowed_tags = (
 
     # New constant introduced.
     "new_constant",
-
 )
 
-class TagSet( set ):
-    def onSignal( self, signal ):
-        if type( signal ) is str:
+
+class TagSet(set):
+    def onSignal(self, signal):
+        if type(signal) is str:
             signal = signal.split()
 
         for tag in signal:
-            self.add( tag )
+            self.add(tag)
 
-    def check( self, tags ):
+    def check(self, tags):
         for tag in tags.split():
             assert tag in allowed_tags, tag
 
@@ -71,7 +72,7 @@ class TagSet( set ):
         else:
             return False
 
-    def add( self, tag ):
+    def add(self, tag):
         assert tag in allowed_tags, tag
 
-        set.add( self, tag )
+        set.add(self, tag)

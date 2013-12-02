@@ -52,6 +52,8 @@ else:
 def _getCodeObjects():
     return sorted( iterItems( code_objects ) )
 
+# Sad but true, code objects have these many details that actually are fed from
+# all different source, pylint: disable=R0913
 def getCodeObjectHandle( context, filename, code_name, line_number, var_names,
                          arg_count, kw_only_count, is_generator, is_optimized,
                          has_starlist, has_stardict ):
@@ -76,7 +78,7 @@ def getCodeObjectHandle( context, filename, code_name, line_number, var_names,
 
     if key not in code_objects:
         code_objects[ key ] = Identifier(
-            "_codeobj_%s" % _calcHash( key ),
+            "codeobj_%s" % _calcHash( key ),
             0
         )
 

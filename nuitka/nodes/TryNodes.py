@@ -100,9 +100,6 @@ class StatementTryFinally( StatementChildrenHavingBase ):
         # May be "None" from the outset, so guard against that, later in this
         # function we are going to remove it.
         if tried_statement_sequence is not None:
-            from nuitka.optimizations.ConstraintCollections import \
-                ConstraintCollectionBranch
-
             result = constraint_collection.onStatementsSequence(
                 tried_statement_sequence
             )
@@ -224,7 +221,7 @@ class StatementTryExcept( StatementChildrenHavingBase ):
 
         return True
 
-    def isStatementTryFinallyOptimized( self ):
+    def isStatementTryExceptOptimized( self ):
         tried_block = self.getBlockTry()
 
         tried_statements = tried_block.getStatements()

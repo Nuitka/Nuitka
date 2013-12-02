@@ -17,12 +17,26 @@
 #     limitations under the License.
 #
 
-from __future__ import print_function
+import os, sys
 
-import os, sys, subprocess, tempfile, shutil
+# Find common code relative in file system. Not using packages for test stuff.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname( os.path.abspath( __file__ ) ),
+            ".."
+        )
+    )
+)
+from test_common import (
+    my_print,
+    setup,
+    convertUsing2to3,
+    compareWithCPython
+)
 
-# Go its own directory, to have it easy with path knowledge.
-os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
+python_version = setup()
 
 search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
 
@@ -33,35 +47,6 @@ if start_at:
 else:
     active = True
 
-if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = sys.executable
-
-def check_output(*popenargs, **kwargs):
-    from subprocess import Popen, PIPE, CalledProcessError
-
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = Popen(stdout=PIPE, *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise CalledProcessError(retcode, cmd, output=output)
-    return output
-
-version_output = check_output(
-    [ os.environ[ "PYTHON" ], "--version" ],
-    stderr = subprocess.STDOUT
-)
-
-python_version = version_output.split()[1]
-
-os.environ[ "PYTHONPATH" ] = os.getcwd()
-
-print( "Using concrete python", python_version )
-
 for filename in sorted( os.listdir( "." ) ):
     if not os.path.isdir( filename ) or filename.endswith( ".build" ):
         continue
@@ -71,34 +56,45 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
+    expected_errors = [
+        "module_exits", "main_raises", "main_raises2",
+        "package_contains_main"
+    ]
+
+    # Allowed after Python3, packages need no more "__init__.py"
+
+    if python_version < b"3.3":
+        expected_errors.append( "package_missing_init" )
+
+    if filename not in expected_errors:
+        extra_flags = [ "expect_success" ]
+    else:
+        extra_flags = [ "expect_failure" ]
+
+    if filename in ( "package_missing_init", "dash_import", "reimport_main" ):
+        extra_flags.append( "ignore_stderr" )
+
+    extra_flags.append( "remove_output" )
+
+    # Cannot include the files with syntax errors, these would then become
+    # ImportError, but that's not the test. In all other cases, use two
+    # step execution, which will not add the program original source to
+    # PYTHONPATH.
+    if filename != "syntax_errors":
+        extra_flags.append("two_step_execution")
+    else:
+        extra_flags.append("binary_python_path")
+
+    if filename == "plugin_import":
+        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = \
+          "--recurse-all --recurse-directory=%s/some_package" % (
+              os.path.abspath( filename )
+          )
+    else:
+        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all"
+
     if active:
-        expected_errors = [
-            "module_exits", "main_raises", "main_raises2",
-            "package_contains_main"
-        ]
-
-        # Allowed after Python3, packages need no more "__init__.py"
-
-        if python_version < b"3.3":
-            expected_errors.append( "package_missing_init" )
-
-        if filename not in expected_errors:
-            extra_flags = [ "expect_success" ]
-        else:
-            extra_flags = [ "expect_failure" ]
-
-        if filename in ( "package_missing_init", "dash_import", "reimport_main" ):
-            extra_flags.append( "ignore_stderr" )
-
-        extra_flags.append( "remove_output" )
-
-        if filename == "plugin_import":
-            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all --recurse-directory=%s/some_package" % filename
-        else:
-            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all"
-
-        print( "Consider output of recursively compiled program:", path )
-        sys.stdout.flush()
+        my_print( "Consider output of recursively compiled program:", path )
 
         for filename_main in os.listdir( filename ):
             if filename_main.endswith( "Main.py" ):
@@ -107,26 +103,18 @@ for filename in sorted( os.listdir( "." ) ):
             if filename_main.endswith( "Main" ):
                 break
         else:
-            sys.exit( "Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case" % filename )
+            sys.exit(
+                """\
+Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case.""" % (
+                    filename
+                )
+            )
 
-        command = [
-            sys.executable,
-            os.path.join( "..", "..", "bin", "compare_with_cpython" ),
-            os.path.join( filename, filename_main ),
-            "silent",
-        ]
-        command += extra_flags
-
-        result = subprocess.call(
-            command
+        compareWithCPython(
+            path        = os.path.join( filename, filename_main ),
+            extra_flags = extra_flags,
+            search_mode = search_mode,
+            needs_2to3  = False
         )
-
-        if result == 2:
-            sys.stderr.write( "Interruped, with CTRL-C\n" )
-            sys.exit( 2 )
-
-        if result != 0 and search_mode:
-            print( "Error exit!", result )
-            sys.exit( result )
     else:
-        print( "Skipping", filename )
+        my_print( "Skipping", filename )

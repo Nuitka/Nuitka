@@ -24,14 +24,14 @@ __class__ = "Using module level __class__ variable, wrong for Python3"
 class ClassWithUnderClassClosure:
   def g( self ):
     def h():
-      print( __class__)
+      print( "Variable __class__ in ClassWithUnderClassClosure is", __class__)
 
     h()
 
     try:
-      print( "Super", super() )
+      print( "ClassWithUnderClassClosure: Super in ClassWithUnderClassClosure is", super() )
     except Exception as e:
-      print( "Occured during super call", repr(e) )
+      print( "ClassWithUnderClassClosure: Occured during super call", repr(e) )
 
 
 ClassWithUnderClassClosure().g()
@@ -42,9 +42,9 @@ class ClassWithoutUnderClassClosure:
     print( __class__)
 
     try:
-      print( "Super", super() )
+      print( "ClassWithoutUnderClassClosure: Super", super() )
     except Exception as e:
-      print( "Occured during super call", repr(e) )
+      print( "ClassWithoutUnderClassClosure: Occured during super call", repr(e) )
 
 
 ClassWithoutUnderClassClosure().g()
@@ -62,11 +62,14 @@ def deco( C ):
 
 @deco
 class X:
-    __class__ = "X str"
+    __class__ = "some string"
 
     def f1( self ):
         print( "f1", locals() )
-        print( "f1", __class__ )
+        try:
+            print( "f1", __class__ )
+        except Exception as e:
+            print( "Accessing __class__ in f1 gave", repr(e) )
 
     def f2( self ):
         print( "f2", locals() )
@@ -104,6 +107,7 @@ class X:
             assert sys.version < (3,)
 
     print( "Early pre-class calls begin" )
+    print( "Set in class __class__", __class__ )
     f1( 1 )
     f2( 2 )
     f3( 3 )

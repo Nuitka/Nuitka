@@ -34,12 +34,10 @@ typedef struct {
 
     Nuitka_FunctionObject *m_function;
 
-    PyObject *m_dict;
     PyObject *m_weakrefs;
 
     PyObject *m_object;
     PyObject *m_class;
-    PyObject *m_module;
 } Nuitka_MethodObject;
 
 extern PyTypeObject Nuitka_Method_Type;

@@ -25,7 +25,6 @@ and its expressions, changing the meaning of course dramatically.
 from nuitka import Variables, Builtins
 
 from .NodeBases import (
-    StatementChildrenHavingBase,
     ExpressionMixin,
     NodeBase
 )
@@ -141,12 +140,14 @@ Module variable '%s' found to be builtin reference.""" % (
 Replaced read-only module attribute '__name__' with constant value."""
             elif self.variable_name == "__package__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().getPackage(),
+                    constant   = self.variable.getReferenced().getOwner().\
+                                   getPackage(),
                     source_ref = self.getSourceReference()
                 )
 
                 change_tags = "new_constant"
-                change_desc = "Replaced read-only module attribute '__package__' with constant value."
+                change_desc = """\
+Replaced read-only module attribute '__package__' with constant value."""
             else:
                 # Probably should give a warning once about it.
                 new_node = self

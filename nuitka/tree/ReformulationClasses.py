@@ -195,14 +195,9 @@ def _buildClassNode3( provider, node, source_ref ):
             )
         )
 
-    # The __qualname__ is new in Python 3.3, and should contain some kind of
-    # full name descriptions for the closure to recognize and will be used for
-    # outputs.
+    # The "__qualname__" attribute is new in Python 3.3.
     if Utils.python_version >= 330:
-        if provider.isExpressionFunctionBody():
-            qualname = provider.getFunctionQualname() + ".<locals>." + node.name
-        else:
-            qualname = node.name
+        qualname = class_creation_function.getFunctionQualname()
 
         statements.append(
             StatementAssignmentVariable(
@@ -219,13 +214,34 @@ def _buildClassNode3( provider, node, source_ref ):
             )
         )
 
+    if Utils.python_version >= 340:
+        tmp_class = class_creation_function.allocateTempVariable(
+            temp_scope = None,
+            name       = "__class__"
+        )
+
+        class_target_variable_ref = ExpressionTargetTempVariableRef(
+            variable   = tmp_class.makeReference( class_creation_function ),
+            source_ref = source_ref
+        )
+        class_variable_ref = ExpressionTempVariableRef(
+            variable   = tmp_class.makeReference( class_creation_function ),
+            source_ref = source_ref
+        )
+    else:
+        class_target_variable_ref = ExpressionTargetVariableRef(
+            variable_name = "__class__",
+            source_ref    = source_ref
+        )
+        class_variable_ref = ExpressionVariableRef(
+            variable_name = "__class__",
+            source_ref    = source_ref
+        )
+
     statements += [
         body,
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetVariableRef(
-                variable_name = "__class__",
-                source_ref    = source_ref
-            ),
+            variable_ref = class_target_variable_ref,
             source       = ExpressionCall(
                 called     = ExpressionTempVariableRef(
                     variable   = tmp_metaclass.makeReference( provider ),
@@ -258,10 +274,7 @@ def _buildClassNode3( provider, node, source_ref ):
             source_ref   = source_ref
         ),
         StatementReturn(
-            expression = ExpressionVariableRef(
-                variable_name = "__class__",
-                source_ref    = source_ref
-            ),
+            expression = class_variable_ref,
             source_ref = source_ref
         )
     ]

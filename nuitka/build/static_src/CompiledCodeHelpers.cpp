@@ -15,14 +15,22 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+// Implementations of compiled code helpers.
+
+// The definition of a compiled code helper is that it's being used in
+// generated C++ code and provides part of the operations implementation.
+
+// Currently we also have standalone mode related code here, patches to CPython
+// runtime that we do, and e.g. the built-in module. TODO: Move these to their
+// own files for clarity.
 
 #include "nuitka/prelude.hpp"
 
-extern PyObject *_python_str_plain_compile;
-extern PyObject *_python_str_plain_strip;
-extern PyObject *_python_str_plain_read;
+extern PyObject *const_str_plain_compile;
+extern PyObject *const_str_plain_strip;
+extern PyObject *const_str_plain_read;
 
-static PythonBuiltin _python_builtin_compile( &_python_str_plain_compile );
+static PythonBuiltin _python_builtin_compile( &const_str_plain_compile );
 
 PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
 {
@@ -33,8 +41,8 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
         return INCREASE_REFCOUNT( source_code );
     }
 
-    // Workaround leading whitespace causing a trouble to compile builtin, but
-    // not eval builtin
+    // Workaround leading whitespace causing a trouble to "compile" builtin, but
+    // not "eval" builtin
     PyObject *source;
 
     if (
@@ -47,7 +55,7 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
         strcmp( Nuitka_String_AsString( mode ), "exec" ) != 0
        )
     {
-        source = PyObject_CallMethodObjArgs( source_code, _python_str_plain_strip, NULL );
+        source = PyObject_CallMethodObjArgs( source_code, const_str_plain_strip, NULL );
 
         if (unlikely( source == NULL ))
         {
@@ -58,7 +66,7 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     // Note: Python3 does not support "exec" with file handles.
     else if ( PyFile_Check( source_code ) && strcmp( Nuitka_String_AsString( mode ), "exec" ) == 0 )
     {
-        source = PyObject_CallMethodObjArgs( source_code, _python_str_plain_read, NULL );
+        source = PyObject_CallMethodObjArgs( source_code, const_str_plain_read, NULL );
 
         if (unlikely( source == NULL ))
         {
@@ -85,9 +93,9 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     );
 }
 
-extern PyObject *_python_str_plain_open;
+extern PyObject *const_str_plain_open;
 
-static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
+static PythonBuiltin _python_builtin_open( &const_str_plain_open );
 
 PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
@@ -366,7 +374,7 @@ PyObject *BUILTIN_TYPE1( PyObject *arg )
     return INCREASE_REFCOUNT( (PyObject *)Py_TYPE( arg ) );
 }
 
-extern PyObject *_python_str_plain___module__;
+extern PyObject *const_str_plain___module__;
 
 PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
 {
@@ -402,7 +410,7 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
         }
     }
 
-    int res = PyObject_SetAttr( result, _python_str_plain___module__, module_name );
+    int res = PyObject_SetAttr( result, const_str_plain___module__, module_name );
 
     if ( res == -1 )
     {
@@ -497,9 +505,9 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 }
 #endif
 
-extern PyObject *_python_str_plain_range;
+extern PyObject *const_str_plain_range;
 
-static PythonBuiltin _python_builtin_range( &_python_str_plain_range );
+static PythonBuiltin _python_builtin_range( &const_str_plain_range );
 
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
@@ -653,9 +661,9 @@ PyObject *BUILTIN_DIR1( PyObject *arg )
     return result;
 }
 
-extern PyObject *_python_str_plain___import__;
+extern PyObject *const_str_plain___import__;
 
-static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
+static PythonBuiltin _python_builtin_import( &const_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
@@ -680,7 +688,7 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     return import_result;
 }
 
-extern PyObject *_python_str_plain___all__;
+extern PyObject *const_str_plain___all__;
 
 void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 {
@@ -691,7 +699,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     PyObject *iter;
     bool all_case;
 
-    if ( PyObject *all = PyObject_GetAttr( module, _python_str_plain___all__ ) )
+    if ( PyObject *all = PyObject_GetAttr( module, const_str_plain___all__ ) )
     {
         iter = MAKE_ITERATOR( all );
         all_case = true;
@@ -712,7 +720,8 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     {
         assert( Nuitka_String_Check( item ) );
 
-        // TODO: Not yet clear, what happens with __all__ and "_" of its contents.
+        // TODO: Not yet clear, what happens with __all__ and "_" of its
+        // contents.
         if ( all_case == false )
         {
             if ( Nuitka_String_AsString_Unchecked( item )[0] == '_' )
@@ -735,15 +744,16 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     }
 }
 
-// Helper functions for print. Need to play nice with Python softspace behaviour.
+// Helper functions for print. Need to play nice with Python softspace
+// behaviour.
 
 #if PYTHON_VERSION >= 300
-extern PyObject *_python_str_plain_print;
-extern PyObject *_python_str_plain_end;
-extern PyObject *_python_str_plain_file;
-extern PyObject *_python_str_empty;
+extern PyObject *const_str_plain_print;
+extern PyObject *const_str_plain_end;
+extern PyObject *const_str_plain_file;
+extern PyObject *const_str_empty;
 
-static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
+static PythonBuiltin _python_builtin_print( &const_str_plain_print );
 #endif
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
@@ -818,8 +828,8 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     {
         PyObjectTemporary print_kw(
             MAKE_DICT2(
-                _python_str_empty, _python_str_plain_end,
-                GET_STDOUT(), _python_str_plain_file
+                const_str_empty, const_str_plain_end,
+                GET_STDOUT(), const_str_plain_file
             )
         );
 
@@ -867,7 +877,7 @@ void PRINT_NEW_LINE_TO( PyObject *file )
     {
         PyObjectTemporary print_keyargs(
             MAKE_DICT1( // Note: Values for first for MAKE_DICT
-                GET_STDOUT(), _python_str_plain_file
+                GET_STDOUT(), const_str_plain_file
             )
         );
 
@@ -931,30 +941,49 @@ void PRINT_NEW_LINE( void )
 
 #endif
 
-// We unstream some constant objects using the "cPickle" module function "loads"
-static PyObject *_module_cPickle = NULL;
-static PyObject *_module_cPickle_function_loads = NULL;
-
-void UNSTREAM_INIT()
-{
-#if PYTHON_VERSION < 300
-    _module_cPickle = PyImport_ImportModule( "cPickle" );
-#else
-    _module_cPickle = PyImport_ImportModule( "pickle" );
-#endif
-    assert( _module_cPickle );
-
-    _module_cPickle_function_loads = PyObject_GetAttrString( _module_cPickle, "loads" );
-    assert( _module_cPickle_function_loads );
-}
-
 PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
 {
     assert( buffer );
-    assert( _module_cPickle_function_loads );
+
+    // We unstream difficult constant objects using the "pickle" module, this is
+    // aimed at being the exception, e.g. unicode that doesn't fit into UTF-8
+    // will be dealt with like this.
+    static PyObject *module_pickle = NULL;
+
+    if ( module_pickle == NULL )
+    {
+#if PYTHON_VERSION < 300
+        module_pickle = PyImport_ImportModule( "cPickle" );
+#else
+        module_pickle = PyImport_ImportModule( "pickle" );
+#endif
+        if (unlikely( module_pickle == NULL ))
+        {
+            PyErr_Print();
+        }
+
+        assert( module_pickle );
+    }
+
+    static PyObject *function_pickle_loads = NULL;
+
+    if ( function_pickle_loads == NULL )
+    {
+        function_pickle_loads = PyObject_GetAttrString(
+            module_pickle,
+            "loads"
+        );
+
+        if (unlikely( function_pickle_loads == NULL ))
+        {
+            PyErr_Print();
+        }
+
+        assert( function_pickle_loads );
+    }
 
     PyObject *result = PyObject_CallFunction(
-        _module_cPickle_function_loads,
+        function_pickle_loads,
 #if PYTHON_VERSION < 300
         (char *)"(s#)", // TODO: Why the ()
 #else
@@ -964,7 +993,7 @@ PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
         size
     );
 
-    if ( !result )
+    if (unlikely( result == NULL ))
     {
         PyErr_Print();
     }
@@ -973,6 +1002,18 @@ PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
 
     return result;
 }
+
+#if PYTHON_VERSION < 300
+PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size )
+{
+    PyObject *result = PyUnicode_FromStringAndSize( (char const  *)buffer, size );
+
+    assert( !ERROR_OCCURED() );
+    assertObject( result );
+
+    return result;
+}
+#endif
 
 PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern )
 {
@@ -1028,15 +1069,15 @@ static void set_slot( PyObject **slot, PyObject *value )
     Py_XDECREF( temp );
 }
 
-extern PyObject *_python_str_plain___getattr__;
-extern PyObject *_python_str_plain___setattr__;
-extern PyObject *_python_str_plain___delattr__;
+extern PyObject *const_str_plain___getattr__;
+extern PyObject *const_str_plain___setattr__;
+extern PyObject *const_str_plain___delattr__;
 
 static void set_attr_slots( PyClassObject *klass )
 {
-    set_slot( &klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___getattr__ ) );
-    set_slot( &klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___setattr__ ) );
-    set_slot( &klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___delattr__ ) );
+    set_slot( &klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS( klass, const_str_plain___getattr__ ) );
+    set_slot( &klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS( klass, const_str_plain___setattr__ ) );
+    set_slot( &klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS( klass, const_str_plain___delattr__ ) );
 }
 
 static bool set_dict( PyClassObject *klass, PyObject *value )
@@ -1315,7 +1356,7 @@ typedef struct {
     PyTypeObject *obj_type;
 } superobject;
 
-extern PyObject *_python_str_plain___class__;
+extern PyObject *const_str_plain___class__;
 
 PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 {
@@ -1350,7 +1391,7 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
         }
         else
         {
-            PyObject *class_attr = PyObject_GetAttr( object, _python_str_plain___class__);
+            PyObject *class_attr = PyObject_GetAttr( object, const_str_plain___class__);
 
             if (likely( class_attr != NULL && PyType_Check( class_attr ) && (PyTypeObject *)class_attr != Py_TYPE( object ) ))
             {
@@ -1418,6 +1459,11 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
     }
 
     if ( cls == (PyObject *)&PyMethod_Type && Nuitka_Method_Check( inst ) )
+    {
+        return true;
+    }
+
+    if ( cls == (PyObject *)&PyFrame_Type && Nuitka_Frame_Check( inst ) )
     {
         return true;
     }
@@ -1524,7 +1570,7 @@ void BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value )
 PyDictObject *dict_builtin = NULL;
 PyModuleObject *module_builtin = NULL;
 
-#define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( _python_str_plain_##name );
+#define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( const_str_plain_##name );
 
 static PyTypeObject Nuitka_BuiltinModule_Type =
 {
@@ -1533,7 +1579,7 @@ static PyTypeObject Nuitka_BuiltinModule_Type =
     sizeof(PyModuleObject),                      // tp_size
 };
 
-extern PyObject *_python_str_plain_open;
+extern PyObject *const_str_plain_open;
 
 int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObject *value )
 {
@@ -1547,7 +1593,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
     // many value to check maybe need create a dict first.
     bool found = false;
 
-    int res = PyObject_RichCompareBool( name, _python_str_plain_open, Py_EQ );
+    int res = PyObject_RichCompareBool( name, const_str_plain_open, Py_EQ );
 
     if (unlikely( res == -1 ))
     {
@@ -1561,7 +1607,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 
     if ( found == false )
     {
-        res = PyObject_RichCompareBool( name, _python_str_plain___import__, Py_EQ );
+        res = PyObject_RichCompareBool( name, const_str_plain___import__, Py_EQ );
 
         if (unlikely( res == -1 ))
         {
@@ -1578,7 +1624,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 #if PYTHON_VERSION >= 300
     if ( found == false )
     {
-        res = PyObject_RichCompareBool( name, _python_str_plain_print, Py_EQ );
+        res = PyObject_RichCompareBool( name, const_str_plain_print, Py_EQ );
 
         if (unlikely( res == -1 ))
         {
@@ -1812,55 +1858,104 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 
     return CALL_FUNCTION(
         called,
-        _python_tuple_empty,
+        const_tuple_empty,
         NULL
     );
 }
 
-#ifdef _NUITKA_PORTABLE
-char *getBinaryDirectory( char *binary_path )
-{
-    int i;
-    char *path = ( char* ) malloc( PATH_MAX + 1 );
-    memset ( path, 0, PATH_MAX + 1 );
+#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
+
+#include <osdefs.h>
 #if defined( _WIN32 )
-    HMODULE hModule = GetModuleHandle( NULL );
-    if ( !hModule )
-    {
-        fprintf( stderr, "getBinaryDirectory: get module handle failed\n" );
-        free( path );
-        return NULL;
-    }
-    GetModuleFileName( hModule , path, PATH_MAX + 1 );
-    char sep = '\\';
+#include <Shlwapi.h>
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
 #else
-    if ( !realpath( binary_path, path ) )
-    {
-        fprintf( stderr, "getBinaryDirectory: get real path failed\n" );
-        free( path );
-        return NULL;
-    }
-    char sep = '/';
+#include <libgen.h>
 #endif
-    for ( i = PATH_MAX; i > 0; i-- )
+
+#if defined( _WIN32 )
+#define PATH_MAX MAXPATHLEN
+#endif
+
+char *getBinaryDirectory()
+{
+    static char binary_directory[ PATH_MAX + 1 ];
+    static bool init_done = false;
+
+    if ( init_done )
     {
-        // need handle unicode here ?
-        if ( path[i] == sep )
-        {
-            path[i] = '\x00';
-            break;
-        }
+        return binary_directory;
     }
-    return path;
+
+#if defined( _WIN32 )
+    GetModuleFileName( NULL, binary_directory, PATH_MAX + 1 );
+    PathRemoveFileSpec( binary_directory );
+#elif defined(__APPLE__)
+    uint32_t bufsize = PATH_MAX + 1;
+    int res =_NSGetExecutablePath( binary_directory, &bufsize );
+
+    if (unlikely( res != 0 ))
+    {
+        abort();
+    }
+#else
+    // Readlink does not terminate result.
+    memset( binary_directory, 0, PATH_MAX + 1 );
+    ssize_t res = readlink( "/proc/self/exe", binary_directory, PATH_MAX + 1 );
+
+    if (unlikely( res == -1 ))
+    {
+        abort();
+    }
+
+    strcpy( binary_directory, dirname( binary_directory ) );
+#endif
+    init_done = true;
+    return binary_directory;
 }
 
-void _initPortableEnvironment( char *binary_path )
+#if _NUITKA_FROZEN > 0
+extern struct _frozen Embedded_FrozenModules[];
+#endif
+
+void prepareStandaloneEnvironment()
 {
-    // setup environ
-    // orignal_value;binary_directory/_python;binary_directory/_python.zip
-    char *binary_directory = getBinaryDirectory( binary_path );
-    if ( !binary_directory )
-        abort();
+    // Tell the CPython library to use our precompiled modules as frozen
+    // modules. This for those modules/packages like "encoding" that will be
+    // loaded during "Py_Initialize" already, for the others they may be
+    // compiled.
+
+#if _NUITKA_FROZEN > 0
+    // The CPython library has some pre-existing frozen modules, we only append
+    // to that.
+    _frozen *search = PyImport_FrozenModules;
+    while( search->name )
+    {
+        search++;
+    }
+    int pre_existing_count = int( search - PyImport_FrozenModules );
+
+    // Allocate new memory and merge the tables.
+    _frozen *merged = new _frozen[ _NUITKA_FROZEN + pre_existing_count + 1 ];
+    memcpy(
+        merged,
+        PyImport_FrozenModules,
+        pre_existing_count * sizeof( struct _frozen )
+    );
+    memcpy(
+        merged + pre_existing_count,
+        Embedded_FrozenModules,
+        ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen )
+    );
+
+    PyImport_FrozenModules = merged;
+#endif
+
+#ifdef _NUITKA_STANDALONE
+    // Setup environment variables to tell CPython that we would like it to use
+    // the provided binary directory as the place to look for DLLs.
+    char *binary_directory = getBinaryDirectory();
 
     // get orignal value
     char *orignal_home = getenv( "PYTHONHOME" );
@@ -1871,16 +1966,19 @@ void _initPortableEnvironment( char *binary_path )
     // get insert value
     size_t insert_size = strlen( binary_directory ) * 2 + 50;
     char *insert_path = (char *) malloc( insert_size );
-    memset( insert_path, 0, insert_size );
+
 #if defined( _WIN32 )
-    char env_string[] = "%s\\%s;%s\\%s;";
+    char const env_string[] = "%s;";
 #else
-    char env_string[] = "%s/%s:%s/%s:";
+    char const env_string[] = "%s:";
 #endif
-    snprintf( insert_path, insert_size, env_string,
-        binary_directory, "_python",
-        binary_directory, "_python.zip"
-    );
+
+    memset( insert_path, 0, insert_size );
+    snprintf( insert_path, insert_size, env_string, binary_directory );
+
+#if defined( _NUITKA_STANDALONE ) && _WIN32
+    SetDllDirectory( binary_directory );
+#endif
 
     // set environment
     size_t python_home_size = orignal_home_size + insert_size;
@@ -1893,24 +1991,33 @@ void _initPortableEnvironment( char *binary_path )
         insert_path, orignal_home ? orignal_home : "" );
     snprintf( python_path, python_path_size, "%s%s",
         insert_path, orignal_path ? orignal_path : "" );
-#if defined( _WIN32 )
-    Py_SetPythonHome( python_home );
-#else
+
     if ( !( orignal_home && strstr( orignal_home, insert_path ) ) )
+    {
+#if defined( _WIN32 )
+        SetEnvironmentVariable( "PYTHONHOME", python_home );
+#else
         setenv( "PYTHONHOME", python_home, 1 );
+#endif
+    }
     if ( !( orignal_path && strstr( orignal_path, insert_path ) ) )
+    {
+#if defined( _WIN32 )
+        SetEnvironmentVariable( "PYTHONPATH", python_path );
+#else
         setenv( "PYTHONPATH", python_path, 1 );
 #endif
+    }
 
     // clean up
-    free( binary_directory );
     free( insert_path );
+#endif
 }
 #endif
 
 #ifdef _NUITKA_EXE
 
-#define DEFINE_BUILTIN( name ) extern PyObject *_python_str_plain_##name; PyObject *_python_original_builtin_value_##name = NULL;
+#define DEFINE_BUILTIN( name ) extern PyObject *const_str_plain_##name; PyObject *_python_original_builtin_value_##name = NULL;
 
 DEFINE_BUILTIN( type )
 DEFINE_BUILTIN( len )
@@ -1952,7 +2059,7 @@ static int const swapped_op[] =
 
 #if PYTHON_VERSION < 300
 
-extern PyObject *_python_str_plain___cmp__;
+extern PyObject *const_str_plain___cmp__;
 cmpfunc default_tp_compare;
 
 void initSlotCompare()
@@ -1964,9 +2071,9 @@ void initSlotCompare()
 
     PyObject *c = PyObject_CallFunctionObjArgs(
         (PyObject *)&PyType_Type,
-        _python_str_plain___cmp__,
+        const_str_plain___cmp__,
         PyObjectTemporary( MAKE_TUPLE1( (PyObject *)&PyInt_Type ) ).asObject0(),
-        PyObjectTemporary( MAKE_DICT1( Py_True, _python_str_plain___cmp__ ) ).asObject0(),
+        PyObjectTemporary( MAKE_DICT1( Py_True, const_str_plain___cmp__ ) ).asObject0(),
         NULL
     );
 
@@ -2485,11 +2592,9 @@ PyObject *DEEP_COPY( PyObject *value )
 
             Nuitka_GC_Track( result );
 
-            int size = mp->ma_keys->dk_size;
+            Py_ssize_t size = mp->ma_keys->dk_size;
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
-                PyDictKeyEntry *entry = &result->ma_keys->dk_entries[ i ];
-
                 if ( mp->ma_values[ i ] )
                 {
                     result->ma_values[ i ] = DEEP_COPY( mp->ma_values[ i ] );
@@ -2508,7 +2613,7 @@ PyObject *DEEP_COPY( PyObject *value )
 
             PyDictObject *mp = (PyDictObject *)value;
 
-            int size = mp->ma_keys->dk_size;
+            Py_ssize_t size = mp->ma_keys->dk_size;
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
                 PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
@@ -2526,7 +2631,7 @@ PyObject *DEEP_COPY( PyObject *value )
 
                 if ( value != NULL )
                 {
-                    int res = PyDict_SetItem(
+                    PyDict_SetItem(
                         result,
                         entry->me_key,
                         PyObjectTemporary( DEEP_COPY( value ) ).asObject0()

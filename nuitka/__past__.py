@@ -15,35 +15,40 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Module like __future__ for things that are no more in CPython3, but provide compatible fallbacks.
+"""
+Module like __future__ for things that are no more in CPython3,
+
+but provide compatible fallbacks.
 
 This is required to run the same code easily with both CPython2 and CPython3.
 """
+
 
 # pylint: disable=W0622
 
 # Work around for CPython 3.x renaming long to int.
 try:
-    long = long
+    long = long  # lint:ok
 except NameError:
-    long = int
+    long = int  # lint:ok
 
 # Work around for CPython 3.x renaming unicode to str.
 try:
-    unicode = unicode
+    unicode = unicode  # lint:ok
 except NameError:
-    unicode = str
+    unicode = str  # lint:ok
 
 # Work around for CPython 3.x removal of commands
 try:
     import commands
 except ImportError:
-    # false alarm, no re-import, just another try if the above fails, which it will
+    # false alarm, no re-import, just another try if above fails, which it will
     # on Python3 pylint: disable=W0404
 
-    import subprocess as commands
+    import subprocess as commands  # lint:ok
 
-def iterItems( d ):
+
+def iterItems(d):
     try:
         return d.iteritems()
     except AttributeError:

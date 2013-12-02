@@ -20,18 +20,64 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .Identifiers import HelperCallIdentifier
+from .Identifiers import ConstantIdentifier
+from . import CodeTemplates
 
-from .TupleCodes import getTupleCreationCode
+# Take note of the MAKE_SET element count variants actually used.
+make_sets_used = set()
+
+def addMakeSetUse( value ):
+    assert type( value ) is int
+
+    make_sets_used.add( value )
 
 def getSetCreationCode( context, order_relevance, element_identifiers ):
-    tuple_identifier = getTupleCreationCode(
-        order_relevance     = order_relevance,
-        element_identifiers = element_identifiers,
-        context             = context
+    if len( element_identifiers ) == 0:
+        return ConstantIdentifier( "_python_set_empty", set() )
+
+    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
+
+    args_length = len( element_identifiers )
+    addMakeSetUse( args_length )
+
+    return getOrderRelevanceEnforcedArgsCode(
+        helper          = "MAKE_SET%d" % args_length,
+        export_ref      = 0,
+        ref_count       = 1,
+        tmp_scope       = "make_set",
+        order_relevance = order_relevance,
+        args            = element_identifiers,
+        context         = context
     )
 
-    return HelperCallIdentifier(
-        "MAKE_SET",
-        tuple_identifier
-    )
+
+def getMakeSetsCode():
+    make_sets_codes = []
+
+    for arg_count in sorted( make_sets_used ):
+        add_elements_code = []
+
+        for arg_index in range( arg_count ):
+            add_elements_code.append(
+                CodeTemplates.template_add_set_element_code % {
+                    "set_value" : "element%d" % arg_index
+                }
+            )
+
+        make_sets_codes.append(
+            CodeTemplates.template_make_set_function % {
+                "argument_count"    : arg_count,
+                "argument_decl"     : ", ".join(
+                    "PyObject *element%d" % arg_index
+                    for arg_index in
+                    range( arg_count )
+                ),
+                "add_elements_code" : "\n".join( add_elements_code ),
+            }
+        )
+
+    # TODO: Why is this not a helper function.
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_SETS_H__",
+        "header_body"       : "\n".join( make_sets_codes )
+    }

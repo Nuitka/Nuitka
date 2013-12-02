@@ -15,22 +15,29 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Scons interface.
+"""
+Scons interface.
 
 Interaction with scons. Find the binary, and run it with a set of given
 options.
 
 """
 
+
+import os
+import subprocess
+import sys
+
 from nuitka import Options, Tracing, Utils
 
-import os, sys, subprocess
 
 def getSconsDataPath():
-    return Utils.dirname( __file__ )
+    return Utils.dirname(__file__)
+
 
 def getSconsInlinePath():
-    return Utils.joinpath( getSconsDataPath(), "inline_copy" )
+    return Utils.joinpath(getSconsDataPath(), "inline_copy")
+
 
 def getSconsBinaryCall():
     """ Return a way to execute Scons.
@@ -38,30 +45,29 @@ def getSconsBinaryCall():
         Using potentially inline copy if no system Scons is available
         or if we are on Windows.
     """
-    if Utils.isFile( "/usr/bin/scons" ):
-        return [ "/usr/bin/scons" ]
+    if Utils.isFile("/usr/bin/scons"):
+        return ["/usr/bin/scons"]
     else:
-        return [
-            getPython2ExePath(),
-            Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
-        ]
+        return [getPython2ExePath(),
+                Utils.joinpath(getSconsInlinePath(), "bin", "scons.py")]
+
 
 def _getPython2ExePathWindows():
     # Shortcuts for the default installation directories, to avoid going to
     # registry at all.
 
-    if os.path.exists( r"c:\Python27\python.exe" ):
+    if os.path.isfile(r"c:\Python27\python.exe"):
         return r"c:\Python27\python.exe"
-    elif os.path.exists( r"c:\Python26\python.exe" ):
+    elif os.path.isfile(r"c:\Python26\python.exe"):
         return r"c:\Python26\python.exe"
 
     # Windows only code, pylint: disable=E0602,F0401
     try:
         import _winreg as winreg
     except ImportError:
-        import winreg
+        import winreg  # lint:ok
 
-    for search in ( "2.7", "2.6" ):
+    for search in ("2.7", "2.6"):
         for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:
             try:
                 key = winreg.OpenKey(
@@ -71,17 +77,16 @@ def _getPython2ExePathWindows():
                     winreg.KEY_READ | arch_key
                 )
 
-                return os.path.join(
-                    winreg.QueryValue( key, '' ),
+                return Utils.joinpath(
+                    winreg.QueryValue(key, ''),
                     "python.exe"
                 )
-            except WindowsError:
+            except WindowsError:  # lint:ok
                 pass
 
 
 def getPython2ExePath():
     """ Find a way to call Python2. Scons needs it."""
-
     if Utils.python_version < 300:
         return sys.executable
     elif os.name == "nt":
@@ -90,23 +95,23 @@ def getPython2ExePath():
         if python_exe is not None:
             return python_exe
         else:
-            sys.exit( """\
+            sys.exit("""\
 Error, need to find Python2 executable under C:\\Python26 or \
-C:\\Python27 to execute scons which is not Python3 compatible.""" )
-    elif os.path.exists( "/usr/bin/python2" ):
+C:\\Python27 to execute scons which is not Python3 compatible.""")
+    elif os.path.exists("/usr/bin/python2"):
         return "python2"
     else:
         return "python"
 
 
-def runScons( options, quiet ):
+def runScons(options, quiet):
     # For the scons file to find the static C++ files and include path. The
     # scons file is unable to use __file__ for the task.
-    os.environ[ "NUITKA_SCONS" ] = getSconsDataPath()
+    os.environ["NUITKA_SCONS"] = getSconsDataPath()
 
     if os.name == "nt":
         # On Windows this Scons variable must be set by us.
-        os.environ[ "SCONS_LIB_DIR" ] = Utils.joinpath(
+        os.environ["SCONS_LIB_DIR"] = Utils.joinpath(
             getSconsInlinePath(),
             "lib",
             "scons-2.3.0"
@@ -115,33 +120,37 @@ def runScons( options, quiet ):
         # Also, for MinGW we can avoid the user having to add the path if he
         # used the default path or installed it on the same drive by appending
         # to the PATH variable before executing scons.
-        os.environ[ "PATH" ] += r";\MinGW\bin;C:\MinGW\bin"
+        os.environ["PATH"] += r";\MinGW\bin;C:\MinGW\bin"
 
     scons_command = getSconsBinaryCall()
 
     if quiet:
-        scons_command.append( "--quiet" )
+        scons_command.append("--quiet")
 
     scons_command += [
         # The scons file
         "-f",
-        Utils.joinpath( getSconsDataPath(), "SingleExe.scons" ),
+        Utils.joinpath(getSconsDataPath(), "SingleExe.scons"),
 
         # Parallel compilation.
         "--jobs",
-        str( Options.getJobLimit() ),
+        str(Options.getJobLimit()),
 
         # Do not warn about deprecations of Scons
         "--warn=no-deprecated",
+
+        # Don't load "site_scons" at all.
+        "--no-site-dir",
     ]
+
+    if Options.isShowScons():
+        scons_command.append("--debug=explain")
 
     # Option values to provide to scons.
     for key, value in options.items():
-        scons_command += [
-            key + "=" + value
-        ]
+        scons_command += [key + "=" + value]
 
     if Options.isShowScons():
-        Tracing.printLine( "Scons command:", " ".join( scons_command ) )
+        Tracing.printLine("Scons command:", " ".join(scons_command))
 
-    return 0 == subprocess.call( scons_command )
+    return 0 == subprocess.call(scons_command)

@@ -11,7 +11,7 @@ Nuitka Developer Manual
    SetPageCounter 1
 
 The purpose of this developer manual is to present the current design of Nuitka,
-the coding rules, and the intentions of choices made. It is intended to be a
+the coding rules, and the motivations for choices made. It is intended to be a
 guide to the source code, and to give explanations that don't fit into the
 source code in comments form.
 
@@ -582,9 +582,9 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``nuitka_src``
 
-  Where do the static C++ parts of Nuitka live. These provide e.g. the
-  implementation of compiled function, generators, and other helper codes, this
-  will point to where ``nuitka.build`` lives normally-
+  Where do the include files and static C++ parts of Nuitka live. These provide
+  e.g. the implementation of compiled function, generators, and other helper
+  codes, this will point to where ``nuitka.build`` package lives normally.
 
 * ``result_base``
 
@@ -650,9 +650,9 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
   MinGW compiler mode, optional and interesting to Windows only.
 
-* ``portable_mode``
+* ``standalone_mode``
 
-  Portable mode, so far not functional.
+  Building a standalone distribution for the binary.
 
 * ``show_scons``
 

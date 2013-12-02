@@ -34,8 +34,10 @@ output_binary = os.path.join(
     ( basename[:-3] if input_file.endswith( ".py" ) else basename ) + ".exe"
 )
 
+os.environ[ "PYTHONHASHSEED" ] = "0"
+
 os.system(
-    "%s --exe --output-dir=%s %s %s %s" % (
+    "%s --exe --python-flag=-S --output-dir=%s %s %s %s" % (
         nuitka_binary,
         tempdir,
         "" if "number" in sys.argv else "--unstriped",

@@ -77,6 +77,12 @@
 #define NUITKA_NO_RETURN
 #endif
 
+#ifdef __GNUC__
+#define NUITKA_FORCE_INLINE __attribute__((always_inline))
+#else
+#define NUITKA_FORCE_INLINE
+#endif
+
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_globals_tmp;
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 

@@ -35,6 +35,17 @@ def detectVersion():
 
 version = detectVersion()
 
+if os.name == "nt" and "bdist_msi" in sys.argv:
+    # The MSI enforces a 3 digit version number, which is stupid, but no way
+    # around it, so we map our number to it, in some way.
+
+    # Prereleases are always smaller.
+    middle = 1 if "pre" not in version else "0"
+    version = version.replace( "pre", "" )
+    major, first, last = version.split( "." )
+
+    version = ".".join( ( major*10+first, middle, last ) )
+
 def find_packages():
     result = []
 
@@ -117,7 +128,8 @@ def findSources():
 
 if os.path.exists( "/usr/bin/scons" ) and \
    "sdist" not in sys.argv and \
-   "bdist_wininst" not in sys.argv:
+   "bdist_wininst" not in sys.argv and \
+   "bdist_msi" not in sys.argv:
     scons_files = []
 else:
     scons_files = [

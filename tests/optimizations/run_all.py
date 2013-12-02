@@ -19,9 +19,6 @@
 #     limitations under the License.
 #
 
-from __future__ import print_function
-
-
 import os, sys, subprocess, tempfile, shutil
 
 try:
@@ -29,8 +26,24 @@ try:
 except ImportError:
     sys.exit( "Error, no 'lxml' module installed, cannot run XML based tests." )
 
-# Go its own directory, to have it easy with path knowledge.
-os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
+# Find common code relative in file system. Not using packages for test stuff.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname( os.path.abspath( __file__ ) ),
+            ".."
+        )
+    )
+)
+from test_common import (
+    my_print,
+    setup,
+    convertUsing2to3,
+    check_output
+)
+
+python_version = setup()
 
 search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
 
@@ -41,34 +54,22 @@ if start_at:
 else:
     active = True
 
-if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = sys.executable
+def getKind( node ):
+    result = node.attrib[ "kind" ]
 
-def check_output(*popenargs, **kwargs):
-    from subprocess import Popen, PIPE, CalledProcessError
+    result = result.replace( "Statements", "" )
+    result = result.replace( "Statement", "" )
+    result = result.replace( "Expression", "" )
 
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = Popen(stdout=PIPE, *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise CalledProcessError(retcode, cmd, output=output)
-    return output
+    return result
 
-version_output = check_output(
-    [ os.environ[ "PYTHON" ], "--version" ],
-    stderr = subprocess.STDOUT
-)
+def getRole( node, role ):
+    for child in node:
+        if child.tag == "role" and child.attrib[ "name" ] == role:
+            return child
+    else:
+        return None
 
-python_version = version_output.split()[1]
-
-os.environ[ "PYTHONPATH" ] = os.getcwd()
-
-print( "Using concrete python", python_version )
 
 def checkSequence( statements ):
     for statement in module_statements:
@@ -116,36 +117,9 @@ for filename in sorted( os.listdir( "." ) ):
         assert type( python_version ) is bytes
 
         if python_version.startswith( b"3" ):
-            new_path = os.path.join( tempfile.gettempdir(), filename )
-            shutil.copy( path, new_path )
+            path = convertUsing2to3( path )
 
-            path = new_path
-
-            # On Windows, we cannot rely on 2to3 to be in the path.
-            if os.name == "nt":
-                command = [
-                    sys.executable,
-                    os.path.join(
-                        os.path.dirname( sys.executable ),
-                        "Tools/Scripts/2to3.py"
-                    )
-                ]
-            else:
-               command = [ "2to3" ]
-
-            command += [
-                "-w",
-                "-n",
-                "--no-diffs",
-                path
-            ]
-
-            result = subprocess.call(
-                command,
-                stderr = open( os.devnull, "w" ),
-            )
-
-        print( "Consider", path, end = " " )
+        my_print( "Consider", path, end = " " )
 
         command = [
             os.environ[ "PYTHON" ],
@@ -154,10 +128,11 @@ for filename in sorted( os.listdir( "." ) ):
             path
         ]
 
-        result = subprocess.check_output(
+        result = check_output(
             command
         )
 
+        # Parse the result into XML and check it.
         root = lxml.etree.fromstring( result )
         module_body  = root[0]
         module_statements_sequence = module_body[ 0 ]
@@ -165,37 +140,11 @@ for filename in sorted( os.listdir( "." ) ):
         assert len( module_statements_sequence ) == 1
         module_statements = iter( module_statements_sequence ).next()
 
-        def getKind( node ):
-            result = node.attrib[ "kind" ]
-
-            result = result.replace( "Statements", "" )
-            result = result.replace( "Statement", "" )
-            result = result.replace( "Expression", "" )
-
-            return result
-
-        def getRole( node, role ):
-            for child in node:
-                if child.tag == "role" and child.attrib[ "name" ] == role:
-                    return child
-            else:
-                return None
-
         checkSequence( module_statements )
 
-        # TODO: Detect the exception from above
-        if result == 2:
-            sys.stderr.write( "Interruped, with CTRL-C\n" )
-            sys.exit( 2 )
+        if python_version.startswith( b"3" ):
+            os.unlink( path )
 
-
-        # TODO: Detect error case
-        if result != 0 and search_mode:
-            print( "Error exit!", result )
-            sys.exit( result )
-
-
-        print( "OK." )
-
+        my_print( "OK." )
     else:
-        print("Skipping", filename)
+        my_print( "Skipping", filename )

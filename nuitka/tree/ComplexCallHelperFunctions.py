@@ -110,6 +110,8 @@ def once_decorator( func ):
 internal_module = None
 
 def getInternalModule():
+    # Using global here, as this is really a about the internal module as a
+    # singleton, pylint: disable=W0603
     global internal_module
 
     if internal_module is None:

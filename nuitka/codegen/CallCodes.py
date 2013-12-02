@@ -35,8 +35,8 @@ def getCallCodeNoArgs( called_identifier ):
         1
     )
 
-# Outside code relies on the single argument quick call to be present.
-quick_calls_used = set([1])
+# Outside helper code relies on some quick call to be present.
+quick_calls_used = set( [ 1, 2, 3 ] )
 
 def getCallCodePosArgsQuick( context, order_relevance, called_identifier,
                              arguments ):
@@ -139,11 +139,11 @@ def getCallsCode():
     for quick_call_used in sorted( quick_calls_used ):
         args_decl = [
             "PyObject *arg%d" % d
-            for d in range( quick_call_used )
+            for d in range( 1, quick_call_used + 1 )
         ]
         args_list = [
             "arg%d" % d
-            for d in range( quick_call_used )
+            for d in range( 1, quick_call_used + 1 )
         ]
 
         result.append(

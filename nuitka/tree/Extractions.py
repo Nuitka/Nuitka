@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Extracting visitors.
+
+This is used for look-aheads supporting abstract execution. We need to e.g.
+know the variables written by a piece of code ahead of abstractly executing a
+loop.
+"""
 
 from .Operations import VisitorNoopMixin, visitTree
 

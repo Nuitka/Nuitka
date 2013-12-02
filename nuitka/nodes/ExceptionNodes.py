@@ -29,9 +29,15 @@ from .NodeBases import (
 class StatementRaiseException( StatementChildrenHavingBase ):
     kind = "STATEMENT_RAISE_EXCEPTION"
 
-    named_children = ( "exception_type", "exception_value", "exception_trace", "exception_cause" )
+    named_children = (
+        "exception_type",
+        "exception_value",
+        "exception_trace",
+        "exception_cause"
+    )
 
-    def __init__( self, exception_type, exception_value, exception_trace, exception_cause, source_ref ):
+    def __init__( self, exception_type, exception_value, exception_trace,
+                  exception_cause, source_ref ):
         if exception_type is None:
             assert exception_value is None
 
@@ -52,10 +58,18 @@ class StatementRaiseException( StatementChildrenHavingBase ):
         self.reraise_local = False
         self.reraise_finally = False
 
-    getExceptionType = StatementChildrenHavingBase.childGetter( "exception_type" )
-    getExceptionValue = StatementChildrenHavingBase.childGetter( "exception_value" )
-    getExceptionTrace = StatementChildrenHavingBase.childGetter( "exception_trace" )
-    getExceptionCause = StatementChildrenHavingBase.childGetter( "exception_cause" )
+    getExceptionType = StatementChildrenHavingBase.childGetter(
+        "exception_type"
+    )
+    getExceptionValue = StatementChildrenHavingBase.childGetter(
+        "exception_value"
+    )
+    getExceptionTrace = StatementChildrenHavingBase.childGetter(
+        "exception_trace"
+    )
+    getExceptionCause = StatementChildrenHavingBase.childGetter(
+        "exception_cause"
+    )
 
     def isReraiseException( self ):
         return self.getExceptionType() is None
@@ -89,7 +103,8 @@ class StatementRaiseException( StatementChildrenHavingBase ):
         constraint_collection.onExpression( self.getExceptionType(), allow_none = True )
         exception_type = self.getExceptionType()
 
-        if exception_type is not None and exception_type.willRaiseException( BaseException ):
+        if exception_type is not None and \
+           exception_type.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
@@ -97,9 +112,13 @@ class StatementRaiseException( StatementChildrenHavingBase ):
                 node       = self
             )
 
-            return result, "new_raise", "Explicit raise already raises implicitely building exception type"
+            return result, "new_raise", """\
+Explicit raise already raises implicitely building exception type."""
 
-        constraint_collection.onExpression( self.getExceptionValue(), allow_none = True )
+        constraint_collection.onExpression(
+            expression = self.getExceptionValue(),
+            allow_none = True
+        )
         exception_value = self.getExceptionValue()
 
         if exception_value is not None and exception_value.willRaiseException( BaseException ):
@@ -112,12 +131,17 @@ class StatementRaiseException( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_node", "Explicit raise already raises implicitely building exception value"
+            return result, "new_node", """\
+Explicit raise already raises implicitely building exception value."""
 
-        constraint_collection.onExpression( self.getExceptionTrace(), allow_none = True )
+        constraint_collection.onExpression(
+            expression = self.getExceptionTrace(),
+            allow_none = True
+        )
         exception_trace = self.getExceptionTrace()
 
-        if exception_trace is not None and exception_trace.willRaiseException( BaseException ):
+        if exception_trace is not None and \
+           exception_trace.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -128,12 +152,17 @@ class StatementRaiseException( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Explicit raise already raises implicitely building exception traceback"
+            return result, "new_raise", """\
+Explicit raise already raises implicitely building exception traceback."""
 
-        constraint_collection.onExpression( self.getExceptionCause(), allow_none = True )
+        constraint_collection.onExpression(
+            expression = self.getExceptionCause(),
+            allow_none = True
+        )
         exception_cause = self.getExceptionCause()
 
-        if exception_cause is not None and exception_cause.willRaiseException( BaseException ):
+        if exception_cause is not None and \
+           exception_cause.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -143,7 +172,8 @@ class StatementRaiseException( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Explicit raise already raises implicitely building exception cause"
+            return result, "new_raise", """
+Explicit raise already raises implicitely building exception cause."""
 
         return self, None, None
 
@@ -183,16 +213,20 @@ class ExpressionRaiseException( ExpressionChildrenHavingBase ):
     def willRaiseException( self, exception_type ):
         # Virtual method, pylint: disable=R0201,W0613
 
-        # One thing is clear, it will raise. TODO: Match exception_type more closely if it
-        # is predictable.
+        # One thing is clear, it will raise. TODO: Match exception_type more
+        # closely if it is predictable.
         if exception_type is BaseException:
             return True
         else:
             return False
 
 
-    getExceptionType = ExpressionChildrenHavingBase.childGetter( "exception_type" )
-    getExceptionValue = ExpressionChildrenHavingBase.childGetter( "exception_value" )
+    getExceptionType = ExpressionChildrenHavingBase.childGetter(
+        "exception_type"
+    )
+    getExceptionValue = ExpressionChildrenHavingBase.childGetter(
+        "exception_value"
+    )
 
     def mayProvideReference( self ):
         return False

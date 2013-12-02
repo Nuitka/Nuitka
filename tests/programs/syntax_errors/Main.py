@@ -26,3 +26,5 @@ try:
     from IndentationErroring import x
 except Exception as e:
     print( "Importing with indentation error gave", type(e), e )
+
+print( "Finished." )

@@ -119,7 +119,7 @@ def classdecorator( cls ):
 class MyClass:
     __metaclass__ = MetaClass
 
-print "Class that updates its locals",
+print "Class that updates its locals:",
 
 class DictUpdating:
     a = 1
@@ -129,7 +129,7 @@ class DictUpdating:
     for f in range(6):
         locals()[ "test_%s" % f ] = f
 
-print DictUpdating.b, DictUpdating.test_4
+print "Changed values", DictUpdating.b, DictUpdating.test_4
 
 def functionThatOffersClosureToPassThroughClass( x ):
     class Foo:
@@ -149,3 +149,10 @@ class NameCollisionClosure:
         return x
 
 print NameCollisionClosure, NameCollisionClosure().x()
+
+class ClassesWithNestedClass:
+    class NestedClass( object ):
+        def getDict( self ):
+            return { 'a':2 }
+
+print ClassesWithNestedClass, ClassesWithNestedClass().NestedClass, ClassesWithNestedClass().NestedClass().getDict()

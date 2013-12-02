@@ -18,14 +18,14 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.4.6.3
+Nuitka V0.4.7
 Copyright (C) 2013 Kay Hayen."""
 
 from . import Utils
 
 from optparse import OptionParser, OptionGroup
 
-import sys, logging
+import os, sys, logging
 
 # Indicator if we were called as "nuitka-python" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -66,7 +66,8 @@ recurse_group.add_option(
     action  = "store_true",
     dest    = "recurse_stdlib",
     default = False,
-    help    = "Also descend into imported modules from standard library."
+    help    = """\
+Also descend into imported modules from standard library. Defaults to off."""
 )
 
 recurse_group.add_option(
@@ -76,7 +77,7 @@ recurse_group.add_option(
     default = False,
     help    = """\
 When --recurse-none is used, do not descend into any imported modules at all,
-overrides all other recursion options. Default %default."""
+overrides all other recursion options. Defaults to off."""
 )
 
 recurse_group.add_option(
@@ -86,7 +87,7 @@ recurse_group.add_option(
     default = False,
     help    = """\
 When --recurse-all is used, attempt to descend into all imported modules.
-Default %default."""
+Defaults to off."""
 )
 
 recurse_group.add_option(
@@ -138,7 +139,7 @@ execute_group.add_option(
     default = is_nuitka_python,
     help    = """\
 Execute immediately the created binary (or import the compiled module).
-Default is %s.""" %
+Defaults to %s.""" %
        ( "on" if is_nuitka_python else "off" )
 )
 
@@ -207,6 +208,17 @@ Use debug version or not. Default uses what you are using to run Nuitka, most
 likely a non-debug version."""
 )
 
+parser.add_option(
+    "--python-flag",
+    action  = "append",
+    dest    = "python_flags",
+    default = [],
+    help    = """\
+Python flags to use. Default uses what you are using to run Nuitka, this
+enforces a specific mode. These are options that also exist to standard
+Python executable. Currently supported "-S" (alias nosite). Default empty."""
+)
+
 codegen_group = OptionGroup(
     parser,
     "Code generation choices"
@@ -268,7 +280,7 @@ outputdir_group.add_option(
     default = False,
     help    = """\
 Removes the build directory after producing the module or exe file.
-Default %default."""
+Defaults to off."""
 )
 
 parser.add_option_group( outputdir_group )
@@ -277,9 +289,9 @@ parser.add_option(
     "--windows-target",
     action  = "store_true",
     dest    = "windows_target",
-    default = False,
+    default = os.name == "nt",
     help    = """\
-Force compilation for windows, useful for cross-compilation. Defaults to off."""
+Force compilation for windows, useful for cross-compilation. Defaults %default."""
 )
 
 parser.add_option(
@@ -438,15 +450,18 @@ parser.add_option(
 Given warnings for implicit exceptions detected at compile time.""",
 )
 
-if False:
-    parser.add_option(
-        "--portable",
-        action  = "store_true",
-        dest    = "is_portable_mode",
-        default = False,
-        help    = """\
-Enable portable mode in build.""",
-    )
+
+parser.add_option(
+    "--standalone", "--portable",
+    action  = "store_true",
+    dest    = "is_standalone",
+    default = False,
+    help    = """\
+Enable standalone mode in build. This allows you to transfer the created binary
+to other machines without it relying on an existing Python installation. It
+implies these options: "--exe --python-flag=-S --recurse-all --recurse-stdlib".
+Defaults to off.""",
+)
 
 parser.add_option(
     "--icon",
@@ -484,6 +499,15 @@ Error, need positional argument with python module or main program.""" )
 
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
+
+# Standalone mode implies an executable, not importing "site" module, which is
+# only for this machine, recursing to all modules, and even including the
+# standard library.
+if options.is_standalone:
+    options.executable = True
+    options.python_flags.append( "nosite" )
+    options.recurse_all = True
+    options.recurse_stdlib = True
 
 def shallTraceExecution():
     return options.trace_execution
@@ -632,10 +656,21 @@ def getIntendedPythonVersion():
 def isExperimental():
     return hasattr( options, "experimental" ) and options.experimental
 
-def isPortableMode():
-    # Temporarily disabled, until it becomes more usable.
-    return False
-    # return options.is_portable_mode
+def isStandaloneMode():
+    return options.is_standalone
 
 def getIconPath():
     return options.icon_path
+
+def getPythonFlags():
+    result = []
+
+    for part in options.python_flags:
+        if part in ( "-S", "nosite", "no_site" ):
+            result.append( "no_site" )
+        elif part in ( "-v", "trace_imports", "trace_import" ):
+            result.append( "trace_imports" )
+        else:
+            logging.warning( "Unsupported flag '%s'.", part )
+
+    return result

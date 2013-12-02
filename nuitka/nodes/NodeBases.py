@@ -209,6 +209,19 @@ class NodeBase( NodeMetaClassBase ):
 
         return parent
 
+    def getParentStatementsFrame( self ):
+        current = self.getParent()
+
+        while True:
+            if current.isStatementsFrame():
+                return current
+
+            if current.isParentVariableProvider():
+                return None
+
+            current = current.getParent()
+
+
     def getSourceReference( self ):
         return self.source_ref
 
@@ -719,6 +732,14 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
         return result
 
+    def getTempVariable( self, temp_scope, name ):
+        if temp_scope is not None:
+            full_name = "%s__%s" % ( temp_scope, name )
+        else:
+            full_name = name
+
+        return self.temp_variables[ full_name ]
+
     def getTempVariables( self ):
         return tuple( self.temp_variables.values() )
 
@@ -789,7 +810,12 @@ class ClosureTakerMixin:
     def getClosureVariables( self ):
         return tuple(
             sorted(
-                [ take for take in self.taken if take.isClosureReference() ],
+                [
+                    take
+                    for take in
+                    self.taken
+                    if take.isClosureReference()
+                ],
                 key = lambda x : x.getName()
             )
         )

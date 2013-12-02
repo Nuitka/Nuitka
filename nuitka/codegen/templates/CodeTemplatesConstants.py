@@ -22,25 +22,21 @@
 template_constants_reading = """
 #include "nuitka/prelude.hpp"
 
-// Sentinel PyObject to be used for all our call iterator endings. It will become
-// a PyCObject pointing to NULL. It's address is unique, and that's enough.
+// Sentinel PyObject to be used for all our call iterator endings. It will
+// become a PyCObject pointing to NULL. It's address is unique, and that's
+// enough for us to use it as sentinel value.
 PyObject *_sentinel_value = NULL;
 
 %(constant_declarations)s
 
 // Blob from which objects are unstreamed.
-static unsigned char stream_data[] =
+static const unsigned char stream_data[] =
 {
 %(stream_data)s
 };
 
 static void __initConstants( void )
 {
-    if ( %(needs_pickle)s )
-    {
-        UNSTREAM_INIT();
-    }
-
 %(constant_inits)s
 }
 

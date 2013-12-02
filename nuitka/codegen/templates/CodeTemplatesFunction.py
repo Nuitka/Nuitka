@@ -46,9 +46,6 @@ static void _context_%(function_identifier)s_destructor( void *context_voidptr )
 }
 """
 
-function_context_variable_init_template = """\
-_python_context->python_closure_%s(variable_name).shareWith( python_closure_%(variable_name)s );"""
-
 make_function_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
@@ -152,7 +149,7 @@ if ( isFrameUnusable( frame_%(frame_identifier)s ) )
     frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
 }
 
-FrameGuard frame_guard( frame_%(frame_identifier)s );
+%(frame_class_name)s frame_guard( frame_%(frame_identifier)s );
 try
 {
     assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
@@ -193,7 +190,7 @@ FrameGuardVeryLight frame_guard;
 frame_guard_once_template = """\
 PyFrameObject *frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
 
-FrameGuard frame_guard( frame_%(frame_identifier)s );
+%(frame_class_name)s frame_guard( frame_%(frame_identifier)s );
 try
 {
     assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack

@@ -33,6 +33,8 @@ from nuitka.Utils import python_version
 
 from nuitka import Options
 
+from ..__past__ import iterItems
+
 # Many methods won't use self, but it's the interface. pylint: disable=R0201
 
 class PythonContextBase:
@@ -41,7 +43,7 @@ class PythonContextBase:
 
         self.try_finally_counts = []
 
-        self.call_temp_count = 0
+        self.temp_counts = {}
 
     def isPythonModule( self ):
         return False
@@ -66,10 +68,10 @@ class PythonContextBase:
         else:
             return None
 
-    def allocateCallTempNumber( self ):
-        self.call_temp_count += 1
-
-        return self.call_temp_count
+    def allocateTempNumber( self, tmp_scope ):
+        result = self.temp_counts.get( tmp_scope, 0 ) + 1
+        self.temp_counts[ tmp_scope ] = result
+        return result
 
 
 class PythonChildContextBase( PythonContextBase ):
@@ -80,9 +82,6 @@ class PythonChildContextBase( PythonContextBase ):
 
     def getConstantHandle( self, constant ):
         return self.parent.getConstantHandle( constant )
-
-    def addGlobalVariableNameUsage( self, var_name ):
-        self.parent.addGlobalVariableNameUsage( var_name )
 
     def getModuleCodeName( self ):
         return self.parent.getModuleCodeName()
@@ -106,6 +105,7 @@ def _getConstantDefaultPopulation():
         True,
         False,
         0,
+        1,
 
         # For Python3 empty bytes, no effect for Python2, same as "", used for
         # code objects.
@@ -232,13 +232,13 @@ class PythonGlobalContext:
                 key = ( type( constant ), HashableConstant( constant ) )
 
                 if key not in self.constants:
-                    self.constants[ key ] = "_python_" + namifyConstant(
+                    self.constants[ key ] = "const_" + namifyConstant(
                         constant
                     )
 
                 return ConstantIdentifier( self.constants[ key ], constant )
             else:
-                return Identifier( "_python_" + namifyConstant( constant ), 0 )
+                return Identifier( "const_" + namifyConstant( constant ), 0 )
 
     def getConstants( self ):
         return self.constants
@@ -248,19 +248,19 @@ class PythonModuleContext( PythonContextBase ):
     # Plent of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
-    def __init__( self, module_name, code_name, filename, global_context ):
+    def __init__( self, module_name, code_name, filename, is_empty,
+                  global_context ):
         PythonContextBase.__init__( self )
 
         self.name = module_name
         self.code_name = code_name
         self.filename = filename
+        self.is_empty = is_empty
 
         self.global_context = global_context
 
         self.declaration_codes = {}
         self.helper_codes = {}
-
-        self.global_var_names = set()
 
     def __repr__( self ):
         return "<PythonModuleContext instance for module %s>" % self.filename
@@ -280,6 +280,12 @@ class PythonModuleContext( PythonContextBase ):
     def getName( self ):
         return self.name
 
+    def getFilename( self ):
+        return self.filename
+
+    def isEmptyModule( self ):
+        return self.is_empty
+
     getModuleName = getName
 
     def getModuleCodeName( self ):
@@ -293,12 +299,6 @@ class PythonModuleContext( PythonContextBase ):
     def hasClosureVariable( self, var_name ):
         return False
     # pylint: enable=W0613
-
-    def addGlobalVariableNameUsage( self, var_name ):
-        self.global_var_names.add( var_name )
-
-    def getGlobalVariableNames( self ):
-        return sorted( self.global_var_names )
 
     def setFrameGuardMode( self, guard_mode ):
         assert guard_mode == "once"
@@ -429,6 +429,14 @@ class PythonStatementContext( PythonChildContextBase ):
         result = self.temp_keepers
         self.temp_keepers = {}
         return result
+
+    def getTempKeeperDecl( self ):
+        tmp_keepers = self.getTempKeeperUsages()
+
+        return [
+            "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
+            for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
+        ]
 
     def allocateTryNumber( self ):
         return self.parent.allocateTryNumber()

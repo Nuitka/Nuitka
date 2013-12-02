@@ -22,7 +22,7 @@ etc. that fit nowhere else and don't deserve their own names.
 
 """
 
-import sys, os
+import sys, os, subprocess
 
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
@@ -94,19 +94,51 @@ def makePath( path ):
 def getCoreCount():
     cpu_count = 0
 
-    # Try to sum up the CPU cores, if the kernel shows them, pylint: disable=W0702
+    # Try to sum up the CPU cores, if the kernel shows them.
     try:
         # Try to get the number of logical processors
         with open( "/proc/cpuinfo" ) as cpuinfo_file:
             cpu_count = cpuinfo_file.read().count( "processor\t:" )
-    except:
+    except IOError:
         pass
 
     if not cpu_count:
-        # false alarm, no re-import, just a function level import to avoid it unless it is
-        # absolutely necessary, pylint: disable=W0404
+        # false alarm, no re-import, just a function level import to avoid it
+        # unless it is absolutely necessary, pylint: disable=W0404
 
         import multiprocessing
         cpu_count = multiprocessing.cpu_count()
 
     return cpu_count
+
+def callExec( args ):
+    """ Do exec in a portable way preserving exit code.
+
+        On Windows, unfortunately there is no real exec, so we have to spawn
+        a new process instead.
+    """
+
+    # On Windows os.execl does not work properly
+    if os.name != "nt":
+        # The star arguments is the API of execl, pylint: disable=W0142
+        os.execl( *args )
+    else:
+        args = list( args )
+        del args[1]
+        sys.exit( subprocess.call( args ) )
+
+def encodeNonAscii( var_name ):
+    """ Encode variable name that is potentially not ASCII to ASCII only.
+
+        For Python3, unicode identifiers can be used, but these are not
+        possible in C++03, so we need to replace them.
+    """
+    if python_version < 300:
+        return var_name
+    else:
+        var_name = var_name.encode( "ascii", "xmlcharrefreplace" )
+        var_name = var_name.decode( "ascii" )
+
+        # TODO: Is this truly safe of collisions, I think it is not. It might be
+        # necessary to use something that is not allowed otherwise.
+        return var_name.replace( "&#", "$$" ).replace( ";", "" )
