@@ -1,8 +1,36 @@
-Nuitka Release 0.4.7 (Draft)
+Nuitka Release 0.5.0 (Draft)
 ============================
 
+This release breaks interface compatibility, therefore the major version number
+change.
+
+New Features
+------------
+
+- Experimental support for the (yet unreleased) Python 3.4 was added.
+
+Organizational
+--------------
+
+- The option ``--exe`` is now ignored and creating an executable is the default
+  behavior of ``nuitka``, a new option ``--module`` allows to produce extension
+  modules.
+
+- The binary ``nuitka-python`` was removed, and is replaced by ``nuitka-run``
+  with now only implies ``--execute`` on top of what ``nuitka`` is.
+
+- Using dedicated `Buildbot <http://buildbot.net>`_ for continuous integration
+  testing and release creation as well.
+
+- The `Downloads <http://nuitka.net/pages/download.html>`_ now offers MSI files
+  for Win64 as well.
+
+
+Nuitka Release 0.4.7
+====================
+
 This release includes important new features, lots of polishing cleanups, and
-some performance improvements as well.
+some important performance improvements as well.
 
 Bug Fixes
 ---------
@@ -12,8 +40,6 @@ Bug Fixes
 
 - The recursion into modules and unfreezing them was not working for packages
   and modules anymore. Fixed in 0.4.6.2 already.
-
-- Python3.3: The ``__qualname__`` of nested classes was corrected.
 
 - The Windows installer was not including Scons. Fixed in 0.4.6.3 already.
 
@@ -29,13 +55,19 @@ Bug Fixes
 - Python3.3: Packages should set ``__package`` to their own name, not the one of
   their parents.
 
+- Python3.3: The ``__qualname__`` of nested classes was corrected.
+
 New Features
 ------------
 
-- The "portable" mode allows to compile standalone binaries for programs,
-  currently that is limited to programs that use no modules in shared
-  libraries. To achieve it, Nuitka learned to freeze bytecode as an alternative
-  to compiling modules.
+- The "standalone" mode allows to compile standalone binaries for programs and
+  run them without Python installation. The DLLs loaded by extension modules on
+  Windows need to be added manually, on Linux these are determined
+  automatically already.
+
+  To achieve running without Python installation, Nuitka learned to freeze
+  bytecode as an alternative to compiling modules, as some modules need to be
+  present when the CPython library is initialized.
 
 - New option ``--python-flag`` allows to specify flags to the compiler that the
   "python" binary normally would. So far ``-S`` and ``-v`` are supported, with
@@ -87,27 +119,20 @@ New Optimization
 Organizational
 --------------
 
-- The "portable" code has been redone and activated. This is a feature that a
-  lot of people expect from a compiler, although the major goal is of course
-  acceleration, packaging is one of the areas where Python severely lacks.
-
-  .. note::
-
-     Currently it breaks down when shared libraries are involved, but this is
-     being worked on for future releases.
+- The "standalone mode" code (formerly known as "portable mode" has been redone
+  and activated. This is a feature that a lot of people expect from a compiler
+  naturally. And although the overall goal for Nuitka is of course acceleration,
+  this kind of packaging is one of the areas where CPython needs improvement.
 
 - Added package for Ubuntu 13.10 for download, removed packages for Ubuntu 11.04
   and 11.10, no more supported.
 
 - Added package for openSUSE 13.1 for download.
 
-- Using `Buildbot <http://buildbot.net>`_ for continuous integration testing and
-  release creation internally.
+- Nuitka is now part of Arch and can be installed with ``pacman -S nuitka``.
 
-- The `Downloads <http://nuitka.net/pages/download.html>`_ now offers MSI files
-  for Win64 as well.
-
-- Experimental support for the (yet unreleased) Python 3.4 was added.
+- Using dedicated `Buildbot <http://buildbot.net>`_ for continuous integration
+  testing. Not yet public.
 
 - Windows: In order to speed up repeated compilation on a platform without
   ``ccache``, added Scons level caching in the build directory.
