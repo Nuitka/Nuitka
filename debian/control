@@ -26,7 +26,8 @@ Depends: g++-4.8 | g++-4.7 | g++-4.6 (>= 4.6.1) | g++-4.5 | g++-4.4 | clang (>= 
          ${misc:Depends},
          ${python:Depends}
 Recommends: python-lxml (>=2.3),
-            python-qt4 (>= 4.8.6)
+            python-qt4 (>= 4.8.6),
+            strace
 Suggests: ccache
 Description: Python compiler with full language support and CPython compatibility
  This Python compiler achieves full language compatibility and compiles Python
