@@ -42,7 +42,7 @@ def getFrozenModuleCount():
 
 stream_data = BlobCodes.StreamData()
 
-def generatePrecompiledFrozenCode():
+def generateBytecodeFrozenCode():
     frozen_defs = []
 
     for frozen_module in frozen_modules:

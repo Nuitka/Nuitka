@@ -759,7 +759,7 @@ def discoverSourceFiles():
 
     # If more than one module is included, we need the unfreezer.
     if module_count > 1:
-        result.append( getStatic( "ModuleUnfreezer.cpp" ) )
+        result.append( getStatic( "MetaPathBasedLoader.cpp" ) )
 
     return result
 

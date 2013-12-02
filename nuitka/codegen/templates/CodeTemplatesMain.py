@@ -311,7 +311,7 @@ static struct PyModuleDef mdef_%(module_identifier)s =
 
 // Table for lookup to find "frozen" modules or DLLs, i.e. the ones included in
 // or along this binary.
-static struct Nuitka_FreezeTableEntry _frozen_modules[] =
+static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
 {
 %(metapath_loader_inittab)s
     { NULL, NULL, 0 }
@@ -364,7 +364,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 
 #if _MODULE_UNFREEZER
-    registerMetaPathBasedUnfreezer( _frozen_modules );
+    registerMetaPathBasedUnfreezer( meta_path_loader_entries );
 #endif
 
     // puts( "in init%(module_identifier)s" );
@@ -432,7 +432,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
 #if PYTHON_VERSION >= 330
 #if _MODULE_UNFREEZER
-    PyDict_SetItem( module_dict, const_str_plain___loader__, loader_frozen_modules );
+    PyDict_SetItem( module_dict, const_str_plain___loader__, metapath_based_loader );
 #else
     PyDict_SetItem( module_dict, const_str_plain___loader__, Py_None );
 #endif

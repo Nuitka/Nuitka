@@ -15,23 +15,30 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-// This implements the loading of modules embedded. This is achieved mainly by
-// registered a "sys.meta_path" loader, that gets asked for module names, and
-// responds if it is an embedded one.
+// This implements the loading of C++ compiled modules and shared library
+// extension modules bundled for standalone mode.
+
+// This is achieved mainly by registered a "sys.meta_path" loader, that then
+// gets asked for module names, and responds if knows about one. It's fed by
+// a table created at compile time.
+
+// The nature and use of these 2 loaded module kinds is very different, but
+// having them as distinct loaders would only require to duplicate the search
+// and registering of stuff.
 
 #include <osdefs.h>
 
 #include "nuitka/prelude.hpp"
 #include "nuitka/unfreezing.hpp"
 
-// For Python3.3, the loader is a module attribute, so we need tp make it
+// For Python3.3, the loader is a module attribute, so we need to make it
 // accessible from this variable.
 #if PYTHON_VERSION < 330
 static
 #endif
-PyObject *loader_frozen_modules = NULL;
+PyObject *metapath_based_loader = NULL;
 
-static Nuitka_FreezeTableEntry *frozen_modules = NULL;
+static Nuitka_MetaPathBasedLoaderEntry *loader_entries = NULL;
 
 static char *_kwlist[] = {
     (char *)"fullname",
@@ -64,7 +71,7 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
         PySys_WriteStderr( "import %s # considering responsibility\n", name );
     }
 
-    struct Nuitka_FreezeTableEntry *current = frozen_modules;
+    struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
 
     while ( current->name != NULL )
     {
@@ -74,7 +81,7 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
             {
                 PySys_WriteStderr( "import %s # claimed responsibility\n", name );
             }
-            return INCREASE_REFCOUNT( loader_frozen_modules );
+            return INCREASE_REFCOUNT( metapath_based_loader );
         }
 
         current++;
@@ -259,7 +266,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 
     char *name = Nuitka_String_AsString( module_name );
 
-    struct Nuitka_FreezeTableEntry *current = frozen_modules;
+    struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
 
     while ( current->name != NULL )
     {
@@ -350,17 +357,17 @@ static PyMethodDef _method_def_loader_load_module =
     NULL
 };
 
-void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_modules )
+void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_loader_entries )
 {
     // Do it only once.
-    if ( frozen_modules )
+    if ( loader_entries )
     {
-        assert( _frozen_modules == frozen_modules );
+        assert( _loader_entries == loader_entries );
 
         return;
     }
 
-    frozen_modules = _frozen_modules;
+    loader_entries = _loader_entries;
 
     // Build the dictionary of the "loader" object, which needs to have two
     // methods "find_module" where we acknowledge that we are capable of loading
@@ -383,7 +390,7 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_mod
     PyDict_SetItemString( method_dict, "load_module", loader_load_module );
 
     // Build the actual class.
-    loader_frozen_modules = PyObject_CallFunctionObjArgs(
+    metapath_based_loader = PyObject_CallFunctionObjArgs(
         (PyObject *)&PyType_Type,
 #if PYTHON_VERSION < 300
         PyString_FromString( "_nuitka_compiled_modules_loader" ),
@@ -395,7 +402,7 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_mod
         NULL
     );
 
-    assertObject( loader_frozen_modules );
+    assertObject( metapath_based_loader );
 
     if ( Py_VerboseFlag )
     {
@@ -410,7 +417,7 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_FreezeTableEntry *_frozen_mod
 #else
         2,
 #endif
-        loader_frozen_modules
+        metapath_based_loader
     );
     assert( res == 0 );
 }

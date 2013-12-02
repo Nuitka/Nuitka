@@ -48,8 +48,8 @@ from nuitka.freezer.Standalone import (
     detectEarlyImports,
     detectPythonDLLs
 )
-from nuitka.freezer.PrecompiledModuleFreezer import (
-    generatePrecompiledFrozenCode,
+from nuitka.freezer.BytecodeModuleFreezer import (
+    generateBytecodeFrozenCode,
     getFrozenModuleCount,
     addFrozenModule
 )
@@ -543,7 +543,7 @@ def compileTree( main_module ):
                 addFrozenModule( early_import )
 
         if getFrozenModuleCount():
-            frozen_code = generatePrecompiledFrozenCode()
+            frozen_code = generateBytecodeFrozenCode()
 
             writeSourceCode(
                 filename = Utils.joinpath(
