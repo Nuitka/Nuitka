@@ -150,6 +150,9 @@ def _detectPythonDLLs( binary_filename ):
             part = line.split(b" => ", 2)[1]
             filename = part[:part.rfind(b"(")-1]
 
+            if not filename:
+                continue
+
             if Utils.python_version >= 300:
                 filename = filename.decode("utf-8")
 
