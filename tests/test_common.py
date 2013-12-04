@@ -202,6 +202,7 @@ def getRuntimeTraceOfLoadedFiles( path ):
         args = (
             "strace",
             "-e", "file",
+            "-s4096", # Some paths are truncated otherwise.
             path
         )
 

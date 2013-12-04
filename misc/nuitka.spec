@@ -2,7 +2,7 @@
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 
 Name:           nuitka
-Version:        0.4.7
+Version:        0.4.7.1
 Release:        5%{?dist}
 Summary:        Python compiler with full language support and CPython compatibility
 Group:          Development/Languages/Python
@@ -15,8 +15,10 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  gcc-c++
+BuildRequires:  strace
 Requires:       python-devel
 Requires:       gcc-c++
+Requires:       strace
 BuildArchitectures: noarch
 
 %description

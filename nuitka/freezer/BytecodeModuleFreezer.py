@@ -60,7 +60,7 @@ def generateBytecodeFrozenCode():
 
         frozen_defs.append(
             """\
-(char *)"{module_name}", (unsigned char *){data}, {size},""".format(
+{{ (char *)"{module_name}", (unsigned char *){data}, {size} }},""".format(
                 module_name = module_name,
                 data        = stream_data.getStreamDataCode(
                     value      = code_data,
