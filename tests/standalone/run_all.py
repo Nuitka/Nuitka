@@ -100,7 +100,10 @@ for filename in sorted( os.listdir( "." ) ):
             if loaded_filename.startswith("/dev/"):
                 continue
 
-            if loaded_filename == "/usr/lib/locale/locale-archive":
+            if loaded_filename.startswith( "/usr/lib/locale/" ):
+                continue
+
+            if loaded_filename.startswith( "/usr/share/locale/" ):
                 continue
 
             if loaded_filename.startswith("/lib/libdl.") or \
