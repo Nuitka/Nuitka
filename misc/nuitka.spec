@@ -15,8 +15,10 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  gcc-c++
+BuildRequires:  strace
 Requires:       python-devel
 Requires:       gcc-c++
+Requires:       strace
 BuildArchitectures: noarch
 
 %description

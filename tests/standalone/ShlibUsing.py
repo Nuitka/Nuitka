@@ -17,5 +17,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import pyexpat
-print( pyexpat.__doc__ )
+try:
+    import pyexpat
+    print(pyexpat.__doc__)
+except ImportError:
+    print("Skipped, no pyexpat module installed.")
