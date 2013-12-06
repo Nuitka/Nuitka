@@ -86,7 +86,7 @@ Error, no package in dir '%s' found, incomplete test case.""" % filename
             )
 
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = \
-          "--recurse-to %s" % os.path.basename(filename_main)
+          "--recurse-to=%s" % os.path.basename(filename_main)
 
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] += \
           " --output-dir=%s" % getTempDir()

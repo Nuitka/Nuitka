@@ -65,8 +65,8 @@ Command Line
 ------------
 
 No environment variable changes are needed, you can call the ``nuitka`` and
-``nuitka-python`` scripts directly without any changes to the environment. You
-may want to add the ``bin`` directory to your ``PATH`` for your convenience, but
+``nuitka-run`` scripts directly without any changes to the environment. You may
+want to add the ``bin`` directory to your ``PATH`` for your convenience, but
 that step is optional.
 
 Nuitka has a ``--help`` option to output what it can do:
@@ -75,15 +75,16 @@ Nuitka has a ``--help`` option to output what it can do:
 
     nuitka --help
 
-The ``nuitka-python`` command is the same as ``nuitka``, but with different
-defaults. It tries to compile and directly execute a Python script:
+The ``nuitka-run`` command is the same as ``nuitka``, but with different
+default. It tries to compile and directly execute a Python script:
 
 .. code-block:: bash
 
-    nuitka-python --help
+    nuitka-run --help
 
-These options with different defaults are ``--exe`` and ``--execute``, so it is
-somewhat more similar to what plain ``python`` will do.
+These option that is different is ``--execute``, and passing on arguments after
+the first non-option to the created binary, so it is somewhat more similar to
+what plain ``python`` will do.
 
 License
 -------
@@ -110,12 +111,12 @@ that is the main program, do it like this:
 
 .. code-block:: bash
 
-    nuitka-python --recurse-all program.py
+    nuitka --recurse-all program.py
 
 .. note::
 
    The is more fine grained control than ``--recurse-all`` available. Consider
-   the output of ``nuitka-python --help``.
+   the output of ``nuitka --help``.
 
 In case you have a plugin directory, i.e. one which is not found by recursing
 after normal import statements (recommended way), you can always require that a
@@ -123,7 +124,7 @@ given directory shall also be included in the executable:
 
 .. code-block:: bash
 
-    nuitka-python --recurse-all --recurse-directory=plugin_dir program.py
+    nuitka --recurse-all --recurse-directory=plugin_dir program.py
 
 .. note::
 
@@ -150,7 +151,7 @@ If you want to compile a single extension module, all you have to do is this:
 
 .. code-block:: bash
 
-    nuitka some_module.py
+    nuitka --module some_module.py
 
 The resulting file "some_module.so" can then be used instead of
 "some_module.py". It's left as an exercise to the reader, what happens if both
@@ -168,7 +169,7 @@ feasible, use Nuitka like this:
 
 .. code-block:: bash
 
-    nuitka some_package --recurse-directory=some_package
+    nuitka --module some_package --recurse-directory=some_package
 
 .. note::
 
@@ -220,9 +221,9 @@ and these are the instructions on how to do it.
 
 .. code-block:: bash
 
-    nuitka-python --windows-target program.py
+    nuitka-run --windows-target program.py
 
-To test the binary, use "wine program.exe", the "nuitka-python" does it
+To test the binary, use "wine program.exe", the "nuitka-run" does it
 automatically for you.
 
 Where to go next

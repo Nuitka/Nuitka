@@ -75,8 +75,8 @@ parser.add_option(
     dest    = "standalone_tests",
     default = os.name == "posix",
     help    = """\
-The standalone tests, execute these to check if Nuitka creates programs
-that run independent from Python installations. Default is %default."""
+The packages tests, execute these to check if Nuitka handles packages, e.g.
+import recursions, etc. fine. Default is %default."""
 )
 
 parser.add_option(
@@ -327,7 +327,7 @@ def execute_tests( where, use_python, flags ):
 
     if options.standalone_tests:
         print( "Running the standalone tests with options '%s' with %s:" % ( flags, use_python ) )
-        setExtraFlags( None, "standalone", flags )
+        setExtraFlags( where, "standalone", flags )
         executeSubTest( "./tests/standalone/run_all.py search" )
 
     if options.reflection_test:

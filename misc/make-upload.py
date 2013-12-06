@@ -37,7 +37,7 @@ if branch_name.startswith( "release" ) or branch_name == "master":
     shutil.rmtree( "osc", ignore_errors = True )
 
     os.makedirs( "osc" )
-    os.system( "cd osc && osc init home:kayhayen Nuitka && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec . && cp ../misc/nuitka-python3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message" )
+    os.system( "cd osc && osc init home:kayhayen Nuitka && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec . && cp ../misc/nuitka-run3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message" )
 
     # Cleanup the osc directory.
     shutil.rmtree( "osc", ignore_errors = True )
@@ -46,7 +46,7 @@ elif branch_name == "develop":
     shutil.rmtree( "osc", ignore_errors = True )
 
     os.makedirs( "osc" )
-    os.system( "cd osc && osc init home:kayhayen Nuitka-Unstable && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec ./nuitka-unstable.spec && sed -i nuitka-unstable.spec -e 's/Name: *nuitka/Name:           nuitka-unstable/' && cp ../misc/nuitka-python3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message" )
+    os.system( "cd osc && osc init home:kayhayen Nuitka-Unstable && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec ./nuitka-unstable.spec && sed -i nuitka-unstable.spec -e 's/Name: *nuitka/Name:           nuitka-unstable/' && cp ../misc/nuitka-run3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message" )
 
     # Cleanup the osc directory.
     shutil.rmtree( "osc", ignore_errors = True )

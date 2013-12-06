@@ -649,16 +649,6 @@ def main():
                     )
                 )
 
-        # Sanity check, warn people if "__main__" is used in the compiled
-        # module, it may not be the appropiate usage.
-        if Options.shallMakeModule() and Options.shallExecuteImmediately():
-            for variable in main_module.getVariables():
-                if variable.getName() == "__name__":
-                    warning( """\
-Compiling to extension module, which will not have '__name__' as '__main__', \
-did you intend '--exe' or to use 'nuitka-python' instead.""" )
-                    break
-
         # Modules should not be executable, but Scons creates them like it, fix
         # it up here.
         if os.name != "nt" and Options.shallMakeModule():

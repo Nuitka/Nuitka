@@ -9,7 +9,7 @@ Group:          Development/Languages/Python
 License:        Apache License 2.0
 URL:            http://nuitka.net/
 Source0:        http://nuitka.net/releases/Nuitka-%{version}.tar.gz
-Source1:        nuitka-python3
+Source1:        nuitka-run3
 Source2:        nuitka-rpmlintrc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  python
@@ -41,12 +41,12 @@ used in the same way as pure Python objects.
 rm -rf %{buildroot}
 %{__python} setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
 install -D -m755 %{SOURCE1} %{buildroot}%{_bindir}/nuitka3
-install -D -m755 %{SOURCE1} %{buildroot}%{_bindir}/nuitka-python3
+install -D -m755 %{SOURCE1} %{buildroot}%{_bindir}/nuitka-run3
 mkdir -p %{buildroot}%{_mandir}/man1
 gzip -c doc/nuitka.1 > %{buildroot}%{_mandir}/man1/nuitka.1.gz
 cp %{buildroot}%{_mandir}/man1/nuitka.1.gz %{buildroot}%{_mandir}/man1/nuitka3.1.gz
-gzip -c doc/nuitka-python.1 > %{buildroot}%{_mandir}/man1/nuitka-python.1.gz
-cp %{buildroot}%{_mandir}/man1/nuitka-python.1.gz %{buildroot}%{_mandir}/man1/nuitka-python3.1.gz
+gzip -c doc/nuitka-run.1 > %{buildroot}%{_mandir}/man1/nuitka-run.1.gz
+cp %{buildroot}%{_mandir}/man1/nuitka-run.1.gz %{buildroot}%{_mandir}/man1/nuitka-run3.1.gz
 
 %clean
 rm -rf %{buildroot}
@@ -55,9 +55,9 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %doc README.txt Changelog.rst
 %{_bindir}/nuitka
-%{_bindir}/nuitka-python
+%{_bindir}/nuitka-run
 %{_bindir}/nuitka3
-%{_bindir}/nuitka-python3
+%{_bindir}/nuitka-run3
 %{_mandir}/man1/*
 %{python_sitearch}/*
 

@@ -18,10 +18,10 @@
 
 import sys, os
 
-scripts = [ "bin/nuitka", "bin/nuitka-python" ]
+scripts = [ "bin/nuitka", "bin/nuitka-run" ]
 
 if os.name == "nt":
-    scripts += [ "misc/nuitka.bat", "misc/nuitka-python.bat" ]
+    scripts += [ "misc/nuitka.bat", "misc/nuitka-run.bat" ]
 
 def detectVersion():
     version_line, = [

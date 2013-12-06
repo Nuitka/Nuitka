@@ -135,23 +135,23 @@ if binary_python_path:
 if not two_step_execution:
     if module_mode:
         nuitka_cmd = nuitka_call + extra_options.split() + \
-          ["--execute", filename]
+          ["--module", "--execute", filename]
     elif standalone_mode:
         nuitka_cmd = nuitka_call + extra_options.split() + \
           ["--standalone", "--execute", filename]
     else:
         nuitka_cmd = nuitka_call + extra_options.split() + \
-          ["--exe", "--execute", filename]
+          ["--execute", filename]
 else:
     if module_mode:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
-          [os.path.abspath(filename)]
+          ["--module", os.path.abspath(filename)]
     elif standalone_mode:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
           ["--standalone", filename]
     else:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
-          ["--exe", filename]
+          [filename]
 
 dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_options)
 

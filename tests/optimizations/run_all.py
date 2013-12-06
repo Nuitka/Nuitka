@@ -125,6 +125,7 @@ for filename in sorted( os.listdir( "." ) ):
             os.environ[ "PYTHON" ],
             os.path.join( "..", "..", "bin", "nuitka" ),
             "--dump-xml",
+            "--module",
             path
         ]
 

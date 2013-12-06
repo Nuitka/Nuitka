@@ -23,19 +23,19 @@ Copyright (C) 2013 Kay Hayen."""
 
 from . import Utils
 
-from optparse import OptionParser, OptionGroup
+from optparse import OptionParser, OptionGroup, SUPPRESS_HELP
 
 import os, sys, logging
 
-# Indicator if we were called as "nuitka-python" in which case we assume some
+# Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
-is_nuitka_python = Utils.basename( sys.argv[0] ).lower().startswith( "nuitka-python" )
+is_nuitka_run = Utils.basename(sys.argv[0]).lower().startswith("nuitka-run")
 
 def getVersion():
     return version_string.split()[1][1:]
 
-if not is_nuitka_python:
-    usage = "usage: %prog [--exe] [--execute] [options] main_module.py"
+if not is_nuitka_run:
+    usage = "usage: %prog [--module] [--execute] [options] main_module.py"
 else:
     usage = "usage: %prog [options] main_module.py"
 
@@ -44,20 +44,27 @@ parser = OptionParser(
     version = getVersion()
 )
 
+# This option is obsolete, and module should be used.
 parser.add_option(
     "--exe",
     action  = "store_true",
+    dest    = "obsolete_executable",
+    default = False,
+    help    = SUPPRESS_HELP
+)
+
+parser.add_option(
+    "--module",
+    action  = "store_false",
     dest    = "executable",
-    default = is_nuitka_python,
+    default = True,
     help    = """\
-Create a standalone executable instead of a compiled extension module. Default
-is %s.""" %
-       ( "on" if is_nuitka_python else "off" )
+Create an extension module executable instead of a program. Defaults to off."""
 )
 
 recurse_group = OptionGroup(
     parser,
-    "Control the recursion into imported modules with '--exe' mode"
+    "Control the recursion into imported modules"
 )
 
 
@@ -136,11 +143,11 @@ execute_group.add_option(
     "--execute",
     action  = "store_true",
     dest    = "immediate_execution",
-    default = is_nuitka_python,
+    default = is_nuitka_run,
     help    = """\
 Execute immediately the created binary (or import the compiled module).
 Defaults to %s.""" %
-       ( "on" if is_nuitka_python else "off" )
+       ("on" if is_nuitka_run else "off")
 )
 
 execute_group.add_option(
@@ -472,7 +479,9 @@ parser.add_option(
     help    = """Add executable icon (windows only).""",
 )
 
-if is_nuitka_python:
+# First, isolate the first non-option arguments. TODO: Should repect "--"
+# as a terminator to options.
+if is_nuitka_run:
     count = 0
 
     for count, arg in enumerate( sys.argv ):
@@ -487,7 +496,6 @@ if is_nuitka_python:
         sys.argv = sys.argv[0:count+1]
 else:
     extra_args = []
-
 
 options, positional_args = parser.parse_args()
 

@@ -72,9 +72,9 @@ if os.name != "nt":
         os.mkdir( "man" )
 
     assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt ./bin/nuitka >doc/nuitka.1", shell = True )
-    assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-python >doc/nuitka-python.1", shell = True )
+    assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-run >doc/nuitka-run.1", shell = True )
 
-    for manpage in ( "doc/nuitka.1", "doc/nuitka-python.1" ):
+    for manpage in ( "doc/nuitka.1", "doc/nuitka-run.1" ):
         manpage_contents = open( manpage ).readlines()
         new_contents = []
         mark = False
