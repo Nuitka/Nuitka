@@ -26,7 +26,6 @@ import subprocess
 import sys
 from logging import debug
 import marshal
-import re
 
 from nuitka import Utils
 from nuitka.codegen.ConstantCodes import needsPickleInit
@@ -42,18 +41,23 @@ def loadCodeObjectData(precompiled_path):
 
 
 def detectEarlyImports():
+    command = "import encodings.utf_8;"
+
+    if Utils.python_version < 300:
+        command += "import encodings.hex_codec;"
+
     # When we are using pickle internally (for some hard constant cases we do),
     # we need to make sure it will be available as well.
     if needsPickleInit():
-        command = "import {pickle};".format(
+        command += "import {pickle};".format(
             pickle = "pickle" if Utils.python_version >= 300 else "cPickle"
         )
-    else:
-        command = ""
 
+    # For Python3 we patch inspect without knowing if it is used.
     if Utils.python_version >= 300:
         command += "import inspect;"
 
+    # Print statements for stuff to show.
     if Utils.python_version >= 300:
         command += r'import sys; print("\n".join(sorted("import " + module.__name__ + " # sourcefile " + module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301  lint:ok
 
@@ -133,14 +137,17 @@ def _detectPythonDLLs( binary_filename ):
         # Ask "ldd" about the libraries being used by the created binary, these
         # are the ones that interest us.
         process = subprocess.Popen(
-            args   = [ "ldd", binary_filename ],
+            args   = [
+                "ldd",
+                binary_filename
+            ],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE
         )
 
         stdout, _stderr = process.communicate()
 
-        for line in stdout.split( b"\n" ):
+        for line in stdout.split(b"\n"):
             if not line:
                 continue
 
@@ -165,9 +172,9 @@ def _detectPythonDLLs( binary_filename ):
         getname = windll.kernel32.GetModuleFileNameA
         getname.argtypes = ( HANDLE, LPCSTR, DWORD )
         getname.restype = DWORD
-        result = ctypes.create_string_buffer( 1024 )
-        size = getname( dll._handle, result, 1024 )
-        path = result.value[ :size ]
+        c_result = ctypes.create_string_buffer( 1024 )
+        size = getname(dll._handle,c_result, 1024 )
+        path = c_result.value[:size]
 
         if Utils.python_version >= 300:
             path = path.decode("utf-8")
