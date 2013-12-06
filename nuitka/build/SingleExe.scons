@@ -357,23 +357,29 @@ if win_target and "linux" in sys.platform:
     # Update CXXVERSION in env, after we changed it.
     env[ "CXXVERSION" ] = getGccVersion()
 
+# Some versions of Scons have unset or None, make it empty string.
+if env.get( "CXX", None ) is None:
+    env[ "CXX" ] = None
+
 orig_cxx = env[ "CXX" ]
 orig_cxx_version = env.get( "CXXVERSION", None )
 
-# Remove "g++" as the compiler, if it's not really existing or not good enough.
-if "g++" in env[ "CXX" ]:
+# Remove "g++" as the compiler, in case it's not really existing or not high
+# enough version.
+if "g++" in ( env[ "CXX" ] or "" ):
     gpp_version = getGccVersion()
 
     if gpp_version is None or int( getGccVersion().replace( ".", "" ) ) < 440:
-        del env[ "CXX" ]
+        env[ "CXX" ] = None
 
 # Detect compiler to be used from supported ones, if there is no usable g++
 # link.
-if os.name != "nt" and "CXX" not in env:
+if os.name != "nt" and env["CXX"] is None:
     for candidate in ( "g++-4.8", "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4",
                        "clang" ):
         if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
             env[ "CXX" ] = candidate
+            env[ "CC" ] = candidate.replace( "++", "cc" )
 
             if "clang" not in candidate:
                 # Update CXXVERSION in env, after we changed it.
@@ -389,7 +395,7 @@ if show_scons_mode:
     print "Scons compiler: Using",
     print getExecutablePath( env[ "CXX" ], initial = False )
 
-if "CXX" not in env and \
+if env["CXX"] is None or \
    getExecutablePath( env[ "CXX" ], initial = False ) is None:
     if os.name == "nt":
         sys.exit( """\
