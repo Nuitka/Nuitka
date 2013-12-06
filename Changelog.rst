@@ -2,12 +2,38 @@ Nuitka Release 0.5.0 (Draft)
 ============================
 
 This release breaks interface compatibility, therefore the major version number
-change.
+change. Also "standalone mode" has seen significant improvements on both
+Windows, and Linux. Should work much better now.
+
+But consider that this part of Nuitka is still in its infancy. As it is not the
+top priority of mine for Nuitka, which primarily is intended as an super
+compatible accelerator of Python. So it will continue to evolve nearby.
+
+Bug Fixes
+---------
+
+- The "standalone mode" was not working on all Redhat, Fedora, and openSUSE
+  platforms and gave warnings with older compilers. Fixed in 0.4.7.1 already.
+
+- The "standalone mode" was not including all useful encodings. `Issue#116
+  <http://bugs.nuitka.net/issue116>`_. Fixed in 0.4.7.2 already.
+
+- The "standalone mode" was defaulting to ``--python-flag=-S`` which disables
+  the parsing of "site" module. That unfortunately made it necessary to reach
+  some modules without modifying ``PYTHONPATH`` which conflicts with the
+  "out-of-the-box" experience.
 
 New Features
 ------------
 
-- Experimental support for the (yet unreleased) Python 3.4 was added.
+- Windows: The "standalone" mode now properly detects used DLLs using
+  `Dependency Walker <http://http://www.dependencywalker.com/>`_ which it offers
+  to download and extra for you.
+
+  It is used as a replacement to ``ldd`` on Linux when building the binary, and
+  as a replacement of ``strace`` on Linux when running the tests to check that
+  nothing is loaded from the outside.
+
 
 Organizational
 --------------
@@ -24,6 +50,13 @@ Organizational
 
 - The `Downloads <http://nuitka.net/pages/download.html>`_ now offers MSI files
   for Win64 as well.
+
+New Tests
+---------
+
+- Expanded test coverage for "standalone mode" demonstrating usage of "hex"
+  encoding, and Qt.
+
 
 
 Nuitka Release 0.4.7
