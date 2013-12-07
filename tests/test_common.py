@@ -137,6 +137,9 @@ def decideFilenameVersionSkip( filename ):
     if filename.endswith( "27.py" ) and python_version.startswith( b"2.6" ):
         return False
 
+    if filename.endswith( "_2.py" ) and python_version.startswith( b"3" ):
+        return False
+
     # Skip tests that require Python 3.2 at least.
     if filename.endswith( "32.py" ) and not python_version.startswith( b"3" ):
         return False
@@ -198,6 +201,8 @@ def hasDebugPython():
 def getRuntimeTraceOfLoadedFiles( path ):
     """ Returns the files loaded when executing a binary. """
 
+    result = []
+
     if os.name == "posix":
         args = (
             "strace",
@@ -214,8 +219,6 @@ def getRuntimeTraceOfLoadedFiles( path ):
 
         stdout_strace, stderr_strace = process.communicate()
 
-        result = []
-
         for line in stderr_strace.split("\n"):
             if not line:
                 continue
@@ -225,6 +228,7 @@ def getRuntimeTraceOfLoadedFiles( path ):
                 for match in
                 re.findall('"(.*?)"', line)
             )
+    # TODO: Use depends.exe on Windows.
 
     result = list(sorted(set(result)))
 

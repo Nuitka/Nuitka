@@ -1,3 +1,10 @@
+nuitka (0.4.7.2+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Added missing build dependency to process PNG images.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 07 Dec 2013 08:48:32 +0100
+
 nuitka (0.4.7.1+ds-1) unstable; urgency=low
 
   * New upstream hotfix release.

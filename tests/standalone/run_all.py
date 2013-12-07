@@ -83,6 +83,8 @@ for filename in sorted( os.listdir( "." ) ):
             )
         )
 
+        shutil.rmtree(filename[:-3] + ".dist")
+
         current_dir = os.path.normpath(os.getcwd())
 
         for loaded_filename in loaded_filenames:
@@ -126,7 +128,5 @@ for filename in sorted( os.listdir( "." ) ):
                 continue
 
             sys.exit("Should not access '%s'." % loaded_filename)
-
-        shutil.rmtree(filename[:-3] + ".dist")
     else:
         my_print( "Skipping", filename )

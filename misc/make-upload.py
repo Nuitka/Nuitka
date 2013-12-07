@@ -28,8 +28,7 @@ assert branch_name in ( b"master", b"develop", b"release/" + nuitka_version, b"h
 
 assert 0 == os.system( "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/" )
 
-for filename in ( "README.pdf", "Changelog.pdf", "Developer_Manual.pdf",
-                  "doc/man-nuitka.html", "doc/man-nuitka-python.html" ):
+for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
     assert 0 == os.system( "rsync %s root@nuitka.net:/var/www/doc/" % filename )
 
 # Upload only stable releases to OpenSUSE Build Service:

@@ -93,26 +93,3 @@ if os.name != "nt":
             new_contents.append( line )
 
         open( manpage, "w" ).writelines( new_contents )
-
-    assert 0 == subprocess.call( "man2html doc/nuitka.1 >doc/man-nuitka.html", shell = True )
-    assert 0 == subprocess.call( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html", shell = True )
-
-    def getFile( filename ):
-        return open( filename ).read()
-
-    contents = getFile( "doc/man-nuitka.html" )
-    new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
-    assert new_contents != contents
-    contents = new_contents
-    new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
-    assert new_contents != contents
-    open( "doc/man-nuitka.html", "w" ).write( new_contents )
-
-    contents = getFile( "doc/man-nuitka-python.html" )
-    new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
-    assert new_contents != contents
-    contents = new_contents
-    new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
-    assert new_contents != contents
-
-    open( "doc/man-nuitka-python.html", "w" ).write( new_contents )
