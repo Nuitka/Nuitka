@@ -40,11 +40,21 @@ if os.name == "nt" and "bdist_msi" in sys.argv:
     # around it, so we map our number to it, in some way.
 
     # Prereleases are always smaller.
-    middle = 1 if "pre" not in version else "0"
+    middle = 1 if "pre" not in version else 0
     version = version.replace( "pre", "" )
-    major, first, last = version.split( "." )
+    parts = version.split(".")
+    major, first, last = parts[:3]
+    hotfix = parts[4] if len(parts) > 3 else 0
 
-    version = ".".join( ( major*10+first, middle, last ) )
+    version = ".".join(
+        "%s" % value
+        for value in
+        (
+            int(major)*10+int(first),
+            middle,
+            int(last)*10+int(hotfix)
+        )
+    )
 
 def find_packages():
     result = []
