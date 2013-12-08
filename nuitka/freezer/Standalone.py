@@ -130,7 +130,7 @@ def detectEarlyImports():
 
     return result
 
-def _detectPythonDLLs( binary_filename ):
+def detectBinaryDLLs(binary_filename):
     result = set()
 
     if os.name == "posix" and os.uname()[0] == "Linux":
@@ -187,12 +187,12 @@ def _detectPythonDLLs( binary_filename ):
     return result
 
 
-def detectPythonDLLs( standalone_entry_points ):
+def detectPythonDLLs(standalone_entry_points):
     result = set()
 
     for binary_filename in standalone_entry_points:
         result.update(
-            _detectPythonDLLs(binary_filename)
+            detectBinaryDLLs(binary_filename)
         )
 
     return result
