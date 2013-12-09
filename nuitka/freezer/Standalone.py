@@ -24,7 +24,7 @@ the platforms.
 import os
 import subprocess
 import sys
-from logging import debug
+from logging import debug,info
 import marshal
 
 from nuitka import Utils
@@ -33,6 +33,57 @@ from nuitka.codegen.ConstantCodes import needsPickleInit
 
 python_dll_dir_name = "_python"
 
+
+def getDependsExePath():
+    if Utils.getArchitecture() == "x86":
+        depends_url = "http://dependencywalker.com/depends22_x86.zip"
+    else:
+        depends_url = "http://dependencywalker.com/depends22_x64.zip"
+
+    import urllib
+
+    if "APPDATA" not in os.environ:
+        sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
+
+    nuitka_app_dir = os.path.join(os.environ["APPDATA"],"nuitka")
+    if not Utils.isDir(nuitka_app_dir):
+        os.makedirs(nuitka_app_dir)
+
+    nuitka_depends_zip = os.path.join(
+        nuitka_app_dir,
+        os.path.basename(depends_url)
+    )
+
+    if not Utils.isFile(nuitka_depends_zip):
+        info("Downloading", depends_url)
+        urllib.urlretrieve(
+            depends_url,
+            nuitka_depends_zip
+        )
+
+    nuitka_depends_dir = os.path.join(
+        nuitka_app_dir,
+        Utils.getArchitecture()
+    )
+
+    if not Utils.isDir(nuitka_depends_dir):
+        os.makedirs(nuitka_depends_dir)
+
+    depends_exe= os.path.join(
+        nuitka_depends_dir,
+        "depends.exe"
+    )
+
+    if not Utils.isFile(depends_exe):
+        info("Extracting", depends_exe)
+
+        import zipfile
+        depends_zip = zipfile.ZipFile(nuitka_depends_zip)
+        depends_zip.extractall(nuitka_depends_dir)
+
+    assert Utils.isFile(depends_exe)
+
+    return depends_exe
 
 def loadCodeObjectData(precompiled_path):
     # Ignoring magic numbers, etc. which we don't have to care for much as
@@ -165,21 +216,100 @@ def detectBinaryDLLs(binary_filename):
 
             result.add(filename)
     elif os.name == "nt":
-        import ctypes
-        from ctypes import windll
-        from ctypes.wintypes import HANDLE, LPCSTR, DWORD
-        dll = getattr( windll, "python%s%s" % ( sys.version_info[:2] ) )
-        getname = windll.kernel32.GetModuleFileNameA
-        getname.argtypes = ( HANDLE, LPCSTR, DWORD )
-        getname.restype = DWORD
-        c_result = ctypes.create_string_buffer( 1024 )
-        size = getname(dll._handle,c_result, 1024 )
-        path = c_result.value[:size]
+        depends_exe = getDependsExePath()
 
-        if Utils.python_version >= 300:
-            path = path.decode("utf-8")
+        subprocess.call(
+            (
+                depends_exe,
+                "-c",
+                "-ot%s" % binary_filename + ".depends",
+                "-f1",
+                "-pa1",
+                "-ps1",
+                binary_filename
+            )
+        )
 
-        result.add(path)
+        inside = False
+        for line in open(binary_filename + ".depends"):
+            if "| Module Dependency Tree |" in line:
+                inside = True
+                continue
+
+            if not inside:
+                continue
+
+            if "| Module List |" in line:
+                break
+
+            if "]" not in line:
+                continue
+
+            # Skip missing DLLs, apparently not needed anyway.
+            if "?" in line[:line.find("]")]:
+                continue
+
+            dll_filename = line[line.find("]")+2:-1]
+            assert Utils.isFile(dll_filename), dll_filename
+
+            # The executable itself is of course excempted.
+            if Utils.normcase(dll_filename) == \
+                Utils.normcase(Utils.abspath(binary_filename)):
+                continue
+
+            dll_name = Utils.basename(dll_filename).upper()
+
+            # Win API can be assumed.
+            if dll_name.startswith("API-MS-WIN"):
+                continue
+
+            if dll_name in ("SHELL32.DLL","USER32.DLL","KERNEL32.DLL",
+                "NTDLL.DLL", "NETUTILS.DLL", "LOGONCLI.DLL", "GDI32.DLL",
+                "RPCRT4.DLL", "ADVAPI32.DLL", "SSPICLI.DLL", "SECUR32.DLL",
+                "KERNELBASE.DLL", "WINBRAND.DLL", "DSROLE.DLL", "DNSAPI.DLL",
+                "SAMCLI.DLL", "WKSCLI.DLL", "SAMLIB.DLL", "WLDAP32.DLL",
+                "NTDSAPI.DLL", "CRYPTBASE.DLL", "W32TOPL", "WS2_32.DLL",
+                "SPPC.DLL", "MSSIGN32.DLL", "CERTCLI.DLL", "WEBSERVICES.DLL",
+                "AUTHZ.DLL", "CERTENROLL.DLL", "VAULTCLI.DLL", "REGAPI.DLL",
+                "BROWCLI.DLL", "WINNSI.DLL", "DHCPCSVC6.DLL", "PCWUM.DLL",
+                "CLBCATQ.DLL", "IMAGEHLP.DLL", "MSASN1.DLL", "DBGHELP.DLL",
+                "DEVOBJ.DLL", "DRVSTORE.DLL", "CABINET.DLL", "SCECLI.DLL",
+                "SPINF.DLL", "SPFILEQ.DLL", "GPAPI.DLL", "NETJOIN.DLL",
+                "W32TOPL.DLL", "NETBIOS.DLL", "DXGI.DLL", "DWRITE.DLL",
+                "D3D11.DLL", "WLANAPI.DLL", "WLANUTIL.DLL", "ONEX.DLL",
+                "EAPPPRXY.DLL", "MFPLAT.DLL", "AVRT.DLL", "ELSCORE.DLL",
+                "INETCOMM.DLL", "MSOERT2.DLL", "IEUI.DLL", "MSCTF.DLL",
+                "MSFEEDS.DLL", "UIAUTOMATIONCORE.DLL", "PSAPI.DLL",
+                "EFSADU.DLL", "MFC42U.DLL", "ODBC32.DLL", "OLEDLG.DLL",
+                "NETAPI32.DLL", "LINKINFO.DLL", "DUI70.DLL", "ADVPACK.DLL",
+                "NTSHRUI.DLL", "WINSPOOL.DRV", "EFSUTIL.DLL", "WINSCARD.DLL",
+                "SHDOCVW.DLL", "IEFRAME.DLL", "D2D1.DLL", "GDIPLUS.DLL",
+                "OCCACHE.DLL", "IEADVPACK.DLL", "MLANG.DLL", "MSI.DLL",
+                "MSHTML.DLL", "COMDLG32.DLL", "PRINTUI.DLL", "PUIAPI.DLL",
+                "ACLUI.DLL", "WTSAPI32.DLL", "FMS.DLL", "DFSCLI.DLL",
+                "HLINK.DLL", "MSRATING.DLL", "PRNTVPT.DLL", "IMGUTIL.DLL",
+                "MSLS31.DLL", "VERSION.DLL", "NORMALIZ.DLL", "IERTUTIL.DLL",
+                "WININET.DLL", "WINTRUST.DLL", "XMLLITE.DLL", "APPHELP.DLL",
+                "PROPSYS.DLL", "RSTRTMGR.DLL", "NCRYPT.DLL", "BCRYPT.DLL",
+                "MMDEVAPI.DLL", "MSILTCFG.DLL", "DEVMGR.DLL", "DEVRTL.DLL",
+                "NEWDEV.DLL", "VPNIKEAPI.DLL", "WINHTTP.DLL", "WEBIO.DLL",
+                "NSI.DLL", "DHCPCSVC.DLL", "CRYPTUI.DLL", "ESENT.DLL",
+                "DAVHLPR.DLL", "CSCAPI.DLL", "ATL.DLL", "OLEAUT32.DLL",
+                "SRVCLI.DLL", "RASDLG.DLL", "MPRAPI.DLL", "RTUTILS.DLL",
+                "RASMAN.DLL", "MPRMSG.DLL", "SLC.DLL", "CRYPTSP.DLL",
+                "RASAPI32.DLL", "TAPI32.DLL", "EAPPCFG.DLL", "NDFAPI.DLL",
+                "WDI.DLL", "COMCTL32.DLL", "UXTHEME.DLL", "IMM32.DLL",
+                "OLEACC.DLL", "WINMM.DLL", "WINDOWSCODECS.DLL", "DWMAPI.DLL",
+                "DUSER.DLL", "PROFAPI.DLL", "URLMON.DLL", "SHLWAPI.DLL",
+                "LPK.DLL", "USP10.DLL", "CFGMGR32.DLL", "MSIMG32.DLL",
+                "POWRPROF.DLL", "SETUPAPI.DLL", "WINSTA.DLL", "CRYPT32.DLL",
+                "IPHLPAPI.DLL", "MPR.DLL", "CREDUI.DLL", "NETPLWIZ.DLL",
+                "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL"):
+                continue
+
+            result.add(dll_filename)
+
+        os.unlink(binary_filename + ".depends")
     else:
         # Support your platform above.
         assert False
