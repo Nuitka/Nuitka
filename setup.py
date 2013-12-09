@@ -150,9 +150,13 @@ else:
         "inline_copy/*/*/*/*/*/*.py",
     ]
 
+if "bdist_msi" in sys.argv:
+    project_name = "Nuitka%s" % (64 if "AMD64" in sys.version else 32)
+else:
+    project_name = "Nuitka"
 
 setup(
-    name     = "Nuitka",
+    name     = project_name,
     license  = "Apache License, Version 2.0",
     version  = version,
     packages = find_packages(),

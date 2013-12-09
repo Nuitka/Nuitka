@@ -25,7 +25,7 @@ assert 0 == subprocess.call(
         sys.executable,
         "setup.py",
         "bdist_msi",
-	"--target-version=" + sys.version[:3]
+        "--target-version=" + sys.version[:3]
     )
 )
 
@@ -38,7 +38,11 @@ else:
     sys.exit("No MSI created.")
 
 parts = [
-    filename[:-4].replace("-py2.7",""),
+    filename[:-4].\
+        replace("-py2.7","").\
+        replace("-py3.3","").\
+        replace("Nuitka32","Nuitka").\
+        replace("Nuitka64","Nuitka"),
     "py" + sys.version[:3].replace(".",""),
     "msi"
 ]
