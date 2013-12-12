@@ -26,6 +26,7 @@ from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
+
 class ExpressionConditional( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_CONDITIONAL"
 
@@ -43,19 +44,29 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
         )
 
     def getBranches( self ):
-        return ( self.getExpressionYes(), self.getExpressionNo() )
+        return (
+            self.getExpressionYes(),
+            self.getExpressionNo()
+        )
 
-    getExpressionYes = ExpressionChildrenHavingBase.childGetter( "expression_yes" )
-    getExpressionNo = ExpressionChildrenHavingBase.childGetter( "expression_no" )
-    getCondition = ExpressionChildrenHavingBase.childGetter( "condition" )
+    getExpressionYes = ExpressionChildrenHavingBase.childGetter(
+        "expression_yes"
+    )
+    getExpressionNo = ExpressionChildrenHavingBase.childGetter(
+        "expression_no"
+    )
+    getCondition = ExpressionChildrenHavingBase.childGetter(
+        "condition"
+    )
 
     def computeExpression( self, constraint_collection ):
         # Children can tell all we need to know, pylint: disable=W0613
         condition = self.getCondition()
 
         # If the condition raises, we let that escape.
-        if condition.willRaiseException( BaseException ):
-            return condition, "new_raise", "Conditional expression raises in condition"
+        if condition.willRaiseException(BaseException):
+            return condition, "new_raise", """\
+Conditional expression raises in condition."""
 
         # Decide this based on truth value of condition.
         truth_value = condition.getTruthValue()
@@ -143,23 +154,39 @@ class StatementConditional( StatementChildrenHavingBase ):
             return False
 
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # This is rather complex stuff, pylint: disable=R0912
 
-        # Query the truth value before the expression is evaluated, once it is
-        # evaluated in onExpression, it may change. TODO: That is non-sense of
-        # course, will be stable.
+        # Query the truth value after the expression is evaluated, once it is
+        # evaluated in onExpression, it is known.
+        constraint_collection.onExpression(
+            expression = self.getCondition()
+        )
         condition = self.getCondition()
+
+        # No need to look any further, if the condition raises, the branches do
+        # not matter at all.
+        if condition.willRaiseException(BaseException):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = condition,
+                node       = self
+            )
+
+            return result, "new_raise", """\
+Conditional statements already raises implicitely in condition, removing \
+branches"""
+
+        from nuitka.optimizations.ConstraintCollections import \
+            ConstraintCollectionBranch
+
+        # Consider to not execute branches that we know to be true, but execute
+        # the ones that may be true, potentially both.
         truth_value = condition.getTruthValue()
 
-        constraint_collection.onExpression( condition )
-        condition = self.getCondition()
-
-        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionBranch
-
         # TODO: We now know that condition evaluates to true for the yes branch
-        # and to not true for no branch
-
+        # and to not true for no branch, the branch should know that.
         yes_branch = self.getBranchYes()
 
         # Handle branches that became empty behind our back
@@ -167,7 +194,9 @@ class StatementConditional( StatementChildrenHavingBase ):
             if not yes_branch.getStatements():
                 yes_branch = None
 
-        if yes_branch is not None:
+        # Continue to execute for yes branch unless we know it's not going to be
+        # relevant.
+        if yes_branch is not None and truth_value is not False:
             branch_yes_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
                 branch = yes_branch
@@ -184,11 +213,13 @@ class StatementConditional( StatementChildrenHavingBase ):
 
         no_branch = self.getBranchNo()
 
+        # Handle branches that became empty behind our back
         if no_branch is not None:
             if not no_branch.getStatements():
                 no_branch = None
 
-        if no_branch is not None:
+        # Continue to execute for yes branch.
+        if no_branch is not None and truth_value is not True:
             branch_no_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
                 branch = no_branch
@@ -199,18 +230,20 @@ class StatementConditional( StatementChildrenHavingBase ):
 
             # If it's aborting, it doesn't contribute to merging.
             if no_branch is None or no_branch.isStatementAborting():
-                branch_yes_collection = None
+                branch_no_collection = None
         else:
             branch_no_collection = None
 
-        # Merge into parent constraint collection.
+        # Merge into parent execution.
         constraint_collection.mergeBranches(
             branch_yes_collection,
             branch_no_collection
         )
 
+        # Both branches may have become empty.
         if yes_branch is None and no_branch is None:
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import \
+                makeStatementExpressionOnlyReplacementNode
 
             # With both branches eliminated, the condition remains as a side
             # effect.
@@ -242,9 +275,10 @@ Both branches have no effect, reduced to evaluate condition."""
             return new_statement, "new_statements", """\
 Empty 'yes' branch for condition was replaced with inverted condition check."""
 
-        # Note: Checking the condition late, so that the surviving branches got
-        # processed already. Returning without doing that, will corrupte the SSA
-        # results.
+        # Note: Checking the condition late, so that the surviving branch got
+        # processed already. Returning without doing that, will corrupt the SSA
+        # results. TODO: Could pretend the other branch didn't exist to save
+        # complexity the merging of processing.
         if truth_value is not None:
             from .NodeMakingHelpers import wrapStatementWithSideEffects
 
@@ -265,16 +299,5 @@ Empty 'yes' branch for condition was replaced with inverted condition check."""
 
             return new_statement, "new_statements", """\
 Condition for branch was predicted to be always %s.""" % choice
-        elif condition.willRaiseException( BaseException ):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
-
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = condition,
-                node       = self
-            )
-
-            return result, "new_raise", """\
-Conditional statements already raises implicitely in condition, removing \
-branches"""
 
         return self, None, None

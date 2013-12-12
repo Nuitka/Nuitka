@@ -52,7 +52,10 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
         assert self.variable_version != 0
 
     def getDetail( self ):
-        return "%s from %s" % ( self.getVariableName(), self.getAssignSource() )
+        return "%s from %s" % (
+            self.getVariableName(),
+            self.getAssignSource()
+        )
 
     def getDetails( self ):
         return {
@@ -68,30 +71,34 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
     def getVariableVersion( self ):
         return self.variable_version
 
-    getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
+    getAssignSource = ExpressionChildrenHavingBase.childGetter(
+        "source"
+    )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         source = self.getAssignSource()
 
-        if source.willRaiseException( BaseException ):
-            return source, "new_raise", "Keeper assignment raises."
+        if source.willRaiseException(BaseException):
+            return source, "new_raise", "Temp keeper assignment source raises."
 
         constraint_collection.onVariableSet(
             assign_node = self
         )
 
-        # TODO: This should not be done here.
-        if self.variable.getReferenced().isWriteOnly():
-            return source, "new_expression", """\
-Removed useless temporary keeper assignment."""
-
         return self, None, None
 
-    def mayRaiseException( self, exception_type ):
-        return self.getAssignSource().mayRaiseException( exception_type )
+    def mayRaiseException(self, exception_type):
+        return self.getAssignSource().mayRaiseException(
+            exception_type = exception_type
+        )
 
-    def willRaiseException( self, exception_type ):
-        return self.getAssignSource().willRaiseException( exception_type )
+    def willRaiseException(self, exception_type):
+        return self.getAssignSource().willRaiseException(
+            exception_type = exception_type
+        )
+
+    def getTruthValue(self):
+        return self.getAssignSource().getTruthValue()
 
 
 class ExpressionTempKeeperRef( NodeBase, ExpressionMixin ):

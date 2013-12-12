@@ -692,7 +692,7 @@ Side effects of assignments promoted to statements."""
             assert statement.isStatement(), statement
 
             new_statement, change_tags, change_desc = \
-              statement.computeStatement( self )
+              statement.computeStatement(self)
 
             if new_statement is not statement:
                 self.signalChange(

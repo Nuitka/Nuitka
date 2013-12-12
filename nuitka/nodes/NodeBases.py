@@ -936,7 +936,7 @@ class ExpressionMixin:
         # print "onRelease", self
         pass
 
-    def computeExpressionRaw( self, constraint_collection ):
+    def computeExpressionRaw(self,constraint_collection):
         """ Compute an expression.
 
             Default behavior is to just visit the child expressions first, and
@@ -948,10 +948,14 @@ class ExpressionMixin:
         sub_expressions = self.getVisitableNodes()
 
         for sub_expression in sub_expressions:
-            constraint_collection.onExpression( sub_expression )
+            constraint_collection.onExpression(
+                expression = sub_expression
+            )
 
         # Then ask ourselves to work on it.
-        return self.computeExpression( constraint_collection )
+        return self.computeExpression(
+            constraint_collection = constraint_collection
+        )
 
     def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
         # By default, an attribute lookup may change everything about the lookup

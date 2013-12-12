@@ -91,11 +91,12 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
 
         if self.builtin_name in quick_names:
             new_node = ExpressionConstantRef(
-                constant   = quick_names[ self.builtin_name ],
+                constant   = quick_names[self.builtin_name],
                 source_ref = self.getSourceReference()
             )
 
-            return new_node, "new_constant", "Builtin constant %s resolved" % self.builtin_name
+            return new_node, "new_constant", """\
+Builtin constant %s resolved""" % self.builtin_name
 
         return self, None, None
 

@@ -92,3 +92,8 @@ class ExpressionSideEffects( ExpressionChildrenHavingBase ):
                 return True
         else:
             return False
+
+    def getTruthValue( self ):
+        return None
+
+        return self.getExpression().getTruthValue()
