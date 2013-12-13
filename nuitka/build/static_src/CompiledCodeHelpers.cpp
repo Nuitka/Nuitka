@@ -1866,7 +1866,8 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 
 #include <osdefs.h>
-#if defined( _WIN32 )
+
+#if defined(_WIN32)
 #include <Shlwapi.h>
 #elif defined(__APPLE__)
 #include <mach-o/dyld.h>
@@ -1874,7 +1875,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 #include <libgen.h>
 #endif
 
-#if defined( _WIN32 )
+#if defined(_WIN32) && !defined(PATH_MAX)
 #define PATH_MAX MAXPATHLEN
 #endif
 
@@ -1975,10 +1976,6 @@ void prepareStandaloneEnvironment()
 
     memset( insert_path, 0, insert_size );
     snprintf( insert_path, insert_size, env_string, binary_directory );
-
-#if defined( _NUITKA_STANDALONE ) && _WIN32
-    SetDllDirectory( binary_directory );
-#endif
 
     // set environment
     size_t python_home_size = orignal_home_size + insert_size;

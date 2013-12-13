@@ -569,10 +569,9 @@ if standalone_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_STANDALONE" ] )
 
     if win_target:
-        if msvc_mode:
-            # This is used for "PathRemoveFileSpec" used in standalone mode
-            # Windows code.
-            env.Append( LIBS = [ "Shlwapi.lib" ] )
+        # This is used for "PathRemoveFileSpec" used in standalone mode
+        # Windows code.
+        env.Append( LIBS = [ "Shlwapi" ] )
     else:
         env.Append( LIBS = [ "dl" ] )
 
