@@ -202,10 +202,11 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     _Py_PackageContext = old_context;
 
 #if PYTHON_VERSION < 300
-    PyObject *module = PyDict_GetItemString( PyImport_GetModuleDict(), name );
+    PyObject *module = PyDict_GetItemString(
+        PyImport_GetModuleDict(),
+        full_name
+    );
 #endif
-
-    assert( module );
 
     if (unlikely( module == NULL ))
     {
@@ -216,7 +217,6 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 
         return NULL;
     }
-
 
 #if PYTHON_VERSION >= 300
     struct PyModuleDef *def = PyModule_GetDef( module );
@@ -280,11 +280,12 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 #ifdef _NUITKA_STANDALONE
             if ( ( current->flags & NUITKA_SHLIB_MODULE ) != 0 )
             {
-                char filename[1024];
+                char filename[4096];
 
                 strcpy( filename, getBinaryDirectory() );
                 char *d = filename;
                 d += strlen( filename );
+                assert(*d == 0);
                 *d++ = SEP;
 
                 char *s = current->name;
@@ -294,6 +295,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
                     if ( *s == '.' )
                     {
                         *d++ = SEP;
+                        s++;
                     }
                     else
                     {
@@ -308,7 +310,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
                 strcat( filename, ".so" );
 #endif
 
-                callIntoShlibModule( current->name,  filename );
+                callIntoShlibModule( current->name, filename );
             }
             else
 #endif
