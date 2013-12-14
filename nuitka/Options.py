@@ -513,7 +513,6 @@ if options.verbose:
 # standard library.
 if options.is_standalone:
     options.executable = True
-    options.python_flags.append( "nosite" )
     options.recurse_all = True
     options.recurse_stdlib = True
 
