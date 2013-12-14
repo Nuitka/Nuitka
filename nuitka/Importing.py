@@ -408,6 +408,10 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # Standalone mode "site" import flexibilities
         "sitecustomize", "usercustomize", "apport_python_hook",
         "_frozen_importlib",
+
+        # Standard library stuff that is optional
+        "comtypes.server.inprocserver", "_tkinter", "_scproxy", "EasyDialogs",
+        "SOCKS", "rourl2path",
     )
 
     # TODO: Turn this into a warning that encourages reporting.
