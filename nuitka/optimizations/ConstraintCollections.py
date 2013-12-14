@@ -907,9 +907,9 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
         self._getVariableUsage( variable ).markAsReadFrom()
 
 
-class ConstraintCollectionModule( CollectionStartpointMixin,
-                                  ConstraintCollectionBase,
-                                  VariableUsageTrackingMixin ):
+class ConstraintCollectionModule(CollectionStartpointMixin,
+                                 ConstraintCollectionBase,
+                                 VariableUsageTrackingMixin):
     def __init__( self, signal_change, module ):
         assert module.isPythonModule()
 
@@ -938,8 +938,6 @@ class ConstraintCollectionModule( CollectionStartpointMixin,
         self.setIndications()
 
         self.makeVariableTraceOptimizations( module )
-
-        self.module.attemptRecursion( self )
 
     def onModuleVariableAssigned( self, variable, assign_source ):
         while variable.isModuleVariableReference():

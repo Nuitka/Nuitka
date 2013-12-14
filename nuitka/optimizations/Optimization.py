@@ -34,6 +34,17 @@ from .Tags import TagSet
 
 _progress = Options.isShowProgress()
 
+def _attemptRecursion(module):
+    new_modules = module.attemptRecursion()
+
+    for new_module in new_modules:
+        debug(
+            "{source_ref} : {tags} : {message}".format(
+                source_ref = new_module.getSourceReference().getAsString(),
+                tags       = "new_code",
+                message    = "Recursed to module package."
+            )
+        )
 
 def _optimizeModulePass(module, tag_set):
     def signalChange(tags, source_ref, message):
@@ -53,6 +64,9 @@ def _optimizeModulePass(module, tag_set):
         signal_change = signalChange,
         module        = module
     )
+
+    # Pick up parent package if any.
+    _attemptRecursion(module)
 
     written_variables = module.collection.getWrittenVariables()
 
@@ -74,8 +88,7 @@ def _optimizeModulePass(module, tag_set):
 
             variable.setReadOnlyIndicator(new_value)
 
-
-def optimizeModule(module):
+def optimizePythonModule(module):
     if _progress:
         printLine(
             "Doing module local optimizations for '{module_name}'.".format(
@@ -89,7 +102,10 @@ def optimizeModule(module):
     while True:
         tag_set.clear()
 
-        _optimizeModulePass(module=module, tag_set=tag_set)
+        _optimizeModulePass(
+            module  = module,
+            tag_set = tag_set
+        )
 
         if not tag_set:
             break
@@ -97,6 +113,11 @@ def optimizeModule(module):
         touched = True
 
     return touched
+
+
+def optimizeShlibModule(module):
+    # Pick up parent package if any.
+    _attemptRecursion(module)
 
 
 def optimize():
@@ -110,9 +131,6 @@ def optimize():
             if current_module is None:
                 break
 
-            if current_module.isPythonShlibModule():
-                continue
-
             if _progress:
                 printLine(
                     """\
@@ -123,10 +141,13 @@ after that.""".format(
                     )
                 )
 
-            changed = optimizeModule(current_module)
+            if current_module.isPythonShlibModule():
+                optimizeShlibModule(current_module)
+            else:
+                changed = optimizePythonModule(current_module)
 
-            if changed:
-                finished = False
+                if changed:
+                    finished = False
 
         if finished:
             break

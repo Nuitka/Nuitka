@@ -64,9 +64,55 @@ class PythonModuleMixin:
     def isInternalModule( self ):
         return False
 
+    def attemptRecursion(self):
+        # Make sure the package is recursed to.
+        from nuitka.tree import Recursion
+        from nuitka import Importing
 
-class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
-                    ClosureGiverNodeBase, MarkContainsTryExceptIndicator ):
+        # Return the list of newly added modules.
+        result = []
+
+        if self.package_name is not None and self.package is None:
+            package_package, _package_module_name, package_filename = \
+              Importing.findModule(
+                source_ref     = self.getSourceReference(),
+                module_name    = self.package_name,
+                parent_package = None,
+                level          = 1,
+                warn           = Utils.python_version < 330
+            )
+
+            # TODO: Temporary, if we can't find the package for Python3.3 that
+            # is semi-OK, maybe.
+            if Utils.python_version >= 330 and not package_filename:
+                return []
+
+            imported_module, is_added = Recursion.recurseTo(
+                module_package  = package_package,
+                module_filename = package_filename,
+                module_relpath  = Utils.relpath(package_filename),
+                module_kind     = "py",
+                reason          = "Containing package of recursed module.",
+            )
+
+            self.package = imported_module
+
+            if is_added:
+                result.append(imported_module)
+
+        if self.package:
+            from nuitka.ModuleRegistry import addUsedModule
+
+            addUsedModule(self.package)
+
+#            print "Recursed to package", self.package_name
+            result.extend(self.package.attemptRecursion())
+
+        return result
+
+
+class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
+                   ClosureGiverNodeBase, MarkContainsTryExceptIndicator):
     """ Module
 
         The module is the only possible root of a tree. When there are many
@@ -77,8 +123,7 @@ class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
 
     named_children = ( "body", )
 
-    def __init__( self, name, package_name, source_ref ):
-
+    def __init__(self, name, package_name, source_ref):
         ClosureGiverNodeBase.__init__(
             self,
             name        = name,
@@ -207,51 +252,6 @@ class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
         else:
             return main_filename
 
-    def attemptRecursion( self, constraint_collection ):
-        # Make sure the package is recursed to.
-        from nuitka.tree import Recursion
-        from nuitka import Importing
-
-        if self.package_name is not None and self.package is None:
-            package_package, _package_module_name, package_filename = \
-              Importing.findModule(
-                source_ref     = self.getSourceReference(),
-                module_name    = self.package_name,
-                parent_package = None,
-                level          = 1,
-                warn           = Utils.python_version < 330
-            )
-
-            # TODO: Temporary, if we can't find the package for Python3.3 that
-            # is semi-OK, maybe.
-            if Utils.python_version >= 330 and not package_filename:
-                return
-
-            imported_module, is_added = Recursion.recurseTo(
-                module_package  = package_package,
-                module_filename = package_filename,
-                module_relpath  = Utils.relpath(package_filename),
-                module_kind     = "py",
-                reason          = "Containing package of recursed module.",
-            )
-
-            self.package = imported_module
-
-            if is_added:
-                constraint_collection.signalChange(
-                    "new_code",
-                    imported_module.getSourceReference(),
-                    "Recursed to module package."
-                )
-
-        if self.package:
-            from nuitka.ModuleRegistry import addUsedModule
-
-            addUsedModule( self.package )
-
-#            print "Recursed to package", self.package_name
-            self.package.attemptRecursion( constraint_collection )
-
 
 class SingleCreationMixin:
     created = set()
@@ -281,9 +281,9 @@ class PythonMainModule( PythonModule, SingleCreationMixin ):
 
     def getOutputFilename( self ):
         if self.main_added:
-            return Utils.dirname( self.getFilename() )
+            return Utils.dirname(self.getFilename())
         else:
-            return PythonModule.getOutputFilename( self )
+            return PythonModule.getOutputFilename(self)
 
 
 class PythonInternalModule( PythonModule, SingleCreationMixin ):
@@ -328,11 +328,14 @@ class PythonPackage( PythonModule ):
         return Utils.dirname( self.getFilename() )
 
 
-class PythonShlibModule( PythonModuleMixin, NodeBase ):
+class PythonShlibModule(PythonModuleMixin, NodeBase):
     kind = "PYTHON_SHLIB_MODULE"
 
-    def __init__( self, name, package_name, source_ref ):
-        NodeBase.__init__( self, source_ref )
+    def __init__(self, name, package_name, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         PythonModuleMixin.__init__(
             self,
@@ -342,12 +345,12 @@ class PythonShlibModule( PythonModuleMixin, NodeBase ):
 
     def getDetails( self ):
         return {
-            "name": self.name,
+            "name"         : self.name,
             "package_name" : self.package_name
         }
 
     def getFilename( self ):
         return self.getSourceReference().getFilename()
 
-    def startTraversal( self ):
+    def startTraversal(self):
         pass
