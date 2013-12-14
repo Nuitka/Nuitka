@@ -51,6 +51,7 @@ binary_python_path = hasArg("binary_python_path")
 trace_command      = hasArg("trace_command")
 remove_output      = hasArg("remove_output")
 standalone_mode    = hasArg("standalone")
+no_site            = hasArg("no_site")
 
 assert not standalone_mode or not module_mode
 
@@ -102,6 +103,9 @@ else:
         filename
     ]
 
+if no_site:
+    cpython_cmd.insert(1,"-S")
+
 if "NUITKA" in os.environ:
     nuitka_call = [os.environ["NUITKA"]]
 else:
@@ -142,6 +146,10 @@ if not two_step_execution:
     else:
         nuitka_cmd = nuitka_call + extra_options.split() + \
           ["--execute", filename]
+
+    if no_site:
+        nuitka_cmd.insert(len(nuitka_cmd)-1,"--python-flag=-S")
+
 else:
     if module_mode:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
@@ -152,6 +160,10 @@ else:
     else:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
           [filename]
+
+    if no_site:
+        nuitka_cmd1.insert(len(nuitka_cmd1)-1,"--python-flag=-S")
+
 
 dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_options)
 
