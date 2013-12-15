@@ -560,9 +560,7 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
 
         new_node, change_tags, change_desc = r
 
-        if new_node is not expression:
-            expression.replaceWith( new_node )
-
+        if change_tags is not None:
             # This is mostly for tracing and indication that a change occured
             # and it may be interesting to look again.
             self.signalChange(
@@ -570,6 +568,9 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
                 expression.getSourceReference(),
                 change_desc
             )
+
+        if new_node is not expression:
+            expression.replaceWith(new_node)
 
         if new_node.isExpressionVariableRef():
             # OLD:

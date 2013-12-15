@@ -20,13 +20,16 @@
 """
 
 
-from .NodeBases import ExpressionChildrenHavingBase, SideEffectsFromChildrenMixin
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    SideEffectsFromChildrenMixin
+)
 
 from nuitka import Constants
 
-class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
-                                  ExpressionChildrenHavingBase ):
-    named_children = ( "elements", )
+class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
+                                ExpressionChildrenHavingBase):
+    named_children = ("elements",)
 
     def __init__( self, sequence_kind, elements, source_ref ):
         assert sequence_kind in ( "TUPLE", "LIST", "SET" ), sequence_kind
@@ -117,10 +120,10 @@ class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
         return self.getIterationLength() > 0
 
 
-class ExpressionMakeTuple( ExpressionMakeSequenceBase ):
+class ExpressionMakeTuple(ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_TUPLE"
 
-    def __init__( self, elements, source_ref ):
+    def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "TUPLE",
@@ -128,14 +131,14 @@ class ExpressionMakeTuple( ExpressionMakeSequenceBase ):
             source_ref    = source_ref
         )
 
-    def getSimulator( self ):
+    def getSimulator(self):
         return tuple
 
 
-class ExpressionMakeList( ExpressionMakeSequenceBase ):
+class ExpressionMakeList(ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_LIST"
 
-    def __init__( self, elements, source_ref ):
+    def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "LIST",
@@ -143,14 +146,25 @@ class ExpressionMakeList( ExpressionMakeSequenceBase ):
             source_ref    = source_ref
         )
 
-    def getSimulator( self ):
+    def getSimulator(self):
         return list
 
+    def computeExpressionIter1(self, iter_node, constraint_collection):
+        result = ExpressionMakeTuple(
+            elements   = self.getElements(),
+            source_ref = self.source_ref
+        )
 
-class ExpressionMakeSet( ExpressionMakeSequenceBase ):
+        self.replaceWith(result)
+
+        return iter_node, "new_expression", """\
+Iteration of list reduced to tuple."""
+
+
+class ExpressionMakeSet(ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_SET"
 
-    def __init__( self, elements, source_ref ):
+    def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "SET",
@@ -161,9 +175,20 @@ class ExpressionMakeSet( ExpressionMakeSequenceBase ):
     def getSimulator( self ):
         return set
 
+    def computeExpressionIter1(self, iter_node, constraint_collection):
+        result = ExpressionMakeTuple(
+            elements   = self.getElements(),
+            source_ref = self.source_ref
+        )
 
-class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
-                              ExpressionChildrenHavingBase ):
+        self.replaceWith(result)
+
+        return iter_node, "new_expression", """\
+Iteration of set reduced to tuple."""
+
+
+class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
+                            ExpressionChildrenHavingBase):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
     named_children = ( "key", "value" )
@@ -185,12 +210,12 @@ class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
         # Children can tell all we need to know, pylint: disable=W0613
         key = self.getKey()
 
-        if key.willRaiseException( BaseException ):
+        if key.willRaiseException(BaseException):
             return key, "new_raise", "Dictionary key raises exception"
 
         value = self.getValue()
 
-        if value.willRaiseException( BaseException ):
+        if value.willRaiseException(BaseException):
             from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
             result = wrapExpressionWithNodeSideEffects(
@@ -203,8 +228,8 @@ class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
         return self, None, None
 
 
-class ExpressionMakeDict( SideEffectsFromChildrenMixin,
-                          ExpressionChildrenHavingBase ):
+class ExpressionMakeDict(SideEffectsFromChildrenMixin,
+                         ExpressionChildrenHavingBase):
     kind = "EXPRESSION_MAKE_DICT"
 
     named_children = ( "pairs", )
@@ -271,7 +296,8 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
             node     = self
         )
 
-        return new_node, "new_constant", "Created dictionary found to be constant."
+        return new_node, "new_constant", """\
+Created dictionary found to be constant."""
 
     def mayHaveSideEffectsBool( self ):
         return False
@@ -297,8 +323,7 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
         # pylint: disable=R0201
         return True
 
-    def isMappingWithConstantStringKeys( self ):
-
+    def isMappingWithConstantStringKeys(self):
         for pair in self.getPairs():
             key = pair.getKey()
 
@@ -307,8 +332,23 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
         else:
             return True
 
-    def getMappingStringKeyPairs( self ):
-        return [ ( pair.getKey().getConstant(), pair.getValue() ) for pair in self.getPairs() ]
+    def getMappingStringKeyPairs(self):
+        return [
+            (
+                pair.getKey().getConstant(),
+                pair.getValue()
+            )
+            for pair in
+            self.getPairs()
+        ]
 
-    def getMappingPairs( self ):
+    def getMappingPairs(self):
         return self.getPairs()
+
+    # TODO: Missing computeExpressionIter1 here. For now it would require us to
+    # add lots of temporary variables for keys, which then becomes the tuple,
+    # but for as long as we don't have efficient forward propagation of these,
+    # we won't do that. Otherwise we loose execution order of values with them
+    # remaining as side effects. We could limit ourselves to cases where
+    # isMappingWithConstantStringKeys is true, or keys had no side effects, but
+    # that feels wasted effort as we are going to have full propagation.

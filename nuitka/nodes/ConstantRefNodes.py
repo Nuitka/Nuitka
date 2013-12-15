@@ -38,10 +38,10 @@ from nuitka.__past__ import iterItems, unicode
 
 from logging import warning
 
-class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
+class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
     kind = "EXPRESSION_CONSTANT_REF"
 
-    def __init__( self, constant, source_ref, user_provided = False ):
+    def __init__(self, constant, source_ref, user_provided = False):
         NodeBase.__init__( self, source_ref = source_ref )
         CompileTimeConstantExpressionMixin.__init__( self )
 
@@ -259,3 +259,18 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
                 constant   = str( self.constant ),
                 source_ref = self.getSourceReference()
             )
+
+    def computeExpressionIter1(self, iter_node, constraint_collection):
+        if type(self.constant) in (list,set,frozenset,dict):
+            result = ExpressionConstantRef(
+                constant      = tuple(self.constant),
+                user_provided = self.user_provided,
+                source_ref    = self.getSourceReference()
+            )
+
+            self.replaceWith(result)
+
+            return iter_node, "new_constant", """
+Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
+
+        return iter_node, None, None

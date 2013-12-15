@@ -978,9 +978,14 @@ class ExpressionMixin:
         return lookup_node, None, None
 
     def computeExpressionCall( self, call_node, constraint_collection ):
-        call_node.getCalled().onContentEscapes( constraint_collection )
+        call_node.getCalled().onContentEscapes(constraint_collection)
 
         return call_node, None, None
+
+    def computeExpressionIter1(self, iter_node, constraint_collection):
+        iter_node.getValue().onContentEscapes(constraint_collection)
+
+        return iter_node, None, None
 
     def computeExpressionOperationNot( self, not_node, constraint_collection ):
         constraint_collection.removeKnowledge( not_node )

@@ -44,7 +44,8 @@ class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
     def computeExpression( self, constraint_collection ):
         from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithNodeSideEffects
 
-        new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.computeExpression(
+        new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.\
+          computeExpression(
             self,
             constraint_collection = constraint_collection
         )
@@ -61,7 +62,7 @@ class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
                     old_node = self.getValue()
                 )
 
-                if new_node.isExpressionSideEffects(): # false alarm pylint: disable=E1101
+                if new_node.isExpressionSideEffects(): # false alarm pylint: disable=E1103
                     change_desc += " maintaining side effects"
 
         return new_node, change_tags, change_desc
@@ -73,10 +74,14 @@ class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
     def computeExpression( self, constraint_collection ):
         value = self.getValue()
 
+        # Iterator of an iterator can be removed.
         if value.isIteratorMaking():
-            return value, "new_builtin", "Eliminated useless iterator creation"
-        else:
-            return self, None, None
+            return value, "new_builtin", "Eliminated useless iterator creation."
+
+        return value.computeExpressionIter1(
+            iter_node             = self,
+            constraint_collection = constraint_collection
+        )
 
     def isIteratorMaking( self ):
         return True

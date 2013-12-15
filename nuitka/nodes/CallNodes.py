@@ -59,16 +59,16 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
     def computeExpression( self, constraint_collection ):
         called = self.getCalled()
 
-        if called.willRaiseException( BaseException ):
+        if called.willRaiseException(BaseException):
             return called, "new_raise", "Called expression raises exception"
 
         args = self.getCallArgs()
 
         from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
-        if args.willRaiseException( BaseException ):
+        if args.willRaiseException(BaseException):
             result = wrapExpressionWithSideEffects(
-                side_effects = ( called, ),
+                side_effects = (called,),
                 old_node     = self,
                 new_node     = args
             )
@@ -79,7 +79,7 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
 
         if kw.willRaiseException( BaseException ):
             result = wrapExpressionWithSideEffects(
-                side_effects = ( called, args ),
+                side_effects = (called, args),
                 old_node     = self,
                 new_node     = kw
             )
