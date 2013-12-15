@@ -2679,13 +2679,6 @@ This an area where to drop random ideas on our minds, to later sort it out, and
 out it into action, which could be code changes, plan changes, issues created,
 etc.
 
-* The conditional expression needs to be handled like conditional statement for
-  propagation.
-
-  We branch conditional statements for value propagation, and we likely need to
-  do the same for conditional expressions too. May apply to ``or`` as well, and
-  ``and``, because there also only conditionally code is executed.
-
 * Make "SELECT_METACLASS" meta class selection transparent.
 
   Looking at the "SELECT_METACLASS" it should become an anonymous helper

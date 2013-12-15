@@ -776,9 +776,7 @@ class ConstraintCollectionHandler( ConstraintCollectionBase ):
 
 
 class ConstraintCollectionBranch( ConstraintCollectionBase ):
-    def __init__( self, parent, branch ):
-        assert branch.isStatementsSequence(), branch
-
+    def __init__(self, parent, branch):
         ConstraintCollectionBase.__init__(
             self,
             parent = parent
@@ -786,10 +784,16 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
 
         self.variable_actives = dict( parent.variable_actives )
 
-        result = self.onStatementsSequence( branch )
+        if branch.isStatementsSequence():
+            result = self.onStatementsSequence(branch)
 
-        if result is not branch:
-            branch.replaceWith( result )
+            if result is not branch:
+                branch.replaceWith(result)
+        else:
+            self.onExpression(
+                expression = branch
+            )
+
 
     def mergeBranches( self, collection_yes, collection_no ):
         # Branches in branches, should ask parent about merging them.

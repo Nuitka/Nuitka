@@ -59,17 +59,79 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
         "condition"
     )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpressionRaw( self, constraint_collection ):
         # Children can tell all we need to know, pylint: disable=W0613
+
+        # Query the truth value after the expression is evaluated, once it is
+        # evaluated in onExpression, it is known.
+        constraint_collection.onExpression(
+            expression = self.getCondition()
+        )
         condition = self.getCondition()
+
+        # No need to look any further, if the condition raises, the branches do
+        # not matter at all.
+        if condition.willRaiseException(BaseException):
+            return condition, "new_raise", """\
+Conditional statements already raises implicitely in condition, removing \
+branches."""
+
 
         # If the condition raises, we let that escape.
         if condition.willRaiseException(BaseException):
             return condition, "new_raise", """\
 Conditional expression raises in condition."""
 
+        from nuitka.optimizations.ConstraintCollections import \
+            ConstraintCollectionBranch
+
         # Decide this based on truth value of condition.
         truth_value = condition.getTruthValue()
+
+        # TODO: We now know that condition evaluates to true for the yes branch
+        # and to not true for no branch, the branch should know that.
+        yes_branch = self.getExpressionYes()
+
+        # Continue to execute for yes branch unless we know it's not going to be
+        # relevant.
+        if truth_value is not False:
+            branch_yes_collection = ConstraintCollectionBranch(
+                parent = constraint_collection,
+                branch = yes_branch
+            )
+
+            # May have just gone away, so fetch it again.
+            yes_branch = self.getExpressionYes()
+
+            # If it's aborting, it doesn't contribute to merging.
+            if yes_branch.willRaiseException(BaseException):
+                branch_yes_collection = None
+        else:
+            branch_yes_collection = None
+
+        no_branch = self.getExpressionNo()
+
+        # Continue to execute for yes branch.
+        if truth_value is not True:
+            branch_no_collection = ConstraintCollectionBranch(
+                parent = constraint_collection,
+                branch = no_branch
+            )
+
+            # May have just gone away, so fetch it again.
+            no_branch = self.getExpressionNo()
+
+            # If it's aborting, it doesn't contribute to merging.
+            if no_branch.willRaiseException(BaseException):
+                branch_no_collection = None
+        else:
+            branch_no_collection = None
+
+        # Merge into parent execution.
+        constraint_collection.mergeBranches(
+            branch_yes_collection,
+            branch_no_collection
+        )
 
         if truth_value is True:
             from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
@@ -176,7 +238,7 @@ class StatementConditional( StatementChildrenHavingBase ):
 
             return result, "new_raise", """\
 Conditional statements already raises implicitely in condition, removing \
-branches"""
+branches."""
 
         from nuitka.optimizations.ConstraintCollections import \
             ConstraintCollectionBranch
