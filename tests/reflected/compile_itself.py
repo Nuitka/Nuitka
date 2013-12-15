@@ -141,7 +141,10 @@ def executePASS1():
                 os.unlink( path )
 
         for filename in sorted( os.listdir( source_dir ) ):
-            if not filename.endswith( ".py" ):
+            if not filename.endswith(".py"):
+                continue
+
+            if filename.startswith(".#"):
                 continue
 
             path = os.path.join( source_dir, filename )
@@ -219,7 +222,10 @@ def compileAndCompareWith( nuitka ):
         source_dir = os.path.join( base_dir, package )
 
         for filename in sorted( os.listdir( source_dir ) ):
-            if not filename.endswith( ".py" ):
+            if not filename.endswith(".py"):
+                continue
+
+            if filename.startswith(".#"):
                 continue
 
             path = os.path.join( source_dir, filename )
