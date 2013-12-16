@@ -2688,33 +2688,6 @@ etc.
   This of course makes most sense, if we have the optimizations in place that
   will allow this to actually happen.
 
-* Accesses to list constants sometimes chould become tuple constants.
-
-  .. code-block:: python
-
-     for x in [ 1, 2, 7 ]:
-        something( x )
-
-  Should be optimized into this:
-
-  .. code-block:: python
-
-     for x in ( 1, 2, 7 ):
-        something( x )
-
-  Otherwise, code generation suffers from assuming the list may be mutated and
-  is making a copy before using it. Instead, it would be needed to track, if
-  that list becomes writable, and if it's used as a list.
-
-  .. code-block:: python
-
-     # Examples, where lists need to be maintained, even if not written to
-     print [ 1,2 ]
-     print type( [ 1,2 ] )
-
-  The best approach is probably to track down ``in`` and other potential users,
-  that don't use the list nature and just convert then.
-
 * Keeping track of iterations
 
   The constraint collection trace should become the place, where variables or
@@ -2983,6 +2956,9 @@ etc.
 
   If the "caller" or the "called" can declare that it cannot be called by
   itself, we could leave it out.
+
+  TODO: Are they really that expensive? Unnecessary yes, but expensive may not
+  be true.
 
 * References
 
