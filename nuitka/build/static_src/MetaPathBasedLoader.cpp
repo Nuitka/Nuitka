@@ -148,7 +148,11 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     GetFullPathName( filename, sizeof( abs_filename ), abs_filename, &unused );
 
     HINSTANCE hDLL = LoadLibraryEx( abs_filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH );
-    assert( hDLL );
+    if (unlikely( hDLL == NULL ))
+    {
+        PyErr_SetString( PyExc_ImportError, "LoadLibraryEx failed" );
+        return NULL;
+    }
 
     entrypoint_t entrypoint = (entrypoint_t)GetProcAddress( hDLL, entry_function_name );
 
@@ -178,7 +182,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
         }
 
         PyErr_SetString( PyExc_ImportError, error );
-        MOD_RETURN_VALUE( NULL );
+        return NULL;
     }
 
     entrypoint_t entrypoint = (entrypoint_t)dlsym(
@@ -232,7 +236,6 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     }
 
 #if PYTHON_VERSION >= 300
-    PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
     PyDict_SetItemString( PyImport_GetModuleDict(), full_name, module );
 #endif
 
@@ -310,7 +313,10 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
                 strcat( filename, ".so" );
 #endif
 
-                callIntoShlibModule( current->name, filename );
+                callIntoShlibModule(
+                    current->name,
+                    filename
+                );
             }
             else
 #endif
@@ -324,14 +330,12 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
                 return NULL;
             }
 
-            PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
-
             if ( Py_VerboseFlag )
             {
                 PySys_WriteStderr( "Loaded %s\n", name );
             }
 
-            return LOOKUP_SUBSCRIPT( sys_modules, module_name );
+            return LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
        }
 
        current++;

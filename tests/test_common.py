@@ -22,8 +22,9 @@ import os, sys, subprocess, tempfile, atexit, shutil, re
 
 # Make sure we flush after every print, the "-u" option does more than that
 # and this is easy enough.
-def my_print( *args, **kwargs ):
-    print( *args, **kwargs )
+def my_print(*args, **kwargs):
+    print(*args, **kwargs)
+
     sys.stdout.flush()
 
 def check_output(*popenargs, **kwargs):
@@ -219,9 +220,28 @@ def getRuntimeTraceOfLoadedFiles( path ):
 
         stdout_strace, stderr_strace = process.communicate()
 
+        open(path+".strace","wb").write(stderr_strace)
+
         for line in stderr_strace.split("\n"):
             if not line:
                 continue
+
+            # Don't consider files not found. The "site" module checks lots
+            # of things.
+            if "ENOENT" in line:
+                continue
+
+            # Allow stats on the python binary, and stuff pointing to the
+            # standard library, just not uses of it. It will search there
+            # for stuff.
+            if line.startswith("lstat(") or line.startswith("stat("):
+                filename = line[line.find("(")+2:line.find(", ")-1]
+
+                if filename in ("/usr", "/usr/bin"):
+                    continue
+
+                if filename == "/usr/bin/python" + python_version[:3]:
+                    continue
 
             result.extend(
                 os.path.abspath(match)
