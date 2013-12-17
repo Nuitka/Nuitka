@@ -2863,6 +2863,10 @@ etc.
   ``RuntimeError`` error, when built-in module values are written to, that we
   don't support.
 
+.. raw:: pdf
+
+   PageBreak
+
 * SSA form for Nuitka nodes
 
   * Assignments collect a counter from the variable, which becomes the variable
@@ -3003,8 +3007,6 @@ etc.
   The outline functions would not be considered closure takers, nor closure
   givers. They should be visited when they are used, almost like a statement
   sequences, and returns would define their value.
-
-
 
 .. raw:: pdf
 

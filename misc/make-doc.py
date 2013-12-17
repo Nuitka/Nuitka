@@ -64,7 +64,7 @@ for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
             "document" : document
         },
         shell = True
-    )
+    ), document
 
 
 if os.name != "nt":
