@@ -234,13 +234,18 @@ def getRuntimeTraceOfLoadedFiles( path ):
             # Allow stats on the python binary, and stuff pointing to the
             # standard library, just not uses of it. It will search there
             # for stuff.
-            if line.startswith("lstat(") or line.startswith("stat("):
+            if line.startswith("lstat(") or \
+               line.startswith("stat(") or \
+               line.startswith("readlink("):
                 filename = line[line.find("(")+2:line.find(", ")-1]
 
                 if filename in ("/usr", "/usr/bin"):
                     continue
 
                 if filename == "/usr/bin/python" + python_version[:3]:
+                    continue
+
+                if filename == "/usr/bin/python":
                     continue
 
             result.extend(
