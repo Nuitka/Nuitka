@@ -423,7 +423,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # Standard library stuff that is optional
         "comtypes.server.inprocserver", "_tkinter", "_scproxy", "EasyDialogs",
         "SOCKS", "rourl2path", "_winapi", "win32api", "win32con", "_gestalt",
-        "java.lang", "vms_lib", "ic",
+        "java.lang", "vms_lib", "ic", "readline", "termios", "_sysconfigdata",
     )
 
     # TODO: Turn this into a warning that encourages reporting.
