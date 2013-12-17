@@ -257,8 +257,8 @@ codegen_group.add_option(
     action  = "store_true",
     dest    = "no_optimize",
     default = False,
-    help    = """\
-Disable all unnecessary optimizations on Python level. Defaults to off."""
+    help    = SUPPRESS_HELP
+# """Disable all unnecessary optimizations on Python level. Defaults to off."""
 )
 
 parser.add_option_group( codegen_group )
