@@ -234,6 +234,20 @@ class ExpressionRaiseException( ExpressionChildrenHavingBase ):
     def computeExpression( self, constraint_collection ):
         return self, None, None
 
+    def computeExpressionDrop(self, statement, constraint_collection):
+        from .ExceptionNodes import StatementRaiseExceptionImplicit
+
+        result = StatementRaiseExceptionImplicit(
+            exception_type  = self.getExceptionType(),
+            exception_value = self.getExceptionValue(),
+            exception_trace = None,
+            exception_cause = None,
+            source_ref      = self.getSourceReference()
+        )
+
+        return result, "new_raise", """\
+Propgated implict raise expression to raise statement."""
+
 
 class ExpressionBuiltinMakeException( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"

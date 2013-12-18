@@ -73,9 +73,25 @@ if Utils.python_version >= 300:
         def needsLocalsDict( self ):
             return True
 
-        def computeExpression( self, constraint_collection ):
+        def computeExpression(self, constraint_collection):
             # TODO: Attempt for constant values to do it.
             return self, None, None
+
+        def computeExpressionDrop(self, statement, constraint_collection):
+            if self.getParentVariableProvider().isEarlyClosure():
+                from .ExecEvalNodes import StatementExec
+
+                result = StatementExec(
+                    source_code = self.getSourceCode(),
+                    globals_arg = self.getGlobals(),
+                    locals_arg  = self.getLocals(),
+                    source_ref  = self.getSourceReference()
+                )
+
+                return result, "new_statements", """\
+Replaced builtin exec call to exec statement in early closure context."""
+            else:
+                return statement, None, None
 
 
 # Note: Python2 only
@@ -96,6 +112,27 @@ if Utils.python_version < 300:
 
         def needsLocalsDict( self ):
             return True
+
+        def computeExpressionDrop(self, statement, constraint_collection):
+            # In this case, the copy-back must be done and will only be done
+            # correctly by the code for exec statements.
+            provider = self.getParentVariableProvider()
+
+            if provider.isExpressionFunctionBody() and \
+               provider.isClassDictCreation():
+                from .ExecEvalNodes import StatementExec
+
+                result = StatementExec(
+                    source_code = self.getSourceCode(),
+                    globals_arg = self.getGlobals(),
+                    locals_arg  = self.getLocals(),
+                    source_ref  = self.getSourceReference()
+                )
+
+                return result, "new_statements", """\
+Changed execfile to exec on class level."""
+            else:
+                return statement, None, None
 
 
 # TODO: Find a place for this. Potentially as an attribute of nodes themselves.

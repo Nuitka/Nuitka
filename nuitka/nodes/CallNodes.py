@@ -77,7 +77,7 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
 
         kw = self.getCallKw()
 
-        if kw.willRaiseException( BaseException ):
+        if kw.willRaiseException(BaseException):
             result = wrapExpressionWithSideEffects(
                 side_effects = (called, args),
                 old_node     = self,

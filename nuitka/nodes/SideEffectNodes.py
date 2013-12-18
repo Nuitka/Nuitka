@@ -86,14 +86,25 @@ class ExpressionSideEffects( ExpressionChildrenHavingBase ):
 
         return self, None, None
 
-    def willRaiseException( self, exception_type ):
+    def willRaiseException(self, exception_type):
         for child in self.getVisitableNodes():
-            if child.willRaiseException( exception_type ):
+            if child.willRaiseException(exception_type):
                 return True
         else:
             return False
 
-    def getTruthValue( self ):
-        return None
-
+    def getTruthValue(self):
         return self.getExpression().getTruthValue()
+
+    def computeExpressionDrop(self, statement, constraint_collection):
+        # Side effects can  become statements.
+        from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+        expressions = self.getSideEffects() + (self.getExpression(),)
+
+        result = makeStatementOnlyNodesFromExpressions(
+            expressions = expressions
+        )
+
+        return result, "new_statements", """\
+Turned side effects of expression only statement into statements."""

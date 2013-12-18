@@ -119,6 +119,17 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     def getTruthValue( self ):
         return self.getIterationLength() > 0
 
+    def computeExpressionDrop(self, statement, constraint_collection):
+        from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+        result = makeStatementOnlyNodesFromExpressions(
+            expressions = self.getElements()
+        )
+
+        return result, "new_statements", """\
+Removed sequence creation for unused sequence."""
+
+
 
 class ExpressionMakeTuple(ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_TUPLE"
@@ -352,3 +363,19 @@ Created dictionary found to be constant."""
     # remaining as side effects. We could limit ourselves to cases where
     # isMappingWithConstantStringKeys is true, or keys had no side effects, but
     # that feels wasted effort as we are going to have full propagation.
+
+    def computeExpressionDrop(self, statement, constraint_collection):
+        from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+        expressions = []
+
+        for pair in self.getPairs():
+            expressions.append(pair.getValue())
+            expressions.append(pair.getKey())
+
+        result = makeStatementOnlyNodesFromExpressions(
+            expressions = expressions
+        )
+
+        return result, "new_statements", """\
+Removed sequence creation for unused sequence."""

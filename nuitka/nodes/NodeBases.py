@@ -992,6 +992,12 @@ class ExpressionMixin:
 
         return not_node, None, None
 
+    def computeExpressionDrop(self, statement, constraint_collection):
+        if not self.mayHaveSideEffects():
+            return None, "new_statements", "Removed statement without effect."
+
+        return statement, None, None
+
     def onContentEscapes( self, constraint_collection ):
         pass
 

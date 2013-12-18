@@ -414,7 +414,7 @@ function call""" % self.getName()
             )
 
         except TooManyArguments as e:
-            from nuitka.nodes.NodeMakingHelpers import (
+            from .NodeMakingHelpers import (
                 makeRaiseExceptionReplacementExpressionFromInstance,
                 wrapExpressionWithSideEffects
             )

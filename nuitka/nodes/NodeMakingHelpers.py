@@ -51,7 +51,8 @@ def makeConstantReplacementNode( constant, node ):
         source_ref = node.getSourceReference()
     )
 
-def makeRaiseExceptionReplacementExpression( expression, exception_type, exception_value ):
+def makeRaiseExceptionReplacementExpression(expression, exception_type,
+                                            exception_value):
     source_ref = expression.getSourceReference()
 
     assert type( exception_type ) is str
@@ -76,7 +77,7 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
 
     return result
 
-def makeRaiseExceptionReplacementExpressionFromInstance( expression, exception ):
+def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
     assert isinstance( exception, Exception )
 
     args = exception.args

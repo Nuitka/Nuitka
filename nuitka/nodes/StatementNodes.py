@@ -23,15 +23,15 @@ from .NodeBases import StatementChildrenHavingBase
 
 from nuitka.Utils import python_version
 
-def mergeStatements( statements ):
+def mergeStatements(statements):
     """ Helper function that merges nested statement sequences. """
     merged_statements = []
 
     for statement in statements:
         if statement.isStatement() or statement.isStatementsFrame():
-            merged_statements.append( statement )
+            merged_statements.append(statement)
         elif statement.isStatementsSequence():
-            merged_statements.extend( mergeStatements( statement.getStatements() ) )
+            merged_statements.extend(mergeStatements(statement.getStatements()))
         else:
             assert False, statement
 
@@ -100,7 +100,8 @@ class StatementsSequence( StatementChildrenHavingBase ):
         assert statement_sequence.parent is self
 
         old_statements = list( self.getStatements() )
-        assert statement_sequence in old_statements, ( statement_sequence, self )
+        assert statement_sequence in old_statements, \
+          ( statement_sequence, self )
 
         merge_index =  old_statements.index( statement_sequence )
 
@@ -216,12 +217,12 @@ class StatementsFrame( StatementsSequence ):
         )
 
 
-class StatementExpressionOnly( StatementChildrenHavingBase ):
+class StatementExpressionOnly(StatementChildrenHavingBase):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
-    named_children = ( "expression", )
+    named_children = ("expression",)
 
-    def __init__( self, expression, source_ref ):
+    def __init__(self, expression, source_ref):
         assert expression.isExpression()
 
         StatementChildrenHavingBase.__init__(
@@ -232,75 +233,23 @@ class StatementExpressionOnly( StatementChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def getDetail( self ):
+    def getDetail(self):
         return "expression %s" % self.getExpression()
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         return self.getExpression().mayHaveSideEffects()
 
-    getExpression = StatementChildrenHavingBase.childGetter( "expression" )
+    getExpression = StatementChildrenHavingBase.childGetter(
+        "expression"
+    )
 
-    def computeStatement( self, constraint_collection ):
-        constraint_collection.onExpression( self.getExpression() )
+    def computeStatement(self, constraint_collection):
+        constraint_collection.onExpression(
+            expression = self.getExpression()
+        )
         expression = self.getExpression()
 
-        # Side effects can  become statements.
-        if expression.isExpressionSideEffects():
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = expression.getSideEffects() + \
-                              ( expression.getExpression(), )
-            )
-
-            return result, "new_statements", """\
-Turned side effects of expression only statement into statements."""
-
-        elif not expression.mayHaveSideEffects():
-            return None, "new_statements", "Removed statement without effect."
-
-        elif expression.isExpressionRaiseException():
-            from .ExceptionNodes import StatementRaiseExceptionImplicit
-
-            result = StatementRaiseExceptionImplicit(
-                exception_type  = expression.getExceptionType(),
-                exception_value = expression.getExceptionValue(),
-                exception_trace = None,
-                exception_cause = None,
-                source_ref      = expression.getSourceReference()
-            )
-
-            return result, "new_raise", """\
-Propgated implict raise expression to raise statement."""
-        elif python_version < 300 and expression.isExpressionBuiltinExecfile():
-            # In this case, the copy-back must be done and will only be done
-            # correctly by the code for exec statements.
-            provider = self.getParentVariableProvider()
-
-            if provider.isExpressionFunctionBody() and provider.isClassDictCreation():
-                from .ExecEvalNodes import StatementExec
-
-                result = StatementExec(
-                    source_code = expression.getSourceCode(),
-                    globals_arg = expression.getGlobals(),
-                    locals_arg  = expression.getLocals(),
-                    source_ref  = expression.getSourceReference()
-                )
-
-                return result, "new_statements", """\
-Changed execfile to exec on class level"""
-        elif python_version >= 300 and expression.isExpressionBuiltinExec():
-            if self.getParentVariableProvider().isEarlyClosure():
-                from .ExecEvalNodes import StatementExec
-
-                result = StatementExec(
-                    source_code = expression.getSourceCode(),
-                    globals_arg = expression.getGlobals(),
-                    locals_arg  = expression.getLocals(),
-                    source_ref  = expression.getSourceReference()
-                )
-
-                return result, "new_statements", """\
-Replaced builtin exec call to exec statement in early closure context."""
-
-        return self, None, None
+        return expression.computeExpressionDrop(
+            statement             = self,
+            constraint_collection = constraint_collection
+        )
