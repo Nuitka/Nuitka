@@ -135,6 +135,10 @@ for filename in sorted(os.listdir( "." )):
                loaded_filename.startswith("/lib64/libm."):
                 continue
 
+            if loaded_filename.startswith("/lib/libz.") or \
+               loaded_filename.startswith("/lib64/libz."):
+                continue
+
             if loaded_filename.startswith("/lib/libutil.") or \
                loaded_filename.startswith("/lib64/libutil."):
                 continue
