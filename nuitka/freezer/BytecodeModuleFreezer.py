@@ -27,18 +27,29 @@ needed except for technical reasons.
 """
 
 
-from nuitka import Utils
 from nuitka.codegen import BlobCodes, CodeTemplates
 from nuitka.codegen.Indentation import indented
 
 
 frozen_modules = []
 
-def addFrozenModule( frozen_module ):
+def addFrozenModule(frozen_module):
+    assert not isFrozenModule(frozen_module[0]), frozen_module[0]
+
     frozen_modules.append(frozen_module)
 
 def getFrozenModuleCount():
     return len(frozen_modules)
+
+def isFrozenModule(module_name):
+    for frozen_module in frozen_modules:
+        frozen_module_name, _code_data, _is_package, _filename, _is_late = \
+          frozen_module
+
+        if module_name == frozen_module_name:
+            return True
+    else:
+        return False
 
 stream_data = BlobCodes.StreamData()
 
@@ -46,17 +57,13 @@ def generateBytecodeFrozenCode():
     frozen_defs = []
 
     for frozen_module in frozen_modules:
-        module_name, code_data, is_package = frozen_module
+        module_name, code_data, is_package, _filename, _is_late = frozen_module
 
         size = len(code_data)
 
         # Packages are indicated with negative size.
         if is_package:
             size = -size
-
-        if Utils.python_version >= 300:
-            module_name = module_name.decode()
-
 
         frozen_defs.append(
             """\
@@ -71,6 +78,6 @@ def generateBytecodeFrozenCode():
         )
 
     return CodeTemplates.template_frozen_modules % {
-        "stream_data": "".join(stream_data.encodeStreamData()),
-        "frozen_modules": indented(frozen_defs)
+        "stream_data"       : "".join(stream_data.encodeStreamData()),
+        "frozen_modules"    : indented(frozen_defs)
     }

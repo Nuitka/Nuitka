@@ -46,6 +46,7 @@ from .finalizations import Finalization
 
 from nuitka.freezer.Standalone import (
     detectEarlyImports,
+    detectLateImports,
     detectPythonDLLs
 )
 from nuitka.freezer.BytecodeModuleFreezer import (
@@ -324,7 +325,7 @@ def makeSourceDirectory( main_module ):
             else:
                 target_filename += ".so"
 
-            target_dir = Utils.dirname( target_filename )
+            target_dir = Utils.dirname(target_filename)
 
             if not Utils.isDir( target_dir ):
                 Utils.makePath( target_dir )
@@ -497,7 +498,7 @@ def executeMain( binary_filename, tree, clean_path ):
     else:
         name = main_filename
 
-    name = os.path.abspath( name )
+    name = Utils.abspath(name)
 
     if Options.isWindowsTarget() and os.name != "nt":
         args = ( "/usr/bin/wine", "wine", binary_filename )
@@ -539,8 +540,8 @@ def compileTree( main_module ):
         )
 
         if Options.isStandaloneMode():
-            for early_import in detectEarlyImports():
-                addFrozenModule( early_import )
+            for late_import in detectLateImports():
+                addFrozenModule(late_import)
 
         if getFrozenModuleCount():
             frozen_code = generateBytecodeFrozenCode()
@@ -589,8 +590,14 @@ def main():
     # Inform the importing layer about the main script directory, so it can use
     # it when attempting to follow imports.
     Importing.setMainScriptDirectory(
-        main_dir = os.path.dirname( os.path.abspath( filename ) )
+        main_dir = Utils.dirname(Utils.abspath(filename))
     )
+
+    # Detect to be frozen modules if any, so we can consider to not recurse
+    # to them.
+    if Options.isStandaloneMode():
+        for early_import in detectEarlyImports():
+            addFrozenModule(early_import)
 
     # Turn that source code into a node tree structure.
     try:
@@ -599,7 +606,7 @@ def main():
         )
     except (SyntaxError, IndentationError) as e:
         if Options.isFullCompat() and \
-           e.args[0].startswith( "unknown encoding:" ):
+           e.args[0].startswith("unknown encoding:"):
             if Utils.python_version >= 333 or \
                (
                    Utils.python_version >= 276 and \
@@ -613,10 +620,12 @@ def main():
 
             e.args = (
                 "encoding problem: %s" % complaint,
-                ( e.args[1][0], 1, None, None )
+                (e.args[1][0], 1, None, None)
             )
 
-        sys.exit( SyntaxErrors.formatOutput( e ) )
+        sys.exit(
+            SyntaxErrors.formatOutput(e)
+        )
 
     if Options.shallDumpBuiltTree():
         dumpTree( main_module )
@@ -629,18 +638,20 @@ def main():
 
         # Exit if compilation failed.
         if not result:
-            sys.exit( 1 )
+            sys.exit(1)
 
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
-            shutil.rmtree( getSourceDirectoryPath( main_module ) )
+            shutil.rmtree(
+                getSourceDirectoryPath(main_module)
+            )
 
         if Options.isStandaloneMode():
             binary_filename = options[ "result_name" ] + ".exe"
 
-            standalone_entry_points.append( binary_filename )
+            standalone_entry_points.append(binary_filename)
 
-            for early_dll in detectPythonDLLs( standalone_entry_points ):
+            for early_dll in detectPythonDLLs(standalone_entry_points):
                 shutil.copy(
                     early_dll,
                     Utils.joinpath(

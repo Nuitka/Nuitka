@@ -30,7 +30,6 @@ import marshal
 from nuitka import Utils
 from nuitka.codegen.ConstantCodes import needsPickleInit
 
-
 python_dll_dir_name = "_python"
 
 
@@ -85,32 +84,24 @@ def getDependsExePath():
 
     return depends_exe
 
-def loadCodeObjectData(precompiled_path):
+def loadCodeObjectData(precompiled_filename):
     # Ignoring magic numbers, etc. which we don't have to care for much as
     # CPython already checked them (would have rejected it otherwise).
-    return open(precompiled_path, "rb").read()[8:]
+    return open(precompiled_filename, "rb").read()[8:]
 
+_whitelist_duplicate_imports = (
+    "importlib._bootstrap",
+    "posixpath"
+)
 
-def detectEarlyImports():
-    command = "import encodings.utf_8;"
+module_names = set()
 
-    if Utils.python_version < 300:
-        command += "import encodings.hex_codec;"
+def _detectImports(command,is_late):
+    # print(command)
 
-    # When we are using pickle internally (for some hard constant cases we do),
-    # we need to make sure it will be available as well.
-    if needsPickleInit():
-        command += "import {pickle};".format(
-            pickle = "pickle" if Utils.python_version >= 300 else "cPickle"
-        )
-
-    # For Python3 we patch inspect without knowing if it is used.
+    # Print statements for stuff to show, the modules loaded.
     if Utils.python_version >= 300:
-        command += "import inspect;"
-
-    # Print statements for stuff to show.
-    if Utils.python_version >= 300:
-        command += r'import sys; print("\n".join(sorted("import " + module.__name__ + " # sourcefile " + module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301  lint:ok
+        command += r'import sys; print("\n".join(sorted("import " + module.__name__ + " # sourcefile " + module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301
 
     process = subprocess.Popen(
         args   = [sys.executable, "-s", "-S", "-v", "-c", command],
@@ -122,7 +113,7 @@ def detectEarlyImports():
 
     result = []
 
-    debug("Detecting early imports:")
+    debug("Detecting imports:")
 
     # bug of PyLint, pylint: disable=E1103
     for line in stderr.replace(b"\r", b"").split(b"\n"):
@@ -139,6 +130,13 @@ def detectEarlyImports():
                 # chance to do anything, we need to preserve it.
                 filename = parts[1][len(b"precompiled from "):]
 
+                if Utils.python_version >= 300:
+                    module_name = module_name.decode("utf-8")
+                    filename = filename.decode("utf-8")
+
+                if is_late and module_name in module_names:
+                    continue
+
                 debug(
                     "Freezing module '%s' (from '%s').",
                     module_name,
@@ -148,24 +146,40 @@ def detectEarlyImports():
                 result.append(
                     (
                         module_name,
-                        loadCodeObjectData( filename ),
-                        b"__init__" in filename
-                    )
+                        loadCodeObjectData(
+                            precompiled_filename = filename
+                        ),
+                        "__init__" in filename,
+                        filename,
+                        is_late
+                    ),
                 )
 
+                module_names.add(module_name)
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
+
+                source_code = open(filename,"rb").read()
+
+                if Utils.python_version >= 300:
+                    source_code = source_code.decode("utf-8")
+                    module_name = module_name.decode("utf-8")
+                    filename = filename.decode("utf-8")
+
+                if is_late and module_name in module_names:
+                    continue
+
+                # Known bad case, twice imported in Python3 during early
+                # imports. We cannot really say what it is.
+                if module_name in _whitelist_duplicate_imports and \
+                   module_name in module_names:
+                    continue
 
                 debug(
                     "Freezing module '%s' (from '%s').",
                     module_name,
                     filename
                 )
-
-                source_code = open(filename,"rb").read()
-
-                if Utils.python_version >= 300:
-                    source_code = source_code.decode( "utf-8" )
 
                 result.append(
                     (
@@ -173,10 +187,47 @@ def detectEarlyImports():
                         marshal.dumps(
                             compile(source_code, filename, "exec")
                         ),
-                        Utils.basename(filename) == b"__init__.py"
+                        Utils.basename(filename) == "__init__.py",
+                        filename,
+                        is_late
                     )
                 )
 
+                module_names.add(module_name)
+
+    return result
+
+def detectLateImports():
+    command = ""
+    # When we are using pickle internally (for some hard constant cases we do),
+    # we need to make sure it will be available as well.
+    if needsPickleInit():
+        command += "import {pickle};".format(
+            pickle = "pickle" if Utils.python_version >= 300 else "cPickle"
+        )
+
+    # For Python3 we patch inspect without knowing if it is used.
+    if Utils.python_version >= 300:
+        command += "import inspect;"
+
+    if command:
+        result = _detectImports(command,True)
+
+        debug("Finished detecting late imports.")
+
+        return result
+    else:
+        return ""
+
+
+def detectEarlyImports():
+    command = "import encodings.utf_8;"
+
+    # String method hex depends on it.
+    if Utils.python_version < 300:
+        command += "import encodings.hex_codec;"
+
+    result = _detectImports(command,False)
     debug("Finished detecting early imports.")
 
     return result

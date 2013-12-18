@@ -22,6 +22,7 @@
 from nuitka import Options, Utils, Importing, ModuleRegistry
 from nuitka.nodes.ModuleNodes import PythonPackage
 from nuitka.SourceCodeReferences import SourceCodeReference
+from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
 
 from . import ImportCache, Building
 
@@ -105,12 +106,15 @@ def decideRecursion( module_filename, module_name, module_package,
         else:
             return False, "Shared library cannot be inspected."
 
-    no_case_modules = Options.getShallFollowInNoCase()
-
     if module_package is None:
         full_name = module_name
     else:
         full_name = module_package + "." + module_name
+
+    if isFrozenModule(full_name):
+        return False, "Module is frozen."
+
+    no_case_modules = Options.getShallFollowInNoCase()
 
     for no_case_module in no_case_modules:
         if full_name == no_case_module:
