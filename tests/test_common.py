@@ -245,7 +245,8 @@ def getRuntimeTraceOfLoadedFiles( path ):
                 if filename == "/usr/bin/python" + python_version[:3]:
                     continue
 
-                if filename == "/usr/bin/python":
+                if filename in ("/usr/bin/python", "/usr/bin/python2",
+                                "/usr/bin/python3"):
                     continue
 
             result.extend(
