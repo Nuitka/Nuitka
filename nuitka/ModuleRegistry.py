@@ -28,8 +28,8 @@ from nuitka.oset import OrderedSet
 
 root_modules = OrderedSet()
 
-def addRootModule( module ):
-    root_modules.add( module )
+def addRootModule(module):
+    root_modules.add(module)
 
 def getRootModules():
     return root_modules
@@ -42,7 +42,7 @@ def startTraversal():
     # pylint: disable=W0603
     global active_modules, done_modules
 
-    active_modules = OrderedSet( root_modules )
+    active_modules = OrderedSet(root_modules)
     done_modules = OrderedSet()
 
     for active_module in active_modules:

@@ -89,11 +89,6 @@ def loadCodeObjectData(precompiled_filename):
     # CPython already checked them (would have rejected it otherwise).
     return open(precompiled_filename, "rb").read()[8:]
 
-_whitelist_duplicate_imports = (
-    "importlib._bootstrap",
-    "posixpath"
-)
-
 module_names = set()
 
 def _detectImports(command,is_late):
@@ -125,16 +120,18 @@ def _detectImports(command,is_late):
             module_name = parts[0].split(b" ", 2)[1]
             origin = parts[1].split()[0]
 
+            if Utils.python_version >= 300:
+                module_name = module_name.decode("utf-8")
+
             if origin == b"precompiled":
                 # This is a ".pyc" file that was imported, even before we have a
                 # chance to do anything, we need to preserve it.
                 filename = parts[1][len(b"precompiled from "):]
 
                 if Utils.python_version >= 300:
-                    module_name = module_name.decode("utf-8")
                     filename = filename.decode("utf-8")
 
-                if is_late and module_name in module_names:
+                if module_name in module_names:
                     continue
 
                 debug(
@@ -163,16 +160,9 @@ def _detectImports(command,is_late):
 
                 if Utils.python_version >= 300:
                     source_code = source_code.decode("utf-8")
-                    module_name = module_name.decode("utf-8")
                     filename = filename.decode("utf-8")
 
-                if is_late and module_name in module_names:
-                    continue
-
-                # Known bad case, twice imported in Python3 during early
-                # imports. We cannot really say what it is.
-                if module_name in _whitelist_duplicate_imports and \
-                   module_name in module_names:
+                if module_name in module_names:
                     continue
 
                 debug(
@@ -192,6 +182,41 @@ def _detectImports(command,is_late):
                         is_late
                     )
                 )
+
+                module_names.add(module_name)
+            elif origin == b"dynamically":
+                # Shared library in early load, happens on RPM based systems and
+                # or self compiled Python installations.
+                filename = parts[1][len(b"dynamically loaded from "):]
+
+                if Utils.python_version >= 300:
+                    filename = filename.decode("utf-8")
+
+                parts = module_name.split(".")
+                if len(parts) == 1:
+                    package_name = None
+                    name = module_name
+                else:
+                    package_name = ".".join(parts[:-1])
+                    name = parts[-1]
+
+                from nuitka.nodes.FutureSpecs import FutureSpec
+                from nuitka.nodes.ModuleNodes import PythonShlibModule
+                from nuitka import SourceCodeReferences
+
+                source_ref = SourceCodeReferences.fromFilename(
+                    filename    = filename,
+                    future_spec = FutureSpec()
+                )
+                shlib_module = PythonShlibModule(
+                    package_name = package_name,
+                    name         = name,
+                    source_ref   = source_ref
+                )
+
+                from nuitka import ModuleRegistry
+
+                ModuleRegistry.addRootModule(shlib_module)
 
                 module_names.add(module_name)
 
