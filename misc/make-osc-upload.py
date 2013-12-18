@@ -26,6 +26,12 @@ branch_name = subprocess.check_output( "git name-rev --name-only HEAD".split() )
 
 assert branch_name in ( b"master", b"develop", b"release/" + nuitka_version, b"hotfix/" + nuitka_version ), branch_name
 
+shutil.rmtree( "dist", ignore_errors = True )
+shutil.rmtree( "build", ignore_errors = True )
+
+assert 0 == os.system( "misc/make-doc.py" )
+assert 0 == os.system( "python setup.py sdist --formats=gztar" )
+
 # Upload stable releases to OpenSUSE Build Service:
 if branch_name.startswith( "release" ) or \
    branch_name.startswith( "hotfix" ) or \
@@ -38,7 +44,7 @@ if branch_name.startswith( "release" ) or \
 
     # Cleanup the osc directory.
     shutil.rmtree( "osc", ignore_errors = True )
-elif branch_name == "develop":
+elif branch_name == "develop" or branch_name == "factory":
     # Cleanup the osc directory.
     shutil.rmtree( "osc", ignore_errors = True )
 
