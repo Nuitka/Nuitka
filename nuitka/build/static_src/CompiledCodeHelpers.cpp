@@ -1933,6 +1933,41 @@ char *getBinaryDirectory()
 extern struct _frozen Embedded_FrozenModules[];
 #endif
 
+#if _NUITKA_STANDALONE
+extern PyObject *const_str_plain___file__;
+
+void setEarlyFrozenModulesFileAttribute( void )
+{
+    Py_ssize_t ppos = 0;
+    PyObject *key, *value;
+
+    char buffer[4096];
+    strcpy(buffer,getBinaryDirectory());
+    char *w = buffer + strlen(buffer);
+    *w++ = SEP;
+    strcpy(w,"not_present.py");
+
+#if PYTHON_VERSION >= 300
+    PyObject *file_value = PyUnicode_FromString(buffer);
+#else
+    PyObject *file_value = PyString_FromString(buffer);
+#endif
+
+    while( PyDict_Next( PyImport_GetModuleDict(), &ppos, &key, &value ) )
+    {
+        if ( key != NULL )
+        {
+            if ( !PyObject_HasAttr( value, const_str_plain___file__ ) )
+            {
+                PyObject_SetAttr( value, const_str_plain___file__, file_value );
+            }
+        }
+    }
+
+    assert(!ERROR_OCCURED());
+}
+#endif
+
 void prepareStandaloneEnvironment()
 {
     // Tell the CPython library to use our precompiled modules as frozen

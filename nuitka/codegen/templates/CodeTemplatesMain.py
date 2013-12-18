@@ -159,6 +159,10 @@ int main( int argc, char *argv[] )
         assert ( _Py_Ticker >= 20 );
     }
 
+#if _NUITKA_STANDALONE
+    setEarlyFrozenModulesFileAttribute();
+#endif
+
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
 
@@ -485,5 +489,4 @@ struct _frozen Embedded_FrozenModules[] =
 %(frozen_modules)s
     { NULL, NULL, 0 }
 };
-
 """

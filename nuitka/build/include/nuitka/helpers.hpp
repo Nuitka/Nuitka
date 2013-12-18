@@ -1099,6 +1099,10 @@ extern void prepareStandaloneEnvironment();
 extern char *getBinaryDirectory();
 #endif
 
+#if _NUITKA_STANDALONE
+extern void setEarlyFrozenModulesFileAttribute( void );
+#endif
+
 #include <nuitka/threading.hpp>
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE( PyObject **elements, Py_ssize_t size )
