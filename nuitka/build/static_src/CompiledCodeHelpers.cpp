@@ -1059,6 +1059,19 @@ PyObject *UNSTREAM_FLOAT( unsigned char const *buffer )
     return result;
 }
 
+#if PYTHON_VERSION >= 300
+PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size )
+{
+    PyObject *result = PyBytes_FromStringAndSize( (char const  *)buffer, size );
+    assert( !ERROR_OCCURED() );
+    assertObject( result );
+
+    assert( PyBytes_GET_SIZE( result ) == size );
+    return result;
+}
+#endif
+
+
 #if PYTHON_VERSION < 300
 
 static void set_slot( PyObject **slot, PyObject *value )

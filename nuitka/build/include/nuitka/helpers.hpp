@@ -966,6 +966,8 @@ extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size
 extern PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern );
 #if PYTHON_VERSION < 300
 extern PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size );
+#else
+extern PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size );
 #endif
 extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
 
