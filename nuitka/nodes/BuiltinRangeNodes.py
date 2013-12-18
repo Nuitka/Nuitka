@@ -17,9 +17,9 @@
 #
 """ Node the calls to the 'range' builtin.
 
-This is a rather complex beast as it has many cases, is difficult to know if it's sizable
-enough to compute, and there are complex cases, where the bad result of it can be
-predicted still, and these are interesting for warnings.
+This is a rather complex beast as it has many cases, is difficult to know if
+it's sizable enough to compute, and there are complex cases, where the bad
+result of it can be predicted still, and these are interesting for warnings.
 
 """
 
@@ -96,6 +96,8 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
 
     getLow = ExpressionChildrenHavingBase.childGetter( "low" )
 
+    builtin_spec = BuiltinOptimization.builtin_range_spec
+
     def computeExpression( self, constraint_collection ):
         # Children can tell all we need to know, pylint: disable=W0613
 
@@ -105,14 +107,18 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
 
         given_values = ( self.getLow(), )
 
-        if not BuiltinOptimization.builtin_range_spec.isCompileTimeComputable( given_values ):
+        if not BuiltinOptimization.builtin_range_spec.isCompileTimeComputable(
+            given_values
+        ):
             return self, None, None
 
         from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
             node        = self,
-            computation = lambda : BuiltinOptimization.builtin_range_spec.simulateCall( given_values ),
+            computation = lambda : self.builtin_spec.simulateCall(
+                given_values
+            ),
             description = "Builtin call to range precomputed."
         )
 
@@ -138,8 +144,8 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
 
         from .NodeMakingHelpers import makeConstantReplacementNode
 
-        # TODO: Make sure to cast element_index to what CPython will give, for now a
-        # downcast will do.
+        # TODO: Make sure to cast element_index to what CPython will give, for
+        # now a downcast will do.
         return makeConstantReplacementNode(
             constant = int( element_index ),
             node     = self
@@ -179,8 +185,12 @@ class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
 
         return getComputationResult(
             node        = self,
-            computation = lambda : self.builtin_spec.simulateCall( given_values ),
-            description = "Builtin call to %s precomputed." % self.builtin_spec.getName()
+            computation = lambda : self.builtin_spec.simulateCall(
+                given_values
+            ),
+            description = "Builtin call to %s precomputed." % (
+                self.builtin_spec.getName()
+            )
         )
 
     def computeExpression( self, constraint_collection ):
@@ -275,8 +285,12 @@ class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
 
         return getComputationResult(
             node        = self,
-            computation = lambda : self.builtin_spec.simulateCall( given_values ),
-            description = "Builtin call to %s precomputed." % self.builtin_spec.getName()
+            computation = lambda : self.builtin_spec.simulateCall(
+                given_values
+            ),
+            description = "Builtin call to %s precomputed." % (
+                self.builtin_spec.getName()
+            )
         )
 
     def computeExpression( self, constraint_collection ):
