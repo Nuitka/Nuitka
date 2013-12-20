@@ -629,6 +629,28 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 #endif
 }
 
+#if PYTHON_VERSION < 300
+extern PyObject *const_str_plain_xrange;
+
+static PythonBuiltin _python_builtin_xrange( &const_str_plain_xrange );
+
+PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step )
+{
+    if ( step != NULL )
+    {
+        return _python_builtin_xrange.call3( low, high, step );
+    }
+    else if ( high != NULL )
+    {
+        return _python_builtin_xrange.call2( low, high );
+    }
+    else
+    {
+        return _python_builtin_xrange.call1( low );
+    }
+}
+#endif
+
 PyObject *BUILTIN_LEN( PyObject *value )
 {
     assertObject( value );

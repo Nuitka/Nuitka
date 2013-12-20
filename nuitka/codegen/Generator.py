@@ -1573,6 +1573,22 @@ def getBuiltinRange3Code( order_relevance, low, high, step, context ):
         context         = context
     )
 
+def getBuiltinXrangeCode( order_relevance, low, high, step, context ):
+    return getOrderRelevanceEnforcedArgsCode(
+        helper          = "BUILTIN_XRANGE",
+        export_ref      = 0,
+        ref_count       = 1,
+        tmp_scope       = "xrange",
+        order_relevance = order_relevance,
+        args            = (
+            low,
+            defaultToNullIdentifier( high ),
+            defaultToNullIdentifier( step )
+        ),
+        context         = context
+    )
+
+
 def getBuiltinChrCode( value ):
     return HelperCallIdentifier( "BUILTIN_CHR", value )
 

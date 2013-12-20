@@ -166,6 +166,12 @@ def _getConstantDefaultPopulation():
             "exc_traceback"
         )
 
+    # The xrange built-in is Python2 only.
+    if python_version < 300:
+        result += (
+            "xrange",
+        )
+
     # Executables only
     if not Options.shallMakeModule():
         result += ( "__main__", )

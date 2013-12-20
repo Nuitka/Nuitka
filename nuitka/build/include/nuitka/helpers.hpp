@@ -894,6 +894,8 @@ extern PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 extern PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high );
 extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 
+extern PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step );
+
 // For quicker builtin len() functionality.
 extern PyObject *BUILTIN_LEN( PyObject *boundary );
 

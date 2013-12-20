@@ -1089,6 +1089,30 @@ def _generateExpressionCode( expression, context, allow_none ):
             step            = makeExpressionCode( expression.getStep() ),
             context         = context
         )
+    elif expression.isExpressionBuiltinXrange():
+        identifier = Generator.getBuiltinXrangeCode(
+            order_relevance = getOrderRelevance(
+                (
+                    expression.getLow(),
+                    expression.getHigh(),
+                    expression.getStep()
+                ),
+                allow_none = True
+            ),
+            low             = makeExpressionCode(
+                expression.getLow(),
+                allow_none = False
+            ),
+            high            = makeExpressionCode(
+                expression.getHigh(),
+                allow_none = True
+            ),
+            step            = makeExpressionCode(
+                expression.getStep(),
+                allow_none = True
+            ),
+            context         = context
+        )
     elif expression.isExpressionBuiltinGlobals():
         identifier = Generator.getLoadGlobalsCode(
             context = context

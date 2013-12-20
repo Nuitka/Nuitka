@@ -166,11 +166,30 @@ def makeBuiltinParameterSpec( exception_name ):
     )
 
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
+
 # These builtins are only available for Python2
 if python_version < 300:
-    builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
-    builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "execfile", ( "filename", "globals", "locals" ), 2 )
-    builtin_unicode_spec = BuiltinParameterSpec( "unicode", ( "string", "encoding", "errors" ), 3 )
+    builtin_long_spec = BuiltinParameterSpec(
+        "long",
+        ("x", "base"),
+        2
+    )
+    builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
+        "execfile",
+        ("filename", "globals", "locals"),
+        2
+    )
+    builtin_unicode_spec = BuiltinParameterSpec(
+        "unicode",
+        ("string", "encoding", "errors"),
+        3
+    )
+    builtin_xrange_spec = BuiltinParameterSpec(
+        "xrange",
+        ("start", "stop", "step"),
+        2
+    )
+
 
 builtin_bool_spec = BuiltinParameterSpec( "bool", ( "x", ), 1 )
 builtin_float_spec = BuiltinParameterSpec( "float", ( "x", ), 1 )
