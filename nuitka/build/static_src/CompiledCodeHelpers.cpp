@@ -113,21 +113,17 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
     }
     else if ( buffering == NULL )
     {
-        return _python_builtin_open.call_args(
-            MAKE_TUPLE2(
-               file_name,
-               mode
-            )
+        return _python_builtin_open.call2(
+            file_name,
+            mode
         );
     }
     else
     {
-        return _python_builtin_open.call_args(
-            MAKE_TUPLE3(
-                file_name,
-                mode,
-                buffering
-            )
+        return _python_builtin_open.call3(
+            file_name,
+            mode,
+            buffering
         );
     }
 }
