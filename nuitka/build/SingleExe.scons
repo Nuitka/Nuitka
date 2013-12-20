@@ -480,7 +480,7 @@ if "g++" in env[ "CXX" ]:
     if gpp_version < 440:
         sys.exit( """\
 The g++ compiler %s (version %s) doesn't have the sufficient \
-version (>= 4.5).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
+version (>= 4.4).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
     # care.
@@ -488,10 +488,10 @@ version (>= 4.5).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
         env.Append( CCFLAGS = [ "-fno-strict-aliasing" ] )
 
     # For LTO mode, the version requirement is even higher, so try that too.
-    if lto_mode and gpp_version < 460 and not win_target and \
-       os.path.exists( "/usr/bin/g++-4.6" ):
-        env[ "CXX" ] = "g++-4.6"
-        gpp_version = 460
+    if lto_mode and gpp_version < 460:
+        sys.exit( """\
+The g++ compiler %s (version %s) doesn't have the sufficient \
+version for lto mode (>= 4.6).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
 
     # For g++ 4.6 there are some new interesting functions.
     if gpp_version >= 460:
