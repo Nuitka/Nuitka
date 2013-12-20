@@ -307,6 +307,17 @@ def range_extractor( node ):
         empty_special_class = ExpressionBuiltinRange0
     )
 
+if python_version < 300:
+    from nuitka.nodes.BuiltinRangeNodes import ExpressionBuiltinXrange
+
+    def xrange_extractor( node ):
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = ExpressionBuiltinXrange,
+            builtin_spec  = BuiltinOptimization.builtin_xrange_spec
+    )
+
+
 def len_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
