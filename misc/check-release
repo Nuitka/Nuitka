@@ -335,8 +335,7 @@ def execute_tests( where, use_python, flags ):
         setExtraFlags( None, "reflected", flags )
         executeSubTest( "./tests/reflected/compile_itself.py search" )
 
-    if not use_python.startswith( "python3" ) and \
-       "--windows-target" not in flags:
+    if not use_python.startswith( "python3" ):
         if os.path.exists( "./tests/CPython26/run_all.py" ):
             if options.cpython26:
                 print( "Running the CPython 2.6 tests with options '%s' with %s:" % ( flags, use_python ) )
@@ -357,7 +356,7 @@ def execute_tests( where, use_python, flags ):
             else:
                 print( "The CPython2.7 tests are not present, not run." )
 
-    if "--windows-target" not in flags and "--debug" not in flags:
+    if "--debug" not in flags:
         # Not running the Python 3.2 test suite with CPython2.6, as that's about
         # the same as CPython2.7 and won't have any new insights.
         if use_python != "python2.6":
@@ -425,11 +424,6 @@ if checkExecutableCommand( "python3.3" ):
     execute_tests( "python3.2-nodebug", "python3.3", "" )
 else:
     print( "Cannot execute tests with Python 3.3, disabled or not installed." )
-
-if "linux" in sys.platform and checkExecutableCommand( "wine" ) :
-    execute_tests( "python-wine", "python", "--windows-target" )
-else:
-    print( "Cannot execute wine cross-compile tests, disabled or no wine." )
 
 if checkExecutableCommand( "cppcheck" ):
     command = [

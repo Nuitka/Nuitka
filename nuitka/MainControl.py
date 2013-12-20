@@ -168,7 +168,7 @@ def getResultFullpath(main_module):
     result = getResultBasepath(main_module)
 
     if Options.shallMakeModule():
-        if Options.isWindowsTarget():
+        if os.name == "nt":
             result += ".pyd"
         else:
             result += ".so"
@@ -324,7 +324,7 @@ def makeSourceDirectory(main_module):
                 *module.getFullName().split(".")
             )
 
-            if Options.isWindowsTarget():
+            if os.name == "nt":
                 target_filename += ".pyd"
             else:
                 target_filename += ".so"
@@ -430,9 +430,6 @@ def runScons(main_module, quiet):
     if Options.isLto():
         options["lto_mode"] = "true"
 
-    if Options.isWindowsTarget():
-        options[ "win_target" ] = "true"
-
     if Options.shallDisableConsoleWindow():
         options["win_disable_console"] = "true"
 
@@ -514,10 +511,7 @@ def executeMain( binary_filename, tree, clean_path ):
 
     name = Utils.abspath(name)
 
-    if Options.isWindowsTarget() and os.name != "nt":
-        args = ( "/usr/bin/wine", "wine", binary_filename )
-    else:
-        args = ( binary_filename, name )
+    args = (binary_filename, name)
 
     callExec(
         clean_path = clean_path,

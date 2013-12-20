@@ -629,11 +629,6 @@ What follows is the (lengthy) list of arguments that the scons file processes:
   with the compiler in question. So far, this was not found to make major
   differences.
 
-* ``win_target``
-
-  Windows target mode, cross compile for Windows or compiling on windows
-  native.
-
 * ``win_disable_console``
 
   Windows subsystem mode: Disable console for windows builds.

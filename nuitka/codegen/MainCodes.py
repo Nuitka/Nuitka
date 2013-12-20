@@ -32,7 +32,7 @@ from . import CodeTemplates
 
 from nuitka import Options
 
-import sys
+import sys, os
 
 def getMainCode( codes, context ):
     python_flags = Options.getPythonFlags()
@@ -57,9 +57,7 @@ def getMainCode( codes, context ):
     main_code        = CodeTemplates.main_program % {
         "sys_executable"       : getConstantCode(
             constant = "python.exe"
-                         if Options.isWindowsTarget() and
-                         Options.isStandaloneMode()
-                         else
+                         if os.name == "nt" and Options.isStandaloneMode() else
                        sys.executable,
             context  = context
         ),

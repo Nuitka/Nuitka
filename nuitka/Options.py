@@ -62,6 +62,17 @@ parser.add_option(
 Create an extension module executable instead of a program. Defaults to off."""
 )
 
+parser.add_option(
+    "--standalone", "--portable",
+    action  = "store_true",
+    dest    = "is_standalone",
+    default = False,
+    help    = """\
+Enable standalone mode in build. This allows you to transfer the created binary
+to other machines without it relying on an existing Python installation. It
+implies these options: "--recurse-all --recurse-stdlib". Defaults to off.""",
+)
+
 recurse_group = OptionGroup(
     parser,
     "Control the recursion into imported modules"
@@ -293,15 +304,6 @@ Defaults to off."""
 parser.add_option_group( outputdir_group )
 
 parser.add_option(
-    "--windows-target",
-    action  = "store_true",
-    dest    = "windows_target",
-    default = os.name == "nt",
-    help    = """\
-Force compilation for windows, useful for cross-compilation. Defaults %default."""
-)
-
-parser.add_option(
     "--windows-disable-console",
     action  = "store_true",
     dest    = "win_disable_console",
@@ -457,18 +459,6 @@ parser.add_option(
 Given warnings for implicit exceptions detected at compile time.""",
 )
 
-
-parser.add_option(
-    "--standalone", "--portable",
-    action  = "store_true",
-    dest    = "is_standalone",
-    default = False,
-    help    = """\
-Enable standalone mode in build. This allows you to transfer the created binary
-to other machines without it relying on an existing Python installation. It
-implies these options: "--exe --python-flag=-S --recurse-all --recurse-stdlib".
-Defaults to off.""",
-)
 
 parser.add_option(
     "--icon",
@@ -641,9 +631,6 @@ def isClang():
 
 def isMingw():
     return options.mingw
-
-def isWindowsTarget():
-    return options.windows_target
 
 def shallDisableConsoleWindow():
     return options.win_disable_console

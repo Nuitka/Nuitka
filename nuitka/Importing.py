@@ -262,12 +262,9 @@ def _findModule( module_name, parent_package ):
     if module_name == "os.path" and parent_package is None:
         parent_package = "os"
 
-        if not Options.isWindowsTarget():
-            module_name = Utils.basename( os.path.__file__ )
-            if module_name.endswith( ".pyc" ):
-                module_name = module_name[ : -4 ]
-        else:
-            module_name = "ntpath"
+        module_name = Utils.basename( os.path.__file__ )
+        if module_name.endswith( ".pyc" ):
+            module_name = module_name[ : -4 ]
 
     assert module_name != "" or parent_package is not None
 

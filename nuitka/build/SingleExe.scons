@@ -181,7 +181,7 @@ def getExecutablePath( filename, initial ):
         return None
 
 
-if ( os.name != "nt" and win_target ) or mingw_mode:
+if mingw_mode:
     # Cross compilation to Windows uses MinGW or you can force it.
     compiler_tools = [ "mingw" ]
 else:
@@ -342,20 +342,6 @@ def getClangVersion():
         return match.group(1)
     else:
         return None
-
-
-# To support cross-compiling under Linux for a windows target, a cross compiler
-# linked or installed to /opt/mingw will win over a system installed one.
-if win_target and "linux" in sys.platform:
-    if os.path.exists( "/opt/mingw/usr/bin/i686-pc-mingw32-g++" ):
-        env[ "CXX" ] = "/opt/mingw/usr/bin/i686-pc-mingw32-g++"
-        env[ "RC" ] = "/opt/mingw/usr/bin/i686-pc-mingw32-windres"
-    else:
-        env[ "CXX" ] = "i586-mingw32msvc-g++"
-        env[ "RC" ] = "i586-mingw32msvc-windres"
-
-    # Update CXXVERSION in env, after we changed it.
-    env[ "CXXVERSION" ] = getGccVersion()
 
 # Some versions of Scons have unset or None, make it empty string.
 if env.get( "CXX", None ) is None:
@@ -673,18 +659,13 @@ nuitka_include = os.path.join( nuitka_src, "include" )
 env.Append( CPPPATH = [ source_dir, nuitka_include ] )
 
 if debug_mode or unstriped_mode:
-    # On crosscompile, use debug format that wine understands, so we get good
-    # tracebacks from it.
+    # Use debug format that wine understands, so we get good tracebacks from it.
     if gcc_mode:
-        if win_target and "linux" in sys.platform:
-            env.Append( CCFLAGS = [ "-gstabs" ] )
-            env.Append( ASFLAGS = [ "-gstabs" ] )
-        else:
-            env.Append( CCFLAGS = [ "-g" ] )
-            env.Append( ASFLAGS = [ "-g" ] )
+        env.Append( CCFLAGS = [ "-g" ] )
+        env.Append( ASFLAGS = [ "-g" ] )
 
-            if "g++" in env[ "CXX" ]:
-                env.Append( CCFLAGS = [ "-feliminate-unused-debug-types" ] )
+        if "g++" in env[ "CXX" ]:
+            env.Append( CCFLAGS = [ "-feliminate-unused-debug-types" ] )
     elif msvc_mode:
         env.Append( CCFLAGS = [ "/Zi" ] )
         env.Append( LINKFLAGS = [ "/DEBUG" ] )
