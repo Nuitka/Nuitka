@@ -18,14 +18,19 @@
 """ Optimizations of builtins to builtin calls.
 
 """
-from nuitka.nodes.ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
+from nuitka.nodes.ParameterSpecs import (
+    ParameterSpec,
+    TooManyArguments,
+    matchCall
+)
 
 from nuitka.Utils import python_version
 
 import sys, math
 
 class BuiltinParameterSpec( ParameterSpec ):
-    def __init__( self, name, arg_names, default_count, list_star_arg = None, dict_star_arg = None ):
+    def __init__( self, name, arg_names, default_count, list_star_arg = None,
+                  dict_star_arg = None ):
         ParameterSpec.__init__(
             self,
             name           = name,
@@ -70,14 +75,15 @@ class BuiltinParameterSpec( ParameterSpec ):
 
             arg_dict = {}
 
-            for arg_name, given_value in zip( self.normal_args, given_normal_args ):
-                assert type( given_value ) not in ( tuple, list ), ( "do not like a tuple %s" % ( given_value, ))
+            for arg_name, given_value in zip(self.normal_args, given_normal_args):
+                assert type( given_value ) not in ( tuple, list ), \
+                  ( "do not like a tuple %s" % ( given_value, ))
 
                 if given_value is not None:
                     arg_dict[ arg_name ] = given_value.getCompileTimeConstant()
 
             if given_dict_star_args:
-                for given_dict_star_arg in reversed( given_dict_star_args ):
+                for given_dict_star_arg in reversed(given_dict_star_args):
                     arg_name = given_dict_star_arg.getKey()
                     arg_value = given_dict_star_arg.getValue()
 
@@ -247,20 +253,20 @@ class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
     def __init__( self, *args ):
         BuiltinParameterSpecNoKeywords.__init__( self, *args )
 
-    def isCompileTimeComputable( self, values ):
+    def isCompileTimeComputable(self, values):
         result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
             self,
             values = values
         )
 
         if result:
-            arg_count = len( values )
+            arg_count = len(values)
 
             if arg_count == 1:
                 low = values[0]
 
-                # If it's not a number constant, we can compute the exception that will be
-                # raised.
+                # If it's not a number constant, we can compute the exception
+                # that will be raised.
                 if not low.isNumberConstant():
                     return True
 
@@ -268,8 +274,8 @@ class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
             elif arg_count == 2:
                 low, high = values
 
-                # If it's not a number constant, we can compute the exception that will be
-                # raised.
+                # If it's not a number constant, we can compute the exception
+                # that will be raised.
                 if not low.isNumberConstant() or not high.isNumberConstant():
                     return True
 
@@ -277,8 +283,9 @@ class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
             elif arg_count == 3:
                 low, high, step = values
 
-                if not low.isNumberConstant() or not high.isNumberConstant() or \
-                     not step.isNumberConstant():
+                if not low.isNumberConstant() or \
+                   not high.isNumberConstant() or \
+                   not step.isNumberConstant():
                     return True
 
                 low = low.getConstant()
@@ -305,16 +312,17 @@ class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
             return False
 
 
-builtin_range_spec = BuiltinRangeSpec( "range", ( "start", "stop", "step" ), 2 )
+builtin_range_spec = BuiltinRangeSpec("range", ( "start", "stop", "step" ), 2)
 
 
-def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class = None ):
+def extractBuiltinArgs( node, builtin_spec, builtin_class,
+                        empty_special_class = None ):
     try:
         kw = node.getCallKw()
 
 
-        # TODO: Could check for too many / too few, even if they are unknown, we might
-        # raise that error, but that need not be optimized immediately.
+        # TODO: Could check for too many / too few, even if they are unknown, we
+        # might raise that error, but that need not be optimized immediately.
         if not kw.isMappingWithConstantStringKeys():
             return None
 
@@ -370,7 +378,8 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class =
     if builtin_spec.getStarDictArgumentName() is not None:
         args_list.append( args_dict[ builtin_spec.getStarDictArgumentName() ] )
 
-    # Using list reference for passing the arguments without names, pylint: disable=W0142
+    # Using list reference for passing the arguments without names,
+    # pylint: disable=W0142
     return builtin_class(
         *args_list,
         source_ref = node.getSourceReference()

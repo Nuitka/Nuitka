@@ -48,8 +48,10 @@ def getSconsBinaryCall():
     if Utils.isFile("/usr/bin/scons"):
         return ["/usr/bin/scons"]
     else:
-        return [getPython2ExePath(),
-                Utils.joinpath(getSconsInlinePath(), "bin", "scons.py")]
+        return [
+            getPython2ExePath(),
+            Utils.joinpath(getSconsInlinePath(), "bin", "scons.py")
+        ]
 
 
 def _getPython2ExePathWindows():

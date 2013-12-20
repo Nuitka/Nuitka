@@ -98,8 +98,8 @@ max_unsigned_long = 2**(sizeof_long*8)-1
 # seems to not work (without warning) as literal, so avoid it.
 min_signed_long = -(2**(sizeof_long*8-1)-1)
 
-def _addConstantInitCode( context, emit, constant_type, constant_value,
-                          constant_identifier ):
+def _addConstantInitCode(context, emit, constant_type, constant_value,
+                         constant_identifier):
     # This has many cases, that all return, and do a lot.
     #  pylint: disable=R0911,R0912,R0915
 
@@ -169,15 +169,15 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
                 emit(
                     "%s = UNSTREAM_UNICODE( %s );" % (
                         constant_identifier,
-                        stream_data.getStreamDataCode( encoded )
+                        stream_data.getStreamDataCode(encoded)
                     )
                 )
             else:
                 emit(
                     "%s = UNSTREAM_STRING( %s, %d );" % (
                         constant_identifier,
-                        stream_data.getStreamDataCode( encoded ),
-                        1 if _isAttributeName( constant_value ) else 0
+                        stream_data.getStreamDataCode(encoded),
+                        1 if _isAttributeName(constant_value) else 0
                     )
                 )
 
@@ -399,28 +399,31 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
 
     assert False, ( type(constant_value), constant_value, constant_identifier )
 
-def _lengthKey( value ):
-    return len( value[1] ), value[1]
+def _lengthKey(value):
+    return (
+        len(value[1]),
+        value[1]
+    )
 
 the_contained_constants = {}
 
-def getConstantsInitCode( context ):
+def getConstantsInitCode(context):
     # There are many cases for constants to be created in the most efficient
     # way, pylint: disable=R0912
 
     statements = []
 
     all_constants = the_contained_constants
-    all_constants.update( context.getConstants() )
+    all_constants.update(context.getConstants())
 
-    def receiveStatement( statement ):
+    def receiveStatement(statement):
         assert statement is not None
 
         if statement not in statements:
-            statements.append( statement )
+            statements.append(statement)
 
-    for ( constant_type, constant_value ), constant_identifier in \
-          sorted( all_constants.items(), key = _lengthKey ):
+    for (constant_type, constant_value), constant_identifier in \
+          sorted(all_constants.items(), key = _lengthKey):
         _addConstantInitCode(
             emit                = receiveStatement,
             constant_type       = constant_type,

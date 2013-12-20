@@ -17,7 +17,8 @@
 #
 """ Optimize calls to builtins reference builtin nodes.
 
-For builtin name references, we check if it's one of the supported builtin types.
+For builtin name references, we check if it's one of the supported builtin
+types.
 """
 
 from nuitka.Utils import python_version
@@ -725,10 +726,12 @@ def computeBuiltinCall( call_node, called ):
 
         if inspect_node.isExpressionBuiltinImport():
             tags    = "new_import"
-            message = "Replaced dynamic __import__ %s with static module import." % (
+            message = """\
+Replaced dynamic __import__ %s with static module import.""" % (
                 inspect_node.kind,
             )
-        elif inspect_node.isExpressionBuiltin() or inspect_node.isStatementExec():
+        elif inspect_node.isExpressionBuiltin() or \
+             inspect_node.isStatementExec():
             tags = "new_builtin"
             message = "Replaced call to builtin %s with builtin call %s." % (
                 builtin_name,
@@ -736,12 +739,14 @@ def computeBuiltinCall( call_node, called ):
             )
         elif inspect_node.isExpressionRaiseException():
             tags = "new_raise"
-            message = "Replaced call to builtin %s with exception raising call." % (
+            message = """\
+Replaced call to builtin %s with exception raising call.""" % (
                 inspect_node.kind,
             )
         elif inspect_node.isExpressionOperationUnary():
             tags = "new_expression"
-            message = "Replaced call to builtin %s with unary operation %s." % (
+            message = """\
+Replaced call to builtin %s with unary operation %s.""" % (
                 inspect_node.kind,
                 inspect_node.getOperator()
             )
@@ -756,7 +761,8 @@ def computeBuiltinCall( call_node, called ):
                 ExpressionBuiltinOriginalRef,
                 ExpressionBuiltinRef,
             )
-            from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpression
+            from nuitka.nodes.NodeMakingHelpers import \
+              makeRaiseExceptionReplacementExpression
 
             source_ref = called.getSourceReference()
 
@@ -775,7 +781,9 @@ def computeBuiltinCall( call_node, called ):
                 yes_expression = new_node,
                 no_expression  = makeRaiseExceptionReplacementExpression(
                     exception_type  = "RuntimeError",
-                    exception_value = "Builtin '%s' was overloaded'" % builtin_name,
+                    exception_value = "Builtin '%s' was overloaded'" % (
+                        builtin_name
+                    ),
                     expression      = call_node
                 ),
                 source_ref     = source_ref

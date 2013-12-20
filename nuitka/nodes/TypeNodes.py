@@ -17,10 +17,10 @@
 #
 """ The type1 node.
 
-This one just determines types. It's great for optimization. We may be able to predict its
-value, but knowing it. In that case, we have a builtin name reference for that type to
-convert to, or when checking the result of it, we will then know it's limited after the
-fact.
+This one just determines types. It's great for optimization. We may be able to
+predict its value, but knowing it. In that case, we have a builtin name
+reference for that type to convert to, or when checking the result of it, we
+will then know it's limited after the fact.
 
 """
 
@@ -62,7 +62,9 @@ class ExpressionBuiltinType1( ExpressionBuiltinSingleArgBase ):
             return (
                 new_node,
                 "new_builtin",
-                "Replaced predictable type lookup with builtin type '%s'." % type_name
+                "Replaced predictable type lookup with builtin type '%s'." % (
+                    type_name
+                )
             )
 
         return self, None, None

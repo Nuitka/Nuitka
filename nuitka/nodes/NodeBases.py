@@ -332,7 +332,7 @@ class NodeBase( NodeMetaClassBase ):
     def isOrderRelevant( self ):
         return self.mayHaveSideEffects()
 
-    def mayHaveSideEffectsBool( self ):
+    def mayHaveSideEffectsBool(self):
         """ Unless we are told otherwise, everything may have a side effect. """
         # Virtual method, pylint: disable=R0201,W0613
 
@@ -1020,7 +1020,7 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
     def mayHaveSideEffects( self ):
         return False
 
-    def mayHaveSideEffectsBool( self ):
+    def mayHaveSideEffectsBool(self):
         return False
 
     def computeExpressionOperationNot( self, not_node, constraint_collection ):
@@ -1083,7 +1083,8 @@ Compile time constant negation truth value precomputed."""
                         computation = lambda : self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
                         ],
-                        description = "Slicing of constant with constant indexes."
+                        description = """\
+Slicing of constant with constant indexes."""
                     )
             else:
                 if lower.isCompileTimeConstant():
@@ -1092,7 +1093,8 @@ Compile time constant negation truth value precomputed."""
                         computation = lambda : self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() :
                         ],
-                        description = "Slicing of constant with constant lower index only."
+                        description = """\
+Slicing of constant with constant lower index only."""
                     )
         else:
             if upper is not None:
@@ -1102,7 +1104,8 @@ Compile time constant negation truth value precomputed."""
                         computation = lambda : self.getCompileTimeConstant()[
                             : upper.getCompileTimeConstant()
                         ],
-                        description = "Slicing of constant with constant upper index only."
+                        description = """\
+Slicing of constant with constant upper index only."""
                     )
             else:
                 return getComputationResult(
@@ -1114,29 +1117,32 @@ Compile time constant negation truth value precomputed."""
         return lookup_node, None, None
 
 
-class ExpressionSpecBasedComputationMixin( ExpressionMixin ):
+class ExpressionSpecBasedComputationMixin(ExpressionMixin):
     builtin_spec = None
 
-    def computeBuiltinSpec( self, given_values ):
+    def computeBuiltinSpec(self, given_values):
         assert self.builtin_spec is not None, self
 
         for value in given_values:
             if value is not None and not value.isCompileTimeConstant():
                 return self, None, None
 
-        if not self.builtin_spec.isCompileTimeComputable( given_values ):
+        if not self.builtin_spec.isCompileTimeComputable(given_values):
             return self, None, None
 
         from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
             node        = self,
-            computation = lambda : self.builtin_spec.simulateCall( given_values ),
-            description = "Builtin call to %s precomputed." % self.builtin_spec.getName()
+            computation = lambda : self.builtin_spec.simulateCall(given_values),
+            description = "Builtin call to '%s' precomputed." % (
+                self.builtin_spec.getName()
+            )
         )
 
 
-class ExpressionChildrenHavingBase( ChildrenHavingMixin, NodeBase, ExpressionMixin ):
+class ExpressionChildrenHavingBase(ChildrenHavingMixin, NodeBase,
+                                   ExpressionMixin ):
     def __init__( self, values, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
 
@@ -1145,7 +1151,7 @@ class ExpressionChildrenHavingBase( ChildrenHavingMixin, NodeBase, ExpressionMix
             values = values
         )
 
-class StatementChildrenHavingBase( ChildrenHavingMixin, NodeBase ):
+class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
     def __init__( self, values, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
 
@@ -1153,6 +1159,7 @@ class StatementChildrenHavingBase( ChildrenHavingMixin, NodeBase ):
             self,
             values = values
         )
+
 
 class ExpressionBuiltinNoArgBase( NodeBase, ExpressionMixin ):
     def __init__( self, builtin_function, source_ref ):
@@ -1175,9 +1182,11 @@ class ExpressionBuiltinNoArgBase( NodeBase, ExpressionMixin ):
         )
 
 
-class ExpressionBuiltinSingleArgBase( ExpressionChildrenHavingBase,
-                                      ExpressionSpecBasedComputationMixin ):
-    named_children = ( "value", )
+class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
+                                    ExpressionSpecBasedComputationMixin ):
+    named_children = (
+        "value",
+    )
 
     def __init__( self, value, source_ref ):
         ExpressionChildrenHavingBase.__init__(
@@ -1190,34 +1199,41 @@ class ExpressionBuiltinSingleArgBase( ExpressionChildrenHavingBase,
 
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         value = self.getValue()
 
         assert self.builtin_spec is not None, self
 
         if value is None:
-            return self.computeBuiltinSpec( () )
+            return self.computeBuiltinSpec(
+                given_values = ()
+            )
         else:
-            if value.willRaiseException( BaseException ):
-                return value, "new_raise", "Builtin call raises exception while building argument"
+            if value.willRaiseException(BaseException):
+                return value, "new_raise", """\
+Builtin call raises exception while building argument."""
 
-            return self.computeBuiltinSpec( ( value, ) )
+            return self.computeBuiltinSpec(
+                given_values = (value,)
+            )
 
 
 class SideEffectsFromChildrenMixin:
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         for child in self.getVisitableNodes():
             if child.mayHaveSideEffects():
                 return True
         else:
             return False
 
-    def extractSideEffects( self ):
+    def extractSideEffects(self):
         # No side effects at all but from the children.
 
         result = []
 
         for child in self.getVisitableNodes():
-            result.extend( child.extractSideEffects() )
+            result.extend(
+                child.extractSideEffects()
+            )
 
-        return tuple( result )
+        return tuple(result)

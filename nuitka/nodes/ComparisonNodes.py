@@ -100,17 +100,20 @@ class ExpressionComparison( ExpressionChildrenHavingBase ):
             result = makeComparisonNode(
                 left       = left,
                 right      = right,
-                comparator = PythonOperators.comparison_inversions[ self.comparator ],
+                comparator = PythonOperators.comparison_inversions[
+                    self.comparator
+                ],
                 source_ref = self.source_ref
             )
 
-            return result, "new_expression", "Replaced negated comparison with inverse comparision."
+            return result, "new_expression", """\
+Replaced negated comparison with inverse comparision."""
 
         return not_node, None, None
 
     def mayProvideReference( self ):
-        # Dedicated code returns "True" or "False" only, which requires no reference,
-        # except for rich comparisons, which do.
+        # Dedicated code returns "True" or "False" only, which requires no
+        # reference, except for rich comparisons, which do.
         return self.comparator in PythonOperators.rich_comparison_functions
 
 
@@ -154,10 +157,15 @@ class ExpressionComparisonIsIsNotBase( ExpressionComparison ):
                 )
 
             return result, "new_constant", """\
-Determined values to alias and therefore result of %s comparison.""" % self.comparator
+Determined values to alias and therefore result of %s comparison.""" % (
+                self.comparator
+            )
 
         if constraint_collection.mustNotAlias( left, right ):
-            from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithSideEffects
+            from .NodeMakingHelpers import (
+                makeConstantReplacementNode,
+                wrapExpressionWithSideEffects
+            )
 
             result = makeConstantReplacementNode(
                 constant = not self.match_value,
@@ -172,14 +180,29 @@ Determined values to alias and therefore result of %s comparison.""" % self.comp
                 )
 
             return result, "new_constant", """\
-Determined values to not alias and therefore result of %s comparison.""" % self.comparator
+Determined values to not alias and therefore result of %s comparison.""" % (
+                self.comparator
+            )
 
-        return ExpressionComparison.computeExpression( self, constraint_collection )
+        return ExpressionComparison.computeExpression(
+            self,
+            constraint_collection = constraint_collection
+        )
 
     def extractSideEffects( self ):
         left, right = self.getOperands()
 
         return left.extractSideEffects() + right.extractSideEffects()
+
+    def computeExpressionDrop(self, statement, constraint_collection):
+        from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+        result = makeStatementOnlyNodesFromExpressions(
+            expressions = self.getOperands()
+        )
+
+        return result, "new_statements", """\
+Removed %s comparison for unused result.""" % self.comparator
 
 
 class ExpressionComparisonIs( ExpressionComparisonIsIsNotBase ):

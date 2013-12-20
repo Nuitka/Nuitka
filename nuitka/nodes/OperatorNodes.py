@@ -56,7 +56,7 @@ class ExpressionOperationBase( ExpressionChildrenHavingBase ):
         return None
 
 
-class ExpressionOperationBinary( ExpressionOperationBase ):
+class ExpressionOperationBinary(ExpressionOperationBase):
     kind = "EXPRESSION_OPERATION_BINARY"
 
     named_children = ( "left", "right" )
@@ -160,7 +160,7 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
     getRight = ExpressionChildrenHavingBase.childGetter( "right" )
 
 
-class ExpressionOperationUnary( ExpressionOperationBase ):
+class ExpressionOperationUnary(ExpressionOperationBase):
     kind = "EXPRESSION_OPERATION_UNARY"
 
     named_children = ( "operand", )
@@ -203,7 +203,7 @@ class ExpressionOperationUnary( ExpressionOperationBase ):
         return ( self.getOperand(), )
 
 
-class ExpressionOperationNOT( ExpressionOperationUnary ):
+class ExpressionOperationNOT(ExpressionOperationUnary):
     kind = "EXPRESSION_OPERATION_NOT"
 
     def __init__( self, operand, source_ref ):
@@ -232,9 +232,10 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
     def getTruthValue( self ):
         result = self.getOperand().getTruthValue()
 
+        # Need to invert the truth value of operand of course here.
         return None if result is None else not result
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         operand = self.getOperand()
 
         if operand.mayHaveSideEffects():
@@ -242,23 +243,23 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
 
         return operand.mayHaveSideEffectsBool()
 
-    def mayHaveSideEffectsBool( self ):
+    def mayHaveSideEffectsBool(self):
         return self.getOperand().mayHaveSideEffectsBool()
 
-    def extractSideEffects( self ):
+    def extractSideEffects(self):
         operand = self.getOperand()
 
         # TODO: Find the common ground of these, and make it an expression
         # method.
         if operand.isExpressionMakeSequence():
-            return self.getOperand().extractSideEffects()
+            return operand.extractSideEffects()
 
         if operand.isExpressionMakeDict():
-            return self.getOperand().extractSideEffects()
+            return operand.extractSideEffects()
 
-        return ( self, )
+        return (self,)
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # Dedicated code returns "True" or "False" only, which requires no
         # reference, except for rich comparisons, which do.
         return False

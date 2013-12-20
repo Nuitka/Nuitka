@@ -59,7 +59,7 @@ import sys, os, subprocess, shutil
 
 from logging import warning
 
-def createNodeTree( filename ):
+def createNodeTree(filename):
     """ Create a node tree.
 
     Turn that source code into a node tree structure. If recursion into
@@ -75,19 +75,19 @@ def createNodeTree( filename ):
         is_top   = True,
         is_main  = not Options.shallMakeModule()
     )
-    ModuleRegistry.addRootModule( main_module )
+    ModuleRegistry.addRootModule(main_module)
 
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do
     # harm.
-    source_dir = getSourceDirectoryPath( main_module )
+    source_dir = getSourceDirectoryPath(main_module)
     cleanSourceDirectory(source_dir)
     if Options.isStandaloneMode():
-        standalone_dir = getStandaloneDirectoryPath( main_module )
-        shutil.rmtree( standalone_dir, ignore_errors = True )
-        Utils.makePath( standalone_dir )
+        standalone_dir = getStandaloneDirectoryPath(main_module)
+        shutil.rmtree(standalone_dir, ignore_errors = True)
+        Utils.makePath(standalone_dir)
     Utils.deleteFile(
-        path       = getResultFullpath( main_module ),
+        path       = getResultFullpath(main_module),
         must_exist = False
     )
 
@@ -103,7 +103,7 @@ def createNodeTree( filename ):
 
     return main_module
 
-def dumpTree( tree ):
+def dumpTree(tree):
     Tracing.printLine( "Analysis -> Tree Result" )
 
     Tracing.printSeparator()
@@ -116,16 +116,16 @@ def dumpTree( tree ):
     Tracing.printSeparator()
     Tracing.printSeparator()
 
-def dumpTreeXML( tree ):
+def dumpTreeXML(tree):
     xml_root = tree.asXml()
-    TreeXML.dump( xml_root )
+    TreeXML.dump(xml_root)
 
-def displayTree( tree ):
+def displayTree(tree):
     # Import only locally so the Qt4 dependency doesn't normally come into play
     # when it's not strictly needed, pylint: disable=W0404
     from .gui import TreeDisplay
 
-    TreeDisplay.displayTreeInspector( tree )
+    TreeDisplay.displayTreeInspector(tree)
 
 def getTreeFilenameWithSuffix( tree, suffix ):
     return tree.getOutputFilename() + suffix
@@ -213,12 +213,15 @@ def pickSourceFilenames( source_dir, modules ):
 
     module_filenames = {}
 
-    for module in sorted( modules, key = lambda x : x.getFullName() ):
+    for module in sorted(modules, key = lambda x : x.getFullName()):
+        if module.isPythonShlibModule():
+            continue
+
         base_filename = Utils.joinpath(
             source_dir,
             "module." + module.getFullName()
-              if not module.isInternalModule()
-            else module.getFullName()
+              if not module.isInternalModule() else
+            module.getFullName()
         )
 
         collision_filename = Utils.normcase( base_filename )
@@ -235,13 +238,13 @@ def pickSourceFilenames( source_dir, modules ):
         cpp_filename = base_filename + ".cpp"
         hpp_filename = base_filename + ".hpp"
 
-        module_filenames[ module ] = ( cpp_filename, hpp_filename )
+        module_filenames[module] = (cpp_filename, hpp_filename)
 
     return module_filenames
 
 standalone_entry_points = []
 
-def makeSourceDirectory( main_module ):
+def makeSourceDirectory(main_module):
     # We deal with a lot of details here, but rather one by one, and split makes
     # no sense, pylint: disable=R0914
 
@@ -269,12 +272,12 @@ def makeSourceDirectory( main_module ):
             )
 
     # Prepare code generation, i.e. execute finalization for it.
-    for module in sorted( modules, key = lambda x : x.getFullName() ):
+    for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
             Finalization.prepareCodeGeneration( module )
 
     # Pick filenames.
-    source_dir = getSourceDirectoryPath( main_module )
+    source_dir = getSourceDirectoryPath(main_module)
 
     module_filenames = pickSourceFilenames(
         source_dir = source_dir,
@@ -283,10 +286,10 @@ def makeSourceDirectory( main_module ):
 
     module_hpps = []
 
-    for module in sorted( modules, key = lambda x : x.getFullName() ):
-        cpp_filename, hpp_filename = module_filenames[ module ]
-
+    for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
+            cpp_filename, hpp_filename = module_filenames[module]
+
             source_code, header_code, module_context = \
               CodeGeneration.generateModuleCode(
                   global_context = global_context,
@@ -317,8 +320,8 @@ def makeSourceDirectory( main_module ):
             )
         elif module.isPythonShlibModule():
             target_filename = Utils.joinpath(
-                getStandaloneDirectoryPath( main_module ),
-                *module.getFullName().split( "." )
+                getStandaloneDirectoryPath(main_module),
+                *module.getFullName().split(".")
             )
 
             if Options.isWindowsTarget():
@@ -328,15 +331,15 @@ def makeSourceDirectory( main_module ):
 
             target_dir = Utils.dirname(target_filename)
 
-            if not Utils.isDir( target_dir ):
-                Utils.makePath( target_dir )
+            if not Utils.isDir(target_dir):
+                Utils.makePath(target_dir)
 
             shutil.copy(
                 module.getFilename(),
                 target_filename
             )
 
-            standalone_entry_points.append( target_filename )
+            standalone_entry_points.append(target_filename)
         else:
             assert False, module
 
@@ -377,81 +380,81 @@ def makeSourceDirectory( main_module ):
         source_code = "".join( module_hpp_include )
     )
 
-def runScons( main_module, quiet ):
+def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches, pylint: disable=R0912
 
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
-    if hasattr( sys, "abiflags" ):
+    if hasattr(sys, "abiflags"):
         # The Python3 for some platforms has sys.abiflags pylint: disable=E1101
         if Options.isPythonDebug() or \
-           hasattr( sys, "getobjects" ):
-            if sys.abiflags.startswith( "d" ):
+           hasattr(sys, "getobjects"):
+            if sys.abiflags.startswith("d"):
                 python_version += sys.abiflags
             else:
                 python_version += "d" + sys.abiflags
         else:
             python_version += sys.abiflags
 
-    def asBoolStr( value ):
+    def asBoolStr(value):
         return "true" if value else "false"
 
     options = {
         "name"           : Utils.basename(
-            getTreeFilenameWithSuffix( main_module, "" )
+            getTreeFilenameWithSuffix(main_module, "")
         ),
-        "result_name"    : getResultBasepath( main_module ),
-        "source_dir"     : getSourceDirectoryPath( main_module ),
-        "debug_mode"     : asBoolStr( Options.isDebug() ),
-        "python_debug"   : asBoolStr( Options.isPythonDebug() ),
-        "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
-        "module_mode"    : asBoolStr( Options.shallMakeModule() ),
-        "optimize_mode"  : asBoolStr( Options.isOptimize() ),
-        "full_compat"    : asBoolStr( Options.isFullCompat() ),
-        "experimental"   : asBoolStr( Options.isExperimental() ),
+        "result_name"    : getResultBasepath(main_module),
+        "source_dir"     : getSourceDirectoryPath(main_module),
+        "debug_mode"     : asBoolStr(Options.isDebug()),
+        "python_debug"   : asBoolStr(Options.isPythonDebug()),
+        "unstriped_mode" : asBoolStr(Options.isUnstriped()),
+        "module_mode"    : asBoolStr(Options.shallMakeModule()),
+        "optimize_mode"  : asBoolStr(Options.isOptimize()),
+        "full_compat"    : asBoolStr(Options.isFullCompat()),
+        "experimental"   : asBoolStr(Options.isExperimental()),
         "python_version" : python_version,
         "target_arch"    : Utils.getArchitecture(),
         "python_prefix"  : sys.prefix,
         "nuitka_src"     : SconsInterface.getSconsDataPath(),
         "module_count"   : "%d" % (
-            len( ModuleRegistry.getDoneUserModules() ) + 1
+            len(ModuleRegistry.getDoneUserModules()) + 1
         )
     }
 
     # Ask Scons to cache on Windows, except where the directory is thrown
     # away. On non-Windows you can should use ccache instead.
     if not Options.isRemoveBuildDir() and os.name == "nt":
-        options[ "cache_mode" ] = "true"
+        options["cache_mode"] = "true"
 
     if Options.isLto():
-        options[ "lto_mode" ] = "true"
+        options["lto_mode"] = "true"
 
     if Options.isWindowsTarget():
         options[ "win_target" ] = "true"
 
     if Options.shallDisableConsoleWindow():
-        options[ "win_disable_console" ] = "true"
+        options["win_disable_console"] = "true"
 
     if Options.isStandaloneMode():
-        options[ "standalone_mode" ] = "true"
+        options["standalone_mode"] = "true"
 
     if getFrozenModuleCount():
-        options[ "frozen_modules" ] = str(
+        options["frozen_modules"] = str(
             getFrozenModuleCount()
         )
 
     if Options.isShowScons():
-        options[ "show_scons" ] = "true"
+        options["show_scons"] = "true"
 
     if Options.isMingw():
-        options[ "mingw_mode" ] = "true"
+        options["mingw_mode"] = "true"
 
     if Options.isClang():
-        options[ "clang_mode" ] = "true"
+        options["clang_mode"] = "true"
 
     if Options.getIconPath():
-        options[ "icon_path" ] = Options.getIconPath()
+        options["icon_path"] = Options.getIconPath()
 
     return SconsInterface.runScons( options, quiet ), options
 
@@ -479,16 +482,16 @@ def writeBinaryData(filename, binary_data):
 
 
 def callExec( args, clean_path, add_path ):
-    old_python_path = os.environ.get( "PYTHONPATH", None )
+    old_python_path = os.environ.get("PYTHONPATH", None)
 
     if clean_path and old_python_path is not None:
-        os.environ[ "PYTHONPATH" ] = ""
+        os.environ["PYTHONPATH"] = ""
 
     if add_path:
-        os.environ[ "PYTHONPATH" ] = \
-          os.environ.get( "PYTHONPATH", "" ) + \
-          ":" + \
-          Options.getOutputDir()
+        if "PYTHONPATH" in os.environ:
+            os.environ["PYTHONPATH"] += ":" + Options.getOutputDir()
+        else:
+            os.environ["PYTHONPATH"] = Options.getOutputDir()
 
     # We better flush these, "os.execl" won't do it anymore.
     sys.stdout.flush()
@@ -497,7 +500,7 @@ def callExec( args, clean_path, add_path ):
     args += Options.getMainArgs()
 
     # That's the API of execl, pylint: disable=W0142
-    Utils.callExec( args )
+    Utils.callExec(args)
 
 def executeMain( binary_filename, tree, clean_path ):
     main_filename = tree.getFilename()
@@ -523,7 +526,7 @@ def executeMain( binary_filename, tree, clean_path ):
     )
 
 def executeModule( tree, clean_path ):
-    python_command = "__import__( '%s' )" % tree.getName()
+    python_command = "__import__('%s')" % tree.getName()
 
     if os.name == "nt":
         python_command = '"%s"' % python_command
@@ -541,8 +544,8 @@ def executeModule( tree, clean_path ):
         args       = args
     )
 
-def compileTree( main_module ):
-    source_dir = getSourceDirectoryPath( main_module )
+def compileTree(main_module):
+    source_dir = getSourceDirectoryPath(main_module)
 
     if not Options.shallOnlyExecGcc():
         # Now build the target language code for the whole tree.
@@ -570,11 +573,10 @@ def compileTree( main_module ):
             binary_data = ConstantCodes.stream_data.getBytes()
         )
     else:
-        source_dir = getSourceDirectoryPath( main_module )
+        source_dir = getSourceDirectoryPath(main_module)
 
-        if not Utils.isFile( Utils.joinpath( source_dir, "__helpers.hpp" ) ):
-            sys.exit( "Error, no previous build directory exists." )
-
+        if not Utils.isFile( Utils.joinpath(source_dir, "__helpers.hpp")):
+            sys.exit("Error, no previous build directory exists.")
 
     # Run the Scons to build things.
     result, options = runScons(
@@ -644,13 +646,15 @@ def main():
         )
 
     if Options.shallDumpBuiltTree():
-        dumpTree( main_module )
+        dumpTree(main_module)
     elif Options.shallDumpBuiltTreeXML():
-        dumpTreeXML( main_module )
+        dumpTreeXML(main_module)
     elif Options.shallDisplayBuiltTree():
-        displayTree( main_module )
+        displayTree(main_module)
     else:
-        result, options = compileTree( main_module )
+        result, options = compileTree(
+            main_module = main_module
+        )
 
         # Exit if compilation failed.
         if not result:
@@ -663,7 +667,7 @@ def main():
             )
 
         if Options.isStandaloneMode():
-            binary_filename = options[ "result_name" ] + ".exe"
+            binary_filename = options["result_name"] + ".exe"
 
             standalone_entry_points.append(binary_filename)
 
@@ -671,8 +675,8 @@ def main():
                 shutil.copy(
                     early_dll,
                     Utils.joinpath(
-                        getStandaloneDirectoryPath( main_module ),
-                        Utils.basename( early_dll )
+                        getStandaloneDirectoryPath(main_module),
+                        Utils.basename(early_dll)
                     )
                 )
 
@@ -683,7 +687,7 @@ def main():
                 (
                     "chmod",
                     "-x",
-                    getResultFullpath( main_module )
+                    getResultFullpath(main_module)
                 )
             )
 
@@ -696,7 +700,7 @@ def main():
                 )
             else:
                 executeMain(
-                    binary_filename = getResultFullpath( main_module ),
+                    binary_filename = getResultFullpath(main_module),
                     tree            = main_module,
                     clean_path      = Options.shallClearPythonPathEnvironment()
                 )
