@@ -461,7 +461,10 @@ if "g++" in env[ "CXX" ]:
     if not win_target:
         env.Append( CCFLAGS = [
             "-fvisibility=hidden",
-            "-fvisibility-inlines-hidden"
+            ]
+        )
+        env.Append( CXXFLAGS = [
+           "-fvisibility-inlines-hidden"
             ]
         )
 
@@ -711,6 +714,60 @@ if optimize_mode:
 if standalone_mode and gcc_mode:
     env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
 
+def getLinkerArch():
+    if "linux" in sys.platform:
+        if target_arch == "x86_64":
+            return "elf64-x86-64"
+        elif target_arch == "armv5tel":
+            return "elf32-littlearm"
+        else:
+            # TODO: Detect from objdump mayhaps.
+            return None
+    elif os.name == "nt":
+        # This is MinGW, MSVC is handled by other code.
+        return "pe-i386"
+    else:
+        # TODO: Missing for MacOS, Linux
+        return None
+
+constants_bin_filename = os.path.join(source_dir,"__constants.bin")
+frozen_bin_filename = os.path.join(source_dir,"__frozen.bin")
+
+if gcc_mode and getLinkerArch() is not None:
+    env.Append( LINKFLAGS = [
+        "-Wl,-b", "-Wl,binary",
+        "-Wl,%s" % constants_bin_filename,
+        "-Wl,-b", "-Wl,%s" % getLinkerArch(),
+        "-Wl,-defsym", "-Wl,%sconstant_bin=_binary_%s___constants_bin_start" % (
+            "_" if mingw_mode else "",
+            "".join(re.sub("[^a-zA-Z0-9_]","_",c) for c in source_dir)
+        )
+    ] )
+
+    constants_generated_filename = None
+else:
+    constants_generated_filename = os.path.join(
+        source_dir,
+        "__constants_data.c"
+    )
+
+    with open(constants_generated_filename, "w") as output:
+        output.write("""const unsigned char constant_bin[] =\n{\n""")
+
+        for count, stream_byte in enumerate(
+                open(constants_bin_filename, "rb").read()
+            ):
+            if count % 16 == 0:
+                if count > 0:
+                    output.write("\n")
+
+                output.write("   ")
+
+            output.write(" 0x%02x," % ord(stream_byte))
+
+        output.write("\n};");
+
+
 env.Append( CPPDEFINES = [ "_NUITKA_FROZEN=%d" % frozen_modules ] )
 
 # Tell compiler to create a shared library or program.
@@ -765,6 +822,9 @@ def discoverSourceFiles():
     # If more than one module is included, we need the unfreezer.
     if module_count > 1:
         result.append( getStatic( "MetaPathBasedLoader.cpp" ) )
+
+    if constants_generated_filename is not None:
+        result.append(constants_generated_filename)
 
     return result
 

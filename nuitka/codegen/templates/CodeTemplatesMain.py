@@ -474,10 +474,8 @@ template_frozen_modules = """\
 #include <Python.h>
 
 // Blob from which modules are unstreamed.
-static const unsigned char stream_data[] =
-{
-%(stream_data)s
-};
+extern "C" const unsigned char constant_bin[];
+#define stream_data constant_bin
 
 // These modules should be loaded as bytecode. They must e.g. be loadable
 // during "Py_Initialize" already, or for irrelevance, they are only included

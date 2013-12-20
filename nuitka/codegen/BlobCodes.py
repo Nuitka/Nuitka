@@ -25,28 +25,22 @@ and for freezing of bytecode.
 from nuitka import Utils
 
 class StreamData:
-    def __init__( self ):
+    def __init__(self):
         self.stream_data = bytes()
 
-    def encodeStreamData( self ):
-        for count, stream_byte in enumerate( self.stream_data ):
-            if count % 16 == 0:
-                if count > 0:
-                    yield "\n"
-                yield "   "
-
-            if Utils.python_version < 300:
-                yield " 0x%02x," % ord( stream_byte )
-            else:
-                yield " 0x%02x," % stream_byte
-
-    def getStreamDataCode( self, value, fixed_size = False ):
-        offset = self.stream_data.find( value )
+    def getStreamDataCode(self, value, fixed_size = False):
+        offset = self.stream_data.find(value)
         if offset == -1:
-            offset = len( self.stream_data )
+            offset = len(self.stream_data)
             self.stream_data += value
 
         if fixed_size:
             return "&stream_data[ %d ]" % offset
         else:
-            return "&stream_data[ %d ], %d" % ( offset, len( value ) )
+            return "&stream_data[ %d ], %d" % (
+                offset,
+                len(value)
+            )
+
+    def getBytes(self):
+        return self.stream_data

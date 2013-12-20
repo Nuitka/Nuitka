@@ -27,7 +27,7 @@ needed except for technical reasons.
 """
 
 
-from nuitka.codegen import BlobCodes, CodeTemplates
+from nuitka.codegen import ConstantCodes, CodeTemplates
 from nuitka.codegen.Indentation import indented
 
 
@@ -51,7 +51,7 @@ def isFrozenModule(module_name):
     else:
         return False
 
-stream_data = BlobCodes.StreamData()
+stream_data = ConstantCodes.stream_data
 
 def generateBytecodeFrozenCode():
     frozen_defs = []
@@ -78,6 +78,5 @@ def generateBytecodeFrozenCode():
         )
 
     return CodeTemplates.template_frozen_modules % {
-        "stream_data"       : "".join(stream_data.encodeStreamData()),
-        "frozen_modules"    : indented(frozen_defs)
+        "frozen_modules" : indented(frozen_defs)
     }

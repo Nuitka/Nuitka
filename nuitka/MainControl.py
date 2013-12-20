@@ -39,7 +39,7 @@ from . import (
 
 from .build import SconsInterface
 
-from .codegen import CodeGeneration
+from .codegen import CodeGeneration, ConstantCodes
 
 from .optimizations import Optimization
 from .finalizations import Finalization
@@ -81,7 +81,7 @@ def createNodeTree( filename ):
     # module, and standalone mode program directory if any, they can only do
     # harm.
     source_dir = getSourceDirectoryPath( main_module )
-    cleanSourceDirectory( source_dir )
+    cleanSourceDirectory(source_dir)
     if Options.isStandaloneMode():
         standalone_dir = getStandaloneDirectoryPath( main_module )
         shutil.rmtree( standalone_dir, ignore_errors = True )
@@ -177,20 +177,21 @@ def getResultFullpath(main_module):
 
     return result
 
-def cleanSourceDirectory( source_dir ):
-    if Utils.isDir( source_dir ):
-        for path, _filename in Utils.listDir( source_dir ):
-            if Utils.getExtension( path ) in ( ".cpp", ".hpp", ".o", ".os" ):
-                Utils.deleteFile( path, True )
+def cleanSourceDirectory(source_dir):
+    if Utils.isDir(source_dir):
+        for path, _filename in Utils.listDir(source_dir):
+            if Utils.getExtension(path) in (".cpp", ".hpp", ".o", ".os",
+                                            ".obj", ".bin"):
+                Utils.deleteFile(path, True)
     else:
         Utils.makePath( source_dir )
 
     static_source_dir = Utils.joinpath( source_dir, "static" )
 
-    if Utils.isDir( static_source_dir ):
-        for path, _filename in sorted( Utils.listDir( static_source_dir ) ):
-            if Utils.getExtension( path ) in ( ".o", ".os" ):
-                Utils.deleteFile( path, True )
+    if Utils.isDir(static_source_dir):
+        for path, _filename in Utils.listDir(static_source_dir):
+            if Utils.getExtension(path) in (".o", ".os", ".obj"):
+                Utils.deleteFile(path, True)
 
 def pickSourceFilenames( source_dir, modules ):
     collision_filenames = set()
@@ -454,17 +455,27 @@ def runScons( main_module, quiet ):
 
     return SconsInterface.runScons( options, quiet ), options
 
-def writeSourceCode( filename, source_code ):
+def writeSourceCode(filename, source_code):
     # Prevent accidental overwriting. When this happens the collision detection
     # or something else has failed.
-    assert not Utils.isFile( filename ), filename
+    assert not Utils.isFile(filename), filename
 
     if Utils.python_version >= 300:
-        with open( filename, "wb" ) as output_file:
-            output_file.write( source_code.encode( "latin1" ) )
+        with open(filename, "wb") as output_file:
+            output_file.write(source_code.encode("latin1"))
     else:
-        with open( filename, "w" ) as output_file:
-            output_file.write( source_code )
+        with open(filename, "w") as output_file:
+            output_file.write(source_code)
+
+def writeBinaryData(filename, binary_data):
+    # Prevent accidental overwriting. When this happens the collision detection
+    # or something else has failed.
+    assert not Utils.isFile(filename), filename
+
+    assert type(binary_data) is bytes
+
+    with open(filename, "wb") as output_file:
+        output_file.write(binary_data)
 
 
 def callExec( args, clean_path, add_path ):
@@ -553,6 +564,11 @@ def compileTree( main_module ):
                 ),
                 source_code = frozen_code
             )
+
+        writeBinaryData(
+            filename    = Utils.joinpath(source_dir, "__constants.bin"),
+            binary_data = ConstantCodes.stream_data.getBytes()
+        )
     else:
         source_dir = getSourceDirectoryPath( main_module )
 

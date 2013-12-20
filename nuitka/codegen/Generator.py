@@ -1840,7 +1840,6 @@ def getConstantsDefinitionCode( context ):
     return CodeTemplates.template_constants_reading % {
         "constant_declarations" : "\n".join( constant_declarations ),
         "constant_inits"        : indented( constant_inits ),
-        "stream_data"           : "".join( stream_data.encodeStreamData() )
     }
 
 def getCurrentExceptionTypeCode():
