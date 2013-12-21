@@ -75,6 +75,12 @@ for filename in sorted(os.listdir( "." )):
             my_print("Skipping", filename, "not relevant.")
             continue
 
+        try:
+            import PySide
+        except ImportError:
+            my_print("Skipping", filename, "PySide not installed.")
+            continue
+
         # For the warnings.
         extra_flags.append( "ignore_stderr" )
 
