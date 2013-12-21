@@ -1973,7 +1973,7 @@ void setEarlyFrozenModulesFileAttribute( void )
 
     while( PyDict_Next( PyImport_GetModuleDict(), &ppos, &key, &value ) )
     {
-        if ( key != NULL )
+        if ( key != NULL && value != NULL && PyModule_Check( value ) )
         {
             if ( !PyObject_HasAttr( value, const_str_plain___file__ ) )
             {
