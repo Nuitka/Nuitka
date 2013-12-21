@@ -150,7 +150,7 @@ def _buildClassNode3( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    # source_ref_orig = source_ref
+    source_ref_orig = source_ref
     source_ref = source_ref.atInternal()
 
     if body is not None:
@@ -435,7 +435,7 @@ def _buildClassNode3( provider, node, source_ref ):
                 ),
                 source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref = source_ref_orig
         ),
         StatementConditional(
             condition  = ExpressionComparison(
