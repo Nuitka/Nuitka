@@ -426,6 +426,15 @@ Defaults to off."""
 )
 
 tracing_group.add_option(
+    "--show-modules",
+    action  = "store_true",
+    dest    = "show_inclusion",
+    default = False,
+    help    = """Provide a final summary on included modules.
+Defaults to off."""
+)
+
+tracing_group.add_option(
     "--verbose",
     action  = "store_true",
     dest    = "verbose",
@@ -640,6 +649,9 @@ def isFullCompat():
 
 def isShowProgress():
     return options.show_progress
+
+def isShowInclusion():
+    return options.show_inclusion
 
 def isRemoveBuildDir():
     return options.remove_build

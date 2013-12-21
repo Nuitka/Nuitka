@@ -29,7 +29,9 @@ needed except for technical reasons.
 
 from nuitka.codegen import ConstantCodes, CodeTemplates
 from nuitka.codegen.Indentation import indented
+from nuitka import Options
 
+from logging import info
 
 frozen_modules = []
 
@@ -76,6 +78,9 @@ def generateBytecodeFrozenCode():
                 size        = size
             )
         )
+
+        if Options.isShowInclusion():
+            info("Embedded as frozen module '%s'.", module_name)
 
     return CodeTemplates.template_frozen_modules % {
         "frozen_modules" : indented(frozen_defs)

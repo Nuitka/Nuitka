@@ -57,7 +57,7 @@ from nuitka.freezer.BytecodeModuleFreezer import (
 
 import sys, os, subprocess, shutil
 
-from logging import warning
+from logging import warning, info
 
 def createNodeTree(filename):
     """ Create a node tree.
@@ -673,6 +673,9 @@ def main():
                         Utils.basename(early_dll)
                     )
                 )
+
+                if Options.isShowInclusion():
+                    info("Included used shared library '%s'.", early_dll)
 
         # Modules should not be executable, but Scons creates them like it, fix
         # it up here.
