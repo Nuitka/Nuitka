@@ -69,6 +69,18 @@ class ExpressionBuiltinType1( ExpressionBuiltinSingleArgBase ):
 
         return self, None, None
 
+    def computeExpressionDrop(self, statement, constraint_collection):
+        from .NodeMakingHelpers import \
+          makeStatementExpressionOnlyReplacementNode
+
+        result = makeStatementExpressionOnlyReplacementNode(
+            expression = self.getValue(),
+            node       = statement
+        )
+
+        return result, "new_statements", """\
+Removed type taking for unused result."""
+
 
 class ExpressionBuiltinSuper( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_SUPER"
