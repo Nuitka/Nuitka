@@ -7,7 +7,10 @@ Windows, and Linux. Should work much better now.
 
 But consider that this part of Nuitka is still in its infancy. As it is not the
 top priority of mine for Nuitka, which primarily is intended as an super
-compatible accelerator of Python. So it will continue to evolve nearby.
+compatible accelerator of Python, it will continue to evolve nearby.
+
+There is also many new optimization based on structural improvements in the
+direction of actual SSA.
 
 Bug Fixes
 ---------
@@ -34,6 +37,71 @@ New Features
   as a replacement of ``strace`` on Linux when running the tests to check that
   nothing is loaded from the outside.
 
+New Optimization
+----------------
+
+- When iterating over ``list``, ``set``, this is now automatically lowered to
+  ``tuples`` avoiding the mutable container types.
+
+  So the following code is now equivalent:
+
+  .. code-block:: python
+
+     for x in [ a, b, c ]:
+        ...
+
+     # same as
+     for x in ( a, b, c ):
+        ...
+
+  For constants, this is even more effective, because for mutable constants, no
+  more is it necessary to make a copy.
+
+- Python2: The iteration of large ``range`` is now automatically lowered to
+  ``xrange`` which is faster to loop over, and more memory efficient.
+
+- Added support for the ``xrange`` built-in.
+
+- The statement only expression optimization got generalized and now is capable
+  of removing useless parts of operations, not only the whole thing when it has
+  not side effects.
+
+  .. code-block:: python
+
+     [a,b]
+
+     # same as
+     a
+     b
+
+  This works for all container types.
+
+  Another example is ``type`` built-in operation with single argument. When the
+  result is not used, it need not be called.
+
+  .. code-block:: python
+
+     type(a)
+
+     # same as
+     a
+
+  And another example ``is`` and ``is not`` have no effect of their own as well,
+  therefore:
+
+  .. code-block:: python
+
+     a is b
+
+     # same as
+     a
+     b
+
+- Added proper handling of conditional expression branches in SSA based
+  optimization. So far these branches were ignored, which only acceptable for
+  temporary variables as created by tree building, but not other variable
+  types. This is preparatory for introducing SSA for local variables.
+
 
 Organizational
 --------------
@@ -51,11 +119,26 @@ Organizational
 - The `Downloads <http://nuitka.net/pages/download.html>`__ now offers MSI files
   for Win64 as well.
 
+- Discontinued the support for cross compilation to Win32. That was too limited
+  and the design choice is to have a running CPython instance of matching
+  architecture at Nuitka compile time.
+
 New Tests
 ---------
 
 - Expanded test coverage for "standalone mode" demonstrating usage of "hex"
-  encoding, and Qt.
+  encoding, and PySide package.
+
+Summary
+-------
+
+The interface change improves on the already high ease of use. The new
+optimization do not give all that much in terms of numbers, but we are steadily
+approaching the point, where the really interesting stuff will happen.
+
+The progress for standalone mode is significant. It is still not quite there
+yet, but it is making quick progress now. This will attract a lot of attention
+hopefully.
 
 
 Nuitka Release 0.4.7
