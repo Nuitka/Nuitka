@@ -131,30 +131,33 @@ def convertUsing2to3( path ):
     return new_path
 
 def decideFilenameVersionSkip( filename ):
+    assert type(filename) is str
+    assert type(python_version) is bytes
+
     if filename.startswith( "run_" ):
         return False
 
     # Skip tests that require Python 2.7 at least.
-    if filename.endswith( "27.py" ) and python_version.startswith( b"2.6" ):
+    if filename.endswith("27.py") and python_version.startswith(b"2.6"):
         return False
 
-    if filename.endswith( "_2.py" ) and python_version.startswith( b"3" ):
+    if filename.endswith("_2.py") and python_version.startswith(b"3"):
         return False
 
     # Skip tests that require Python 3.2 at least.
-    if filename.endswith( "32.py" ) and not python_version.startswith( b"3" ):
+    if filename.endswith("32.py") and not python_version.startswith(b"3"):
         return False
 
     # Skip tests that require Python 3.3 at least.
-    if filename.endswith( "33.py" ) and not python_version.startswith( b"3.3" ):
+    if filename.endswith("33.py") and not python_version.startswith(b"3.3"):
         return False
 
     return True
 
-def compareWithCPython( path, extra_flags, search_mode, needs_2to3 ):
+def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
     # Apply 2to3 conversion if necessary.
     if needs_2to3:
-        path = convertUsing2to3( path )
+        path = convertUsing2to3(path)
 
     command = [
         sys.executable,
@@ -173,33 +176,33 @@ def compareWithCPython( path, extra_flags, search_mode, needs_2to3 ):
 
     if result != 0 and result != 2 and search_mode:
         my_print("Error exit!", result)
-        sys.exit( result )
+        sys.exit(result)
 
     if needs_2to3:
-        os.unlink( path )
+        os.unlink(path)
 
     if result == 2:
-        sys.stderr.write( "Interruped, with CTRL-C\n" )
-        sys.exit( 2 )
+        sys.stderr.write("Interruped, with CTRL-C\n")
+        sys.exit(2)
 
 def hasDebugPython():
     global python_version
 
     # On Debian systems, these work.
-    debug_python = os.path.join( "/usr/bin/", os.environ[ "PYTHON" ] + "-dbg" )
-    if os.path.exists( debug_python ):
+    debug_python = os.path.join("/usr/bin/", os.environ[ "PYTHON" ] + "-dbg")
+    if os.path.exists(debug_python):
         return True
 
     # For self compiled Python, if it's the one also executing the runner, lets
     # use it.
-    if sys.executable == os.environ[ "PYTHON" ] and \
-       hasattr( sys, "gettotalrefcount" ):
+    if sys.executable == os.environ["PYTHON"] and \
+       hasattr(sys, "gettotalrefcount"):
         return True
 
     # Otherwise no.
     return False
 
-def getRuntimeTraceOfLoadedFiles( path ):
+def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
     """ Returns the files loaded when executing a binary. """
 
     result = []
@@ -223,6 +226,9 @@ def getRuntimeTraceOfLoadedFiles( path ):
         open(path+".strace","wb").write(stderr_strace)
 
         for line in stderr_strace.split("\n"):
+            if process.returncode != 0 and trace_error:
+                my_print(line)
+
             if not line:
                 continue
 
