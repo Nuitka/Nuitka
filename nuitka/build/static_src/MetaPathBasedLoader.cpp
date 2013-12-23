@@ -42,7 +42,8 @@ static Nuitka_MetaPathBasedLoaderEntry *loader_entries = NULL;
 
 static char *_kwlist[] = {
     (char *)"fullname",
-    (char *)"unused", NULL
+    (char *)"unused",
+    NULL
 };
 
 static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, PyObject *kwds )
@@ -137,20 +138,27 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     );
 
 #ifdef _WIN32
-
     unsigned int old_mode = SetErrorMode( SEM_FAILCRITICALERRORS );
 
-    char abs_filename[ 260 ];
-    LPTSTR unused;
+    char abs_filename[ 4096 ];
+    LPTSTR unused = NULL;
 
     // Need to use absolute filename for Win9x to work correctly, however
     // important that is.
     GetFullPathName( filename, sizeof( abs_filename ), abs_filename, &unused );
 
+    if ( Py_VerboseFlag )
+    {
+        PySys_WriteStderr(
+            "import %s # LoadLibraryEx(\"%s\");\n",
+            filename
+        );
+    }
+
     HINSTANCE hDLL = LoadLibraryEx( abs_filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH );
     if (unlikely( hDLL == NULL ))
     {
-        PyErr_SetString( PyExc_ImportError, "LoadLibraryEx failed" );
+        PyErr_Format( PyExc_ImportError, "LoadLibraryEx '%s' failed", abs_filename );
         return NULL;
     }
 

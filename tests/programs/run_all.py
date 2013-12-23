@@ -24,7 +24,7 @@ sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname( os.path.abspath( __file__ ) ),
+            os.path.dirname(os.path.abspath(__file__)),
             ".."
         )
     )
@@ -49,8 +49,8 @@ else:
 
 extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS","")
 
-for filename in sorted( os.listdir( "." ) ):
-    if not os.path.isdir( filename ) or filename.endswith( ".build" ):
+for filename in sorted(os.listdir( "." )):
+    if not os.path.isdir(filename) or filename.endswith(".build"):
         continue
 
     path = os.path.relpath( filename )

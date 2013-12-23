@@ -54,7 +54,19 @@ def getDependsExePath():
     )
 
     if not Utils.isFile(nuitka_depends_zip):
+        print("""\
+Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
+to analyse the dependencies of Python extension modules. Is it OK to download
+and put it in APPDATA (no installer needed, cached, one time question)."""
+        )
+
+        reply = raw_input("Proceed and download? [Yes]/No ")
+
+        if reply.lower() in ("no", "n"):
+            sys.exit("Nuitka does not work in --standalone on Windows without.")
+
         info("Downloading", depends_url)
+
         urllib.urlretrieve(
             depends_url,
             nuitka_depends_zip
@@ -68,7 +80,7 @@ def getDependsExePath():
     if not Utils.isDir(nuitka_depends_dir):
         os.makedirs(nuitka_depends_dir)
 
-    depends_exe= os.path.join(
+    depends_exe = os.path.join(
         nuitka_depends_dir,
         "depends.exe"
     )
@@ -105,6 +117,9 @@ def _detectImports(command,is_late):
     )
 
     _stdout, stderr = process.communicate()
+
+    # Don't let errors here go unnoticed.
+    assert process.returncode == 0
 
     result = []
 
@@ -246,11 +261,17 @@ def detectLateImports():
 
 
 def detectEarlyImports():
+    # TODO: Should recursively include all of encodings module.
     command = "import encodings.utf_8;"
+
+    if os.name == "nt":
+        command += "import encodings.mbcs;"
 
     # String method hex depends on it.
     if Utils.python_version < 300:
         command += "import encodings.hex_codec;"
+
+    command += "import locale;"
 
     result = _detectImports(command,False)
     debug("Finished detecting early imports.")

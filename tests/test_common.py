@@ -31,7 +31,11 @@ def check_output(*popenargs, **kwargs):
     if 'stdout' in kwargs:
         raise ValueError('stdout argument not allowed, it will be overridden.')
 
-    process = subprocess.Popen( stdout = subprocess.PIPE, *popenargs, **kwargs )
+    process = subprocess.Popen(
+        stdout = subprocess.PIPE,
+        *popenargs,
+        **kwargs
+    )
     output, _unused_err = process.communicate()
     retcode = process.poll()
     if retcode:
@@ -50,20 +54,29 @@ def setup( needs_io_encoding = False ):
     )
 
     if "PYTHON" not in os.environ:
-        os.environ[ "PYTHON" ] = sys.executable
+        os.environ["PYTHON"] = sys.executable
 
     if needs_io_encoding and "PYTHONIOENCODING" not in os.environ:
-        os.environ[ "PYTHONIOENCODING" ] = "utf-8"
+        os.environ["PYTHONIOENCODING"] = "utf-8"
 
     version_output = check_output(
-        [ os.environ[ "PYTHON" ], "--version" ],
+        [
+            os.environ["PYTHON"],
+            "-c",
+            """\
+import sys, os;\
+print(".".join(str(s) for s in list(sys.version_info)[:3]));\
+print(("x86_64" if "AMD64" in sys.version else "x86") if os.name=="nt" else os.uname()[4]);\
+""",
+        ],
         stderr = subprocess.STDOUT
     )
 
-    global python_version
-    python_version = version_output.split()[1]
+    global python_version, python_arch
+    python_version = version_output.split(b"\n")[0].strip()
+    python_arch = version_output.split(b"\n")[1].strip()
 
-    my_print( "Using concrete python", python_version )
+    my_print("Using concrete python", python_version, "on", python_arch)
 
     assert type( python_version ) is bytes
 
@@ -90,11 +103,11 @@ def getTempDir():
 
         def removeTempDir():
             try:
-                os.rmdir( tmp_dir )
+                os.rmdir(tmp_dir)
             except OSError:
                 pass
 
-        atexit.register( removeTempDir )
+        atexit.register(removeTempDir)
 
     return tmp_dir
 
@@ -130,11 +143,12 @@ def convertUsing2to3( path ):
 
     return new_path
 
-def decideFilenameVersionSkip( filename ):
+def decideFilenameVersionSkip(filename):
     assert type(filename) is str
     assert type(python_version) is bytes
 
-    if filename.startswith( "run_" ):
+    # Skip runner scripts by default.
+    if filename.startswith("run_"):
         return False
 
     # Skip tests that require Python 2.7 at least.
@@ -202,6 +216,35 @@ def hasDebugPython():
     # Otherwise no.
     return False
 
+def getArchitecture():
+    if os.name == "nt":
+        if "AMD64" in sys.version:
+            return "x86_64"
+        else:
+            return "x86"
+    else:
+        return os.uname()[4]
+
+def getDependsExePath():
+    if "APPDATA" not in os.environ:
+        sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
+
+    nuitka_app_dir = os.path.join(os.environ["APPDATA"],"nuitka")
+
+    depends_dir = os.path.join(
+        nuitka_app_dir,
+        python_arch,
+    )
+    depends_exe = os.path.join(
+        depends_dir,
+        "depends.exe"
+    )
+
+    assert os.path.exists(depends_exe), depends_exe
+
+    return depends_exe
+
+
 def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
     """ Returns the files loaded when executing a binary. """
 
@@ -260,7 +303,53 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
                 for match in
                 re.findall('"(.*?)"', line)
             )
-    # TODO: Use depends.exe on Windows.
+    elif os.name == "nt":
+        subprocess.call(
+            (
+                getDependsExePath(),
+                "-c",
+                "-ot%s" % path + ".depends",
+                "-f1",
+                "-pa1",
+                "-ps1",
+                "-pp0",
+                "-pl1",
+                path
+            )
+        )
+
+        inside = False
+        for line in open(path + ".depends"):
+            if "| Module Dependency Tree |" in line:
+                inside = True
+                continue
+
+            if not inside:
+                continue
+
+            if "| Module List |" in line:
+                break
+
+            if "]" not in line:
+                continue
+
+            # Skip missing DLLs, apparently not needed anyway.
+            if "?" in line[:line.find("]")]:
+                continue
+
+            dll_filename = line[line.find("]")+2:-1]
+            assert os.path.isfile(dll_filename), dll_filename
+
+            # The executable itself is of course excempted.
+            if os.path.normcase(dll_filename) == \
+                os.path.normcase(os.path.abspath(path)):
+                continue
+
+            dll_filename = os.path.normcase(dll_filename)
+
+            result.append(dll_filename)
+
+        os.unlink(path + ".depends")
 
     result = list(sorted(set(result)))
 
