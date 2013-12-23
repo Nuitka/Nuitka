@@ -1066,6 +1066,41 @@ PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool in
     return result;
 }
 
+PyObject *UNSTREAM_CHAR( unsigned char value, bool intern )
+{
+#if PYTHON_VERSION < 300
+    PyObject *result = PyString_FromStringAndSize( (char const  *)&value, 1 );
+#else
+    PyObject *result = PyUnicode_FromStringAndSize( (char const  *)&value, 1 );
+#endif
+
+    assert( !ERROR_OCCURED() );
+    assertObject( result );
+    assert( Nuitka_String_Check( result ) );
+
+#if PYTHON_VERSION < 300
+    assert( PyString_Size( result ) == 1 );
+#else
+    assert( PyUnicode_GET_SIZE( result ) == 1 );
+#endif
+
+    if ( intern )
+    {
+        Nuitka_StringIntern( &result );
+
+        assertObject( result );
+        assert( Nuitka_String_Check( result ) );
+
+#if PYTHON_VERSION < 300
+        assert( PyString_Size( result ) == 1 );
+#else
+        assert( PyUnicode_GET_SIZE( result ) == 1 );
+#endif
+    }
+
+    return result;
+}
+
 PyObject *UNSTREAM_FLOAT( unsigned char const *buffer )
 {
     double x = _PyFloat_Unpack8( buffer, 1 );

@@ -191,13 +191,22 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         # can indeed use pickling.
         assert str is not unicode
 
-        emit(
-            "%s = UNSTREAM_STRING( %s, %d );" % (
-                constant_identifier,
-                stream_data.getStreamDataCode( constant_value ),
-                1 if _isAttributeName( constant_value ) else 0
+        if len(constant_value) == 1:
+            emit(
+                "%s = UNSTREAM_CHAR( %d, %d );" % (
+                    constant_identifier,
+                    ord(constant_value[0]),
+                    1 if _isAttributeName(constant_value) else 0
+                )
             )
-        )
+        else:
+            emit(
+                "%s = UNSTREAM_STRING( %s, %d );" % (
+                    constant_identifier,
+                    stream_data.getStreamDataCode(constant_value),
+                    1 if _isAttributeName(constant_value) else 0
+                )
+            )
 
         return
     elif constant_type is bytes:
