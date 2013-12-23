@@ -180,18 +180,23 @@ def getResultFullpath(main_module):
 def cleanSourceDirectory(source_dir):
     if Utils.isDir(source_dir):
         for path, _filename in Utils.listDir(source_dir):
-            if Utils.getExtension(path) in (".cpp", ".hpp", ".o", ".os",
-                                            ".obj", ".bin"):
+            if Utils.getExtension(path) in (".cpp", ".hpp", ".c", ".o", ".os",
+                                            ".obj", ".bin", ".res", ".rc",
+                                            ".manifest"):
                 Utils.deleteFile(path, True)
     else:
         Utils.makePath( source_dir )
 
-    static_source_dir = Utils.joinpath( source_dir, "static" )
+    static_source_dir = Utils.joinpath(
+        source_dir,
+        "static"
+    )
 
     if Utils.isDir(static_source_dir):
         for path, _filename in Utils.listDir(static_source_dir):
             if Utils.getExtension(path) in (".o", ".os", ".obj"):
                 Utils.deleteFile(path, True)
+
 
 def pickSourceFilenames( source_dir, modules ):
     collision_filenames = set()
