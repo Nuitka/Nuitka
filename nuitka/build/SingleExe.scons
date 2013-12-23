@@ -216,6 +216,13 @@ elif "CXX" in os.environ:
 # default:
 def setupSpawn( env ):
     def spawn( sh, escape, cmd, args, env ):
+        # The "del" appears to not work, but is used with large amounts of
+        # files to link. So, lets do this outselves, plus it avoids a process
+        # spawn.
+        if cmd == "del":
+            os.unlink(args[1])
+            return 0
+
         # For quoted arguments that end in a backslash, things don't work well
         # this is a workaround for it.
         def removeTrailingSlashQuote( arg ):
