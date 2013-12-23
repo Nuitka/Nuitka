@@ -1817,7 +1817,7 @@ def getStatementTrace( source_desc, statement_repr ):
 
 
 def getConstantsDeclarationCode( context ):
-    constant_declarations = getConstantsDeclCode(
+    constant_declarations, _constant_locals = getConstantsDeclCode(
         context    = context,
         for_header = True
     )
@@ -1827,7 +1827,7 @@ def getConstantsDeclarationCode( context ):
     )
 
     header_body = CodeTemplates.template_constants_declaration % {
-        "constant_declarations" : "\n".join( constant_declarations )
+        "constant_declarations" : "\n".join(constant_declarations)
     }
 
     return CodeTemplates.template_header_guard % {
@@ -1844,7 +1844,7 @@ def getConstantsDefinitionCode( context ):
         context    = context
     )
 
-    constant_declarations = getConstantsDeclCode(
+    constant_declarations, constant_locals = getConstantsDeclCode(
         context    = context,
         for_header = False
     )
@@ -1854,8 +1854,9 @@ def getConstantsDefinitionCode( context ):
     )
 
     return CodeTemplates.template_constants_reading % {
-        "constant_declarations" : "\n".join( constant_declarations ),
-        "constant_inits"        : indented( constant_inits ),
+        "constant_declarations" : "\n".join(constant_declarations),
+        "constant_inits"        : indented(constant_inits),
+        "constant_locals"       : indented(constant_locals)
     }
 
 def getCurrentExceptionTypeCode():

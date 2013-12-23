@@ -34,6 +34,7 @@ extern "C" const unsigned char constant_bin[];
 
 static void __initConstants( void )
 {
+%(constant_locals)s
 %(constant_inits)s
 }
 

@@ -434,16 +434,17 @@ def getConstantsInitCode(context):
 
     return statements
 
-def getConstantsDeclCode( context, for_header ):
+def getConstantsDeclCode(context, for_header):
     # There are many cases for constants of different types.
     # pylint: disable=R0912
     statements = []
+    statements2 = []
 
     constants = context.getConstants()
 
     contained_constants = {}
 
-    def considerForDeferral( constant_value ):
+    def considerForDeferral(constant_value):
         if constant_value is None:
             return
 
@@ -456,29 +457,29 @@ def getConstantsDeclCode( context, for_header ):
         if constant_value is Ellipsis:
             return
 
-        constant_type = type( constant_value )
+        constant_type = type(constant_value)
 
         if constant_type is type:
             return
 
-        key = constant_type, HashableConstant( constant_value )
+        key = constant_type, HashableConstant(constant_value)
 
         if key not in contained_constants:
-            constant_identifier = getConstantCodeName( context, constant_value )
+            constant_identifier = getConstantCodeName(context, constant_value)
 
-            contained_constants[ key ] = constant_identifier
+            contained_constants[key] = constant_identifier
 
-            if constant_type in ( tuple, list, set, frozenset ):
+            if constant_type in (tuple, list, set, frozenset):
                 for element in constant_value:
-                    considerForDeferral( element )
+                    considerForDeferral(element)
+            elif constant_type is dict:
+                for key, value in iterItems(constant_value):
+                    considerForDeferral(key)
+                    considerForDeferral(value)
 
-            if constant_type is dict:
-                for key, value in iterItems( constant_value ):
-                    considerForDeferral( key )
-                    considerForDeferral( value )
 
-
-    for ( constant_type, constant_value ), constant_identifier in sorted( constants.items(), key = _lengthKey ):
+    for (constant_type, constant_value), constant_identifier in \
+            sorted(constants.items(), key = _lengthKey):
         # Need not declare built-in types.
         if constant_type is type:
             continue
@@ -488,16 +489,16 @@ def getConstantsDeclCode( context, for_header ):
         if for_header:
             declaration = "extern " + declaration
         else:
-            if constant_type in ( tuple, dict, list, set, frozenset ):
+            if constant_type in (tuple, dict, list, set, frozenset):
                 considerForDeferral( constant_value.getConstant() )
 
-        statements.append( declaration )
+        statements.append(declaration)
 
-    for key, value in sorted( contained_constants.items(), key = _lengthKey ):
+    for key, value in sorted(contained_constants.items(), key = _lengthKey):
         if key not in constants:
-            declaration = "static PyObject *%s;" % value
+            declaration = "PyObject *%s;" % value
 
-            statements.append( declaration )
+            statements2.append(declaration)
 
     if not for_header:
         # Using global here, as this is really a singleton, in the form of a
@@ -505,18 +506,18 @@ def getConstantsDeclCode( context, for_header ):
         global the_contained_constants
         the_contained_constants = contained_constants
 
-    return statements
+    return statements, statements2
 
-def getConstantAccess( context, constant ):
+def getConstantAccess(context, constant):
     # Many cases, because for each type, we may copy or optimize by creating
     # empty.  pylint: disable=R0911,R0912
 
-    if type( constant ) is dict:
+    if type(constant) is dict:
         if constant:
-            for key, value in iterItems( constant ):
+            for key, value in iterItems(constant):
                 # key cannot be mutable.
-                assert not isMutable( key )
-                if isMutable( value ):
+                assert not isMutable(key)
+                if isMutable(value):
                     needs_deep = True
                     break
             else:
@@ -541,7 +542,7 @@ def getConstantAccess( context, constant ):
 
         else:
             return EmptyDictIdentifier()
-    elif type( constant ) is set:
+    elif type(constant) is set:
         if constant:
             return Identifier(
                 "PySet_New( %s )" % getConstantCode(
@@ -555,10 +556,10 @@ def getConstantAccess( context, constant ):
                 "PySet_New( NULL )",
                 1
             )
-    elif type( constant ) is list:
+    elif type(constant) is list:
         if constant:
             for value in constant:
-                if isMutable( value ):
+                if isMutable(value):
                     needs_deep = True
                     break
             else:
@@ -585,9 +586,9 @@ def getConstantAccess( context, constant ):
                 "PyList_New( 0 )",
                 1
             )
-    elif type( constant ) is tuple:
+    elif type(constant) is tuple:
         for value in constant:
-            if isMutable( value ):
+            if isMutable(value):
                 needs_deep = True
                 break
         else:
