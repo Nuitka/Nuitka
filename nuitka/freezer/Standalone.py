@@ -414,7 +414,7 @@ def detectBinaryDLLs(binary_filename):
     return result
 
 
-def detectPythonDLLs(standalone_entry_points):
+def detectUsedDLLs(standalone_entry_points):
     result = set()
 
     for binary_filename in standalone_entry_points:

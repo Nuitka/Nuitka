@@ -47,7 +47,7 @@ from .finalizations import Finalization
 from nuitka.freezer.Standalone import (
     detectEarlyImports,
     detectLateImports,
-    detectPythonDLLs
+    detectUsedDLLs
 )
 from nuitka.freezer.BytecodeModuleFreezer import (
     generateBytecodeFrozenCode,
@@ -663,9 +663,9 @@ def main():
         if Options.isStandaloneMode():
             binary_filename = options["result_name"] + ".exe"
 
-            standalone_entry_points.append(binary_filename)
+            standalone_entry_points.insert(0, binary_filename)
 
-            for early_dll in detectPythonDLLs(standalone_entry_points):
+            for early_dll in detectUsedDLLs(standalone_entry_points):
                 shutil.copy(
                     early_dll,
                     Utils.joinpath(
