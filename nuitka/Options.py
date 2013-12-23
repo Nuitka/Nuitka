@@ -506,6 +506,8 @@ Error, need positional argument with python module or main program.""" )
 
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
+else:
+    logging.getLogger().setLevel( logging.INFO )
 
 # Standalone mode implies an executable, not importing "site" module, which is
 # only for this machine, recursing to all modules, and even including the

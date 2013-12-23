@@ -20,13 +20,11 @@
 """
 
 from nuitka import Options, Utils, Importing, ModuleRegistry
-from nuitka.nodes.ModuleNodes import PythonPackage
-from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
 
 from . import ImportCache, Building
 
-from logging import info, warning
+from logging import debug, info, warning
 
 def recurseTo( module_package, module_filename, module_relpath, module_kind,
                reason ):
@@ -42,7 +40,7 @@ def recurseTo( module_package, module_filename, module_relpath, module_kind,
         # Check if the module name is known. In order to avoid duplicates,
         # learn the new filename, and continue build if its not.
         if not ImportCache.isImportedModuleByName( module.getFullName() ):
-            info(
+            debug(
                 "Recurse to import '%s' from %s. (%s)",
                 module.getFullName(),
                 module_relpath,
@@ -201,7 +199,7 @@ def isSameModulePath( path1, path2 ):
     return Utils.abspath(path1) == Utils.abspath(path2)
 
 def _checkPluginPath( plugin_filename, module_package ):
-    info(
+    debug(
         "Checking detail plugin path %s %s",
         plugin_filename,
         module_package
@@ -238,7 +236,7 @@ def _checkPluginPath( plugin_filename, module_package ):
 
                     return
 
-            info(
+            debug(
                 "Recursed to %s %s %s",
                 module.getName(),
                 module.getPackage(),
@@ -263,7 +261,11 @@ def _checkPluginPath( plugin_filename, module_package ):
                     # Real packages will always be included.
                     useful = True
 
-                info("Package directory %s", package_dir)
+                debug(
+                    "Package directory %s",
+                    package_dir
+                )
+
 
                 for sub_path, sub_filename in Utils.listDir(package_dir):
                     if sub_filename in ("__init__.py", "__pycache__"):
@@ -285,7 +287,7 @@ def _checkPluginPath( plugin_filename, module_package ):
             warning( "Failed to include module from '%s'.", plugin_info[0] )
 
 def checkPluginPath( plugin_filename, module_package ):
-    info(
+    debug(
         "Checking top level plugin path %s %s",
         plugin_filename,
         module_package
