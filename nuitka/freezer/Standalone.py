@@ -278,7 +278,7 @@ def detectEarlyImports():
 
     return result
 
-def detectBinaryDLLs(binary_filename):
+def detectBinaryDLLs(binary_filename, package_name):
     result = set()
 
     if os.name == "posix" and os.uname()[0] == "Linux":
@@ -315,6 +315,21 @@ def detectBinaryDLLs(binary_filename):
     elif os.name == "nt":
         depends_exe = getDependsExePath()
 
+        env = os.environ.copy()
+        path = env.get("PATH","").split(";")
+
+        path += sys.path
+
+        if package_name is not None:
+            for element in sys.path:
+                candidate = Utils.joinpath(element, package_name)
+
+                if Utils.isDir(candidate):
+                    path.append(candidate)
+
+
+        env["PATH"]=";".join(path)
+
         subprocess.call(
             (
                 depends_exe,
@@ -324,7 +339,8 @@ def detectBinaryDLLs(binary_filename):
                 "-pa1",
                 "-ps1",
                 binary_filename
-            )
+            ),
+            env = env,
         )
 
         inside = False
@@ -417,9 +433,12 @@ def detectBinaryDLLs(binary_filename):
 def detectUsedDLLs(standalone_entry_points):
     result = set()
 
-    for binary_filename in standalone_entry_points:
+    for binary_filename, package_name in standalone_entry_points:
         result.update(
-            detectBinaryDLLs(binary_filename)
+            detectBinaryDLLs(
+                binary_filename = binary_filename,
+                package_name    = package_name
+            )
         )
 
     return result

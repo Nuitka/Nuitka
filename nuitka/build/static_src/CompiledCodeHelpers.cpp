@@ -2059,6 +2059,10 @@ void prepareStandaloneEnvironment()
     // the provided binary directory as the place to look for DLLs.
     char *binary_directory = getBinaryDirectory();
 
+#if defined( _WIN32 ) && defined( _MSC_VER )
+    SetDllDirectory( getBinaryDirectory() );
+#endif
+
     // get orignal value
     char *orignal_home = getenv( "PYTHONHOME" );
     char *orignal_path = getenv( "PYTHONPATH" );

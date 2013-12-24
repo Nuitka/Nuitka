@@ -344,7 +344,9 @@ def makeSourceDirectory(main_module):
                 target_filename
             )
 
-            standalone_entry_points.append(target_filename)
+            standalone_entry_points.append(
+                (target_filename,module.getPackage())
+            )
         else:
             assert False, module
 
@@ -668,7 +670,10 @@ def main():
         if Options.isStandaloneMode():
             binary_filename = options["result_name"] + ".exe"
 
-            standalone_entry_points.insert(0, binary_filename)
+            standalone_entry_points.insert(
+                0,
+                (binary_filename, None)
+            )
 
             for early_dll in detectUsedDLLs(standalone_entry_points):
                 shutil.copy(
