@@ -31,8 +31,17 @@ def _getPythonVersion():
 
 python_version = _getPythonVersion()
 
-def getArchitecture():
+
+def getOS():
     if os.name == "nt":
+        return "Windows"
+    elif os.name == "posix":
+        return os.uname()[0]
+    else:
+        assert False, os.name
+
+def getArchitecture():
+    if getOS() == "Windows":
         if "AMD64" in sys.version:
             return "x86_64"
         else:
@@ -119,7 +128,7 @@ def callExec( args ):
     """
 
     # On Windows os.execl does not work properly
-    if os.name != "nt":
+    if getOS() != "Windows":
         # The star arguments is the API of execl, pylint: disable=W0142
         os.execl( *args )
     else:

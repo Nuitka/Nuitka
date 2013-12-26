@@ -30,7 +30,7 @@ from .Identifiers import NullIdentifier
 
 from . import CodeTemplates
 
-from nuitka import Options
+from nuitka import Options, Utils
 
 import sys, os
 
@@ -57,7 +57,8 @@ def getMainCode( codes, context ):
     main_code        = CodeTemplates.main_program % {
         "sys_executable"       : getConstantCode(
             constant = "python.exe"
-                         if os.name == "nt" and Options.isStandaloneMode() else
+                         if Utils.getOS() == "Windows" and \
+                            Options.isStandaloneMode() else
                        sys.executable,
             context  = context
         ),

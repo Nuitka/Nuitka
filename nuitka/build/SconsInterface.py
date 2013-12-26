@@ -91,7 +91,7 @@ def getPython2ExePath():
     """ Find a way to call Python2. Scons needs it."""
     if Utils.python_version < 300:
         return sys.executable
-    elif os.name == "nt":
+    elif Utils.getOS() == "Windows":
         python_exe = _getPython2ExePathWindows()
 
         if python_exe is not None:
@@ -111,7 +111,7 @@ def runScons(options, quiet):
     # scons file is unable to use __file__ for the task.
     os.environ["NUITKA_SCONS"] = getSconsDataPath()
 
-    if os.name == "nt":
+    if Utils.getOS() == "Windows":
         # On Windows this Scons variable must be set by us.
         os.environ["SCONS_LIB_DIR"] = Utils.joinpath(
             getSconsInlinePath(),

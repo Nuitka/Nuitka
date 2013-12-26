@@ -168,7 +168,7 @@ def getResultFullpath(main_module):
     result = getResultBasepath(main_module)
 
     if Options.shallMakeModule():
-        if os.name == "nt":
+        if Utils.getOS() == "Windows":
             result += ".pyd"
         else:
             result += ".so"
@@ -329,7 +329,7 @@ def makeSourceDirectory(main_module):
                 *module.getFullName().split(".")
             )
 
-            if os.name == "nt":
+            if Utils.getOS() == "Windows":
                 target_filename += ".pyd"
             else:
                 target_filename += ".so"
@@ -431,7 +431,7 @@ def runScons(main_module, quiet):
 
     # Ask Scons to cache on Windows, except where the directory is thrown
     # away. On non-Windows you can should use ccache instead.
-    if not Options.isRemoveBuildDir() and os.name == "nt":
+    if not Options.isRemoveBuildDir() and Utils.getOS() == "Windows":
         options["cache_mode"] = "true"
 
     if Options.isLto():
@@ -529,7 +529,7 @@ def executeMain( binary_filename, tree, clean_path ):
 def executeModule( tree, clean_path ):
     python_command = "__import__('%s')" % tree.getName()
 
-    if os.name == "nt":
+    if Utils.getOS() == "Windows":
         python_command = '"%s"' % python_command
 
     args = (
@@ -675,6 +675,9 @@ def main():
                 (binary_filename, None)
             )
 
+            if Utils.getOS() == "NetBSD":
+                warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
+
             for early_dll in detectUsedDLLs(standalone_entry_points):
                 shutil.copy(
                     early_dll,
@@ -689,7 +692,7 @@ def main():
 
         # Modules should not be executable, but Scons creates them like it, fix
         # it up here.
-        if os.name != "nt" and Options.shallMakeModule():
+        if Utils.getOS() != "Windows" and Options.shallMakeModule():
             subprocess.call(
                 (
                     "chmod",

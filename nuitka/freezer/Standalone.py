@@ -264,7 +264,7 @@ def detectEarlyImports():
     # TODO: Should recursively include all of encodings module.
     command = "import encodings.utf_8;"
 
-    if os.name == "nt":
+    if Utils.getOS() == "Windows":
         command += "import encodings.mbcs;"
 
     # String method hex depends on it.
@@ -281,7 +281,7 @@ def detectEarlyImports():
 def detectBinaryDLLs(binary_filename, package_name):
     result = set()
 
-    if os.name == "posix" and os.uname()[0] == "Linux":
+    if Utils.getOS() in ("Linux", "NetBSD"):
         # Ask "ldd" about the libraries being used by the created binary, these
         # are the ones that interest us.
         process = subprocess.Popen(
@@ -303,7 +303,11 @@ def detectBinaryDLLs(binary_filename, package_name):
                 continue
 
             part = line.split(b" => ", 2)[1]
-            filename = part[:part.rfind(b"(")-1]
+
+            if b"(" in part:
+                filename = part[:part.rfind(b"(")-1]
+            else:
+                filename = part
 
             if not filename:
                 continue
@@ -312,7 +316,7 @@ def detectBinaryDLLs(binary_filename, package_name):
                 filename = filename.decode("utf-8")
 
             result.add(filename)
-    elif os.name == "nt":
+    elif Utils.getOS() == "Windows":
         depends_exe = getDependsExePath()
 
         env = os.environ.copy()
@@ -425,7 +429,7 @@ def detectBinaryDLLs(binary_filename, package_name):
         os.unlink(binary_filename + ".depends")
     else:
         # Support your platform above.
-        assert False
+        assert False, Utils.getOS()
 
     return result
 

@@ -595,7 +595,7 @@ if standalone_mode:
         env.Append(
             LIBS = ["Shlwapi"]
         )
-    else:
+    elif "linux" in sys.platform:
         env.Append(
             LIBS = ["dl"]
         )
@@ -689,7 +689,7 @@ else:
     else:
         env.Append( LIBS = [ "python" + python_version ] )
 
-    if python_prefix != "/usr":
+    if python_prefix != "/usr" and "linux" in sys.platform:
         env.Append(
             LIBS = ["dl", "pthread", "util", "m"]
         )
