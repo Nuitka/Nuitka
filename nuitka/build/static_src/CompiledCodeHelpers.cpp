@@ -1945,6 +1945,10 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 #define PATH_MAX MAXPATHLEN
 #endif
 
+#if defined( __FreeBSD__ )
+#include <sys/sysctl.h>
+#endif
+
 char *getBinaryDirectory()
 {
     static char binary_directory[ PATH_MAX + 1 ];
@@ -1966,6 +1970,14 @@ char *getBinaryDirectory()
     {
         abort();
     }
+#elif defined( __FreeBSD__ )
+    int mib[4];
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_PROC;
+    mib[2] = KERN_PROC_PATHNAME;
+    mib[3] = -1;
+    size_t cb = sizeof(binary_directory);
+    sysctl(mib, 4, binary_directory, &cb, NULL, 0);
 #else
     // Readlink does not terminate result.
     memset( binary_directory, 0, PATH_MAX + 1 );
