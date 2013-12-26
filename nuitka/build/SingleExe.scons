@@ -445,7 +445,7 @@ if "clang" in env[ "CXX" ]:
         ]
     )
 
-    if debug_mode:
+    if debug_mode and not clang_mode:
         env.Append( CCFLAGS = [ "-Wunused-but-set-variable" ] )
 
     clang_version = getClangVersion()
@@ -834,7 +834,7 @@ else:
 
             output.write(" 0x%02x," % ord(stream_byte))
 
-        output.write("\n};");
+        output.write("\n};\n");
 
 
 env.Append(
