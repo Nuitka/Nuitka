@@ -46,20 +46,24 @@ def _attemptRecursion(module):
             )
         )
 
-def _optimizeModulePass(module, tag_set):
-    def signalChange(tags, source_ref, message):
-        """ Indicate a change to the optimization framework.
 
-        """
-        debug(
-            "{source_ref} : {tags} : {message}".format(
-                source_ref = source_ref.getAsString(),
-                tags       = tags,
-                message    = message
-            )
+tag_set = None
+
+def signalChange(tags, source_ref, message):
+    """ Indicate a change to the optimization framework.
+
+    """
+    debug(
+        "{source_ref} : {tags} : {message}".format(
+            source_ref = source_ref.getAsString(),
+            tags       = tags,
+            message    = message
         )
-        tag_set.onSignal(tags)
+    )
+    tag_set.onSignal(tags)
 
+
+def _optimizeModulePass(module, tag_set):
     module.collection = ConstraintCollectionModule(
         signal_change = signalChange,
         module        = module
@@ -96,7 +100,9 @@ def optimizePythonModule(module):
             )
         )
 
+    global tag_set
     tag_set = TagSet()
+
     touched = False
 
     while True:
@@ -118,6 +124,11 @@ def optimizePythonModule(module):
 def optimizeShlibModule(module):
     # Pick up parent package if any.
     _attemptRecursion(module)
+
+    global tag_set
+    tag_set = TagSet()
+
+    module.considerImplicitImports(signal_change = signalChange)
 
 
 def optimize():

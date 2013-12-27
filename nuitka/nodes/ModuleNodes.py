@@ -31,7 +31,7 @@ from .IndicatorMixins import MarkContainsTryExceptIndicator
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.nodes.FutureSpecs import FutureSpec
 
-from nuitka import Variables, Utils
+from nuitka import Variables, Importing, Utils
 
 from nuitka.oset import OrderedSet
 
@@ -365,3 +365,67 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
 
     def startTraversal(self):
         pass
+
+
+    def getImplicitImports(self):
+        if self.getFullName() == "PyQt4.QtCore":
+            return (
+                ("atexit", None),
+                ("sip", None)
+            )
+        else:
+            return ()
+
+    def considerImplicitImports(self, signal_change):
+        for module_name, module_package in self.getImplicitImports():
+            _module_package, _module_name, module_filename = \
+              Importing.findModule(
+                source_ref     = self.source_ref,
+                module_name    = module_name,
+                parent_package = module_package,
+                level          = -1,
+                warn           = True
+            )
+
+            if Utils.isDir(module_filename):
+                module_kind = "py"
+            elif module_filename.endswith(".py"):
+                module_kind = "py"
+            elif module_filename.endswith(".so"):
+                module_kind = "shlib"
+            elif module_filename.endswith(".pyd"):
+                module_kind = "shlib"
+            else:
+                assert False
+
+            from nuitka.tree import Recursion
+
+            decision, reason = Recursion.decideRecursion(
+                module_filename = module_filename,
+                module_name     = module_name,
+                module_package  = module_package,
+                module_kind     = module_kind
+            )
+
+            assert decision, reason
+
+            if decision:
+                module_relpath = Utils.relpath(module_filename)
+
+                imported_module, added_flag = Recursion.recurseTo(
+                    module_package  = module_package,
+                    module_filename = module_filename,
+                    module_relpath  = module_relpath,
+                    module_kind     = module_kind,
+                    reason          = reason
+                )
+
+                from nuitka.ModuleRegistry import addUsedModule
+                addUsedModule(imported_module)
+
+                if added_flag:
+                    signal_change(
+                        "new_code",
+                        imported_module.getSourceReference(),
+                        "Recursed to module."
+                    )
