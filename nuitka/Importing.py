@@ -252,7 +252,7 @@ def _findModuleInPath( module_name, package_name ):
 
     return module_filename, None
 
-def _findModule( module_name, parent_package ):
+def _findModule(module_name, parent_package):
     if _debug_module_finding:
         print( "_findModule: Enter", module_name, "in", parent_package )
 

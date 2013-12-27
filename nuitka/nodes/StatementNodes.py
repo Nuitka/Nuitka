@@ -116,8 +116,6 @@ class StatementsSequence(StatementChildrenHavingBase):
 
 
     def mayHaveSideEffects(self):
-        assert constraint_collection is None
-
         # Statement sequences have a side effect if one of the statements does.
         for statement in self.getStatements():
             if statement.mayHaveSideEffects():
@@ -127,6 +125,61 @@ class StatementsSequence(StatementChildrenHavingBase):
 
     def isStatementAborting(self):
         return self.getStatements()[-1].isStatementAborting()
+
+    def computeStatement(self, constraint_collection):
+        # Don't want to be called like this.
+        assert False
+
+    def computeStatementsSequence(self, constraint_collection):
+        # Expect to be overloaded.
+        assert not self.isStatementsFrame(), self
+
+        new_statements = []
+
+        statements = self.getStatements()
+        assert statements, self
+
+        for count, statement in enumerate(statements):
+            # May be frames embedded.
+            if statement.isStatementsFrame():
+                new_statement = statement.computeStatementsSequence(
+                    constraint_collection
+                )
+            else:
+                new_statement = constraint_collection.onStatement(
+                    statement = statement
+                )
+
+            if new_statement is not None:
+                if new_statement.isStatementsSequence() and \
+                   not new_statement.isStatementsFrame():
+                    new_statements.extend(
+                        new_statement.getStatements()
+                    )
+                else:
+                    new_statements.append(
+                        new_statement
+                    )
+
+                if statement is not statements[-1] and \
+                   new_statement.isStatementAborting():
+                    constraint_collection.signalChange(
+                        "new_statements",
+                        statements[count + 1].getSourceReference(),
+                        "Removed dead statements."
+                    )
+
+                    break
+
+        if statements != new_statements:
+            if new_statements:
+                self.setStatements(new_statements)
+
+                return self
+            else:
+                return None
+        else:
+            return self
 
 
 def checkFrameStatements(value):
@@ -239,6 +292,78 @@ class StatementsFrame(StatementsSequence):
             has_starlist  = self.has_starlist,
             has_stardict  = self.has_stardict
         )
+
+    def computeStatementsSequence(self, constraint_collection):
+        new_statements = []
+
+        statements = self.getStatements()
+
+        for count, statement in enumerate(statements):
+            # May be frames embedded.
+            if statement.isStatementsFrame():
+                new_statement = statement.computeStatementsSequence(
+                    constraint_collection = constraint_collection
+                )
+            else:
+                new_statement = constraint_collection.onStatement(
+                    statement = statement
+                )
+
+            if new_statement is not None:
+                if new_statement.isStatementsSequence() and \
+                   not new_statement.isStatementsFrame():
+                    new_statements.extend(new_statement.getStatements())
+                else:
+                    new_statements.append(new_statement)
+
+                if statement is not statements[-1] and \
+                   new_statement.isStatementAborting():
+                    constraint_collection.signalChange(
+                        "new_statements",
+                        statements[count+1].getSourceReference(),
+                        "Removed dead statements."
+                    )
+
+                    break
+
+        if not new_statements:
+            return None
+
+        # Determine statements inside the frame, that need not be in a frame,
+        # because they wouldn't raise an exception.
+        outside_pre = []
+        while new_statements and \
+              not new_statements[0].mayRaiseException(BaseException):
+            outside_pre.append(new_statements[0])
+            del new_statements[0]
+
+        outside_post = []
+        while new_statements and \
+              not new_statements[-1].mayRaiseException(BaseException):
+            outside_post.insert(0, new_statements[-1])
+            del new_statements[-1]
+
+        if outside_pre or outside_post:
+            from .NodeMakingHelpers import makeStatementsSequenceReplacementNode
+
+            if new_statements:
+                self.setStatements(new_statements)
+
+                return makeStatementsSequenceReplacementNode(
+                    statements = outside_pre + [self] + \
+                                 outside_post,
+                    node       = self
+                )
+            else:
+                return makeStatementsSequenceReplacementNode(
+                    statements = outside_pre + outside_post,
+                    node       = self
+                )
+        else:
+            if statements != new_statements:
+                self.setStatements(new_statements)
+
+            return self
 
 
 class StatementExpressionOnly(StatementChildrenHavingBase):

@@ -353,126 +353,6 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
 
         self.markActiveVariablesAsUnknown()
 
-    def _onStatementsFrame(self, statements_sequence):
-        assert statements_sequence.isStatementsFrame()
-
-        new_statements = []
-
-        statements = statements_sequence.getStatements()
-#        assert statements, statements_sequence
-
-        for count, statement in enumerate(statements):
-            # May be frames embedded.
-            if statement.isStatementsFrame():
-                new_statement = self.onStatementsSequence(statement)
-            else:
-                new_statement = self.onStatement(statement)
-
-            if new_statement is not None:
-                if new_statement.isStatementsSequence() and \
-                   not new_statement.isStatementsFrame():
-                    new_statements.extend(new_statement.getStatements())
-                else:
-                    new_statements.append(new_statement)
-
-                if statement is not statements[-1] and \
-                   new_statement.isStatementAborting():
-                    self.signalChange(
-                        "new_statements",
-                        statements[count + 1].getSourceReference(),
-                        "Removed dead statements."
-                    )
-
-                    break
-
-        if not new_statements:
-            return None
-
-        # Determine statements inside the frame, that need not be in a frame,
-        # because they wouldn't raise an exception.
-        outside_pre = []
-        while new_statements and \
-              not new_statements[0].mayRaiseException(BaseException):
-            outside_pre.append( new_statements[0] )
-            del new_statements[0]
-
-        outside_post = []
-        while new_statements and \
-              not new_statements[-1].mayRaiseException(BaseException):
-            outside_post.insert( 0, new_statements[-1] )
-            del new_statements[-1]
-
-        if outside_pre or outside_post:
-            if new_statements:
-                statements_sequence.setStatements( tuple( new_statements ) )
-
-                return makeStatementsSequenceReplacementNode(
-                    statements = outside_pre + [ statements_sequence ] + \
-                                 outside_post,
-                    node       = statements_sequence
-                )
-            else:
-                return makeStatementsSequenceReplacementNode(
-                    statements = outside_pre + outside_post,
-                    node       = statements_sequence
-                )
-        else:
-            if not new_statements:
-                return None
-
-            if statements != new_statements:
-                statements_sequence.setStatements(new_statements)
-
-            return statements_sequence
-
-
-    def onStatementsSequence( self, statements_sequence ):
-        assert statements_sequence.isStatementsSequence()
-
-        if statements_sequence.isStatementsFrame():
-            return self._onStatementsFrame( statements_sequence )
-
-        new_statements = []
-
-        statements = statements_sequence.getStatements()
-        assert statements, statements_sequence
-
-        for count, statement in enumerate( statements ):
-            # May be frames embedded.
-            if statement.isStatementsFrame():
-                new_statement = self.onStatementsSequence(statement)
-            else:
-                new_statement = self.onStatement(statement)
-
-            if new_statement is not None:
-                if new_statement.isStatementsSequence() and \
-                   not new_statement.isStatementsFrame():
-                    new_statements.extend( new_statement.getStatements() )
-                else:
-                    new_statements.append( new_statement )
-
-                if statement is not statements[-1] and \
-                   new_statement.isStatementAborting():
-                    self.signalChange(
-                        "new_statements",
-                        statements[ count + 1 ].getSourceReference(),
-                        "Removed dead statements."
-                    )
-
-                    break
-
-        new_statements = tuple( new_statements )
-
-        if statements != new_statements:
-            if new_statements:
-                statements_sequence.setStatements( new_statements )
-
-                return statements_sequence
-            else:
-                return None
-        else:
-            return statements_sequence
-
     def assumeUnclearLocals( self ):
         self.parent.assumeUnclearLocals()
 
@@ -769,10 +649,12 @@ class ConstraintCollectionHandler(ConstraintCollectionBase):
         branch = handler.getExceptionBranch()
 
         if branch is not None:
-            result = self.onStatementsSequence( branch )
+            result = branch.computeStatementsSequence(
+                constraint_collection = self
+            )
 
             if result is not branch:
-                handler.setExceptionBranch( result )
+                handler.setExceptionBranch(result)
 
         exception_types = handler.getExceptionTypes()
 
@@ -791,7 +673,9 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
         self.variable_actives = dict( parent.variable_actives )
 
         if branch.isStatementsSequence():
-            result = self.onStatementsSequence(branch)
+            result = branch.computeStatementsSequence(
+                constraint_collection = self
+            )
 
             if result is not branch:
                 branch.replaceWith(result)
@@ -839,7 +723,9 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
         self.setupVariableTraces( function_body )
 
         if statements_sequence is not None:
-            result = self.onStatementsSequence(statements_sequence)
+            result = statements_sequence.computeStatementsSequence(
+                constraint_collection = self
+            )
 
             if result is not statements_sequence:
                 function_body.setBody(result)
@@ -941,7 +827,9 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
         module_body = module.getBody()
 
         if module_body is not None:
-            result = self.onStatementsSequence( module_body )
+            result = module_body.computeStatementsSequence(
+                constraint_collection = self
+            )
 
             if result is not module_body:
                 module.setBody(result)

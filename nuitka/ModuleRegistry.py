@@ -21,7 +21,8 @@
     processed. As they go, they add more modules to active modules list
     and move done modules out of it.
 
-    That process can be started.
+    That process can be restarted and modules will be fetched back from
+    the existing set of modules.
 """
 
 from nuitka.oset import OrderedSet
@@ -48,25 +49,26 @@ def startTraversal():
     for active_module in active_modules:
         active_module.startTraversal()
 
-def addUsedModule( module ):
+def addUsedModule(module):
     if module not in done_modules and module not in active_modules:
-        active_modules.add( module )
+        active_modules.add(module)
+
         module.startTraversal()
 
 def nextModule():
     if active_modules:
         result = active_modules.pop()
-        done_modules.add( result )
+        done_modules.add(result)
 
         return result
     else:
         return None
 
 def remainingCount():
-    return len( active_modules )
+    return len(active_modules)
 
 def getDoneModules():
-    return list( done_modules )
+    return list(done_modules)
 
 def getDoneUserModules():
     return [
