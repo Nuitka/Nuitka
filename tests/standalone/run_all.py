@@ -34,6 +34,7 @@ sys.path.insert(
 from test_common import (
     my_print,
     setup,
+    hasModule,
     compareWithCPython,
     decideFilenameVersionSkip,
     getRuntimeTraceOfLoadedFiles
@@ -75,16 +76,34 @@ for filename in sorted(os.listdir(".")):
             my_print("Skipping", filename, "not relevant.")
             continue
 
-        try:
-            __import__("PySide")
-        except ImportError:
-            my_print("Skipping", filename, "PySide not installed.")
+        if not hasModule("PySide"):
+            my_print(
+                "Skipping", filename, "PySide not installed for",
+                python_version, "but test needs it."
+            )
             continue
 
         # For the warnings.
         extra_flags.append( "ignore_stderr" )
 
-    if filename not in ("PySideUsing.py",):
+    if filename == "PyQtUsing.py":
+        # Don't test on platforms not supported by current Debian testing, and
+        # which should be considered irrelevant by now.
+        if python_version.startswith("2.6") or python_version.startswith("3.2"):
+            my_print("Skipping", filename, "not relevant.")
+            continue
+
+        if not hasModule("PyQt4"):
+            my_print(
+                "Skipping", filename, "PyQt4 not installed for",
+                python_version, "but test needs it."
+            )
+            continue
+
+        # For the warnings.
+        extra_flags.append( "ignore_stderr" )
+
+    if filename not in ("PySideUsing.py", "PyQtUsing.py"):
         extra_flags += [
             "no_site"
         ]

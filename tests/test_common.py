@@ -175,7 +175,7 @@ def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
 
     command = [
         sys.executable,
-        os.path.join( "..", "..", "bin", "compare_with_cpython" ),
+        os.path.join("..", "..", "bin", "compare_with_cpython"),
         path,
         "silent"
     ]
@@ -203,7 +203,7 @@ def hasDebugPython():
     global python_version
 
     # On Debian systems, these work.
-    debug_python = os.path.join("/usr/bin/", os.environ[ "PYTHON" ] + "-dbg")
+    debug_python = os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")
     if os.path.exists(debug_python):
         return True
 
@@ -354,3 +354,14 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
     result = list(sorted(set(result)))
 
     return result
+
+def hasModule(module_name):
+    result = subprocess.call(
+        (
+            os.environ["PYTHON"],
+            "-c"
+            "import %s" % module_name
+        )
+    )
+
+    return result == 0
