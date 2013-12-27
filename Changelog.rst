@@ -26,6 +26,9 @@ Bug Fixes
   some modules without modifying ``PYTHONPATH`` which conflicts with the
   "out-of-the-box" experience.
 
+- The "standalone mode" is now handling packages properly and generally working
+  on Windows as well.
+
 New Features
 ------------
 
@@ -132,13 +135,14 @@ New Tests
 Summary
 -------
 
-The interface change improves on the already high ease of use. The new
-optimization do not give all that much in terms of numbers, but we are steadily
-approaching the point, where the really interesting stuff will happen.
+The "executable by default" interface change improves on the already high ease
+of use. The new optimization do not give all that much in terms of numbers, but
+are all signs of structural improvements, and it is steadily approaching the
+point, where the really interesting stuff will happen.
 
-The progress for standalone mode is significant. It is still not quite there
-yet, but it is making quick progress now. This will attract a lot of attention
-hopefully.
+The progress for standalone mode is of course significant. It is still not quite
+there yet, but it is making quick progress now. This will attract a lot of
+attention hopefully.
 
 
 Nuitka Release 0.4.7
