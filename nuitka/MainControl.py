@@ -324,6 +324,10 @@ def makeSourceDirectory(main_module):
                 filename     = hpp_filename,
                 source_code  = header_code
             )
+
+            if Options.isShowInclusion():
+                info("Included compiled module '%s'.", module.getFullName())
+
         elif module.isPythonShlibModule():
             target_filename = Utils.joinpath(
                 getStandaloneDirectoryPath(main_module),
