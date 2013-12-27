@@ -25,28 +25,28 @@ from nuitka import Utils, SyntaxErrors, SourceCodeReferences
 
 import re
 
-def _readSourceCodeFromFilename3( source_filename ):
-    with open( source_filename, "rb" ) as source_file:
+def _readSourceCodeFromFilename3(source_filename):
+    with open(source_filename, "rb") as source_file:
         source_code = source_file.read()
 
     if source_code.startswith( b'\xef\xbb\xbf' ):
         source_code = source_code[3:]
 
-    new_line = source_code.find( b"\n" )
+    new_line = source_code.find(b"\n")
 
     if new_line is not -1:
         line = source_code[ : new_line ]
 
-        line_match = re.search( b"coding[:=]\s*([-\w.]+)", line )
+        line_match = re.search( b"coding[:=]\\s*([-\\w.]+)", line )
 
         if line_match:
-            encoding = line_match.group(1).decode( "ascii" )
+            encoding = line_match.group(1).decode("ascii")
 
             # Detect encoding problem, as decode won't raise the compatible
             # thing.
             try:
                 import codecs
-                codecs.lookup( encoding )
+                codecs.lookup(encoding)
             except LookupError:
                 SyntaxErrors.raiseSyntaxError(
                     reason       = "unknown encoding: %s" % encoding,
@@ -57,64 +57,63 @@ def _readSourceCodeFromFilename3( source_filename ):
                     display_line = False
                 )
 
-            return source_code[ new_line : ].decode( encoding )
+            return source_code[ new_line : ].decode(encoding)
 
-        new_line = source_code.find( b"\n", new_line+1 )
+        new_line = source_code.find(b"\n", new_line+1)
 
         if new_line is not -1:
             line = source_code[ : new_line ]
 
-            line_match = re.search( b"coding[:=]\s*([-\w.]+)", line )
+            line_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line)
 
             if line_match:
-                encoding = line_match.group(1).decode( "ascii" )
+                encoding = line_match.group(1).decode("ascii")
 
-                return "\n" + source_code[ new_line : ].decode( encoding )
+                return "\n" + source_code[ new_line : ].decode(encoding)
 
+    return source_code.decode("utf-8")
 
-    return source_code.decode( "utf-8" )
-
-def _detectEncoding2( source_filename ):
+def _detectEncoding2(source_filename):
     # Detect the encoding.
     encoding = "ascii"
 
     with open( source_filename, "rb" ) as source_file:
         line1 = source_file.readline()
 
-        if line1.startswith( b'\xef\xbb\xbf' ):
+        if line1.startswith(b'\xef\xbb\xbf'):
             encoding = "utf-8"
         else:
-            line1_match = re.search( b"coding[:=]\s*([-\w.]+)", line1 )
+            line1_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line1)
 
             if line1_match:
                 encoding = line1_match.group(1)
             else:
                 line2 = source_file.readline()
 
-                line2_match = re.search( b"coding[:=]\s*([-\w.]+)", line2 )
+                line2_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line2)
 
                 if line2_match:
                     encoding = line2_match.group(1)
 
     return encoding
 
-def _readSourceCodeFromFilename2( source_filename ):
+def _readSourceCodeFromFilename2(source_filename):
     # Detect the encoding.
-    encoding = _detectEncoding2( source_filename )
+    encoding = _detectEncoding2(source_filename)
 
-    with open( source_filename, "rU" ) as source_file:
+    with open(source_filename, "rU") as source_file:
         source_code = source_file.read()
 
         # Try and detect SyntaxError from missing or wrong encodings.
-        if type( source_code ) is not unicode and encoding == "ascii":
+        if type(source_code) is not unicode and encoding == "ascii":
             try:
-                source_code = source_code.decode( encoding )
+                source_code = source_code.decode(encoding)
             except UnicodeDecodeError as e:
-                lines = source_code.split( "\n" )
+                lines = source_code.split("\n")
                 so_far = 0
 
-                for count, line in enumerate( lines ):
-                    so_far += len( line ) + 1
+                for count, line in enumerate(lines):
+                    so_far += len(line) + 1
 
                     if so_far > e.args[2]:
                         break
@@ -138,14 +137,14 @@ see http://www.python.org/peps/pep-0263.html for details""" % (
                     source_ref = SourceCodeReferences.fromFilename(
                         source_filename,
                         None
-                    ).atLineNumber( count+1 ),
+                    ).atLineNumber(count+1),
                     display_line = False
                 )
 
     return source_code
 
-def readSourceCodeFromFilename( source_filename ):
+def readSourceCodeFromFilename(source_filename):
     if Utils.python_version < 300:
-        return _readSourceCodeFromFilename2( source_filename )
+        return _readSourceCodeFromFilename2(source_filename)
     else:
-        return _readSourceCodeFromFilename3( source_filename )
+        return _readSourceCodeFromFilename3(source_filename)

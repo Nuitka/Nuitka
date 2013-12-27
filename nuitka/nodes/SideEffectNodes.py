@@ -38,7 +38,7 @@ def checkSideEffects(value):
     return tuple(real_value)
 
 
-class ExpressionSideEffects( ExpressionChildrenHavingBase ):
+class ExpressionSideEffects(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
     named_children = ( "side_effects", "expression" )
@@ -47,7 +47,7 @@ class ExpressionSideEffects( ExpressionChildrenHavingBase ):
         "side_effects" : checkSideEffects
     }
 
-    def __init__( self, side_effects, expression, source_ref ):
+    def __init__(self, side_effects, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values = {

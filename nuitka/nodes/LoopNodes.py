@@ -125,54 +125,54 @@ Removed loop immediately broken."""
 
         return self, None, None
 
-    def needsLineNumber( self ):
+    def needsLineNumber(self):
         # The loop itself cannot fail, the first statement will set the line
         # number if necessary.
         return False
 
 
-class StatementContinueLoop( NodeBase ):
+class StatementContinueLoop(NodeBase):
     kind = "STATEMENT_CONTINUE_LOOP"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.exception_driven = False
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         return True
 
-    def markAsExceptionDriven( self ):
+    def markAsExceptionDriven(self):
         self.exception_driven = True
 
-    def isExceptionDriven( self ):
+    def isExceptionDriven(self):
         return self.exception_driven
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # This statement being aborting, will already tell everything. TODO: The
         # fine difference that this jumps to loop start for sure, should be
         # represented somehow one day.
         return self, None, None
 
 
-class StatementBreakLoop( NodeBase ):
+class StatementBreakLoop(NodeBase):
     kind = "STATEMENT_BREAK_LOOP"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.exception_driven = False
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         return True
 
-    def markAsExceptionDriven( self ):
+    def markAsExceptionDriven(self):
         self.exception_driven = True
 
-    def isExceptionDriven( self ):
+    def isExceptionDriven(self):
         return self.exception_driven
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # This statement being aborting, will already tell everything. TODO: The
         # fine difference that this exits the loop for sure, should be
         # represented somehow one day.

@@ -95,7 +95,7 @@ from nuitka.Utils import python_version
 
 # Cache result. TODO: no more as special as it used to be, maybe can be found in
 # stdlib.
-def once_decorator( func ):
+def once_decorator(func):
     func.cached_value = None
 
     def replacement():
@@ -135,7 +135,7 @@ def makeArgsVariableRef():
 
     return variable_ref
 
-def makeKwVariableRef( assign ):
+def makeKwVariableRef(assign):
     variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
     variable_ref = variable_ref_class(
@@ -145,7 +145,7 @@ def makeKwVariableRef( assign ):
 
     return variable_ref
 
-def makeStarListArgVariableRef( assign ):
+def makeStarListArgVariableRef(assign):
     variable_ref_class = ( ExpressionTargetVariableRef
                              if assign else
                            ExpressionVariableRef )
@@ -157,7 +157,7 @@ def makeStarListArgVariableRef( assign ):
 
     return variable_ref
 
-def makeStarDictArgVariableRef( assign ):
+def makeStarDictArgVariableRef(assign):
     variable_ref_class = ( ExpressionTargetVariableRef
                              if assign else
                            ExpressionVariableRef )
@@ -173,7 +173,7 @@ def makeStarDictArgVariableRef( assign ):
 # exceptions for the TypeError caught immediately and then unused, then the
 # frame will be unnecessary.
 
-def makePseudoFrame( parameters, statements ):
+def makePseudoFrame(parameters, statements):
     return StatementsFrame(
         code_name     = "unused",
         guard_mode    = "pass_through",
@@ -222,7 +222,7 @@ def getCallableNameDescBody():
     # else:
     #     return called_type.__name__ + " object"
 
-    def makeNameAttributeLookup( node, attribute_name = "__name__" ):
+    def makeNameAttributeLookup(node, attribute_name = "__name__"):
         return ExpressionAttributeLookup(
             expression     = node,
             attribute_name = attribute_name,

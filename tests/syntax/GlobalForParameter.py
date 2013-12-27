@@ -16,5 +16,5 @@
 #     limitations under the License.
 #
 
-def f( a ):
+def f(a):
     global a

@@ -24,7 +24,7 @@ the platforms.
 import os
 import subprocess
 import sys
-from logging import debug,info
+from logging import debug, info
 import marshal
 
 from nuitka import Utils
@@ -103,7 +103,7 @@ def loadCodeObjectData(precompiled_filename):
 
 module_names = set()
 
-def _detectImports(command,is_late):
+def _detectImports(command, is_late):
     # print(command)
 
     # Print statements for stuff to show, the modules loaded.
@@ -251,7 +251,7 @@ def detectLateImports():
         command += "import inspect;"
 
     if command:
-        result = _detectImports(command,True)
+        result = _detectImports(command, True)
 
         debug("Finished detecting late imports.")
 
@@ -273,7 +273,7 @@ def detectEarlyImports():
 
     command += "import locale;"
 
-    result = _detectImports(command,False)
+    result = _detectImports(command, False)
     debug("Finished detecting early imports.")
 
     return result
@@ -332,7 +332,7 @@ def detectBinaryDLLs(binary_filename, package_name):
                     path.append(candidate)
 
 
-        env["PATH"]=";".join(path)
+        env["PATH"] = ";".join(path)
 
         subprocess.call(
             (
@@ -380,7 +380,7 @@ def detectBinaryDLLs(binary_filename, package_name):
             if dll_name.startswith("API-MS-WIN"):
                 continue
 
-            if dll_name in ("SHELL32.DLL","USER32.DLL","KERNEL32.DLL",
+            if dll_name in ("SHELL32.DLL", "USER32.DLL", "KERNEL32.DLL",
                 "NTDLL.DLL", "NETUTILS.DLL", "LOGONCLI.DLL", "GDI32.DLL",
                 "RPCRT4.DLL", "ADVAPI32.DLL", "SSPICLI.DLL", "SECUR32.DLL",
                 "KERNELBASE.DLL", "WINBRAND.DLL", "DSROLE.DLL", "DNSAPI.DLL",

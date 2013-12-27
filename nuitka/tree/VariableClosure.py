@@ -42,7 +42,7 @@ from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 # lookups are to be done immediately, and one where it is delayed. This is
 # basically class vs. function scope handling.
 
-class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
+class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     """ Variable closure phase 1: Find assignments and early closure references.
 
         In class context, a reference to a variable must be obeyed immediately,
@@ -53,7 +53,7 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
         until phase 2.
     """
 
-    def onEnterNode( self, node ):
+    def onEnterNode(self, node):
         if node.isExpressionTargetVariableRef():
             if node.getVariable() is None:
                 variable_name = node.getVariableName()
@@ -180,7 +180,7 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                 if current.isStatementLoop():
                     break
 
-    def onLeaveNode( self, node ):
+    def onLeaveNode(self, node):
         # Return statements in generators are not really that, instead they are
         # exception raises, fix that up now. Doing it right from the onset,
         # would be a bit more difficult, as the knowledge that something is a
@@ -205,7 +205,7 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
             )
 
 
-class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):
+class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
     """ Variable closure phase 2: Find assignments and references.
 
         In class context, a reference to a variable must be obeyed immediately,
@@ -216,7 +216,7 @@ class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):
         variable set now, the others, only in this phase.
     """
 
-    def onEnterNode( self, node ):
+    def onEnterNode(self, node):
         if node.isExpressionVariableRef() and node.getVariable() is None:
             provider = node.getParentVariableProvider()
 
@@ -269,7 +269,7 @@ contains a nested function with free variables""" % parent_provider.getName(),
     # For Python3, every function in a class is supposed to take "__class__" as
     # a reference, so make sure that happens.
     if python_version >= 300:
-        def onLeaveNode( self, node ):
+        def onLeaveNode(self, node):
             if node.isExpressionFunctionBody() and node.isClassClosureTaker():
                 if python_version < 340:
                     node.getVariableForReference(
@@ -288,7 +288,7 @@ contains a nested function with free variables""" % parent_provider.getName(),
                     node.addClosureVariable( variable )
 
 
-class VariableClosureLookupVisitorPhase3( VisitorNoopMixin ):
+class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
     """ Variable closure phase 3: Find errors.
 
         In this phase, the only task remaining is to find errors. We might e.g.
@@ -297,7 +297,7 @@ class VariableClosureLookupVisitorPhase3( VisitorNoopMixin ):
         that. Currently this phase is Python2 only, but that may change.
     """
 
-    def onEnterNode( self, node ):
+    def onEnterNode(self, node):
         assert python_version < 300
 
         if node.isStatementDelVariable():
@@ -317,7 +317,7 @@ can not delete variable '%s' referenced in nested scope""" % (
                 )
 
 
-def completeVariableClosures( tree ):
+def completeVariableClosures(tree):
     if python_version < 300:
         visitors = (
             VariableClosureLookupVisitorPhase1(),

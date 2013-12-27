@@ -36,7 +36,7 @@ print a
 
 print ( {}, [] )
 
-def argChanger( a ):
+def argChanger(a):
    a[0][1] = 2
    a[1].append( 3 )
 
@@ -69,7 +69,7 @@ def mutableConstantChanger():
 mutableConstantChanger()
 mutableConstantChanger()
 
-def defaultKeepsIdentity( arg = "str_value" ):
+def defaultKeepsIdentity(arg = "str_value"):
    print arg is "str_value"
 
 defaultKeepsIdentity()

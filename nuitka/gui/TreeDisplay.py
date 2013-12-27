@@ -31,16 +31,16 @@ import sys
 # Also using private stuff from classes, probably ok, pylint: disable=W0212
 
 class NodeTreeModelItem:
-    def __init__( self, node, parent = None ):
+    def __init__(self, node, parent = None):
         self.parent_treeitem = parent
         self.node = node
 
         self.children = None
 
-    def appendChild( self, _item ):
+    def appendChild(self, _item):
         assert False
 
-    def _children( self ):
+    def _children(self):
         if self.children is None:
             self.children = [
                 NodeTreeModelItem( child, self )
@@ -50,16 +50,16 @@ class NodeTreeModelItem:
 
         return self.children
 
-    def child( self, row ):
+    def child(self, row):
         return self._children()[ row ]
 
-    def childCount( self ):
+    def childCount(self):
         return len( self._children() )
 
-    def columnCount( self ):
+    def columnCount(self):
         return 2
 
-    def data( self, column ):
+    def data(self, column):
         if column == 0:
             result = self.node.getDescription()
         elif column == 1:
@@ -69,23 +69,23 @@ class NodeTreeModelItem:
 
         return QtCore.QVariant( result )
 
-    def parent( self ):
+    def parent(self):
         return self.parent_treeitem
 
-    def row( self ):
+    def row(self):
         return self.parent_treeitem._children().index( self ) if self.parent else 0
 
-class NodeTreeModel( QtCore.QAbstractItemModel ):
-    def __init__( self, root, parent = None ):
+class NodeTreeModel(QtCore.QAbstractItemModel):
+    def __init__(self, root, parent = None):
         QtCore.QAbstractItemModel.__init__( self, parent )
 
         self.root_node = root
         self.root_item = NodeTreeModelItem( root )
 
-    def columnCount( self, _parent ):
+    def columnCount(self, _parent):
         return self.root_item.columnCount()
 
-    def data( self, index, role ):
+    def data(self, index, role):
         if not index.isValid():
             return QtCore.QVariant()
 
@@ -96,13 +96,13 @@ class NodeTreeModel( QtCore.QAbstractItemModel ):
 
         return QtCore.QVariant( item.data( index.column() ) )
 
-    def flags( self, index ):
+    def flags(self, index):
         if not index.isValid():
             return QtCore.Qt.ItemIsEnabled
 
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
-    def headerData( self, section, orientation, role ):
+    def headerData(self, section, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             if section == 0:
                 return QtCore.QVariant( "Node Type" )
@@ -113,7 +113,7 @@ class NodeTreeModel( QtCore.QAbstractItemModel ):
 
         return QtCore.QVariant()
 
-    def index( self, row, column, parent ):
+    def index(self, row, column, parent):
         if row < 0 or column < 0 or row >= self.rowCount( parent ) or column >= self.columnCount( parent ):
             return QtCore.QModelIndex()
 
@@ -129,7 +129,7 @@ class NodeTreeModel( QtCore.QAbstractItemModel ):
         else:
             return QtCore.QModelIndex()
 
-    def parent( self, index ):
+    def parent(self, index):
         if not index.isValid():
             return QtCore.QModelIndex()
 
@@ -141,7 +141,7 @@ class NodeTreeModel( QtCore.QAbstractItemModel ):
 
         return self.createIndex( parent.row(), 0, parent )
 
-    def rowCount( self, parent ):
+    def rowCount(self, parent):
         if parent.column() > 0:
             return 0
 
@@ -152,7 +152,7 @@ class NodeTreeModel( QtCore.QAbstractItemModel ):
 
         return parent.childCount()
 
-    def getNodeFromPath( self, tree_path ):
+    def getNodeFromPath(self, tree_path):
         tree_path = list( tree_path )
 
         current = self.root_node
@@ -164,8 +164,8 @@ class NodeTreeModel( QtCore.QAbstractItemModel ):
 
         return current
 
-    def getItemFromSourceRef( self, source_ref ):
-        def check( item ):
+    def getItemFromSourceRef(self, source_ref):
+        def check(item):
             if item.node.getSourceReference() == source_ref:
                 return item
 
@@ -178,8 +178,8 @@ class NodeTreeModel( QtCore.QAbstractItemModel ):
         return check( self.root_item )
 
 
-class InspectNodeTreeDialog( QtGui.QDialog ):
-    def __init__( self, *args ):
+class InspectNodeTreeDialog(QtGui.QDialog):
+    def __init__(self, *args):
         QtGui.QDialog.__init__( self, *args )
 
         ui_dir = Utils.dirname( __file__ )
@@ -194,12 +194,12 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
         self.model = None
         self.moving = None
 
-    def setModel( self, model ):
+    def setModel(self, model):
         self.treeview_nodes.setModel( model )
         self.treeview_nodes.expandAll()
 
     @QtCore.pyqtSignature("on_treeview_nodes_clicked(QModelIndex)")
-    def onTreeviewNodesClicked( self, item ):
+    def onTreeviewNodesClicked(self, item):
         tree_path = []
 
         while item.isValid():
@@ -222,7 +222,7 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
         self.moving = False
 
     @QtCore.pyqtSignature( "on_textedit_source_cursorPositionChanged()")
-    def onTexteditSourceCursorMoved( self ):
+    def onTexteditSourceCursorMoved(self):
         if self.moving:
             return
 
@@ -262,7 +262,7 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
 
             # print self.treeview_nodes.visualRect( index )
 
-    def loadSource( self, filename ):
+    def loadSource(self, filename):
         self.moving = True
         self.source_code = open( filename ).read()
         self.textedit_source.setPlainText( self.source_code  )
@@ -274,7 +274,7 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
         )
 
 
-def displayTreeInspector( tree ):
+def displayTreeInspector(tree):
     app = QtGui.QApplication( sys.argv )
 
     model = NodeTreeModel( tree )

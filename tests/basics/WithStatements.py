@@ -21,11 +21,11 @@ x = 0
 # This is used to trace the exact interaction with the context manager to uncover and
 # decide orddering and correctness of calls.
 class MyContextManager(object):
-    def __getattribute__( self, attribute_name ):
+    def __getattribute__(self, attribute_name):
         print "Asking context manager attribute", attribute_name
         return object.__getattribute__( self, attribute_name )
 
-    def __enter__( self ):
+    def __enter__(self):
         global x
         x += 1
 
@@ -33,7 +33,7 @@ class MyContextManager(object):
 
         return x
 
-    def __exit__( self, exc_type, exc_value, traceback ):
+    def __exit__(self, exc_type, exc_value, traceback):
         print "Exit sees", exc_type, exc_value, traceback
 
         return False
@@ -88,11 +88,11 @@ r = returnFromContextBlock()
 print "Return value", r
 
 class NonContextManager1:
-    def __enter__( self ):
+    def __enter__(self):
         return self
 
 class NonContextManager2:
-    def __exit__( self ):
+    def __exit__(self):
         return self
 
 try:
@@ -117,10 +117,10 @@ except Exception, e:
     print repr(e)
 
 class MeanContextManager:
-    def __enter__( self ):
+    def __enter__(self):
         raise ValueError( "Nah, I won't play" )
 
-    def __exit__( self ):
+    def __exit__(self):
         print "Called exit, yes"
 
 try:

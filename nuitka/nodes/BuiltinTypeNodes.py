@@ -32,44 +32,44 @@ from nuitka.optimizations import BuiltinOptimization
 
 from nuitka.Utils import python_version
 
-class ExpressionBuiltinTypeBase( ExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
     pass
 
 
-class ExpressionBuiltinTuple( ExpressionBuiltinTypeBase ):
+class ExpressionBuiltinTuple(ExpressionBuiltinTypeBase):
     kind = "EXPRESSION_BUILTIN_TUPLE"
 
     builtin_spec = BuiltinOptimization.builtin_tuple_spec
 
 
-class ExpressionBuiltinList( ExpressionBuiltinTypeBase ):
+class ExpressionBuiltinList(ExpressionBuiltinTypeBase):
     kind = "EXPRESSION_BUILTIN_LIST"
 
     builtin_spec = BuiltinOptimization.builtin_list_spec
 
 
-class ExpressionBuiltinSet( ExpressionBuiltinTypeBase ):
+class ExpressionBuiltinSet(ExpressionBuiltinTypeBase):
     kind = "EXPRESSION_BUILTIN_SET"
 
     builtin_spec = BuiltinOptimization.builtin_set_spec
 
 
-class ExpressionBuiltinFloat( ExpressionBuiltinTypeBase ):
+class ExpressionBuiltinFloat(ExpressionBuiltinTypeBase):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 
     builtin_spec = BuiltinOptimization.builtin_float_spec
 
 
-class ExpressionBuiltinBool( ExpressionBuiltinTypeBase ):
+class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
     kind = "EXPRESSION_BUILTIN_BOOL"
 
     builtin_spec = BuiltinOptimization.builtin_bool_spec
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # Dedicated code returns "True" or "False" only, which requires no reference
         return False
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         value = self.getValue()
 
         if value is not None:
@@ -102,7 +102,7 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
     else:
         base_only_value = True
 
-    def __init__( self, value, base, source_ref ):
+    def __init__(self, value, base, source_ref):
         from .NodeMakingHelpers import makeConstantReplacementNode
 
         NodeBase.__init__( self, source_ref = source_ref )
@@ -124,7 +124,7 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
     getValue = ChildrenHavingMixin.childGetter( "value" )
     getBase = ChildrenHavingMixin.childGetter( "base" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         value = self.getValue()
@@ -152,7 +152,7 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
         return self.computeBuiltinSpec( given_values )
 
 
-class ExpressionBuiltinInt( ExpressionBuiltinIntLongBase ):
+class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
     kind = "EXPRESSION_BUILTIN_INT"
 
     builtin_spec = BuiltinOptimization.builtin_int_spec
@@ -162,7 +162,7 @@ class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
                                     ExpressionSpecBasedComputationMixin ):
     named_children = ( "value", "encoding", "errors" )
 
-    def __init__( self, value, encoding, errors, source_ref ):
+    def __init__(self, value, encoding, errors, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
         ChildrenHavingMixin.__init__(
@@ -178,7 +178,7 @@ class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
     getEncoding = ChildrenHavingMixin.childGetter( "encoding" )
     getErrors = ChildrenHavingMixin.childGetter( "errors" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         args = [
@@ -194,12 +194,12 @@ class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
 
 
 if python_version < 300:
-    class ExpressionBuiltinStr( ExpressionBuiltinTypeBase ):
+    class ExpressionBuiltinStr(ExpressionBuiltinTypeBase):
         kind = "EXPRESSION_BUILTIN_STR"
 
         builtin_spec = BuiltinOptimization.builtin_str_spec
 
-        def computeExpression( self, constraint_collection ):
+        def computeExpression(self, constraint_collection):
             new_node, change_tags, change_desc = ExpressionBuiltinTypeBase.computeExpression(
                 self,
                 constraint_collection
@@ -222,18 +222,18 @@ if python_version < 300:
             return new_node, change_tags, change_desc
 
 
-    class ExpressionBuiltinLong( ExpressionBuiltinIntLongBase ):
+    class ExpressionBuiltinLong(ExpressionBuiltinIntLongBase):
         kind = "EXPRESSION_BUILTIN_LONG"
 
         builtin_spec = BuiltinOptimization.builtin_long_spec
 
 
-    class ExpressionBuiltinUnicode( ExpressionBuiltinUnicodeBase ):
+    class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_UNICODE"
 
         builtin_spec = BuiltinOptimization.builtin_unicode_spec
 else:
-    class ExpressionBuiltinStr( ExpressionBuiltinUnicodeBase ):
+    class ExpressionBuiltinStr(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_STR"
 
         builtin_spec = BuiltinOptimization.builtin_str_spec

@@ -79,7 +79,7 @@ from .Helpers import (
     getKind
 )
 
-def buildListContractionNode( provider, node, source_ref ):
+def buildListContractionNode(provider, node, source_ref):
     # List contractions are dealt with by general code.
 
     return _buildContractionNode(
@@ -97,7 +97,7 @@ def buildListContractionNode( provider, node, source_ref ):
         source_ref       = source_ref
     )
 
-def buildSetContractionNode( provider, node, source_ref ):
+def buildSetContractionNode(provider, node, source_ref):
     # Set contractions are dealt with by general code.
 
     return _buildContractionNode(
@@ -113,7 +113,7 @@ def buildSetContractionNode( provider, node, source_ref ):
         source_ref       = source_ref
     )
 
-def buildDictContractionNode( provider, node, source_ref ):
+def buildDictContractionNode(provider, node, source_ref):
     # Dict contractions are dealt with by general code.
 
     return _buildContractionNode(
@@ -129,7 +129,7 @@ def buildDictContractionNode( provider, node, source_ref ):
         source_ref       = source_ref
     )
 
-def buildGeneratorExpressionNode( provider, node, source_ref ):
+def buildGeneratorExpressionNode(provider, node, source_ref):
     # Generator expressions are dealt with by general code.
 
     assert getKind( node ) == "GeneratorExp"

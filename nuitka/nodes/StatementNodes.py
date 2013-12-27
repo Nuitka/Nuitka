@@ -64,7 +64,7 @@ class StatementsSequence(StatementChildrenHavingBase):
     getStatements = StatementChildrenHavingBase.childGetter("statements")
     setStatements = StatementChildrenHavingBase.childSetter("statements")
 
-    def getDetails( self ):
+    def getDetails(self):
         if self.getStatements():
             return {
                 "statement_count" : len( self.getStatements() )
@@ -91,7 +91,7 @@ class StatementsSequence(StatementChildrenHavingBase):
 
         self.setChild("statements", new_statements)
 
-    def removeStatement( self, statement ):
+    def removeStatement(self, statement):
         assert statement.parent is self
 
         statements = list(self.getStatements())
@@ -99,7 +99,7 @@ class StatementsSequence(StatementChildrenHavingBase):
 
         self.setChild("statements", statements)
 
-    def mergeStatementsSequence( self, statement_sequence ):
+    def mergeStatementsSequence(self, statement_sequence):
         assert statement_sequence.parent is self
 
         old_statements = list(self.getStatements())
@@ -253,7 +253,7 @@ class StatementsFrame(StatementsSequence):
     def getCodeObjectName(self):
         return self.code_name
 
-    def getKwOnlyParameterCount( self ):
+    def getKwOnlyParameterCount(self):
         return self.kw_only_count
 
     def getArgumentCount(self):

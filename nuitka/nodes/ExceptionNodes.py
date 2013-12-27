@@ -26,7 +26,7 @@ from .NodeBases import (
     NodeBase
 )
 
-class StatementRaiseException( StatementChildrenHavingBase ):
+class StatementRaiseException(StatementChildrenHavingBase):
     kind = "STATEMENT_RAISE_EXCEPTION"
 
     named_children = (
@@ -71,35 +71,35 @@ class StatementRaiseException( StatementChildrenHavingBase ):
         "exception_cause"
     )
 
-    def isReraiseException( self ):
+    def isReraiseException(self):
         return self.getExceptionType() is None
 
-    def isReraiseExceptionLocal( self ):
+    def isReraiseExceptionLocal(self):
         assert self.isReraiseException()
 
         return self.reraise_local
 
-    def isReraiseExceptionFinally( self ):
+    def isReraiseExceptionFinally(self):
         assert self.isReraiseException()
 
         return self.reraise_finally
 
-    def markAsReraiseLocal( self ):
+    def markAsReraiseLocal(self):
         self.reraise_local = True
 
-    def markAsReraiseFinally( self ):
+    def markAsReraiseFinally(self):
         self.reraise_finally = True
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         return True
 
-    def needsLineNumber( self ):
+    def needsLineNumber(self):
         return not self.isReraiseException()
 
-    def isImplicit( self ):
+    def isImplicit(self):
         return False
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getExceptionType(), allow_none = True )
         exception_type = self.getExceptionType()
 
@@ -178,17 +178,17 @@ Explicit raise already raises implicitely building exception cause."""
         return self, None, None
 
 
-class StatementRaiseExceptionImplicit( StatementRaiseException ):
+class StatementRaiseExceptionImplicit(StatementRaiseException):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
 
-    def isStatementRaiseException( self ):
+    def isStatementRaiseException(self):
         return True
 
-    def isImplicit( self ):
+    def isImplicit(self):
         return True
 
 
-class ExpressionRaiseException( ExpressionChildrenHavingBase ):
+class ExpressionRaiseException(ExpressionChildrenHavingBase):
     """ This node type is only produced via optimization.
 
     CPython only knows exception raising as a statement, but often the raising
@@ -200,7 +200,7 @@ class ExpressionRaiseException( ExpressionChildrenHavingBase ):
 
     named_children = ( "exception_type", "exception_value" )
 
-    def __init__( self, exception_type, exception_value, source_ref ):
+    def __init__(self, exception_type, exception_value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -210,7 +210,7 @@ class ExpressionRaiseException( ExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def willRaiseException( self, exception_type ):
+    def willRaiseException(self, exception_type):
         # Virtual method, pylint: disable=R0201,W0613
 
         # One thing is clear, it will raise. TODO: Match exception_type more
@@ -228,10 +228,10 @@ class ExpressionRaiseException( ExpressionChildrenHavingBase ):
         "exception_value"
     )
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         return False
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         return self, None, None
 
     def computeExpressionDrop(self, statement, constraint_collection):
@@ -249,12 +249,12 @@ class ExpressionRaiseException( ExpressionChildrenHavingBase ):
 Propgated implict raise expression to raise statement."""
 
 
-class ExpressionBuiltinMakeException( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
     named_children = ( "args", )
 
-    def __init__( self, exception_name, args, source_ref ):
+    def __init__(self, exception_name, args, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -265,62 +265,62 @@ class ExpressionBuiltinMakeException( ExpressionChildrenHavingBase ):
 
         self.exception_name = exception_name
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "exception_name" : self.exception_name }
 
-    def getExceptionName( self ):
+    def getExceptionName(self):
         return self.exception_name
 
     getArgs = ExpressionChildrenHavingBase.childGetter( "args" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         return self, None, None
 
 
-class ExpressionCaughtExceptionTypeRef( NodeBase, ExpressionMixin ):
+class ExpressionCaughtExceptionTypeRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         # Referencing the expression type has no side effect
         return False
 
 
-class ExpressionCaughtExceptionValueRef( NodeBase, ExpressionMixin ):
+class ExpressionCaughtExceptionValueRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         # Referencing the expression type has no side effect
         return False
 
-    def makeCloneAt( self, source_ref ):
+    def makeCloneAt(self, source_ref):
         return ExpressionCaughtExceptionValueRef(
             source_ref = source_ref
         )
 
 
-class ExpressionCaughtExceptionTracebackRef( NodeBase, ExpressionMixin ):
+class ExpressionCaughtExceptionTracebackRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         return self, None, None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         # Referencing the expression type has no side effect
         return False

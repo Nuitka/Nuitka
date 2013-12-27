@@ -23,7 +23,7 @@ the future flags in use there.
 
 class SourceCodeReference:
     @classmethod
-    def fromFilenameAndLine( cls, filename, line, future_spec, inside_exec ):
+    def fromFilenameAndLine(cls, filename, line, future_spec, inside_exec):
         result = cls()
 
         result.filename = filename
@@ -33,7 +33,7 @@ class SourceCodeReference:
 
         return result
 
-    def __init__( self ):
+    def __init__(self):
         self.line = None
         self.filename = None
         self.future_spec = None
@@ -41,10 +41,10 @@ class SourceCodeReference:
 
         self.set_line = True
 
-    def __repr__( self ):
+    def __repr__(self):
         return "<%s to %s:%s>" % ( self.__class__.__name__, self.filename, self.line )
 
-    def clone( self, line ):
+    def clone(self, line):
         result = SourceCodeReference.fromFilenameAndLine(
             filename    = self.filename,
             line        = line,
@@ -56,24 +56,24 @@ class SourceCodeReference:
 
         return result
 
-    def atLineNumber( self, line ):
+    def atLineNumber(self, line):
         assert int( line ) == line
 
         return self.clone( line )
 
-    def getLineNumber( self ):
+    def getLineNumber(self):
         return self.line
 
-    def getFilename( self ):
+    def getFilename(self):
         return self.filename
 
-    def getFutureSpec( self ):
+    def getFutureSpec(self):
         return self.future_spec
 
-    def getAsString( self ):
+    def getAsString(self):
         return "%s:%s" % ( self.filename, self.line )
 
-    def getExecReference( self, value ):
+    def getExecReference(self, value):
         if self.inside_exec != value:
             return self.__class__.fromFilenameAndLine(
                 filename    = self.filename,
@@ -84,13 +84,13 @@ class SourceCodeReference:
         else:
             return self
 
-    def isExecReference( self ):
+    def isExecReference(self):
         return self.inside_exec
 
-    def shallSetCurrentLine( self ):
+    def shallSetCurrentLine(self):
         return self.set_line
 
-    def __cmp__( self, other ):
+    def __cmp__(self, other):
         if other is None:
             return -1
 
@@ -103,7 +103,7 @@ class SourceCodeReference:
 
         return result
 
-    def atInternal( self ):
+    def atInternal(self):
         if self.set_line:
             result = self.clone( self.line )
             result.set_line = False
@@ -113,7 +113,7 @@ class SourceCodeReference:
             return self
 
 
-def fromFilename( filename, future_spec ):
+def fromFilename(filename, future_spec):
     return SourceCodeReference.fromFilenameAndLine(
         filename    = filename,
         line        = 1,

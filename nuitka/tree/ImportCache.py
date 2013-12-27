@@ -32,7 +32,7 @@ from logging import warning
 imported_modules = {}
 imported_by_name = {}
 
-def addImportedModule( module_relpath, imported_module ):
+def addImportedModule(module_relpath, imported_module):
     if ( module_relpath, "__main__" ) in imported_modules:
         warning( """\
 Re-importing __main__ module via its filename duplicates the module."""
@@ -46,7 +46,7 @@ Re-importing __main__ module via its filename duplicates the module."""
     imported_modules[ key ] = imported_module
     imported_by_name[ imported_module.getFullName() ] = imported_module
 
-def isImportedModuleByPath( module_relpath ):
+def isImportedModuleByPath(module_relpath):
     module_name = Utils.basename( module_relpath )
 
     if module_name.endswith( ".py" ):
@@ -56,13 +56,13 @@ def isImportedModuleByPath( module_relpath ):
 
     return key in imported_modules
 
-def isImportedModuleByName( full_name ):
+def isImportedModuleByName(full_name):
     return full_name in imported_by_name
 
-def getImportedModuleByName( full_name ):
+def getImportedModuleByName(full_name):
     return imported_by_name[ full_name ]
 
-def getImportedModuleByPath( module_relpath ):
+def getImportedModuleByPath(module_relpath):
     module_name = Utils.basename( module_relpath )
 
     if module_name.endswith( ".py" ):

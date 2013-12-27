@@ -53,7 +53,7 @@ from .Helpers import (
     getKind
 )
 
-def buildLambdaNode( provider, node, source_ref ):
+def buildLambdaNode(provider, node, source_ref):
     assert getKind( node ) == "Lambda"
 
     parameters = buildParameterSpec( "<lambda>", node, source_ref )
@@ -66,7 +66,7 @@ def buildLambdaNode( provider, node, source_ref ):
         source_ref = source_ref,
     )
 
-    defaults = buildNodeList( provider, node.args.defaults, source_ref )
+    defaults = buildNodeList(provider, node.args.defaults, source_ref)
     kw_defaults = buildParameterKwDefaults(
         provider      = provider,
         node          = node,

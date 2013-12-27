@@ -43,7 +43,7 @@ from .Helpers import (
     getKind
 )
 
-def buildFunctionNode( provider, node, source_ref ):
+def buildFunctionNode(provider, node, source_ref):
     assert getKind( node ) == "FunctionDef"
 
     # Remove "exec" flag if any.
@@ -197,7 +197,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
 
     return kw_defaults
 
-def buildParameterAnnotations( provider, node, source_ref ):
+def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=R0912
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
@@ -207,7 +207,7 @@ def buildParameterAnnotations( provider, node, source_ref ):
     keys = []
     values = []
 
-    def addAnnotation( key, value ):
+    def addAnnotation(key, value):
         keys.append(
             ExpressionConstantRef(
                 constant      = key,
@@ -217,7 +217,7 @@ def buildParameterAnnotations( provider, node, source_ref ):
         )
         values.append( value )
 
-    def extractArg( arg ):
+    def extractArg(arg):
         if getKind( arg ) == "Name":
             assert arg.annotation is None
         elif getKind( arg ) == "arg":
@@ -277,12 +277,12 @@ def buildParameterAnnotations( provider, node, source_ref ):
     else:
         return None
 
-def buildParameterSpec( name, node, source_ref ):
+def buildParameterSpec(name, node, source_ref):
     kind = getKind( node )
 
     assert kind in ( "FunctionDef", "Lambda" ), "unsupported for kind " + kind
 
-    def extractArg( arg ):
+    def extractArg(arg):
         if type( arg ) is str or arg is None:
             return arg
         elif getKind( arg ) == "Name":
@@ -302,7 +302,7 @@ def buildParameterSpec( name, node, source_ref ):
                          [],
         list_star_arg  = extractArg( node.args.vararg ),
         dict_star_arg  = extractArg( node.args.kwarg ),
-        default_count  = len( node.args.defaults )
+        default_count  = len(node.args.defaults)
     )
 
     message = result.checkValid()

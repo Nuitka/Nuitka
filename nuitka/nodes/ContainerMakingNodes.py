@@ -31,7 +31,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
                                 ExpressionChildrenHavingBase):
     named_children = ("elements",)
 
-    def __init__( self, sequence_kind, elements, source_ref ):
+    def __init__(self, sequence_kind, elements, source_ref):
         assert sequence_kind in ( "TUPLE", "LIST", "SET" ), sequence_kind
 
         for element in elements:
@@ -48,19 +48,19 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
 
         )
 
-    def isExpressionMakeSequence( self ):
+    def isExpressionMakeSequence(self):
         return True
 
-    def getSequenceKind( self ):
+    def getSequenceKind(self):
         return self.sequence_kind
 
     getElements = ExpressionChildrenHavingBase.childGetter( "elements" )
 
-    def getSimulator( self ):
+    def getSimulator(self):
         # Abstract method, pylint: disable=R0201,W0613
         return None
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         elements = self.getElements()
@@ -98,25 +98,25 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
             description = "%s with constant arguments." % simulator
         )
 
-    def mayHaveSideEffectsBool( self ):
+    def mayHaveSideEffectsBool(self):
         return False
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         return count is None or count == len( self.getElements() )
 
-    def getIterationValue( self, count ):
+    def getIterationValue(self, count):
         return self.getElements()[ count ]
 
-    def getIterationLength( self ):
+    def getIterationLength(self):
         return len( self.getElements() )
 
-    def canPredictIterationValues( self ):
+    def canPredictIterationValues(self):
         return True
 
-    def getIterationValues( self ):
+    def getIterationValues(self):
         return self.getElements()
 
-    def getTruthValue( self ):
+    def getTruthValue(self):
         return self.getIterationLength() > 0
 
     def computeExpressionDrop(self, statement, constraint_collection):
@@ -183,7 +183,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
             source_ref    = source_ref
         )
 
-    def getSimulator( self ):
+    def getSimulator(self):
         return set
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
@@ -204,7 +204,7 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
 
     named_children = ( "key", "value" )
 
-    def __init__( self, key, value, source_ref ):
+    def __init__(self, key, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -217,7 +217,7 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
     getKey = ExpressionChildrenHavingBase.childGetter( "key" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
         key = self.getKey()
 
@@ -245,7 +245,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
 
     named_children = ( "pairs", )
 
-    def __init__( self, pairs, lazy_order, source_ref ):
+    def __init__(self, pairs, lazy_order, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -258,7 +258,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
 
     getPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
         pairs = self.getPairs()
 
@@ -310,26 +310,26 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
         return new_node, "new_constant", """\
 Created dictionary found to be constant."""
 
-    def mayHaveSideEffectsBool( self ):
+    def mayHaveSideEffectsBool(self):
         return False
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         return count is None or count == len( self.getPairs() )
 
-    def getIterationLength( self ):
+    def getIterationLength(self):
         return len( self.getPairs() )
 
-    def canPredictIterationValues( self ):
+    def canPredictIterationValues(self):
         # Dictionaries are fully predictable, pylint: disable=R0201
         return True
 
-    def getIterationValue( self, count ):
+    def getIterationValue(self, count):
         return self.getPairs()[ count ].getKey()
 
-    def getTruthValue( self ):
+    def getTruthValue(self):
         return self.getIterationLength() > 0
 
-    def isMapping( self ):
+    def isMapping(self):
         # Dictionaries are always mappings, but this is a virtual method,
         # pylint: disable=R0201
         return True

@@ -25,7 +25,7 @@ from . import Utils
 
 from optparse import OptionParser, OptionGroup, SUPPRESS_HELP
 
-import os, sys, logging
+import sys, logging
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -607,7 +607,7 @@ def isOptimize():
 def isUnstriped():
     return options.unstriped
 
-def getOutputPath( path ):
+def getOutputPath(path):
     if options.output_dir:
         return Utils.normpath( Utils.joinpath( options.output_dir, path ) )
     else:

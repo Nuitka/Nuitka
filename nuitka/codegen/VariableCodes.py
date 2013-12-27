@@ -34,7 +34,7 @@ from .Indentation import (
     getBlockCode,
 )
 
-def _getContextAccess( context, force_closure = False ):
+def _getContextAccess(context, force_closure = False):
     # Context access is variant depending on if that's a created function or
     # not. For generators, they even share closure variables in the common
     # context.
@@ -61,7 +61,7 @@ def _getContextAccess( context, force_closure = False ):
                 return ""
 
 
-def getVariableHandle( context, variable ):
+def getVariableHandle(context, variable):
     assert isinstance( variable, Variables.Variable ), variable
 
     var_name = variable.getName()
@@ -156,7 +156,7 @@ def getVariableHandle( context, variable ):
     else:
         assert False, variable
 
-def getVariableCode( context, variable ):
+def getVariableCode(context, variable):
     var_identifier = getVariableHandle(
         context  = context,
         variable = variable
@@ -208,7 +208,7 @@ def getLocalVariableInitCode( context, variable, init_from = None,
 
     return result
 
-def getVariableAssignmentCode( context, variable, identifier ):
+def getVariableAssignmentCode(context, variable, identifier):
     assert isinstance( variable, Variables.Variable ), variable
 
     # This ought to be impossible to happen, as an assignment to an overflow
@@ -321,7 +321,7 @@ def getVariableAssignmentCode( context, variable, identifier ):
         identifier_code
     )
 
-def getVariableDelCode( context, tolerant, variable ):
+def getVariableDelCode(context, tolerant, variable):
     assert isinstance( variable, Variables.Variable ), variable
 
     if variable.isModuleVariable():

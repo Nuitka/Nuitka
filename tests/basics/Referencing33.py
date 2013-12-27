@@ -60,7 +60,7 @@ def simpleFunction2():
 m1 = {}
 m2 = {}
 
-def snapObjRefCntMap( before ):
+def snapObjRefCntMap(before):
    if before:
       global m1
       m = m1
@@ -78,7 +78,7 @@ def snapObjRefCntMap( before ):
       m[ str( x ) ] = sys.getrefcount( x )
 
 
-def checkReferenceCount( checked_function, max_rounds = 10 ):
+def checkReferenceCount(checked_function, max_rounds = 10):
    assert sys.exc_info() == ( None, None, None ), sys.exc_info()
 
    print( checked_function.__name__ + ":", end = "" )

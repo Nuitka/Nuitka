@@ -76,7 +76,7 @@ print "*" * 20
 print "Raise a new style class as an exception, should be rejected:"
 
 def raiseIllegalError():
-    class X( object ):
+    class X(object):
         pass
 
     raise X()
@@ -236,10 +236,10 @@ assert sys.exc_info()[2] is None
 print "Check catching subclasses"
 
 def checkDerivedCatch():
-    class A( BaseException ):
+    class A(BaseException):
         pass
-    class B( A ):
-        def __init__( self ):
+    class B(A):
+        def __init__(self):
             pass
 
     a = A()
@@ -332,7 +332,7 @@ print "*" * 20
 
 print "Raising an exception in an exception handler gives:"
 
-def nestedExceptions( a, b ):
+def nestedExceptions(a, b):
     try:
         a / b
     except ZeroDivisionError:
@@ -360,7 +360,7 @@ print "Testing exception that escapes __del__ and therefore cannot be raised"
 
 def unraisableExceptionInDel():
     class C:
-        def __del__( self ):
+        def __del__(self):
             c = 1 / 0
 
     def f():

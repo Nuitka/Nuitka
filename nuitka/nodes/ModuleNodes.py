@@ -164,14 +164,14 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         # SSA trace based information about the module.
         self.collection = None
 
-    def getDetails( self ):
+    def getDetails(self):
         return {
             "filename" : self.source_ref.getFilename(),
             "package"  : self.package_name,
             "name"     : self.name
         }
 
-    def asXml( self ):
+    def asXml(self):
         # The class is new style, false alarm: pylint: disable=E1002
         result = super( PythonModule, self ).asXml()
 
@@ -229,19 +229,19 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         # pylint: disable=R0201
         return True
 
-    def getCodeName( self ):
+    def getCodeName(self):
         return "module_" + self.getFullName().\
           replace(".", "__").replace("-", "_")
 
-    def addFunction( self, function_body ):
+    def addFunction(self, function_body):
         assert function_body not in self.functions
 
         self.functions.add( function_body )
 
-    def getFunctions( self ):
+    def getFunctions(self):
         return self.functions
 
-    def startTraversal( self ):
+    def startTraversal(self):
         self.active_functions = OrderedSet()
 
     def addUsedFunction(self, function_body):
@@ -267,15 +267,15 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 class SingleCreationMixin:
     created = set()
 
-    def __init__( self ):
+    def __init__(self):
         assert self.__class__ not in self.created
         self.created.add( self.__class__ )
 
 
-class PythonMainModule( PythonModule, SingleCreationMixin ):
+class PythonMainModule(PythonModule, SingleCreationMixin):
     kind = "PYTHON_MAIN_MODULE"
 
-    def __init__( self, main_added, source_ref ):
+    def __init__(self, main_added, source_ref):
         PythonModule.__init__(
             self,
             name         = "__main__",
@@ -287,20 +287,20 @@ class PythonMainModule( PythonModule, SingleCreationMixin ):
 
         self.main_added = main_added
 
-    def isMainModule( self ):
+    def isMainModule(self):
         return True
 
-    def getOutputFilename( self ):
+    def getOutputFilename(self):
         if self.main_added:
             return Utils.dirname(self.getFilename())
         else:
             return PythonModule.getOutputFilename(self)
 
 
-class PythonInternalModule( PythonModule, SingleCreationMixin ):
+class PythonInternalModule(PythonModule, SingleCreationMixin):
     kind = "PYTHON_INTERNAL_MODULE"
 
-    def __init__( self ):
+    def __init__(self):
         PythonModule.__init__(
             self,
             name         = "__internal__",
@@ -315,17 +315,17 @@ class PythonInternalModule( PythonModule, SingleCreationMixin ):
 
         SingleCreationMixin.__init__( self )
 
-    def isInternalModule( self ):
+    def isInternalModule(self):
         return True
 
-    def getOutputFilename( self ):
+    def getOutputFilename(self):
         return "__internal"
 
 
-class PythonPackage( PythonModule ):
+class PythonPackage(PythonModule):
     kind = "PYTHON_PACKAGE"
 
-    def __init__( self, name, package_name, source_ref ):
+    def __init__(self, name, package_name, source_ref):
         assert name
 
         PythonModule.__init__(
@@ -335,7 +335,7 @@ class PythonPackage( PythonModule ):
             source_ref   = source_ref
         )
 
-    def getOutputFilename( self ):
+    def getOutputFilename(self):
         return Utils.dirname( self.getFilename() )
 
 
@@ -354,13 +354,13 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
             package_name = package_name
         )
 
-    def getDetails( self ):
+    def getDetails(self):
         return {
             "name"         : self.name,
             "package_name" : self.package_name
         }
 
-    def getFilename( self ):
+    def getFilename(self):
         return self.getSourceReference().getFilename()
 
     def startTraversal(self):

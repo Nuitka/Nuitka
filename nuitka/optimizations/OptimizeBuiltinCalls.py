@@ -94,7 +94,7 @@ from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 
 from . import BuiltinOptimization
 
-def dir_extractor( node ):
+def dir_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinDir1,
@@ -102,8 +102,8 @@ def dir_extractor( node ):
         empty_special_class = ExpressionBuiltinDir0
     )
 
-def vars_extractor( node ):
-    def selectVarsEmptyClass( source_ref ):
+def vars_extractor(node):
+    def selectVarsEmptyClass(source_ref):
         if node.getParentVariableProvider().isPythonModule():
             return ExpressionBuiltinGlobals(
                 source_ref = source_ref
@@ -119,14 +119,14 @@ def vars_extractor( node ):
         empty_special_class = selectVarsEmptyClass
     )
 
-def import_extractor( node ):
+def import_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinImport,
         builtin_spec  = BuiltinOptimization.builtin_import_spec
     )
 
-def type_extractor( node ):
+def type_extractor(node):
     args = node.getCallArgs()
     length = args.getIterationLength()
 
@@ -144,12 +144,12 @@ def type_extractor( node ):
             builtin_spec  = BuiltinOptimization.builtin_type3_spec
         )
 
-def iter_extractor( node ):
+def iter_extractor(node):
     # Note: Iter in fact names its first argument if the default applies
     # "collection", but it won't matter much, fixed up in a wrapper.  The
     # "callable" is part of the API, pylint: disable=W0622
 
-    def wrapIterCreation( callable, sentinel, source_ref ):
+    def wrapIterCreation(callable, sentinel, source_ref):
         if sentinel is None:
             return ExpressionBuiltinIter1(
                 value      = callable,
@@ -169,11 +169,11 @@ def iter_extractor( node ):
     )
 
 
-def next_extractor( node ):
+def next_extractor(node):
 
     # Split up next with and without defaults, they are not going to behave
     # really very similar.
-    def selectNextBuiltinClass( iterator, default, source_ref ):
+    def selectNextBuiltinClass(iterator, default, source_ref):
         if default is None:
             return ExpressionBuiltinNext1(
                 value      = iterator,
@@ -193,7 +193,7 @@ def next_extractor( node ):
     )
 
 
-def dict_extractor( node ):
+def dict_extractor(node):
     # The dict is a bit strange in that it accepts a position parameter, or not,
     # but won't have a default.
 
@@ -241,14 +241,14 @@ def dict_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_dict_spec
     )
 
-def chr_extractor( node ):
+def chr_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinChr,
         builtin_spec  = BuiltinOptimization.builtin_chr_spec
     )
 
-def ord_extractor( node ):
+def ord_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinOrd,
@@ -256,29 +256,29 @@ def ord_extractor( node ):
         empty_special_class = ExpressionBuiltinOrd0
     )
 
-def bin_extractor( node ):
+def bin_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinBin,
         builtin_spec  = BuiltinOptimization.builtin_bin_spec
     )
 
-def oct_extractor( node ):
+def oct_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinOct,
         builtin_spec  = BuiltinOptimization.builtin_oct_spec
     )
 
-def hex_extractor( node ):
+def hex_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinHex,
         builtin_spec  = BuiltinOptimization.builtin_hex_spec
     )
 
-def repr_extractor( node ):
-    def makeReprOperator( operand, source_ref ):
+def repr_extractor(node):
+    def makeReprOperator(operand, source_ref):
         return ExpressionOperationUnary(
             operator   = "Repr",
             operand    = operand,
@@ -291,8 +291,8 @@ def repr_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_repr_spec
     )
 
-def range_extractor( node ):
-    def selectRangeBuiltin( low, high, step, source_ref ):
+def range_extractor(node):
+    def selectRangeBuiltin(low, high, step, source_ref):
         if high is None:
             return ExpressionBuiltinRange1( low, source_ref )
         elif step is None:
@@ -310,7 +310,7 @@ def range_extractor( node ):
 if python_version < 300:
     from nuitka.nodes.BuiltinRangeNodes import ExpressionBuiltinXrange
 
-    def xrange_extractor( node ):
+    def xrange_extractor(node):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinXrange,
@@ -318,42 +318,42 @@ if python_version < 300:
     )
 
 
-def len_extractor( node ):
+def len_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinLen,
         builtin_spec  = BuiltinOptimization.builtin_len_spec
     )
 
-def tuple_extractor( node ):
+def tuple_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinTuple,
         builtin_spec  = BuiltinOptimization.builtin_tuple_spec
     )
 
-def list_extractor( node ):
+def list_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinList,
         builtin_spec  = BuiltinOptimization.builtin_list_spec
     )
 
-def set_extractor( node ):
+def set_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinSet,
         builtin_spec  = BuiltinOptimization.builtin_set_spec
     )
 
-def float_extractor( node ):
+def float_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinFloat,
         builtin_spec  = BuiltinOptimization.builtin_float_spec
     )
 
-def str_extractor( node ):
+def str_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinStr,
@@ -363,7 +363,7 @@ def str_extractor( node ):
 if python_version < 300:
     from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinUnicode
 
-    def unicode_extractor( node ):
+    def unicode_extractor(node):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinUnicode,
@@ -371,14 +371,14 @@ if python_version < 300:
         )
 
 
-def bool_extractor( node ):
+def bool_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinBool,
         builtin_spec  = BuiltinOptimization.builtin_bool_spec
     )
 
-def int_extractor( node ):
+def int_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinInt,
@@ -388,21 +388,21 @@ def int_extractor( node ):
 if python_version < 300:
     from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinLong
 
-    def long_extractor( node ):
+    def long_extractor(node):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinLong,
             builtin_spec  = BuiltinOptimization.builtin_long_spec
         )
 
-def globals_extractor( node ):
+def globals_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinGlobals,
         builtin_spec  = BuiltinOptimization.builtin_globals_spec
     )
 
-def locals_extractor( node ):
+def locals_extractor(node):
     # Note: Locals on the module level is really globals.
     provider = node.getParentVariableProvider()
 
@@ -422,7 +422,7 @@ def locals_extractor( node ):
 if python_version < 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExecfile
 
-    def execfile_extractor( node ):
+    def execfile_extractor(node):
         # Need to accept globals and local keyword argument, that is just the
         # API of execfile, pylint: disable=W0622
 
@@ -473,11 +473,11 @@ if python_version < 300:
             builtin_spec  = BuiltinOptimization.builtin_execfile_spec
         )
 
-def eval_extractor( node ):
+def eval_extractor(node):
     # Need to accept globals and local keyword argument, that is just the API of
     # eval, pylint: disable=W0622
 
-    def wrapEvalBuiltin( source, globals, locals, source_ref ):
+    def wrapEvalBuiltin(source, globals, locals, source_ref):
         globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
             provider     = node.getParentVariableProvider(),
             globals_node = globals,
@@ -503,7 +503,7 @@ def eval_extractor( node ):
 if python_version >= 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 
-    def exec_extractor( node ):
+    def exec_extractor(node):
         # Need to accept globals and local keyword argument, that is just the
         # API of exec, pylint: disable=W0622
 
@@ -539,17 +539,17 @@ if python_version >= 300:
             builtin_spec  = BuiltinOptimization.builtin_eval_spec
         )
 
-def open_extractor( node ):
+def open_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinOpen,
         builtin_spec  = BuiltinOptimization.builtin_open_spec
     )
 
-def super_extractor( node ):
+def super_extractor(node):
     # Need to accept type and object as keyword argument, that is just the API
     # of super, pylint: disable=W0622
-    def wrapSuperBuiltin( type, object, source_ref ):
+    def wrapSuperBuiltin(type, object, source_ref):
         if type is None and python_version >= 300:
             provider = node.getParentVariableProvider()
 
@@ -577,7 +577,7 @@ def super_extractor( node ):
                 )
 
                 type = ExpressionTempVariableRef(
-                    variable      = class_var.makeReference( parent_provider ).makeReference( provider ),
+                    variable      = class_var.makeReference( parent_provider ).makeReference(provider),
                     source_ref    = source_ref
                 )
 
@@ -638,28 +638,28 @@ def super_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_super_spec
     )
 
-def hasattr_extractor( node ):
+def hasattr_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinHasattr,
         builtin_spec  = BuiltinOptimization.builtin_hasattr_spec
     )
 
-def getattr_extractor( node ):
+def getattr_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinGetattr,
         builtin_spec  = BuiltinOptimization.builtin_getattr_spec
     )
 
-def setattr_extractor( node ):
+def setattr_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinSetattr,
         builtin_spec  = BuiltinOptimization.builtin_setattr_spec
     )
 
-def isinstance_extractor( node ):
+def isinstance_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinIsinstance,
@@ -717,7 +717,7 @@ def check():
 
 check()
 
-def computeBuiltinCall( call_node, called ):
+def computeBuiltinCall(call_node, called):
     builtin_name = called.getBuiltinName()
 
     if builtin_name in _dispatch_dict:

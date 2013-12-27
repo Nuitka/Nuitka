@@ -157,7 +157,7 @@ def wrapEvalGlobalsAndLocals( provider, globals_node, locals_node, exec_mode,
 
     return globals_wrap, locals_wrap
 
-def buildExecNode( provider, node, source_ref ):
+def buildExecNode(provider, node, source_ref):
     # "exec" statements, should only occur with Python2.
 
     exec_globals = node.globals

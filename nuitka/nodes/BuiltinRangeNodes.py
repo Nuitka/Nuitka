@@ -53,14 +53,14 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
 
     builtin_spec = BuiltinOptimization.builtin_range_spec
 
-    def __init__( self, values, source_ref ):
+    def __init__(self, values, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = values,
             source_ref = source_ref
         )
 
-    def getTruthValue( self ):
+    def getTruthValue(self):
         length = self.getIterationLength()
 
         if length is None:
@@ -68,7 +68,7 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
         else:
             return length > 0
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         for child in self.getVisitableNodes():
             if child.mayHaveSideEffects():
                 return True
@@ -78,7 +78,7 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
         else:
             return False
 
-    def computeBuiltinSpec( self, given_values ):
+    def computeBuiltinSpec(self, given_values):
         assert self.builtin_spec is not None, self
 
         if not self.builtin_spec.isCompileTimeComputable(given_values):
@@ -124,12 +124,12 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
         return None
 
 
-class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
+class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
     kind = "EXPRESSION_BUILTIN_RANGE1"
 
     named_children = ( "low", )
 
-    def __init__( self, low, source_ref ):
+    def __init__(self, low, source_ref):
         assert low is not None
 
         ExpressionBuiltinRangeBase.__init__(
@@ -142,7 +142,7 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
 
     getLow = ExpressionChildrenHavingBase.childGetter( "low" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         # TODO: Support Python3 range objects too.
@@ -155,7 +155,7 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
             given_values = ( low, )
         )
 
-    def getIterationLength( self ):
+    def getIterationLength(self):
         low = self.getLow().getIntegerValue()
 
         if low is None:
@@ -163,10 +163,10 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
 
         return max( 0, low )
 
-    def canPredictIterationValues( self ):
+    def canPredictIterationValues(self):
         return self.getIterationLength() is not None
 
-    def getIterationValue( self, element_index ):
+    def getIterationValue(self, element_index):
         length = self.getIterationLength()
 
         if length is None:
@@ -184,16 +184,16 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
             node     = self
         )
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
 
 
-class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
+class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
     kind = "EXPRESSION_BUILTIN_RANGE2"
 
     named_children = ( "low", "high" )
 
-    def __init__( self, low, high, source_ref ):
+    def __init__(self, low, high, source_ref):
         ExpressionBuiltinRangeBase.__init__(
             self,
             values     = {
@@ -208,7 +208,7 @@ class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
 
     builtin_spec = BuiltinOptimization.builtin_range_spec
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         if python_version >= 300:
@@ -219,7 +219,7 @@ class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
 
         return self.computeBuiltinSpec( ( low, high ) )
 
-    def getIterationLength( self ):
+    def getIterationLength(self):
         low  = self.getLow()
         high = self.getHigh()
 
@@ -235,10 +235,10 @@ class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
 
         return max( 0, high - low )
 
-    def canPredictIterationValues( self ):
+    def canPredictIterationValues(self):
         return self.getIterationLength() is not None
 
-    def getIterationValue( self, element_index ):
+    def getIterationValue(self, element_index):
         low  = self.getLow()
         high = self.getHigh()
 
@@ -264,16 +264,16 @@ class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
                 node     = self
             )
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
 
 
-class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
+class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
     kind = "EXPRESSION_BUILTIN_RANGE3"
 
     named_children = ( "low", "high", "step" )
 
-    def __init__( self, low, high, step, source_ref ):
+    def __init__(self, low, high, step, source_ref):
         ExpressionBuiltinRangeBase.__init__(
             self,
             values     = {
@@ -290,7 +290,7 @@ class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
 
     builtin_spec = BuiltinOptimization.builtin_range_spec
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         if python_version >= 300:
@@ -302,7 +302,7 @@ class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
 
         return self.computeBuiltinSpec( ( low, high, step ) )
 
-    def getIterationLength( self ):
+    def getIterationLength(self):
         low  = self.getLow()
         high = self.getHigh()
         step = self.getStep()
@@ -343,10 +343,10 @@ class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
 
         return int( estimate )
 
-    def canPredictIterationValues( self ):
+    def canPredictIterationValues(self):
         return self.getIterationLength() is not None
 
-    def getIterationValue( self, element_index ):
+    def getIterationValue(self, element_index):
         low  = self.getLow().getIntegerValue()
 
         if low is None:
@@ -371,7 +371,7 @@ class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
                 node     = self
             )
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
 
 
@@ -380,7 +380,7 @@ class ExpressionBuiltinXrange(ExpressionChildrenHavingBase):
 
     named_children = ("low", "high", "step")
 
-    def __init__( self, low, high, step, source_ref ):
+    def __init__(self, low, high, step, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {

@@ -25,12 +25,12 @@ from nuitka import PythonOperators
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
-class ExpressionComparison( ExpressionChildrenHavingBase ):
+class ExpressionComparison(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_COMPARISON"
 
     named_children = ( "left", "right" )
 
-    def __init__( self, left, right, comparator, source_ref ):
+    def __init__(self, left, right, comparator, source_ref):
         assert left.isExpression()
         assert right.isExpression()
         assert type( comparator ) is str, comparator
@@ -51,7 +51,7 @@ class ExpressionComparison( ExpressionChildrenHavingBase ):
         if comparator in ( "Is", "IsNot" ):
             assert self.__class__ is not ExpressionComparison
 
-    def getOperands( self ):
+    def getOperands(self):
         return (
             self.getLeft(),
             self.getRight()
@@ -60,16 +60,16 @@ class ExpressionComparison( ExpressionChildrenHavingBase ):
     getLeft = ExpressionChildrenHavingBase.childGetter( "left" )
     getRight = ExpressionChildrenHavingBase.childGetter( "right" )
 
-    def getComparator( self ):
+    def getComparator(self):
         return self.comparator
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "comparator" : self.comparator }
 
-    def getSimulator( self ):
+    def getSimulator(self):
         return PythonOperators.all_comparison_functions[ self.comparator ]
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Left and right is all we need, pylint: disable=W0613
 
         left, right = self.getOperands()
@@ -91,7 +91,7 @@ class ExpressionComparison( ExpressionChildrenHavingBase ):
 
         return self, None, None
 
-    def computeExpressionOperationNot( self, not_node, constraint_collection ):
+    def computeExpressionOperationNot(self, not_node, constraint_collection):
         if self.comparator in PythonOperators.comparison_inversions:
             left, right = self.getOperands()
 
@@ -111,14 +111,14 @@ Replaced negated comparison with inverse comparision."""
 
         return not_node, None, None
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # Dedicated code returns "True" or "False" only, which requires no
         # reference, except for rich comparisons, which do.
         return self.comparator in PythonOperators.rich_comparison_functions
 
 
-class ExpressionComparisonIsIsNotBase( ExpressionComparison ):
-    def __init__( self, left, right, comparator, source_ref ):
+class ExpressionComparisonIsIsNotBase(ExpressionComparison):
+    def __init__(self, left, right, comparator, source_ref):
         ExpressionComparison.__init__(
             self,
             left       = left,
@@ -131,11 +131,11 @@ class ExpressionComparisonIsIsNotBase( ExpressionComparison ):
 
         self.match_value = comparator == "Is"
 
-    def isExpressionComparison( self ):
+    def isExpressionComparison(self):
         # Virtual method, pylint: disable=R0201
         return True
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         left, right = self.getOperands()
 
         if constraint_collection.mustAlias( left, right ):
@@ -189,7 +189,7 @@ Determined values to not alias and therefore result of %s comparison.""" % (
             constraint_collection = constraint_collection
         )
 
-    def extractSideEffects( self ):
+    def extractSideEffects(self):
         left, right = self.getOperands()
 
         return left.extractSideEffects() + right.extractSideEffects()
@@ -205,10 +205,10 @@ Determined values to not alias and therefore result of %s comparison.""" % (
 Removed %s comparison for unused result.""" % self.comparator
 
 
-class ExpressionComparisonIs( ExpressionComparisonIsIsNotBase ):
+class ExpressionComparisonIs(ExpressionComparisonIsIsNotBase):
     kind = "EXPRESSION_COMPARISON_IS"
 
-    def __init__( self, left, right, source_ref ):
+    def __init__(self, left, right, source_ref):
         ExpressionComparisonIsIsNotBase.__init__(
             self,
             left       = left,
@@ -218,10 +218,10 @@ class ExpressionComparisonIs( ExpressionComparisonIsIsNotBase ):
     )
 
 
-class ExpressionComparisonIsNOT( ExpressionComparisonIsIsNotBase ):
+class ExpressionComparisonIsNOT(ExpressionComparisonIsIsNotBase):
     kind = "EXPRESSION_COMPARISON_IS_NOT"
 
-    def __init__( self, left, right, source_ref ):
+    def __init__(self, left, right, source_ref):
         ExpressionComparisonIsIsNotBase.__init__(
             self,
             left       = left,

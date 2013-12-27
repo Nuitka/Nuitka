@@ -22,7 +22,7 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 
 """
 
-def visitTree( tree, visitor ):
+def visitTree(tree, visitor):
     visitor.onEnterNode( tree )
 
     for visitable in tree.getVisitableNodes():
@@ -34,15 +34,15 @@ def visitTree( tree, visitor ):
     visitor.onLeaveNode( tree )
 
 
-def visitFunction( function, visitor ):
+def visitFunction(function, visitor):
     visitor.onEnterNode( function )
     visitor.onLeaveNode( function )
 
 class VisitorNoopMixin:
-    def onEnterNode( self, node ):
+    def onEnterNode(self, node):
         """ Overloaded for operation before the node children were done. """
         pass
 
-    def onLeaveNode( self, node ):
+    def onLeaveNode(self, node):
         """ Overloaded for operation after the node children were done. """
         pass

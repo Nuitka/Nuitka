@@ -127,10 +127,10 @@ def displayTree(tree):
 
     TreeDisplay.displayTreeInspector(tree)
 
-def getTreeFilenameWithSuffix( tree, suffix ):
+def getTreeFilenameWithSuffix(tree, suffix):
     return tree.getOutputFilename() + suffix
 
-def getSourceDirectoryPath( main_module ):
+def getSourceDirectoryPath(main_module):
     assert main_module.isPythonModule()
 
     return Options.getOutputPath(
@@ -139,7 +139,7 @@ def getSourceDirectoryPath( main_module ):
         )
     )
 
-def getStandaloneDirectoryPath( main_module ):
+def getStandaloneDirectoryPath(main_module):
     return Options.getOutputPath(
         path = Utils.basename(
             getTreeFilenameWithSuffix( main_module, ".dist" )
@@ -147,7 +147,7 @@ def getStandaloneDirectoryPath( main_module ):
     )
 
 
-def getResultBasepath( main_module ):
+def getResultBasepath(main_module):
     assert main_module.isPythonModule()
 
     if Options.isStandaloneMode():
@@ -198,7 +198,7 @@ def cleanSourceDirectory(source_dir):
                 Utils.deleteFile(path, True)
 
 
-def pickSourceFilenames( source_dir, modules ):
+def pickSourceFilenames(source_dir, modules):
     collision_filenames = set()
     seen_filenames = set()
 
@@ -251,7 +251,7 @@ standalone_entry_points = []
 
 def makeSourceDirectory(main_module):
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0914
+    # no sense, pylint: disable=R0914,R0912
 
     assert main_module.isPythonModule()
 
@@ -265,7 +265,8 @@ def makeSourceDirectory(main_module):
     # Sometimes we need to talk about all modules except main module.
     other_modules = ModuleRegistry.getDoneUserModules()
 
-    # Lets check if the recurse-to modules are actually present.
+    # Lets check if the recurse-to modules are actually present, and warn the
+    # user if one was not found.
     for any_case_module in Options.getShallFollowModules():
         for module in other_modules:
             if module.getFullName() == any_case_module:
@@ -279,7 +280,7 @@ def makeSourceDirectory(main_module):
     # Prepare code generation, i.e. execute finalization for it.
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
-            Finalization.prepareCodeGeneration( module )
+            Finalization.prepareCodeGeneration(module)
 
     # Pick filenames.
     source_dir = getSourceDirectoryPath(main_module)
@@ -485,7 +486,7 @@ def writeBinaryData(filename, binary_data):
         output_file.write(binary_data)
 
 
-def callExec( args, clean_path, add_path ):
+def callExec(args, clean_path, add_path):
     old_python_path = os.environ.get("PYTHONPATH", None)
 
     if clean_path and old_python_path is not None:
@@ -506,7 +507,7 @@ def callExec( args, clean_path, add_path ):
     # That's the API of execl, pylint: disable=W0142
     Utils.callExec(args)
 
-def executeMain( binary_filename, tree, clean_path ):
+def executeMain(binary_filename, tree, clean_path):
     main_filename = tree.getFilename()
 
     if Options.isStandaloneMode():
@@ -526,7 +527,7 @@ def executeMain( binary_filename, tree, clean_path ):
         args       = args
     )
 
-def executeModule( tree, clean_path ):
+def executeModule(tree, clean_path):
     python_command = "__import__('%s')" % tree.getName()
 
     if Utils.getOS() == "Windows":

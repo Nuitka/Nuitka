@@ -29,7 +29,7 @@ from .FinalizeVariableVisibility import FinalizeVariableVisibility
 # Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
 from nuitka.tree import Operations
 
-def prepareCodeGeneration( tree ):
+def prepareCodeGeneration(tree):
     visitor = FinalizeMarkups()
     Operations.visitTree( tree, visitor )
     for function in tree.getUsedFunctions():

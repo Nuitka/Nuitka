@@ -48,7 +48,7 @@ from .SideEffectNodes import ExpressionSideEffects
 
 from logging import warning
 
-def makeConstantReplacementNode( constant, node ):
+def makeConstantReplacementNode(constant, node):
     return ExpressionConstantRef(
         constant   = constant,
         source_ref = node.getSourceReference()
@@ -92,7 +92,7 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
         exception_value = args[0]
     )
 
-def isCompileTimeConstantValue( value ):
+def isCompileTimeConstantValue(value):
     # This needs to match code in makeCompileTimeConstantReplacementNode
     if isConstant( value ):
         return True
@@ -101,7 +101,7 @@ def isCompileTimeConstantValue( value ):
     else:
         return False
 
-def makeCompileTimeConstantReplacementNode( value, node ):
+def makeCompileTimeConstantReplacementNode(value, node):
     # This needs to match code in isCompileTimeConstantValue
     if isConstant( value ):
         return makeConstantReplacementNode(
@@ -119,7 +119,7 @@ def makeCompileTimeConstantReplacementNode( value, node ):
     else:
         return node
 
-def getComputationResult( node, computation, description ):
+def getComputationResult(node, computation, description):
     """ With a computation function, execute it and return constant result or
         exception node.
 
@@ -154,7 +154,7 @@ def getComputationResult( node, computation, description ):
 
     return new_node, change_tags, change_desc
 
-def makeStatementExpressionOnlyReplacementNode( expression, node ):
+def makeStatementExpressionOnlyReplacementNode(expression, node):
     return StatementExpressionOnly(
         expression = expression,
         source_ref = node.getSourceReference()
@@ -188,7 +188,7 @@ def convertNoneConstantToNone(node):
     else:
         return node
 
-def wrapExpressionWithSideEffects( side_effects, old_node, new_node ):
+def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
     assert new_node.isExpression()
 
     if side_effects:
@@ -200,14 +200,14 @@ def wrapExpressionWithSideEffects( side_effects, old_node, new_node ):
 
     return new_node
 
-def wrapExpressionWithNodeSideEffects( new_node, old_node ):
+def wrapExpressionWithNodeSideEffects(new_node, old_node):
     return wrapExpressionWithSideEffects(
         side_effects = old_node.extractSideEffects(),
         old_node     = old_node,
         new_node     = new_node
     )
 
-def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
+def wrapStatementWithSideEffects(new_node, old_node, allow_none = False):
     assert new_node is not None or allow_none
 
     side_effects = old_node.extractSideEffects()
@@ -234,7 +234,7 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
 
     return new_node
 
-def makeStatementOnlyNodesFromExpressions( expressions ):
+def makeStatementOnlyNodesFromExpressions(expressions):
     statements = tuple(
         StatementExpressionOnly(
             expression = expression,
@@ -253,7 +253,7 @@ def makeStatementOnlyNodesFromExpressions( expressions ):
             source_ref = statements[0].getSourceReference()
         )
 
-def makeComparisonNode( left, right, comparator, source_ref ):
+def makeComparisonNode(left, right, comparator, source_ref):
     if comparator == "Is":
         return ExpressionComparisonIs(
             left       = left,

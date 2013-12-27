@@ -39,7 +39,7 @@ def Proc4():
     BoolLoc = BoolLoc or BoolGlob
     Char2Glob = 'B'
 
-def benchmark( loops ):
+def benchmark(loops):
     for i in xrange( loops ):
         Proc4()
 

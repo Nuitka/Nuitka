@@ -45,7 +45,7 @@ else:
     pickle_protocol = 2
 
 
-def getStreamedConstant( constant_value ):
+def getStreamedConstant(constant_value):
     # Note: The marshal module cannot persist all unicode strings and
     # therefore cannot be used. Instead we use pickle.
     try:

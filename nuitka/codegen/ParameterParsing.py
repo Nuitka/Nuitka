@@ -27,20 +27,20 @@ from .Indentation import indented
 
 from nuitka.Utils import python_version
 
-def getParameterEntryPointIdentifier( function_identifier ):
+def getParameterEntryPointIdentifier(function_identifier):
     return "fparse_" + function_identifier
 
-def getQuickEntryPointIdentifier( function_identifier, parameters ):
+def getQuickEntryPointIdentifier(function_identifier, parameters):
     if parameters.hasNestedParameterVariables() or \
        parameters.getKwOnlyParameterCount() > 0:
         return "NULL"
     else:
         return "dparse_" + function_identifier
 
-def getDirectFunctionEntryPointIdentifier( function_identifier ):
+def getDirectFunctionEntryPointIdentifier(function_identifier):
     return "impl_" + function_identifier
 
-def _getParameterParsingCode( context, parameters, function_name ):
+def _getParameterParsingCode(context, parameters, function_name):
     # There is really no way this could be any less complex.
     # pylint: disable=R0912,R0914
 
@@ -174,7 +174,7 @@ def _getParameterParsingCode( context, parameters, function_name ):
             "top_level_parameter_count" : plain_possible_count,
         }
 
-    def unPackNestedParameterVariables( variables ):
+    def unPackNestedParameterVariables(variables):
         result = ""
 
         for count, variable in enumerate( variables ):

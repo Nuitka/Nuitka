@@ -18,22 +18,22 @@
 
 print "Generator expression that demonstrates the timing:"
 def iteratorCreationTiming():
-    def getIterable( x ):
+    def getIterable(x):
         print "Getting iterable", x
         return Iterable( x )
 
     class Iterable:
-        def __init__( self, x ):
+        def __init__(self, x):
             self.x = x
             self.values = range( x )
             self.count = 0
 
-        def __iter__( self ):
+        def __iter__(self):
             print "Giving iter now", self.x
 
             return self
 
-        def next( self ):
+        def next(self):
             print "Next of", self.x, "is", self.count
 
             if len( self.values ) > self.count:
@@ -45,7 +45,7 @@ def iteratorCreationTiming():
 
                 raise StopIteration
 
-        def __del__( self ):
+        def __del__(self):
             print "Deleting", self.x
 
 
@@ -156,7 +156,7 @@ genexprClose()
 
 def genexprThrown():
 
-    def checked( z ):
+    def checked(z):
         if z == 3:
             raise ValueError
 

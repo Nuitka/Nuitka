@@ -2129,7 +2129,7 @@ New Features
   .. code-block:: python
 
      # Metaclass syntax in Python3, illegal in Python2
-     class X( metaclass = Y ):
+     class X(metaclass = Y):
          pass
 
   .. code-block:: python
@@ -2743,7 +2743,7 @@ Cleanups
 
          f = staticmethod( f )
 
-     C = some_classdecorator( C )
+     C = some_classdecorator(C)
 
   It's only similar, because the assignment to an intermediate value of ``C``
   and ``f`` is not done, and if an exception was raised by the decoration, that

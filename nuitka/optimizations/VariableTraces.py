@@ -106,15 +106,15 @@ class VariableTraceBase:
         return False
 
 
-class VariableUninitTrace( VariableTraceBase ):
-    def __init__( self, variable, version ):
+class VariableUninitTrace(VariableTraceBase):
+    def __init__(self, variable, version):
         VariableTraceBase.__init__(
             self,
             variable = variable,
             version  = version
         )
 
-    def __repr__( self ):
+    def __repr__(self):
         return "<VariableUninitTrace {variable} {version}>".format(
             variable = self.variable,
             version  = self.version
@@ -138,8 +138,8 @@ class VariableUninitTrace( VariableTraceBase ):
             debug("  Used at %s", usage)
 
 
-class VariableUnknownTrace( VariableTraceBase ):
-    def __init__( self, variable, version ):
+class VariableUnknownTrace(VariableTraceBase):
+    def __init__(self, variable, version):
         VariableTraceBase.__init__(
             self,
             variable = variable,
@@ -152,7 +152,7 @@ class VariableUnknownTrace( VariableTraceBase ):
             version  = self.version
         )
 
-    def dump( self ):
+    def dump(self):
         debug(
             "Trace of %s %d:",
             self.variable,

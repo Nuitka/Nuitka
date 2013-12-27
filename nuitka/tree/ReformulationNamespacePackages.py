@@ -36,7 +36,7 @@ from nuitka.nodes.ImportNodes import (
     ExpressionImportModule
 )
 
-def createNamespacePackage( package_name, module_relpath ):
+def createNamespacePackage(package_name, module_relpath):
     parts = package_name.split(".")
 
     source_ref = SourceCodeReference.fromFilenameAndLine(

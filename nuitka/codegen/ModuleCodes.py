@@ -33,14 +33,14 @@ from . import CodeTemplates
 
 from nuitka import Options
 
-def getModuleAccessCode( context ):
+def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
-def getModuleIdentifier( module_name ):
+def getModuleIdentifier(module_name):
     return module_name.replace( ".", "__" ).replace( "-", "_" )
 
 
-def getModuleDeclarationCode( module_name, extra_declarations ):
+def getModuleDeclarationCode(module_name, extra_declarations):
     module_header_code = CodeTemplates.module_header_template % {
         "module_identifier"  : getModuleIdentifier( module_name ),
         "extra_declarations" : extra_declarations
@@ -51,7 +51,7 @@ def getModuleDeclarationCode( module_name, extra_declarations ):
         "header_body"       : module_header_code
     }
 
-def getModuleMetapathLoaderEntryCode( module_name, is_shlib ):
+def getModuleMetapathLoaderEntryCode(module_name, is_shlib):
     if is_shlib:
         return CodeTemplates.template_metapath_loader_shlib_module_entry % {
             "module_name" : module_name

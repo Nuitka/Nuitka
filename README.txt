@@ -222,18 +222,21 @@ project in all minor and major ways.
 
 The development of Nuitka occurs in git. We currently have these 2 branches:
 
-- `master <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`__:
+- `master
+  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`__:
 
   This branch contains the stable release to which only hotfixes for bugs will
   be done. It is supposed to work at all times and is supported.
 
-- `develop <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`__:
+- `develop
+  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`__:
 
   This branch contains the ongoing development. It may at times contain little
   regressions, but also new features. On this branch the integration work is
   done, whereas new features might be developed on feature branches.
 
-- `factory <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`__:
+- `factory
+  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`__:
 
   This branch contains potentially unfinished and incomplete work. It is very
   frequently subject ``git rebase`` and the public staging ground, where my work
@@ -443,7 +446,7 @@ Consider the following code:
 
     try:
         b = 8
-        print range( 3, b, 0 )
+        print range(3, b, 0)
         print "Will not be executed"
     except ValueError, e:
         print e
@@ -456,7 +459,7 @@ without any risk.
 
     b = 8
     try:
-        print range( 3, b, 0 )
+        print range(3, b, 0)
         print "Will not be executed"
     except ValueError, e:
         print e
@@ -473,7 +476,7 @@ With the exception propagation it is then possible to transform this code:
 
     try:
         b = 8
-        print range( 3, b, 0 )
+        print range(3, b, 0)
         print "Will not be executed"
     except ValueError, e:
         print e
@@ -503,7 +506,7 @@ should be possible to remove the whole construct:
 
 .. code-block:: python
 
-   for i in range( 1000 ):
+   for i in range(1000):
        pass
 
 The loop could be removed, at maximum it should be considered an assignment of
@@ -576,7 +579,7 @@ optimized away. One problem is that the evaluation order can differ.
 
 .. code-block:: python
 
-   def f( a, b, c ):
+   def f(a, b, c):
        return a, b, c
 
    f( c = get1(), b = get2(), a = get3() )

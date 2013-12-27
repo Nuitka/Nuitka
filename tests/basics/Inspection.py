@@ -30,7 +30,7 @@ assert isinstance( compiledFunction, ( int, types.FunctionType ) )
 assert type( compiledFunction ) == types.FunctionType
 
 class compiledClass:
-   def compiledMethod( self ):
+   def compiledMethod(self):
       pass
 
 assert inspect.isfunction( compiledClass ) is False
@@ -79,7 +79,7 @@ def f():
 
 f()
 
-def displayDict( d ):
+def displayDict(d):
     d = dict(d)
     if "__loader__" in d:
         d[ "__loader__" ] = "<loader removed>"

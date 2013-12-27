@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-def lamdaContainer( x ):
+def lamdaContainer(x):
     f = lambda c : c
     g = lambda c : c if x else c*c
     # h = lambda c: 'a' <= c <= 'z'

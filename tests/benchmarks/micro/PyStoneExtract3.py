@@ -55,7 +55,7 @@ def Proc1(PtrParIn):
     NextRecord.PtrComp = None
     return PtrParIn
 
-def benchmark( loops ):
+def benchmark(loops):
     global PtrGlb
     global PtrGlbNext
 

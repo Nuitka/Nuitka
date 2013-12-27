@@ -82,12 +82,12 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 Removed type taking for unused result."""
 
 
-class ExpressionBuiltinSuper( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SUPER"
 
     named_children = ( "type", "object" )
 
-    def __init__( self, super_type, super_object, source_ref ):
+    def __init__(self, super_type, super_object, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -100,17 +100,17 @@ class ExpressionBuiltinSuper( ExpressionChildrenHavingBase ):
     getType = ExpressionChildrenHavingBase.childGetter( "type" )
     getObject = ExpressionChildrenHavingBase.childGetter( "object" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
 
 
-class ExpressionBuiltinIsinstance( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
     named_children = ( "instance", "cls" )
 
-    def __init__( self, instance, cls, source_ref ):
+    def __init__(self, instance, cls, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -123,11 +123,11 @@ class ExpressionBuiltinIsinstance( ExpressionChildrenHavingBase ):
     getInstance = ExpressionChildrenHavingBase.childGetter( "instance" )
     getCls = ExpressionChildrenHavingBase.childGetter( "cls" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # Dedicated code returns "True" or "False" only, which requires no reference,
         # except for rich comparisons, which do.
         return False

@@ -48,7 +48,7 @@ def Proc2(IntParIO):
             break
     return IntParIO
 
-def benchmark( loops ):
+def benchmark(loops):
     for i in xrange( loops ):
         Proc2(17)
 

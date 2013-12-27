@@ -30,12 +30,12 @@ from .NodeBases import (
 )
 
 
-class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
+class ExpressionAssignmentTempKeeper(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_ASSIGNMENT_TEMP_KEEPER"
 
     named_children = ( "source", )
 
-    def __init__( self, variable, source, source_ref ):
+    def __init__(self, variable, source, source_ref):
         assert source is not None
 
         ExpressionChildrenHavingBase.__init__(
@@ -51,24 +51,24 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
 
         assert self.variable_version != 0
 
-    def getDetail( self ):
+    def getDetail(self):
         return "%s from %s" % (
             self.getVariableName(),
             self.getAssignSource()
         )
 
-    def getDetails( self ):
+    def getDetails(self):
         return {
             "name" : self.getVariableName()
         }
 
-    def getVariable( self ):
+    def getVariable(self):
         return self.variable
 
-    def getVariableName( self ):
+    def getVariableName(self):
         return self.variable.getName()
 
-    def getVariableVersion( self ):
+    def getVariableVersion(self):
         return self.variable_version
 
     getAssignSource = ExpressionChildrenHavingBase.childGetter(
@@ -101,29 +101,29 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
         return self.getAssignSource().getTruthValue()
 
 
-class ExpressionTempKeeperRef( NodeBase, ExpressionMixin ):
+class ExpressionTempKeeperRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_TEMP_KEEPER_REF"
 
-    def __init__( self, variable, source_ref ):
+    def __init__(self, variable, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable = variable
 
-    def getDetails( self ):
+    def getDetails(self):
         return {
             "name" : self.getVariableName()
         }
 
-    def getDetail( self ):
+    def getDetail(self):
         return self.getVariableName()
 
-    def getVariable( self ):
+    def getVariable(self):
         return self.variable
 
-    def getVariableName( self ):
+    def getVariableName(self):
         return self.variable.getName()
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         variable_trace = constraint_collection.getVariableCurrentTrace(
             variable = self.variable
         )
@@ -140,15 +140,15 @@ Replaced keeper variable usage for no side effects value."""
 
         return self, None, None
 
-    def mayRaiseException( self, exception_type ):
+    def mayRaiseException(self, exception_type):
         # Can't happen
         return False
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         return False
 
-    def isOrderRelevant( self ):
+    def isOrderRelevant(self):
         return True
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         return self.variable.getReferenced().getNeedsFree()

@@ -42,12 +42,12 @@ import re, struct
 
 stream_data = StreamData()
 
-def getConstantHandle( context, constant ):
+def getConstantHandle(context, constant):
     return context.getConstantHandle(
         constant = constant
     )
 
-def getConstantCode( context, constant ):
+def getConstantCode(context, constant):
     constant_identifier = context.getConstantHandle(
         constant = constant
     )
@@ -58,10 +58,10 @@ def getConstantCode( context, constant ):
 # helper not during code generation.
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 
-def getConstantCodeName( context, constant ):
+def getConstantCodeName(context, constant):
     return context.getConstantHandle( constant, real_use = False ).getCode()
 
-def _isAttributeName( value ):
+def _isAttributeName(value):
     return _match_attribute_names.match( value )
 
 # Indicator to standalone mode code, if we need pickling module early on.
@@ -70,7 +70,7 @@ _needs_pickle = False
 def needsPickleInit():
     return _needs_pickle
 
-def _getUnstreamCode( constant_value, constant_identifier ):
+def _getUnstreamCode(constant_value, constant_identifier):
     saved = getStreamedConstant(
         constant_value = constant_value
     )
@@ -86,7 +86,7 @@ def _getUnstreamCode( constant_value, constant_identifier ):
         stream_data.getStreamDataCode( saved )
     )
 
-def _packFloat( value ):
+def _packFloat(value):
     return struct.pack( "<d", value )
 
 import ctypes

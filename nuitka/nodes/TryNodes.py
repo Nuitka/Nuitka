@@ -24,12 +24,12 @@ The try/except needs handlers, and these blocks are complex control flow.
 from .NodeBases import StatementChildrenHavingBase
 
 
-class StatementTryFinally( StatementChildrenHavingBase ):
+class StatementTryFinally(StatementChildrenHavingBase):
     kind = "STATEMENT_TRY_FINALLY"
 
     named_children = ( "tried", "final" )
 
-    def __init__( self, tried, final, source_ref ):
+    def __init__(self, tried, final, source_ref):
         assert tried is None or tried.isStatementsSequence()
         assert final is None or final.isStatementsSequence()
 
@@ -52,7 +52,7 @@ class StatementTryFinally( StatementChildrenHavingBase ):
     getBlockFinal = StatementChildrenHavingBase.childGetter( "final" )
     setBlockFinal = StatementChildrenHavingBase.childSetter( "final" )
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         # In try/finally there are two chances to raise or return a value, so we
         # need to "or" the both branches. One of them will do.
 
@@ -68,31 +68,31 @@ class StatementTryFinally( StatementChildrenHavingBase ):
 
         return False
 
-    def markAsExceptionContinue( self ):
+    def markAsExceptionContinue(self):
         self.continue_exception = True
 
-    def markAsExceptionBreak( self ):
+    def markAsExceptionBreak(self):
         self.break_exception = True
 
-    def markAsExceptionReturnValueCatch( self ):
+    def markAsExceptionReturnValueCatch(self):
         self.return_value_exception_catch = True
 
-    def markAsExceptionReturnValueReraise( self ):
+    def markAsExceptionReturnValueReraise(self):
         self.return_value_exception_reraise = True
 
-    def needsExceptionContinue( self ):
+    def needsExceptionContinue(self):
         return self.continue_exception
 
-    def needsExceptionBreak( self ):
+    def needsExceptionBreak(self):
         return self.break_exception
 
-    def needsExceptionReturnValueCatcher( self ):
+    def needsExceptionReturnValueCatcher(self):
         return self.return_value_exception_catch
 
-    def needsExceptionReturnValueReraiser( self ):
+    def needsExceptionReturnValueReraiser(self):
         return self.return_value_exception_reraise
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # The tried block must be considered as a branch, if it is not empty
         # already.
         tried_statement_sequence = self.getBlockTry()
@@ -163,7 +163,7 @@ Removed try/finally with empty final block."""
             return self, None, None
 
 
-class StatementExceptHandler( StatementChildrenHavingBase ):
+class StatementExceptHandler(StatementChildrenHavingBase):
     kind = "STATEMENT_EXCEPT_HANDLER"
 
     named_children = (
@@ -171,7 +171,7 @@ class StatementExceptHandler( StatementChildrenHavingBase ):
         "body"
     )
 
-    def __init__( self, exception_types, body, source_ref ):
+    def __init__(self, exception_types, body, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -192,12 +192,12 @@ class StatementExceptHandler( StatementChildrenHavingBase ):
     )
 
 
-class StatementTryExcept( StatementChildrenHavingBase ):
+class StatementTryExcept(StatementChildrenHavingBase):
     kind = "STATEMENT_TRY_EXCEPT"
 
     named_children = ( "tried", "handlers" )
 
-    def __init__( self, tried, handlers, source_ref ):
+    def __init__(self, tried, handlers, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -218,7 +218,7 @@ class StatementTryExcept( StatementChildrenHavingBase ):
         "handlers"
     )
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         tried_block = self.getBlockTry()
 
         # Happens during tree building only.
@@ -234,7 +234,7 @@ class StatementTryExcept( StatementChildrenHavingBase ):
 
         return True
 
-    def isStatementTryExceptOptimized( self ):
+    def isStatementTryExceptOptimized(self):
         tried_block = self.getBlockTry()
 
         tried_statements = tried_block.getStatements()

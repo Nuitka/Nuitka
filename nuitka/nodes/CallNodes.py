@@ -29,12 +29,12 @@ from .NodeBases import ExpressionChildrenHavingBase
 from .ConstantRefNodes import ExpressionConstantRef
 
 
-class ExpressionCall( ExpressionChildrenHavingBase ):
+class ExpressionCall(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL"
 
     named_children = ( "called", "args", "kw" )
 
-    def __init__( self, called, args, kw, source_ref ):
+    def __init__(self, called, args, kw, source_ref):
         assert called.isExpression()
         assert args.isExpression()
         assert kw.isExpression()
@@ -53,7 +53,7 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
     getCallArgs = ExpressionChildrenHavingBase.childGetter( "args" )
     getCallKw = ExpressionChildrenHavingBase.childGetter( "kw" )
 
-    def isExpressionCall( self ):
+    def isExpressionCall(self):
         return True
 
     def computeExpression(self, constraint_collection):
@@ -91,19 +91,19 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
             constraint_collection = constraint_collection
         )
 
-    def extractPreCallSideEffects( self ):
+    def extractPreCallSideEffects(self):
         args = self.getCallArgs()
         kw = self.getCallKw()
 
         return args.extractSideEffects() + kw.extractSideEffects()
 
 
-class ExpressionCallNoKeywords( ExpressionCall ):
+class ExpressionCallNoKeywords(ExpressionCall):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
     named_children = ( "called", "args", "kw" )
 
-    def __init__( self, called, args, source_ref ):
+    def __init__(self, called, args, source_ref):
         assert called.isExpression()
 
         ExpressionCall.__init__(
@@ -117,12 +117,12 @@ class ExpressionCallNoKeywords( ExpressionCall ):
             source_ref = source_ref
         )
 
-class ExpressionCallKeywordsOnly( ExpressionCall ):
+class ExpressionCallKeywordsOnly(ExpressionCall):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
     named_children = ( "called", "args", "kw" )
 
-    def __init__( self, called, kw, source_ref ):
+    def __init__(self, called, kw, source_ref):
         assert called.isExpression()
 
         ExpressionCall.__init__(
@@ -137,12 +137,12 @@ class ExpressionCallKeywordsOnly( ExpressionCall ):
         )
 
 
-class ExpressionCallEmpty( ExpressionCall ):
+class ExpressionCallEmpty(ExpressionCall):
     kind = "EXPRESSION_CALL_EMPTY"
 
     named_children = ( "called", "args", "kw" )
 
-    def __init__( self, called, source_ref ):
+    def __init__(self, called, source_ref):
         assert called.isExpression()
 
         ExpressionCall.__init__(

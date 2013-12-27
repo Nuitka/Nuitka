@@ -145,7 +145,7 @@ from nuitka import (
     Utils
 )
 
-def getReturnCode( identifier, via_exception, context ):
+def getReturnCode(identifier, via_exception, context):
     if via_exception:
         if identifier is None:
             identifier = getConstantHandle(
@@ -162,7 +162,7 @@ def getReturnCode( identifier, via_exception, context ):
         else:
             return "return;"
 
-def getYieldCode( identifier, in_handler ):
+def getYieldCode(identifier, in_handler):
     if in_handler:
         return Identifier(
             "YIELD_IN_HANDLER( generator, %s )" % (
@@ -176,7 +176,7 @@ def getYieldCode( identifier, in_handler ):
             0
         )
 
-def getYieldFromCode( identifier, in_handler ):
+def getYieldFromCode(identifier, in_handler):
     # TODO: Clarify, if the difference as in getYieldCode is needed.
     if False and in_handler:
         return Identifier(
@@ -191,7 +191,7 @@ def getYieldFromCode( identifier, in_handler ):
             1
         )
 
-def getMetaclassVariableCode( context ):
+def getMetaclassVariableCode(context):
     assert Utils.python_version < 300
 
     return "GET_STRING_DICT_VALUE( moduledict_%s, (Nuitka_StringObject *)%s )" % (
@@ -224,7 +224,7 @@ def getBuiltinImportCode( context, order_relevance, module_identifier,
         context         = context
     )
 
-def getImportFromStarCode( context, module_identifier ):
+def getImportFromStarCode(context, module_identifier):
     if not context.hasLocalsDict():
         return "IMPORT_MODULE_STAR( %s, true, %s );" % (
             getModuleAccessCode(
@@ -244,17 +244,17 @@ def getMaxIndexCode():
 def getMinIndexCode():
     return Identifier( "0", 0 )
 
-def getIndexValueCode( number ):
+def getIndexValueCode(number):
     return Identifier( "%s" % number, 0 )
 
-def getIndexCode( identifier ):
+def getIndexCode(identifier):
     return Identifier(
         "CONVERT_TO_INDEX( %s )" % identifier.getCodeTemporaryRef(),
         0
     )
 
 
-def getUnpackNextCode( iterator_identifier, count ):
+def getUnpackNextCode(iterator_identifier, count):
     return Identifier(
         "UNPACK_NEXT( %s, %d )" % (
             iterator_identifier.getCodeTemporaryRef(),
@@ -263,13 +263,13 @@ def getUnpackNextCode( iterator_identifier, count ):
         1
     )
 
-def getUnpackCheckCode( iterator_identifier, count ):
+def getUnpackCheckCode(iterator_identifier, count):
     return "UNPACK_ITERATOR_CHECK( %s, %d );" % (
         iterator_identifier.getCodeTemporaryRef(),
         count
     )
 
-def getSpecialAttributeLookupCode( attribute, source ):
+def getSpecialAttributeLookupCode(attribute, source):
     assert attribute.getConstant not in ( "__dict__", "__class__" )
 
     return Identifier(
@@ -280,7 +280,7 @@ def getSpecialAttributeLookupCode( attribute, source ):
         1
     )
 
-def getAttributeLookupCode( attribute, source ):
+def getAttributeLookupCode(attribute, source):
     assert attribute.getConstant not in ( "__dict__", "__class__" )
 
     return Identifier(
@@ -292,7 +292,7 @@ def getAttributeLookupCode( attribute, source ):
     )
 
 
-def getAttributeLookupDictSlotCode( source ):
+def getAttributeLookupDictSlotCode(source):
     return Identifier(
         "LOOKUP_ATTRIBUTE_DICT_SLOT( %s )" % (
             source.getCodeTemporaryRef(),
@@ -300,7 +300,7 @@ def getAttributeLookupDictSlotCode( source ):
         1
     )
 
-def getAttributeLookupClassSlotCode( source ):
+def getAttributeLookupClassSlotCode(source):
     return Identifier(
         "LOOKUP_ATTRIBUTE_CLASS_SLOT( %s )" % (
             source.getCodeTemporaryRef(),
@@ -308,7 +308,7 @@ def getAttributeLookupClassSlotCode( source ):
         1
     )
 
-def getAttributeCheckCode( context, order_relevance, attribute, source ):
+def getAttributeCheckCode(context, order_relevance, attribute, source):
     return getBoolFromCode(
         code = getAttributeCheckBoolCode(
             order_relevance = order_relevance,
@@ -318,7 +318,7 @@ def getAttributeCheckCode( context, order_relevance, attribute, source ):
         )
     )
 
-def getAttributeCheckBoolCode( context, order_relevance, source, attribute ):
+def getAttributeCheckBoolCode(context, order_relevance, source, attribute):
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "HAS_ATTRIBUTE",
         export_ref      = 0,
@@ -329,7 +329,7 @@ def getAttributeCheckBoolCode( context, order_relevance, source, attribute ):
         context         = context
     )
 
-def getAttributeGetCode( context, order_relevance, source, attribute, default ):
+def getAttributeGetCode(context, order_relevance, source, attribute, default):
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "BUILTIN_GETATTR",
         export_ref      = 0,
@@ -339,12 +339,12 @@ def getAttributeGetCode( context, order_relevance, source, attribute, default ):
         args            = (
             source,
             attribute,
-            defaultToNullIdentifier( default )
+            defaultToNullIdentifier(default)
         ),
         context         = context
     )
 
-def getAttributeSetCode( context, order_relevance, attribute, source, value ):
+def getAttributeSetCode(context, order_relevance, attribute, source, value):
     result = getOrderRelevanceEnforcedArgsCode(
         helper          = "BUILTIN_SETATTR",
         export_ref      = 0,
@@ -365,7 +365,7 @@ def getAttributeSetCode( context, order_relevance, attribute, source, value ):
         0
     )
 
-def getImportNameCode( import_name, module ):
+def getImportNameCode(import_name, module):
     return Identifier(
         "IMPORT_NAME( %s, %s )" % (
             module.getCodeTemporaryRef(),
@@ -374,7 +374,7 @@ def getImportNameCode( import_name, module ):
         1
     )
 
-def getSubscriptLookupCode( context, order_relevance, subscript, source ):
+def getSubscriptLookupCode(context, order_relevance, subscript, source):
     helper = "LOOKUP_SUBSCRIPT"
     suffix_args = []
 
@@ -400,13 +400,13 @@ def getSubscriptLookupCode( context, order_relevance, subscript, source ):
     )
 
 
-def getHasKeyBoolCode( source, key ):
+def getHasKeyBoolCode(source, key):
     return "HAS_KEY( %s, %s )" % (
         source.getCodeTemporaryRef(),
         key.getCodeTemporaryRef()
     )
 
-def getSliceLookupCode( order_relevance, source, lower, upper, context ):
+def getSliceLookupCode(order_relevance, source, lower, upper, context):
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "LOOKUP_SLICE",
         export_ref      = 0,
@@ -415,13 +415,13 @@ def getSliceLookupCode( order_relevance, source, lower, upper, context ):
         order_relevance = order_relevance,
         args            = (
             source,
-            defaultToNoneIdentifier( lower ),
-            defaultToNoneIdentifier( upper )
+            defaultToNoneIdentifier(lower),
+            defaultToNoneIdentifier(upper)
         ),
         context         = context
     )
 
-def getSliceLookupIndexesCode( lower, upper, source ):
+def getSliceLookupIndexesCode(lower, upper, source):
     return Identifier(
         "LOOKUP_INDEX_SLICE( %s, %s, %s )" % (
             source.getCodeTemporaryRef(),
@@ -431,7 +431,7 @@ def getSliceLookupIndexesCode( lower, upper, source ):
         1
     )
 
-def getSliceObjectCode( order_relevance, lower, upper, step, context ):
+def getSliceObjectCode(order_relevance, lower, upper, step, context):
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "MAKE_SLICEOBJ",
         export_ref      = 0,
@@ -439,17 +439,17 @@ def getSliceObjectCode( order_relevance, lower, upper, step, context ):
         tmp_scope       = "sliceobj",
         order_relevance = order_relevance,
         args            = (
-            defaultToNoneIdentifier( lower ),
-            defaultToNoneIdentifier( upper ),
-            defaultToNoneIdentifier( step )
+            defaultToNoneIdentifier(lower),
+            defaultToNoneIdentifier(upper),
+            defaultToNoneIdentifier(step)
         ),
         context         = context
     )
 
-def getStatementCode( identifier ):
+def getStatementCode(identifier):
     return identifier.getCodeDropRef() + ";"
 
-def getOperationCode( context, order_relevance, operator, identifiers ):
+def getOperationCode(context, order_relevance, operator, identifiers):
     # This needs to have one return per operation of Python, and there are many
     # of these, pylint: disable=R0911
 
@@ -491,7 +491,7 @@ def getOperationCode( context, order_relevance, operator, identifiers ):
         context         = context
     )
 
-def getPrintCode( newline, identifiers, target_file ):
+def getPrintCode(newline, identifiers, target_file):
     print_elements_code = []
 
     for identifier in identifiers:
@@ -550,7 +550,7 @@ def getConditionalExpressionCode( condition_code, identifier_no,
     )
 
 
-def getBranchCode( condition_code, yes_codes, no_codes ):
+def getBranchCode(condition_code, yes_codes, no_codes):
     assert yes_codes or no_codes
 
     if no_codes is None:
@@ -571,13 +571,13 @@ def getBranchCode( condition_code, yes_codes, no_codes ):
             "branch_no_code"  : indented( no_codes )
         }
 
-def getLoopContinueCode( needs_exceptions ):
+def getLoopContinueCode(needs_exceptions):
     if needs_exceptions:
         return "throw ContinueException();"
     else:
         return "CONSIDER_THREADING(); continue;"
 
-def getLoopBreakCode( needs_exceptions ):
+def getLoopBreakCode(needs_exceptions):
     if needs_exceptions:
         return "throw BreakException();"
     else:
@@ -669,26 +669,26 @@ def getComparisonExpressionBoolCode( context, comparator, order_relevance, left,
         context         = context
     )
 
-def getConditionNotBoolCode( condition ):
+def getConditionNotBoolCode(condition):
     return "(!( %s ))" % condition
 
-def getConditionAndCode( operands ):
+def getConditionAndCode(operands):
     return "( %s )" % " && ".join( operands )
 
-def getConditionOrCode( operands ):
+def getConditionOrCode(operands):
     return "( %s )" % " || ".join( operands )
 
-def getConditionSelectionCode( condition_code, yes_code, no_code ):
+def getConditionSelectionCode(condition_code, yes_code, no_code):
     return "( %s ) ? ( %s ) : ( %s )" % (
         condition_code,
         yes_code,
         no_code
     )
 
-def getConditionCheckTrueCode( condition ):
+def getConditionCheckTrueCode(condition):
     return "CHECK_IF_TRUE( %s )" % condition.getCodeTemporaryRef()
 
-def getConditionCheckFalseCode( condition ):
+def getConditionCheckFalseCode(condition):
     return "CHECK_IF_FALSE( %s )" % condition.getCodeTemporaryRef()
 
 def getTrueExpressionCode():
@@ -709,7 +709,7 @@ def getAttributeAssignmentCode( order_relevance, target, attribute,
     )
 
 
-def getAttributeAssignmentDictSlotCode( order_relevance, target, identifier ):
+def getAttributeAssignmentDictSlotCode(order_relevance, target, identifier):
     """ Get code for special case target.__dict__ = value """
     return getOrderRelevanceEnforcedCallCode(
         order_relevance = order_relevance,
@@ -719,7 +719,7 @@ def getAttributeAssignmentDictSlotCode( order_relevance, target, identifier ):
     )
 
 
-def getAttributeAssignmentClassSlotCode( order_relevance, target, identifier ):
+def getAttributeAssignmentClassSlotCode(order_relevance, target, identifier):
     """ Get code for special case target.__class__ = value """
     return getOrderRelevanceEnforcedCallCode(
         order_relevance = order_relevance,
@@ -728,13 +728,13 @@ def getAttributeAssignmentClassSlotCode( order_relevance, target, identifier ):
         values          = ( identifier, target )
     )
 
-def getAttributeDelCode( target, attribute ):
+def getAttributeDelCode(target, attribute):
     return "DEL_ATTRIBUTE( %s, %s );" % (
         target.getCodeTemporaryRef(),
         attribute.getCodeTemporaryRef()
     )
 
-def getSliceAssignmentIndexesCode( target, lower, upper, identifier ):
+def getSliceAssignmentIndexesCode(target, lower, upper, identifier):
     return "SET_INDEX_SLICE( %s, %s, %s, %s );" % (
         target.getCodeTemporaryRef(),
         lower.getCodeTemporaryRef(),
@@ -742,7 +742,7 @@ def getSliceAssignmentIndexesCode( target, lower, upper, identifier ):
         identifier.getCodeTemporaryRef()
     )
 
-def getSliceAssignmentCode( order_relevance, target, lower, upper, identifier ):
+def getSliceAssignmentCode(order_relevance, target, lower, upper, identifier):
     return getOrderRelevanceEnforcedCallCode(
         order_relevance = order_relevance,
         helper          = "SET_SLICE",
@@ -750,16 +750,16 @@ def getSliceAssignmentCode( order_relevance, target, lower, upper, identifier ):
         values          = (
             identifier,
             target,
-            defaultToNoneIdentifier( lower ),
-            defaultToNoneIdentifier( upper )
+            defaultToNoneIdentifier(lower),
+            defaultToNoneIdentifier(upper)
         )
     )
 
-def getSliceDelCode( target, lower, upper ):
+def getSliceDelCode(target, lower, upper):
     return "DEL_SLICE( %s, %s, %s );" % (
         target.getCodeTemporaryRef(),
-        defaultToNoneIdentifier( lower ).getCodeTemporaryRef(),
-        defaultToNoneIdentifier( upper ).getCodeTemporaryRef()
+        defaultToNoneIdentifier(lower).getCodeTemporaryRef(),
+        defaultToNoneIdentifier(upper).getCodeTemporaryRef()
     )
 
 def getLoopCode( loop_body_codes, needs_break_exception,
@@ -786,7 +786,7 @@ def getLoopCode( loop_body_codes, needs_break_exception,
     }
 
 
-def getAssignmentTempKeeperCode( source_identifier, variable, context ):
+def getAssignmentTempKeeperCode(source_identifier, variable, context):
     ref_count = source_identifier.getCheapRefCount()
     variable_name = variable.getName()
 
@@ -800,7 +800,7 @@ def getAssignmentTempKeeperCode( source_identifier, variable, context ):
         context           = context
     )
 
-def getTempKeeperHandle( variable, context ):
+def getTempKeeperHandle(variable, context):
     variable_name = variable.getName()
     ref_count = context.getTempKeeperRefCount( variable_name )
 
@@ -840,7 +840,7 @@ def getSubscriptAssignmentCode( order_relevance, subscribed, subscript,
         suffix_args     = suffix_args
     )
 
-def getSubscriptDelCode( order_relevance, subscribed, subscript ):
+def getSubscriptDelCode(order_relevance, subscribed, subscript):
     return getOrderRelevanceEnforcedCallCode(
         order_relevance = order_relevance,
         helper          = "DEL_SUBSCRIPT",
@@ -945,7 +945,7 @@ def getTryExceptHandlerCode( exception_identifiers, handler_code,
 
     return exception_code
 
-def getTryExceptCode( context, code_tried, handler_codes ):
+def getTryExceptCode(context, code_tried, handler_codes):
     exception_code = list( handler_codes )
     exception_code += CodeTemplates.try_except_reraise_unmatched_template.split( "\n" )
 
@@ -958,7 +958,7 @@ def getTryExceptCode( context, code_tried, handler_codes ):
         "tb_making"      : tb_making.getCodeExportRef(),
     }
 
-def getTryNextExceptStopIterationIdentifier( context ):
+def getTryNextExceptStopIterationIdentifier(context):
     try_count = context.allocateTryNumber()
 
     return Identifier( "_tmp_unpack_%d" % try_count, 1 )
@@ -991,7 +991,7 @@ def getRaiseExceptionWithCauseCode( context, order_relevance, exception_type,
         )
     )
 
-def getRaiseExceptionWithTypeCode( context, order_relevance, exception_type ):
+def getRaiseExceptionWithTypeCode(context, order_relevance, exception_type):
     # Must enforce tb_maker to be last.
     exception_tb_maker = getTracebackMakingIdentifier(
         context = context
@@ -1045,7 +1045,7 @@ def getRaiseExceptionWithTracebackCode( order_relevance, exception_type,
     )
 
 
-def getReRaiseExceptionCode( local, final ):
+def getReRaiseExceptionCode(local, final):
     if local:
         thrower_code = CodeTemplates.try_except_reraise_template % {}
     else:
@@ -1059,7 +1059,7 @@ def getReRaiseExceptionCode( local, final ):
     else:
         return thrower_code
 
-def getRaiseExceptionExpressionCode( context, exception_type, exception_value ):
+def getRaiseExceptionExpressionCode(context, exception_type, exception_value):
     # Order is supposed to not matter, as these were run time detected and
     # contain no side effects.
     exception_tb_maker = getTracebackMakingIdentifier(
@@ -1074,7 +1074,7 @@ def getRaiseExceptionExpressionCode( context, exception_type, exception_value ):
         )
     )
 
-def getSideEffectsCode( side_effects, identifier ):
+def getSideEffectsCode(side_effects, identifier):
     assert side_effects
 
     side_effects_code = ", ".join(
@@ -1100,7 +1100,7 @@ def getSideEffectsCode( side_effects, identifier ):
             1
         )
 
-def getBuiltinRefCode( context, builtin_name ):
+def getBuiltinRefCode(context, builtin_name):
     return Identifier(
         "LOOKUP_BUILTIN( %s )" % getConstantCode(
             constant = builtin_name,
@@ -1109,19 +1109,19 @@ def getBuiltinRefCode( context, builtin_name ):
         0
     )
 
-def getBuiltinOriginalRefCode( builtin_name ):
+def getBuiltinOriginalRefCode(builtin_name):
     return Identifier(
         "_python_original_builtin_value_%s" % builtin_name,
         0
     )
 
-def getBuiltinAnonymousRefCode( builtin_name ):
+def getBuiltinAnonymousRefCode(builtin_name):
     return Identifier(
         "(PyObject *)%s" % Builtins.builtin_anon_codes[ builtin_name ],
         0
     )
 
-def getExceptionRefCode( exception_type ):
+def getExceptionRefCode(exception_type):
     if exception_type == "NotImplemented":
         return Identifier(
             "Py_NotImplemented",
@@ -1147,7 +1147,7 @@ def getMakeBuiltinExceptionCode( context, order_relevance, exception_type,
         context           = context
     )
 
-def _getLocalVariableList( provider ):
+def _getLocalVariableList(provider):
     if provider.isExpressionFunctionBody():
         # Sort parameter variables of functions to the end.
 
@@ -1179,7 +1179,7 @@ def _getLocalVariableList( provider ):
     ]
 
 
-def getLoadDirCode( context, provider ):
+def getLoadDirCode(context, provider):
     if provider.isPythonModule():
         globals_identifier = getLoadGlobalsCode(
             context = context
@@ -1246,13 +1246,13 @@ def getLoadDirCode( context, provider ):
 
             return result
 
-def getLoadVarsCode( identifier ):
+def getLoadVarsCode(identifier):
     return Identifier(
         "LOOKUP_VARS( %s )" % identifier.getCodeTemporaryRef(),
         1
     )
 
-def getLoadGlobalsCode( context ):
+def getLoadGlobalsCode(context):
     return Identifier(
         "((PyModuleObject *)%(module_identifier)s)->md_dict" % {
             "module_identifier" : getModuleAccessCode( context )
@@ -1260,9 +1260,9 @@ def getLoadGlobalsCode( context ):
         0
     )
 
-def getLoadLocalsCode( context, provider, mode ):
+def getLoadLocalsCode(context, provider, mode):
 
-    def _getUpdateLocalsDictCode( context, result, local_var, ref_count ):
+    def _getUpdateLocalsDictCode(context, result, local_var, ref_count):
         if local_var.isTempVariableReference():
             result = Identifier(
                 "%s.updateLocalsDict( %s, %s )" % (
@@ -1338,12 +1338,12 @@ def getLoadLocalsCode( context, provider, mode ):
         else:
             assert False
 
-def getSetLocalsCode( new_locals_identifier ):
+def getSetLocalsCode(new_locals_identifier):
     return "locals_dict.assign1( %s );" % (
         new_locals_identifier.getCodeExportRef()
     )
 
-def getStoreLocalsCode( context, source_identifier, provider ):
+def getStoreLocalsCode(context, source_identifier, provider):
     assert not provider.isPythonModule()
 
     code = ""
@@ -1377,7 +1377,7 @@ def getStoreLocalsCode( context, source_identifier, provider ):
 
     return code.rstrip( "\n" )
 
-def getFutureFlagsCode( future_spec ):
+def getFutureFlagsCode(future_spec):
     flags = future_spec.asFlags()
 
     if flags:
@@ -1431,7 +1431,7 @@ def getEvalCode( context, order_relevance, exec_code, filename_identifier,
 
 
 
-def getExecCode( context, exec_code, globals_identifier, locals_identifier, future_flags, provider, source_ref ):
+def getExecCode(context, exec_code, globals_identifier, locals_identifier, future_flags, provider, source_ref):
 
     # Filename with origin if improved mode.
     if Options.isFullCompat():
@@ -1481,8 +1481,8 @@ def getBuiltinSuperCode( order_relevance, type_identifier, object_identifier,
         tmp_scope       = "super",
         order_relevance = order_relevance,
         args            = (
-            defaultToNullIdentifier( type_identifier ),
-            defaultToNullIdentifier( object_identifier )
+            defaultToNullIdentifier(type_identifier),
+            defaultToNullIdentifier(object_identifier)
         ),
         context         = context
     )
@@ -1514,7 +1514,7 @@ def getBuiltinIsinstanceBoolCode( context, order_relevance, inst_identifier,
         context         = context
     )
 
-def getBuiltinOpenCode( context, order_relevance, filename, mode, buffering ):
+def getBuiltinOpenCode(context, order_relevance, filename, mode, buffering):
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "OPEN_FILE",
         export_ref      = 0,
@@ -1522,29 +1522,29 @@ def getBuiltinOpenCode( context, order_relevance, filename, mode, buffering ):
         tmp_scope       = "open",
         order_relevance = order_relevance,
         args            = (
-            defaultToNullIdentifier( filename ),
-            defaultToNullIdentifier( mode ),
-            defaultToNullIdentifier( buffering )
+            defaultToNullIdentifier(filename),
+            defaultToNullIdentifier(mode),
+            defaultToNullIdentifier(buffering)
         ),
         context         = context
     )
 
-def getBuiltinLenCode( identifier ):
+def getBuiltinLenCode(identifier):
     return HelperCallIdentifier(
         "BUILTIN_LEN", identifier
     )
 
-def getBuiltinDir1Code( identifier ):
+def getBuiltinDir1Code(identifier):
     return HelperCallIdentifier(
         "BUILTIN_DIR1", identifier
     )
 
-def getBuiltinRange1Code( value ):
+def getBuiltinRange1Code(value):
     return HelperCallIdentifier(
         "BUILTIN_RANGE", value
     )
 
-def getBuiltinRange2Code( order_relevance, low, high, context ):
+def getBuiltinRange2Code(order_relevance, low, high, context):
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "BUILTIN_RANGE2",
         export_ref      = 0,
@@ -1558,7 +1558,7 @@ def getBuiltinRange2Code( order_relevance, low, high, context ):
         context         = context
     )
 
-def getBuiltinRange3Code( order_relevance, low, high, step, context ):
+def getBuiltinRange3Code(order_relevance, low, high, step, context):
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "BUILTIN_RANGE3",
         export_ref      = 0,
@@ -1573,7 +1573,7 @@ def getBuiltinRange3Code( order_relevance, low, high, step, context ):
         context         = context
     )
 
-def getBuiltinXrangeCode( order_relevance, low, high, step, context ):
+def getBuiltinXrangeCode(order_relevance, low, high, step, context):
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "BUILTIN_XRANGE",
         export_ref      = 0,
@@ -1582,32 +1582,32 @@ def getBuiltinXrangeCode( order_relevance, low, high, step, context ):
         order_relevance = order_relevance,
         args            = (
             low,
-            defaultToNullIdentifier( high ),
-            defaultToNullIdentifier( step )
+            defaultToNullIdentifier(high),
+            defaultToNullIdentifier(step)
         ),
         context         = context
     )
 
 
-def getBuiltinChrCode( value ):
+def getBuiltinChrCode(value):
     return HelperCallIdentifier( "BUILTIN_CHR", value )
 
-def getBuiltinOrdCode( value ):
+def getBuiltinOrdCode(value):
     return HelperCallIdentifier( "BUILTIN_ORD", value )
 
-def getBuiltinBinCode( value ):
+def getBuiltinBinCode(value):
     return HelperCallIdentifier( "BUILTIN_BIN", value )
 
-def getBuiltinOctCode( value ):
+def getBuiltinOctCode(value):
     return HelperCallIdentifier( "BUILTIN_OCT", value )
 
-def getBuiltinHexCode( value ):
+def getBuiltinHexCode(value):
     return HelperCallIdentifier( "BUILTIN_HEX", value )
 
-def getBuiltinType1Code( value ):
+def getBuiltinType1Code(value):
     return HelperCallIdentifier( "BUILTIN_TYPE1", value )
 
-def getBuiltinIter1Code( value ):
+def getBuiltinIter1Code(value):
     return HelperCallIdentifier( "MAKE_ITERATOR", value )
 
 def getBuiltinIter2Code( context, order_relevance, callable_identifier,
@@ -1625,7 +1625,7 @@ def getBuiltinIter2Code( context, order_relevance, callable_identifier,
         context         = context
     )
 
-def getBuiltinNext1Code( value ):
+def getBuiltinNext1Code(value):
     return HelperCallIdentifier( "BUILTIN_NEXT1", value )
 
 def getBuiltinNext2Code( context, order_relevance, iterator_identifier,
@@ -1665,16 +1665,16 @@ def getBuiltinType3Code( context, order_relevance, name_identifier,
         context         = context
     )
 
-def getBuiltinTupleCode( identifier ):
+def getBuiltinTupleCode(identifier):
     return HelperCallIdentifier( "TO_TUPLE", identifier )
 
-def getBuiltinListCode( identifier ):
+def getBuiltinListCode(identifier):
     return HelperCallIdentifier( "TO_LIST", identifier )
 
-def getBuiltinSetCode( identifier ):
+def getBuiltinSetCode(identifier):
     return HelperCallIdentifier( "TO_SET", identifier )
 
-def getBuiltinDictCode( seq_identifier, dict_identifier ):
+def getBuiltinDictCode(seq_identifier, dict_identifier):
     if dict_identifier.isConstantIdentifier() and dict_identifier.getConstant() == {}:
         dict_identifier = None
 
@@ -1684,23 +1684,23 @@ def getBuiltinDictCode( seq_identifier, dict_identifier ):
         return Identifier(
             "TO_DICT( %s, %s )" % (
                 seq_identifier.getCodeTemporaryRef(),
-                defaultToNullIdentifier( dict_identifier ).getCodeTemporaryRef()
+                defaultToNullIdentifier(dict_identifier).getCodeTemporaryRef()
             ),
             1
         )
     else:
         return dict_identifier
 
-def getBuiltinFloatCode( identifier ):
+def getBuiltinFloatCode(identifier):
     return HelperCallIdentifier( "TO_FLOAT", identifier )
 
-def getBuiltinLong1Code( context, identifier ):
+def getBuiltinLong1Code(context, identifier):
     if identifier is None:
         identifier = getConstantHandle( context = context, constant = "0" )
 
     return HelperCallIdentifier( "TO_LONG", identifier )
 
-def getBuiltinLong2Code( context, order_relevance, identifier, base ):
+def getBuiltinLong2Code(context, order_relevance, identifier, base):
     if identifier is None:
         identifier = getConstantHandle( context = context, constant = "0" )
 
@@ -1717,13 +1717,13 @@ def getBuiltinLong2Code( context, order_relevance, identifier, base ):
         context         = context
     )
 
-def getBuiltinInt1Code( context, identifier ):
+def getBuiltinInt1Code(context, identifier):
     if identifier is None:
         identifier = getConstantHandle( context = context, constant = "0" )
 
     return HelperCallIdentifier( "TO_INT", identifier )
 
-def getBuiltinInt2Code( context, order_relevance, identifier, base ):
+def getBuiltinInt2Code(context, order_relevance, identifier, base):
     if identifier is None:
         identifier = getConstantHandle( context = context, constant = "0" )
 
@@ -1740,10 +1740,10 @@ def getBuiltinInt2Code( context, order_relevance, identifier, base ):
         context         = context
     )
 
-def getBuiltinStrCode( identifier ):
+def getBuiltinStrCode(identifier):
     return HelperCallIdentifier( "TO_STR", identifier )
 
-def getBuiltinUnicode1Code( identifier ):
+def getBuiltinUnicode1Code(identifier):
     return HelperCallIdentifier( "TO_UNICODE", identifier )
 
 def getBuiltinUnicode3Code( context, order_relevance, identifier, encoding,
@@ -1756,13 +1756,13 @@ def getBuiltinUnicode3Code( context, order_relevance, identifier, encoding,
         order_relevance = order_relevance,
         args            = (
             identifier,
-            defaultToNullIdentifier( encoding ),
-            defaultToNullIdentifier( errors ),
+            defaultToNullIdentifier(encoding),
+            defaultToNullIdentifier(errors),
         ),
         context         = context
     )
 
-def getBoolFromCode( code ):
+def getBoolFromCode(code):
     assert type( code ) is str
 
     return Identifier(
@@ -1770,16 +1770,16 @@ def getBoolFromCode( code ):
         0
     )
 
-def getBuiltinBoolCode( identifier ):
+def getBuiltinBoolCode(identifier):
     return Identifier(
         "TO_BOOL( %s )" % identifier.getCodeTemporaryRef(),
         0
     )
 
-def getFrameMakingIdentifier( context ):
+def getFrameMakingIdentifier(context):
     return context.getFrameHandle()
 
-def getTracebackMakingIdentifier( context ):
+def getTracebackMakingIdentifier(context):
     return Identifier(
         "MAKE_TRACEBACK( %s )" % (
             getFrameMakingIdentifier( context = context ).getCodeExportRef(),
@@ -1787,19 +1787,19 @@ def getTracebackMakingIdentifier( context ):
         1
     )
 
-def getExportScopeCode( cross_module ):
+def getExportScopeCode(cross_module):
     if cross_module:
         return "NUITKA_CROSS_MODULE"
     else:
         return "NUITKA_LOCAL_MODULE"
 
-def getSelectMetaclassCode( metaclass_identifier, bases_identifier, context ):
+def getSelectMetaclassCode(metaclass_identifier, bases_identifier, context):
     if Utils.python_version < 300:
         assert metaclass_identifier is None
 
         args = [
             bases_identifier.getCodeTemporaryRef(),
-            getMetaclassVariableCode( context = context )
+            getMetaclassVariableCode(context = context)
         ]
     else:
         args = [
@@ -1810,13 +1810,13 @@ def getSelectMetaclassCode( metaclass_identifier, bases_identifier, context ):
 
     return CallIdentifier( "SELECT_METACLASS", args )
 
-def getStatementTrace( source_desc, statement_repr ):
+def getStatementTrace(source_desc, statement_repr):
     return 'puts( "Execute: " %s );' % (
         CppStrings.encodeString( source_desc + " " + statement_repr ),
     )
 
 
-def getConstantsDeclarationCode( context ):
+def getConstantsDeclarationCode(context):
     constant_declarations, _constant_locals = getConstantsDeclCode(
         context    = context,
         for_header = True
@@ -1835,7 +1835,7 @@ def getConstantsDeclarationCode( context ):
         "header_body"       : header_body
     }
 
-def getConstantsDefinitionCode( context ):
+def getConstantsDefinitionCode(context):
     constant_inits = getConstantsInitCode(
         context    = context
     )
@@ -1877,7 +1877,7 @@ def getCurrentExceptionTracebackCode():
         0
     )
 
-def getListOperationAppendCode( list_identifier, value_identifier ):
+def getListOperationAppendCode(list_identifier, value_identifier):
     return Identifier(
         "APPEND_TO_LIST( %s, %s ), Py_None" % (
             list_identifier.getCodeTemporaryRef(),
@@ -1886,7 +1886,7 @@ def getListOperationAppendCode( list_identifier, value_identifier ):
         0
     )
 
-def getSetOperationAddCode( set_identifier, value_identifier ):
+def getSetOperationAddCode(set_identifier, value_identifier):
     return Identifier(
         "ADD_TO_SET( %s, %s ), Py_None" % (
             set_identifier.getCodeTemporaryRef(),
@@ -1906,7 +1906,7 @@ def getDictOperationSetCode( dict_identifier, key_identifier,
         0
     )
 
-def getDictOperationGetCode( dict_identifier, key_identifier ):
+def getDictOperationGetCode(dict_identifier, key_identifier):
     return Identifier(
         "DICT_GET_ITEM( %s, %s )" % (
             dict_identifier.getCodeTemporaryRef(),
@@ -1915,13 +1915,13 @@ def getDictOperationGetCode( dict_identifier, key_identifier ):
         1
     )
 
-def getDictOperationRemoveCode( dict_identifier, key_identifier ):
+def getDictOperationRemoveCode(dict_identifier, key_identifier):
     return "DICT_REMOVE_ITEM( %s, %s );" % (
         dict_identifier.getCodeTemporaryRef(),
         key_identifier.getCodeTemporaryRef()
     )
 
-def getFrameLocalsUpdateCode( locals_identifier ):
+def getFrameLocalsUpdateCode(locals_identifier):
     if locals_identifier.isConstantIdentifier() and \
          locals_identifier.getConstant() == {}:
         return ""
@@ -1975,7 +1975,7 @@ def getFrameGuardOnceCode( frame_identifier, code_identifier, locals_identifier,
         "return_code"       : indented( context.getReturnErrorCode() )
     }
 
-def getFrameGuardLightCode( frame_identifier, code_identifier, codes, context ):
+def getFrameGuardLightCode(frame_identifier, code_identifier, codes, context):
     tb_making = getTracebackMakingIdentifier( context )
 
     return CodeTemplates.frame_guard_genfunc_template % {
@@ -1986,7 +1986,7 @@ def getFrameGuardLightCode( frame_identifier, code_identifier, codes, context ):
         "tb_making"         : tb_making.getCodeExportRef(),
     }
 
-def getFrameGuardVeryLightCode( codes ):
+def getFrameGuardVeryLightCode(codes):
     return CodeTemplates.frame_guard_listcontr_template % {
         "codes"             : indented( codes, 0 ),
     }

@@ -41,13 +41,13 @@ from logging import warning
 
 import ast
 
-def dump( node ):
+def dump(node):
     Tracing.printLine( ast.dump( node ) )
 
-def getKind( node ):
-    return node.__class__.__name__.split( "." )[-1]
+def getKind(node):
+    return node.__class__.__name__.split(".")[-1]
 
-def extractDocFromBody( node ):
+def extractDocFromBody(node):
     # Work around ast.get_docstring breakage.
     if len( node.body ) > 0 and getKind( node.body[0] ) == "Expr" and getKind( node.body[0].value ) == "Str":
         return node.body[1:], node.body[0].value.s
@@ -58,7 +58,7 @@ build_nodes_args3 = None
 build_nodes_args2 = None
 build_nodes_args1 = None
 
-def setBuildDispatchers( path_args3, path_args2, path_args1 ):
+def setBuildDispatchers(path_args3, path_args2, path_args1):
     # Using global here, as this is really a singleton, in the form of a module,
     # and this is to break the cyclic dependency it has, pylint: disable=W0603
 
@@ -68,7 +68,7 @@ def setBuildDispatchers( path_args3, path_args2, path_args1 ):
     build_nodes_args2 = path_args2
     build_nodes_args1 = path_args1
 
-def buildNode( provider, node, source_ref, allow_none = False ):
+def buildNode(provider, node, source_ref, allow_none = False):
     if node is None and allow_none:
         return None
 
@@ -112,7 +112,7 @@ def buildNode( provider, node, source_ref, allow_none = False ):
         warning( "Problem at '%s' with %s." % ( source_ref, ast.dump( node ) ) )
         raise
 
-def buildNodeList( provider, nodes, source_ref, allow_none = False ):
+def buildNodeList(provider, nodes, source_ref, allow_none = False):
     if nodes is not None:
         result = []
 
@@ -131,7 +131,7 @@ def buildNodeList( provider, nodes, source_ref, allow_none = False ):
     else:
         return []
 
-def makeModuleFrame( module, statements, source_ref ):
+def makeModuleFrame(module, statements, source_ref):
     assert module.isPythonModule()
 
     if module.isMainModule():
@@ -259,7 +259,7 @@ def makeStatementsSequenceFromStatement(statement):
         source_ref = statement.getSourceReference()
     )
 
-def makeSequenceCreationOrConstant( sequence_kind, elements, source_ref ):
+def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # Sequence creation. Tries to avoid creations with only constant
     # elements. Would be caught by optimization, but would be useless churn. For
     # mutable constants we cannot do it though.
@@ -313,7 +313,7 @@ def makeSequenceCreationOrConstant( sequence_kind, elements, source_ref ):
             assert False, sequence_kind
 
 
-def makeDictCreationOrConstant( keys, values, lazy_order, source_ref ):
+def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable.
 

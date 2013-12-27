@@ -25,12 +25,12 @@ from .NodeBases import (
 )
 
 
-class ExpressionListOperationAppend( ExpressionChildrenHavingBase ):
+class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_APPEND"
 
     named_children = ( "list", "value" )
 
-    def __init__( self, liste, value, source_ref ):
+    def __init__(self, liste, value, source_ref):
         assert liste is not None
         assert value is not None
 
@@ -46,18 +46,18 @@ class ExpressionListOperationAppend( ExpressionChildrenHavingBase ):
     getList = ExpressionChildrenHavingBase.childGetter( "list" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         constraint_collection.removeKnowledge( self.getList() )
 
         return self, None, None
 
 
-class ExpressionSetOperationAdd( ExpressionChildrenHavingBase ):
+class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SET_OPERATION_ADD"
 
     named_children = ( "set", "value" )
 
-    def __init__( self, sete, value, source_ref ):
+    def __init__(self, sete, value, source_ref):
         assert sete is not None
         assert value is not None
 
@@ -73,18 +73,18 @@ class ExpressionSetOperationAdd( ExpressionChildrenHavingBase ):
     getSet = ExpressionChildrenHavingBase.childGetter( "set" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         constraint_collection.removeKnowledge( self.getSet() )
 
         return self, None, None
 
 
-class ExpressionDictOperationSet( ExpressionChildrenHavingBase ):
+class ExpressionDictOperationSet(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_SET"
 
     named_children = ( "dict", "key", "value" )
 
-    def __init__( self, dicte, key, value, source_ref ):
+    def __init__(self, dicte, key, value, source_ref):
         assert dicte is not None
         assert key is not None
         assert value is not None
@@ -103,18 +103,18 @@ class ExpressionDictOperationSet( ExpressionChildrenHavingBase ):
     getKey = ExpressionChildrenHavingBase.childGetter( "key" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         constraint_collection.removeKnowledge( self.getDict() )
 
         return self, None, None
 
 
-class StatementDictOperationRemove( StatementChildrenHavingBase ):
+class StatementDictOperationRemove(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 
     named_children = ( "dict", "key" )
 
-    def __init__( self, dicte, key, source_ref ):
+    def __init__(self, dicte, key, source_ref):
         assert dicte is not None
         assert key is not None
 
@@ -130,7 +130,7 @@ class StatementDictOperationRemove( StatementChildrenHavingBase ):
     getDict = StatementChildrenHavingBase.childGetter( "dict" )
     getKey = StatementChildrenHavingBase.childGetter( "key" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getDict() )
         dicte = self.getDict()
 
@@ -169,12 +169,12 @@ Dictionary remove already raises implicitely building key."""
 
 
 
-class ExpressionDictOperationGet( ExpressionChildrenHavingBase ):
+class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_GET"
 
     named_children = ( "dict", "key" )
 
-    def __init__( self, dicte, key, source_ref ):
+    def __init__(self, dicte, key, source_ref):
         assert dicte is not None
         assert key is not None
 
@@ -190,7 +190,7 @@ class ExpressionDictOperationGet( ExpressionChildrenHavingBase ):
     getDict = ExpressionChildrenHavingBase.childGetter( "dict" )
     getKey = ExpressionChildrenHavingBase.childGetter( "key" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         return self, None, None

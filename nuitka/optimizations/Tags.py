@@ -17,9 +17,9 @@
 #
 """ Tags and set of it.
 
-Used by optimization to keep track of the current state of optimization, these tags
-trigger the execution of optimization steps, which in turn may emit these tags to execute
-other steps.
+Used by optimization to keep track of the current state of optimization, these
+tags trigger the execution of optimization steps, which in turn may emit these
+tags to execute other steps.
 
 """
 
@@ -56,6 +56,7 @@ allowed_tags = (
 
 
 class TagSet(set):
+    # false alarm, pylint: disable=R0924
     def onSignal(self, signal):
         if type(signal) is str:
             signal = signal.split()

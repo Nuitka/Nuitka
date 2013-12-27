@@ -48,20 +48,20 @@ warned_about = set()
 # Directory where the main script lives. Should attempt to import from there.
 main_path = None
 
-def setMainScriptDirectory( main_dir ):
+def setMainScriptDirectory(main_dir):
     # We need to set this from the outside, pylint: disable=W0603
 
     global main_path
     main_path = main_dir
 
-def isPackageDir( dirname ):
+def isPackageDir(dirname):
     return Utils.isDir( dirname ) and \
            (
                Utils.python_version >= 330 or
                Utils.isFile( Utils.joinpath( dirname, "__init__.py" ) )
            )
 
-def findModule( source_ref, module_name, parent_package, level, warn ):
+def findModule(source_ref, module_name, parent_package, level, warn):
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
 
@@ -134,7 +134,7 @@ def findModule( source_ref, module_name, parent_package, level, warn ):
 
     return module_package_name, module_name, module_filename
 
-def _impFindModuleWrapper( module_name, search_path ):
+def _impFindModuleWrapper(module_name, search_path):
     """ This wraps imp.find_module because Python3.3 bugs.
 
     Python3.3 accepts imports on directory names in PYTHONPATH, but does not
@@ -174,7 +174,7 @@ def _impFindModuleWrapper( module_name, search_path ):
     return module_filename
 
 
-def _findModuleInPath( module_name, package_name ):
+def _findModuleInPath(module_name, package_name):
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
 
@@ -192,7 +192,7 @@ def _findModuleInPath( module_name, package_name ):
             module_name = package_name.split( "." )[ -1 ]
             package_name = ".".join( package_name.split( "." )[:-1] )
 
-        def getPackageDirname( element ):
+        def getPackageDirname(element):
             return Utils.joinpath( element, *package_name.split( "." ) )
 
         ext_path = [
@@ -302,7 +302,7 @@ def _findModule(module_name, parent_package):
 
         return module_filename, package
 
-def _isWhiteListedNotExistingModule( module_name ):
+def _isWhiteListedNotExistingModule(module_name):
     white_list = (
         "mac", "nt", "os2", "posix", "_emx_link", "riscos", "ce", "riscospath",
         "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256",
@@ -430,7 +430,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
     return module_name in white_list
 
-def isStandardLibraryPath( path ):
+def isStandardLibraryPath(path):
     path = Utils.normcase( path )
 
     # In virtual-env, the "site.py" lives in a place that suggests it is not in

@@ -30,7 +30,7 @@ from .Helpers import (
     buildNode
 )
 
-def buildCallNode( provider, node, source_ref ):
+def buildCallNode(provider, node, source_ref):
     positional_args = buildNodeList( provider, node.args, source_ref )
 
     # Only the values of keyword pairs have a real source ref, and those only

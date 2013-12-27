@@ -36,20 +36,20 @@ def b():
 from collections import OrderedDict
 
 def m():
-   class M( type ):
+   class M(type):
       # @classmethod
-      def __new__( metacls, class_name, bases, attrs, **over ):
+      def __new__(metacls, class_name, bases, attrs, **over):
          print( "Metaclass M.__new__ metacls", metacls, "name", class_name, "bases", bases, "dict", attrs, "extra class defs", over )
 
          return type.__new__( metacls, class_name, bases, attrs )
 
-      def __init__( self, name, bases, attrs, **over ):
+      def __init__(self, name, bases, attrs, **over):
          print( "Metaclass M.__init__", name, bases, attrs, over )
          super().__init__( name, bases, attrs )
 
       # TODO: Removing this
       # @classmethod
-      def __prepare__( name, bases, **over ):
+      def __prepare__(name, bases, **over):
          print( "Metaclass M.__prepare__", name, bases, over )
          return OrderedDict()
 
@@ -68,7 +68,7 @@ def e():
    return 2
 
 
-class C1( a(), b(), other = d(), metaclass = m(), yet_other = e() ):
+class C1(a(), b(), other = d(), metaclass = m(), yet_other = e()):
    pass
 
 print( type( C1.__dict__ ) )

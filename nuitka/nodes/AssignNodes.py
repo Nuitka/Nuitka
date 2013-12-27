@@ -29,12 +29,12 @@ from .NodeBases import StatementChildrenHavingBase
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
-class StatementAssignmentVariable( StatementChildrenHavingBase ):
+class StatementAssignmentVariable(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
     named_children = ( "source", "variable_ref" )
 
-    def __init__( self, variable_ref, source, source_ref ):
+    def __init__(self, variable_ref, source, source_ref):
         assert variable_ref is not None, source_ref
         assert source is not None, source_ref
 
@@ -54,10 +54,10 @@ class StatementAssignmentVariable( StatementChildrenHavingBase ):
     )
     getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
 
-    def mayRaiseException( self, exception_type ):
+    def mayRaiseException(self, exception_type):
         return self.getAssignSource().mayRaiseException( exception_type )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # Assignment source may re-compute here:
         constraint_collection.onExpression( self.getAssignSource() )
 
@@ -69,12 +69,12 @@ class StatementAssignmentVariable( StatementChildrenHavingBase ):
         return constraint_collection._onStatementAssignmentVariable( self )
 
 
-class StatementAssignmentAttribute( StatementChildrenHavingBase ):
+class StatementAssignmentAttribute(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
     named_children = ( "source", "expression" )
 
-    def __init__( self, expression, attribute_name, source, source_ref ):
+    def __init__(self, expression, attribute_name, source, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -86,22 +86,22 @@ class StatementAssignmentAttribute( StatementChildrenHavingBase ):
 
         self.attribute_name = attribute_name
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "attribute" : self.attribute_name }
 
-    def getDetail( self ):
+    def getDetail(self):
         return "to attribute %s" % self.attribute_name
 
-    def getAttributeName( self ):
+    def getAttributeName(self):
         return self.attribute_name
 
-    def setAttributeName( self, attribute_name ):
+    def setAttributeName(self, attribute_name):
         self.attribute_name = attribute_name
 
     getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
     getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getAssignSource() )
         source = self.getAssignSource()
 
@@ -139,12 +139,12 @@ Attribute assignment raises exception in attribute source, removed assignment"""
         return self, None, None
 
 
-class StatementAssignmentSubscript( StatementChildrenHavingBase ):
+class StatementAssignmentSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
 
     named_children = ( "source", "expression", "subscript" )
 
-    def __init__( self, expression, subscript, source, source_ref ):
+    def __init__(self, expression, subscript, source, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -159,7 +159,7 @@ class StatementAssignmentSubscript( StatementChildrenHavingBase ):
     getSubscript = StatementChildrenHavingBase.childGetter( "subscript" )
     getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getAssignSource() )
         source = self.getAssignSource()
 
@@ -213,12 +213,12 @@ assignment."""
         return self, None, None
 
 
-class StatementAssignmentSlice( StatementChildrenHavingBase ):
+class StatementAssignmentSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SLICE"
 
     named_children = ( "source", "expression", "lower", "upper" )
 
-    def __init__( self, expression, lower, upper, source, source_ref ):
+    def __init__(self, expression, lower, upper, source, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -235,7 +235,7 @@ class StatementAssignmentSlice( StatementChildrenHavingBase ):
     getUpper = StatementChildrenHavingBase.childGetter( "upper" )
     getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getAssignSource() )
         source = self.getAssignSource()
 
@@ -308,12 +308,12 @@ assignment."""
         return self, None, None
 
 
-class StatementDelVariable( StatementChildrenHavingBase ):
+class StatementDelVariable(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_VARIABLE"
 
     named_children = ( "variable_ref", )
 
-    def __init__( self, variable_ref, tolerant, source_ref ):
+    def __init__(self, variable_ref, tolerant, source_ref):
         assert variable_ref is not None
         assert variable_ref.isTargetVariableRef()
         assert tolerant is True or tolerant is False
@@ -328,7 +328,7 @@ class StatementDelVariable( StatementChildrenHavingBase ):
 
         self.tolerant = tolerant
 
-    def getDetail( self ):
+    def getDetail(self):
         variable_ref = self.getTargetVariableRef()
         variable = variable_ref.getVariable()
 
@@ -337,17 +337,17 @@ class StatementDelVariable( StatementChildrenHavingBase ):
         else:
             return "to variable %s" % self.getTargetVariableRef()
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "tolerant" : self.tolerant }
 
     # TODO: Value propagation needs to make a difference based on this.
-    def isTolerant( self ):
+    def isTolerant(self):
         return self.tolerant
 
     getTargetVariableRef = StatementChildrenHavingBase.childGetter(
         "variable_ref"
     )
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         variable = self.getTargetVariableRef().getVariable()
 
         trace = constraint_collection.getVariableCurrentTrace( variable )
@@ -368,22 +368,22 @@ class StatementDelVariable( StatementChildrenHavingBase ):
 
         return self, None, None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         return True
 
-    def mayRaiseException( self, exception_type ):
+    def mayRaiseException(self, exception_type):
         if self.tolerant:
             return False
         else:
             return True
 
 
-class StatementDelAttribute( StatementChildrenHavingBase ):
+class StatementDelAttribute(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
     named_children = ( "expression", )
 
-    def __init__( self, expression, attribute_name, source_ref ):
+    def __init__(self, expression, attribute_name, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -394,21 +394,21 @@ class StatementDelAttribute( StatementChildrenHavingBase ):
 
         self.attribute_name = attribute_name
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "attribute" : self.attribute_name }
 
-    def getDetail( self ):
+    def getDetail(self):
         return "to attribute %s" % self.attribute_name
 
-    def getAttributeName( self ):
+    def getAttributeName(self):
         return self.attribute_name
 
-    def setAttributeName( self, attribute_name ):
+    def setAttributeName(self, attribute_name):
         self.attribute_name = attribute_name
 
     getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getLookupSource() )
         lookup_source = self.getLookupSource()
 
@@ -423,12 +423,12 @@ class StatementDelAttribute( StatementChildrenHavingBase ):
         return self, None, None
 
 
-class StatementDelSubscript( StatementChildrenHavingBase ):
+class StatementDelSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SUBSCRIPT"
 
     named_children = ( "expression", "subscript" )
 
-    def __init__( self, expression, subscript, source_ref ):
+    def __init__(self, expression, subscript, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -441,7 +441,7 @@ class StatementDelSubscript( StatementChildrenHavingBase ):
     getSubscribed = StatementChildrenHavingBase.childGetter( "expression" )
     getSubscript = StatementChildrenHavingBase.childGetter( "subscript" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getSubscribed() )
         subscribed = self.getSubscribed()
 
@@ -475,12 +475,12 @@ Subscript del raises exception in subscribt value, removed del"""
         return self, None, None
 
 
-class StatementDelSlice( StatementChildrenHavingBase ):
+class StatementDelSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SLICE"
 
     named_children = ( "expression", "lower", "upper" )
 
-    def __init__( self, expression, lower, upper, source_ref ):
+    def __init__(self, expression, lower, upper, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -495,7 +495,7 @@ class StatementDelSlice( StatementChildrenHavingBase ):
     getLower = StatementChildrenHavingBase.childGetter( "lower" )
     getUpper = StatementChildrenHavingBase.childGetter( "upper" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getLookupSource() )
         lookup_source = self.getLookupSource()
 

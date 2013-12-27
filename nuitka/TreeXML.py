@@ -28,10 +28,10 @@ try:
 except ImportError:
     lxml = None
 
-def toString( xml ):
+def toString(xml):
     return lxml.etree.tostring( xml, pretty_print = True )
 
-def dump( xml  ):
+def dump(xml ):
     value = toString( xml ).rstrip()
 
     if Utils.python_version >= 300:

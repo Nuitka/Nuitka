@@ -24,12 +24,12 @@ value, if no return is done.
 from .NodeBases import StatementChildrenHavingBase
 
 
-class StatementReturn( StatementChildrenHavingBase ):
+class StatementReturn(StatementChildrenHavingBase):
     kind = "STATEMENT_RETURN"
 
     named_children = ( "expression", )
 
-    def __init__( self, expression, source_ref ):
+    def __init__(self, expression, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -42,21 +42,21 @@ class StatementReturn( StatementChildrenHavingBase ):
 
     getExpression = StatementChildrenHavingBase.childGetter( "expression" )
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         return True
 
-    def mayRaiseException( self, exception_type ):
+    def mayRaiseException(self, exception_type):
         return self.getExpression().mayRaiseException( exception_type )
 
-    def setExceptionDriven( self, value ):
+    def setExceptionDriven(self, value):
         self.exception_driven = value
 
-    def isExceptionDriven( self ):
+    def isExceptionDriven(self):
         assert self.exception_driven is not None
 
         return self.exception_driven
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getExpression() )
         expression = self.getExpression()
 
@@ -73,10 +73,10 @@ class StatementReturn( StatementChildrenHavingBase ):
         return self, None, None
 
 
-class StatementGeneratorReturn( StatementReturn ):
+class StatementGeneratorReturn(StatementReturn):
     kind = "STATEMENT_GENERATOR_RETURN"
 
-    def __init__( self, expression, source_ref ):
+    def __init__(self, expression, source_ref):
         StatementReturn.__init__(
             self,
             expression = expression,

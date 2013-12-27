@@ -59,7 +59,7 @@ print "Testing locals():"
 print someFunctionWritingLocals()
 print someFunctionWritingLocalsContainingExec()
 
-def displayDict( d ):
+def displayDict(d):
     d = dict(d)
     if "__loader__" in d:
         d[ "__loader__" ] = "<loader removed>"
@@ -102,7 +102,7 @@ def someFunctionUsingDir():
 someFunctionUsingDir()
 
 print "Making a new type, with type() and 3 args:",
-new_class = type( "Name", (object, ), {} )
+new_class = type("Name", (object, ), {})
 print new_class, new_class()
 
 print "None has type", type(None)

@@ -149,7 +149,7 @@ separator.
 
    class SomeClass:
 
-      def doSomething( some_parameter ):
+      def doSomething(some_parameter):
          some_var = ( "foo", "bar" )
 
 Base classes that are abstract end in ``Base``, so that a meta class can use
@@ -250,12 +250,12 @@ Look at this code examples from Python:
 .. code-block:: python
 
    class A:
-       def getX( self ):
+       def getX(self):
            return 1
        x = property( getX )
 
-   class B( A ):
-      def getX( self ):
+   class B(A):
+      def getX(self):
          return 2
 
 
@@ -728,10 +728,10 @@ changed.
   .. code-block:: python
 
      class X:
-        def f1( self ):
+        def f1(self):
            print( locals() )
 
-        def f2( self ):
+        def f2(self):
            print( locals() )
            super
 
@@ -1320,7 +1320,7 @@ re-formulation:
    # in module "SomeModule"
    # ...
 
-   class SomeClass( SomeBase, AnotherBase )
+   class SomeClass(SomeBase, AnotherBase)
        """ This is the class documentation. """
 
        some_member = 3
@@ -1343,7 +1343,7 @@ re-formulation:
        # used will be writable to.
        exec ""
 
-   SomeClass = make_class( "SomeClass", (SomeBase, AnotherBase), _makeSomeClass() )
+   SomeClass = make_class("SomeClass", (SomeBase, AnotherBase), _makeSomeClass())
 
 That is roughly the same, except that ``_makeSomeClass`` is *not* visible to its
 child functions when it comes to closure taking, which we cannot express in
@@ -1371,7 +1371,7 @@ not sure, what ``__prepare__`` is allowed to return.
    # in module "SomeModule"
    # ...
 
-   class SomeClass( SomeBase, AnotherBase, metaclass = SomeMetaClass )
+   class SomeClass(SomeBase, AnotherBase, metaclass = SomeMetaClass)
        """ This is the class documentation. """
 
        some_member = 3
@@ -1384,9 +1384,9 @@ not sure, what ``__prepare__`` is allowed to return.
    # Keyword arguments go next, __metaclass__ is just one of them. In principle
    # we need to forward the others as well, but this is ignored for the sake of
    # brevity.
-   tmp_metaclass = select_metaclass( tmp_bases, SomeMetaClass  )
+   tmp_metaclass = select_metaclass(tmp_bases, SomeMetaClass )
 
-   tmp_prepared = tmp_metaclass.__prepare__( "SomeClass", tmp_bases )
+   tmp_prepared = tmp_metaclass.__prepare__("SomeClass", tmp_bases)
 
    # The function that creates the class dictionary. Receives temporary variables
    # to work with.
@@ -1405,7 +1405,7 @@ not sure, what ``__prepare__`` is allowed to return.
 
        # Create the class, share the potential closure variable "__class__"
        # with others.
-       __class__ = tmp_metaclass( "SomeClass", tmp_bases, locals() )
+       __class__ = tmp_metaclass("SomeClass", tmp_bases, locals())
 
        return __class__
 
@@ -1426,7 +1426,7 @@ nested) for loops:
 
 .. code-block:: python
 
-    def _gen_helper( __iterator ):
+    def _gen_helper(__iterator):
        for x in __iterator:
           if cond():
               yield x*2
@@ -1446,7 +1446,7 @@ ever exists.
 
 .. code-block:: python
 
-    def _listcontr_helper( __iterator ):
+    def _listcontr_helper(__iterator):
        result = []
 
        for x in __iterator:
@@ -1578,7 +1578,7 @@ difficult stuff. Our example becomes this:
 
 .. code-block:: python
 
-   def _complex_call( called, pos, kw, star_list_arg, star_dict_arg ):
+   def _complex_call(called, pos, kw, star_list_arg, star_dict_arg):
        # Raises errors in case of duplicate arguments or tmp_star_dict not
        # being a mapping.
        tmp_merged_dict = merge_star_dict_arguments( called, tmp_named, mapping_check( called, tmp_star_dict ) )
@@ -1955,7 +1955,7 @@ propagate forward, how to handle this:
 
 .. code-block:: python
 
-   def my_append( a, b ):
+   def my_append(a, b):
       a.append( b )
 
       return a
@@ -2566,7 +2566,7 @@ The fourth goal is to understand the following:
 
 .. code-block:: python
 
-   def f( cond ):
+   def f(cond):
        y = 3
 
        if cond:

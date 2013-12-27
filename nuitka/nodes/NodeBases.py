@@ -36,10 +36,10 @@ from nuitka.__past__ import iterItems
 
 lxml = TreeXML.lxml
 
-class NodeCheckMetaClass( type ):
+class NodeCheckMetaClass(type):
     kinds = set()
 
-    def __new__( mcs, name, bases, dictionary ):
+    def __new__(mcs, name, bases, dictionary):
         assert len( bases ) == len( set( bases ) )
 
         # Uncomment this for debug view of class tags.
@@ -47,7 +47,7 @@ class NodeCheckMetaClass( type ):
 
         return type.__new__( mcs, name, bases, dictionary )
 
-    def __init__( mcs, name, bases, dictionary ):
+    def __init__(mcs, name, bases, dictionary):
         if not name.endswith( "Base" ):
             assert ( "kind" in dictionary ), name
             kind = dictionary[ "kind" ]
@@ -57,7 +57,7 @@ class NodeCheckMetaClass( type ):
 
             NodeCheckMetaClass.kinds.add( kind )
 
-            def convert( value ):
+            def convert(value):
                 if value in ( "AND", "OR", "NOT" ):
                     return value
                 else:
@@ -71,7 +71,7 @@ class NodeCheckMetaClass( type ):
             # Automatically add checker methods for everything to the common base class
             checker_method = "is" + kind_to_name_part
 
-            def checkKind( self ):
+            def checkKind(self):
                 return self.kind == kind
 
             if not hasattr( NodeBase, checker_method ):
@@ -86,13 +86,13 @@ class NodeCheckMetaClass( type ):
 # used and doesn't require making a choice.
 NodeMetaClassBase = NodeCheckMetaClass( "NodeMetaClassBase", (object, ), {} )
 
-class NodeBase( NodeMetaClassBase ):
+class NodeBase(NodeMetaClassBase):
     kind = None
 
     # Must be overloaded by expressions.
     value_friend_maker = None
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         assert source_ref is not None
         assert source_ref.line is not None
 
@@ -100,11 +100,11 @@ class NodeBase( NodeMetaClassBase ):
 
         self.source_ref = source_ref
 
-    def isNode( self ):
+    def isNode(self):
         # Virtual method, pylint: disable=R0201
         return True
 
-    def __repr__( self ):
+    def __repr__(self):
         # This is to avoid crashes, because of bugs in detail.
         # pylint: disable=W0702
         try:
@@ -117,21 +117,21 @@ class NodeBase( NodeMetaClassBase ):
         else:
             return "<Node %s %s>" % ( self.getDescription(), detail )
 
-    def getDescription( self ):
+    def getDescription(self):
         """ Description of the node, intented for use in __repr__ and
             graphical display.
 
         """
         return "%s at %s" % ( self.kind, self.source_ref.getAsString() )
 
-    def getDetails( self ):
+    def getDetails(self):
         """ Details of the node, intended for use in __repr__ and dumps.
 
         """
         # Virtual method, pylint: disable=R0201
         return {}
 
-    def getDetail( self ):
+    def getDetail(self):
         """ Details of the node, intended for use in __repr__ and graphical
             display.
 
@@ -139,7 +139,7 @@ class NodeBase( NodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201
         return str( self.getDetails() )[1:-1]
 
-    def getParent( self ):
+    def getParent(self):
         """ Parent of the node. Every node except modules have to have a parent.
 
         """
@@ -149,7 +149,7 @@ class NodeBase( NodeMetaClassBase ):
 
         return self.parent
 
-    def getParents( self ):
+    def getParents(self):
         """ Parents of the node. Up to module level.
 
         """
@@ -169,7 +169,7 @@ class NodeBase( NodeMetaClassBase ):
         result.reverse()
         return result
 
-    def getParentFunction( self ):
+    def getParentFunction(self):
         """ Return the parent that is a function.
 
         """
@@ -181,7 +181,7 @@ class NodeBase( NodeMetaClassBase ):
 
         return parent
 
-    def getParentModule( self ):
+    def getParentModule(self):
         """ Return the parent that is module.
 
         """
@@ -197,12 +197,12 @@ class NodeBase( NodeMetaClassBase ):
 
         return parent
 
-    def isParentVariableProvider( self ):
+    def isParentVariableProvider(self):
         # Check if it's a closure giver, in which cases it can provide variables,
         # pylint: disable=E1101
         return isinstance( self, ClosureGiverNodeBase )
 
-    def getParentVariableProvider( self ):
+    def getParentVariableProvider(self):
         parent = self.getParent()
 
         while not parent.isParentVariableProvider():
@@ -210,7 +210,7 @@ class NodeBase( NodeMetaClassBase ):
 
         return parent
 
-    def getParentStatementsFrame( self ):
+    def getParentStatementsFrame(self):
         current = self.getParent()
 
         while True:
@@ -223,10 +223,10 @@ class NodeBase( NodeMetaClassBase ):
             current = current.getParent()
 
 
-    def getSourceReference( self ):
+    def getSourceReference(self):
         return self.source_ref
 
-    def asXml( self ):
+    def asXml(self):
         result = lxml.etree.Element(
             "node",
             kind = self.__class__.__name__,
@@ -260,7 +260,7 @@ class NodeBase( NodeMetaClassBase ):
 
         return result
 
-    def dump( self, level = 0 ):
+    def dump(self, level = 0):
         Tracing.printIndented( level, self )
         Tracing.printSeparator( level )
 
@@ -269,44 +269,44 @@ class NodeBase( NodeMetaClassBase ):
 
         Tracing.printSeparator( level )
 
-    def isExpression( self ):
+    def isExpression(self):
         return self.kind.startswith( "EXPRESSION_" )
 
-    def isStatement( self ):
+    def isStatement(self):
         return self.kind.startswith( "STATEMENT_" )
 
-    def isExpressionBuiltin( self ):
+    def isExpressionBuiltin(self):
         return self.kind.startswith( "EXPRESSION_BUILTIN_" )
 
-    def isOperation( self ):
+    def isOperation(self):
         return self.kind.startswith( "EXPRESSION_OPERATION_" )
 
-    def isExpressionOperationBool2( self ):
+    def isExpressionOperationBool2(self):
         return self.kind.startswith( "EXPRESSION_BOOL_" )
 
-    def isExpressionMakeSequence( self ):
+    def isExpressionMakeSequence(self):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def isIteratorMaking( self ):
+    def isIteratorMaking(self):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def isNumberConstant( self ):
+    def isNumberConstant(self):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def isExpressionCall( self ):
+    def isExpressionCall(self):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def visit( self, context, visitor ):
+    def visit(self, context, visitor):
         visitor( self )
 
         for visitable in self.getVisitableNodes():
             visitable.visit( context, visitor )
 
-    def getVisitableNodes( self ):
+    def getVisitableNodes(self):
         # Virtual method, pylint: disable=R0201,W0613
         return ()
 
@@ -327,17 +327,17 @@ class NodeBase( NodeMetaClassBase ):
         if Options.isExperimental():
             self.parent = None
 
-    def getName( self ):
+    def getName(self):
         # Virtual method, pylint: disable=R0201,W0613
         return None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         """ Unless we are told otherwise, everything may have a side effect. """
         # Virtual method, pylint: disable=R0201,W0613
 
         return True
 
-    def isOrderRelevant( self ):
+    def isOrderRelevant(self):
         return self.mayHaveSideEffects()
 
     def mayHaveSideEffectsBool(self):
@@ -346,55 +346,55 @@ class NodeBase( NodeMetaClassBase ):
 
         return True
 
-    def extractSideEffects( self ):
+    def extractSideEffects(self):
         """ Unless defined otherwise, the expression is the side effect. """
         # Virtual method, pylint: disable=R0201,W0613
 
         return ( self, )
 
-    def mayRaiseException( self, exception_type ):
+    def mayRaiseException(self, exception_type):
         """ Unless we are told otherwise, everything may raise everything. """
         # Virtual method, pylint: disable=R0201,W0613
 
         return True
 
-    def willRaiseException( self, exception_type ):
+    def willRaiseException(self, exception_type):
         """ Unless we are told otherwise, nothing may raise anything. """
         # Virtual method, pylint: disable=R0201,W0613
 
         return False
 
 
-    def needsLineNumber( self ):
+    def needsLineNumber(self):
         return self.mayRaiseException( BaseException )
 
-    def isIndexable( self ):
+    def isIndexable(self):
         """ Unless we are told otherwise, it's not indexable. """
         # Virtual method, pylint: disable=R0201,W0613
 
         return False
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         """ Is the node aborting, control flow doesn't continue after this node.  """
         # Virtual method, pylint: disable=R0201
         assert self.isStatement(), self.kind
 
         return False
 
-    def needsLocalsDict( self ):
+    def needsLocalsDict(self):
         """ Node requires a locals dictionary by provider. """
 
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def getIntegerValue( self ):
+    def getIntegerValue(self):
         """ Node as integer value, if possible."""
         # Virtual method, pylint: disable=R0201,W0613
         return None
 
 
-class CodeNodeBase( NodeBase ):
-    def __init__( self, name, code_prefix, source_ref ):
+class CodeNodeBase(NodeBase):
+    def __init__(self, name, code_prefix, source_ref):
         assert name is not None
         assert " " not in name, name
         assert "<" not in name, name
@@ -410,10 +410,10 @@ class CodeNodeBase( NodeBase ):
         # The "UID" values of children kinds are kept here.
         self.uids = {}
 
-    def getName( self ):
+    def getName(self):
         return self.name
 
-    def getFullName( self ):
+    def getFullName(self):
         result = self.getName()
 
         current = self
@@ -433,7 +433,7 @@ class CodeNodeBase( NodeBase ):
 
         return result
 
-    def getCodeName( self ):
+    def getCodeName(self):
         if self.code_name is None:
             provider = self.getParentVariableProvider()
             parent_name = provider.getCodeName()
@@ -451,7 +451,7 @@ class CodeNodeBase( NodeBase ):
 
         return self.code_name
 
-    def getChildUID( self, node ):
+    def getChildUID(self, node):
         if node.kind not in self.uids:
             self.uids[ node.kind ] = 0
 
@@ -528,13 +528,13 @@ class ChildrenHavingMixin:
             else:
                 old_value.discard()
 
-    def getChild( self, name ):
+    def getChild(self, name):
         # Only accept legal child names
         assert name in self.child_values, name
 
         return self.child_values[name]
 
-    def hasChild( self, name ):
+    def hasChild(self, name):
         return name in self.child_values
 
     @staticmethod
@@ -551,7 +551,7 @@ class ChildrenHavingMixin:
 
         return setter
 
-    def getVisitableNodes( self ):
+    def getVisitableNodes(self):
         result = []
 
         for name in self.named_children:
@@ -571,7 +571,7 @@ class ChildrenHavingMixin:
 
         return tuple( result )
 
-    def getVisitableNodesNamed( self ):
+    def getVisitableNodesNamed(self):
         result = []
 
         for name in self.named_children:
@@ -633,7 +633,7 @@ class ChildrenHavingMixin:
 
         return key
 
-    def makeCloneAt( self, source_ref ):
+    def makeCloneAt(self, source_ref):
         values = {}
 
         for key, value in self.child_values.items():
@@ -667,9 +667,9 @@ class ChildrenHavingMixin:
             raise
 
 
-class ClosureGiverNodeBase( CodeNodeBase ):
+class ClosureGiverNodeBase(CodeNodeBase):
     """ Mixin for nodes that provide variables for closure takers. """
-    def __init__( self, name, code_prefix, source_ref ):
+    def __init__(self, name, code_prefix, source_ref):
         CodeNodeBase.__init__(
             self,
             name        = name,
@@ -685,10 +685,10 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
         self.temp_scopes = OrderedDict()
 
-    def hasProvidedVariable( self, variable_name ):
+    def hasProvidedVariable(self, variable_name):
         return variable_name in self.providing
 
-    def getProvidedVariable( self, variable_name ):
+    def getProvidedVariable(self, variable_name):
         if variable_name not in self.providing:
             self.providing[ variable_name ] = self.createProvidedVariable(
                 variable_name = variable_name
@@ -696,25 +696,25 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
         return self.providing[ variable_name ]
 
-    def createProvidedVariable( self, variable_name ):
+    def createProvidedVariable(self, variable_name):
         # Virtual method, pylint: disable=R0201,W0613
         assert type( variable_name ) is str
 
         return None
 
-    def registerProvidedVariables( self, variables ):
+    def registerProvidedVariables(self, variables):
         for variable in variables:
             self.registerProvidedVariable( variable )
 
-    def registerProvidedVariable( self, variable ):
+    def registerProvidedVariable(self, variable):
         assert variable is not None
 
         self.providing[ variable.getName() ] = variable
 
-    def getProvidedVariables( self ):
+    def getProvidedVariables(self):
         return self.providing.values()
 
-    def allocateTempKeeperVariable( self ):
+    def allocateTempKeeperVariable(self):
         name = "keeper_%d" % len( self.keeper_variables )
 
         result = Variables.TempKeeperVariable(
@@ -726,13 +726,13 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
         return result
 
-    def getTempKeeperVariables( self ):
+    def getTempKeeperVariables(self):
         return self.keeper_variables
 
-    def removeTempKeeperVariable( self, variable ):
+    def removeTempKeeperVariable(self, variable):
         self.keeper_variables.discard( variable )
 
-    def allocateTempScope( self, name, allow_closure = False ):
+    def allocateTempScope(self, name, allow_closure = False):
         self.temp_scopes[ name ] = self.temp_scopes.get( name, 0 ) + 1
 
         # TODO: Instead of using overly long code name, could just visit parents
@@ -746,7 +746,7 @@ class ClosureGiverNodeBase( CodeNodeBase ):
         else:
             return "%s_%d" % ( name, self.temp_scopes[ name ] )
 
-    def allocateTempVariable( self, temp_scope, name ):
+    def allocateTempVariable(self, temp_scope, name):
         if temp_scope is not None:
             full_name = "%s__%s" % ( temp_scope, name )
         else:
@@ -765,7 +765,7 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
         return result
 
-    def getTempVariable( self, temp_scope, name ):
+    def getTempVariable(self, temp_scope, name):
         if temp_scope is not None:
             full_name = "%s__%s" % ( temp_scope, name )
         else:
@@ -773,15 +773,15 @@ class ClosureGiverNodeBase( CodeNodeBase ):
 
         return self.temp_variables[ full_name ]
 
-    def getTempVariables( self ):
+    def getTempVariables(self):
         return tuple( self.temp_variables.values() )
 
-    def removeTempVariable( self, variable ):
+    def removeTempVariable(self, variable):
         del self.temp_variables[ variable.getName() ]
 
 
-class ParameterHavingNodeBase( ClosureGiverNodeBase ):
-    def __init__( self, name, code_prefix, parameters, source_ref ):
+class ParameterHavingNodeBase(ClosureGiverNodeBase):
+    def __init__(self, name, code_prefix, parameters, source_ref):
         ClosureGiverNodeBase.__init__(
             self,
             name        = name,
@@ -796,14 +796,14 @@ class ParameterHavingNodeBase( ClosureGiverNodeBase ):
             variables = self.parameters.getVariables()
         )
 
-    def getParameters( self ):
+    def getParameters(self):
         return self.parameters
 
 
 class ClosureTakerMixin:
     """ Mixin for nodes that accept variables from closure givers. """
 
-    def __init__( self, provider, early_closure ):
+    def __init__(self, provider, early_closure):
         assert provider.isParentVariableProvider(), provider
 
         self.provider = provider
@@ -813,10 +813,10 @@ class ClosureTakerMixin:
 
         self.temp_variables = set()
 
-    def getParentVariableProvider( self ):
+    def getParentVariableProvider(self):
         return self.provider
 
-    def getClosureVariable( self, variable_name ):
+    def getClosureVariable(self, variable_name):
         result = self.provider.getVariableForClosure(
             variable_name = variable_name
         )
@@ -833,14 +833,14 @@ class ClosureTakerMixin:
 
         return self.addClosureVariable( result )
 
-    def addClosureVariable( self, variable ):
+    def addClosureVariable(self, variable):
         variable = variable.makeReference( self )
 
         self.taken.add( variable )
 
         return variable
 
-    def getClosureVariables( self ):
+    def getClosureVariables(self):
         return tuple(
             sorted(
                 [
@@ -853,21 +853,21 @@ class ClosureTakerMixin:
             )
         )
 
-    def hasTakenVariable( self, variable_name ):
+    def hasTakenVariable(self, variable_name):
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return True
         else:
             return False
 
-    def getTakenVariable( self, variable_name ):
+    def getTakenVariable(self, variable_name):
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return variable
         else:
             return None
 
-    def isEarlyClosure( self ):
+    def isEarlyClosure(self):
         """ Early closure taking means immediate binding of references.
 
         Normally it's good to lookup name references immediately, but not for
@@ -881,7 +881,7 @@ class ClosureTakerMixin:
 
 
 class ExpressionMixin:
-    def isCompileTimeConstant( self ):
+    def isCompileTimeConstant(self):
         """ Has a value that we can use at compile time.
 
             Yes or no. If it has such a value, simulations can be applied at
@@ -891,12 +891,12 @@ class ExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return False
 
-    def getCompileTimeConstant( self ):
+    def getCompileTimeConstant(self):
         assert self.isCompileTimeConstant(), self
 
         assert False
 
-    def getTruthValue( self ):
+    def getTruthValue(self):
         """ Return known truth value. The "None" value indicates unknown. """
 
         if self.isCompileTimeConstant():
@@ -965,11 +965,11 @@ class ExpressionMixin:
 
         return None
 
-    def onRelease( self, constraint_collection ):
+    def onRelease(self, constraint_collection):
         # print "onRelease", self
         pass
 
-    def computeExpressionRaw(self,constraint_collection):
+    def computeExpressionRaw(self, constraint_collection):
         """ Compute an expression.
 
             Default behavior is to just visit the child expressions first, and
@@ -1024,7 +1024,7 @@ class ExpressionMixin:
         return iter_node, None, None
 
     def computeExpressionOperationNot(self, not_node, constraint_collection):
-        constraint_collection.removeKnowledge( not_node )
+        constraint_collection.removeKnowledge(not_node)
 
         return not_node, None, None
 
@@ -1038,11 +1038,11 @@ class ExpressionMixin:
         pass
 
 
-class CompileTimeConstantExpressionMixin( ExpressionMixin ):
-    def __init__( self ):
+class CompileTimeConstantExpressionMixin(ExpressionMixin):
+    def __init__(self):
         self.computed_attribute = False
 
-    def isCompileTimeConstant( self ):
+    def isCompileTimeConstant(self):
         """ Has a value that we can use at compile time.
 
             Yes or no. If it has such a value, simulations can be applied at
@@ -1053,13 +1053,13 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
 
         return True
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         return False
 
     def mayHaveSideEffectsBool(self):
         return False
 
-    def computeExpressionOperationNot( self, not_node, constraint_collection ):
+    def computeExpressionOperationNot(self, not_node, constraint_collection):
         from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
@@ -1070,7 +1070,7 @@ Compile time constant negation truth value precomputed."""
         )
 
 
-    def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
+    def computeExpressionAttribute(self, lookup_node, attribute_name, constraint_collection):
         if self.computed_attribute:
             return lookup_node, None, None
 
@@ -1093,7 +1093,7 @@ Compile time constant negation truth value precomputed."""
         return lookup_node, None, None
 
 
-    def computeExpressionSubscript( self, lookup_node, subscript, constraint_collection ):
+    def computeExpressionSubscript(self, lookup_node, subscript, constraint_collection):
         from .NodeMakingHelpers import getComputationResult
 
         if subscript.isCompileTimeConstant():
@@ -1105,7 +1105,7 @@ Compile time constant negation truth value precomputed."""
 
         return lookup_node, None, None
 
-    def computeExpressionSlice( self, lookup_node, lower, upper, constraint_collection ):
+    def computeExpressionSlice(self, lookup_node, lower, upper, constraint_collection):
         from .NodeMakingHelpers import getComputationResult
 
         # TODO: Could be happy with predictable index values and not require
@@ -1178,7 +1178,7 @@ class ExpressionSpecBasedComputationMixin(ExpressionMixin):
 
 
 class ExpressionChildrenHavingBase(ChildrenHavingMixin, NodeBase,
-                                   ExpressionMixin ):
+                                   ExpressionMixin):
     def __init__(self, values, source_ref):
         NodeBase.__init__(
             self,
@@ -1191,7 +1191,7 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, NodeBase,
         )
 
 class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
-    def __init__( self, values, source_ref ):
+    def __init__(self, values, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
         ChildrenHavingMixin.__init__(
@@ -1200,8 +1200,8 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
         )
 
 
-class ExpressionBuiltinNoArgBase( NodeBase, ExpressionMixin ):
-    def __init__( self, builtin_function, source_ref ):
+class ExpressionBuiltinNoArgBase(NodeBase, ExpressionMixin):
+    def __init__(self, builtin_function, source_ref):
         NodeBase.__init__(
             self,
             source_ref = source_ref
@@ -1209,7 +1209,7 @@ class ExpressionBuiltinNoArgBase( NodeBase, ExpressionMixin ):
 
         self.builtin_function = builtin_function
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         from .NodeMakingHelpers import getComputationResult
 
         # The lamba is there for make sure that no argument parsing will reach
@@ -1227,7 +1227,7 @@ class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
         "value",
     )
 
-    def __init__( self, value, source_ref ):
+    def __init__(self, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values = {

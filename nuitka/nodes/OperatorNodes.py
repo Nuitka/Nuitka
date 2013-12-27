@@ -27,8 +27,8 @@ from nuitka import PythonOperators
 
 import math
 
-class ExpressionOperationBase( ExpressionChildrenHavingBase ):
-    def __init__( self, operator, simulator, values, source_ref ):
+class ExpressionOperationBase(ExpressionChildrenHavingBase):
+    def __init__(self, operator, simulator, values, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = values,
@@ -39,19 +39,19 @@ class ExpressionOperationBase( ExpressionChildrenHavingBase ):
 
         self.simulator = simulator
 
-    def getDetail( self ):
+    def getDetail(self):
         return self.operator
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "operator" : self.operator }
 
-    def getOperator( self ):
+    def getOperator(self):
         return self.operator
 
-    def getSimulator( self ):
+    def getSimulator(self):
         return self.simulator
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         # TODO: Could be true, if the arguments said so
         return None
 
@@ -61,7 +61,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
 
     named_children = ( "left", "right" )
 
-    def __init__( self, operator, left, right, source_ref ):
+    def __init__(self, operator, left, right, source_ref):
         assert left.isExpression() and right.isExpression, ( left, right )
 
         ExpressionOperationBase.__init__(
@@ -75,7 +75,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         operator = self.getOperator()
         operands = self.getOperands()
 
@@ -153,7 +153,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
         else:
             return self, None, None
 
-    def getOperands( self ):
+    def getOperands(self):
         return ( self.getLeft(), self.getRight() )
 
     getLeft = ExpressionChildrenHavingBase.childGetter( "left" )
@@ -165,7 +165,7 @@ class ExpressionOperationUnary(ExpressionOperationBase):
 
     named_children = ( "operand", )
 
-    def __init__( self, operator, operand, source_ref ):
+    def __init__(self, operator, operand, source_ref):
         assert operand.isExpression(), operand
 
         ExpressionOperationBase.__init__(
@@ -178,7 +178,7 @@ class ExpressionOperationUnary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         operator = self.getOperator()
         operand = self.getOperand()
 
@@ -199,14 +199,14 @@ class ExpressionOperationUnary(ExpressionOperationBase):
 
     getOperand = ExpressionChildrenHavingBase.childGetter( "operand" )
 
-    def getOperands( self ):
+    def getOperands(self):
         return ( self.getOperand(), )
 
 
 class ExpressionOperationNOT(ExpressionOperationUnary):
     kind = "EXPRESSION_OPERATION_NOT"
 
-    def __init__( self, operand, source_ref ):
+    def __init__(self, operand, source_ref):
         ExpressionOperationUnary.__init__(
             self,
             operator   = "Not",
@@ -214,7 +214,7 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
             source_ref = source_ref
         )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         operand = self.getOperand()
 
         if operand.willRaiseException( BaseException ):
@@ -229,7 +229,7 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
             constraint_collection = constraint_collection
         )
 
-    def getTruthValue( self ):
+    def getTruthValue(self):
         result = self.getOperand().getTruthValue()
 
         # Need to invert the truth value of operand of course here.
@@ -265,10 +265,10 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
         return False
 
 
-class ExpressionOperationBinaryInplace( ExpressionOperationBinary ):
+class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
 
-    def __init__( self, operator, left, right, source_ref ):
+    def __init__(self, operator, left, right, source_ref):
         operator = "I" + operator
 
         ExpressionOperationBinary.__init__(
@@ -279,7 +279,7 @@ class ExpressionOperationBinaryInplace( ExpressionOperationBinary ):
             source_ref = source_ref
         )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Inplace operation requires extra care to avoid corruption of
         # values.
         return self, None, None

@@ -32,9 +32,9 @@ from . import CodeTemplates
 
 from nuitka import Options, Utils
 
-import sys, os
+import sys
 
-def getMainCode( codes, context ):
+def getMainCode(codes, context):
     python_flags = Options.getPythonFlags()
 
     if context.isEmptyModule():

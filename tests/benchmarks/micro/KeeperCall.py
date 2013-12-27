@@ -20,10 +20,10 @@
 
 import os
 
-def f1( a ):
+def f1(a):
     pass
 
-def f2( a, b, c ):
+def f2(a, b, c):
     pass
 
 def comparer():

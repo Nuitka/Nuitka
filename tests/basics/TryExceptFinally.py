@@ -37,7 +37,7 @@ tryScope1( 1 )
 print "*" * 20
 tryScope1( [ 1 ] )
 
-def tryScope2( x, someExceptionClass ):
+def tryScope2(x, someExceptionClass):
     try:
         x += 1
     except someExceptionClass, e:
@@ -45,7 +45,7 @@ def tryScope2( x, someExceptionClass ):
     else:
         print "No exception occured"
 
-def tryScope3( x ):
+def tryScope3(x):
     if x:
         try:
             x += 1
@@ -68,7 +68,7 @@ tryScope3( [] )
 
 print "*" * 20
 
-def tryScope4( x ):
+def tryScope4(x):
     try:
         x += 1
     except:

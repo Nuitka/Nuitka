@@ -37,7 +37,7 @@ def checkFromFunction():
     frame = sys._getframe(1)
     locals = frame.f_locals
 
-    def displayDict( d ):
+    def displayDict(d):
         d = dict(d)
         if "__loader__" in d:
             d[ "__loader__" ] = "<loader removed>"

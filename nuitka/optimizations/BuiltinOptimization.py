@@ -28,7 +28,7 @@ from nuitka.Utils import python_version
 
 import sys, math
 
-class BuiltinParameterSpec( ParameterSpec ):
+class BuiltinParameterSpec(ParameterSpec):
     def __init__( self, name, arg_names, default_count, list_star_arg = None,
                   dict_star_arg = None ):
         ParameterSpec.__init__(
@@ -43,20 +43,20 @@ class BuiltinParameterSpec( ParameterSpec ):
 
         self.builtin = __builtins__[ name ]
 
-    def __repr__( self ):
+    def __repr__(self):
         return "<BuiltinParameterSpec %s>" % self.name
 
-    def getName( self ):
+    def getName(self):
         return self.name
 
-    def isCompileTimeComputable( self, values ):
+    def isCompileTimeComputable(self, values):
         for value in values:
             if value is not None and not value.isCompileTimeConstant():
                 return False
         else:
             return True
 
-    def simulateCall( self, given_values ):
+    def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really
         # fatal, pylint: disable=W0142,W0703
 
@@ -101,12 +101,12 @@ class BuiltinParameterSpec( ParameterSpec ):
             return self.builtin( **arg_dict )
 
 
-class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
+class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
 
-    def allowsKeywords( self ):
+    def allowsKeywords(self):
         return False
 
-    def simulateCall( self, given_values ):
+    def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really fatal,
         # pylint: disable=W0142,W0703
 
@@ -139,8 +139,8 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
         return self.builtin( *arg_list )
 
 
-class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
-    def __init__( self, exception_name, default_count ):
+class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
+    def __init__(self, exception_name, default_count):
         # TODO: Parameter default_count makes no sense for exceptions probably.
         BuiltinParameterSpec.__init__(
             self,
@@ -150,17 +150,17 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
             list_star_arg = "args"
         )
 
-    def allowsKeywords( self ):
+    def allowsKeywords(self):
         return False
 
-    def getKeywordRefusalText( self ):
+    def getKeywordRefusalText(self):
         return "exceptions.%s does not take keyword arguments" % self.name
 
-    def getCallableName( self ):
+    def getCallableName(self):
         return "exceptions." + self.getName()
 
 
-def makeBuiltinParameterSpec( exception_name ):
+def makeBuiltinParameterSpec(exception_name):
     if exception_name == "ImportError" and python_version >= 330:
         # TODO: Create this beast, needs keyword only arguments to be supported,
         # currently user of this function must take care to not have them.
@@ -249,8 +249,8 @@ builtin_setattr_spec = BuiltinParameterSpecNoKeywords( "setattr", ( "object", "n
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords( "isinstance", ( "instance", "cls" ), 0 )
 
 
-class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
-    def __init__( self, *args ):
+class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
+    def __init__(self, *args):
         BuiltinParameterSpecNoKeywords.__init__( self, *args )
 
     def isCompileTimeComputable(self, values):
@@ -341,7 +341,7 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class,
         positional = args.getIterationValues()
 
         if not positional and not pairs and empty_special_class is not None:
-            return empty_special_class( source_ref = node.getSourceReference() )
+            return empty_special_class(source_ref = node.getSourceReference())
 
         args_dict = matchCall(
             func_name     = builtin_spec.getName(),

@@ -26,12 +26,12 @@ There will be a method "computeExpressionSubscript" to aid predicting them.
 from .NodeBases import ExpressionChildrenHavingBase
 
 
-class ExpressionSubscriptLookup( ExpressionChildrenHavingBase ):
+class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
     named_children = ( "expression", "subscript" )
 
-    def __init__( self, expression, subscript, source_ref ):
+    def __init__(self, expression, subscript, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -44,7 +44,7 @@ class ExpressionSubscriptLookup( ExpressionChildrenHavingBase ):
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
     getSubscript = ExpressionChildrenHavingBase.childGetter( "subscript" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         lookup_source = self.getLookupSource()
 
         return lookup_source.computeExpressionSubscript(
@@ -53,5 +53,5 @@ class ExpressionSubscriptLookup( ExpressionChildrenHavingBase ):
             constraint_collection = constraint_collection
         )
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         return None

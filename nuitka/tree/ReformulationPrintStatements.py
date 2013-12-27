@@ -25,12 +25,12 @@ from .Helpers import (
     buildNode
 )
 
-def buildPrintNode( provider, node, source_ref ):
+def buildPrintNode(provider, node, source_ref):
     # "print" statements, should only occur with Python2.
 
     values = buildNodeList( provider, node.values, source_ref )
 
-    def wrapValue( value ):
+    def wrapValue(value):
         if value.isExpressionConstantRef():
             return value.getStrValue()
         else:

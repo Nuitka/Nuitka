@@ -31,20 +31,22 @@ from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 from .ConstantRefNodes import ExpressionConstantRef
 
-from nuitka import Importing, Utils, Options
+from nuitka import Importing, Utils
 
 from logging import warning
 
-class ExpressionImportModule( ExpressionChildrenHavingBase ):
+class ExpressionImportModule(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_IMPORT_MODULE"
 
-    named_children = ( "module", )
+    named_children = (
+        "module",
+    )
 
     # Set of modules, that we failed to import, and gave warning to the user
     # about it.
     _warned_about = set()
 
-    def __init__( self, module_name, import_list, level, source_ref ):
+    def __init__(self, module_name, import_list, level, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -60,19 +62,19 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
         self.attempted_recurse = False
         self.found_modules = ()
 
-    def getDetails( self ):
+    def getDetails(self):
         return {
             "module_name" : self.module_name,
             "level"       : self.level
         }
 
-    def getModuleName( self ):
+    def getModuleName(self):
         return self.module_name
 
-    def getImportList( self ):
+    def getImportList(self):
         return self.import_list
 
-    def getLevel( self ):
+    def getLevel(self):
         if self.level == 0:
             if self.source_ref.getFutureSpec().isAbsoluteImport():
                 return 0
@@ -83,37 +85,36 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
 
     # Prevent normal recursion from entering the module. TODO: Why have the
     # class when not really using it.
-    def getVisitableNodes( self ):
+    def getVisitableNodes(self):
         return ()
 
-    getModule = ExpressionChildrenHavingBase.childGetter( "module" )
-    _setModule = ExpressionChildrenHavingBase.childSetter( "module" )
+    getModule = ExpressionChildrenHavingBase.childGetter("module")
+    _setModule = ExpressionChildrenHavingBase.childSetter("module")
 
-    def setModule( self, module ):
+    def setModule(self, module):
         # Modules have no parent.
         assert module.parent is None
-        self._setModule( module )
+        self._setModule(module)
         module.parent = None
 
-    def _consider( self, constraint_collection, module_filename,
-                   module_package ):
+    def _consider(self, constraint_collection, module_filename, module_package):
         assert module_package is None or \
-              ( type( module_package ) is str and module_package != "" )
+              (type(module_package) is str and module_package != "")
 
-        module_filename = Utils.normpath( module_filename )
+        module_filename = Utils.normpath(module_filename)
 
-        if Utils.isDir( module_filename ):
-            module_name = Utils.basename( module_filename )
+        if Utils.isDir(module_filename):
+            module_name = Utils.basename(module_filename)
             module_kind = "py"
-        elif module_filename.endswith( ".py" ):
-            module_name = Utils.basename( module_filename )[:-3]
+        elif module_filename.endswith(".py"):
+            module_name = Utils.basename(module_filename)[:-3]
             module_kind = "py"
-        elif module_filename.endswith( ".so" ):
+        elif module_filename.endswith(".so"):
             module_kind = "shlib"
-            module_name = Utils.basename( module_filename )[:-3]
-        elif module_filename.endswith( ".pyd" ):
+            module_name = Utils.basename(module_filename)[:-3]
+        elif module_filename.endswith(".pyd"):
             module_kind = "shlib"
-            module_name = Utils.basename( module_filename )[:-4]
+            module_name = Utils.basename(module_filename)[:-4]
         else:
             module_kind = None
             module_name = None
@@ -129,7 +130,7 @@ class ExpressionImportModule( ExpressionChildrenHavingBase ):
             )
 
             if decision:
-                module_relpath = Utils.relpath( module_filename )
+                module_relpath = Utils.relpath(module_filename)
 
                 imported_module, added_flag = Recursion.recurseTo(
                     module_package  = module_package,
@@ -168,7 +169,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         }
                     )
 
-    def _attemptRecursion( self, constraint_collection ):
+    def _attemptRecursion(self, constraint_collection):
         assert self.getModule() is None
 
         parent_module = self.getParentModule()
@@ -197,7 +198,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             )
 
             if imported_module is not None:
-                self.setModule( imported_module )
+                self.setModule(imported_module)
                 self.found_modules = []
 
                 import_list = self.getImportList()
@@ -222,10 +223,10 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             )
 
                             if sub_imported_module is not None:
-                                self.found_modules.append( sub_imported_module )
+                                self.found_modules.append(sub_imported_module)
 
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Attempt to recurse if not already done.
         if not self.attempted_recurse:
             self._attemptRecursion(
@@ -236,23 +237,25 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
         if self.getModule() is not None:
             from nuitka.ModuleRegistry import addUsedModule
-            addUsedModule( self.getModule() )
+            addUsedModule(self.getModule())
 
             for found_module in self.found_modules:
-                addUsedModule( found_module )
+                addUsedModule(found_module)
 
         # TODO: May return a module reference of some sort in the future with
         # embedded modules.
         return self, None, None
 
 
-class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
-    named_children = ( "import_name", "globals", "locals", "fromlist", "level" )
+    named_children = (
+        "import_name", "globals", "locals", "fromlist", "level"
+    )
 
-    def __init__( self, name, import_globals, import_locals, fromlist, level,
-                  source_ref ):
+    def __init__(self, name, import_globals, import_locals, fromlist, level,
+                source_ref):
         if fromlist is None:
             fromlist = ExpressionConstantRef(
                 constant   = [],
@@ -285,7 +288,7 @@ class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
     getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
     getLevel = ExpressionChildrenHavingBase.childGetter( "level" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         module_name = self.getImportName()
         fromlist = self.getFromList()
         level = self.getLevel()
@@ -315,12 +318,12 @@ class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
         return self, None, None
 
 
-class StatementImportStar( StatementChildrenHavingBase ):
+class StatementImportStar(StatementChildrenHavingBase):
     kind = "STATEMENT_IMPORT_STAR"
 
     named_children = ( "module", )
 
-    def __init__( self, module_import, source_ref ):
+    def __init__(self, module_import, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -331,7 +334,7 @@ class StatementImportStar( StatementChildrenHavingBase ):
 
     getModule = StatementChildrenHavingBase.childGetter( "module" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getModule() )
 
         # Need to invalidate everything, and everything could be assigned to
@@ -341,12 +344,12 @@ class StatementImportStar( StatementChildrenHavingBase ):
         return self, None, None
 
 
-class ExpressionImportName( ExpressionChildrenHavingBase ):
+class ExpressionImportName(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_IMPORT_NAME"
 
     named_children = ( "module", )
 
-    def __init__( self, module, import_name, source_ref ):
+    def __init__(self, module, import_name, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -357,18 +360,18 @@ class ExpressionImportName( ExpressionChildrenHavingBase ):
 
         self.import_name = import_name
 
-    def getImportName( self ):
+    def getImportName(self):
         return self.import_name
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "import_name" : self.getImportName() }
 
-    def getDetail( self ):
+    def getDetail(self):
         return "import %s from %s" % ( self.getImportName(), self.getModule() )
 
     getModule = ExpressionChildrenHavingBase.childGetter( "module" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.
         return self, None, None

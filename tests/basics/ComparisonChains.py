@@ -18,7 +18,7 @@
 
 
 
-def simple_comparisons( x, y ):
+def simple_comparisons(x, y):
     if 'a' <= x <= y <= 'z':
         print "One"
 
@@ -96,13 +96,13 @@ class class_with_chain:
 x = ( 1, 2, 3 )
 print x[0] < x[1] < x[2]
 
-class CustomOps( int ):
-    def __lt__( self, other ):
+class CustomOps(int):
+    def __lt__(self, other):
         print "<", self, other
 
         return True
 
-    def __gt__( self, other ):
+    def __gt__(self, other):
         print ">", self, other
 
         return False
@@ -134,15 +134,15 @@ inOperatorChain()
 
 # Make sure the values are called and order is correct:
 
-class A( object ):
-    def __init__( self, name, value ):
+class A(object):
+    def __init__(self, name, value):
         self.name = name
         self.value = value
 
-    def __repr__( self ):
+    def __repr__(self):
         return "<Value %s %d>" % ( self.name, self.value )
 
-    def __lt__( self, other ):
+    def __lt__(self, other):
         print "less than called for:", self, other, self.value, other.value, self.value < other.value
 
         if self.value < other.value:

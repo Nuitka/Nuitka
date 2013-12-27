@@ -18,7 +18,7 @@
 
 """ Some random branching to cover most cases """
 
-def branchingFunction( a, b, c ):
+def branchingFunction(a, b, c):
     print "branchingFunction:", a, b, c
 
     print "a or b", a or b

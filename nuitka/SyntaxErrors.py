@@ -21,7 +21,7 @@ Format SyntaxError/IndentationError exception for output, as well as
 raise it for the given source code reference.
 """
 
-def formatOutput( e ):
+def formatOutput(e):
     if len( e.args ) > 1:
         reason, ( filename, lineno, colno, message ) = e.args
 

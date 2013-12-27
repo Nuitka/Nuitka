@@ -27,12 +27,12 @@ from .ContainerMakingNodes import ExpressionKeyValuePair
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 
 
-class ExpressionBuiltinDict( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_DICT"
 
     named_children = ( "pos_arg", "pairs" )
 
-    def __init__( self, pos_arg, pairs, source_ref ):
+    def __init__(self, pos_arg, pairs, source_ref):
         assert type( pos_arg ) not in ( tuple, list ), source_ref
         assert type( pairs ) in ( tuple, list ), source_ref
 
@@ -56,7 +56,7 @@ class ExpressionBuiltinDict( ExpressionChildrenHavingBase ):
     getPositionalArgument = ExpressionChildrenHavingBase.childGetter( "pos_arg" )
     getNamedArgumentPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
 
-    def hasOnlyConstantArguments( self ):
+    def hasOnlyConstantArguments(self):
         pos_arg = self.getPositionalArgument()
 
         if pos_arg is not None and not pos_arg.isCompileTimeConstant():
@@ -70,7 +70,7 @@ class ExpressionBuiltinDict( ExpressionChildrenHavingBase ):
 
         return True
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         if self.hasOnlyConstantArguments():

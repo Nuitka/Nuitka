@@ -27,12 +27,12 @@ from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 
-class ExpressionConditional( ExpressionChildrenHavingBase ):
+class ExpressionConditional(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CONDITIONAL"
 
     named_children = ( "condition", "expression_yes", "expression_no" )
 
-    def __init__( self, condition, yes_expression, no_expression, source_ref ):
+    def __init__(self, condition, yes_expression, no_expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -43,7 +43,7 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def getBranches( self ):
+    def getBranches(self):
         return (
             self.getExpressionYes(),
             self.getExpressionNo()
@@ -59,7 +59,7 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
         "condition"
     )
 
-    def computeExpressionRaw( self, constraint_collection ):
+    def computeExpressionRaw(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         # Query the truth value after the expression is evaluated, once it is
@@ -158,7 +158,7 @@ Conditional expression raises in condition."""
         else:
             return self, None, None
 
-    def mayHaveSideEffectsBool( self ):
+    def mayHaveSideEffectsBool(self):
         condition = self.getCondition()
 
         if condition.mayHaveSideEffectsBool():
@@ -172,17 +172,17 @@ Conditional expression raises in condition."""
 
         return False
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         return self.getExpressionYes().mayProvideReference() or \
                self.getExpressionNo().mayProvideReference()
 
 
-class StatementConditional( StatementChildrenHavingBase ):
+class StatementConditional(StatementChildrenHavingBase):
     kind = "STATEMENT_CONDITIONAL"
 
     named_children = ( "condition", "yes_branch", "no_branch" )
 
-    def __init__( self, condition, yes_branch, no_branch, source_ref ):
+    def __init__(self, condition, yes_branch, no_branch, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -199,7 +199,7 @@ class StatementConditional( StatementChildrenHavingBase ):
     getBranchNo = StatementChildrenHavingBase.childGetter( "no_branch" )
     setBranchNo = StatementChildrenHavingBase.childSetter( "no_branch" )
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         yes_branch = self.getBranchYes()
 
         if yes_branch is not None:
