@@ -27,37 +27,38 @@ from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import convertNoneConstantToNone
 
 
-class ExpressionSliceLookup( ExpressionChildrenHavingBase ):
+class ExpressionSliceLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SLICE_LOOKUP"
 
-    named_children = ( "expression", "lower", "upper" )
+    named_children = (
+        "expression",
+        "lower",
+        "upper"
+    )
+
+    checkers   = {
+        "upper" : convertNoneConstantToNone,
+        "lower" : convertNoneConstantToNone
+    }
 
     def __init__( self, expression, lower, upper, source_ref ):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression,
-                "upper"      : convertNoneConstantToNone( upper ),
-                "lower"      : convertNoneConstantToNone( lower )
+                "upper"      : upper,
+                "lower"      : lower
             },
             source_ref = source_ref
         )
 
-    # Automatically optimize lower and upper to not present children when they become
-    # value "None".
-    def setChild( self, name, value ):
-        if name in ( "lower", "upper" ):
-            value = convertNoneConstantToNone( value )
-
-        return ExpressionChildrenHavingBase.setChild( self, name, value )
-
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
-    setLower = ExpressionChildrenHavingBase.childSetter( "lower" )
+    getLower = ExpressionChildrenHavingBase.childGetter("lower")
+    setLower = ExpressionChildrenHavingBase.childSetter("lower")
 
-    getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
-    setUpper = ExpressionChildrenHavingBase.childSetter( "upper" )
+    getUpper = ExpressionChildrenHavingBase.childGetter("upper")
+    setUpper = ExpressionChildrenHavingBase.childSetter("upper")
 
     def computeExpression( self, constraint_collection ):
         lookup_source = self.getLookupSource()

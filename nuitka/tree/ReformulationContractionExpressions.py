@@ -73,6 +73,7 @@ from .ReformulationBooleanExpressions import buildAndNode
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    mergeStatements,
     buildNodeList,
     buildNode,
     getKind
@@ -143,8 +144,8 @@ def buildGeneratorExpressionNode( provider, node, source_ref ):
         source_ref       = source_ref
     )
 
-def _buildContractionNode( provider, node, name, emit_class, start_value,
-                           assign_provider, source_ref ):
+def _buildContractionNode(provider, node, name, emit_class, start_value,
+                          assign_provider, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
     # described in the developer manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names. There is no good way
@@ -233,7 +234,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value,
         source_ref = source_ref
     )
 
-    for count, qual in enumerate( reversed( node.generators ) ):
+    for count, qual in enumerate(reversed( node.generators)):
         tmp_iter_variable = function_body.allocateTempVariable(
             temp_scope = None,
             name       = "contraction_iter_%d" % count
@@ -353,12 +354,12 @@ def _buildContractionNode( provider, node, name, emit_class, start_value,
                 )
             )
         else:
-            loop_statements.append( current_body )
+            loop_statements.append(current_body)
 
         nested_statements.append(
             StatementLoop(
                 body       = StatementsSequence(
-                    statements = loop_statements,
+                    statements = mergeStatements(loop_statements),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -383,7 +384,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value,
             source_ref = source_ref
         )
 
-    statements.append( current_body )
+    statements.append(current_body)
 
     if start_value is not None:
         statements.append(
@@ -398,8 +399,10 @@ def _buildContractionNode( provider, node, name, emit_class, start_value,
 
     function_body.setBody(
         StatementsFrame(
-            statements    = statements,
-            guard_mode    = "pass_through" if emit_class is not ExpressionYield else "generator",
+            statements    = mergeStatements(statements),
+            guard_mode    = "pass_through"
+                              if emit_class is not ExpressionYield else
+                            "generator",
             var_names     = (),
             arg_count     = 0,
             kw_only_count = 0,

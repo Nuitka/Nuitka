@@ -353,7 +353,7 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
 
         self.markActiveVariablesAsUnknown()
 
-    def _onStatementsFrame( self, statements_sequence ):
+    def _onStatementsFrame(self, statements_sequence):
         assert statements_sequence.isStatementsFrame()
 
         new_statements = []
@@ -361,24 +361,25 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
         statements = statements_sequence.getStatements()
 #        assert statements, statements_sequence
 
-        for count, statement in enumerate( statements ):
+        for count, statement in enumerate(statements):
             # May be frames embedded.
             if statement.isStatementsFrame():
-                new_statement = self.onStatementsSequence( statement )
+                new_statement = self.onStatementsSequence(statement)
             else:
-                new_statement = self.onStatement( statement )
+                new_statement = self.onStatement(statement)
 
             if new_statement is not None:
                 if new_statement.isStatementsSequence() and \
                    not new_statement.isStatementsFrame():
-                    new_statements.extend( new_statement.getStatements() )
+                    new_statements.extend(new_statement.getStatements())
                 else:
-                    new_statements.append( new_statement )
+                    new_statements.append(new_statement)
 
-                if statement is not statements[-1] and new_statement.isStatementAborting():
+                if statement is not statements[-1] and \
+                   new_statement.isStatementAborting():
                     self.signalChange(
                         "new_statements",
-                        statements[ count + 1 ].getSourceReference(),
+                        statements[count + 1].getSourceReference(),
                         "Removed dead statements."
                     )
 
@@ -387,16 +388,17 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
         if not new_statements:
             return None
 
+        # Determine statements inside the frame, that need not be in a frame,
+        # because they wouldn't raise an exception.
         outside_pre = []
-
-        while new_statements and not new_statements[0].mayRaiseException( BaseException ):
+        while new_statements and \
+              not new_statements[0].mayRaiseException(BaseException):
             outside_pre.append( new_statements[0] )
             del new_statements[0]
 
         outside_post = []
-
         while new_statements and \
-              not new_statements[-1].mayRaiseException( BaseException ):
+              not new_statements[-1].mayRaiseException(BaseException):
             outside_post.insert( 0, new_statements[-1] )
             del new_statements[-1]
 
@@ -419,7 +421,7 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
                 return None
 
             if statements != new_statements:
-                statements_sequence.setStatements( tuple( new_statements ) )
+                statements_sequence.setStatements(new_statements)
 
             return statements_sequence
 
@@ -438,9 +440,9 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
         for count, statement in enumerate( statements ):
             # May be frames embedded.
             if statement.isStatementsFrame():
-                new_statement = self.onStatementsSequence( statement )
+                new_statement = self.onStatementsSequence(statement)
             else:
-                new_statement = self.onStatement( statement )
+                new_statement = self.onStatement(statement)
 
             if new_statement is not None:
                 if new_statement.isStatementsSequence() and \
@@ -552,10 +554,13 @@ class ConstraintCollectionBase( CollectionTracingMixin ):
             return
 
         assert expression.isExpression(), expression
+        assert expression.parent, expression
 
         # Now compute this expression, allowing it to replace itself with
         # something else as part of a local peephole optimization.
-        r = expression.computeExpressionRaw( self )
+        r = expression.computeExpressionRaw(
+            constraint_collection = self
+        )
         assert type(r) is tuple, expression
 
         new_node, change_tags, change_desc = r
@@ -749,7 +754,7 @@ Side effects of assignments promoted to statements."""
                     )
 
 
-class ConstraintCollectionHandler( ConstraintCollectionBase ):
+class ConstraintCollectionHandler(ConstraintCollectionBase):
     def __init__( self, parent, handler ):
         assert handler.isStatementExceptHandler(), handler
 
@@ -758,7 +763,7 @@ class ConstraintCollectionHandler( ConstraintCollectionBase ):
             parent = parent
         )
 
-        self.variable_actives = dict( parent.variable_actives )
+        self.variable_actives = dict(parent.variable_actives)
 
         # TODO: The exception type and name must be assigned.
         branch = handler.getExceptionBranch()
@@ -807,19 +812,20 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
         self.markCurrentVariableTrace( variable, 0 )
 
 
-class ConstraintCollectionFunction( CollectionStartpointMixin,
-                                    ConstraintCollectionBase,
-                                    VariableUsageTrackingMixin ):
-    def __init__( self, parent, function_body ):
+class ConstraintCollectionFunction(CollectionStartpointMixin,
+                                   ConstraintCollectionBase,
+                                   VariableUsageTrackingMixin):
+    def __init__(self, parent, function_body):
         assert function_body.isExpressionFunctionBody(), function_body
-        CollectionStartpointMixin.__init__( self )
+
+        CollectionStartpointMixin.__init__(self)
 
         ConstraintCollectionBase.__init__(
             self,
             parent = parent
         )
 
-        VariableUsageTrackingMixin.__init__( self )
+        VariableUsageTrackingMixin.__init__(self)
 
         self.function_body = function_body
 
@@ -833,10 +839,10 @@ class ConstraintCollectionFunction( CollectionStartpointMixin,
         self.setupVariableTraces( function_body )
 
         if statements_sequence is not None:
-            result = self.onStatementsSequence( statements_sequence )
+            result = self.onStatementsSequence(statements_sequence)
 
             if result is not statements_sequence:
-                function_body.setBody( result )
+                function_body.setBody(result)
 
         # TODO: Should become trace based as well.
         self.setIndications()
@@ -938,7 +944,7 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
             result = self.onStatementsSequence( module_body )
 
             if result is not module_body:
-                module.setBody( result )
+                module.setBody(result)
 
         self.setIndications()
 

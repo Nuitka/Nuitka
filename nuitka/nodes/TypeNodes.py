@@ -32,10 +32,10 @@ from .NodeBases import (
 from nuitka.Builtins import builtin_names
 
 
-class ExpressionBuiltinType1( ExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_TYPE1"
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         value = self.getValue()
 
         if value.isCompileTimeConstant():

@@ -472,9 +472,10 @@ def buildAssignNode( provider, node, source_ref ):
         )
 
 def buildDeleteStatementFromDecoded( kind, detail, source_ref ):
-    if kind in ( "Name", "Name_Exception" ):
+    if kind in ("Name", "Name_Exception"):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
-        # insist on the variable already being defined.
+        # insist on the variable being defined, user code may do it too, and
+        # that will be fine, so make that tolerant.
         variable_ref = detail
 
         return StatementDelVariable(
@@ -484,7 +485,6 @@ def buildDeleteStatementFromDecoded( kind, detail, source_ref ):
         )
     elif kind == "Attribute":
         lookup_source, attribute_name = detail
-
 
         return StatementDelAttribute(
             expression     = lookup_source,

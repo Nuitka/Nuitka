@@ -36,32 +36,32 @@ from nuitka import Variables, Utils
 from nuitka.oset import OrderedSet
 
 class PythonModuleMixin:
-    def __init__( self, name, package_name ):
+    def __init__(self, name, package_name):
         assert type(name) is str, type(name)
         assert "." not in name, name
         assert package_name is None or \
-               ( type( package_name ) is str and package_name != "" )
+               (type( package_name ) is str and package_name != "")
 
         self.name = name
         self.package_name = package_name
         self.package = None
 
-    def getName( self ):
+    def getName(self):
         return self.name
 
-    def getPackage( self ):
+    def getPackage(self):
         return self.package_name
 
-    def getFullName( self ):
+    def getFullName(self):
         if self.package_name:
             return self.package_name + "." + self.getName()
         else:
             return self.getName()
 
-    def isMainModule( self ):
+    def isMainModule(self):
         return False
 
-    def isInternalModule( self ):
+    def isInternalModule(self):
         return False
 
     def attemptRecursion(self):
@@ -110,6 +110,10 @@ class PythonModuleMixin:
 
         return result
 
+def checkModuleBody(value):
+    assert value is None or value.isStatementsSequence()
+
+    return value
 
 class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
                    ClosureGiverNodeBase, MarkContainsTryExceptIndicator):
@@ -121,7 +125,13 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     kind = "PYTHON_MODULE"
 
-    named_children = ( "body", )
+    named_children = (
+        "body",
+    )
+
+    checkers = {
+        "body": checkModuleBody
+    }
 
     def __init__(self, name, package_name, source_ref):
         ClosureGiverNodeBase.__init__(
@@ -133,7 +143,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         ChildrenHavingMixin.__init__(
             self,
-            values = {}
+            values = {},
         )
 
         MarkContainsTryExceptIndicator.__init__( self )
@@ -170,57 +180,58 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         return result
 
-    getBody = ChildrenHavingMixin.childGetter( "body" )
-    setBody = ChildrenHavingMixin.childSetter( "body" )
+    getBody = ChildrenHavingMixin.childGetter("body")
+    setBody = ChildrenHavingMixin.childSetter("body")
 
-    def isPythonModule( self ):
+    def isPythonModule(self):
         return True
 
-    def getParent( self ):
+    def getParent(self):
         assert False
 
-    def getParentVariableProvider( self ):
+    def getParentVariableProvider(self):
         return None
 
-    def getVariables( self ):
+    def getVariables(self):
         return self.variables
 
-    def getFilename( self ):
+    def getFilename(self):
         return self.source_ref.getFilename()
 
-    def getVariableForAssignment( self, variable_name ):
-        result = self.getProvidedVariable( variable_name )
+    def getVariableForAssignment(self, variable_name):
+        result = self.getProvidedVariable(variable_name)
 
-        return result.makeReference( self )
+        return result.makeReference(self)
 
-    def getVariableForReference( self, variable_name ):
-        result = self.getProvidedVariable( variable_name )
+    def getVariableForReference(self, variable_name):
+        result = self.getProvidedVariable(variable_name)
 
-        return result.makeReference( self )
+        return result.makeReference(self)
 
-    def getVariableForClosure( self, variable_name ):
+    def getVariableForClosure(self, variable_name):
         return self.getProvidedVariable(
             variable_name = variable_name
         )
 
-    def createProvidedVariable( self, variable_name ):
+    def createProvidedVariable(self, variable_name):
         result = Variables.ModuleVariable(
             module        = self,
             variable_name = variable_name
         )
 
         assert result not in self.variables
-        self.variables.add( result )
+        self.variables.add(result)
 
         return result
 
-    def isEarlyClosure( self ):
+    def isEarlyClosure(self):
         # Modules should immediately closure variables on use.
         # pylint: disable=R0201
         return True
 
     def getCodeName( self ):
-        return "module_" + self.getFullName().replace( ".", "__" ).replace( "-", "_" )
+        return "module_" + self.getFullName().\
+          replace(".", "__").replace("-", "_")
 
     def addFunction( self, function_body ):
         assert function_body not in self.functions
@@ -233,21 +244,21 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def startTraversal( self ):
         self.active_functions = OrderedSet()
 
-    def addUsedFunction( self, function_body ):
+    def addUsedFunction(self, function_body):
         assert function_body in self.functions
 
         assert function_body.isExpressionFunctionBody()
 
         if function_body not in self.active_functions:
-            self.active_functions.add( function_body )
+            self.active_functions.add(function_body)
 
-    def getUsedFunctions( self ):
+    def getUsedFunctions(self):
         return self.active_functions
 
-    def getOutputFilename( self ):
+    def getOutputFilename(self):
         main_filename = self.getFilename()
 
-        if main_filename.endswith( ".py" ):
+        if main_filename.endswith(".py"):
             return main_filename[:-3]
         else:
             return main_filename

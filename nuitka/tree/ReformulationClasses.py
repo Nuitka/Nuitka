@@ -80,6 +80,7 @@ from .Helpers import (
     makeStatementsSequence,
     buildStatementsNode,
     extractDocFromBody,
+    mergeStatements,
     buildNodeList,
     buildNode,
     getKind
@@ -221,11 +222,11 @@ def _buildClassNode3( provider, node, source_ref ):
         )
 
         class_target_variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_class.makeReference( class_creation_function ),
+            variable   = tmp_class.makeReference(class_creation_function),
             source_ref = source_ref
         )
         class_variable_ref = ExpressionTempVariableRef(
-            variable   = tmp_class.makeReference( class_creation_function ),
+            variable   = tmp_class.makeReference(class_creation_function),
             source_ref = source_ref
         )
     else:
@@ -244,7 +245,7 @@ def _buildClassNode3( provider, node, source_ref ):
             variable_ref = class_target_variable_ref,
             source       = ExpressionCall(
                 called     = ExpressionTempVariableRef(
-                    variable   = tmp_metaclass.makeReference( provider ),
+                    variable   = tmp_metaclass.makeReference(provider),
                     source_ref = source_ref
                 ),
                 args       = makeSequenceCreationOrConstant(
@@ -256,7 +257,7 @@ def _buildClassNode3( provider, node, source_ref ):
                             user_provided = True
                         ),
                         ExpressionTempVariableRef(
-                            variable   = tmp_bases.makeReference( provider ),
+                            variable   = tmp_bases.makeReference(provider),
                             source_ref = source_ref
                         ),
                         ExpressionBuiltinLocals(
@@ -266,7 +267,7 @@ def _buildClassNode3( provider, node, source_ref ):
                     source_ref    = source_ref
                 ),
                 kw         = ExpressionTempVariableRef(
-                    variable   = tmp_class_decl_dict.makeReference( provider ),
+                    variable   = tmp_class_decl_dict.makeReference(provider),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref

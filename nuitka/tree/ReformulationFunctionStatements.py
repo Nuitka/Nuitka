@@ -160,7 +160,7 @@ def buildFunctionNode( provider, node, source_ref ):
         source_ref   = source_ref
     )
 
-def buildParameterKwDefaults( provider, node, function_body, source_ref ):
+def buildParameterKwDefaults(provider, node, function_body, source_ref):
     # Build keyword only arguments default values. We are hiding here, that it
     # is a Python3 only feature.
 

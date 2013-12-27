@@ -23,96 +23,99 @@ from .NodeBases import StatementChildrenHavingBase
 
 from nuitka.Utils import python_version
 
-def mergeStatements(statements):
-    """ Helper function that merges nested statement sequences. """
-    merged_statements = []
 
-    for statement in statements:
-        if statement.isStatement() or statement.isStatementsFrame():
-            merged_statements.append(statement)
-        elif statement.isStatementsSequence():
-            merged_statements.extend(mergeStatements(statement.getStatements()))
-        else:
-            assert False, statement
+def checkStatements(value):
+    """ Check that statements list value propert.
 
-    return merged_statements
+    Must not be None, must not contain None, and of course only statements,
+    may be empty.
+    """
+
+    assert value is not None
+    assert None not in value
+
+    for statement in value:
+        assert statement.isStatement() or statement.isStatementsFrame(), \
+          statement
+
+    return tuple(value)
 
 
-class StatementsSequence( StatementChildrenHavingBase ):
+class StatementsSequence(StatementChildrenHavingBase):
     kind = "STATEMENTS_SEQUENCE"
 
-    named_children = ( "statements", )
+    named_children = (
+        "statements",
+    )
 
-    def __init__( self, statements, source_ref ):
+    checkers = {
+        "statements" : checkStatements
+    }
+
+    def __init__(self, statements, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
-                "statements" : tuple( statements )
+                "statements" : statements
             },
             source_ref = source_ref
         )
 
-    getStatements = StatementChildrenHavingBase.childGetter( "statements" )
-    setStatements = StatementChildrenHavingBase.childSetterNotNone( "statements" )
+    getStatements = StatementChildrenHavingBase.childGetter("statements")
+    setStatements = StatementChildrenHavingBase.childSetter("statements")
 
     def getDetails( self ):
         if self.getStatements():
-            return { "statement_count" : len( self.getStatements() ) }
+            return {
+                "statement_count" : len( self.getStatements() )
+            }
         else:
-            return { "statement_count" : 0 }
+            return {
+                "statement_count" : 0
+            }
 
-    def setChild( self, name, value ):
-        assert name == "statements"
-
-        assert None not in value, value
-
-        return StatementChildrenHavingBase.setChild(
-            self,
-            name  = name,
-            value = mergeStatements( value )
-        )
-
-    # Overloading automatic check, so that derived ones know it too.
-    def isStatementsSequence( self ):
+    # Overloading name based automatic check, so that derived ones know it too.
+    def isStatementsSequence(self):
         # Virtual method, pylint: disable=R0201,W0613
 
         return True
 
-    def trimStatements( self, statement ):
+    def trimStatements(self, statement):
         assert statement.parent is self
 
-        old_statements = list( self.getStatements() )
-        assert statement in old_statements, ( statement, self )
+        old_statements = list(self.getStatements())
+        assert statement in old_statements, \
+          (statement, self)
 
-        new_statements = old_statements[ : old_statements.index( statement ) + 1 ]
+        new_statements = old_statements[ : old_statements.index(statement)+1 ]
 
-        self.setChild( "statements", new_statements )
+        self.setChild("statements", new_statements)
 
     def removeStatement( self, statement ):
         assert statement.parent is self
 
-        statements = list( self.getStatements() )
-        statements.remove( statement )
+        statements = list(self.getStatements())
+        statements.remove(statement)
 
-        self.setChild( "statements", statements )
+        self.setChild("statements", statements)
 
     def mergeStatementsSequence( self, statement_sequence ):
         assert statement_sequence.parent is self
 
-        old_statements = list( self.getStatements() )
+        old_statements = list(self.getStatements())
         assert statement_sequence in old_statements, \
-          ( statement_sequence, self )
+          (statement_sequence, self)
 
-        merge_index =  old_statements.index( statement_sequence )
+        merge_index =  old_statements.index(statement_sequence)
 
-        new_statements = tuple( old_statements[ : merge_index ] )   + \
+        new_statements = tuple(old_statements[ : merge_index ])     + \
                          statement_sequence.getStatements()         + \
-                         tuple( old_statements[ merge_index + 1 : ] )
+                         tuple(old_statements[ merge_index+1 : ])
 
-        self.setChild( "statements", new_statements )
+        self.setChild("statements", new_statements)
 
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         assert constraint_collection is None
 
         # Statement sequences have a side effect if one of the statements does.
@@ -122,15 +125,36 @@ class StatementsSequence( StatementChildrenHavingBase ):
         else:
             return False
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         return self.getStatements()[-1].isStatementAborting()
 
 
-class StatementsFrame( StatementsSequence ):
+def checkFrameStatements(value):
+    """ Check that frames statements list value proper.
+
+    Must not be None, must not contain None, and of course only statements
+    sequences, or statements, may be empty.
+    """
+
+    assert value is not None
+    assert None not in value
+
+    for statement in value:
+        assert statement.isStatement() or statement.isStatementsFrame(), \
+          statement
+
+    return tuple(value)
+
+
+class StatementsFrame(StatementsSequence):
     kind = "STATEMENTS_FRAME"
 
-    def __init__( self, statements, guard_mode, code_name, var_names, arg_count,
-                  kw_only_count, has_starlist, has_stardict, source_ref ):
+    checkers = {
+        "statements" : checkFrameStatements
+    }
+
+    def __init__(self, statements, guard_mode, code_name, var_names, arg_count,
+                kw_only_count, has_starlist, has_stardict, source_ref):
         StatementsSequence.__init__(
             self,
             statements = statements,
@@ -150,7 +174,7 @@ class StatementsFrame( StatementsSequence ):
 
         self.needs_frame_exception_preserve = False
 
-    def getDetails( self ):
+    def getDetails(self):
         result = {
             "code_name"  : self.code_name,
             "var_names"  : ", ".join( self.var_names ),
@@ -158,40 +182,40 @@ class StatementsFrame( StatementsSequence ):
         }
 
         if python_version >= 300:
-            result[ "kw_only_count" ] = self.kw_only_count
+            result["kw_only_count"] = self.kw_only_count
 
-        result.update( StatementsSequence.getDetails( self ) )
+        result.update(StatementsSequence.getDetails(self))
 
         return result
 
-    def needsLineNumber( self ):
+    def needsLineNumber(self):
         return False
 
-    def getGuardMode( self ):
+    def getGuardMode(self):
         return self.guard_mode
 
-    def getVarNames( self ):
+    def getVarNames(self):
         return self.var_names
 
-    def getCodeObjectName( self ):
+    def getCodeObjectName(self):
         return self.code_name
 
     def getKwOnlyParameterCount( self ):
         return self.kw_only_count
 
-    def getArgumentCount( self ):
+    def getArgumentCount(self):
         return self.arg_count
 
-    def makeCloneAt( self, source_ref ):
+    def makeCloneAt(self, source_ref):
         assert False
 
-    def markAsFrameExceptionPreserving( self ):
+    def markAsFrameExceptionPreserving(self):
         self.needs_frame_exception_preserve = True
 
-    def needsFrameExceptionPreversing( self ):
+    def needsFrameExceptionPreversing(self):
         return self.needs_frame_exception_preserve
 
-    def getCodeObjectHandle( self, context ):
+    def getCodeObjectHandle(self, context):
         provider = self.getParentVariableProvider()
 
         # TODO: Why do this accessing a node, do this outside.

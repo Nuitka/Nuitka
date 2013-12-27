@@ -23,11 +23,29 @@ does not matter at all.
 
 from .NodeBases import ExpressionChildrenHavingBase
 
+def checkSideEffects(value):
+    real_value = []
+
+    for child in value:
+        if child.isExpressionSideEffects():
+            real_value.extend(child.getSideEffects())
+            real_value.append(child.getExpression())
+        else:
+            assert child.isExpression()
+
+            real_value.append( child )
+
+    return tuple(real_value)
+
 
 class ExpressionSideEffects( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
     named_children = ( "side_effects", "expression" )
+
+    checkers = {
+        "side_effects" : checkSideEffects
+    }
 
     def __init__( self, side_effects, expression, source_ref ):
         ExpressionChildrenHavingBase.__init__(
@@ -40,28 +58,11 @@ class ExpressionSideEffects( ExpressionChildrenHavingBase ):
         )
 
     getSideEffects  = ExpressionChildrenHavingBase.childGetter( "side_effects" )
+    setSideEffects  = ExpressionChildrenHavingBase.childSetter("side_effects")
+
     getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    setSideEffects  = ExpressionChildrenHavingBase.childSetter( "side_effects" )
-
-    def setChild( self, name, value ):
-        if name == "side_effects":
-            real_value = []
-
-            for child in value:
-                if child.isExpressionSideEffects():
-                    real_value.extend( child.getSideEffects() )
-                    real_value.append( child.getExpression() )
-                else:
-                    assert child.isExpression()
-
-                    real_value.append( child )
-
-            value = real_value
-
-        return ExpressionChildrenHavingBase.setChild( self, name, value )
-
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         side_effects = self.getSideEffects()
         new_side_effects = []
 

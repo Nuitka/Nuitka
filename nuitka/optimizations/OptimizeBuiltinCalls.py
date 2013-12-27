@@ -721,7 +721,7 @@ def computeBuiltinCall( call_node, called ):
     builtin_name = called.getBuiltinName()
 
     if builtin_name in _dispatch_dict:
-        new_node = _dispatch_dict[ builtin_name ]( call_node )
+        new_node = _dispatch_dict[builtin_name](call_node)
 
         # Lets just have this contract to return "None" when no change is meant
         # to be done.

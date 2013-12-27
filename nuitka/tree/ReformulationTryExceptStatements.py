@@ -48,8 +48,8 @@ from .Helpers import (
 )
 
 
-def makeTryExceptNoRaise( provider, temp_scope, tried, handlers, no_raise,
-                          source_ref ):
+def makeTryExceptNoRaise(provider, temp_scope, tried, handlers, no_raise,
+                         source_ref):
     # This helper executes the core re-formulation of "no_raise" blocks, which
     # are the "else" blocks of "try"/"except" statements. In order to limit the
     # execution, we use an indicator variable instead, which will signal that
@@ -60,7 +60,7 @@ def makeTryExceptNoRaise( provider, temp_scope, tried, handlers, no_raise,
     # re-formulations, e.g. with statements.
 
     assert no_raise is not None
-    assert len( handlers ) > 0
+    assert len(handlers) > 0
 
     tmp_handler_indicator_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
@@ -137,7 +137,9 @@ def makeTryExceptNoRaise( provider, temp_scope, tried, handlers, no_raise,
         source_ref = source_ref
     )
 
-def makeTryExceptSingleHandlerNode( tried, exception_name, handler_body, source_ref ):
+
+def makeTryExceptSingleHandlerNode(tried, exception_name, handler_body,
+                                   source_ref):
     return StatementTryExcept(
         tried      = tried,
         handlers   = (
@@ -156,7 +158,7 @@ def makeTryExceptSingleHandlerNode( tried, exception_name, handler_body, source_
     )
 
 
-def buildTryExceptionNode( provider, node, source_ref ):
+def buildTryExceptionNode(provider, node, source_ref):
     # Try/except nodes. Re-formulated as described in the developer
     # manual. Exception handlers made the assignment to variables explicit. Same
     # for the "del" as done for Python3. Also catches always work a tuple of
@@ -262,7 +264,7 @@ def buildTryExceptionNode( provider, node, source_ref ):
     else:
         return makeTryExceptNoRaise(
             provider   = provider,
-            temp_scope = provider.allocateTempScope( "try_except" ),
+            temp_scope = provider.allocateTempScope("try_except"),
             handlers   = handlers,
             tried      = tried,
             no_raise   = no_raise,

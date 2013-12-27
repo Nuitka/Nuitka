@@ -56,7 +56,7 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
     def isExpressionCall( self ):
         return True
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         called = self.getCalled()
 
         if called.willRaiseException(BaseException):

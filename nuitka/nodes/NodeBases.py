@@ -29,6 +29,7 @@ from nuitka import (
     Variables,
     Tracing,
     TreeXML,
+    Options
 )
 
 from nuitka.__past__ import iterItems
@@ -309,15 +310,22 @@ class NodeBase( NodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return ()
 
-    def getVisitableNodesNamed( self ):
+    def getVisitableNodesNamed(self):
         # Virtual method, pylint: disable=R0201
         return ()
 
-    def replaceWith( self, new_node ):
+    def replaceWith(self, new_node):
         self.parent.replaceChild(
             old_node = self,
             new_node = new_node
         )
+
+    def discard(self):
+        """ The node has become unused. """
+        # print "Discarding", self
+
+        if Options.isExperimental():
+            self.parent = None
 
     def getName( self ):
         # Virtual method, pylint: disable=R0201,W0613
@@ -454,18 +462,25 @@ class CodeNodeBase( NodeBase ):
 class ChildrenHavingMixin:
     named_children = ()
 
-    def __init__( self, values ):
-        assert len( self.named_children )
-        assert type( self.named_children ) is tuple
+    checkers = {}
+
+    def __init__(self, values):
+        assert len(self.named_children)
+        assert type(self.named_children) is tuple
 
         for key in values.keys():
             assert key in self.named_children, key
 
-        self.child_values = dict.fromkeys( self.named_children )
-        self.child_values.update( values )
+        # Default non-given values to None. TODO: Good idea? Better check for
+        # completeness instead.
+        self.child_values = dict.fromkeys(self.named_children)
+        self.child_values.update(values)
 
-        for key, value in values.items():
-            assert type( value ) is not list, key
+        for key, value in self.child_values.items():
+            if key in self.checkers:
+                value = self.child_values[key] = self.checkers[key](value)
+
+            assert type(value) is not list, key
 
             if type( value ) is tuple:
                 assert None not in value, key
@@ -475,51 +490,64 @@ class ChildrenHavingMixin:
             elif value is not None:
                 value.parent = self
 
-        for key in values.keys():
-            self.setChild( key, self.getChild( key ) )
+    def setChild(self, name, value):
+        """ Set a child value.
 
-    def setChild( self, name, value ):
+            Do not overload, provider self.checkers instead.
+        """
+        # Only accept legal child names
         assert name in self.child_values, name
 
-        if type( value ) is list:
-            value = tuple( value )
+        # Lists as inputs are OK, but turn them into tuples.
+        if type(value) is list:
+            value = tuple(value)
 
-        if type( value ) is tuple:
+        if name in self.checkers:
+            value = self.checkers[name](value)
+
+        # Reparent value to us.
+        if type(value) is tuple:
             for val in value:
                 val.parent = self
         elif value is not None:
             value.parent = self
 
-        self.child_values[ name ] = value
+        # Determine old value, and inform it about loosing its parent.
+        old_value = self.child_values[name]
+
+        assert old_value is not value, value
+
+        self.child_values[name] = value
+
+        # TODO: Enable this
+        if old_value is not None:
+            if type(old_value) is tuple:
+                for val in old_value:
+                    if val not in value:
+                        val.discard()
+            else:
+                old_value.discard()
 
     def getChild( self, name ):
+        # Only accept legal child names
         assert name in self.child_values, name
 
-        return self.child_values[ name ]
+        return self.child_values[name]
 
     def hasChild( self, name ):
         return name in self.child_values
 
     @staticmethod
-    def childGetter( name ):
-        def getter( self ):
-            return self.getChild( name )
+    def childGetter(name):
+        def getter(self):
+            return self.getChild(name)
 
         return getter
 
     @staticmethod
-    def childSetter( name ):
-        def setter( self, value ):
-            self.setChild( name, value )
-
-        return setter
-
-    @staticmethod
-    def childSetterNotNone( name ):
-        def setter( self, value ):
-            assert value, ( self, value )
-
-            self.setChild( name, value )
+    def childSetter(name):
+        def setter(self, value):
+            self.setChild(name, value)
 
         return setter
 
@@ -536,7 +564,10 @@ class ChildrenHavingMixin:
             elif isinstance( value, NodeBase ):
                 result.append( value )
             else:
-                raise AssertionError( self, "has illegal child", name, value, value.__class__ )
+                raise AssertionError(
+                    self,
+                    "has illegal child", name, value, value.__class__
+                )
 
         return tuple( result )
 
@@ -550,14 +581,19 @@ class ChildrenHavingMixin:
 
         return result
 
-    def replaceChild( self, old_node, new_node ):
-        if new_node is not None and not isinstance( new_node, NodeBase ):
-            raise AssertionError( "Cannot replace with", new_node, "old", old_node, "in", self )
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
 
+        # Find the replaced node, as an added difficulty, what might be
+        # happening, is that the old node is an element of a tuple, in which we
+        # may also remove that element, by setting it to None.
         for key, value in self.child_values.items():
             if value is None:
                 pass
-            elif type( value ) is tuple:
+            elif type(value) is tuple:
                 if old_node in value:
                     if new_node is not None:
                         self.setChild(
@@ -579,12 +615,10 @@ class ChildrenHavingMixin:
                             )
                         )
 
-
-
                     break
-            elif isinstance( value, NodeBase ):
+            elif isinstance(value, NodeBase):
                 if old_node is value:
-                    self.setChild( key, new_node )
+                    self.setChild(key, new_node)
 
                     break
             else:
@@ -597,8 +631,7 @@ class ChildrenHavingMixin:
                 self
             )
 
-        if new_node is not None:
-            new_node.parent = old_node.parent
+        return key
 
     def makeCloneAt( self, source_ref ):
         values = {}
@@ -871,7 +904,7 @@ class ExpressionMixin:
         else:
             return None
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         """ Can be iterated at all (count is None) or exactly count times.
 
             Yes or no. If it can be iterated a known number of times, it may
@@ -881,15 +914,15 @@ class ExpressionMixin:
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def isKnownToBeIterableAtMin( self, count ):
+    def isKnownToBeIterableAtMin(self, count):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def isKnownToBeIterableAtMax( self, count ):
+    def isKnownToBeIterableAtMax(self, count):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         """ May at run time produce a reference.
 
         This then would have to be consumed or released in a reliable way.
@@ -898,7 +931,7 @@ class ExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return True
 
-    def getIterationLength( self ):
+    def getIterationLength(self):
         """ Value that "len" or "PyObject_Size" would give, if known.
 
             Otherwise it is "None" to indicate unknown.
@@ -907,12 +940,12 @@ class ExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return None
 
-    def getStringValue( self ):
+    def getStringValue(self):
         """ Node as integer value, if possible."""
         # Virtual method, pylint: disable=R0201,W0613
         return None
 
-    def getStrValue( self ):
+    def getStrValue(self):
         """ Value that "str" or "PyObject_Str" would give, if known.
 
             Otherwise it is "None" to indicate unknown.
@@ -957,27 +990,30 @@ class ExpressionMixin:
             constraint_collection = constraint_collection
         )
 
-    def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
+    def computeExpressionAttribute(self, lookup_node, attribute_name,
+                                    constraint_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=R0201,W0613
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
-    def computeExpressionSubscript( self, lookup_node, subscript, constraint_collection ):
+    def computeExpressionSubscript(self, lookup_node, subscript,
+                                   constraint_collection):
         # By default, an subscript may change everything about the lookup
         # source.
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
-    def computeExpressionSlice( self, lookup_node, lower, upper, constraint_collection ):
+    def computeExpressionSlice(self, lookup_node, lower, upper,
+                               constraint_collection):
         # By default, a slicing may change everything about the lookup source.
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
-    def computeExpressionCall( self, call_node, constraint_collection ):
+    def computeExpressionCall(self, call_node, constraint_collection):
         call_node.getCalled().onContentEscapes(constraint_collection)
 
         return call_node, None, None
@@ -987,7 +1023,7 @@ class ExpressionMixin:
 
         return iter_node, None, None
 
-    def computeExpressionOperationNot( self, not_node, constraint_collection ):
+    def computeExpressionOperationNot(self, not_node, constraint_collection):
         constraint_collection.removeKnowledge( not_node )
 
         return not_node, None, None
@@ -998,7 +1034,7 @@ class ExpressionMixin:
 
         return statement, None, None
 
-    def onContentEscapes( self, constraint_collection ):
+    def onContentEscapes(self, constraint_collection):
         pass
 
 
@@ -1143,8 +1179,11 @@ class ExpressionSpecBasedComputationMixin(ExpressionMixin):
 
 class ExpressionChildrenHavingBase(ChildrenHavingMixin, NodeBase,
                                    ExpressionMixin ):
-    def __init__( self, values, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
+    def __init__(self, values, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         ChildrenHavingMixin.__init__(
             self,

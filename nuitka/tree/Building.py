@@ -156,6 +156,7 @@ from .Helpers import (
     setBuildDispatchers,
     extractDocFromBody,
     makeModuleFrame,
+    mergeStatements,
     buildNodeList,
     buildNode,
     getKind
@@ -246,12 +247,14 @@ def buildTryNode( provider, node, source_ref ):
     # "ast". We split it up again, as it's logically separated of course.
     return StatementTryFinally(
         tried      = StatementsSequence(
-            statements = (
-                buildTryExceptionNode(
-                    provider   = provider,
-                    node       = node,
-                    source_ref = source_ref
-                ),
+            statements = mergeStatements(
+                (
+                    buildTryExceptionNode(
+                        provider   = provider,
+                        node       = node,
+                        source_ref = source_ref
+                    ),
+                )
             ),
             source_ref = source_ref
         ),

@@ -17,8 +17,11 @@
 #
 """ These are just helpers to create nodes, often to replace existing nodes
 
-These are for use in optimizations and computations, and therefore cover mostly exceptions
-and constants. Otherwise the thread of cyclic dependency kicks in.
+These are for use in optimizations and computations, and therefore cover
+mostly exceptions and constants.
+
+Often cyclic dependencies kicks in, which is why this module is mostly only
+imported locally.
 """
 
 from .ConstantRefNodes import ExpressionConstantRef
@@ -117,7 +120,7 @@ def makeCompileTimeConstantReplacementNode( value, node ):
         return node
 
 def getComputationResult( node, computation, description ):
-    """ With a computation function, execute it and return the constant result or
+    """ With a computation function, execute it and return constant result or
         exception node.
 
     """
@@ -157,13 +160,27 @@ def makeStatementExpressionOnlyReplacementNode( expression, node ):
         source_ref = node.getSourceReference()
     )
 
-def makeStatementsSequenceReplacementNode( statements, node ):
+def mergeStatements(statements):
+    """ Helper function that merges nested statement sequences. """
+    merged_statements = []
+
+    for statement in statements:
+        if statement.isStatement() or statement.isStatementsFrame():
+            merged_statements.append(statement)
+        elif statement.isStatementsSequence():
+            merged_statements.extend(mergeStatements(statement.getStatements()))
+        else:
+            assert False, statement
+
+    return merged_statements
+
+def makeStatementsSequenceReplacementNode(statements, node):
     return StatementsSequence(
-        statements = statements,
+        statements = mergeStatements(statements),
         source_ref = node.getSourceReference()
     )
 
-def convertNoneConstantToNone( node ):
+def convertNoneConstantToNone(node):
     if node is None:
         return None
     elif node.isExpressionConstantRef() and node.getConstant() is None:
