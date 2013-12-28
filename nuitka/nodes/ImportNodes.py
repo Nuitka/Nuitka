@@ -27,7 +27,12 @@ deeper that what it normally could. The import expression node can recurse. An
 compile time constant.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase,
+    ExpressionMixin,
+    NodeBase
+)
 
 from .ConstantRefNodes import ExpressionConstantRef
 
@@ -35,29 +40,24 @@ from nuitka import Importing, Utils
 
 from logging import warning
 
-class ExpressionImportModule(ExpressionChildrenHavingBase):
+class ExpressionImportModule(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_IMPORT_MODULE"
-
-    named_children = (
-        "module",
-    )
 
     # Set of modules, that we failed to import, and gave warning to the user
     # about it.
     _warned_about = set()
 
     def __init__(self, module_name, import_list, level, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        NodeBase.__init__(
             self,
-            values     = {
-                "module" : None
-            },
             source_ref = source_ref
         )
 
         self.module_name = module_name
         self.import_list = import_list
         self.level = level
+
+        self.module = None
 
         self.attempted_recurse = False
         self.found_modules = ()
@@ -83,19 +83,14 @@ class ExpressionImportModule(ExpressionChildrenHavingBase):
         else:
             return self.level
 
-    # Prevent normal recursion from entering the module. TODO: Why have the
-    # class when not really using it.
-    def getVisitableNodes(self):
-        return ()
-
-    getModule = ExpressionChildrenHavingBase.childGetter("module")
-    _setModule = ExpressionChildrenHavingBase.childSetter("module")
+    def getModule(self):
+        return self.module
 
     def setModule(self, module):
         # Modules have no parent.
         assert module.parent is None
-        self._setModule(module)
-        module.parent = None
+
+        self.module = module
 
     def _consider(self, constraint_collection, module_filename, module_package):
         assert module_package is None or \
@@ -282,11 +277,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getImportName = ExpressionChildrenHavingBase.childGetter( "import_name" )
-    getFromList = ExpressionChildrenHavingBase.childGetter( "fromlist" )
-    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals" )
-    getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
-    getLevel = ExpressionChildrenHavingBase.childGetter( "level" )
+    getImportName = ExpressionChildrenHavingBase.childGetter("import_name")
+    getFromList = ExpressionChildrenHavingBase.childGetter("fromlist")
+    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
+    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
+    getLevel = ExpressionChildrenHavingBase.childGetter("level")
 
     def computeExpression(self, constraint_collection):
         module_name = self.getImportName()
