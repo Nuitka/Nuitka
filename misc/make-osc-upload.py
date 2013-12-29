@@ -34,11 +34,11 @@ assert branch_name in (
     b"hotfix/" + nuitka_version
 ), branch_name
 
-shutil.rmtree( "dist", ignore_errors = True )
-shutil.rmtree( "build", ignore_errors = True )
+shutil.rmtree("dist", ignore_errors = True)
+shutil.rmtree("build", ignore_errors = True)
 
-assert 0 == os.system( "misc/make-doc.py" )
-assert 0 == os.system( "python setup.py sdist --formats=gztar" )
+assert 0 == os.system("misc/make-doc.py")
+assert 0 == os.system("python setup.py sdist --formats=gztar")
 
 # Upload stable releases to OpenSUSE Build Service:
 if branch_name.startswith("release") or \
@@ -49,20 +49,20 @@ if branch_name.startswith("release") or \
     os.makedirs("osc")
 
     # Stage the "osc" checkout from the ground up.
-    os.system( "cd osc && osc init home:kayhayen Nuitka && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec . && cp ../misc/nuitka-run3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message" )
+    assert 0 == os.system("cd osc && osc init home:kayhayen Nuitka && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec . && cp ../misc/nuitka-run3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message")
 
     # Cleanup the osc directory.
     shutil.rmtree("osc", ignore_errors = True)
 elif branch_name == "develop" or branch_name == "factory":
     # Cleanup the osc directory.
-    shutil.rmtree( "osc", ignore_errors = True )
-    os.makedirs( "osc" )
+    shutil.rmtree("osc", ignore_errors = True)
+    os.makedirs("osc")
 
     # Stage the "osc" checkout from the ground up, but path the RPM spec to say
     # it is nuitks-unstable package.
-    os.system( "cd osc && osc init home:kayhayen Nuitka-Unstable && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec ./nuitka-unstable.spec && sed -i nuitka-unstable.spec -e 's/Name: *nuitka/Name:           nuitka-unstable/' && cp ../misc/nuitka-run3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message" )
+    assert 0 == os.system("cd osc && osc init home:kayhayen Nuitka-Unstable && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec ./nuitka-unstable.spec && sed -i nuitka-unstable.spec -e 's/Name: *nuitka/Name:           nuitka-unstable/' && cp ../misc/nuitka-run3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message")
 
     # Cleanup the osc directory.
-    shutil.rmtree( "osc", ignore_errors = True )
+    shutil.rmtree("osc", ignore_errors = True)
 else:
     sys.exit("Skipping OSC for branch '%s'" % branch_name)

@@ -82,6 +82,7 @@ else:
 shutil.rmtree("dist", ignore_errors = True)
 shutil.rmtree("build", ignore_errors = True)
 
+assert 0 == os.system("misc/make-doc.py")
 assert 0 == os.system("python setup.py sdist --formats=gztar" )
 
 os.chdir("dist")
