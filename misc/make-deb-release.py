@@ -53,11 +53,9 @@ assert branch_name in (
     b"hotfix/" + nuitka_version
 ), branch_name
 
-def checkChangeLog( message ):
+def checkChangeLog(message):
     for line in open("debian/changelog"):
-        print line,
-
-        if line.startswith( " --" ):
+        if line.startswith(" --"):
             return False
 
         if message in line:
@@ -69,13 +67,13 @@ if branch_name.startswith( "release" ) or \
    branch_name == "master" or \
    branch_name.startswith( "hotfix/" ):
     if nuitka_version.count( "." ) == 2:
-        assert checkChangeLog( "New upstream release." )
+        assert checkChangeLog("New upstream release.")
     else:
-        assert checkChangeLog( "New upstream hotfix release." )
+        assert checkChangeLog("New upstream hotfix release.")
 
     category = "stable"
 else:
-    assert checkChangeLog( "New upstream pre-release." )
+    assert checkChangeLog("New upstream pre-release.")
 
     category = "develop"
 
@@ -236,7 +234,7 @@ assert 0 == os.system(
 print("Uploading...")
 
 assert 0 == os.system(
-    "ssh root@nuitka.net mkdir /var/www/deb/%s/%s/" % (
+    "ssh root@nuitka.net mkdir -p /var/www/deb/%s/%s/" % (
         category,
         codename
     )
