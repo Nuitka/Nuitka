@@ -96,12 +96,78 @@ and put it in APPDATA (no installer needed, cached, one time question)."""
 
     return depends_exe
 
+
 def loadCodeObjectData(precompiled_filename):
     # Ignoring magic numbers, etc. which we don't have to care for much as
     # CPython already checked them (would have rejected it otherwise).
     return open(precompiled_filename, "rb").read()[8:]
 
+
 module_names = set()
+
+
+def _detectedSourceFile(filename, module_name, module_names, result, is_late):
+    source_code = open(filename,"rb").read()
+
+    if Utils.python_version >= 300:
+        source_code = source_code.decode("utf-8")
+        filename = filename.decode("utf-8")
+
+    if module_name in module_names:
+        return
+
+    debug(
+        "Freezing module '%s' (from '%s').",
+        module_name,
+        filename
+    )
+
+    result.append(
+        (
+            module_name,
+            marshal.dumps(
+                compile(source_code, filename, "exec")
+            ),
+            Utils.basename(filename) == "__init__.py",
+            filename,
+            is_late
+        )
+    )
+
+    module_names.add(module_name)
+
+
+def _detectedShlibFile(filename, module_name, module_names, result):
+    if Utils.python_version >= 300:
+        filename = filename.decode("utf-8")
+
+    parts = module_name.split(".")
+    if len(parts) == 1:
+        package_name = None
+        name = module_name
+    else:
+        package_name = ".".join(parts[:-1])
+        name = parts[-1]
+
+    from nuitka.nodes.FutureSpecs import FutureSpec
+    from nuitka.nodes.ModuleNodes import PythonShlibModule
+    from nuitka import SourceCodeReferences
+
+    source_ref = SourceCodeReferences.fromFilename(
+        filename    = filename,
+        future_spec = FutureSpec()
+    )
+
+    shlib_module = PythonShlibModule(
+        package_name = package_name,
+        name         = name,
+        source_ref   = source_ref
+    )
+
+    from nuitka import ModuleRegistry
+    ModuleRegistry.addRootModule(shlib_module)
+
+    module_names.add(module_name)
 
 def _detectImports(command, is_late):
     # print(command)
@@ -171,69 +237,32 @@ def _detectImports(command, is_late):
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
 
-                source_code = open(filename,"rb").read()
-
-                if Utils.python_version >= 300:
-                    source_code = source_code.decode("utf-8")
-                    filename = filename.decode("utf-8")
-
-                if module_name in module_names:
-                    continue
-
-                debug(
-                    "Freezing module '%s' (from '%s').",
-                    module_name,
-                    filename
-                )
-
-                result.append(
-                    (
-                        module_name,
-                        marshal.dumps(
-                            compile(source_code, filename, "exec")
-                        ),
-                        Utils.basename(filename) == "__init__.py",
-                        filename,
-                        is_late
+                if filename.endswith(b".py"):
+                    _detectedSourceFile(
+                        filename     = filename,
+                        module_name  = module_name,
+                        module_names = module_names,
+                        result       = result,
+                        is_late      = is_late
                     )
-                )
-
-                module_names.add(module_name)
+                else:
+                    _detectedShlibFile(
+                        filename     = filename,
+                        module_name  = module_name,
+                        module_names = module_names,
+                        result       = result
+                    )
             elif origin == b"dynamically":
                 # Shared library in early load, happens on RPM based systems and
                 # or self compiled Python installations.
                 filename = parts[1][len(b"dynamically loaded from "):]
 
-                if Utils.python_version >= 300:
-                    filename = filename.decode("utf-8")
-
-                parts = module_name.split(".")
-                if len(parts) == 1:
-                    package_name = None
-                    name = module_name
-                else:
-                    package_name = ".".join(parts[:-1])
-                    name = parts[-1]
-
-                from nuitka.nodes.FutureSpecs import FutureSpec
-                from nuitka.nodes.ModuleNodes import PythonShlibModule
-                from nuitka import SourceCodeReferences
-
-                source_ref = SourceCodeReferences.fromFilename(
-                    filename    = filename,
-                    future_spec = FutureSpec()
+                _detectedShlibFile(
+                    filename     = filename,
+                    module_name  = module_name,
+                    module_names = module_names,
+                    result       = result
                 )
-                shlib_module = PythonShlibModule(
-                    package_name = package_name,
-                    name         = name,
-                    source_ref   = source_ref
-                )
-
-                from nuitka import ModuleRegistry
-
-                ModuleRegistry.addRootModule(shlib_module)
-
-                module_names.add(module_name)
 
     return result
 
