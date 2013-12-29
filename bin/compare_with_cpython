@@ -37,7 +37,7 @@ def hasArg(arg):
         return False
 
 # For output keep it
-arguments = list( args )
+arguments = list(args)
 
 silent_mode        = hasArg("silent")
 ignore_stderr      = hasArg("ignore_stderr")

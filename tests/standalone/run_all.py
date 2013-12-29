@@ -40,7 +40,7 @@ from test_common import (
     getRuntimeTraceOfLoadedFiles
 )
 
-python_version = setup()
+python_version = setup(needs_io_encoding=True)
 
 search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
 
@@ -72,7 +72,8 @@ for filename in sorted(os.listdir(".")):
     if filename == "PySideUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or python_version.startswith("3.2"):
+        if python_version.startswith(b"2.6") or \
+           python_version.startswith(b"3.2"):
             my_print("Skipping", filename, "not relevant.")
             continue
 
@@ -89,7 +90,8 @@ for filename in sorted(os.listdir(".")):
     if filename == "PyQtUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith("2.6") or python_version.startswith("3.2"):
+        if python_version.startswith(b"2.6") or \
+           python_version.startswith(b"3.2"):
             my_print("Skipping", filename, "not relevant.")
             continue
 
@@ -192,8 +194,9 @@ for filename in sorted(os.listdir(".")):
             if os.path.basename(loaded_filename) == "gconv-modules.cache":
                 continue
 
-            if loaded_filename == "/usr/lib/python" + python_version[:3] + \
-              "/dist-packages/PySide":
+            if loaded_filename == "/usr/lib/python" + \
+	          python_version[:3].decode() + \
+                  "/dist-packages/PySide":
                 continue
 
             loaded_basename = os.path.basename(loaded_filename).upper()

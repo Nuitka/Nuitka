@@ -45,7 +45,7 @@ def check_output(*popenargs, **kwargs):
         raise subprocess.CalledProcessError( retcode, cmd, output=output )
     return output
 
-def setup( needs_io_encoding = False ):
+def setup(needs_io_encoding = False):
     # Go its own directory, to have it easy with path knowledge.
     os.chdir(
         os.path.dirname(
@@ -60,7 +60,7 @@ def setup( needs_io_encoding = False ):
         os.environ["PYTHONIOENCODING"] = "utf-8"
 
     version_output = check_output(
-        [
+        (
             os.environ["PYTHON"],
             "-c",
             """\
@@ -68,7 +68,7 @@ import sys, os;\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(("x86_64" if "AMD64" in sys.version else "x86") if os.name=="nt" else os.uname()[4]);\
 """,
-        ],
+        ),
         stderr = subprocess.STDOUT
     )
 
@@ -268,7 +268,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
 
         open(path+".strace","wb").write(stderr_strace)
 
-        for line in stderr_strace.split("\n"):
+        for line in stderr_strace.split(b"\n"):
             if process.returncode != 0 and trace_error:
                 my_print(line)
 
@@ -277,31 +277,31 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
 
             # Don't consider files not found. The "site" module checks lots
             # of things.
-            if "ENOENT" in line:
+            if b"ENOENT" in line:
                 continue
 
             # Allow stats on the python binary, and stuff pointing to the
             # standard library, just not uses of it. It will search there
             # for stuff.
-            if line.startswith("lstat(") or \
-               line.startswith("stat(") or \
-               line.startswith("readlink("):
-                filename = line[line.find("(")+2:line.find(", ")-1]
+            if line.startswith(b"lstat(") or \
+               line.startswith(b"stat(") or \
+               line.startswith(b"readlink("):
+                filename = line[line.find(b"(")+2:line.find(b", ")-1]
 
-                if filename in ("/usr", "/usr/bin"):
+                if filename in (b"/usr", b"/usr/bin"):
                     continue
 
-                if filename == "/usr/bin/python" + python_version[:3]:
+                if filename == b"/usr/bin/python" + python_version[:3]:
                     continue
 
-                if filename in ("/usr/bin/python", "/usr/bin/python2",
-                                "/usr/bin/python3"):
+                if filename in (b"/usr/bin/python", b"/usr/bin/python2",
+                                b"/usr/bin/python3"):
                     continue
 
             result.extend(
                 os.path.abspath(match)
                 for match in
-                re.findall('"(.*?)"', line)
+                re.findall(b'"(.*?)"', line)
             )
     elif os.name == "nt":
         subprocess.call(
@@ -353,6 +353,9 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
 
     result = list(sorted(set(result)))
 
+    if sys.version.startswith("3"):
+        result = [s.decode("utf-8") for s in result]
+
     return result
 
 def hasModule(module_name):
@@ -361,7 +364,9 @@ def hasModule(module_name):
             os.environ["PYTHON"],
             "-c"
             "import %s" % module_name
-        )
+        ),
+	stdout = open(os.devnull,"w"),
+	stderr = subprocess.STDOUT
     )
 
     return result == 0
