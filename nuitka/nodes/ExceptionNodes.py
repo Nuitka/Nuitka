@@ -100,7 +100,10 @@ class StatementRaiseException(StatementChildrenHavingBase):
         return False
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getExceptionType(), allow_none = True )
+        constraint_collection.onExpression(
+            expression = self.getExceptionType(),
+            allow_none = True
+        )
         exception_type = self.getExceptionType()
 
         if exception_type is not None and \
@@ -281,7 +284,10 @@ class ExpressionCaughtExceptionTypeRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF"
 
     def __init__(self, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
     def computeExpression(self, constraint_collection):
         # TODO: Might be predictable based on the exception handler this is in.
@@ -296,7 +302,10 @@ class ExpressionCaughtExceptionValueRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF"
 
     def __init__(self, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
     def computeExpression(self, constraint_collection):
         # TODO: Might be predictable based on the exception handler this is in.
@@ -316,7 +325,10 @@ class ExpressionCaughtExceptionTracebackRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF"
 
     def __init__(self, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
     def computeExpression(self, constraint_collection):
         return self, None, None

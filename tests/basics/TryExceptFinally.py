@@ -33,9 +33,9 @@ def tryScope1(x):
     else:
         print "No exception occured"
 
-tryScope1( 1 )
+tryScope1(1)
 print "*" * 20
-tryScope1( [ 1 ] )
+tryScope1([1])
 
 def tryScope2(x, someExceptionClass):
     try:
@@ -57,14 +57,14 @@ def tryScope3(x):
 
 print "*" * 20
 
-tryScope2( 1, TypeError )
-tryScope2( [ 1 ], TypeError )
+tryScope2(1, TypeError)
+tryScope2([ 1 ], TypeError)
 
 print "*" * 20
 
-tryScope3( 1 )
-tryScope3( [ 1 ] )
-tryScope3( [] )
+tryScope3(1)
+tryScope3([1])
+tryScope3([])
 
 print "*" * 20
 
@@ -78,8 +78,8 @@ def tryScope4(x):
     finally:
         print "finally obeyed"
 
-tryScope4( 1 )
-tryScope4( [ 1 ] )
+tryScope4(1 )
+tryScope4([1])
 
 def tryScope5():
     import sys
