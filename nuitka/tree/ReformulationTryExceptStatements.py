@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 
-from nuitka import Utils
+from nuitka import Utils, SyntaxErrors, Options
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
@@ -228,12 +228,23 @@ def buildTryExceptionNode(provider, node, source_ref):
             allow_none = True
         )
 
+        # The exception types should be a tuple, so as to be most general.
         if exception_types is None:
             exception_types = ()
+
+            if handler is not node.handlers[-1]:
+                SyntaxErrors.raiseSyntaxError(
+                    reason    = "default 'except:' must be last",
+                    source_ref = source_ref.atLineNumber(
+                        handler.lineno-1
+                          if Options.isFullCompat() else
+                        handler.lineno
+                    )
+                )
         elif exception_types.isExpressionMakeSequence():
             exception_types = exception_types.getElements()
         else:
-            exception_types = ( exception_types, )
+            exception_types = (exception_types,)
 
         handlers.append(
             StatementExceptHandler(
