@@ -53,8 +53,9 @@ try_except_reraise_template = """\
 {
     PyTracebackObject *tb = _exception.getTraceback();
     frame_guard.setLineNumber( tb->tb_lineno );
-    _exception.setTraceback( tb->tb_next );
+    PyTracebackObject *tb_next = tb->tb_next;
     tb->tb_next = NULL;
+    _exception.setTraceback( tb_next );
 
     throw;
 }"""
