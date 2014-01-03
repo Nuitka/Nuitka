@@ -1,5 +1,5 @@
-Nuitka Release 0.5.0 (Draft)
-============================
+Nuitka Release 0.5.0
+====================
 
 This release breaks interface compatibility, therefore the major version number
 change. Also "standalone mode" has seen significant improvements on both
@@ -28,6 +28,22 @@ Bug Fixes
 
 - The "standalone mode" is now handling packages properly and generally working
   on Windows as well.
+
+- The syntax error of having an all catching except clause and then a more
+  specific one wasn't causing a ``SyntaxError`` with Nuitka.
+
+  .. code-block:: python
+
+     try:
+         something()
+     except:
+         somehandling():
+     except TypeError:
+         notallowed()
+
+- A corruption bug was identified, when re-raising exceptions, the top entry of
+  the traceback was modified after usage. Depending on ``malloc`` this was
+  potentially causing an endless loop when using it for output.
 
 New Features
 ------------
@@ -143,6 +159,12 @@ point, where the really interesting stuff will happen.
 The progress for standalone mode is of course significant. It is still not quite
 there yet, but it is making quick progress now. This will attract a lot of
 attention hopefully.
+
+As for optimization, the focus for it has shifted to making exception handlers
+work optimal by default (publish the exception to sys.exc_info() and create
+traceback only when necessary) and be based on standard branches. Removing
+special handling of exception handlers, will be the next big step. This release
+includes some correctness fixes stemming from that work already.
 
 
 Nuitka Release 0.4.7
