@@ -670,7 +670,7 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
             parent = parent
         )
 
-        self.variable_actives = dict( parent.variable_actives )
+        self.variable_actives = dict(parent.variable_actives)
 
         if branch.isStatementsSequence():
             result = branch.computeStatementsSequence(

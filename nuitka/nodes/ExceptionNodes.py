@@ -36,8 +36,8 @@ class StatementRaiseException(StatementChildrenHavingBase):
         "exception_cause"
     )
 
-    def __init__( self, exception_type, exception_value, exception_trace,
-                  exception_cause, source_ref ):
+    def __init__(self, exception_type, exception_value, exception_trace,
+                 exception_cause, source_ref):
         if exception_type is None:
             assert exception_value is None
 

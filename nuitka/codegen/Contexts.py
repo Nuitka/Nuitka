@@ -281,7 +281,7 @@ class PythonModuleContext(PythonContextBase):
         return "FrameGuard"
 
     def getConstantHandle(self, constant):
-        return self.global_context.getConstantHandle( constant )
+        return self.global_context.getConstantHandle(constant)
 
     def getName(self):
         return self.name
@@ -331,13 +331,18 @@ class PythonModuleContext(PythonContextBase):
 
 class PythonFunctionContext(PythonChildContextBase):
     def __init__(self, parent, function):
-        PythonChildContextBase.__init__( self, parent = parent )
+        PythonChildContextBase.__init__(
+            self,
+            parent = parent
+        )
 
         self.function = function
 
         # Make sure the local names are available as constants
         for local_name in function.getLocalVariableNames():
-            self.getConstantHandle( constant = local_name )
+            self.getConstantHandle(
+                constant = local_name
+            )
 
         self.guard_mode = None
 
@@ -361,9 +366,15 @@ class PythonFunctionContext(PythonChildContextBase):
 
     def getFrameHandle(self):
         if self.function.isGenerator():
-            return Identifier( "generator->m_frame", 0 )
+            return Identifier(
+                "generator->m_frame",
+                0
+            )
         else:
-            return Identifier( "frame_guard.getFrame()", 1 )
+            return Identifier(
+                "frame_guard.getFrame()",
+                1
+            )
 
     def getFrameGuardMode(self):
         return self.guard_mode

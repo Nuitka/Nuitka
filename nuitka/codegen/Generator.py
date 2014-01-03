@@ -589,7 +589,7 @@ def getComparisonExpressionCode( context, comparator, order_relevance, left,
 
     if comparator in OperatorCodes.normal_comparison_codes:
         helper = OperatorCodes.normal_comparison_codes[ comparator ]
-        assert helper.startswith( "SEQUENCE_CONTAINS" )
+        assert helper.startswith("SEQUENCE_CONTAINS")
 
         ref_count = 0
     elif comparator in OperatorCodes.rich_comparison_codes:
@@ -629,15 +629,15 @@ def getComparisonExpressionCode( context, comparator, order_relevance, left,
     )
 
 
-def getComparisonExpressionBoolCode( context, comparator, order_relevance, left,
-                                     right ):
+def getComparisonExpressionBoolCode(context, comparator, order_relevance, left,
+                                    right):
     # There is an awful lot of cases, pylint: disable=R0912
 
     if comparator in OperatorCodes.normal_comparison_codes:
         helper = "%s_BOOL" % (
             OperatorCodes.normal_comparison_codes[ comparator ]
         )
-        assert helper.startswith( "SEQUENCE_CONTAINS" )
+        assert helper.startswith("SEQUENCE_CONTAINS")
     elif comparator in OperatorCodes.rich_comparison_codes:
         helper = "RICH_COMPARE_BOOL_%s" % (
             OperatorCodes.rich_comparison_codes[ comparator ]
@@ -1133,8 +1133,8 @@ def getExceptionRefCode(exception_type):
         0
     )
 
-def getMakeBuiltinExceptionCode( context, order_relevance, exception_type,
-                                 exception_args ):
+def getMakeBuiltinExceptionCode(context, order_relevance, exception_type,
+                                exception_args):
 
     return getCallCodePosArgs(
         called_identifier = getExceptionRefCode( exception_type ),
@@ -1385,8 +1385,8 @@ def getFutureFlagsCode(future_spec):
     else:
         return 0
 
-def getCompileCode( context, order_relevance, source_identifier,
-                    filename_identifier, mode_identifier, future_flags ):
+def getCompileCode(context, order_relevance, source_identifier,
+                   filename_identifier, mode_identifier, future_flags):
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "COMPILE_CODE",
         export_ref      = 0,
@@ -1403,9 +1403,9 @@ def getCompileCode( context, order_relevance, source_identifier,
     )
 
 
-def getEvalCode( context, order_relevance, exec_code, filename_identifier,
-                 globals_identifier, locals_identifier, mode_identifier,
-                 future_flags ):
+def getEvalCode(context, order_relevance, exec_code, filename_identifier,
+                globals_identifier, locals_identifier, mode_identifier,
+                future_flags):
     code_identifier = getCompileCode(
         order_relevance     = [ None ] * 4, # TODO: Probably wrong.
         source_identifier   = exec_code,

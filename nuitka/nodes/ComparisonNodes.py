@@ -67,7 +67,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
         return { "comparator" : self.comparator }
 
     def getSimulator(self):
-        return PythonOperators.all_comparison_functions[ self.comparator ]
+        return PythonOperators.all_comparison_functions[self.comparator]
 
     def computeExpression(self, constraint_collection):
         # Left and right is all we need, pylint: disable=W0613
