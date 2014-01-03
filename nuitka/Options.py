@@ -532,7 +532,7 @@ def shallDumpBuiltTreeXML():
 def shallDisplayBuiltTree():
     return options.display_tree
 
-def shallOnlyExecGcc():
+def shallOnlyExecCppCall():
     return options.cpp_only
 
 def shallHaveStatementLines():

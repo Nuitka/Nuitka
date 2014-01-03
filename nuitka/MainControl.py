@@ -81,7 +81,10 @@ def createNodeTree(filename):
     # module, and standalone mode program directory if any, they can only do
     # harm.
     source_dir = getSourceDirectoryPath(main_module)
-    cleanSourceDirectory(source_dir)
+
+    if not Options.shallOnlyExecCppCall():
+        cleanSourceDirectory(source_dir)
+
     if Options.isStandaloneMode():
         standalone_dir = getStandaloneDirectoryPath(main_module)
         shutil.rmtree(standalone_dir, ignore_errors = True)
@@ -553,7 +556,7 @@ def executeModule(tree, clean_path):
 def compileTree(main_module):
     source_dir = getSourceDirectoryPath(main_module)
 
-    if not Options.shallOnlyExecGcc():
+    if not Options.shallOnlyExecCppCall():
         # Now build the target language code for the whole tree.
         makeSourceDirectory(
             main_module = main_module
