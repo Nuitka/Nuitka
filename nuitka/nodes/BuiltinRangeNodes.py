@@ -75,6 +75,11 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
 
             if child.getIntegerValue() is None:
                 return True
+
+            if python_version >= 270 and \
+               child.isExpressionConstantRef() and \
+               type(child.getConstant()) is float:
+                return True
         else:
             return False
 
@@ -152,7 +157,9 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
         low  = self.getLow()
 
         return self.computeBuiltinSpec(
-            given_values = ( low, )
+            given_values = (
+                low,
+            )
         )
 
     def getIterationLength(self):
@@ -161,7 +168,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
         if low is None:
             return None
 
-        return max( 0, low )
+        return max(0, low)
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
@@ -180,7 +187,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
         # TODO: Make sure to cast element_index to what CPython will give, for
         # now a downcast will do.
         return makeConstantReplacementNode(
-            constant = int( element_index ),
+            constant = int(element_index),
             node     = self
         )
 
