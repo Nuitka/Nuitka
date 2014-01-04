@@ -88,3 +88,6 @@ def displayDict(d):
 
 print "Module frame locals", displayDict( sys._getframe().f_locals )
 print "Module flags", sys._getframe().f_code.co_flags  | 64
+print "Module code name", sys._getframe().f_code.co_name
+
+print "Module frame dir", dir(sys._getframe())

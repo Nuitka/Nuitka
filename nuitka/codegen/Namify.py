@@ -173,6 +173,8 @@ def _namifyString(string):
         return "space"
     elif string == ".":
         return "dot"
+    elif string == "\n":
+        return "newline"
     elif type( string ) is str and \
          _re_str_needs_no_digest.match( string ) and \
          "\n" not in string:

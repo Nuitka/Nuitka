@@ -47,16 +47,15 @@ static PyMemberDef Nuitka_Method_members[] =
 
 static PyObject *Nuitka_Method_reduce( Nuitka_MethodObject *method )
 {
+    PyObject *result = PyTuple_New(2);
+    PyTuple_SET_ITEM( result, 0, INCREASE_REFCOUNT( (PyObject *)Py_TYPE( method ) ) );
+    PyObject *arg1 = PyTuple_New(2);
+    PyTuple_SET_ITEM( result, 1, arg1 );
 
-    return MAKE_TUPLE2(
-        (PyObject *)Py_TYPE( method ),
-        PyObjectTemporary(
-            MAKE_TUPLE2(
-                (PyObject *)method->m_function,
-                method->m_object
-            )
-        ).asObject0()
-    );
+    PyTuple_SET_ITEM( arg1, 0, INCREASE_REFCOUNT( (PyObject *)method->m_function ) );
+    PyTuple_SET_ITEM( arg1, 1, INCREASE_REFCOUNT( method->m_object ) );
+
+    return result;
 }
 
 static PyMethodDef Nuitka_Method_methods[] =
@@ -348,8 +347,8 @@ static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
     }
     else
     {
-        // Note: CPython uses repr ob the object, although a comment despises it, we
-        // do it for compatibility.
+        // Note: CPython uses repr ob the object, although a comment despises
+        // it, we do it for compatibility.
         PyObject *object_repr = PyObject_Repr( method->m_object );
 
         if ( object_repr == NULL )
@@ -618,7 +617,7 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
             Nuitka_String_AsString( function->m_name )
         );
 
-        throw PythonException();
+        return NULL;
     }
 
     result->m_function = (Nuitka_FunctionObject * )INCREASE_REFCOUNT( (PyObject *)function );

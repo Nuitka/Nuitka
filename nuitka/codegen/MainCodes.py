@@ -26,7 +26,6 @@ frame object data (filename, etc).
 
 from .ConstantCodes import getConstantCode
 from .CodeObjectCodes import getCodeObjectHandle
-from .Identifiers import NullIdentifier
 
 from . import CodeTemplates
 
@@ -34,11 +33,11 @@ from nuitka import Options, Utils
 
 import sys
 
-def getMainCode(codes, context):
+def getMainCode(main_module, codes, context):
     python_flags = Options.getPythonFlags()
 
     if context.isEmptyModule():
-        code_identifier = NullIdentifier()
+        code_identifier = "NULL"
     else:
         code_identifier = getCodeObjectHandle(
             context       = context,
@@ -51,7 +50,10 @@ def getMainCode(codes, context):
             is_generator  = False,
             is_optimized  = False,
             has_starlist  = False,
-            has_stardict  = False
+            has_stardict  = False,
+            has_closure   = False,
+            future_flags  = main_module.getSourceReference().getFutureSpec().\
+                              asFlags()
         )
 
     main_code        = CodeTemplates.main_program % {
@@ -83,7 +85,7 @@ def getMainCode(codes, context):
         "python_sysflag_bytes_warning" : sys.flags.bytes_warning,
         "python_sysflag_hash_randomization" : ( sys.flags.hash_randomization
             if (hasattr( sys.flags, "hash_randomization" ) and "no_randomization" not in python_flags) else 0 ),
-        "code_identifier"      : code_identifier.getCodeTemporaryRef()
+        "code_identifier"      : code_identifier
     }
 
     return codes + main_code

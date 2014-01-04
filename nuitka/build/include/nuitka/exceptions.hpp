@@ -32,6 +32,31 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_ERROR_OCCURED( void )
     return tstate->curexc_type;
 }
 
+NUITKA_MAY_BE_UNUSED static void FETCH_ERROR( PyObject **exception_type, PyObject **exception_value, PyObject **exception_traceback)
+{
+   PyThreadState *tstate = PyThreadState_GET();
+
+   *exception_type = tstate->curexc_type;
+   *exception_value = tstate->curexc_value;
+   *exception_traceback = tstate->curexc_traceback;
+
+   tstate->curexc_type = NULL;
+   tstate->curexc_value = NULL;
+   tstate->curexc_traceback = NULL;
+}
+
+NUITKA_MAY_BE_UNUSED static bool HAS_STOP_ITERATION_OCCURED( void )
+{
+    if ( PyErr_ExceptionMatches( PyExc_StopIteration ) )
+    {
+        PyErr_Clear();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
@@ -42,7 +67,7 @@ NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
 
     while( traceback )
     {
-        puts( " Frame object chain:" );
+        printf( " line %d (frame object chain):\n", traceback->tb_lineno );
 
         PyFrameObject *frame = traceback->tb_frame;
 
@@ -53,6 +78,7 @@ NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
             frame = frame->f_back;
         }
 
+        assert( traceback->tb_next != traceback );
         traceback = traceback->tb_next;
     }
 
@@ -72,7 +98,7 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *INCREASE_REFCOUNT_X( PyTracebackO
     return traceback_object;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TRACEBACK( PyFrameObject *frame )
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame )
 {
     // assertFrameObject( frame );
 
@@ -86,8 +112,28 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TRACEBACK( PyFrameObject *frame )
 
     Nuitka_GC_Track( result );
 
-    return (PyObject *)result;
+    return result;
 }
+
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyFrameObject *frame, PyTracebackObject *exception_tb )
+{
+    Py_INCREF( frame );
+
+    if ( exception_tb->tb_frame != frame || exception_tb->tb_lineno != frame->f_lineno )
+    {
+        PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( frame );
+
+        traceback_new->tb_next = exception_tb;
+
+        return traceback_new;
+    }
+    else
+    {
+        return exception_tb;
+    }
+
+}
+
 
 #if PYTHON_VERSION < 300
 extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_str_plain_exc_traceback;
@@ -95,7 +141,7 @@ extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_st
 
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
-inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb )
+inline void SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb )
 {
     PyThreadState *thread_state = PyThreadState_GET();
 
@@ -103,9 +149,9 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     PyObject *old_value = thread_state->exc_value;
     PyObject *old_tb    = thread_state->exc_traceback;
 
-    thread_state->exc_type = INCREASE_REFCOUNT_X( exception_type );
-    thread_state->exc_value = INCREASE_REFCOUNT_X( exception_value );
-    thread_state->exc_traceback = (PyObject *)INCREASE_REFCOUNT_X( exception_tb );
+    thread_state->exc_type = exception_type;
+    thread_state->exc_value = exception_value;
+    thread_state->exc_traceback = (PyObject *)exception_tb;
 
     Py_XDECREF( old_type );
     Py_XDECREF( old_value );
@@ -119,7 +165,57 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     PyDict_SetItem( sys_dict, const_str_plain_exc_type, exception_type ? exception_type : Py_None );
     PyDict_SetItem( sys_dict, const_str_plain_exc_value, exception_value ? exception_value : Py_None );
     PyDict_SetItem( sys_dict, const_str_plain_exc_traceback, exception_tb ? (PyObject *)exception_tb : Py_None );
+
+    if ( exception_type )
+        assert( Py_REFCNT( exception_type ) >= 2 );
+    if ( exception_value )
+        assert( Py_REFCNT( exception_value ) >= 2 );
+    if ( exception_tb )
+        assert( Py_REFCNT( exception_tb ) >= 2 );
 #endif
+}
+
+inline void PRESERVE_FRAME_EXCEPTION( PyFrameObject *frame_object )
+{
+    // Setting exception for frame if not already done.
+    if ( frame_object->f_exc_type == NULL )
+    {
+        PyThreadState *thread_state = PyThreadState_GET();
+
+        if ( thread_state->exc_type != NULL && thread_state->exc_type != Py_None )
+        {
+            frame_object->f_exc_type = INCREASE_REFCOUNT( thread_state->exc_type );
+            frame_object->f_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
+            frame_object->f_exc_traceback = INCREASE_REFCOUNT_X( thread_state->exc_traceback );
+        }
+        else
+        {
+            frame_object->f_exc_type = INCREASE_REFCOUNT( Py_None );
+            frame_object->f_exc_value = NULL;
+            frame_object->f_exc_traceback = NULL;
+        }
+    }
+}
+
+inline void RESTORE_FRAME_EXCEPTION( PyFrameObject *frame_object )
+{
+    if ( frame_object->f_exc_type )
+    {
+        SET_CURRENT_EXCEPTION( frame_object->f_exc_type, frame_object->f_exc_value, (PyTracebackObject *)frame_object->f_exc_traceback );
+
+        frame_object->f_exc_type = NULL;
+        frame_object->f_exc_value = NULL;
+        frame_object->f_exc_traceback = NULL;
+    }
+}
+
+inline void PUBLISH_EXCEPTION( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb )
+{
+    SET_CURRENT_EXCEPTION( *exception_type, *exception_value, *exception_tb );
+
+    *exception_type = NULL;
+    *exception_value = NULL;
+    *exception_tb = NULL;
 }
 
 inline void NORMALIZE_EXCEPTION( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb )
@@ -127,374 +223,41 @@ inline void NORMALIZE_EXCEPTION( PyObject **exception_type, PyObject **exception
     PyErr_NormalizeException( exception_type, exception_value, (PyObject **)exception_tb );
 }
 
-
 class PythonException
 {
 public:
     PythonException()
     {
-        this->_importFromPython();
     }
+};
 
-    PythonException( PyObject *exception )
-    {
-        assertObject( exception );
 
-        Py_INCREF( exception );
-
-        this->exception_type = exception;
-        this->exception_value = NULL;
-        this->exception_tb = NULL;
-    }
-
-    PythonException( PyObject *exception, PyTracebackObject *traceback )
-    {
-        assertObject( exception );
-        assertObject( traceback );
-
-        this->exception_type = exception;
-        this->exception_value = NULL;
-        this->exception_tb = traceback;
-    }
-
-    PythonException( PyObject *exception, PyObject *value, PyTracebackObject *traceback )
-    {
-        assertObject( exception );
-        assert( value == NULL || Py_REFCNT( value ) > 0 );
-        assert( traceback == NULL || Py_REFCNT( traceback ) > 0 );
-
-        this->exception_type = exception;
-        this->exception_value = value;
-        this->exception_tb = traceback;
-    }
-
-    PythonException( const PythonException &other )
-    {
-        this->exception_type  = other.exception_type;
-        this->exception_value = other.exception_value;
-        this->exception_tb    = other.exception_tb;
-
-        Py_XINCREF( this->exception_type );
-        Py_XINCREF( this->exception_value );
-        Py_XINCREF( this->exception_tb );
-    }
-
-    void operator=( const PythonException &other )
-    {
-        Py_XINCREF( other.exception_type );
-        Py_XINCREF( other.exception_value );
-        Py_XINCREF( other.exception_tb );
-
-        Py_XDECREF( this->exception_type );
-        Py_XDECREF( this->exception_value );
-        Py_XDECREF( this->exception_tb );
-
-        this->exception_type  = other.exception_type;
-        this->exception_value = other.exception_value;
-        this->exception_tb    = other.exception_tb;
-    }
-
-    ~PythonException()
-    {
-        Py_XDECREF( this->exception_type );
-        Py_XDECREF( this->exception_value );
-        Py_XDECREF( this->exception_tb );
-    }
-
-    inline void _importFromPython()
-    {
-        PyErr_Fetch( &this->exception_type, &this->exception_value, (PyObject **)&this->exception_tb );
-
-        assertObject( this->exception_type );
-    }
-
-    inline void normalize()
-    {
-        NORMALIZE_EXCEPTION( &this->exception_type, &this->exception_value, &this->exception_tb );
-
+NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL( PyObject *exception_value, PyObject *exception_checked )
+{
 #if PYTHON_VERSION >= 300
-        PyException_SetTraceback( this->exception_value, (PyObject *)this->exception_tb );
-#endif
-    }
-
-    inline bool matches( PyObject *exception ) const
+    if ( PyTuple_Check( exception_checked ))
     {
-#if PYTHON_VERSION >= 300
-        if ( PyTuple_Check( exception ))
+        Py_ssize_t length = PyTuple_Size( exception_checked );
+
+        for ( Py_ssize_t i = 0; i < length; i += 1 )
         {
-            Py_ssize_t length = PyTuple_Size( exception );
+            PyObject *element = PyTuple_GET_ITEM( exception_checked, i );
 
-            for ( Py_ssize_t i = 0; i < length; i += 1 )
+            if (unlikely( !PyExceptionClass_Check( element ) ))
             {
-                PyObject *element = PyTuple_GET_ITEM( exception, i );
-
-                if (unlikely( !PyExceptionClass_Check( element ) ))
-                {
-                    PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
-                    throw PythonException();
-                }
+                PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
+                return -1;
             }
         }
-        else if (unlikely( !PyExceptionClass_Check( exception ) ))
-        {
-            PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
-            throw PythonException();
-        }
-#endif
-
-        return
-            PyErr_GivenExceptionMatches( this->exception_type, exception ) ||
-            PyErr_GivenExceptionMatches( this->exception_value, exception );
     }
-
-    inline void toPython()
+    else if (unlikely( !PyExceptionClass_Check( exception_checked ) ))
     {
-        PyErr_Restore( this->exception_type, this->exception_value, (PyObject *)this->exception_tb );
-
-        assert( this->exception_type );
-
-#ifndef __NUITKA_NO_ASSERT__
-        PyThreadState *thread_state = PyThreadState_GET();
-#endif
-
-        assert( this->exception_type == thread_state->curexc_type );
-        assert( thread_state->curexc_type );
-
-        this->exception_type  = NULL;
-        this->exception_value = NULL;
-        this->exception_tb    = NULL;
-    }
-
-    inline void toExceptionHandler()
-    {
-        this->normalize();
-
-        _SET_CURRENT_EXCEPTION( this->exception_type, this->exception_value, this->exception_tb );
-    }
-
-    inline PyObject *getType()
-    {
-        if ( this->exception_value == NULL )
-        {
-            this->normalize();
-        }
-
-        return this->exception_type;
-    }
-
-    inline PyObject *getValue()
-    {
-        if ( this->exception_value == NULL )
-        {
-            this->normalize();
-        }
-
-        return this->exception_value;
-    }
-
-
-    inline PyTracebackObject *getTraceback() const
-    {
-        return (PyTracebackObject *)this->exception_tb;
-    }
-
-    inline void addTraceback( PyFrameObject *frame )
-    {
-        assert( this->exception_tb );
-
-#if 0
-        printf( "addTraceback %p %s %p %s %d %d\n", exception_tb->tb_frame, PyString_AsString( exception_tb->tb_frame->f_code->co_name ), frame, PyString_AsString( frame->f_code->co_name ), this->exception_tb->tb_lineno, frame->f_lineno );
-#endif
-
-        if ( this->exception_tb->tb_frame != frame || this->exception_tb->tb_lineno != frame->f_lineno )
-        {
-            Py_INCREF( frame );
-            PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( frame );
-
-            traceback_new->tb_next = this->exception_tb;
-            this->exception_tb = traceback_new;
-        }
-    }
-
-    inline void setTraceback( PyTracebackObject *traceback )
-    {
-        assert( traceback == NULL || Py_REFCNT( traceback ) > 0 );
-
-        PyTracebackObject *old = this->exception_tb;
-
-        this->exception_tb = traceback;
-
-        Py_XDECREF( old );
-    }
-
-    inline void setTraceback( PyObject *traceback )
-    {
-        assert( PyTraceBack_Check( traceback ) );
-        return this->setTraceback( (PyTracebackObject *)traceback );
-    }
-
-    inline bool hasTraceback() const
-    {
-        return this->exception_tb != NULL;
-    }
-
-    void setType( PyObject *exception_type )
-    {
-        Py_XDECREF( this->exception_type );
-        this->exception_type = exception_type;
-    }
-
-#if PYTHON_VERSION >= 300
-    void setCause( PyObject *exception_cause )
-    {
-        PyException_SetCause( this->exception_value, exception_cause );
+        PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
+        return -1;
     }
 #endif
 
-    void dump() const
-    {
-        PRINT_ITEM_TO( NULL, this->exception_type );
-    }
-
-private:
-
-    friend class PythonExceptionKeeper;
-
-    // For the restore of saved ones.
-    PythonException( PyObject *exception, PyObject *value, PyObject *traceback )
-    {
-        this->exception_type = exception;
-        this->exception_value = value;
-        this->exception_tb = (PyTracebackObject *)traceback;
-    }
-
-
-    PyObject *exception_type, *exception_value;
-    PyTracebackObject *exception_tb;
-};
-
-
-class PythonExceptionKeeper
-{
-public:
-    PythonExceptionKeeper()
-    {
-        this->keeping = false;
-
-#ifndef __NUITKA_NO_ASSERT__
-        this->exception_type = NULL;
-        this->exception_value = NULL;
-        this->exception_tb = NULL;
-#endif
-    }
-
-    ~PythonExceptionKeeper()
-    {
-        if ( this->keeping )
-        {
-            Py_XDECREF( this->exception_type );
-            Py_XDECREF( this->exception_value );
-            Py_XDECREF( this->exception_tb );
-        }
-    }
-
-    void save( const PythonException &e )
-    {
-        this->exception_type  = INCREASE_REFCOUNT_X( e.exception_type );
-        this->exception_value = INCREASE_REFCOUNT_X( e.exception_value );
-        this->exception_tb    = INCREASE_REFCOUNT_X( e.exception_tb );
-
-        this->keeping = true;
-    }
-
-    void rethrow()
-    {
-        if ( this->keeping )
-        {
-            Py_XINCREF( this->exception_type );
-            Py_XINCREF( this->exception_value );
-            Py_XINCREF( this->exception_tb );
-
-            // Restore the frame line number from the traceback, if
-            // present. Otherwise it will changed already.
-            if ( this->exception_tb )
-            {
-                this->exception_tb->tb_frame->f_lineno = this->exception_tb->tb_lineno;
-            }
-
-            throw PythonException( this->exception_type, this->exception_value, this->exception_tb );
-        }
-    }
-
-    bool isEmpty() const
-    {
-        return !this->keeping;
-    }
-
-private:
-
-
-    PythonExceptionKeeper( const PythonExceptionKeeper &other )
-    {
-        assert( false );
-    }
-
-    bool keeping;
-
-    PyObject *exception_type, *exception_value;
-    PyTracebackObject *exception_tb;
-};
-
-class ContinueException
-{
-};
-
-class BreakException
-{
-};
-
-class ReturnValueException
-{
-public:
-
-    explicit ReturnValueException( PyObject *value )
-    {
-        // Always called with extra reference, whose ownership is transfered to
-        // us here.
-        assertObject( value );
-
-        this->value = value;
-    }
-
-    ReturnValueException( const ReturnValueException &other )
-    {
-        this->value = other.getValue1();
-    }
-
-
-    ~ReturnValueException()
-    {
-        assertObject( value );
-
-        Py_DECREF( this->value );
-    }
-
-    PyObject *getValue0() const
-    {
-        return this->value;
-    }
-
-    PyObject *getValue1() const
-    {
-        return INCREASE_REFCOUNT( this->value );
-    }
-
-private:
-
-
-    PyObject *value;
-
-};
-
+    return PyErr_GivenExceptionMatches( exception_value, exception_checked );
+}
 
 #endif

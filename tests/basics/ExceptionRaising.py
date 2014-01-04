@@ -15,35 +15,39 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
+
 import sys
 
-print "Raising an exception type in a function:"
+print("Raising an exception type in a function:")
 
 def raiseExceptionClass():
     raise ValueError
 
 try:
     raiseExceptionClass()
-except Exception, e:
-    print "Caught exception", e, repr(e), type(e)
+except Exception as e:
+    print("Caught exception type", e, repr(e), type(e))
+    print("Inside handler, sys.exc_info is this", sys.exc_info())
 
-print "After catching, sys.exc_info is this", sys.exc_info()
-print "*" * 20
+print("After catching, sys.exc_info is this", sys.exc_info())
+print("*" * 20)
 
-print "Raising an exception instance in a function:"
+print("Raising an exception instance in a function:")
 
 def raiseExceptionInstance():
-    raise ValueError( "hallo" )
+    raise ValueError("hallo")
 
 try:
     raiseExceptionInstance()
-except Exception, f:
-    print "Caught exception", f, repr(f), type(f)
+except Exception as f:
+    print("Caught exception instance", f, repr(f), type(f))
+    print("Inside handler, sys.exc_info is this", sys.exc_info())
 
-print "After catching, sys.exc_info is this", sys.exc_info()
-print "*" * 20
+print("After catching, sys.exc_info is this", sys.exc_info())
+print("*" * 20)
 
-print "Raising an exception, then catch it to re-raise it:"
+print("Raising an exception, then catch it to re-raise it:")
 
 def raiseExceptionAndReraise():
     try:
@@ -55,12 +59,12 @@ def raiseExceptionAndReraise():
 try:
     raiseExceptionAndReraise()
 except:
-    print "Catched reraised"
+    print("Catched reraised", sys.exc_info())
 
-print "After catching, sys.exc_info is this", sys.exc_info()
-print "*" * 20
+print("After catching, sys.exc_info is this", sys.exc_info())
+print("*" * 20)
 
-print "Access an undefined global variable in a function:"
+print("Access an undefined global variable in a function:")
 
 def raiseNonGlobalError():
     return undefined_value
@@ -68,12 +72,12 @@ def raiseNonGlobalError():
 try:
    raiseNonGlobalError()
 except:
-   print "NameError caught"
+   print("NameError caught", sys.exc_info())
 
-print "After catching, sys.exc_info is this", sys.exc_info()
-print "*" * 20
+print("After catching, sys.exc_info is this", sys.exc_info())
+print("*" * 20)
 
-print "Raise a new style class as an exception, should be rejected:"
+print("Raise a new style class as an exception, should be rejected:")
 
 def raiseIllegalError():
     class X(object):
@@ -83,16 +87,16 @@ def raiseIllegalError():
 
 try:
     raiseIllegalError()
-except TypeError, E:
-    print "New style class exception correctly rejected:", E
+except TypeError as E:
+    print("New style class exception correctly rejected:", E)
 except:
-    print sys.exc_info()
+    print(sys.exc_info())
     assert False, "Error, new style class exception was not rejected"
 
-print "After catching, sys.exc_info is this", sys.exc_info()
-print "*" * 20
+print("After catching, sys.exc_info is this", sys.exc_info())
+print("*" * 20)
 
-print "Raise an old-style class, version dependent outcome:"
+print("Raise an old-style class, version dependent outcome:")
 
 class ClassicClassException:
     pass
@@ -104,20 +108,20 @@ try:
     try:
         raiseCustomError()
     except ClassicClassException:
-        print "Caught classic class exception"
+        print("Caught classic class exception")
     except:
-        print sys.exc_info()
+        print("Default catch", sys.exc_info())
 
         assert False, "Error, old style class exception was not caught"
-except TypeError, e:
-    print "Python3 hates to even try and catch classic classes", e
+except TypeError as e:
+    print("Python3 hates to even try and catch classic classes", e)
 else:
-    print "Classic exception catching was considered fine."
+    print("Classic exception catching was considered fine.")
 
-print "After catching, sys.exc_info is this", sys.exc_info()
-print "*" * 20
+print("After catching, sys.exc_info is this", sys.exc_info())
+print("*" * 20)
 
-print "Checking tracebacks:"
+print("Checking tracebacks:")
 
 def checkTraceback():
     import sys, traceback
@@ -129,37 +133,37 @@ def checkTraceback():
         assert sys.exc_info()[1] is not None
         assert sys.exc_info()[2] is not None
 
-        print "Check traceback:"
+        print("Check traceback:")
 
         traceback.print_tb( sys.exc_info()[2], file = sys.stdout )
 
-        print "End of traceback"
+        print("End of traceback")
 
-        print "Type is", sys.exc_info()[0]
-        print "Value is", sys.exc_info()[1]
+        print("Type is", sys.exc_info()[0])
+        print("Value is", sys.exc_info()[1])
 
 checkTraceback()
 
-print "*" * 20
+print("*" * 20)
 
-print "Check lazy exception creation:"
+print("Check lazy exception creation:")
 
 def checkExceptionConversion():
     try:
-        raise Exception( "some string")
-    except Exception, err:
-        print "Catched raised object", err, type( err )
+        raise Exception("some string")
+    except Exception as err:
+        print("Catched raised object", err, type(err))
 
     try:
         raise Exception, "some string"
-    except Exception, err:
-        print "Catched raised type, value pair", err, type( err )
+    except Exception as err:
+        print("Catched raised type, value pair", err, type(err))
 
 
 checkExceptionConversion()
-print "*" * 20
+print("*" * 20)
 
-print "Check exc_info scope:"
+print("Check exc_info scope:")
 
 def checkExcInfoScope():
     try:
@@ -170,33 +174,33 @@ def checkExcInfoScope():
         assert sys.exc_info()[2] is not None
 
     if sys.version_info[0] < 3:
-        print "Exc_info remains visible after exception handler for Python2"
+        print("Exc_info remains visible after exception handler for Python2")
 
         assert sys.exc_info()[0] is not None
         assert sys.exc_info()[1] is not None
         assert sys.exc_info()[2] is not None
     else:
-        print "Exc_info is clear after exception handler for Python3"
+        print("Exc_info is clear after exception handler for Python3")
 
         assert sys.exc_info()[0] is None
         assert sys.exc_info()[1] is None
         assert sys.exc_info()[2] is None
 
     def subFunction():
-        print "Entering with exception info", sys.exc_info()
+        print("Entering with exception info", sys.exc_info())
 
         assert sys.exc_info()[0] is not None
         assert sys.exc_info()[1] is not None
         assert sys.exc_info()[2] is not None
 
         try:
-            print "Trying"
+            print("Trying")
         except:
             pass
 
-        print "After trying something and didn't have an exception, info is", sys.exc_info()
+        print("After trying something and didn't have an exception, info is", sys.exc_info())
 
-    print "Call a function inside the exception handler and check there too."
+    print("Call a function inside the exception handler and check there too.")
 
     try:
         raise KeyError
@@ -207,7 +211,7 @@ def checkExcInfoScope():
 
         subFunction()
 
-    print "Call it twice and see."
+    print("Call it twice and see.")
 
     try:
         raise "me"
@@ -225,7 +229,7 @@ if sys.version_info[0] < 3:
 
 checkExcInfoScope()
 
-print "*" * 20
+print("*" * 20)
 
 # Check that the sys.exc_info is cleared again, after being set inside the
 # function checkExcInfoScope, it should now be clear again.
@@ -233,7 +237,7 @@ assert sys.exc_info()[0] is None, sys.exc_info()[0]
 assert sys.exc_info()[1] is None
 assert sys.exc_info()[2] is None
 
-print "Check catching subclasses"
+print("Check catching subclasses")
 
 def checkDerivedCatch():
     class A(BaseException):
@@ -248,49 +252,49 @@ def checkDerivedCatch():
     try:
         raise A, b
     except B, v:
-        print "Caught B", v
+        print("Caught B", v)
     except A, v:
-        print "Didn't catch as B, but as A, Python3 does that", v
+        print("Didn't catch as B, but as A, Python3 does that", v)
     else:
-        print "Not caught A class, not allowed to happen."
+        print("Not caught A class, not allowed to happen.")
 
     try:
         raise B, a
     except TypeError, e:
-        print "TypeError with pair form for class not taking args:", e
+        print("TypeError with pair form for class not taking args:", e)
 
 
 checkDerivedCatch()
 
-print "*" * 20
+print("*" * 20)
 
 
 def checkNonCatch1():
-    print "Testing if the else branch is executed in the optimizable case:"
+    print("Testing if the else branch is executed in the optimizable case:")
 
     try:
         0
     except TypeError:
-        print "Should not catch"
+        print("Should not catch")
     else:
-        print "Executed else branch correctly"
+        print("Executed else branch correctly")
 
 checkNonCatch1()
-print "*" * 20
+print("*" * 20)
 
 def checkNonCatch2():
     try:
-        print "Testing if the else branch is executed in the non-optimizable case:"
+        print("Testing if the else branch is executed in the non-optimizable case:")
     except TypeError:
-        print "Should not catch"
+        print("Should not catch")
     else:
-        print "Executed else branch correctly"
+        print("Executed else branch correctly")
 
 
 checkNonCatch2()
-print "*" * 20
+print("*" * 20)
 
-print "Checking raise that with exception arguments that raise error themselves."
+print("Checking raise that with exception arguments that raise error themselves.")
 
 
 def checkRaisingRaise():
@@ -299,38 +303,38 @@ def checkRaisingRaise():
 
     try:
         geterror()
-    except Exception, e:
-        print "Had exception", e
+    except Exception as e:
+        print("Had exception", e)
 
     try:
         raise TypeError, geterror()
 
-    except Exception, e:
-        print "Had exception", e
+    except Exception as e:
+        print("Had exception", e)
 
     try:
         raise TypeError, 7, geterror()
 
-    except Exception, e:
-        print "Had exception", e
+    except Exception as e:
+        print("Had exception", e)
 
 
 checkRaisingRaise()
-print "*" * 20
+print("*" * 20)
 
-print "Checking a re-raise that isn't one:"
+print("Checking a re-raise that isn't one:")
 
 def checkMisRaise():
     raise
 
 try:
     checkMisRaise()
-except Exception, e:
-    print "Without existing exception, re-raise gives:", e
+except Exception as e:
+    print("Without existing exception, re-raise gives:", e)
 
-print "*" * 20
+print("*" * 20)
 
-print "Raising an exception in an exception handler gives:"
+print("Raising an exception in an exception handler gives:")
 
 def nestedExceptions(a, b):
     try:
@@ -339,24 +343,26 @@ def nestedExceptions(a, b):
         a / b
 
 try:
-    nestedExceptions( 1, 0 )
-except Exception, e:
-    print "Nested exception gives", e
+    nestedExceptions(1, 0)
+except Exception as e:
+    print("Nested exception gives", e)
 
-print "*" * 20
+print("*" * 20)
 
-print "Checking unpacking from an exception as a sequence:"
+print("Checking unpacking from an exception as a sequence:")
 
 def unpackingCatcher():
     try:
         raise ValueError(1,2)
     except ValueError as (a,b):
-        print "Unpacking caught exception and unpacked", a, b
+        print("Unpacking caught exception and unpacked", a, b)
 
 unpackingCatcher()
-print "*" * 20
+print("Afterwards, exception info is", sys.exc_info())
 
-print "Testing exception that escapes __del__ and therefore cannot be raised"
+print("*" * 20)
+
+print("Testing exception that escapes __del__ and therefore cannot be raised")
 
 def unraisableExceptionInDel():
     class C:
@@ -369,9 +375,9 @@ def unraisableExceptionInDel():
     f()
 
 unraisableExceptionInDel()
-print "*" * 20
+print("*" * 20)
 
-print "Testing exception changes between generator switches:"
+print("Testing exception changes between generator switches:")
 
 def yieldExceptionInteraction():
     def yield_raise():
@@ -383,21 +389,21 @@ def yieldExceptionInteraction():
         yield sys.exc_info()[0]
 
     g = yield_raise()
-    print "Initial yield from catch in generator", next( g )
-    print "Checking from here", sys.exc_info()[0]
-    print "Second yield from the catch reentered", next( g )
-    print "Checking from here again ", sys.exc_info()[0]
-    print "After leaving the catch generator yielded", next( g )
+    print("Initial yield from catch in generator", next(g))
+    print("Checking from outside of generator", sys.exc_info()[0])
+    print("Second yield from the catch reentered", next(g))
+    print("Checking from outside of generator", sys.exc_info()[0])
+    print("After leaving the catch generator yielded", next(g))
 
 yieldExceptionInteraction()
-print "*" * 20
+print("*" * 20)
 
-print "Testing exception change between generator switches while handling an own exception"
+print("Testing exception change between generator switches while handling an own exception")
 
 def yieldExceptionInteraction2():
 
     def yield_raise():
-        print "Yield finds at generator entry", sys.exc_info()[0]
+        print("Yield finds at generator entry", sys.exc_info()[0])
         try:
             raise ValueError("caught")
         except ValueError:
@@ -408,19 +414,19 @@ def yieldExceptionInteraction2():
     try:
         z
     except Exception:
-        print "Checking from here", sys.exc_info()[0]
+        print("Checking from outside of generator with", sys.exc_info()[0])
         g = yield_raise()
-        v = next( g )
-        print "Initial yield from catch in generator", v
-        print "Checking from here", sys.exc_info()[0]
-        print "Second yield from the catch reentered", next( g )
-        print "Checking from here again ", sys.exc_info()[0]
-        print "After leaving the catch generator yielded", next( g )
+        v = next(g)
+        print("Initial yield from catch in generator", v)
+        print("Checking from outside the generation ", sys.exc_info()[0])
+        print("Second yield from the catch reentered", next(g))
+        print("Checking from outside the generation again ", sys.exc_info()[0])
+        print("After leaving the catch generator yielded", next(g))
 
 yieldExceptionInteraction2()
-print "*" * 20
+print("*" * 20)
 
-print "Check what happens if a function attempts to clear the exception in a handler"
+print("Check what happens if a function attempts to clear the exception in a handler")
 
 def clearingException():
     def clearit():
@@ -433,15 +439,15 @@ def clearingException():
     try:
         raise KeyError
     except:
-        print "Before clearing, it's", sys.exc_info()
+        print("Before clearing, it's", sys.exc_info())
         clearit()
 
-        print "After clearing, it's", sys.exc_info()
+        print("After clearing, it's", sys.exc_info())
 
 clearingException()
-print "*" * 20
+print("*" * 20)
 
-print "Check that multiple exceptions can be caught in a handler through a variable:"
+print("Check that multiple exceptions can be caught in a handler through a variable:")
 
 def multiCatchViaTupleVariable():
     some_exceptions = (KeyError, ValueError)
@@ -449,7 +455,7 @@ def multiCatchViaTupleVariable():
     try:
         raise KeyError
     except some_exceptions:
-        print "Yes, indeed."
+        print("Yes, indeed.")
 
 multiCatchViaTupleVariable()
 
@@ -457,11 +463,64 @@ def raiseValueWithValue():
     try:
         raise ValueError(1,2,3), (ValueError(1,2,3))
     except Exception as e:
-        print "Gives", e
+        print("Gives", e)
 
-print "Check exception given when value is raised with value", raiseValueWithValue()
+print("Check exception given when value is raised with value", raiseValueWithValue())
 
-# Make sure the repr is fine, at one time for Python3, they were actually really string objects, unnoticed:
+# Make sure the repr of exceptions is fine
 
 a = IOError
-print repr(a)
+print("IOError is represented correctly:", repr(a))
+
+def raising():
+    raise ValueError
+
+def not_raising():
+    pass
+
+def raiseWithFinallyNotCorruptingLineNumber():
+    try:
+        try:
+            raising()
+        finally:
+            not_raising()
+    except ValueError:
+        print("Traceback is in tried block line", sys.exc_info()[2].tb_lineno)
+
+raiseWithFinallyNotCorruptingLineNumber()
+
+def wideCatchMustPublishException():
+    try:
+        raisy(3)
+    except:
+        pass
+
+    print("Exited with", sys.exc_info())
+
+print("Check that a unqualified catch properly preserves exception")
+wideCatchMustPublishException()
+
+print("Check if a nested exception handler does overwrite reraised")
+def checkReraiseAfterNestedTryExcept():
+    def reraise():
+        try:
+            raise TypeError("outer")
+        except Exception:
+            try:
+                raise KeyError("nested")
+            except KeyError:
+                print("Current exception inside nested handler", sys.exc_info())
+
+                pass
+
+            print("Current exception after nested handler exited", sys.exc_info())
+
+            # Which one does this pick
+            raise
+
+    try:
+        reraise()
+    except Exception as e:
+        print("Catched", repr(e))
+
+checkReraiseAfterNestedTryExcept()

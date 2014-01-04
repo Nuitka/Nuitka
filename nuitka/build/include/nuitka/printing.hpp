@@ -23,10 +23,11 @@
 
 #include "nuitka/exceptions.hpp"
 
-extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
+extern bool PRINT_NEW_LINE( void );
+extern bool PRINT_ITEM( PyObject *object );
 
-extern void PRINT_NEW_LINE_TO( PyObject *file );
-extern void PRINT_NEW_LINE( void );
+extern bool PRINT_ITEM_TO( PyObject *file, PyObject *object );
+extern bool PRINT_NEW_LINE_TO( PyObject *file );
 
 extern PyObject *GET_STDOUT();
 extern PyObject *GET_STDERR();

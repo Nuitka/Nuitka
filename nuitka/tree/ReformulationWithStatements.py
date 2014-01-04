@@ -227,6 +227,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                         ),
                         source_ref     = source_ref
                     ),
+                    public_exc = Utils.python_version >= 270,
                     source_ref = source_ref
                 ),
             ),
@@ -249,11 +250,11 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                         statement = StatementExpressionOnly(
                             expression = ExpressionCallNoKeywords(
                                 called     = ExpressionTempVariableRef(
-                                    variable   = tmp_exit_variable.makeReference( provider ),
+                                    variable   = tmp_exit_variable.makeReference(provider),
                                     source_ref = source_ref
                                 ),
                                 args       = ExpressionConstantRef(
-                                    constant   = ( None, None, None ),
+                                    constant   = (None, None, None),
                                     source_ref = source_ref
                                 ),
                                 source_ref = source_ref
@@ -265,6 +266,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                     source_ref = source_ref
                 )
             ),
+            public_exc = False,
             source_ref = source_ref
         )
     ]
@@ -274,6 +276,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         source_ref = source_ref
     )
 
+
 def buildWithNode(provider, node, source_ref):
     # "with" statements are re-formulated as described in the developer
     # manual. Catches exceptions, and provides them to "__exit__", while making
@@ -281,21 +284,24 @@ def buildWithNode(provider, node, source_ref):
 
     # Before Python3.3, multiple context managers are not visible in the parse
     # tree, now we need to handle it ourselves.
-    if hasattr( node, "items" ):
-        context_exprs = [ item.context_expr for item in node.items ]
-        assign_targets = [ item.optional_vars for item in node.items ]
+    if hasattr(node, "items"):
+        context_exprs = [item.context_expr for item in node.items]
+        assign_targets = [item.optional_vars for item in node.items]
     else:
         # Make it a list for before Python3.3
-        context_exprs = [ node.context_expr ]
-        assign_targets = [ node.optional_vars ]
+        context_exprs = [node.context_expr]
+        assign_targets = [node.optional_vars]
 
 
     # The body for the first context manager is the other things.
-    body = buildStatementsNode( provider, node.body, source_ref )
+    body = buildStatementsNode(provider, node.body, source_ref)
 
-    assert len( context_exprs ) > 0 and len( context_exprs ) == len( assign_targets )
+    assert len(context_exprs) > 0 and len(context_exprs) == len(assign_targets)
 
-    for context_expr, assign_target in zip( reversed( context_exprs ), reversed( assign_targets ) ):
+    context_exprs.reverse()
+    assign_targets.reverse()
+
+    for context_expr, assign_target in zip(context_exprs, assign_targets):
         body = _buildWithNode(
             provider      = provider,
             body          = body,

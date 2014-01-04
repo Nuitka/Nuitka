@@ -24,7 +24,6 @@ check it many times.
 """
 from .FinalizeMarkups import FinalizeMarkups
 from .FinalizeClosureTaking import FinalizeClosureTaking
-from .FinalizeVariableVisibility import FinalizeVariableVisibility
 
 # Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
 from nuitka.tree import Operations
@@ -36,10 +35,5 @@ def prepareCodeGeneration(tree):
         Operations.visitTree( function, visitor )
 
     visitor = FinalizeClosureTaking()
-    for function in tree.getUsedFunctions():
-        Operations.visitFunction( function, visitor )
-
-    visitor = FinalizeVariableVisibility()
-    Operations.visitFunction( tree, visitor )
     for function in tree.getUsedFunctions():
         Operations.visitFunction( function, visitor )

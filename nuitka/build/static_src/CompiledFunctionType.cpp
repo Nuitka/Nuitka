@@ -112,8 +112,8 @@ static int Nuitka_Function_set_name( Nuitka_FunctionObject *object, PyObject *va
     if (unlikely( value == NULL || PyUnicode_Check( value ) == 0 ))
 #endif
     {
-       PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
-       return -1;
+        PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
+        return -1;
     }
 
     PyObject *old = object->m_name;
@@ -133,8 +133,8 @@ static int Nuitka_Function_set_qualname( Nuitka_FunctionObject *object, PyObject
 {
     if (unlikely( value == NULL || PyUnicode_Check( value ) == 0 ))
     {
-       PyErr_Format( PyExc_TypeError, "__qualname__ must be set to a string object" );
-       return -1;
+        PyErr_Format( PyExc_TypeError, "__qualname__ must be set to a string object" );
+        return -1;
     }
 
     PyObject *old = object->m_qualname;
@@ -152,27 +152,31 @@ static PyObject *Nuitka_Function_get_doc( Nuitka_FunctionObject *object )
 
 static int Nuitka_Function_set_doc( Nuitka_FunctionObject *object, PyObject *value )
 {
+    PyObject *old = object->m_doc;
+
     if ( value == Py_None || value == NULL )
     {
-       object->m_doc = Py_None;
+        object->m_doc = INCREASE_REFCOUNT( Py_None );
     }
 #if PYTHON_VERSION < 300
     else if (unlikely( PyString_Check( value ) == 0 ))
     {
-       PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
-       return -1;
+        PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
+        return -1;
     }
 #else
     else if (unlikely( PyUnicode_Check( value ) == 0 ))
     {
-       PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
-       return -1;
+        PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
+        return -1;
     }
 #endif
     else
     {
-       object->m_doc = INCREASE_REFCOUNT( value );
+        object->m_doc = INCREASE_REFCOUNT( value );
     }
+
+    Py_DECREF( old );
 
     return 0;
 }
@@ -285,11 +289,6 @@ static int Nuitka_Function_set_kwdefaults( Nuitka_FunctionObject *object, PyObje
 }
 static PyObject *Nuitka_Function_get_annotations( Nuitka_FunctionObject *object )
 {
-    if ( object->m_annotations == NULL )
-    {
-        object->m_annotations = PyDict_New();
-    }
-
     return INCREASE_REFCOUNT( (PyObject *)object->m_annotations );
 }
 
@@ -356,7 +355,7 @@ static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
         }
     }
 
-    return MODULE_NAME( object->m_module );
+    return INCREASE_REFCOUNT( MODULE_NAME( object->m_module ) );
 }
 
 
@@ -430,7 +429,7 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 
 #if PYTHON_VERSION >= 300
     Py_DECREF( function->m_kwdefaults );
-    Py_XDECREF( function->m_annotations );
+    Py_DECREF( function->m_annotations );
 #endif
 
     if ( function->m_context )
@@ -508,11 +507,7 @@ static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_par
 {
     Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
 
-    if (unlikely( result == NULL ))
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create function %s", Nuitka_String_AsString( name ) );
-        throw PythonException();
-    }
+    assert( result );
 
     result->m_code = code;
     result->m_direct_arg_parser = dparse;
@@ -526,18 +521,25 @@ static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_par
     result->m_context = context;
     result->m_cleanup = cleanup;
 
+    if (defaults == NULL)
+    {
+        defaults = INCREASE_REFCOUNT( Py_None );
+    }
     assertObject( defaults );
     assert( defaults == Py_None || ( PyTuple_Check( defaults ) && PyTuple_Size( defaults ) > 0 ) );
     result->m_defaults = defaults;
     result->m_defaults_given = defaults == Py_None ? 0 : PyTuple_GET_SIZE( defaults );
 
 #if PYTHON_VERSION >= 300
-    assert( kwdefaults );
+    if ( kwdefaults == NULL )
+    {
+        kwdefaults = INCREASE_REFCOUNT( Py_None );
+    }
     assert( kwdefaults == Py_None || ( PyDict_Check( kwdefaults ) && PyDict_Size( kwdefaults ) > 0 ) );
     result->m_kwdefaults = kwdefaults;
 
-    assert( annotations == NULL || PyDict_Check( annotations ) );
-    result->m_annotations = annotations;
+    assert( annotations == Py_None || PyDict_Check( annotations ) );
+    result->m_annotations = INCREASE_REFCOUNT( annotations );
 #endif
 
     result->m_code_object = code_object;
@@ -849,49 +851,59 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
                 i
             );
 
-            PyObjectTemporary current( PyObject_Repr( current_str ) );
+            PyObject *current = PyObject_Repr( current_str );
 
             if ( missing == 0 )
             {
-                PyObjectTemporary old( list_str );
+                PyObject *old = list_str;
 
                 list_str = PyUnicode_Concat(
                     list_str,
-                    current.asObject0()
+                    current
                 );
+
+                Py_DECREF( old );
             }
             else if ( missing == 1 )
             {
-                PyObjectTemporary old1( list_str );
+                PyObject *old = list_str;
 
                 list_str = PyUnicode_Concat(
                     and_str,
                     list_str
                 );
 
-                PyObjectTemporary old2( list_str );
+                Py_DECREF( old );
+                old = list_str;
 
                 list_str = PyUnicode_Concat(
-                    current.asObject0(),
+                    current,
                     list_str
                 );
+
+                Py_DECREF( old );
             }
             else
             {
-                PyObjectTemporary old1( list_str );
+                PyObject *old = list_str;
 
                 list_str = PyUnicode_Concat(
                     comma_str,
                     list_str
                 );
 
-                PyObjectTemporary old2( list_str );
+                Py_DECREF( old );
+                old = list_str;
 
                 list_str = PyUnicode_Concat(
-                    current.asObject0(),
+                    current,
                     list_str
                 );
+
+                Py_DECREF( old );
             }
+
+            Py_DECREF( current );
 
             missing += 1;
         }
@@ -948,50 +960,59 @@ void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
                 code_object->co_argcount + i
             );
 
-            PyObjectTemporary current( PyObject_Repr( current_str ) );
+            PyObject *current = PyObject_Repr( current_str );
 
             if ( missing == 0 )
             {
-                PyObjectTemporary old( list_str );
+                PyObject *old = list_str;
 
                 list_str = PyUnicode_Concat(
                     list_str,
-                    current.asObject0()
+                    current
                 );
+
+                Py_DECREF( old );
             }
             else if ( missing == 1 )
             {
-                PyObjectTemporary old1( list_str );
+                PyObject *old = list_str;
 
                 list_str = PyUnicode_Concat(
                     and_str,
                     list_str
                 );
 
-                PyObjectTemporary old2( list_str );
+                Py_DECREF( old );
+                old = list_str;
 
                 list_str = PyUnicode_Concat(
-                    current.asObject0(),
+                    current,
                     list_str
                 );
+
+                Py_DECREF( old );
             }
             else
             {
-                PyObjectTemporary old1( list_str );
+                PyObject *old = list_str;
 
                 list_str = PyUnicode_Concat(
                     comma_str,
                     list_str
                 );
 
-                PyObjectTemporary old2( list_str );
+                Py_DECREF( old );
+                old = list_str;
 
                 list_str = PyUnicode_Concat(
-                    current.asObject0(),
+                    current,
                     list_str
                 );
+
+                Py_DECREF( old );
             }
 
+            Py_DECREF( current );
 
             missing += 1;
         }

@@ -91,13 +91,8 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
     def computeExpression(self, constraint_collection):
         assert self.variable is not None
 
-        if _isReadOnlyUnterdeterminedModuleVariable( self.variable ):
-            constraint_collection.assumeUnclearLocals()
-            constraint_collection.signalChange(
-                "new_expression",
-                self.source_ref,
-                "Unclear module variable delays processing."
-            )
+        if _isReadOnlyUnterdeterminedModuleVariable(self.variable):
+            constraint_collection.assumeUnclearLocals(self.source_ref)
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
@@ -169,6 +164,10 @@ Replaced read-only module attribute '__package__' with constant value."""
         return False
 
     def mayHaveSideEffects(self):
+        # TODO: Remembered traced could tell better.
+        return True
+
+    def mayRaiseException(self, exception_type):
         # TODO: Remembered traced could tell better.
         return True
 
@@ -257,6 +256,10 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
 
     def onContentEscapes(self, constraint_collection):
         constraint_collection.onVariableContentEscapes( self.variable )
+
+    def mayHaveSideEffects(self):
+        # Can't happen
+        return False
 
     def mayRaiseException(self, exception_type):
         # Can't happen

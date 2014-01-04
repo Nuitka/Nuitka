@@ -26,7 +26,7 @@ extern volatile int _Py_Ticker;
 #define _Py_CheckInterval 20
 #endif
 
-NUITKA_MAY_BE_UNUSED static void CONSIDER_THREADING( void )
+NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING( void )
 {
     // Decrease ticker
     if ( --_Py_Ticker < 0 )
@@ -35,11 +35,10 @@ NUITKA_MAY_BE_UNUSED static void CONSIDER_THREADING( void )
 
         int res = Py_MakePendingCalls();
 
-        if (unlikely( res < 0 ))
+        if (unlikely( res < 0 && ERROR_OCCURED() ))
         {
-            throw PythonException();
+            return false;
         }
-
 
         PyThreadState *tstate = PyThreadState_GET();
         assert( tstate );
@@ -55,12 +54,16 @@ NUITKA_MAY_BE_UNUSED static void CONSIDER_THREADING( void )
 
         if (unlikely( tstate->async_exc != NULL ))
         {
-            PyObjectTemporary tmp_async_exc( tstate->async_exc );
+            PyObject *async_exc = INCREASE_REFCOUNT( tstate->async_exc );
             tstate->async_exc = NULL;
 
-            throw PythonException( tmp_async_exc.asObject0() );
+            PyErr_Restore( async_exc, NULL, NULL );
+
+            return false;
         }
     }
+
+    return true;
 }
 
 #endif

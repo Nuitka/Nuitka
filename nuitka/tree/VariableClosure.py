@@ -120,7 +120,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
              node.isStatementDelAttribute():
             attribute_name = node.getAttributeName()
 
-            if attribute_name.startswith( "__" ) and not attribute_name.endswith( "__" ):
+            if attribute_name.startswith( "__" ) and \
+               not attribute_name.endswith( "__" ):
                 seen_function = False
 
                 current = node
@@ -235,14 +236,15 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                 variable
             )
 
-            assert not (node.getParent().isStatementDelVariable())
+            assert not node.getParent().isStatementDelVariable()
 
             # Need to catch functions with "exec" not allowed.
             if python_version < 300 and \
                provider.isExpressionFunctionBody() and \
                variable.isReference() and \
                  (not variable.isModuleVariableReference() or \
-                  not variable.isFromGlobalStatement() ):
+                  not variable.isFromGlobalStatement() ) and \
+               not provider.getCodeName().startswith("listcontr_"):
 
                 parent_provider = provider.getParentVariableProvider()
 

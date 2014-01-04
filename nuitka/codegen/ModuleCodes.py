@@ -31,7 +31,7 @@ from .Indentation import indented
 
 from . import CodeTemplates
 
-from nuitka import Options
+from nuitka import Options, Utils
 
 import re
 
@@ -76,7 +76,7 @@ def getModuleCode( context, module_name, codes, metapath_loader_inittab,
                    function_decl_codes, function_body_codes, temp_variables ):
     # For the module code, lots of attributes come together.
     # pylint: disable=R0914
-    module_identifier = getModuleIdentifier( module_name )
+    module_identifier = getModuleIdentifier(module_name)
 
     header = CodeTemplates.global_copyright % {
         "name"    : module_name,
@@ -91,10 +91,51 @@ def getModuleCode( context, module_name, codes, metapath_loader_inittab,
         )
         for variable in
         temp_variables
-        # TODO: Should become uncessary to filter.
-        if variable.getNeedsFree() is not None
-        if not variable.needsLateDeclaration()
     ]
+
+    if context.needsExceptionVariables():
+        local_var_inits += [
+            "PyObject *exception_type, *exception_value;",
+            "PyTracebackObject *exception_tb;"
+        ]
+
+    for keeper_variable in range(1, context.getKeeperVariableCount()+1):
+        # For finally handlers of Python3, which have conditions on assign and
+        # use.
+        if Options.isDebug() and Utils.python_version >= 300:
+            keeper_init = " = NULL";
+        else:
+            keeper_init = ""
+
+        local_var_inits += [
+            "PyObject *exception_keeper_type_%d%s;" % (
+                keeper_variable,
+                keeper_init
+            ),
+            "PyObject *exception_keeper_value_%d%s;" % (
+                keeper_variable,
+                keeper_init
+            ),
+            "PyTracebackObject *exception_keeper_tb_%d%s;" % (
+                keeper_variable,
+                keeper_init
+            )
+        ]
+
+    local_var_inits += [
+        "%s%s%s;" % (
+            tmp_type,
+            " " if not tmp_type.endswith("*") else "",
+            tmp_name
+        )
+        for tmp_name, tmp_type in
+        context.getTempNameInfos()
+    ]
+
+    if context.needsExceptionVariables():
+        module_exit = CodeTemplates.template_module_exception_exit
+    else:
+        module_exit = CodeTemplates.template_module_noexception_exit
 
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
@@ -105,12 +146,14 @@ def getModuleCode( context, module_name, codes, metapath_loader_inittab,
         "module_identifier"       : module_identifier,
         "module_functions_decl"   : function_decl_codes,
         "module_functions_code"   : function_body_codes,
-        "temps_decl"              : indented( local_var_inits ),
-        "module_code"             : indented( codes ),
+        "temps_decl"              : indented(local_var_inits),
+        "module_code"             : indented(codes),
+        "module_exit"             : module_exit,
         "metapath_loader_inittab" : indented(
-            sorted( metapath_loader_inittab )
+            sorted(metapath_loader_inittab)
         ),
         "use_unfreezer"           : 1 if metapath_loader_inittab else 0
+
     }
 
     return header + module_code

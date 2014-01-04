@@ -24,7 +24,7 @@ sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname( os.path.abspath( __file__ ) ),
+            os.path.dirname(os.path.abspath( __file__ )),
             ".."
         )
     )
@@ -32,7 +32,6 @@ sys.path.insert(
 from test_common import (
     my_print,
     setup,
-    convertUsing2to3,
     decideFilenameVersionSkip,
     compareWithCPython,
     hasDebugPython
@@ -40,7 +39,7 @@ from test_common import (
 
 python_version = setup(needs_io_encoding = True)
 
-search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
+search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
 
 start_at = sys.argv[2] if len( sys.argv ) > 2 else None
 
@@ -57,24 +56,24 @@ if not os.path.exists( "BigConstants.py" ):
         output.write( "print( '%s' )\n" % ( "1234" * 17000 ) )
 
 # Now run all the tests in this directory.
-for filename in sorted( os.listdir( "." ) ):
-    if not filename.endswith( ".py" ):
+for filename in sorted(os.listdir(".")):
+    if not filename.endswith(".py"):
         continue
 
-    if not decideFilenameVersionSkip( filename ):
+    if not decideFilenameVersionSkip(filename):
         continue
 
     # The overflow functions test gives syntax error on Python 3.x and will be
     # skiped as well.
-    if filename == "OverflowFunctions.py" and python_version.startswith( b"3" ):
+    if filename == "OverflowFunctions.py" and python_version.startswith("3"):
         continue
 
     path = filename
 
-    if not active and start_at in ( filename, path ):
+    if not active and start_at in (filename, path):
         active = True
 
-    extra_flags = [ "expect_success", "remove_output" ]
+    extra_flags = ["expect_success", "remove_output"]
 
     # This test should be run with the debug Python, and makes outputs to
     # standard error that might be ignored.
@@ -96,9 +95,9 @@ for filename in sorted( os.listdir( "." ) ):
             my_print( "Skipped (no debug Python)" )
             continue
 
-        needs_2to3 = python_version.startswith( b"3" ) and \
-          not filename.endswith( "32.py" ) and \
-          not filename.endswith( "33.py" )
+        needs_2to3 = python_version.startswith("3") and \
+                     not filename.endswith("32.py") and \
+                     not filename.endswith("33.py")
 
         compareWithCPython(
             path        = path,
@@ -107,4 +106,4 @@ for filename in sorted( os.listdir( "." ) ):
             needs_2to3  = needs_2to3
         )
     else:
-        my_print( "Skipping", filename )
+        my_print("Skipping", filename)

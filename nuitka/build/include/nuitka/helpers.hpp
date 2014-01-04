@@ -35,7 +35,7 @@ typedef struct {
     PyObject *md_dict;
 } PyModuleObject;
 
-extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
+extern bool PRINT_ITEM_TO( PyObject *file, PyObject *object );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 
@@ -109,7 +109,7 @@ static char *_PyUnicode_AS_STRING( PyObject *unicode )
 
     if (unlikely( bytes == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return PyBytes_AS_STRING( bytes );
@@ -134,17 +134,6 @@ static inline PyObject *Nuitka_Generator_GetName( PyObject *object );
 
 #include "nuitka/calling.hpp"
 
-NUITKA_MAY_BE_UNUSED static long FROM_LONG( PyObject *value )
-{
-    long result = PyInt_AsLong( value );
-
-    if (unlikely( result == -1 ))
-    {
-        THROW_IF_ERROR_OCCURED();
-    }
-
-    return result;
-}
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
 {
@@ -168,19 +157,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
 
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value )
-{
-    PyObject *result = PyNumber_Int( value );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
+        return NULL;
     }
 
     return result;
@@ -188,31 +165,33 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value )
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 {
-    int base_int = PyInt_AsLong( base );
+    long base_int = PyInt_AsLong( base );
 
     if (unlikely( base_int == -1 ))
     {
-        THROW_IF_ERROR_OCCURED();
+        if (likely( ERROR_OCCURED() ))
+        {
+            return NULL;
+        }
     }
 
 #if PYTHON_VERSION < 300
     if (unlikely( !Nuitka_String_Check( value ) ))
     {
         PyErr_Format( PyExc_TypeError, "int() can't convert non-string with explicit base" );
-        throw PythonException();
+        return NULL;
     }
 
     char *value_str = Nuitka_String_AsString( value );
     if (unlikely( value_str == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     PyObject *result = PyInt_FromString( value_str, NULL, base_int );
-
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return result;
@@ -224,14 +203,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 
         if (unlikely( value_str == NULL ))
         {
-            throw PythonException();
+            return NULL;
         }
 
         PyObject *result = PyInt_FromString( value_str, NULL, base_int );
 
         if (unlikely( result == NULL ))
         {
-            throw PythonException();
+            return NULL;
         }
 
         return result;
@@ -263,10 +242,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
                 value
             );
 
-            throw PythonException();
+            return NULL;
         }
 
-        return PyLong_FromString( value_str, NULL, base_int );
+        return PyInt_FromString( value_str, NULL, base_int );
     }
     else
     {
@@ -274,53 +253,41 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
             PyExc_TypeError,
             "int() can't convert non-string with explicit base"
         );
-        throw PythonException();
+        return NULL;
     }
 #endif
-
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value )
-{
-    PyObject *result = PyNumber_Long( value );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG2( PyObject *value, PyObject *base )
 {
-    int base_int = PyInt_AsLong( base );
+    long base_int = PyInt_AsLong( base );
 
     if (unlikely( base_int == -1 ))
     {
-        THROW_IF_ERROR_OCCURED();
+        if (likely( ERROR_OCCURED() ))
+        {
+            return NULL;
+        }
     }
 
 #if PYTHON_VERSION < 300
     if (unlikely( !Nuitka_String_Check( value ) ))
     {
         PyErr_Format( PyExc_TypeError, "long() can't convert non-string with explicit base" );
-        throw PythonException();
+        return NULL;
     }
 #endif
 
     char *value_str = Nuitka_String_AsString( value );
-
     if (unlikely( value_str == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     PyObject *result = PyLong_FromString( value_str, NULL, base_int );
-
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return result;
@@ -328,32 +295,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG2( PyObject *value, PyObject *base 
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_BOOL( PyObject *value )
 {
-    return BOOL_FROM( CHECK_IF_TRUE( value ) );
+    int res = CHECK_IF_TRUE( value );
+
+    if (unlikely( res == -1 )) return NULL;
+    return BOOL_FROM( res != 0 );
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_STR( PyObject *value )
-{
-    PyObject *result = PyObject_Str( value );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE( PyObject *value )
-{
-    PyObject *result = PyObject_Unicode( value );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *encoding, PyObject *errors )
 {
@@ -381,7 +328,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     else
     {
         PyErr_Format( PyExc_TypeError, "unicode() argument 2 must be string, not %s", Py_TYPE( encoding )->tp_name );
-        throw PythonException();
+        return NULL;
     }
 
     char *errors_str;
@@ -406,14 +353,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     else
     {
         PyErr_Format( PyExc_TypeError, "unicode() argument 3 must be string, not %s", Py_TYPE( errors )->tp_name );
-        throw PythonException();
+        return NULL;
     }
 
     PyObject *result = PyUnicode_FromEncodedObject( value, encoding_str, errors_str );
 
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     assert( PyUnicode_Check( result ) );
@@ -470,14 +417,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
                 PyErr_Format( PyExc_TypeError, "iter() returned non-iterator of type '%s'", Py_TYPE( result )->tp_name );
 
                 Py_DECREF( result );
-                throw PythonException();
+                return NULL;
             }
 
             return result;
         }
         else
         {
-            throw PythonException();
+            return NULL;
         }
     }
     else if ( PySequence_Check( iterated ) )
@@ -500,13 +447,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
             Py_TYPE( iterated )->tp_name
         );
 
-        throw PythonException();
+        return NULL;
     }
 }
 
-// Return the next item of an iterator. Avoiding any exception for end of
-// iteration, callers must deal with NULL return as end of iteration, but will
-// know it wasn't an Python exception, that will show as a thrown exception.
 NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assertObject( iterator );
@@ -525,19 +469,17 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
             Py_TYPE( iterator )->tp_name
         );
 
-        throw PythonException();
+        return NULL;
     }
 
     PyObject *result = (*iternext)( iterator );
 
-    if (unlikely( result == NULL ))
+#if PYTHON_VERSION < 330
+    if ( result == NULL && PyErr_Occurred() && PyErr_ExceptionMatches( PyExc_StopIteration ) )
     {
-        THROW_IF_ERROR_OCCURED_NOT( PyExc_StopIteration );
+        PyErr_Clear();
     }
-    else
-    {
-        assertObject( result );
-    }
+#endif
 
     return result;
 }
@@ -560,7 +502,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
             Py_TYPE( iterator )->tp_name
         );
 
-        throw PythonException();
+        return NULL;
     }
 
     PyObject *result = (*iternext)( iterator );
@@ -571,10 +513,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
         // StopIteration.
         if ( !ERROR_OCCURED() )
         {
-            throw PythonException( PyExc_StopIteration );
+            PyErr_SetNone( PyExc_StopIteration );
         }
 
-        throw PythonException();
+        return NULL;
     }
     else
     {
@@ -604,7 +546,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
             }
             else
             {
-                throw PythonException();
+                return NULL;
             }
         }
         else
@@ -623,8 +565,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
 
 NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 {
-    assertObject( iterator );
-    assert( PyIter_Check( iterator ) );
+    assertObject( iterator ); assert( PyIter_Check( iterator ) );
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
@@ -646,7 +587,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
             }
         }
 
-        throw PythonException();
+        return NULL;
     }
 
     assertObject( result );
@@ -687,35 +628,6 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
     return result;
 }
 
-#if PYTHON_VERSION < 300
-#define UNPACK_ITERATOR_CHECK( iterator, count ) _UNPACK_ITERATOR_CHECK( iterator )
-NUITKA_MAY_BE_UNUSED static inline void _UNPACK_ITERATOR_CHECK( PyObject *iterator )
-#else
-NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator, int count )
-#endif
-{
-    assertObject( iterator );
-    assert( PyIter_Check( iterator ) );
-
-    PyObject *attempt = (*Py_TYPE( iterator )->tp_iternext)( iterator );
-
-    if (likely( attempt == NULL ))
-    {
-        THROW_IF_ERROR_OCCURED_NOT( PyExc_StopIteration );
-    }
-    else
-    {
-        Py_DECREF( attempt );
-#if PYTHON_VERSION < 300
-        PyErr_Format( PyExc_ValueError, "too many values to unpack" );
-#else
-        PyErr_Format( PyExc_ValueError, "too many values to unpack (expected %d)", count );
-#endif
-        throw PythonException();
-    }
-}
-
-
 NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObject *iterator )
 {
     assertObject( iterator );
@@ -748,15 +660,6 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
     }
 }
 
-NUITKA_MAY_BE_UNUSED static bool HAS_KEY( PyObject *source, PyObject *key )
-{
-    assertObject( source );
-    assertObject( key );
-
-    assert( PyMapping_Check( source ) );
-
-    return PyMapping_HasKey( source, key ) != 0;
-}
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 {
@@ -771,7 +674,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
             "vars() argument must have __dict__ attribute"
         );
 
-        throw PythonException();
+        return NULL;
     }
 
     return result;
@@ -791,7 +694,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
             PyErr_Format( PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString( import_name ));
         }
 
-        throw PythonException();
+        return NULL;
     }
 
     return result;
@@ -803,73 +706,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 #include "nuitka/helper/slices.hpp"
 #include "nuitka/helper/attributes.hpp"
 
-NUITKA_MAY_BE_UNUSED static void APPEND_TO_LIST( PyObject *list, PyObject *item )
-{
-    assertObject( list );
-    assertObject( item );
-
-    int status = PyList_Append( list, item );
-
-    if (unlikely( status == -1 ))
-    {
-        throw PythonException();
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static void ADD_TO_SET( PyObject *set, PyObject *item )
-{
-    int status = PySet_Add( set, item );
-
-    if (unlikely( status == -1 ))
-    {
-        throw PythonException();
-    }
-}
-
-
-
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject *seq2 )
-{
-    PyObject *result = PySequence_Concat( seq1, seq2 );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
 #include "nuitka/builtins.hpp"
 
-#include "nuitka/frame_guards.hpp"
+#include "nuitka/frame_stack.hpp"
 
 #include "nuitka/variables_parameters.hpp"
 #include "nuitka/variables_locals.hpp"
 #include "nuitka/variables_shared.hpp"
-
-NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
-{
-    assertObject( tuple );
-
-    assert( PyTuple_CheckExact( tuple ) );
-
-    Py_ssize_t size = PyTuple_GET_SIZE( tuple );
-
-    PyObject *result = PyTuple_New( size );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( PyTuple_GET_ITEM( tuple, i ) ) );
-    }
-
-    return result;
-}
 
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
@@ -881,7 +724,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     for ( Py_ssize_t i = 0; i < size; i++ )
@@ -894,10 +737,15 @@ NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 
 
 // Compile source code given, pretending the file name was given.
-extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );
+#if PYTHON_VERSION < 300
+extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags, PyObject *dont_inherit );
+#else
+extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags, PyObject *dont_inherit, PyObject *optimize );
+#endif
+
 
 // For quicker builtin open() functionality.
-extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
+extern PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering );
 
 // For quicker builtin chr() functionality.
 extern PyObject *BUILTIN_CHR( PyObject *value );
@@ -927,76 +775,36 @@ extern PyObject *BUILTIN_TYPE1( PyObject *arg );
 // type).
 extern PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict );
 
-// For quicker builtin range() functionality.
+// For built-in builtin range() functionality.
 extern PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step );
 extern PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high );
 extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 
 extern PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step );
 
-// For quicker builtin len() functionality.
+// For built-in builtin len() functionality.
 extern PyObject *BUILTIN_LEN( PyObject *boundary );
 
-// For quicker builtin dir(arg) functionality.
-extern PyObject *BUILTIN_DIR1( PyObject *arg );
-
-// For quicker builtin super() functionality.
+// For built-in builtin super() functionality.
 extern PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object );
 
-// For quicker isinstance() functionality.
+// For built-in isinstance() functionality.
 extern PyObject *BUILTIN_ISINSTANCE( PyObject *inst, PyObject *cls );
 
-extern bool BUILTIN_ISINSTANCE_BOOL( PyObject *inst, PyObject *cls );
+// The patched isinstance() functionality used for the built-in.
+extern int Nuitka_IsInstance( PyObject *inst, PyObject *cls );
 
-// For quicker getattr() functionality.
+// For built-in getattr() functionality.
 extern PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *default_value );
 
-// For quicker setattr() functionality.
-extern void BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value );
+// For built-in setattr() functionality.
+extern PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value );
 
 extern PyObject *const_str_plain___builtins__;
 
-NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
-{
-    if ( PyDict_Check( globals ) == 0 )
-    {
-        PyErr_Format( PyExc_TypeError, "exec: arg 2 must be a dictionary or None" );
-        throw PythonException();
-    }
+//
+extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals );
 
-    if ( locals == NULL || locals == Py_None )
-    {
-        locals = globals;
-    }
-
-    if ( PyMapping_Check( locals ) == 0 )
-    {
-        PyErr_Format( PyExc_TypeError, "exec: arg 3 must be a mapping or None" );
-        throw PythonException();
-    }
-
-    // Set the __builtins__ in globals, it is expected to be present.
-    if ( PyDict_GetItem( globals, const_str_plain___builtins__ ) == NULL )
-    {
-        if ( PyDict_SetItem( globals, const_str_plain___builtins__, (PyObject *)module_builtin ) == -1 )
-        {
-            throw PythonException();
-        }
-    }
-
-#if PYTHON_VERSION < 300
-    PyObject *result = PyEval_EvalCode( (PyCodeObject *)code, globals, locals );
-#else
-    PyObject *result = PyEval_EvalCode( code, globals, locals );
-#endif
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
 
 #include "nuitka/importing.hpp"
 
@@ -1066,13 +874,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
                     "metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"
                 );
 
-                throw PythonException();
+                return NULL;
             }
         }
 
         if (unlikely( winner == NULL ))
         {
-            throw PythonException();
+            return NULL;
         }
 
         return INCREASE_REFCOUNT( (PyObject *)winner );
@@ -1115,24 +923,22 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
         metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
     }
 
+    // Cannot fail on Python2.
+    assertObject( metaclass );
+
     return metaclass;
 }
 
 #endif
 
+extern PyObject *const_str_plain___name__;
+
 NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 {
-    char const *module_name = PyModule_GetName( module );
+    assert( PyModule_Check( module ) );
+    PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
 
-#if PYTHON_VERSION < 300
-    PyObject *result = PyString_FromString( module_name );
-    PyString_InternInPlace( &result );
-    return result;
-#else
-    PyObject *result = PyUnicode_FromString( module_name );
-    PyUnicode_InternInPlace( &result );
-    return result;
-#endif
+    return PyDict_GetItem( module_dict, const_str_plain___name__ );
 }
 
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
@@ -1160,5 +966,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE( PyObject **elements, Py_ssize_
 
 // Make a deep copy of an object.
 extern PyObject *DEEP_COPY( PyObject *value );
+
+// Force a garbage collection, for debugging purposes.
+NUITKA_MAY_BE_UNUSED static void forceGC()
+{
+    PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL );
+}
 
 #endif

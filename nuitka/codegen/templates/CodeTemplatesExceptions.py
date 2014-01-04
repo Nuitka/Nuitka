@@ -20,204 +20,118 @@
 
 """
 
-try_except_template = """\
-try
+template_publish_exception_to_handler = """\
+if (exception_tb == NULL)
 {
-%(tried_code)s
+    exception_tb = %(tb_making)s;
 }
-catch ( PythonException &_exception )
+else if ( exception_tb->tb_frame != %(frame_identifier)s || exception_tb->tb_lineno != %(frame_identifier)s->f_lineno )
 {
-    if ( !_exception.hasTraceback() )
+    exception_tb = ADD_TRACEBACK( %(frame_identifier)s, exception_tb );
+}
+"""
+
+template_error_catch_quick_exception = """\
+if ( %(condition)s )
+{
+    if ( !ERROR_OCCURED() )
     {
-        _exception.setTraceback( %(tb_making)s );
+        exception_type = INCREASE_REFCOUNT( %(quick_exception)s );
+        exception_value = NULL;
+        exception_tb = NULL;
     }
     else
     {
-        _exception.addTraceback( frame_guard.getFrame0() );
+        PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
     }
-
-    frame_guard.preserveExistingException();
-
-#if PYTHON_VERSION >= 300
-    ExceptionRestorer%(guard_class)s restorer( &frame_guard );
-#endif
-    _exception.toExceptionHandler();
-
-%(exception_code)s
+%(release_temps)s
+    goto %(exception_exit)s;
 }"""
 
-template_setup_except_handler_detaching = """\
-frame_guard.detachFrame();"""
-
-try_except_reraise_template = """\
+template_error_catch_exception = """\
+if ( %(condition)s )
 {
-    PyTracebackObject *tb = _exception.getTraceback();
-    frame_guard.setLineNumber( tb->tb_lineno );
-    PyTracebackObject *tb_next = tb->tb_next;
-    tb->tb_next = NULL;
-    _exception.setTraceback( tb_next );
+    assert( ERROR_OCCURED() );
 
-    throw;
+    PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+%(release_temps)s
+    goto %(exception_exit)s;
 }"""
 
-try_except_reraise_finally_template = """\
-if ( _caught_%(try_count)d.isEmpty() )
+template_error_format_string_exception = """\
+if ( %(condition)s )
 {
-%(thrower_code)s
-}
-else
-{
-    _caught_%(try_count)d.rethrow();
-}"""
+%(release_temps)s
+%(set_exception)s
 
-try_except_reraise_unmatched_template = """\
-else
-{
-    PyTracebackObject *tb = _exception.getTraceback();
-    frame_guard.setLineNumber( tb->tb_lineno );
-    _exception.setTraceback( tb->tb_next );
-    tb->tb_next = NULL;
-
-    throw;
-}"""
-
-try_finally_template = """\
-PythonExceptionKeeper _caught_%(try_count)d;
-#if PYTHON_VERSION < 300
-int _at_lineno_%(try_count)d = 0;
-#endif
-
-%(rethrow_setups)s
-try
-{
-    // Tried block:
-%(tried_code)s
-}
-catch ( PythonException &_exception )
-{
-#if PYTHON_VERSION >= 300
-    if ( !_exception.hasTraceback() )
-    {
-        _exception.setTraceback( %(tb_making)s );
-    }
-    else
-    {
-        _exception.addTraceback( frame_guard.getFrame0() );
-    }
-#else
-    _at_lineno_%(try_count)d = frame_guard.getLineNumber();
-#endif
-
-    _caught_%(try_count)d.save( _exception );
-
-#if PYTHON_VERSION >= 300
-    frame_guard.preserveExistingException();
-
-    _exception.toExceptionHandler();
-#endif
-}
-%(rethrow_catchers)s
-// Final block:
-%(final_code)s
-#if PYTHON_VERSION < 300
-if ( _at_lineno_%(try_count)d != 0 )
-{
-   frame_guard.setLineNumber( _at_lineno_%(try_count)d );
-}
-#endif
-_caught_%(try_count)d.rethrow();
-// Final end
-%(rethrow_raisers)s"""
-
-try_finally_template_setup_continue = """\
-bool _continue_%(try_count)d = false;
-"""
-
-try_finally_template_setup_break = """\
-bool _break_%(try_count)d = false;
-"""
-
-try_finally_template_setup_generator_return = """\
-bool _return_%(try_count)d = false;
-"""
-
-try_finally_template_setup_return_value = """\
-PyObjectTempKeeper1 _return_value_%(try_count)d;
-"""
-
-try_finally_template_catch_continue = """\
-catch ( ContinueException const & )
-{
-    _continue_%(try_count)d = true;
+    goto %(exception_exit)s;
 }
 """
 
-try_finally_template_catch_break = """\
-catch ( BreakException const & )
+
+template_final_handler_start = """\
+// Tried block ends with no exception occured, note that.
+exception_type = NULL;
+exception_value = NULL;
+exception_tb = NULL;
+%(final_error_target)s:;
+%(keeper_type)s = exception_type;
+%(keeper_value)s = exception_value;
+%(keeper_tb)s = exception_tb;
+exception_type = NULL;
+exception_value = NULL;
+exception_tb = NULL;
+"""
+
+template_final_handler_start_python3 = """\
+// Tried block ends with no exception occured, note that.
+exception_type = NULL;
+exception_value = NULL;
+exception_tb = NULL;
+%(final_error_target)s:;
+"""
+
+
+
+template_final_handler_reraise = """\
+// Reraise exception if any.
+if ( %(keeper_type)s != NULL )
 {
-    _break_%(try_count)d = true;
+    exception_type = %(keeper_type)s;
+    exception_value = %(keeper_value)s;
+    exception_tb = %(keeper_tb)s;
+
+    goto %(exception_exit)s;
 }
 """
 
-try_finally_template_catch_return_value = """\
-catch ( ReturnValueException const &e )
+template_final_handler_return_reraise = """\
+// Return value if any.
+if ( tmp_return_value != NULL )
 {
-    _return_value_%(try_count)d.assign( e.getValue1() );
+    goto %(parent_return_target)s;
 }
 """
 
-try_finally_template_reraise_continue = """\
-if ( _continue_%(try_count)d )
+template_final_handler_generator_return_reraise = """\
+if ( tmp_generator_return )
 {
-    throw ContinueException();
-}"""
-
-try_finally_template_reraise_break = """\
-if ( _break_%(try_count)d )
-{
-    throw BreakException();
-}"""
-
-try_finally_template_reraise_return_value = """\
-if ( _return_value_%(try_count)d.isKeeping() )
-{
-    throw ReturnValueException( _return_value_%(try_count)d.asObject1() );
-}"""
-
-try_finally_template_direct_return_value = """\
-assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
-return _return_value_%(try_count)d.asObject1();"""
-
-try_finally_template_direct_generator_return_value = """\
-assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
-throw ReturnValueException( _return_value_%(try_count)d.asObject1() );"""
-
-
-try_finally_template_indirect_return_value = """\
-if ( _return_value_%(try_count)d.isKeeping() )
-{
-    return _return_value_%(try_count)d.asObject1();
-}"""
-
-try_finally_template_indirect_generator_return_value = """\
-if ( _return_value_%(try_count)d.isKeeping() )
-{
-    throw ReturnValueException( _return_value_%(try_count)d.asObject1() );
-}"""
-
-
-
-# Very special template for:
-# try:
-#  x = next(iter)
-# except StopIteration:
-#  handler_code
-
-template_try_next_except_stop_iteration = """\
-PyObject *%(temp_var)s = ITERATOR_NEXT( %(source_identifier)s );
-
-if ( %(temp_var)s == NULL )
-{
-%(handler_code)s
+    goto %(parent_return_target)s;
 }
-%(assignment_code)s"""
+"""
+
+template_final_handler_continue_reraise = """\
+// Continue if entered via continue.
+if ( %(continue_name)s )
+{
+    goto %(parent_continue_target)s;
+}
+"""
+
+template_final_handler_break_reraise = """\
+// Break if entered via break.
+if (  %(break_name)s )
+{
+    goto %(parent_break_target)s;
+}
+"""

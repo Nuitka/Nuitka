@@ -81,6 +81,7 @@ def compilePath( path ):
             command = [
                 sys.executable,
                 os.path.join( os.path.dirname( __file__ ), "..", "..", "bin", "nuitka" ),
+                "--module",
                 "--output-dir",
                 stage_dir,
                 "--recurse-none",

@@ -19,7 +19,7 @@
 
 """
 
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import StatementChildrenHavingBase, NodeBase
 
 from nuitka.Utils import python_version
 
@@ -114,7 +114,6 @@ class StatementsSequence(StatementChildrenHavingBase):
 
         self.setChild("statements", new_statements)
 
-
     def mayHaveSideEffects(self):
         # Statement sequences have a side effect if one of the statements does.
         for statement in self.getStatements():
@@ -122,6 +121,47 @@ class StatementsSequence(StatementChildrenHavingBase):
                 return True
         else:
             return False
+
+    def mayRaiseException(self, BaseException):
+        for statement in self.getStatements():
+            if statement.mayRaiseException(BaseException):
+                return True
+        else:
+            return False
+
+    def needsFrame(self):
+        for statement in self.getStatements():
+            if statement.needsFrame():
+                return True
+        else:
+            return False
+
+    def mayReturn(self):
+        for statement in self.getStatements():
+            if statement.mayReturn():
+                return True
+        else:
+            return False
+
+    def mayBreak(self):
+        for statement in self.getStatements():
+            if statement.mayBreak():
+                return True
+        else:
+            return False
+
+    def mayContinue(self):
+        for statement in self.getStatements():
+            if statement.mayContinue():
+                return True
+        else:
+            return False
+
+    def mayRaiseExceptionOrAbort(self, exception_type):
+        return self.mayRaiseException(exception_type) or \
+               self.mayReturn() or \
+               self.mayBreak() or \
+               self.mayContinue()
 
     def isStatementAborting(self):
         return self.getStatements()[-1].isStatementAborting()
@@ -165,7 +205,7 @@ class StatementsSequence(StatementChildrenHavingBase):
                    new_statement.isStatementAborting():
                     constraint_collection.signalChange(
                         "new_statements",
-                        statements[count + 1].getSourceReference(),
+                        statements[count+1].getSourceReference(),
                         "Removed dead statements."
                     )
 
@@ -207,14 +247,14 @@ class StatementsFrame(StatementsSequence):
     }
 
     def __init__(self, statements, guard_mode, code_name, var_names, arg_count,
-                kw_only_count, has_starlist, has_stardict, source_ref):
+                 kw_only_count, has_starlist, has_stardict, source_ref):
         StatementsSequence.__init__(
             self,
             statements = statements,
             source_ref = source_ref
         )
 
-        self.var_names = tuple( var_names )
+        self.var_names = tuple(var_names)
         self.code_name = code_name
 
         self.kw_only_count = kw_only_count
@@ -230,7 +270,7 @@ class StatementsFrame(StatementsSequence):
     def getDetails(self):
         result = {
             "code_name"  : self.code_name,
-            "var_names"  : ", ".join( self.var_names ),
+            "var_names"  : ", ".join(self.var_names),
             "guard_mode" : self.guard_mode
         }
 
@@ -246,6 +286,14 @@ class StatementsFrame(StatementsSequence):
 
     def getGuardMode(self):
         return self.guard_mode
+
+    def needsExceptionFramePreservation(self):
+        if python_version < 300:
+            preserving = ("full", "once")
+        else:
+            preserving = ("full", "once", "generator")
+
+        return self.guard_mode in preserving
 
     def getVarNames(self):
         return self.var_names
@@ -265,7 +313,7 @@ class StatementsFrame(StatementsSequence):
     def markAsFrameExceptionPreserving(self):
         self.needs_frame_exception_preserve = True
 
-    def needsFrameExceptionPreversing(self):
+    def needsFrameExceptionPreserving(self):
         return self.needs_frame_exception_preserve
 
     def getCodeObjectHandle(self, context):
@@ -290,7 +338,11 @@ class StatementsFrame(StatementsSequence):
                             not provider.isClassDictCreation() and \
                             not context.hasLocalsDict(),
             has_starlist  = self.has_starlist,
-            has_stardict  = self.has_stardict
+            has_stardict  = self.has_stardict,
+            has_closure   = provider.isExpressionFunctionBody() and \
+                            provider.getClosureVariables() != (),
+            future_flags  = provider.getSourceReference().getFutureSpec().\
+                              asFlags()
         )
 
     def computeStatementsSequence(self, constraint_collection):
@@ -333,13 +385,13 @@ class StatementsFrame(StatementsSequence):
         # because they wouldn't raise an exception.
         outside_pre = []
         while new_statements and \
-              not new_statements[0].mayRaiseException(BaseException):
+              not new_statements[0].needsFrame():
             outside_pre.append(new_statements[0])
             del new_statements[0]
 
         outside_post = []
         while new_statements and \
-              not new_statements[-1].mayRaiseException(BaseException):
+              not new_statements[-1].needsFrame():
             outside_post.insert(0, new_statements[-1])
             del new_statements[-1]
 
@@ -396,9 +448,114 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
         constraint_collection.onExpression(
             expression = self.getExpression()
         )
-        expression = self.getExpression()
 
-        return expression.computeExpressionDrop(
+        new_statement, change_tags, change_desc = \
+          self.getExpression().computeExpressionDrop(
             statement             = self,
             constraint_collection = constraint_collection
         )
+
+        if new_statement is None:
+            return new_statement, change_tags, change_desc
+
+        if new_statement is not self:
+            return new_statement, change_tags, change_desc
+
+        return self, None, None
+
+
+class StatementGeneratorEntry(NodeBase):
+    kind = "STATEMENT_GENERATOR_ENTRY"
+
+    def __init__(self, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def mayRaiseException(self, exception_type):
+        # Anything might be thrown into a generator, representing that is the
+        # whole point of this statement.
+        return True
+
+    def computeStatement(self, constraint_collection):
+        # Nothing we can about it.
+        return self, None, None
+
+
+class StatementPreserveFrameException(NodeBase):
+    kind = "STATEMENT_PRESERVE_FRAME_EXCEPTION"
+
+    def __init__(self, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def computeStatement(self, constraint_collection):
+        # For Python2 generators, it's not necessary to preserve, the frame
+        # decides it. TODO: This check makes only sense once.
+
+        if self.getParentStatementsFrame().needsExceptionFramePreservation():
+            return self, None, None
+        else:
+            return (
+                None,
+                "new_statements",
+                "Removed frame preservation for generators."
+            )
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+    def needsFrame(self):
+        return True
+
+
+class StatementRestoreFrameException(NodeBase):
+    kind = "STATEMENT_RESTORE_FRAME_EXCEPTION"
+
+    def __init__(self, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def computeStatement(self, constraint_collection):
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+
+class StatementReraiseFrameException(NodeBase):
+    kind = "STATEMENT_RERAISE_FRAME_EXCEPTION"
+
+    def __init__(self, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def computeStatement(self, constraint_collection):
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return True
+
+
+class StatementPublishException(NodeBase):
+    kind = "STATEMENT_PUBLISH_EXCEPTION"
+
+    def __init__(self, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def computeStatement(self, constraint_collection):
+        # TODO: Determine the need for it.
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return False

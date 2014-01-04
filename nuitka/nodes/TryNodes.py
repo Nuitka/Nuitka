@@ -21,17 +21,53 @@ The try/except needs handlers, and these blocks are complex control flow.
 
 """
 
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import (
+    StatementChildrenHavingBase,
+    ExpressionChildrenHavingBase
+)
+
+class ReturnBreakContinueHandlingMixin:
+    def __init__(self):
+        self.needs_return_handling = 0
+        self.needs_continue_handling = False
+        self.needs_break_handling = False
+
+    def markAsNeedsReturnHandling(self, value):
+        self.needs_return_handling = value
+
+    def needsReturnHandling(self):
+        return self.needs_return_handling > 0
+
+    def needsReturnValueRelease(self):
+        return self.needs_return_handling == 2
+
+    def markAsNeedsContinueHandling(self):
+        self.needs_continue_handling = True
+
+    def needsContinueHandling(self):
+        return self.needs_continue_handling
+
+    def markAsNeedsBreakHandling(self):
+        self.needs_break_handling = True
+
+    def needsBreakHandling(self):
+        return self.needs_break_handling
 
 
-class StatementTryFinally(StatementChildrenHavingBase):
+class StatementTryFinally(StatementChildrenHavingBase,
+                          ReturnBreakContinueHandlingMixin):
     kind = "STATEMENT_TRY_FINALLY"
 
-    named_children = ( "tried", "final" )
+    named_children = (
+        "tried",
+        "final"
+    )
 
-    def __init__(self, tried, final, source_ref):
+    def __init__(self, tried, final, public_exc, source_ref):
         assert tried is None or tried.isStatementsSequence()
         assert final is None or final.isStatementsSequence()
+
+        self.public_exc = public_exc
 
         StatementChildrenHavingBase.__init__(
             self,
@@ -42,15 +78,31 @@ class StatementTryFinally(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-        self.break_exception = False
-        self.continue_exception = False
-        self.return_value_exception_catch = False
-        self.return_value_exception_reraise = False
+        ReturnBreakContinueHandlingMixin.__init__(self)
 
-    getBlockTry = StatementChildrenHavingBase.childGetter( "tried" )
-    setBlockTry = StatementChildrenHavingBase.childSetter( "tried" )
-    getBlockFinal = StatementChildrenHavingBase.childGetter( "final" )
-    setBlockFinal = StatementChildrenHavingBase.childSetter( "final" )
+
+    getBlockTry = StatementChildrenHavingBase.childGetter(
+        "tried"
+    )
+    setBlockTry = StatementChildrenHavingBase.childSetter(
+        "tried"
+    )
+
+    getBlockFinal = StatementChildrenHavingBase.childGetter(
+        "final"
+    )
+    setBlockFinal = StatementChildrenHavingBase.childSetter(
+        "final"
+    )
+
+    def needsLineNumber(self):
+        """ The try/finally needs no line number itself.
+
+            The statements that are executing, might need it and trigger it
+            then.
+        """
+
+        return False
 
     def isStatementAborting(self):
         # In try/finally there are two chances to raise or return a value, so we
@@ -68,29 +120,24 @@ class StatementTryFinally(StatementChildrenHavingBase):
 
         return False
 
-    def markAsExceptionContinue(self):
-        self.continue_exception = True
+    def mayRaiseException(self, exception_type):
+        return self.getBlockTry().mayRaiseException(exception_type) or \
+               self.getBlockFinal().mayRaiseException(exception_type)
 
-    def markAsExceptionBreak(self):
-        self.break_exception = True
+    def mayReturn(self):
+        return self.getBlockTry().mayReturn() or \
+               self.getBlockFinal().mayReturn()
 
-    def markAsExceptionReturnValueCatch(self):
-        self.return_value_exception_catch = True
+    def mayBreak(self):
+        return self.getBlockTry().mayBreak() or \
+               self.getBlockFinal().mayBreak()
 
-    def markAsExceptionReturnValueReraise(self):
-        self.return_value_exception_reraise = True
+    def mayContinue(self):
+        return self.getBlockTry().mayContinue() or \
+               self.getBlockFinal().mayContinue()
 
-    def needsExceptionContinue(self):
-        return self.continue_exception
-
-    def needsExceptionBreak(self):
-        return self.break_exception
-
-    def needsExceptionReturnValueCatcher(self):
-        return self.return_value_exception_catch
-
-    def needsExceptionReturnValueReraiser(self):
-        return self.return_value_exception_reraise
+    def needsExceptionPublish(self):
+        return self.public_exc
 
     def computeStatement(self, constraint_collection):
         # The tried block must be considered as a branch, if it is not empty
@@ -106,7 +153,7 @@ class StatementTryFinally(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not tried_statement_sequence:
-                tried_statement_sequence.replaceWith( result )
+                tried_statement_sequence.replaceWith(result)
                 tried_statement_sequence = result
 
         final_statement_sequence = self.getBlockFinal()
@@ -155,6 +202,17 @@ Removed try/finally with empty tried block."""
             # then.
             return tried_statement_sequence, "new_statements", """\
 Removed try/finally with empty final block."""
+        elif not tried_statement_sequence.mayRaiseExceptionOrAbort(
+                BaseException
+            ):
+            tried_statement_sequence.setChild(
+                "statements",
+                tried_statement_sequence.getStatements() +
+                final_statement_sequence.getStatements()
+            )
+
+            return tried_statement_sequence, "new_statements", """\
+Removed try/finally with try block that cannot raise."""
         else:
             # TODO: Can't really merge it yet.
             constraint_collection.removeAllKnowledge()
@@ -163,49 +221,203 @@ Removed try/finally with empty final block."""
             return self, None, None
 
 
-class StatementExceptHandler(StatementChildrenHavingBase):
-    kind = "STATEMENT_EXCEPT_HANDLER"
+class ExpressionTryFinally(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_TRY_FINALLY"
 
     named_children = (
-        "exception_types",
-        "body"
+        "tried",
+        "expression",
+        "final"
     )
 
-    def __init__(self, exception_types, body, source_ref):
-        StatementChildrenHavingBase.__init__(
+    def __init__(self, tried, expression, final, source_ref):
+        assert final is not None or tried is not None
+        assert tried is None or tried.isStatementsSequence()
+        assert final is None or final.isStatementsSequence()
+
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "exception_types" : tuple( exception_types ),
-                "body"            : body,
+                "tried"      : tried,
+                "expression" : expression,
+                "final"      : final
             },
             source_ref = source_ref
         )
 
-    getExceptionTypes  = StatementChildrenHavingBase.childGetter(
-        "exception_types"
+    getBlockTry = ExpressionChildrenHavingBase.childGetter(
+        "tried"
     )
-    getExceptionBranch = StatementChildrenHavingBase.childGetter(
-        "body"
+    setBlockTry = ExpressionChildrenHavingBase.childSetter(
+        "tried"
     )
-    setExceptionBranch = StatementChildrenHavingBase.childSetter(
-        "body"
+
+    getBlockFinal = ExpressionChildrenHavingBase.childGetter(
+        "final"
     )
+    setBlockFinal = ExpressionChildrenHavingBase.childSetter(
+        "final"
+    )
+
+    getExpression = ExpressionChildrenHavingBase.childGetter(
+        "expression"
+    )
+    setExpression = ExpressionChildrenHavingBase.childSetter(
+        "expression"
+    )
+
+    def needsLineNumber(self):
+        """ The try/finally needs no line number itself.
+
+            The statements that are executing, might need it and trigger it
+            then.
+        """
+
+        return False
+
+    def needsReturnHandling(self):
+        return False
+
+    def needsReturnValueRelease(self):
+        return False
+
+    def needsContinueHandling(self):
+        return False
+
+    def needsBreakHandling(self):
+        return False
+
+    def needsExceptionPublish(self):
+        return False
+
+    def mayRaiseException(self, exception_type):
+        tried_block = self.getBlockTry()
+
+        if tried_block is not None and \
+           tried_block.mayRaiseException(exception_type):
+            return True
+
+        if self.getExpression().mayRaiseException(exception_type):
+            return True
+
+        final_block = self.getBlockFinal()
+
+        if final_block is not None and \
+           final_block.mayRaiseException(exception_type):
+            return True
+
+        return False
+
+    def computeExpressionRaw(self, constraint_collection):
+        # The tried block must be considered as a branch, if it is not empty
+        # already.
+        tried_statement_sequence = self.getBlockTry()
+
+        # May be "None" from the outset, so guard against that, later in this
+        # function we are going to remove it.
+        if tried_statement_sequence is not None:
+            result = tried_statement_sequence.computeStatementsSequence(
+                constraint_collection = constraint_collection
+            )
+
+            # Might be changed.
+            if result is not tried_statement_sequence:
+                tried_statement_sequence.replaceWith(result)
+                tried_statement_sequence = result
+
+        # The main expression itself.
+        constraint_collection.onExpression(self.getExpression())
+
+        final_statement_sequence = self.getBlockFinal()
+
+        # TODO: The final must not assume that all of tried was executed,
+        # instead it may have aborted after any part of it, which is a rather
+        # complex definition.
+
+        if final_statement_sequence is not None:
+            if tried_statement_sequence is not None:
+                from nuitka.tree.Extractions import getVariablesWritten
+
+                variable_writes = getVariablesWritten(
+                    tried_statement_sequence
+                )
+
+
+                # Mark all variables as unknown that are written in the tried
+                # block, so it destroys the assumptions for loop turn around.
+                for variable, _variable_version in variable_writes:
+                    constraint_collection.markActiveVariableAsUnknown(
+                        variable = variable
+                    )
+
+
+            # Then assuming no exception, the no raise block if present.
+            result = final_statement_sequence.computeStatementsSequence(
+                constraint_collection = constraint_collection
+            )
+
+            if result is not final_statement_sequence:
+                self.setBlockFinal(result)
+
+                final_statement_sequence = result
+
+        if tried_statement_sequence is None and final_statement_sequence:
+            # If the tried and final block is empty, go to the expression
+            # directly.
+            return self.getExpression, "new_expression", """\
+Removed try/finally expression with empty tried and final block."""
+        else:
+            # TODO: Can't really merge it yet.
+            constraint_collection.removeAllKnowledge()
+
+            # Otherwise keep it as it.
+            return self, None, None
+
+    def computeExpressionDrop(self, statement, constraint_collection):
+        tried = self.getBlockTry()
+
+        from .NodeMakingHelpers import \
+          makeStatementExpressionOnlyReplacementNode
+
+        tried.setChild(
+            "statements",
+            tried.getStatements() + (
+                makeStatementExpressionOnlyReplacementNode(self.getExpression(), self),
+            )
+        )
+
+        result = StatementTryFinally(
+            tried      = tried,
+            final      = self.getBlockFinal(),
+            public_exc = self.needsExceptionPublish(),
+            source_ref = self.getSourceReference()
+        )
+
+        return result, "new_statements", """\
+Replaced try/finally expression with try/finally statement."""
 
 
 class StatementTryExcept(StatementChildrenHavingBase):
     kind = "STATEMENT_TRY_EXCEPT"
 
-    named_children = ( "tried", "handlers" )
+    named_children = (
+        "tried",
+        "handling"
+    )
 
-    def __init__(self, tried, handlers, source_ref):
+    def __init__(self, tried, handling, public_exc, source_ref):
+        self.public_exc = public_exc
+
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "tried"    : tried,
-                "handlers" : tuple( handlers )
+                "handling" : handling
             },
             source_ref = source_ref
         )
+
+        assert type(public_exc) is bool
 
     getBlockTry = StatementChildrenHavingBase.childGetter(
         "tried"
@@ -214,57 +426,87 @@ class StatementTryExcept(StatementChildrenHavingBase):
         "tried"
     )
 
-    getExceptionHandlers = StatementChildrenHavingBase.childGetter(
-        "handlers"
+    getExceptionHandling = StatementChildrenHavingBase.childGetter(
+        "handling"
     )
 
-    def isStatementAborting(self):
-        tried_block = self.getBlockTry()
+    def needsLineNumber(self):
+        """ The try/except needs no line number itself.
 
-        # Happens during tree building only.
-        if tried_block is None:
-            return False
-
-        if not tried_block.isStatementAborting():
-            return False
-
-        for handler in self.getExceptionHandlers():
-            if not handler.isStatementAborting():
-                return False
-
-        return True
-
-    def isStatementTryExceptOptimized(self):
-        tried_block = self.getBlockTry()
-
-        tried_statements = tried_block.getStatements()
-
-        if len( tried_statements ) == 1:
-            tried_statement = tried_statements[0]
-
-            if tried_statement.isStatementAssignmentVariable():
-                source = tried_statement.getAssignSource()
-
-                if source.isExpressionBuiltinNext1():
-                    if not source.getValue().mayRaiseException( BaseException ):
-                        # Note: Now we know the source lookup is the only thing
-                        # that may raise.
-
-                        handlers = self.getExceptionHandlers()
-
-                        if len( handlers ) == 1:
-                            catched_types = handlers[0].getExceptionTypes()
-
-                            if len( catched_types ) == 1:
-                                catched_type = catched_types[0]
-
-                                if catched_type.isExpressionBuiltinExceptionRef():
-                                    if catched_type.getExceptionName() == "StopIteration":
-                                        if handlers[0].getExceptionBranch().isStatementAborting():
-                                            return True
+            The statements that are executing, might need it and trigger it
+            then.
+        """
 
         return False
 
+    def isStatementAborting(self):
+        tried_block = self.getBlockTry()
+        handling = self.getExceptionHandling()
+
+        if tried_block is not None and tried_block.isStatementAborting() and \
+           handling is not None and handling.isStatementAborting():
+            return True
+
+        return False
+
+    def mayRaiseException(self, exception_type):
+        tried = self.getBlockTry()
+
+        if tried is None:
+            return False
+
+        handling = self.getExceptionHandling()
+
+        if handling is None:
+            return False
+
+        return handling.mayRaiseException(exception_type) and \
+               tried.mayRaiseException(exception_type)
+
+    def mayReturn(self):
+        handling = self.getExceptionHandling()
+
+        if handling is not None and handling.mayReturn():
+            return True
+
+        tried = self.getBlockTry()
+
+        if tried is not None and tried.mayReturn():
+            return True
+
+        return False
+
+    def mayBreak(self):
+        handling = self.getExceptionHandling()
+
+        if handling is not None and handling.mayBreak():
+            return True
+
+        tried = self.getBlockTry()
+
+        if tried is not None and tried.mayBreak():
+            return True
+
+        return False
+
+    def mayContinue(self):
+        handling = self.getExceptionHandling()
+
+        if handling is not None and handling.mayContinue():
+            return True
+
+        tried = self.getBlockTry()
+
+        if tried is not None and tried.mayContinue():
+            return True
+
+        return False
+
+    def needsFrame(self):
+        return True
+
+    def needsExceptionPublish(self):
+        return self.public_exc
 
     def computeStatement(self, constraint_collection):
         # The tried block can be processed normally.
@@ -286,22 +528,30 @@ class StatementTryExcept(StatementChildrenHavingBase):
             return None, "new_statements", """\
 Removed try/except with empty tried block."""
 
-        from nuitka.optimizations.ConstraintCollections import \
-            ConstraintCollectionHandler
-        # The exception branches triggers in unknown state, any amount of tried
-        # code may have happened. A similar approach to loops should be taken to
-        # invalidate the state before.
-        for handler in self.getExceptionHandlers():
-            collection_exception_branch = ConstraintCollectionHandler(
-                parent  = constraint_collection,
-                handler = handler
+        # TODO: Need not to remove all knowledge, but only the parts that were
+        # touched.
+        constraint_collection.removeAllKnowledge()
+
+        if self.getExceptionHandling() is not None:
+            from nuitka.optimizations.ConstraintCollections import \
+              ConstraintCollectionBranch
+            collection_exception_handling = ConstraintCollectionBranch(
+                parent = constraint_collection,
+                branch = self.getExceptionHandling()
             )
 
         # Without exception handlers remaining, nothing else to do. They may
         # e.g. be removed as only re-raising.
-        if not self.getExceptionHandlers():
+        if self.getExceptionHandling() and \
+           self.getExceptionHandling().getStatements()[0].\
+             isStatementReraiseException():
             return tried_statement_sequence, "new_statements", """\
 Removed try/except without any remaing handlers."""
+
+        # Remove exception handling, if it cannot happen.
+        if not tried_statement_sequence.mayRaiseException(BaseException):
+            return tried_statement_sequence, "new_statements", """\
+Removed try/except with tried block that cannot raise."""
 
         # Give up, merging this is too hard for now, any amount of the tried
         # sequence may have executed together with one of the handlers, or all

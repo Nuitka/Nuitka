@@ -31,6 +31,7 @@ from nuitka.nodes.AssignNodes import (
     StatementDelVariable
 )
 from nuitka.nodes.StatementNodes import (
+    StatementGeneratorEntry,
     StatementExpressionOnly,
     StatementsSequence,
     StatementsFrame
@@ -60,7 +61,7 @@ from nuitka.nodes.YieldNodes import ExpressionYield
 
 make_contraction_parameters = ParameterSpec(
     name          = "contraction",
-    normal_args   = ( "__iterator", ),
+    normal_args   = ("__iterator",),
     list_star_arg = None,
     dict_star_arg = None,
     default_count = 0,
@@ -166,7 +167,10 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     )
 
     if start_value is not None:
-        container_tmp = function_body.allocateTempVariable( None, "result" )
+        container_tmp = function_body.allocateTempVariable(
+            temp_scope = None,
+            name       = "contraction_result"
+        )
 
         statements = [
             StatementAssignmentVariable(
@@ -235,11 +239,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     )
 
     for count, qual in enumerate(reversed( node.generators)):
-        tmp_iter_variable = function_body.allocateTempVariable(
-            temp_scope = None,
-            name       = "contraction_iter_%d" % count
-        )
-
         tmp_value_variable = function_body.allocateTempVariable(
             temp_scope = None,
             name       = "iter_value_%d" % count
@@ -249,11 +248,17 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         # and will be given as a parameter "_iterated", the others are built
         # inside the function.
         if qual is node.generators[0]:
-            value_iterator = ExpressionVariableRef(
-                variable_name = "__iterator",
-                source_ref    = source_ref
-            )
+            def makeIteratorRef():
+                return ExpressionVariableRef(
+                    variable_name = "__iterator",
+                    source_ref    = source_ref
+                )
+
+            tmp_iter_variable = None
+
+            nested_statements = []
         else:
+            # First create the iterator and store it, next should be loop body
             value_iterator = ExpressionBuiltinIter1(
                 value      = buildNode(
                     provider   = function_body,
@@ -263,19 +268,32 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                 source_ref = source_ref
             )
 
-        # First create the iterator and store it, next should be loop body
-        nested_statements = [
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
+            tmp_iter_variable = function_body.allocateTempVariable(
+                temp_scope = None,
+                name       = "contraction_iter_%d" % count
+            )
+
+            nested_statements = [
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_iter_variable.makeReference(
+                            function_body
+                        ),
+                        source_ref = source_ref
+                    ),
+                    source     = value_iterator,
+                    source_ref = source_ref
+                )
+            ]
+
+            def makeIteratorRef():
+                return ExpressionTempVariableRef(
                     variable   = tmp_iter_variable.makeReference(
                         function_body
                     ),
                     source_ref = source_ref
-                ),
-                source     = value_iterator,
-                source_ref = source_ref
-            )
-        ]
+                )
+
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
@@ -288,12 +306,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                             source_ref = source_ref
                         ),
                         source     = ExpressionBuiltinNext1(
-                            value      = ExpressionTempVariableRef(
-                                variable   = tmp_iter_variable.makeReference(
-                                    function_body
-                                ),
-                                source_ref = source_ref
-                            ),
+                            value      = makeIteratorRef(),
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
@@ -305,6 +318,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                         source_ref = source_ref.atInternal()
                     )
                 ),
+                public_exc     = False,
                 source_ref     = source_ref
             ),
             buildAssignmentStatements(
@@ -366,18 +380,19 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             )
         )
 
-        nested_statements.append(
-            StatementDelVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_iter_variable.makeReference(
-                        function_body
+        if tmp_iter_variable is not None:
+            nested_statements.append(
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_iter_variable.makeReference(
+                            function_body
+                        ),
+                        source_ref = source_ref
                     ),
+                    tolerant   = False,
                     source_ref = source_ref
-                ),
-                tolerant   = False,
-                source_ref = source_ref
+                )
             )
-        )
 
         current_body = StatementsSequence(
             statements = nested_statements,
@@ -397,9 +412,20 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             )
         )
 
+
+    statements = mergeStatements(statements)
+
+    if emit_class is ExpressionYield:
+        statements.insert(
+            0,
+            StatementGeneratorEntry(
+                source_ref = source_ref
+            )
+        )
+
     function_body.setBody(
         StatementsFrame(
-            statements    = mergeStatements(statements),
+            statements    = statements,
             guard_mode    = "pass_through"
                               if emit_class is not ExpressionYield else
                             "generator",

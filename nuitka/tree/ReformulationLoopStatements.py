@@ -43,6 +43,10 @@ from .Helpers import (
     makeStatementsSequenceFromStatement,
     makeStatementsSequence,
     buildStatementsNode,
+    pushBuildContext,
+    popBuildContext,
+    pushIndicatorVariable,
+    popIndicatorVariable,
     buildNode
 )
 
@@ -56,9 +60,9 @@ def buildForLoopNode(provider, node, source_ref):
     # taken if a for loop exits normally, i.e. because of iterator
     # exhaustion. We do this by introducing an indicator variable.
 
-    source = buildNode( provider, node.iter, source_ref )
+    source = buildNode(provider, node.iter, source_ref)
 
-    temp_scope = provider.allocateTempScope( "for_loop" )
+    temp_scope = provider.allocateTempScope("for_loop")
 
     tmp_iter_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
@@ -136,6 +140,7 @@ def buildForLoopNode(provider, node, source_ref):
             ),
             exception_name = "StopIteration",
             handler_body   = handler_body,
+            public_exc     = False,
             source_ref     = source_ref
         ),
         buildAssignmentStatements(
@@ -151,6 +156,8 @@ def buildForLoopNode(provider, node, source_ref):
         )
     )
 
+    pushBuildContext("loop_body")
+    pushIndicatorVariable(None)
     statements += (
         buildStatementsNode(
             provider   = provider,
@@ -158,6 +165,8 @@ def buildForLoopNode(provider, node, source_ref):
             source_ref = source_ref
         ),
     )
+    popIndicatorVariable()
+    popBuildContext()
 
     loop_body = makeStatementsSequence(
         statements = statements,
@@ -229,6 +238,7 @@ def buildForLoopNode(provider, node, source_ref):
                 statements = cleanup_statements,
                 source_ref = source_ref.atInternal()
             ),
+            public_exc = False,
             source_ref = source_ref.atInternal()
         )
     ]
@@ -270,7 +280,6 @@ def buildWhileLoopNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
-
     if else_block is not None:
         temp_scope = provider.allocateTempScope( "while_loop" )
 
@@ -304,12 +313,22 @@ def buildWhileLoopNode(provider, node, source_ref):
             ),
         )
 
+    pushBuildContext("loop_body")
+    pushIndicatorVariable(None)
+    loop_statements = buildStatementsNode(
+        provider   = provider,
+        nodes      = node.body,
+        source_ref = source_ref
+    )
+    popIndicatorVariable()
+    popBuildContext()
+
     # The loop body contains a conditional statement at the start that breaks
     # the loop if it fails.
     loop_body = makeStatementsSequence(
         statements = (
             StatementConditional(
-                condition = buildNode( provider, node.test, source_ref ),
+                condition = buildNode(provider, node.test, source_ref),
                 no_branch = StatementsSequence(
                     statements = statements,
                     source_ref = source_ref
@@ -317,11 +336,7 @@ def buildWhileLoopNode(provider, node, source_ref):
                 yes_branch = None,
                 source_ref = source_ref
             ),
-            buildStatementsNode(
-                provider   = provider,
-                nodes      = node.body,
-                source_ref = source_ref
-            )
+            loop_statements
         ),
         allow_none = True,
         source_ref = source_ref

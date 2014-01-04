@@ -280,8 +280,12 @@ ran_re                       = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+")
 compiled_function_re         = re.compile(r"\<compiled function")
 compiled_frame_re            = re.compile(r"\<compiled_frame")
-compiled_genexpr_re          = re.compile(r"\<compiled generator object \<(.*?)\>")
-compiled_generator_re        = re.compile(r"\<compiled generator object (.*?) at")
+compiled_genexpr_re          = re.compile(
+    r"\<compiled generator object \<(.*?)\>"
+)
+compiled_generator_re        = re.compile(
+    r"\<compiled generator object (.*?) at"
+)
 unbound_method_re            = re.compile(r"bound compiled_method ")
 compiled_type_re             = re.compile(r"type 'compiled_")
 compiled_generator_object_re = re.compile(r"'compiled_generator' object")
@@ -312,6 +316,13 @@ def makeDiffable(output):
 
         if line.endswith("\r"):
             line = line[:-1]
+
+        if line.startswith("REFCOUNTS"):
+            first_value = line[line.find("[")+1:line.find(",")]
+            last_value = line[line.rfind(" ")+1:line.rfind("]")]
+            line = line.\
+              replace(first_value, "xxxxx").\
+              replace(last_value, "xxxxx")
 
         if line.startswith("[") and line.endswith("refs]"):
             continue

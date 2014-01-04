@@ -27,20 +27,15 @@ from .templates.CodeTemplatesConstants import *
 from .templates.CodeTemplatesFunction import *
 from .templates.CodeTemplatesGeneratorFunction import *
 
+from .templates.CodeTemplatesFrames import *
+
 from .templates.CodeTemplatesParameterParsing import *
 
-from .templates.CodeTemplatesExceptions import *
-from .templates.CodeTemplatesImporting import *
-from .templates.CodeTemplatesPrinting import *
-from .templates.CodeTemplatesBranches import *
-from .templates.CodeTemplatesTuples import *
-from .templates.CodeTemplatesLists import *
-from .templates.CodeTemplatesDicts import *
-from .templates.CodeTemplatesCalls import *
-from .templates.CodeTemplatesLoops import *
-from .templates.CodeTemplatesSets import *
+from .templates.CodeTemplatesVariables import *
 
-from .templates.CodeTemplatesExecEval import *
+from .templates.CodeTemplatesExceptions import *
+from .templates.CodeTemplatesIterators import *
+from .templates.CodeTemplatesCalls import *
 
 
 def enableDebug():

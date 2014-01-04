@@ -22,8 +22,7 @@ Right now only the creation is done here. But more should be added later on.
 
 from nuitka.Utils import python_version
 
-from .ConstantCodes import getConstantHandle, getConstantCode
-from .Identifiers import Identifier
+from .ConstantCodes import getConstantCode
 
 import hashlib
 
@@ -37,14 +36,14 @@ code_objects = {}
 if python_version < 300:
     def _calcHash(key):
         hash_value = hashlib.md5(
-            "%s%s%d%s%d%d%s%s%s%s" % key
+            "%s%s%d%s%d%d%s%s%s%s%s%s" % key
         )
 
         return hash_value.hexdigest()
 else:
     def _calcHash(key):
         hash_value = hashlib.md5(
-            ("%s%s%d%s%d%d%s%s%s%s" % key).encode("utf-8")
+            ("%s%s%d%s%d%d%s%s%s%s%s%s" % key).encode("utf-8")
         )
 
         return hash_value.hexdigest()
@@ -56,7 +55,8 @@ def _getCodeObjects():
 # all different source, pylint: disable=R0913
 def getCodeObjectHandle( context, filename, code_name, line_number, var_names,
                          arg_count, kw_only_count, is_generator, is_optimized,
-                         has_starlist, has_stardict ):
+                         has_starlist, has_stardict, has_closure, future_flags
+                         ):
     var_names = tuple(var_names)
 
     assert type(has_starlist) is bool
@@ -72,18 +72,17 @@ def getCodeObjectHandle( context, filename, code_name, line_number, var_names,
         is_generator,
         is_optimized,
         has_starlist,
-        has_stardict
+        has_stardict,
+        has_closure,
+        future_flags
     )
 
     if key not in code_objects:
-        code_objects[ key ] = Identifier(
-            "codeobj_%s" % _calcHash(key),
-            0
-        )
+        code_objects[ key ] = "codeobj_%s" % _calcHash(key)
 
-        getConstantHandle(context, filename)
-        getConstantHandle(context, code_name)
-        getConstantHandle(context, var_names)
+        getConstantCode(context, filename)
+        getConstantCode(context, code_name)
+        getConstantCode(context, var_names)
 
     return code_objects[key]
 
@@ -94,7 +93,7 @@ def getCodeObjectsDeclCode(for_header):
     statements = []
 
     for _code_object_key, code_identifier in _getCodeObjects():
-        declaration = "PyCodeObject *%s;" % code_identifier.getCode()
+        declaration = "PyCodeObject *%s;" % code_identifier
 
         if for_header:
             declaration = "extern " + declaration
@@ -124,9 +123,14 @@ def getCodeObjectsInitCode(context):
         if code_object_key[9]:
             co_flags.append("CO_VARKEYWORDS")
 
+        if not code_object_key[10]:
+            co_flags.append("CO_NOFREE")
+
+        co_flags.extend(code_object_key[11])
+
         if python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
-                code_identifier.getCode(),
+                code_identifier,
                 getConstantCode(
                     constant = code_object_key[0],
                     context  = context
@@ -145,7 +149,7 @@ def getCodeObjectsInitCode(context):
             )
         else:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
-                code_identifier.getCode(),
+                code_identifier,
                 getConstantCode(
                     constant = code_object_key[0],
                     context  = context

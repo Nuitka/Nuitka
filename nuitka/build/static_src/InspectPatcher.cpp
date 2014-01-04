@@ -87,26 +87,20 @@ static void patchInspectModule( void )
     // fail with it being unable to load it.
     if ( Py_NoSiteFlag == 0 )
     {
-        try
+        PyObject *site_module = IMPORT_MODULE( const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0 );
+
+        if ( site_module == NULL )
         {
-            IMPORT_MODULE( const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0 );
-        }
-        catch( PythonException & )
-        {
-            PyErr_Clear();
             // Ignore ImportError, site is not a must.
+            PyErr_Clear();
         }
     }
 #endif
 
-    try
-    {
-        module_inspect = IMPORT_MODULE( const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0 );
-    }
-    catch( PythonException &e )
-    {
-        e.toPython();
+    module_inspect = IMPORT_MODULE( const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0 );
 
+    if ( module_inspect == NULL )
+    {
         PyErr_PrintEx( 0 );
         Py_Exit( 1 );
     }

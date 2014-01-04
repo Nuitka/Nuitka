@@ -37,7 +37,8 @@ def catcher():
     except ZeroDivisionError:
         print "Catching"
 
-        print sys.exc_info()[2].tb_next.tb_frame.f_locals
+        print "Top traceback code is", sys.exc_info()[2].tb_frame.f_code
+        print "Previous frame locals (module) are", sys.exc_info()[2].tb_next.tb_frame.f_locals
         pass
 
 catcher()

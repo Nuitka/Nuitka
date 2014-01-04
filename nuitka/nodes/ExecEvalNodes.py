@@ -143,7 +143,6 @@ def _couldBeNone(node):
         return False
     elif node.isExpressionBuiltinGlobals() or \
          node.isExpressionBuiltinLocals() or \
-         node.isExpressionBuiltinDir0() or \
          node.isExpressionBuiltinVars():
         return False
     else:
@@ -277,4 +276,42 @@ Exec statement raises implicitely when determining locals argument."""
                 "Inlined constant exec statement."
             )
 
+        return self, None, None
+
+class ExpressionBuiltinCompile(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_BUILTIN_COMPILE"
+
+    named_children = (
+        "source",
+        "filename",
+        "mode",
+        "flags",
+        "dont_inherit",
+        "optimize"
+    )
+
+    def __init__(self, source_code, filename, mode, flags, dont_inherit,
+                 optimize, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "source"       : source_code,
+                "filename"     : filename,
+                "mode"         : mode,
+                "flags"        : flags,
+                "dont_inherit" : dont_inherit,
+                "optimize"     : optimize
+            },
+            source_ref = source_ref
+        )
+
+    getSourceCode = ExpressionChildrenHavingBase.childGetter("source")
+    getFilename = ExpressionChildrenHavingBase.childGetter("filename")
+    getMode = ExpressionChildrenHavingBase.childGetter("mode")
+    getFlags = ExpressionChildrenHavingBase.childGetter("flags")
+    getDontInherit = ExpressionChildrenHavingBase.childGetter("dont_inherit")
+    getOptimize = ExpressionChildrenHavingBase.childGetter("optimize")
+
+    def computeExpression(self, constraint_collection):
+        # TODO: Attempt for constant values to do it.
         return self, None, None

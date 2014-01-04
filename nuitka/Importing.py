@@ -181,31 +181,31 @@ def _findModuleInPath(module_name, package_name):
     # pylint: disable=R0912
 
     if _debug_module_finding:
-        print( "_findModuleInPath: Enter", module_name, "in", package_name )
+        print("_findModuleInPath: Enter", module_name, "in", package_name)
 
     assert main_path is not None
-    extra_paths = [ os.getcwd(), main_path  ]
+    extra_paths = [os.getcwd(), main_path]
 
     if package_name is not None:
         # Work around imp.find_module bug on at least Windows. Won't handle
         # module name empty in find_module. And thinking of it, how could it
         # anyway.
         if module_name == "":
-            module_name = package_name.split( "." )[ -1 ]
-            package_name = ".".join( package_name.split( "." )[:-1] )
+            module_name = package_name.split(".")[-1]
+            package_name = ".".join(package_name.split(".")[:-1])
 
         def getPackageDirname(element):
-            return Utils.joinpath( element, *package_name.split( "." ) )
+            return Utils.joinpath(element,*package_name.split("."))
 
         ext_path = [
-            getPackageDirname( element )
+            getPackageDirname(element)
             for element in
             extra_paths + sys.path
-            if isPackageDir( getPackageDirname( element ) )
+            if isPackageDir(getPackageDirname(element))
         ]
 
         if _debug_module_finding:
-            print( "_findModuleInPath: Package, using extended path", ext_path )
+            print("_findModuleInPath: Package, using extended path", ext_path)
 
         try:
             module_filename = _impFindModuleWrapper(
@@ -214,8 +214,11 @@ def _findModuleInPath(module_name, package_name):
             )
 
             if _debug_module_finding:
-                print( "_findModuleInPath: imp.find_module worked",
-                       module_filename, package_name )
+                print(
+                    "_findModuleInPath: imp.find_module worked",
+                    module_filename,
+                    package_name
+                )
 
             return module_filename, package_name
         except ImportError:
@@ -233,7 +236,7 @@ def _findModuleInPath(module_name, package_name):
     ext_path = extra_paths + sys.path
 
     if _debug_module_finding:
-        print( "_findModuleInPath: Non-package, using extended path", ext_path )
+        print("_findModuleInPath: Non-package, using extended path", ext_path)
 
     try:
         module_filename = _impFindModuleWrapper(
@@ -250,13 +253,14 @@ def _findModuleInPath(module_name, package_name):
         return None, None
 
     if _debug_module_finding:
-        print( "_findModuleInPath: imp.find_module gave", module_filename )
+        print("_findModuleInPath: imp.find_module gave", module_filename)
 
     return module_filename, None
 
+
 def _findModule(module_name, parent_package):
     if _debug_module_finding:
-        print( "_findModule: Enter", module_name, "in", parent_package )
+        print("_findModule: Enter", module_name, "in", parent_package)
 
     # The os.path is strangely hacked into the os module, dispatching per
     # platform, we either cannot look into it, or we require that we resolve it
@@ -264,9 +268,9 @@ def _findModule(module_name, parent_package):
     if module_name == "os.path" and parent_package is None:
         parent_package = "os"
 
-        module_name = Utils.basename( os.path.__file__ )
-        if module_name.endswith( ".pyc" ):
-            module_name = module_name[ : -4 ]
+        module_name = Utils.basename(os.path.__file__)
+        if module_name.endswith(".pyc"):
+            module_name = module_name[:-4]
 
     assert module_name != "" or parent_package is not None
 
@@ -275,8 +279,8 @@ def _findModule(module_name, parent_package):
         return None, None
 
     if "." in module_name:
-        package_part = module_name[ : module_name.rfind( "." ) ]
-        module_name = module_name[ module_name.rfind( "." ) + 1 : ]
+        package_part = module_name[ : module_name.rfind(".") ]
+        module_name = module_name[ module_name.rfind(".") + 1 : ]
 
         # Relative import
         if parent_package is not None:

@@ -108,7 +108,10 @@ class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
 class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
-    named_children = ( "instance", "cls" )
+    named_children = (
+        "instance",
+        "cls"
+    )
 
     def __init__(self, instance, cls, source_ref):
         ExpressionChildrenHavingBase.__init__(

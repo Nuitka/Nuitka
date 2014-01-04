@@ -76,6 +76,14 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
+        self.inplace_suspect = False
+
+    def markAsInplaceSuspect(self):
+        self.inplace_suspect = True
+
+    def isInplaceSuspect(self):
+        return self.inplace_suspect
+
     def computeExpression(self, constraint_collection):
         operator = self.getOperator()
         operands = self.getOperands()
@@ -203,6 +211,9 @@ class ExpressionOperationUnary(ExpressionOperationBase):
     def getOperands(self):
         return ( self.getOperand(), )
 
+    def isExpressionOperationUnary(self):
+        return True
+
 
 class ExpressionOperationNOT(ExpressionOperationUnary):
     kind = "EXPRESSION_OPERATION_NOT"
@@ -279,6 +290,9 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
             right      = right,
             source_ref = source_ref
         )
+
+    def isExpressionOperationBinary(self):
+        return True
 
     def computeExpression(self, constraint_collection):
         # TODO: Inplace operation requires extra care to avoid corruption of

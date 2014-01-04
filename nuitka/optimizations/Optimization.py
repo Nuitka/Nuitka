@@ -63,7 +63,7 @@ def signalChange(tags, source_ref, message):
     tag_set.onSignal(tags)
 
 
-def _optimizeModulePass(module, tag_set):
+def _optimizeModulePass(module):
     module.collection = ConstraintCollectionModule(
         signal_change = signalChange,
         module        = module
@@ -92,6 +92,7 @@ def _optimizeModulePass(module, tag_set):
 
             variable.setReadOnlyIndicator(new_value)
 
+
 def optimizePythonModule(module):
     if _progress:
         printLine(
@@ -112,8 +113,7 @@ def optimizePythonModule(module):
         tag_set.clear()
 
         _optimizeModulePass(
-            module  = module,
-            tag_set = tag_set
+            module = module
         )
 
         if not tag_set:

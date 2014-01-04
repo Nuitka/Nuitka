@@ -53,6 +53,7 @@ def buildYieldNode(provider, node, source_ref):
             source_ref = source_ref
         )
 
+
 def buildYieldFromNode(provider, node, source_ref):
     assert Utils.python_version >= 330
 

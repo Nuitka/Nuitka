@@ -156,29 +156,37 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE( PyDictObject *dict,
 
 #endif
 
-NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
+NUITKA_MAY_BE_UNUSED static bool DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
 {
+    assertObject( dict );
+    assertObject( key );
+    assertObject( value );
+
     int status = PyDict_SetItem( dict, key, value );
 
     if (unlikely( status == -1 ))
     {
-        throw PythonException();
+        return false;
     }
+
+    return true;
 }
 
-NUITKA_MAY_BE_UNUSED static inline void DICT_SET_ITEM( PyDictObject *dict, PyObject *key, PyObject *value )
+NUITKA_MAY_BE_UNUSED static inline bool DICT_SET_ITEM( PyDictObject *dict, PyObject *key, PyObject *value )
 {
     return DICT_SET_ITEM( (PyObject *)dict, key, value );
 }
 
-NUITKA_MAY_BE_UNUSED static void DICT_REMOVE_ITEM( PyObject *dict, PyObject *key )
+NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM( PyObject *dict, PyObject *key )
 {
     int status = PyDict_DelItem( dict, key );
 
     if (unlikely( status == -1 ))
     {
-        throw PythonException();
+        return false;
     }
+
+    return true;
 }
 
 
@@ -195,11 +203,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *k
     {
         if (unlikely( PyErr_Occurred() ))
         {
-            throw PythonException();
+            return NULL;
         }
 
         PyErr_SetObject( PyExc_KeyError, key );
-        throw PythonException();
+        return NULL;
     }
     else
     {
@@ -228,7 +236,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
 
         if ( res == -1 )
         {
-            throw PythonException();
+            return NULL;
         }
     }
 
@@ -238,7 +246,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
 
         if ( res == -1 )
         {
-            throw PythonException();
+            return NULL;
         }
 
     }

@@ -60,7 +60,7 @@ def function_torture_is():
 
 function_torture_is()
 
-print "Check if lambda can have expression chains:"
+print "Check if lambda can have expression chains:",
 
 def function_lambda_with_chain():
 
@@ -72,12 +72,16 @@ def function_lambda_with_chain():
 
 function_lambda_with_chain()
 
+print "Check if generators can have expression chains:",
+
 def generator_function_with_chain():
     x = ( 1, 2, 3 )
 
     yield x[0] < x[1] < x[2]
 
 print list( generator_function_with_chain() )
+
+print "Check if list contractions can have expression chains:",
 
 def contraction_with_chain():
     return [ x[0] < x[1] < x[2] for x in [ ( 1, 2, 3 ) ] ]

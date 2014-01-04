@@ -152,13 +152,6 @@ def encodeNonAscii(var_name):
         # necessary to use something that is not allowed otherwise.
         return var_name.replace( "&#", "$$" ).replace( ";", "" )
 
-if python_version >= 300:
-    get_input = input
-    from urllib.request import urlretrieve
-else:
-    get_input = raw_input
-    from urllib import urlretrieve
-
 def getOwnProcessMemoryUsage():
     """ Memory usage of own process in bytes.
 
@@ -170,6 +163,8 @@ def getOwnProcessMemoryUsage():
         import ctypes
         from ctypes import wintypes
 
+        # Lets allow this to match Windows API it reflects,
+        # pylint: disable=C0103
         class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
             _fields_ = [
                 ('cb', wintypes.DWORD),

@@ -18,6 +18,10 @@
 
 import sys, gc
 
+if not hasattr(sys, "gettotalrefcount"):
+    print("Warning, using non-debug Python makes this test ineffective.")
+    sys.gettotalrefcount = lambda : 0
+
 def simpleFunction1():
     def g():
         for a in range(20):

@@ -15,23 +15,21 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Import related templates.
+""" Emission.
+
+Code generation is driven via "emit", which is to receive lines of code and
+this is to collect them, providing the emit implementation. Sometimes nested
+use of these will occur.
 
 """
 
-import_from_template = """\
-{
-    PyObjectTemporary module_temp(
-%(module_lookup)s
-    );
+class SourceCodeCollector:
+    def __init__(self):
+        self.codes = []
 
-    try
-    {
-%(lookup_code)s
-    }
-    catch( PythonException &_exception )
-    {
-        _exception.setType( PyExc_ImportError );
-        throw _exception;
-    }
-}"""
+    def __call__(self, code):
+        self.emit(code)
+
+    def emit(self,code):
+        for line in code.split("\n"):
+            self.codes.append(line)

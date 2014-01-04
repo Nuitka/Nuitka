@@ -18,12 +18,21 @@
 
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.ConditionalNodes import ExpressionConditional
-from nuitka.nodes.KeeperNodes import (
-    ExpressionAssignmentTempKeeper,
-    ExpressionTempKeeperRef
+
+from nuitka.nodes.TryNodes import ExpressionTryFinally
+
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
+
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
 )
 
 from .Helpers import (
+    makeStatementsSequence,
     buildNodeList,
     buildNode,
     getKind
@@ -36,7 +45,7 @@ def buildBoolOpNode(provider, node, source_ref):
         # The "or" may be short circuit and is therefore not a plain operation
         return buildOrNode(
             provider   = provider,
-            values     = buildNodeList( provider, node.values, source_ref ),
+            values     = buildNodeList(provider, node.values, source_ref),
             source_ref = source_ref
         )
 
@@ -44,13 +53,13 @@ def buildBoolOpNode(provider, node, source_ref):
         # The "and" may be short circuit and is therefore not a plain operation
         return buildAndNode(
             provider   = provider,
-            values     = buildNodeList( provider, node.values, source_ref ),
+            values     = buildNodeList(provider, node.values, source_ref),
             source_ref = source_ref
         )
     elif bool_op == "Not":
         # The "not" is really only a unary operation and no special.
         return ExpressionOperationNOT(
-            operand    = buildNode( provider, node.operand, source_ref ),
+            operand    = buildNode(provider, node.operand, source_ref),
             source_ref = source_ref
         )
     else:
@@ -58,56 +67,140 @@ def buildBoolOpNode(provider, node, source_ref):
 
 
 def buildOrNode(provider, values, source_ref):
-    result = values[ -1 ]
-    del values[ -1 ]
+    values = list(values)
 
-    while True:
-        keeper_variable = provider.allocateTempKeeperVariable()
+    result = values[-1]
+    del values[-1]
 
-        tmp_assign = ExpressionAssignmentTempKeeper(
-            variable   = keeper_variable.makeReference( provider ),
-            source     = values[ -1 ],
-            source_ref = source_ref
+    temp_scope = None
+    count = 1
+
+    while values:
+        if temp_scope is None:
+            temp_scope = provider.allocateTempScope(
+                name = "or"
+            )
+
+        keeper_variable = provider.allocateTempVariable(
+            temp_scope = temp_scope,
+            name       = "value_%d" % count
         )
-        del values[ -1 ]
+        count += 1
+
+        tried = [
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source       = values[-1],
+                source_ref   = source_ref,
+            )
+        ]
+
+        final = [
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref,
+            )
+        ]
+
+        # TODO: The delete must be placed later.
+        final = ()
 
         result = ExpressionConditional(
-            condition      = tmp_assign,
-            yes_expression = ExpressionTempKeeperRef(
-                variable   = keeper_variable.makeReference( provider ),
+            condition      = ExpressionTryFinally(
+                tried       = makeStatementsSequence(tried, False, source_ref),
+                final       = makeStatementsSequence(final, False, source_ref),
+                expression  = ExpressionTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source_ref  = source_ref
+            ),
+            yes_expression  = ExpressionTempVariableRef(
+                variable   = keeper_variable.makeReference(provider),
                 source_ref = source_ref
             ),
-            no_expression  = result,
+            no_expression   = result,
             source_ref      = source_ref
         )
 
-        if not values:
-            break
+
+        del values[-1]
 
     return result
 
+
 def buildAndNode(provider, values, source_ref):
-    result = values[ -1 ]
-    del values[ -1 ]
+    values = list(values)
+
+    result = values[-1]
+    del values[-1]
+
+    temp_scope = None
+    count = 1
 
     while values:
-        keeper_variable = provider.allocateTempKeeperVariable()
+        if temp_scope is None:
+            temp_scope = provider.allocateTempScope(
+                name = "and"
+            )
 
-        tmp_assign = ExpressionAssignmentTempKeeper(
-            variable   = keeper_variable.makeReference( provider ),
-            source     = values[ -1 ],
-            source_ref = source_ref
+        keeper_variable = provider.allocateTempVariable(
+            temp_scope = temp_scope,
+            name       = "value_%d" % count
         )
-        del values[ -1 ]
+        count += 1
+
+        tried = [
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source       = values[-1],
+                source_ref   = source_ref,
+            )
+        ]
+
+        final = [
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref,
+            )
+        ]
+
+        # TODO: The delete must be placed later.
+        final = ()
 
         result = ExpressionConditional(
-            condition      = tmp_assign,
-            no_expression = ExpressionTempKeeperRef(
-                variable   = keeper_variable.makeReference( provider ),
+            condition      = ExpressionTryFinally(
+                tried       = makeStatementsSequence(tried, False, source_ref),
+                final       = makeStatementsSequence(final, False, source_ref),
+                expression  = ExpressionTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source_ref  = source_ref
+            ),
+            no_expression = ExpressionTempVariableRef(
+                variable   = keeper_variable.makeReference(provider),
                 source_ref = source_ref
             ),
             yes_expression  = result,
             source_ref      = source_ref
         )
+
+        del values[-1]
+
 
     return result

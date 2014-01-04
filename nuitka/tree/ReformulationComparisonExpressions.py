@@ -16,14 +16,19 @@
 #     limitations under the License.
 #
 
-from nuitka.nodes.KeeperNodes import (
-    ExpressionAssignmentTempKeeper,
-    ExpressionTempKeeperRef
+from nuitka.nodes.TryNodes import ExpressionTryFinally
+
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
 )
 
 from .ReformulationBooleanExpressions import buildAndNode
 
 from .Helpers import (
+    makeStatementsSequence,
     buildNode,
     getKind
 )
@@ -39,9 +44,9 @@ def buildComparisonNode(provider, node, source_ref):
     # code.
 
     # The operands are split out
-    left = buildNode( provider, node.left, source_ref )
+    left = buildNode(provider, node.left, source_ref)
     rights = [
-        buildNode( provider, comparator, source_ref )
+        buildNode(provider, comparator, source_ref)
         for comparator in
         node.comparators
     ]
@@ -53,12 +58,14 @@ def buildComparisonNode(provider, node, source_ref):
     # For PyLint to like it, this will hold the previous one, normally.
     keeper_variable = None
 
-    for comparator, right in zip( node.ops, rights ):
+    temp_scope = None
+
+    for comparator, right in zip(node.ops, rights):
         if result:
             # Now we know it's not the only one, so we change the "left" to be a
             # reference to the previously saved right side.
-            left = ExpressionTempKeeperRef(
-                variable   = keeper_variable.makeReference( provider ),
+            left = ExpressionTempVariableRef(
+                variable   = keeper_variable.makeReference(provider),
                 source_ref = source_ref
             )
 
@@ -69,15 +76,41 @@ def buildComparisonNode(provider, node, source_ref):
             # "right" so it can be referenced by the next part that will
             # come. We do it by assining it to a temp variable to be shared with
             # the next part.
-            keeper_variable = provider.allocateTempKeeperVariable()
+            if temp_scope is None:
+                temp_scope = provider.allocateTempScope(
+                    name = "comparison"
+                )
 
-            right = ExpressionAssignmentTempKeeper(
-                variable   = keeper_variable.makeReference( provider ),
-                source     = right,
-                source_ref = source_ref
+            keeper_variable = provider.allocateTempVariable(
+                temp_scope = temp_scope,
+                name       = "value_%d" % (rights.index(right)+2),
             )
 
-        comparator = getKind( comparator )
+            tried = [
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = keeper_variable.makeReference(provider),
+                        source_ref = source_ref
+                    ),
+                    source       = right,
+                    source_ref   = source_ref,
+                )
+            ]
+
+            # TODO: The delete must be placed later.
+            final = []
+
+            right = ExpressionTryFinally(
+                tried       = makeStatementsSequence(tried, False, source_ref),
+                final       = makeStatementsSequence(final, False, source_ref),
+                expression  = ExpressionTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source_ref  = source_ref
+            )
+
+        comparator = getKind(comparator)
 
         result.append(
             makeComparisonNode(

@@ -35,4 +35,6 @@ static inline bool Nuitka_Frame_Check( PyObject *object )
     return Py_TYPE( object ) == &Nuitka_Frame_Type;
 }
 
+extern PyFrameObject *duplicateFrame( PyFrameObject *old_frame );
+
 #endif

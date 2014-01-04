@@ -27,7 +27,6 @@ from .NodeBases import (
     NodeBase
 )
 
-from .IndicatorMixins import MarkContainsTryExceptIndicator
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.nodes.FutureSpecs import FutureSpec
 
@@ -119,7 +118,7 @@ def checkModuleBody(value):
     return value
 
 class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
-                   ClosureGiverNodeBase, MarkContainsTryExceptIndicator):
+                   ClosureGiverNodeBase):
     """ Module
 
         The module is the only possible root of a tree. When there are many
@@ -148,8 +147,6 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
             self,
             values = {},
         )
-
-        MarkContainsTryExceptIndicator.__init__( self )
 
         PythonModuleMixin.__init__(
             self,
@@ -272,6 +269,11 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
             return main_filename[:-3]
         else:
             return main_filename
+
+    # TODO: Can't really use locals for modules, this should probably be made
+    # sure to not be used.
+    def getLocalsMode(self):
+        return "copy"
 
 
 class SingleCreationMixin:
@@ -397,18 +399,6 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                 ("cairo", None),
                 ("gio", None),
                 ("atk", None),
-            )
-        elif full_name == "_win32sysloader":
-            return (
-                ("cp850", "encodings"),
-            )
-        elif full_name == "win32api":
-            return (
-                ("pythoncom", None),
-            )
-        elif full_name == "pythoncom":
-            return (
-                ("gen_py", "win32com"),
             )
         else:
             return ()

@@ -36,6 +36,8 @@ from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from .Helpers import (
     makeStatementsSequenceFromStatement,
     makeDictCreationOrConstant,
+    pushIndicatorVariable,
+    popIndicatorVariable,
     buildStatementsNode,
     extractDocFromBody,
     buildNodeList,
@@ -64,7 +66,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     decorators = buildNodeList(
         provider   = provider,
-        nodes      = reversed( node.decorator_list ),
+        nodes      = reversed(node.decorator_list),
         source_ref = source_ref
     )
 
@@ -78,12 +80,16 @@ def buildFunctionNode(provider, node, source_ref):
         provider, node, function_body, source_ref
     )
 
+    pushIndicatorVariable(Ellipsis)
+
     function_statements_body = buildStatementsNode(
         provider   = function_body,
         nodes      = function_statements,
         frame      = True,
         source_ref = source_ref
     )
+
+    popIndicatorVariable()
 
     if function_body.isExpressionFunctionBody() and function_body.isGenerator():
         # TODO: raise generator exit?
@@ -112,9 +118,11 @@ def buildFunctionNode(provider, node, source_ref):
             )
         )
 
-    function_body.setBody( function_statements_body )
+    function_body.setBody(
+        function_statements_body
+    )
 
-    annotations = buildParameterAnnotations( provider, node, source_ref )
+    annotations = buildParameterAnnotations(provider, node, source_ref)
 
     decorated_body = ExpressionFunctionCreation(
         function_ref = ExpressionFunctionRef(
@@ -159,6 +167,7 @@ def buildFunctionNode(provider, node, source_ref):
         source       = decorated_body,
         source_ref   = source_ref
     )
+
 
 def buildParameterKwDefaults(provider, node, function_body, source_ref):
     # Build keyword only arguments default values. We are hiding here, that it

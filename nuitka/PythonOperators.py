@@ -92,5 +92,22 @@ comparison_inversions = {
     "NotIn" : "In"
 }
 
-all_comparison_functions = dict( rich_comparison_functions)
-all_comparison_functions.update( other_comparison_functions )
+all_comparison_functions = dict(rich_comparison_functions)
+all_comparison_functions.update(other_comparison_functions)
+
+def matchException(left,right):
+    from nuitka import Utils
+
+    if Utils.python_version >= 300:
+        if type(right) is tuple:
+            for element in right:
+                if not isinstance(BaseException,element):
+                    raise TypeError("catching classes that do not inherit from BaseException is not allowed")
+        elif not isinstance(BaseException,right):
+            raise TypeError("catching classes that do not inherit from BaseException is not allowed")
+
+    import os
+    os._exit(16)
+
+
+all_comparison_functions["exception_match"]=matchException

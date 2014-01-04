@@ -295,3 +295,8 @@ try:
     next(z)
 except TypeError as e:
     print "caught", repr(e)
+
+try:
+    open()
+except TypeError as e:
+    print "Open without arguments gives", repr(e)

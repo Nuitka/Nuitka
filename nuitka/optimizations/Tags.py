@@ -32,7 +32,7 @@ allowed_tags = (
     # Added new import.
     "new_import",
 
-    # New statements added.
+    # New statements added, removed.
     "new_statements",
 
     # New expression added.
@@ -56,7 +56,6 @@ allowed_tags = (
 
 
 class TagSet(set):
-    # false alarm, pylint: disable=R0924
     def onSignal(self, signal):
         if type(signal) is str:
             signal = signal.split()

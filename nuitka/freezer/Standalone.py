@@ -30,6 +30,7 @@ import marshal
 from nuitka import Utils, Options
 from nuitka.codegen.ConstantCodes import needsPickleInit
 
+from nuitka.__past__ import raw_input, urlretrieve
 
 def getDependsExePath():
     if Utils.getArchitecture() == "x86":
@@ -58,14 +59,14 @@ to analyse the dependencies of Python extension modules. Is it OK to download
 and put it in APPDATA (no installer needed, cached, one time question)."""
         )
 
-        reply = Utils.get_input("Proceed and download? [Yes]/No ")
+        reply = raw_input("Proceed and download? [Yes]/No ")
 
         if reply.lower() in ("no", "n"):
             sys.exit("Nuitka does not work in --standalone on Windows without.")
 
         info("Downloading", depends_url)
 
-        Utils.urlretrieve(
+        urlretrieve(
             depends_url,
             nuitka_depends_zip
         )

@@ -1269,33 +1269,59 @@ loops.
    something harder to discover.
 
 
-Exception Handler Values
-++++++++++++++++++++++++
+Exception Handlers
+++++++++++++++++++
 
 Exception handlers in Python may assign the caught exception value to a variable
-in the handler definition.
+in the handler definition. And the different handlers are represented as
+conditional checks on the result of comparison operations.
+
+.. code-block:: python
+
+
+   try:
+       block()
+   except A as e:
+       handlerA(e)
+   except B as e:
+       handlerB(e)
+   else:
+      handlerElse()
 
 .. code-block:: python
 
     try:
-        something()
-    except Exception as e:
-        handle_it()
+       block()
+    except:
+       # These are special nodes that access the exception, and don't really
+       # use the "sys" module.
+       tmp_exc_type = sys.exc_info()[0]
+       tmp_exc_value = sys.exc_info()[1]
 
-That is equivalent to the following:
+       # exception_matches is a comparison operation, also a special node.
+       if exception_matches(tmp_exc_type, (A,)):
+          e = tmp_exc_value
+          handlerA(e)
+       elif exception_matches(tmp_exc_type, (B,)):
+          e = tmp_exc_value
+          handlerB(e)
+       else:
+          handlerElse()
 
-.. code-block:: python
 
-    try:
-        something()
-    except Exception:
-        e = sys.exc_info()[1]
-        handle_it()
+For Python3, the assigned ``e`` variables get deleted at the end of the handler
+block. Should that value be already deleted, that ``del`` does not raise,
+therefore it's tolerant.
 
-Of course, the value of the current exception, use special references for
-assignments, that access the C++ and don't go via ``sys.exc_info`` at all, these
-are called ``CaughtExceptionValueRef``.
+Should there be no ``else:`` branch, a default re-raise statement is used
+instead.
 
+And of course, the values of the current exception type and value, both use
+special references, that access the C++ and don't go via ``sys.exc_info`` at
+all, nodes called ``CaughtExceptionTypeRef`` and ``CaughtExceptionValueRef``.
+
+This means, that the different handlers and their catching run time behavior are
+all explicit and reduced the branches.
 
 Statement ``try``/``except`` with ``else``
 ++++++++++++++++++++++++++++++++++++++++++

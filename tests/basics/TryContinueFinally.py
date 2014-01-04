@@ -15,9 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
 def tryWhileContinueFinallyTest():
-    print "Check if finally is executed in a continue using for loop:"
+    print("Check if finally is executed in a continue using for loop:")
 
     x = 0
 
@@ -28,24 +29,28 @@ def tryWhileContinueFinallyTest():
             if x % 2 == 1:
                 continue
         finally:
-            print x,
+            print(x, end=" ")
 
-    print
+        print("-", end=" ")
+
+    print()
 
 def tryForContinueFinallyTest():
-    print "Check if finally is executed in a continue using for loop:"
+    print("Check if finally is executed in a continue using for loop:")
 
     for x in range(10):
         try:
             if x % 2 == 1:
                 continue
         finally:
-            print x,
+            print(x, end=" ")
 
-    print
+        print("-", end=" ")
+
+    print()
 
 def tryWhileBreakFinallyTest():
-    print "Check if finally is executed in a break using while loop:"
+    print("Check if finally is executed in a break using while loop:")
 
     x = 0
 
@@ -56,21 +61,25 @@ def tryWhileBreakFinallyTest():
             if x == 5:
                 break
         finally:
-            print x,
+            print(x, end=" ")
 
-    print
+        print("-", end=" ")
+
+    print()
 
 def tryForBreakFinallyTest():
-    print "Check if finally is executed in a break using for loop:"
+    print("Check if finally is executed in a break using for loop:")
 
     for x in range(10):
         try:
             if x == 5:
                 break
         finally:
-            print x,
+            print(x, end=" ")
 
-    print
+        print("-", end=" ")
+
+    print()
 
 tryWhileContinueFinallyTest()
 tryWhileBreakFinallyTest()

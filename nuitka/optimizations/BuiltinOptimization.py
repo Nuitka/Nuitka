@@ -214,7 +214,7 @@ builtin_list_spec = BuiltinParameterSpec( "list", ( "sequence", ), 1 )
 builtin_set_spec = BuiltinParameterSpecNoKeywords( "set", ( "iterable", ), 1 )
 
 builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "locals", "fromlist", "level" ), 4 )
-builtin_open_spec = BuiltinParameterSpec( "open", ( "name", "mode", "buffering" ), 2 )
+builtin_open_spec = BuiltinParameterSpec( "open", ( "name", "mode", "buffering" ), 3 )
 builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 0 )
 builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 0 )
 builtin_bin_spec = BuiltinParameterSpecNoKeywords( "bin", ( "number", ), 0 )
@@ -228,11 +228,15 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 1 )
 builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
 builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
 builtin_eval_spec = BuiltinParameterSpecNoKeywords( "eval", ( "source", "globals", "locals" ), 2 )
+if python_version < 300:
+    builtin_compile_spec = BuiltinParameterSpec("compile", ( "source", "filename", "mode", "flags", "dont_inherit" ), 2)
+else:
+    builtin_compile_spec = BuiltinParameterSpec("compile", ( "source", "filename", "mode", "flags", "dont_inherit", "optimize" ), 3)
 if python_version >= 300:
     builtin_exec_spec = BuiltinParameterSpecNoKeywords( "exec", ( "source", "globals", "locals" ), 2 )
 
-# Note: Iter in fact names its first argument if the default applies "collection", but it
-# won't matter much, fixed up in a wrapper.
+# Note: Iter in fact names its first argument if the default applies
+# "collection", fixed up in a wrapper.
 builtin_iter_spec = BuiltinParameterSpecNoKeywords( "iter", ( "callable", "sentinel" ), 1 )
 builtin_next_spec = BuiltinParameterSpecNoKeywords( "next", ( "iterator", "default" ), 1 )
 

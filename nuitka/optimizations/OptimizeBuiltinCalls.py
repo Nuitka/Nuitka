@@ -50,18 +50,24 @@ from nuitka.nodes.BuiltinDecodingNodes import (
     ExpressionBuiltinOrd,
     ExpressionBuiltinOrd0
 )
-from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinEval
+from nuitka.nodes.ExecEvalNodes import (
+    ExpressionBuiltinCompile,
+    ExpressionBuiltinEval
+)
 from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
     ExpressionBuiltinLocals,
-    ExpressionBuiltinDir0,
     ExpressionBuiltinDir1
 )
-from nuitka.nodes.OperatorNodes import ExpressionOperationUnary
+from nuitka.nodes.OperatorNodes import (
+    ExpressionOperationUnary,
+    ExpressionOperationNOT
+)
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinOpen
@@ -71,7 +77,6 @@ from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange2,
     ExpressionBuiltinRange3
 )
-
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.TypeNodes import (
@@ -80,26 +85,70 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance
 )
 from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
-from nuitka.nodes.CallNodes import ExpressionCallEmpty
+from nuitka.nodes.CallNodes import (
+    ExpressionCallNoKeywords,
+    ExpressionCallEmpty
+)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
     ExpressionBuiltinSetattr,
     ExpressionBuiltinHasattr
 )
-from nuitka.nodes.ConditionalNodes import ExpressionConditional
+from nuitka.nodes.ConditionalNodes import (
+    StatementConditional,
+    ExpressionConditional
+)
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.TryNodes import ExpressionTryFinally
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinAnonymousRef,
+    ExpressionBuiltinOriginalRef,
+    ExpressionBuiltinRef,
+)
+from nuitka.nodes.StatementNodes import StatementsSequence
 
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 
 from . import BuiltinOptimization
 
 def dir_extractor(node):
+    def buildDirEmptyCase(source_ref):
+        if node.getParentVariableProvider().isPythonModule():
+            source = ExpressionBuiltinGlobals(
+                source_ref = source_ref
+            )
+        else:
+            source = ExpressionBuiltinLocals(
+                source_ref = source_ref
+            )
+
+        result = ExpressionCallEmpty(
+            called = ExpressionAttributeLookup(
+                expression     = source,
+                attribute_name = "keys",
+                source_ref     = source_ref
+            ),
+            source_ref     = source_ref
+        )
+
+        # For Python3, keys doesn't really return values, but instead a handle
+        # only.
+        if python_version >= 300:
+            result = ExpressionBuiltinList(
+                value      = result,
+                source_ref = source_ref
+            )
+
+        return result
+
+
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinDir1,
         builtin_spec        = BuiltinOptimization.builtin_dir_spec,
-        empty_special_class = ExpressionBuiltinDir0
+        empty_special_class = buildDirEmptyCase
     )
 
 def vars_extractor(node):
@@ -112,6 +161,7 @@ def vars_extractor(node):
             return ExpressionBuiltinLocals(
                 source_ref = source_ref
             )
+
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class       = ExpressionBuiltinVars,
@@ -170,7 +220,6 @@ def iter_extractor(node):
 
 
 def next_extractor(node):
-
     # Split up next with and without defaults, they are not going to behave
     # really very similar.
     def selectNextBuiltinClass(iterator, default, source_ref):
@@ -410,7 +459,7 @@ def locals_extractor(node):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinGlobals,
-            builtin_spec  = BuiltinOptimization.builtin_locals_spec
+            builtin_spec  = BuiltinOptimization.builtin_globals_spec
         )
     else:
         return BuiltinOptimization.extractBuiltinArgs(
@@ -426,8 +475,8 @@ if python_version < 300:
         # Need to accept globals and local keyword argument, that is just the
         # API of execfile, pylint: disable=W0622
 
-        def wrapExpressionBuiltinExecfileCreation( filename, globals, locals,
-                                                   source_ref ):
+        def wrapExpressionBuiltinExecfileCreation(filename, globals_node,
+                                                  locals_node, source_ref):
             provider = node.getParentVariableProvider()
 
             # TODO: Can't really be true, can it?
@@ -437,34 +486,41 @@ if python_version < 300:
                 if provider.isClassDictCreation():
                     provider.markAsUnqualifiedExecContaining( source_ref )
 
-            globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
+            temp_scope = provider.allocateTempScope("execfile")
+
+            globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
                 provider     = provider,
-                globals_node = globals,
-                locals_node  = locals,
-                exec_mode    = False,
+                globals_node = globals_node,
+                locals_node  = locals_node,
+                temp_scope   = temp_scope,
                 source_ref   = source_ref
             )
 
-            return ExpressionBuiltinExecfile(
-                source_code = ExpressionCallEmpty(
-                    called     = ExpressionAttributeLookup(
-                        expression     = ExpressionBuiltinOpen(
-                            filename   = filename,
-                            mode       = ExpressionConstantRef(
-                                constant   = "rU",
+            return ExpressionTryFinally(
+                tried      = tried,
+                final      = final,
+                expression = ExpressionBuiltinExecfile(
+                    source_code = ExpressionCallEmpty(
+                        called     = ExpressionAttributeLookup(
+                            expression     = ExpressionBuiltinOpen(
+                                filename   = filename,
+                                mode       = ExpressionConstantRef(
+                                    constant   = "rU",
+                                    source_ref = source_ref
+                                ),
+                                buffering  = None,
                                 source_ref = source_ref
                             ),
-                            buffering  = None,
-                            source_ref = source_ref
+                            attribute_name = "read",
+                            source_ref     = source_ref
                         ),
-                        attribute_name = "read",
-                        source_ref     = source_ref
+                        source_ref = source_ref
                     ),
-                    source_ref = source_ref
+                    globals_arg = globals_ref,
+                    locals_arg  = locals_ref,
+                    source_ref  = source_ref
                 ),
-                globals_arg = globals_wrap,
-                locals_arg  = locals_wrap,
-                source_ref  = source_ref
+                source_ref = source_ref
             )
 
         return BuiltinOptimization.extractBuiltinArgs(
@@ -478,19 +534,139 @@ def eval_extractor(node):
     # eval, pylint: disable=W0622
 
     def wrapEvalBuiltin(source, globals, locals, source_ref):
-        globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
-            provider     = node.getParentVariableProvider(),
+        provider = node.getParentVariableProvider()
+
+        temp_scope = provider.allocateTempScope("eval")
+
+        globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
+            provider     = provider,
             globals_node = globals,
             locals_node  = locals,
-            exec_mode    = False,
+            temp_scope   = temp_scope,
             source_ref   = source_ref
         )
 
-        return ExpressionBuiltinEval(
-            source_code = source,
-            globals_arg = globals_wrap,
-            locals_arg  = locals_wrap,
-            source_ref  = source_ref
+        source_variable = provider.allocateTempVariable(
+            temp_scope = temp_scope,
+            name       = "source"
+        )
+
+        strip_choice =  ExpressionConstantRef(
+            constant = (" \t",),
+            source_ref = source_ref
+        )
+
+        if python_version >= 300:
+            strip_choice = ExpressionConditional(
+                condition = ExpressionComparisonIs(
+                    left       = ExpressionBuiltinType1(
+                        value      = ExpressionTempVariableRef(
+                            variable   = source_variable.makeReference(
+                                provider
+                            ),
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+                    ),
+                    right      = ExpressionBuiltinRef(
+                        builtin_name = "bytes",
+                        source_ref   = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_expression = ExpressionConstantRef(
+                    constant = (b" \t",),
+                    source_ref = source_ref
+                ),
+                no_expression  = strip_choice,
+                source_ref     = source_ref
+            )
+
+
+        # Source needs some special treatment for eval, if it's a string, it
+        # must be stripped.
+        string_fixup = [
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = source_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
+                source = ExpressionCallNoKeywords(
+                    called = ExpressionAttributeLookup(
+                        expression     = ExpressionTempVariableRef(
+                            variable   = source_variable.makeReference(
+                                provider
+                            ),
+                            source_ref = source_ref
+                        ),
+                        attribute_name = "strip",
+                        source_ref     = source_ref
+                    ),
+                    args         = strip_choice,
+                    source_ref   = source_ref
+                ),
+                source_ref = source_ref
+            )
+        ]
+
+        statements = (
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = source_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
+                source       = source,
+                source_ref   = source_ref,
+            ),
+            StatementConditional(
+                condition = ExpressionOperationNOT(
+                    operand    = ExpressionBuiltinIsinstance(
+                        cls = ExpressionBuiltinAnonymousRef(
+                            builtin_name = "code",
+                            source_ref   = source_ref,
+                        ),
+                        instance = ExpressionTempVariableRef(
+                            variable   = source_variable.makeReference(
+                                provider
+                            ),
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_branch = StatementsSequence(
+                    statements = string_fixup,
+                    source_ref = source_ref
+                ),
+                no_branch  = None,
+                source_ref = source_ref
+            )
+        )
+
+        tried.setStatements(
+            tried.getStatements() + statements
+        )
+
+        return ExpressionTryFinally(
+            tried      = tried,
+            expression = ExpressionBuiltinEval(
+                source_code = ExpressionTempVariableRef(
+                    variable   = source_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
+                globals_arg = globals_ref,
+                locals_arg  = locals_ref,
+                source_ref  = source_ref
+            ),
+            final      = final,
+            source_ref = source_ref
         )
 
     return BuiltinOptimization.extractBuiltinArgs(
@@ -498,7 +674,6 @@ def eval_extractor(node):
         builtin_class = wrapEvalBuiltin,
         builtin_spec  = BuiltinOptimization.builtin_eval_spec
     )
-
 
 if python_version >= 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
@@ -518,18 +693,25 @@ if python_version >= 300:
                 if provider.isClassDictCreation():
                     provider.markAsUnqualifiedExecContaining( source_ref )
 
-            globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
+            temp_scope = provider.allocateTempScope("exec")
+
+            globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
                 provider     = provider,
                 globals_node = globals,
                 locals_node  = locals,
-                exec_mode    = False,
+                temp_scope   = temp_scope,
                 source_ref   = source_ref
             )
 
-            return ExpressionBuiltinExec(
-                source_code = source,
-                globals_arg = globals_wrap,
-                locals_arg  = locals_wrap,
+            return ExpressionTryFinally(
+                tried      = tried,
+                final      = final,
+                expression = ExpressionBuiltinExec(
+                    source_code = source,
+                    globals_arg = globals_ref,
+                    locals_arg  = locals_ref,
+                    source_ref  = source_ref
+                ),
                 source_ref  = source_ref
             )
 
@@ -538,6 +720,27 @@ if python_version >= 300:
             builtin_class = wrapExpressionBuiltinExecCreation,
             builtin_spec  = BuiltinOptimization.builtin_eval_spec
         )
+
+def compile_extractor(node):
+    def wrapExpressionBuiltinCompileCreation(source_code, filename, mode, flags,
+                                              dont_inherit, optimize = None,
+                                              source_ref = None):
+        return ExpressionBuiltinCompile(
+            source_code,
+            filename,
+            mode,
+            flags,
+            dont_inherit,
+            optimize,
+            source_ref
+        )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = wrapExpressionBuiltinCompileCreation,
+        builtin_spec  = BuiltinOptimization.builtin_compile_spec
+    )
+
 
 def open_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -667,6 +870,7 @@ def isinstance_extractor(node):
     )
 
 _dispatch_dict = {
+    "compile"    : compile_extractor,
     "globals"    : globals_extractor,
     "locals"     : locals_extractor,
     "eval"       : eval_extractor,
@@ -761,17 +965,26 @@ Replaced call to builtin %s with unary operation %s.""" % (
                 inspect_node.kind,
                 inspect_node.getOperator()
             )
+        elif inspect_node.isExpressionCall():
+            tags = "new_expression"
+            message = """\
+Replaced call to builtin %s with call.""" % (
+                inspect_node.kind,
+            )
+        elif inspect_node.isExpressionTryFinally():
+            tags = "new_expression"
+            message = """\
+Replaced call to builtin %s with try/finally guarded call.""" % (
+                inspect_node.getExpression().kind,
+            )
         else:
+
             assert False, ( builtin_name, "->", inspect_node )
 
         # TODO: One day, this should be enabled by default and call either the
         # original built-in or the optimized above one. That should be done,
         # once we can eliminate the condition for most cases.
         if False and isDebug() and not shallMakeModule() and builtin_name:
-            from nuitka.nodes.BuiltinRefNodes import (
-                ExpressionBuiltinOriginalRef,
-                ExpressionBuiltinRef,
-            )
             from nuitka.nodes.NodeMakingHelpers import \
               makeRaiseExceptionReplacementExpression
 

@@ -126,7 +126,7 @@ def deeplyNestedNonLocalWrite():
 
 print( "Deeply nested non local writing function", deeplyNestedNonLocalWrite() )
 
-def deletingClosureVariables():
+def deletingClosureVariable():
     try:
         x = 1
 
@@ -140,4 +140,4 @@ def deletingClosureVariables():
     except Exception as e:
         return e
 
-print( "Using deleted non-local vaiables", deletingClosureVariables() )
+print( "Using deleted non-local variable", deletingClosureVariable() )

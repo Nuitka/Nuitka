@@ -65,7 +65,7 @@ for filename in sorted(os.listdir( "." )):
 
     # Allowed after Python3, packages need no more "__init__.py"
 
-    if python_version < b"3.3":
+    if python_version < "3.3":
         expected_errors.append( "package_missing_init" )
 
     if filename not in expected_errors:

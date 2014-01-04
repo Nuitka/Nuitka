@@ -91,7 +91,7 @@ from nuitka.nodes.ModuleNodes import (
     PythonPackage,
     PythonModule
 )
-from nuitka.nodes.TryNodes import StatementTryFinally
+
 
 from .VariableClosure import completeVariableClosures
 
@@ -103,6 +103,14 @@ from .ReformulationClasses import buildClassNode
 # re-formulated into using a temporary variable to track if the else branch
 # should execute.
 from .ReformulationTryExceptStatements import buildTryExceptionNode
+
+# Try/finally statements are handled in a separate file. They are re-formulated
+# to use a nested try/finally for (un)publishing the exception for Python3.
+from .ReformulationTryFinallyStatements import (
+    buildTryFinallyNode,
+    makeTryFinallyIndicator
+)
+
 
 # With statements are handled in a separate file. They are re-formulated into
 # special attribute lookups for "__enter__" and "__exit__", calls of them,
@@ -153,9 +161,11 @@ from .Helpers import (
     makeStatementsSequenceOrStatement,
     makeSequenceCreationOrConstant,
     makeDictCreationOrConstant,
+    getIndicatorVariables,
     buildStatementsNode,
     setBuildDispatchers,
     extractDocFromBody,
+    getBuildContext,
     makeModuleFrame,
     mergeStatements,
     buildNodeList,
@@ -191,16 +201,16 @@ def buildNamedConstantNode(node, source_ref):
 
 def buildSequenceCreationNode(provider, node, source_ref):
     return makeSequenceCreationOrConstant(
-        sequence_kind = getKind( node ).upper(),
-        elements      = buildNodeList( provider, node.elts, source_ref ),
+        sequence_kind = getKind(node).upper(),
+        elements      = buildNodeList(provider, node.elts, source_ref),
         source_ref    = source_ref
     )
 
 
 def buildDictionaryNode(provider, node, source_ref):
     return makeDictCreationOrConstant(
-        keys       = buildNodeList( provider, node.keys, source_ref ),
-        values     = buildNodeList( provider, node.values, source_ref ),
+        keys       = buildNodeList(provider, node.keys, source_ref),
+        values     = buildNodeList(provider, node.values, source_ref),
         lazy_order = False,
         source_ref = source_ref
     )
@@ -225,29 +235,41 @@ def buildConditionNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
-def buildTryFinallyNode(provider, node, source_ref):
-    # Try/finally node statements.
 
-    return StatementTryFinally(
-        tried      = buildStatementsNode(
+def _buildTryFinallyNode(provider, node, source_ref):
+    # Try/finally node statements of old style.
+
+    return buildTryFinallyNode(
+        provider    = provider,
+        build_tried = lambda : buildStatementsNode(
             provider   = provider,
             nodes      = node.body,
             source_ref = source_ref
         ),
-        final      = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.finalbody,
-            source_ref = source_ref
-        ),
-        source_ref = source_ref
+        node        = node,
+        source_ref  = source_ref
     )
+
 
 def buildTryNode(provider, node, source_ref):
     # Note: This variant is used for Python3.3 or higher only, older stuff uses
     # the above ones, this one merges try/except with try/finally in the
     # "ast". We split it up again, as it's logically separated of course.
-    return StatementTryFinally(
-        tried      = StatementsSequence(
+
+    # Shortcut missing try/finally.
+    if not node.handlers:
+        return _buildTryFinallyNode(provider, node, source_ref)
+
+    if not node.finalbody:
+        return buildTryExceptionNode(
+            provider   = provider,
+            node       = node,
+            source_ref = source_ref
+        )
+
+    return buildTryFinallyNode(
+        provider    = provider,
+        build_tried = lambda : StatementsSequence(
             statements = mergeStatements(
                 (
                     buildTryExceptionNode(
@@ -259,13 +281,10 @@ def buildTryNode(provider, node, source_ref):
             ),
             source_ref = source_ref
         ),
-        final      = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.finalbody,
-            source_ref = source_ref
-        ),
-        source_ref = source_ref
+        node        = node,
+        source_ref  = source_ref
     )
+
 
 def buildRaiseNode(provider, node, source_ref):
     # Raise statements. Under Python2 they may have type, value and traceback
@@ -673,6 +692,45 @@ def buildEllipsisNode(source_ref):
         user_provided = True
     )
 
+def buildStatementContinueLoop(provider, node, source_ref):
+    if getBuildContext() == "finally":
+        if not Options.isFullCompat() or Utils.python_version >= 300:
+            col_offset = node.col_offset - 9
+        else:
+            col_offset = None
+
+        if Utils.python_version >= 300 and Options.isFullCompat():
+            source_line = ""
+        else:
+            source_line = None
+
+        SyntaxErrors.raiseSyntaxError(
+            "'continue' not supported inside 'finally' clause",
+            source_ref,
+            col_offset  = col_offset,
+            source_line = source_line
+        )
+
+
+    return makeTryFinallyIndicator(
+        provider     = provider,
+        statement    = StatementContinueLoop(
+            source_ref = source_ref
+        ),
+        is_loop_exit = True
+    )
+
+
+def buildStatementBreakLoop(provider, node, source_ref):
+    return makeTryFinallyIndicator(
+        provider     = provider,
+        statement    = StatementBreakLoop(
+            source_ref = source_ref
+        ),
+        is_loop_exit = True
+    )
+
+
 def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
         expression     = buildNode( provider, node.value, source_ref ),
@@ -693,21 +751,24 @@ def buildReturnNode(provider, node, source_ref):
             )
         )
 
-    if node.value is not None:
-        return StatementReturn(
-            expression = buildNode( provider, node.value, source_ref ),
-            source_ref = source_ref
-        )
-    else:
-        return StatementReturn(
-            expression = ExpressionConstantRef(
-                constant      = None,
-                source_ref    = source_ref,
-                user_provided = True
-            ),
-            source_ref = source_ref
+    expression = buildNode(provider, node.value, source_ref, allow_none = True)
+
+    if expression is None:
+        expression = ExpressionConstantRef(
+            constant      = None,
+            source_ref    = source_ref,
+            user_provided = True
         )
 
+
+    return makeTryFinallyIndicator(
+        provider    = provider,
+        statement   = StatementReturn(
+            expression = expression,
+            source_ref = source_ref
+        ),
+        is_loop_exit = False
+    )
 
 def buildExprOnlyNode(provider, node, source_ref):
     return StatementExpressionOnly(
@@ -732,30 +793,32 @@ def buildUnaryOpNode(provider, node, source_ref):
 
 
 def buildBinaryOpNode(provider, node, source_ref):
-    operator = getKind( node.op )
+    operator = getKind(node.op)
 
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
     return ExpressionOperationBinary(
         operator   = operator,
-        left       = buildNode( provider, node.left, source_ref ),
-        right      = buildNode( provider, node.right, source_ref ),
+        left       = buildNode(provider, node.left, source_ref),
+        right      = buildNode(provider, node.right, source_ref),
         source_ref = source_ref
     )
+
 
 def buildReprNode(provider, node, source_ref):
     return ExpressionOperationUnary(
         operator   = "Repr",
-        operand    = buildNode( provider, node.value, source_ref ),
+        operand    = buildNode(provider, node.value, source_ref),
         source_ref = source_ref
     )
 
+
 def buildConditionalExpressionNode(provider, node, source_ref):
     return ExpressionConditional(
-        condition      = buildNode( provider, node.test, source_ref ),
-        yes_expression = buildNode( provider, node.body, source_ref ),
-        no_expression  = buildNode( provider, node.orelse, source_ref ),
+        condition      = buildNode(provider, node.test, source_ref),
+        yes_expression = buildNode(provider, node.body, source_ref),
+        no_expression  = buildNode(provider, node.orelse, source_ref),
         source_ref     = source_ref
     )
 
@@ -781,7 +844,7 @@ setBuildDispatchers(
         "Global"       : handleGlobalDeclarationNode,
         "Nonlocal"     : handleNonlocalDeclarationNode,
         "TryExcept"    : buildTryExceptionNode,
-        "TryFinally"   : buildTryFinallyNode,
+        "TryFinally"   : _buildTryFinallyNode,
         "Try"          : buildTryNode,
         "Raise"        : buildRaiseNode,
         "ImportFrom"   : buildImportFromNode,
@@ -804,6 +867,8 @@ setBuildDispatchers(
         "Repr"         : buildReprNode,
         "AugAssign"    : buildInplaceAssignNode,
         "IfExp"        : buildConditionalExpressionNode,
+        "Continue"     : buildStatementContinueLoop,
+        "Break"        : buildStatementBreakLoop,
     },
     path_args2 = {
         "NameConstant" : buildNamedConstantNode,
@@ -814,29 +879,26 @@ setBuildDispatchers(
     },
     path_args1 = {
         "Ellipsis"     : buildEllipsisNode,
-        "Continue"     : StatementContinueLoop,
-        "Break"        : StatementBreakLoop,
     }
 )
 
-def buildParseTree( provider, source_code, source_ref, is_module,
-                    is_main ):
+def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
-    if not source_code.endswith( "\n" ):
+    if not source_code.endswith("\n"):
         source_code = source_code + "\n"
 
-    body = ast.parse( source_code, source_ref.getFilename() )
-    assert getKind( body ) == "Module"
+    body = ast.parse(source_code, source_ref.getFilename())
+    assert getKind(body) == "Module"
 
     line_offset = source_ref.getLineNumber() - 1
 
     if line_offset > 0:
-        for created_node in ast.walk( body ):
-            if hasattr( created_node, "lineno" ):
+        for created_node in ast.walk(body):
+            if hasattr(created_node, "lineno"):
                 created_node.lineno += line_offset
 
-    body, doc = extractDocFromBody( body )
+    body, doc = extractDocFromBody(body)
 
     result = buildStatementsNode(
         provider   = provider,
@@ -847,7 +909,7 @@ def buildParseTree( provider, source_code, source_ref, is_module,
     # Check if a __future__ imports really were at the beginning of the file.
     for node in body:
         if node in _future_import_nodes:
-            _future_import_nodes.remove( node )
+            _future_import_nodes.remove(node)
         else:
             if _future_import_nodes:
                 SyntaxErrors.raiseSyntaxError(
@@ -921,7 +983,7 @@ from __future__ imports must occur at the beginning of the file""",
                     ),
                     source       = ExpressionConstantRef(
                         constant      = [
-                            Utils.dirname( source_ref.getFilename() )
+                            Utils.dirname(source_ref.getFilename())
                         ],
                         source_ref    = internal_source_ref,
                         user_provided = True
@@ -985,7 +1047,9 @@ from __future__ imports must occur at the beginning of the file""",
 
     # Now the module body if there is any at all.
     if result is not None:
-        statements.extend( result.getStatements() )
+        statements.extend(
+            result.getStatements()
+        )
 
     if Utils.python_version >= 330 and not provider.isMainModule():
         # Set initialzing at the beginning to True
@@ -1007,7 +1071,7 @@ from __future__ imports must occur at the beginning of the file""",
 
     if is_module:
         return makeModuleFrame(
-            module = provider,
+            module     = provider,
             statements = statements,
             source_ref = source_ref
         )
@@ -1137,7 +1201,9 @@ def createModuleTree(module, source_ref, source_filename, is_main):
         is_main     = is_main
     )
 
-    module.setBody( module_body )
+    module.setBody(
+        module_body
+    )
 
     completeVariableClosures( module )
 

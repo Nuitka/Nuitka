@@ -38,12 +38,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, 
             function_object->ob_type->tp_name
         );
 
-        throw PythonException();
+        return NULL;
     }
 
     if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object") ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     PyObject *result = (*call_slot)( function_object, positional_args, named_args );
@@ -60,7 +60,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, 
             );
         }
 
-        throw PythonException();
+        return NULL;
     }
     else
     {
@@ -81,6 +81,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS( PyObject *func
     );
 }
 
+
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *function_object, PyObject *named_args )
 {
     return CALL_FUNCTION(
@@ -89,6 +90,5 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *func
         named_args
     );
 }
-
 
 #endif

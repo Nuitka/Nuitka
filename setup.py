@@ -59,7 +59,7 @@ if os.name == "nt" and "bdist_msi" in sys.argv:
 def find_packages():
     result = []
 
-    for root, _dirnames, filenames in os.walk( "nuitka" ):
+    for root, _dirnames, filenames in os.walk("nuitka"):
         # Ignore the inline copy of scons, these are not packages of Nuitka.
         if "scons-" in root:
             continue
@@ -68,7 +68,9 @@ def find_packages():
         if "__init__.py" not in filenames:
             continue
 
-        result.append( root.replace( os.path.sep, "." ) )
+        result.append(
+            root.replace(os.path.sep,".")
+        )
 
     return result
 
@@ -129,10 +131,13 @@ cmdclass = {
 def findSources():
     result = []
 
-    for root, _dirnames, filenames in os.walk( "src" ):
+    for root, _dirnames, filenames in os.walk("src"):
         for filename in filenames:
-            if filename.endswith( ".cpp" ) or filename.endswith( ".h" ) or filename.endswith( ".asm" ) or filename.endswith( ".S" ):
-                result.append( os.path.join( root, filename ) )
+            if filename.endswith(".cpp") or \
+               filename.endswith(".h") or \
+               filename.endswith(".asm") or \
+               filename.endswith(".S"):
+                result.append(os.path.join(root, filename))
 
     return result
 

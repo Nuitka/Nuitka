@@ -106,19 +106,6 @@ def createNodeTree(filename):
 
     return main_module
 
-def dumpTree(tree):
-    Tracing.printLine( "Analysis -> Tree Result" )
-
-    Tracing.printSeparator()
-    Tracing.printSeparator()
-    Tracing.printSeparator()
-
-    tree.dump()
-
-    Tracing.printSeparator()
-    Tracing.printSeparator()
-    Tracing.printSeparator()
-
 def dumpTreeXML(tree):
     xml_root = tree.asXml()
     TreeXML.dump(xml_root)
@@ -157,13 +144,13 @@ def getResultBasepath(main_module):
         return Utils.joinpath(
             getStandaloneDirectoryPath( main_module ),
             Utils.basename(
-                getTreeFilenameWithSuffix( main_module, "" )
+                getTreeFilenameWithSuffix(main_module, "")
             )
         )
     else:
         return Options.getOutputPath(
             path = Utils.basename(
-                getTreeFilenameWithSuffix( main_module, "" )
+                getTreeFilenameWithSuffix(main_module, "")
             )
         )
 
@@ -312,8 +299,9 @@ def makeSourceDirectory(main_module):
             # The main of an executable module gets a bit different code.
             if module is main_module and not Options.shallMakeModule():
                 source_code = CodeGeneration.generateMainCode(
-                    context = module_context,
-                    codes   = source_code
+                    main_module = main_module,
+                    context     = module_context,
+                    codes       = source_code
                 )
 
             module_hpps.append( hpp_filename )
@@ -642,8 +630,6 @@ def main():
                 )
 
                 if Utils.isFile(origin_prefix_filename):
-                    global data_files
-
                     data_files.append(
                         (filename, "orig-prefix.txt")
                     )
@@ -676,10 +662,9 @@ def main():
             SyntaxErrors.formatOutput(e)
         )
 
-    if Options.shallDumpBuiltTree():
-        dumpTree(main_module)
-    elif Options.shallDumpBuiltTreeXML():
-        dumpTreeXML(main_module)
+    if Options.shallDumpBuiltTreeXML():
+        for module in ModuleRegistry.getDoneModules():
+            dumpTreeXML(module)
     elif Options.shallDisplayBuiltTree():
         displayTree(main_module)
     else:

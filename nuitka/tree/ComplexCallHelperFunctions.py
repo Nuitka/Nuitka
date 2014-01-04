@@ -27,7 +27,6 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.StatementNodes import (
     StatementsSequence,
-    StatementsFrame
 )
 from nuitka.nodes.LoopNodes import (
     StatementLoop,
@@ -89,7 +88,7 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .VariableClosure import completeVariableClosures
 from .Helpers import makeStatementsSequenceFromStatement
 
-source_ref = fromFilename( "internal", FutureSpec() ).atInternal()
+source_ref = fromFilename("internal", FutureSpec()).atInternal()
 
 from nuitka.Utils import python_version
 
@@ -168,24 +167,6 @@ def makeStarDictArgVariableRef(assign):
     )
 
     return variable_ref
-
-# TODO: Code generation should become capable of not generating actual
-# exceptions for the TypeError caught immediately and then unused, then the
-# frame will be unnecessary.
-
-def makePseudoFrame(parameters, statements):
-    return StatementsFrame(
-        code_name     = "unused",
-        guard_mode    = "pass_through",
-        var_names     = parameters.getParameterNames(),
-        arg_count     = parameters.getArgumentCount(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-        kw_only_count = 0,
-        statements    = statements,
-        source_ref    = source_ref
-    )
-
 
 @once_decorator
 def getCallableNameDescBody():
@@ -386,9 +367,9 @@ def getCallableNameDescBody():
 
     return result
 
-def _makeStarListArgumentToTupleStatement( called_variable_ref,
-                                           star_list_target_variable_ref,
-                                           star_list_variable_ref ):
+def _makeStarListArgumentToTupleStatement(called_variable_ref,
+                                          star_list_target_variable_ref,
+                                          star_list_variable_ref):
     raise_statement = StatementRaiseException(
         exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
@@ -463,7 +444,9 @@ def _makeStarListArgumentToTupleStatement( called_variable_ref,
                     statement = StatementAssignmentVariable(
                         variable_ref = star_list_target_variable_ref.makeCloneAt( source_ref ),
                         source       = ExpressionBuiltinTuple(
-                            value      = star_list_variable_ref.makeCloneAt( source_ref ),
+                            value      = star_list_variable_ref.makeCloneAt(
+                                source_ref
+                            ),
                             source_ref = source_ref
                         ),
                         source_ref   = source_ref
@@ -471,6 +454,7 @@ def _makeStarListArgumentToTupleStatement( called_variable_ref,
                 ),
                 exception_name = "TypeError",
                 handler_body   = handler_body,
+                public_exc     = False,
                 source_ref     = source_ref
             ),
         ),
@@ -569,21 +553,22 @@ def _makeStarDictArgumentToDictStatement( result, called_variable_ref,
                     source_ref = source_ref
                 )
             ),
+            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentSubscript(
             expression = ExpressionTempVariableRef(
-                variable   = tmp_dict_variable.makeReference( result ),
+                variable   = tmp_dict_variable.makeReference(result),
                 source_ref = source_ref
             ),
             subscript  = ExpressionTempVariableRef(
-                variable   = tmp_key_variable.makeReference( result ),
+                variable   = tmp_key_variable.makeReference(result),
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
-                expression = star_dict_variable_ref.makeCloneAt( source_ref ),
+                expression = star_dict_variable_ref.makeCloneAt(source_ref),
                 subscript  = ExpressionTempVariableRef(
-                    variable   = tmp_key_variable.makeReference( result ),
+                    variable   = tmp_key_variable.makeReference(result),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -635,6 +620,7 @@ def _makeStarDictArgumentToDictStatement( result, called_variable_ref,
             handler_body   = makeStatementsSequenceFromStatement(
                 statement = raise_statement
             ),
+            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentVariable(
@@ -653,7 +639,7 @@ def _makeStarDictArgumentToDictStatement( result, called_variable_ref,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_dict_variable.makeReference( result ),
+                variable   = tmp_dict_variable.makeReference(result),
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
@@ -764,12 +750,12 @@ def _makeStarDictArgumentMergeToKwStatement( result, called_variable_ref,
         source_ref      = source_ref
     )
 
-    temp_scope = result.allocateTempScope( "dict" )
+    temp_scope = result.allocateTempScope("dict")
 
-    tmp_dict_variable = result.allocateTempVariable( temp_scope,  "dict" )
-    tmp_keys_variable = result.allocateTempVariable( temp_scope,  "keys" )
-    tmp_key_variable = result.allocateTempVariable( temp_scope,  "key_xxx" )
-    tmp_iter_variable = result.allocateTempVariable( temp_scope,  "iter" )
+    tmp_dict_variable = result.allocateTempVariable(temp_scope, "dict")
+    tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
+    tmp_key_variable = result.allocateTempVariable(temp_scope, "key_xxx")
+    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
 
     raise_duplicate = StatementRaiseException(
         exception_type  = ExpressionBuiltinMakeException(
@@ -829,7 +815,7 @@ def _makeStarDictArgumentMergeToKwStatement( result, called_variable_ref,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_key_variable.makeReference( result ),
+                        variable   = tmp_key_variable.makeReference(result),
                         source_ref = source_ref
                     ),
                     source     = ExpressionBuiltinNext1(
@@ -850,16 +836,17 @@ def _makeStarDictArgumentMergeToKwStatement( result, called_variable_ref,
                     source_ref = source_ref
                 )
             ),
+            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementConditional(
             condition = ExpressionComparison(
                 comparator = "In",
                 left       = ExpressionTempVariableRef(
-                    variable   = tmp_key_variable.makeReference( result ),
+                    variable   = tmp_key_variable.makeReference(result),
                     source_ref = source_ref
                 ),
-                right      = kw_variable_ref.makeCloneAt( source_ref ),
+                right      = kw_variable_ref.makeCloneAt(source_ref),
                 source_ref = source_ref
             ),
             yes_branch = makeStatementsSequenceFromStatement(
@@ -931,7 +918,8 @@ def _makeStarDictArgumentMergeToKwStatement( result, called_variable_ref,
             handler_body   = makeStatementsSequenceFromStatement(
                 statement = raise_statement
             ),
-            source_ref = source_ref
+            public_exc     = False,
+            source_ref     = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
@@ -949,7 +937,7 @@ def _makeStarDictArgumentMergeToKwStatement( result, called_variable_ref,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_dict_variable.makeReference( result ),
+                variable   = tmp_dict_variable.makeReference(result),
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
@@ -1054,6 +1042,7 @@ def _makeStarDictArgumentMergeToKwStatement( result, called_variable_ref,
             handler_body   = makeStatementsSequenceFromStatement(
                 statement = StatementBreakLoop( source_ref )
             ),
+            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentVariable(
@@ -1252,9 +1241,9 @@ def getFunctionCallHelperStarList():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -1322,9 +1311,9 @@ def getFunctionCallHelperKeywordsStarList():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -1396,9 +1385,9 @@ def getFunctionCallHelperPosStarList():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -1471,9 +1460,9 @@ def getFunctionCallHelperPosKeywordsStarList():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -1554,9 +1543,9 @@ def getFunctionCallHelperStarDict():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -1638,9 +1627,9 @@ def getFunctionCallHelperPosStarDict():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -1746,9 +1735,9 @@ def getFunctionCallHelperKeywordsStarDict():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -1855,9 +1844,9 @@ def getFunctionCallHelperPosKeywordsStarDict():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -1919,9 +1908,9 @@ def getFunctionCallHelperStarListStarDict():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -1990,9 +1979,9 @@ def getFunctionCallHelperPosStarListStarDict():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 
@@ -2055,12 +2044,11 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
-
     completeVariableClosures( result )
 
     return result
@@ -2125,9 +2113,9 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
     )
 
     result.setBody(
-        makePseudoFrame(
-            parameters = result.getParameters(),
-            statements = statements
+        StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
         )
     )
 

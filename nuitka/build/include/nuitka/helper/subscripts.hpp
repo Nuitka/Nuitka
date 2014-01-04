@@ -41,7 +41,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
                 if ( -int_subscript > list_size )
                 {
                     PyErr_Format( PyExc_IndexError, "list index out of range" );
-                    throw PythonException();
+                    return NULL;
                 }
 
                 int_subscript += list_size;
@@ -51,7 +51,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
                 if ( int_subscript >= list_size )
                 {
                     PyErr_Format( PyExc_IndexError, "list index out of range" );
-                    throw PythonException();
+                    return NULL;
                 }
             }
 
@@ -67,7 +67,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
                 if ( -int_subscript > string_size )
                 {
                     PyErr_Format( PyExc_IndexError, "string index out of range" );
-                    throw PythonException();
+                    return NULL;
                 }
 
                 int_subscript += string_size;
@@ -77,7 +77,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
                 if ( int_subscript >= string_size )
                 {
                     PyErr_Format( PyExc_IndexError, "string index out of range" );
-                    throw PythonException();
+                    return NULL;
                 }
             }
 
@@ -119,12 +119,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
 #endif
             Py_TYPE( source )->tp_name
         );
-        throw PythonException();
+        return NULL;
     }
 
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return result;
@@ -148,12 +148,19 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
     {
         if ( PyIndex_Check( subscript ) )
         {
-            result = PySequence_GetItem( source, CONVERT_TO_INDEX( subscript ) );
+            Py_ssize_t index = PyNumber_AsSsize_t( subscript, NULL );
+
+            if ( index == -1 && ERROR_OCCURED() )
+            {
+                return NULL;
+            }
+
+            result = PySequence_GetItem( source, index );
         }
         else if ( type->tp_as_sequence->sq_item )
         {
             PyErr_Format( PyExc_TypeError, "sequence index must be integer, not '%s'", Py_TYPE( subscript )->tp_name );
-            throw PythonException();
+            return NULL;
         }
         else
         {
@@ -166,7 +173,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
 #endif
                 Py_TYPE( source )->tp_name
             );
-            throw PythonException();
+            return NULL;
         }
     }
     else
@@ -181,18 +188,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
             Py_TYPE( source )->tp_name
         );
 
-        throw PythonException();
+        return NULL;
     }
 
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT_CONST( PyObject *value, PyObject *target, PyObject *subscript, Py_ssize_t int_subscript )
+NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST( PyObject *target, PyObject *subscript, Py_ssize_t int_subscript, PyObject *value )
 {
     assertObject( value );
     assertObject( target );
@@ -215,7 +222,7 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT_CONST( PyObject *value, PyObject 
                         "list assignment index out of range"
                     );
 
-                    throw PythonException();
+                    return false;
                 }
 
                 int_subscript += list_size;
@@ -226,6 +233,8 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT_CONST( PyObject *value, PyObject 
             PyObject *old_value = target_list->ob_item[ int_subscript ];
             target_list->ob_item[ int_subscript ] = INCREASE_REFCOUNT( value );
             Py_DECREF( old_value );
+
+            return true;
         }
         else
         {
@@ -233,8 +242,10 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT_CONST( PyObject *value, PyObject 
 
             if (unlikely( res == -1 ))
             {
-                throw PythonException();
+                return false;
             }
+
+            return true;
         }
     }
     else if ( Py_TYPE( target )->tp_as_sequence )
@@ -245,11 +256,13 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT_CONST( PyObject *value, PyObject 
 
             if ( key_value == -1 )
             {
-                THROW_IF_ERROR_OCCURED();
+                if ( ERROR_OCCURED() )
+                {
+                    return false;
+                }
             }
 
-            SEQUENCE_SETITEM( target, key_value, value );
-
+            return SEQUENCE_SETITEM( target, key_value, value );
         }
         else if ( Py_TYPE( target )->tp_as_sequence->sq_ass_item )
         {
@@ -259,7 +272,7 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT_CONST( PyObject *value, PyObject 
                 Py_TYPE( subscript )->tp_name
             );
 
-            throw PythonException();
+            return false;
         }
         else
         {
@@ -269,7 +282,7 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT_CONST( PyObject *value, PyObject 
                 Py_TYPE( target )->tp_name
             );
 
-            throw PythonException();
+            return false;
         }
     }
     else
@@ -280,11 +293,11 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT_CONST( PyObject *value, PyObject 
             Py_TYPE( target )->tp_name
         );
 
-        throw PythonException();
+        return false;
     }
 }
 
-NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *value, PyObject *target, PyObject *subscript )
+NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT( PyObject *target, PyObject *subscript, PyObject *value )
 {
     assertObject( value );
     assertObject( target );
@@ -298,7 +311,7 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *value, PyObject *targe
 
         if (unlikely( res == -1 ))
         {
-            throw PythonException();
+            return false;
         }
     }
     else if ( Py_TYPE( target )->tp_as_sequence )
@@ -309,11 +322,13 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *value, PyObject *targe
 
             if ( key_value == -1 )
             {
-                THROW_IF_ERROR_OCCURED();
+                if ( ERROR_OCCURED() )
+                {
+                    return false;
+                }
             }
 
-            SEQUENCE_SETITEM( target, key_value, value );
-
+            return SEQUENCE_SETITEM( target, key_value, value );
         }
         else if ( Py_TYPE( target )->tp_as_sequence->sq_ass_item )
         {
@@ -323,7 +338,7 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *value, PyObject *targe
                 Py_TYPE( subscript )->tp_name
             );
 
-            throw PythonException();
+            return false;
         }
         else
         {
@@ -333,7 +348,7 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *value, PyObject *targe
                 Py_TYPE( target )->tp_name
             );
 
-            throw PythonException();
+            return false;
         }
     }
     else
@@ -344,11 +359,13 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *value, PyObject *targe
             Py_TYPE( target )->tp_name
         );
 
-        throw PythonException();
+        return false;
     }
+
+    return true;
 }
 
-NUITKA_MAY_BE_UNUSED static void DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
+NUITKA_MAY_BE_UNUSED static bool DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
 {
     assertObject( target );
     assertObject( subscript );
@@ -357,8 +374,10 @@ NUITKA_MAY_BE_UNUSED static void DEL_SUBSCRIPT( PyObject *target, PyObject *subs
 
     if (unlikely( status == -1 ))
     {
-        throw PythonException();
+        return false;
     }
+
+    return true;
 }
 
 #endif

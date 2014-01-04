@@ -46,7 +46,7 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
                         if current_variable.getReferenced() is referenced:
                             break
                     else:
-                        current.addClosureVariable( referenced )
+                        current.addClosureVariable(referenced)
 
                 # Detect loops in the provider relationship
                 assert current.getParentVariableProvider() is not current

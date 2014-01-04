@@ -282,6 +282,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
                 statements = final_statements,
                 source_ref = source_ref
             ),
+            public_exc = False,
             source_ref = source_ref
         )
     else:
@@ -334,26 +335,26 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
         )
     elif kind == "Attribute":
         return kind, (
-            buildNode( provider, node.value, source_ref ),
+            buildNode(provider, node.value, source_ref),
             node.attr
         )
     elif kind == "Subscript":
-        slice_kind = getKind( node.slice )
+        slice_kind = getKind(node.slice)
 
         if slice_kind == "Index":
             return "Subscript", (
-                buildNode( provider, node.value, source_ref ),
-                buildNode( provider, node.slice.value, source_ref )
+                buildNode(provider, node.value, source_ref),
+                buildNode(provider, node.slice.value, source_ref)
             )
         elif slice_kind == "Slice":
-            lower = buildNode( provider, node.slice.lower, source_ref, True )
-            upper = buildNode( provider, node.slice.upper, source_ref, True )
+            lower = buildNode(provider, node.slice.lower, source_ref, True)
+            upper = buildNode(provider, node.slice.upper, source_ref, True)
 
             if node.slice.step is not None:
-                step = buildNode( provider, node.slice.step, source_ref )
+                step = buildNode(provider, node.slice.step, source_ref)
 
                 return "Subscript", (
-                    buildNode( provider, node.value, source_ref ),
+                    buildNode(provider, node.value, source_ref),
                     ExpressionSliceObject(
                         lower      = lower,
                         upper      = upper,
@@ -455,7 +456,7 @@ def buildAssignNode(provider, node, source_ref):
                 )
             )
 
-        statements.append(
+        final_statements = (
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_source.makeReference( provider ),
@@ -463,13 +464,22 @@ def buildAssignNode(provider, node, source_ref):
                 ),
                 tolerant     = False,
                 source_ref   = source_ref
-            )
+            ),
         )
 
-        return StatementsSequence(
-            statements = statements,
+        return StatementTryFinally(
+           tried = StatementsSequence(
+                statements = statements,
+                source_ref = source_ref
+            ),
+            final = StatementsSequence(
+                statements = final_statements,
+                source_ref = source_ref
+            ),
+            public_exc = False,
             source_ref = source_ref
         )
+
 
 def buildDeleteStatementFromDecoded(kind, detail, source_ref):
     if kind in ("Name", "Name_Exception"):
@@ -621,18 +631,18 @@ def _buildInplaceAssignVariableNode( provider, variable_ref, tmp_variable1,
         )
     )
 
-def _buildInplaceAssignAttributeNode( provider, lookup_source, attribute_name,
-                                      tmp_variable1, tmp_variable2, operator,
-                                      expression, source_ref ):
+def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
+                                     tmp_variable1, tmp_variable2, operator,
+                                     expression, source_ref):
     return (
         # First assign the target value to a temporary variable.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_variable1.makeReference( provider ),
+                variable   = tmp_variable1.makeReference(provider),
                 source_ref = source_ref
             ),
             source     = ExpressionAttributeLookup(
-                expression     = lookup_source.makeCloneAt( source_ref ),
+                expression     = lookup_source.makeCloneAt(source_ref),
                 attribute_name = attribute_name,
                 source_ref     = source_ref
             ),
@@ -657,7 +667,7 @@ def _buildInplaceAssignAttributeNode( provider, lookup_source, attribute_name,
         ),
         # Copy it over, if the reference values change, i.e. IsNot is true.
         StatementConditional(
-            condition = ExpressionComparisonIsNOT(
+            condition  = ExpressionComparisonIsNOT(
                 left       = ExpressionTempVariableRef(
                     variable   = tmp_variable1.makeReference( provider ),
                     source_ref = source_ref
@@ -670,16 +680,16 @@ def _buildInplaceAssignAttributeNode( provider, lookup_source, attribute_name,
             ),
             yes_branch = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentAttribute(
-                    expression = lookup_source.makeCloneAt( source_ref ),
+                    expression     = lookup_source.makeCloneAt(source_ref),
                     attribute_name = attribute_name,
-                    source     = ExpressionTempVariableRef(
-                        variable   = tmp_variable2.makeReference( provider ),
-                        source_ref = source_ref
+                    source         = ExpressionTempVariableRef(
+                        variable    = tmp_variable2.makeReference(provider),
+                        source_ref  = source_ref
                     ),
-                    source_ref = source_ref
+                    source_ref     = source_ref
                 )
             ),
-            no_branch = None,
+            no_branch  = None,
             source_ref = source_ref
         )
     )

@@ -17,8 +17,8 @@
 #
 import sys, gc
 
-if not hasattr( sys, "gettotalrefcount" ):
-    print( "Warning, using non-debug Python makes this test ineffective." )
+if not hasattr(sys, "gettotalrefcount"):
+    print("Warning, using non-debug Python makes this test ineffective.")
     sys.gettotalrefcount = lambda : 0
 
 gc.disable()
@@ -65,7 +65,7 @@ def simpleFunction7(b = 1):
 
 def simpleFunction8():
     c = []
-    c.append( x )
+    c.append(x)
 
 def simpleFunction9(a = 1*2):
     if a == a:
@@ -85,7 +85,7 @@ def simpleFunction11():
 v = None
 
 def simpleFunction12():
-    a = [ (u,v) for (u,v) in zip(range(8),range(8)) ]
+    a = [(u,v) for (u,v) in zip(range(8),range(8))]
 
 def cond():
     return 1
@@ -302,55 +302,55 @@ def simpleFunction38():
       pass
 
 def simpleFunction39():
-   class Parent(object):
-      pass
+    class Parent(object):
+        pass
 
 
 def simpleFunction40():
-   def myGenerator():
-      yield 1
+    def myGenerator():
+        yield 1
 
-   myGenerator()
+    myGenerator()
 
 def simpleFunction41():
-   a = b = 2
+    a = b = 2
 
 
 def simpleFunction42():
-   a = b = 2 * x
+    a = b = 2 * x
 
 
 def simpleFunction43():
-   class D:
-      pass
+    class D:
+        pass
 
-   a = D()
+    a = D()
 
-   a.b = 1
+    a.b = 1
 
 def simpleFunction44():
-   def nested_args_function((a,b), c):
-      return a, b, c
+    def nested_args_function((a,b), c):
+        return a, b, c
 
-   nested_args_function( ( 1, 2 ), 3 )
+    nested_args_function( ( 1, 2 ), 3 )
 
 def simpleFunction45():
-   def nested_args_function((a,b), c):
-      return a, b, c
+    def nested_args_function((a,b), c):
+        return a, b, c
 
-   try:
-      nested_args_function( ( 1, ), 3 )
-   except ValueError:
-      pass
+    try:
+        nested_args_function( ( 1, ), 3 )
+    except ValueError:
+        pass
 
 def simpleFunction46():
-   def nested_args_function((a,b), c):
-      return a, b, c
+    def nested_args_function((a,b), c):
+        return a, b, c
 
-   try:
-      nested_args_function( ( 1, 2, 3 ), 3 )
-   except ValueError:
-      pass
+    try:
+        nested_args_function(( 1, 2, 3 ), 3)
+    except ValueError:
+        pass
 
 def simpleFunction47():
    def reraisy():
@@ -420,21 +420,21 @@ def simpleFunction52():
       pass
 
 def simpleFunction53():
-   g = ( x for x in range(9) )
+    g = ( x for x in range(9) )
 
-   try:
-      g.send( 9 )
-   except TypeError, e:
-      pass
+    try:
+        g.send( 9 )
+    except TypeError, e:
+        pass
 
 def simpleFunction54():
-   g = ( x for x in range(9) )
-   g.next()
+    g = ( x for x in range(9) )
+    g.next()
 
-   try:
-      g.send( 9 )
-   except TypeError, e:
-      pass
+    try:
+       g.send( 9 )
+    except TypeError, e:
+        pass
 
 
 def simpleFunction55():
@@ -446,82 +446,82 @@ def simpleFunction55():
       pass
 
 def simpleFunction56():
-   def f():
-      f()
+    def f():
+        f()
 
-   try:
-      f()
-   except RuntimeError:
-      pass
+    try:
+        f()
+    except RuntimeError:
+        pass
 
 def simpleFunction57():
-   x = 1
-   y = 2
+    x = 1
+    y = 2
 
-   def f( a = x, b = y):
-      return a, b
+    def f( a = x, b = y):
+        return a, b
 
-   f()
-   f(2)
-   f(3,4)
+    f()
+    f(2)
+    f(3,4)
 
 def simpleFunction58():
-   a = 3
-   b = 5
+    a = 3
+    b = 5
 
-   try:
-       a = a * 2
+    try:
+        a = a * 2
 
-       return a
-   finally:
-      a / b
+        return a
+    finally:
+        a / b
 
 
 def simpleFunction59():
-   a = 3
-   b = 5
+    a = 3
+    b = 5
 
-   try:
-       a = a * 2
+    try:
+        a = a * 2
 
-       return a
-   finally:
-       return a / b
+        return a
+    finally:
+        return a / b
 
 
 def simpleFunction60():
-   try:
-      raise ValueError(1,2,3), ValueError(1,2,3)
-   except Exception:
-      pass
+    try:
+        raise ValueError(1,2,3), ValueError(1,2,3)
+    except Exception:
+        pass
 
 def simpleFunction61():
-   try:
-      raise ValueError, 2, None
-   except Exception:
-      pass
+    try:
+        raise ValueError, 2, None
+    except Exception:
+        pass
 
 def simpleFunction62():
-   try:
-      raise ValueError, 2, 3
-   except Exception:
-      pass
+    try:
+        raise ValueError, 2, 3
+    except Exception:
+        pass
 
 class X:
-   def __del__(self):
-      # Super used to reference leak.
-      x = super()
+    def __del__(self):
+        # Super used to reference leak.
+        x = super()
 
-      raise ValueError, ValueError(1)
+        raise ValueError, ValueError(1)
 
 def simpleFunction63():
-   def superUser():
-      X()
+    def superUser():
+        X()
 
-   try:
-      superUser()
-   except Exception:
-      pass
+    try:
+        superUser()
+    except Exception:
+        pass
 
 def simpleFunction64():
     x = 2
@@ -544,6 +544,104 @@ def simpleFunction65():
 def simpleFunction66():
     import types
     return type(simpleFunction65) == types.FunctionType
+
+def simpleFunction67():
+    length = 100000
+    pattern = "1234567890\00\01\02\03\04\05\06"
+
+    q, r = divmod(length, len(pattern))
+    teststring = pattern * q + pattern[:r]
+
+def simpleFunction68():
+    from random import randrange
+    x = randrange(18)
+
+def simpleFunction69():
+    pools = [ tuple() ]
+    g = ((len(pool) == 0,) for pool in pools)
+    g.next()
+
+def simpleFunction70():
+    def gen():
+        try:
+            yyyy
+        except Exception:
+            pass
+
+        yield sys.exc_info()
+
+    try:
+        xxxx
+    except Exception:
+        return list(gen())
+
+def simpleFunction71():
+    try:
+        undefined
+    except Exception:
+        try:
+            try:
+                raise
+            finally:
+                undefined
+        except Exception:
+            pass
+
+def simpleFunction71():
+    for i in range(10):
+        try:
+            undefined
+        finally:
+            break
+
+def simpleFunction72():
+    for i in range(10):
+        try:
+            undefined
+        finally:
+            return 7
+
+
+def simpleFunction73():
+    import os
+
+    return os
+
+def simpleFunction74():
+    def raising_gen():
+        try:
+            raise TypeError
+        except TypeError:
+            yield
+
+    g = raising_gen()
+    g.next()
+
+    try:
+        g.throw(RuntimeError())
+    except RuntimeError:
+        pass
+
+def simpleFunction75():
+    class MyException(Exception):
+        def __init__(self, obj):
+            self.obj = obj
+    class MyObj:
+        pass
+
+    def inner_raising_func():
+        raise MyException(MyObj())
+
+    try:
+        inner_raising_func()
+    except MyException:
+        try:
+            try:
+                raise
+            finally:
+                raise
+        except MyException:
+            pass
 
 x = 17
 
@@ -697,14 +795,23 @@ old_stderr = sys.stderr
 try:
    sys.stderr = open( "/dev/null", "wb" )
 except Exception: # Windows
-    checkReferenceCount( simpleFunction63 )
+    checkReferenceCount(simpleFunction63)
 else:
-    checkReferenceCount( simpleFunction63 )
+    checkReferenceCount(simpleFunction63)
 
     new_stderr = sys.stderr
     sys.stderr = old_stderr
     new_stderr.close()
 
-checkReferenceCount( simpleFunction64 )
-checkReferenceCount( simpleFunction65 )
-checkReferenceCount( simpleFunction66 )
+checkReferenceCount(simpleFunction64)
+checkReferenceCount(simpleFunction65)
+checkReferenceCount(simpleFunction66)
+checkReferenceCount(simpleFunction67)
+checkReferenceCount(simpleFunction68)
+checkReferenceCount(simpleFunction69)
+checkReferenceCount(simpleFunction70)
+checkReferenceCount(simpleFunction71)
+checkReferenceCount(simpleFunction72)
+checkReferenceCount(simpleFunction73)
+checkReferenceCount(simpleFunction74)
+checkReferenceCount(simpleFunction75)

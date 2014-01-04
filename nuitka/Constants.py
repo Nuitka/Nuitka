@@ -123,7 +123,7 @@ def isConstant(constant):
     # Too many cases and all return, that is how we do it here,
     # pylint: disable=R0911,R0912
 
-    constant_type = type( constant )
+    constant_type = type(constant)
 
     if constant_type is dict:
         for key, value in iterItems( constant ):
@@ -133,16 +133,16 @@ def isConstant(constant):
                 return False
         else:
             return True
-    elif constant_type in ( tuple, list ):
+    elif constant_type in (tuple, list):
         for element_value in constant:
-            if not isConstant( element_value ):
+            if not isConstant(element_value):
                 return False
         else:
             return True
-    elif constant_type in ( str, unicode, complex, int, long, bool, float,
-                            NoneType, range, bytes, set ):
+    elif constant_type in (str, unicode, complex, int, long, bool, float,
+                           NoneType, range, bytes, set):
         return True
-    elif constant in ( Ellipsis, NoneType ):
+    elif constant in (Ellipsis, NoneType):
         return True
     elif constant_type is type:
         return constant in constant_builtin_types

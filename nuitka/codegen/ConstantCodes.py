@@ -21,17 +21,10 @@
 
 from .Pickling import getStreamedConstant
 
-from .TupleCodes import addMakeTupleUse
-from .ListCodes import addMakeListUse
-from .DictCodes import addMakeDictUse
-from .SetCodes import addMakeSetUse
-
 from .BlobCodes import StreamData
 
-from .Identifiers import (
-    EmptyDictIdentifier,
-    Identifier
-)
+from .Emission import SourceCodeCollector
+
 # pylint: disable=W0622
 from ..__past__ import unicode, long, iterItems
 # pylint: enable=W0622
@@ -40,26 +33,17 @@ from ..Constants import constant_builtin_types, isMutable, compareConstants
 
 import re, struct
 
-stream_data = StreamData("constant_bin")
-
-def getConstantHandle(context, constant):
-    return context.getConstantHandle(
-        constant = constant
-    )
+stream_data = StreamData()
 
 def getConstantCode(context, constant):
-    constant_identifier = context.getConstantHandle(
-        constant = constant
-    )
-
-    return constant_identifier.getCode()
+    return context.getConstantCode(constant)
 
 # TODO: The determination of this should already happen in Building or in a
 # helper not during code generation.
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 
 def getConstantCodeName(context, constant):
-    return context.getConstantHandle( constant, real_use = False ).getCode()
+    return context.getConstantCode(constant, real_use = False)
 
 def _isAttributeName(value):
     return _match_attribute_names.match( value )
@@ -98,10 +82,17 @@ max_unsigned_long = 2**(sizeof_long*8)-1
 # seems to not work (without warning) as literal, so avoid it.
 min_signed_long = -(2**(sizeof_long*8-1)-1)
 
+done = set()
+
 def _addConstantInitCode(context, emit, constant_type, constant_value,
                          constant_identifier):
     # This has many cases, that all return, and do a lot.
-    #  pylint: disable=R0911,R0912,R0915
+    # pylint: disable=R0911,R0912,R0915
+
+    if constant_identifier in done:
+        return
+
+    done.add(constant_identifier)
 
     # Use shortest code for ints and longs.
     if constant_type is long:
@@ -247,152 +238,131 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     if constant_type is dict:
-        if constant_value == {}:
-            emit( "%s = PyDict_New();" % constant_identifier )
-        else:
-            length = len( constant_value )
-            addMakeDictUse( length )
+        emit(
+            "%s = _PyDict_NewPresized( %d );" % (
+                constant_identifier,
+                len(constant_value)
+            )
+        )
+        for key, value in iterItems(constant_value):
+            key_name = getConstantCodeName(context, key)
+            _addConstantInitCode(
+                emit                = emit,
+                constant_type       = type(key),
+                constant_value      = key,
+                constant_identifier = key_name,
+                context             = context
+            )
 
-            for key, value in iterItems( constant_value ):
-                _addConstantInitCode(
-                    emit                = emit,
-                    constant_type       = type( key ),
-                    constant_value      = key,
-                    constant_identifier = getConstantCodeName( context, key ),
-                    context             = context
-                )
-                _addConstantInitCode(
-                    emit                = emit,
-                    constant_type       = type( value ),
-                    constant_value      = value,
-                    constant_identifier = getConstantCodeName( context, value ),
-                    context             = context
-                )
+            value_name = getConstantCodeName(context, value)
+            _addConstantInitCode(
+                emit                = emit,
+                constant_type       = type(value),
+                constant_value      = value,
+                constant_identifier = value_name,
+                context             = context
+            )
 
             emit(
-                "%s = MAKE_DICT%d( %s );" % (
+                "PyDict_SetItem( %s, %s, %s );" % (
                     constant_identifier,
-                    length,
-                    ", ".join(
-                        "%s, %s" % (
-                            getConstantCodeName( context, value ),
-                            getConstantCodeName( context, key )
-                        )
-                        for key, value
-                        in
-                        iterItems( constant_value )
-                    )
+                    key_name,
+                    value_name
                 )
             )
 
         return
 
     if constant_type is tuple:
-        if constant_value == ():
-            emit( "%s = PyTuple_New( 0 );" % constant_identifier )
-        else:
-            length = len( constant_value )
-            addMakeTupleUse( length )
+        emit(
+            "%s = PyTuple_New( %d );" % (
+                constant_identifier,
+                len(constant_value)
+            )
+        )
 
-            # Make elements earlier than tuple itself.
-            for element in constant_value:
-                _addConstantInitCode(
-                    emit                = emit,
-                    constant_type       = type( element ),
-                    constant_value      = element,
-                    constant_identifier = getConstantCodeName(
-                        context  = context,
-                        constant = element
-                    ),
-                    context             = context
-                )
+        for count, element_value in enumerate(constant_value):
+            element_name = getConstantCodeName(
+                context  = context,
+                constant = element_value
+            )
 
+            _addConstantInitCode(
+                emit                = emit,
+                constant_type       = type(element_value),
+                constant_value      = element_value,
+                constant_identifier = getConstantCodeName(
+                    context  = context,
+                    constant = element_value
+                ),
+                context             = context
+            )
+
+            # Do not take references, these won't be deleted ever.
             emit(
-                "%s = MAKE_TUPLE%d( %s );" % (
+                "PyTuple_SET_ITEM( %s, %d, INCREASE_REFCOUNT( %s ) );" % (
                     constant_identifier,
-                    length,
-                    ", ".join(
-                        getConstantCodeName( context, element )
-                        for element
-                        in
-                        constant_value
-                    )
+                    count,
+                    element_name
                 )
             )
 
         return
 
     if constant_type is list:
-        if constant_value == []:
-            emit( "%s = PyList_New( 0 );" % constant_identifier )
-        else:
-            length = len( constant_value )
-            addMakeListUse( length )
+        emit(
+            "%s = PyList_New( %d );" % (
+                constant_identifier,
+                len(constant_value)
+            )
+        )
 
-            # Make elements earlier than list itself.
-            for element in constant_value:
-                _addConstantInitCode(
-                    emit                = emit,
-                    constant_type       = type( element ),
-                    constant_value      = element,
-                    constant_identifier = getConstantCodeName(
-                        context  = context,
-                        constant = element
-                    ),
-                    context             = context
-                )
+        for count, element_value in enumerate(constant_value):
+            element_name = getConstantCodeName(
+                context  = context,
+                constant = element_value
+            )
 
+            _addConstantInitCode(
+                emit                = emit,
+                constant_type       = type(element_value),
+                constant_value      = element_value,
+                constant_identifier = element_name,
+                context             = context
+            )
+
+            # Do not take references, these won't be deleted ever.
             emit(
-                "%s = MAKE_LIST%d( %s );" % (
+                "PyList_SET_ITEM( %s, %d, INCREASE_REFCOUNT( %s ) );" % (
                     constant_identifier,
-                    length,
-                    ", ".join(
-                        getConstantCodeName(
-                            context  = context,
-                            constant = element
-                        )
-                        for element
-                        in
-                        constant_value
-                    )
+                    count,
+                    element_name
                 )
             )
 
         return
 
     if constant_type is set:
-        if constant_value == set():
-            emit( "%s = PySet_New( NULL );" % constant_identifier )
-        else:
-            length = len( constant_value )
-            addMakeSetUse( length )
+        emit( "%s = PySet_New( NULL );" % constant_identifier )
 
-            # Make elements earlier than list itself.
-            for element in constant_value:
-                _addConstantInitCode(
+        for element_value in constant_value:
+            element_name = getConstantCodeName(
+                context  = context,
+                constant = element_value
+            )
+
+            _addConstantInitCode(
                     emit                = emit,
-                    constant_type       = type( element ),
-                    constant_value      = element,
-                    constant_identifier = getConstantCodeName(
-                        context  = context,
-                        constant = element
-                    ),
+                    constant_type       = type(element_value),
+                    constant_value      = element_value,
+                    constant_identifier = element_name,
                     context             = context
                 )
 
             emit(
-                "%s = MAKE_SET%d( %s );" % (
+                "PySet_Add( %s, %s );" % (
                     constant_identifier,
-                    length,
-                    ", ".join(
-                        getConstantCodeName(
-                            context  = context,
-                            constant = element
-                        )
-                        for element
-                        in
-                        constant_value
-                    )
+                    element_name
                 )
             )
 
@@ -420,31 +390,25 @@ def getConstantsInitCode(context):
     # There are many cases for constants to be created in the most efficient
     # way, pylint: disable=R0912
 
-    statements = []
+    emit = SourceCodeCollector()
 
     all_constants = the_contained_constants
     all_constants.update(context.getConstants())
 
-    def receiveStatement(statement):
-        assert statement is not None
-
-        if statement not in statements:
-            statements.append(statement)
-
     for constant_value, constant_identifier in \
           sorted(all_constants.items(), key = _lengthKey):
         _addConstantInitCode(
-            emit                = receiveStatement,
+            emit                = emit,
             constant_type       = type(constant_value.getConstant()),
             constant_value      = constant_value.getConstant(),
             constant_identifier = constant_identifier,
             context             = context
         )
 
-    return statements
+    return emit.codes
 
 
-class HashableConstant:
+class HashableConstant(object):
     __slots__ = ["constant"]
 
     def __init__(self, constant):
@@ -546,9 +510,10 @@ def getConstantsDeclCode(context, for_header):
 
     return statements, statements2
 
-def getConstantAccess(context, constant):
+
+def getConstantAccessC(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
-    # empty.  pylint: disable=R0911,R0912
+    # empty.  pylint: disable=R0911,R0912, R0915
 
     if type(constant) is dict:
         if constant:
@@ -562,38 +527,29 @@ def getConstantAccess(context, constant):
                 needs_deep = False
 
             if needs_deep:
-                return Identifier(
-                    "DEEP_COPY( %s )" % getConstantCode(
-                        constant = constant,
-                        context  = context
-                    ),
-                    1
-                )
-            else:
-                return Identifier(
-                    "PyDict_Copy( %s )" % getConstantCode(
-                        constant = constant,
-                        context  = context
-                    ),
-                    1
-                )
-
-        else:
-            return EmptyDictIdentifier()
-    elif type(constant) is set:
-        if constant:
-            return Identifier(
-                "PySet_New( %s )" % getConstantCode(
+                code = "DEEP_COPY( %s )" % getConstantCode(
                     constant = constant,
                     context  = context
-                ),
-                1
+                )
+            else:
+                code = "PyDict_Copy( %s )" % getConstantCode(
+                    constant = constant,
+                    context  = context
+                )
+        else:
+            code = "PyDict_New()"
+
+        ref_count = 1
+    elif type(constant) is set:
+        if constant:
+            code = "PySet_New( %s )" % getConstantCode(
+                constant = constant,
+                context  = context
             )
         else:
-            return Identifier(
-                "PySet_New( NULL )",
-                1
-            )
+            code = "PySet_New( NULL )"
+
+        ref_count = 1
     elif type(constant) is list:
         if constant:
             for value in constant:
@@ -604,26 +560,19 @@ def getConstantAccess(context, constant):
                 needs_deep = False
 
             if needs_deep:
-                return Identifier(
-                    "DEEP_COPY( %s )" % getConstantCode(
-                        constant = constant,
-                        context  = context
-                    ),
-                    1
+                code = "DEEP_COPY( %s )" % getConstantCode(
+                    constant = constant,
+                    context  = context
                 )
             else:
-                return Identifier(
-                    "LIST_COPY( %s )" % getConstantCode(
-                        constant = constant,
-                        context  = context
-                    ),
-                    1
+                code = "LIST_COPY( %s )" % getConstantCode(
+                    constant = constant,
+                    context  = context
                 )
         else:
-            return Identifier(
-                "PyList_New( 0 )",
-                1
-            )
+            code = "PyList_New( 0 )"
+
+        ref_count = 1
     elif type(constant) is tuple:
         for value in constant:
             if isMutable(value):
@@ -633,20 +582,33 @@ def getConstantAccess(context, constant):
             needs_deep = False
 
         if needs_deep:
-            return Identifier(
-                "DEEP_COPY( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                ),
-                1
+            code = "DEEP_COPY( %s )" % getConstantCode(
+                 constant = constant,
+                 context  = context
             )
+
+            ref_count = 1
         else:
-            return getConstantHandle(
+            code = getConstantCode(
                 context  = context,
                 constant = constant
             )
+
+            ref_count = 0
     else:
-        return getConstantHandle(
+        code = getConstantCode(
             context  = context,
             constant = constant
         )
+
+        ref_count = 0
+
+    emit(
+        "%s = %s;" % (
+            to_name,
+            code,
+        )
+    )
+
+    if ref_count:
+        context.addCleanupTempName(to_name)

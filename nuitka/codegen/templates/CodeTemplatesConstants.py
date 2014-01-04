@@ -47,11 +47,26 @@ struct __initResourceConstants
 #else
 extern "C" const unsigned char constant_bin[];
 #endif
+#define stream_data constant_bin
 
 static void __initConstants( void )
 {
+    NUITKA_MAY_BE_UNUSED PyObject *exception_type, *exception_value;
+    NUITKA_MAY_BE_UNUSED PyTracebackObject *exception_tb;
+
+#ifdef _MSC_VER
+    // Prevent unused warnings in case of simple programs.
+    (void *)exception_type; (void *)exception_value; (void *)exception_tb;
+#endif
+
 %(constant_locals)s
 %(constant_inits)s
+
+    return;
+
+constants_init_exception:;
+    abort();
+    goto constants_init_exception; // NUITKA_MAY_BE_UNUSED
 }
 
 void _initConstants( void )

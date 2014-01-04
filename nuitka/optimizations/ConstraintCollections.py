@@ -50,30 +50,12 @@ class VariableUsageProfile:
         self.variable = variable
 
         self.written_to = False
-        self.read_from  = False
-
-        # Indicator, if the variable may contain a reference.
-        self.needs_free = None
 
     def markAsWrittenTo(self, assign_source):
         self.written_to = True
 
-        if assign_source.mayProvideReference():
-            self.needs_free = True
-        elif self.needs_free is None:
-            self.needs_free = False
-
-    def markAsReadFrom(self):
-        self.read_from = True
-
     def isReadOnly(self):
         return not self.written_to
-
-    def isWriteOnly(self):
-        return self.written_to and not self.read_from
-
-    def getNeedsFree(self):
-        return self.needs_free
 
 
 class VariableUsageTrackingMixin:
@@ -89,14 +71,8 @@ class VariableUsageTrackingMixin:
 
             return self.variable_usages[ variable ]
 
-    # TODO: This will be removed, to be replaced by variable trace information.
     def setIndications(self):
-        for variable, usage in iterItems( self.variable_usages ):
-            if variable.isTempKeeperVariable():
-                variable.setNeedsFree( usage.getNeedsFree() )
-
-                if usage.isWriteOnly():
-                    variable.setWriteOnly()
+        pass
 
     def setupVariableTraces(self, owner):
         for variable in owner.getVariables():
@@ -118,14 +94,11 @@ class VariableUsageTrackingMixin:
                 assert False, variable
 
         for variable in owner.getTempVariables():
-            self.initVariableUninit( variable.makeReference( owner ) )
-
-        for variable in owner.getTempKeeperVariables():
-            self.initVariableUninit( variable.makeReference( owner ) )
+            self.initVariableUninit(variable.makeReference(owner))
 
         if owner.isExpressionFunctionBody():
             for variable in owner.taken:
-                self.initVariableUnknown( variable )
+                self.initVariableUnknown(variable)
 
     def _makeVariableTraceOptimization(self, owner, variable_trace):
         variable = variable_trace.getVariable()
@@ -133,23 +106,7 @@ class VariableUsageTrackingMixin:
         if variable.isTempVariableReference():
             referenced_variable = variable.getReferenced()
 
-            if referenced_variable.isTempKeeperVariable():
-                if variable_trace.isAssignTrace() and \
-                   not variable_trace.isMergeTrace() and \
-                   not variable_trace.getPotentialUsages():
-                    assign_node = variable_trace.getAssignNode()
-                    assign_source = assign_node.getAssignSource()
-
-                    assign_node.replaceWith( assign_source )
-
-                    owner.removeTempKeeperVariable( referenced_variable )
-
-                    self.signalChange(
-                        "new_expression",
-                        assign_node.getSourceReference(),
-                        "Removed now useless temporary keeper assignment."
-                    )
-            elif referenced_variable.isTempVariable():
+            if referenced_variable.isTempVariable():
                 if referenced_variable.getOwner() is owner:
 
                     if variable_trace.isUninitTrace() and \
@@ -159,6 +116,15 @@ class VariableUsageTrackingMixin:
                             # done not at all before code generation.
                             # owner.removeTempVariable( variable )
                             pass
+
+                    # TODO: Something wrong here, disabled it for now.
+                    if False and \
+                        variable_trace.isAssignTrace() and \
+                       not variable_trace.getAssignNode().getAssignSource().\
+                         mayHaveSideEffects() and \
+                       not variable_trace.getPotentialUsages():
+                        variable_trace.getAssignNode().replaceWith(None)
+
 
     def makeVariableTraceOptimizations(self, owner):
         # Reliable trace based optimization goes here:
@@ -191,13 +157,6 @@ class CollectionTracingMixin:
         self.variable_actives[ variable ] = version
 
     def getCurrentVariableVersion(self, variable):
-        # TODO: This is only while "eval" built-in enters new variables without
-        # telling us.
-        if variable.isTempVariableReference() and \
-           variable.getReferenced().isTempKeeperVariable() and \
-           variable not in self.variable_actives:
-            self.initVariableUninit( variable )
-
         assert variable in self.variable_actives, ( variable, self )
         return self.variable_actives[ variable ]
 
@@ -311,7 +270,14 @@ class CollectionStartpointMixin:
 
         self.markCurrentVariableTrace( variable, 0 )
 
-    def assumeUnclearLocals(self):
+    def assumeUnclearLocals(self, source_ref):
+        if not self.unclear_locals:
+            self.signalChange(
+                "new_expression",
+                source_ref,
+                "Unclear module variable delays processing."
+            )
+
         self.unclear_locals = True
 
 
@@ -353,8 +319,8 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         self.markActiveVariablesAsUnknown()
 
-    def assumeUnclearLocals(self):
-        self.parent.assumeUnclearLocals()
+    def assumeUnclearLocals(self, source_ref):
+        self.parent.assumeUnclearLocals(source_ref)
 
     def getVariableTrace(self, variable, version):
         return self.parent.getVariableTrace( variable, version )
@@ -458,29 +424,11 @@ class ConstraintCollectionBase(CollectionTracingMixin):
             expression.replaceWith(new_node)
 
         if new_node.isExpressionVariableRef():
-            # OLD:
-            if not new_node.getVariable().isModuleVariableReference():
-                self.onLocalVariableRead( new_node.getVariable() )
-
             # Remember this for constraint collection. Any variable that we
             # access has a version already that we can query. TODO: May do this
             # as a "computeReference".
 
             self.onVariableUsage( new_node )
-        elif new_node.isExpressionAssignmentTempKeeper():
-            variable = new_node.getVariable()
-            assert variable is not None
-
-            assign_source = new_node.getAssignSource()
-            assert assign_source is not None
-
-            self.onTempVariableAssigned( variable, assign_source )
-        elif new_node.isExpressionTempKeeperRef():
-            variable = new_node.getVariable()
-            assert variable is not None
-
-            self.onVariableUsage( new_node )
-            self.onTempVariableRead( variable )
 
         return new_node
 
@@ -490,14 +438,8 @@ class ConstraintCollectionBase(CollectionTracingMixin):
     def onLocalVariableAssigned(self, variable, assign_source):
         self.parent.onLocalVariableAssigned( variable, assign_source )
 
-    def onLocalVariableRead(self, variable):
-        self.parent.onLocalVariableRead( variable )
-
     def onTempVariableAssigned(self, variable, assign_source):
         self.parent.onTempVariableAssigned( variable, assign_source )
-
-    def onTempVariableRead(self, variable):
-        self.parent.onTempVariableRead( variable )
 
     def _onStatementAssignmentVariable(self, statement):
         # But now it cannot re-compute anymore:
@@ -580,6 +522,7 @@ Side effects of assignments promoted to statements."""
             new_statement, change_tags, change_desc = \
               statement.computeStatement(self)
 
+            # print new_statement, change_tags, change_desc
             if new_statement is not statement:
                 self.signalChange(
                     change_tags,
@@ -632,35 +575,6 @@ Side effects of assignments promoted to statements."""
                         trace_yes = trace_yes,
                         trace_no  = trace_no
                     )
-
-
-class ConstraintCollectionHandler(ConstraintCollectionBase):
-    def __init__(self, parent, handler):
-        assert handler.isStatementExceptHandler(), handler
-
-        ConstraintCollectionBase.__init__(
-            self,
-            parent = parent
-        )
-
-        self.variable_actives = dict(parent.variable_actives)
-
-        # TODO: The exception type and can be assumed assigned.
-        branch = handler.getExceptionBranch()
-
-        if branch is not None:
-            result = branch.computeStatementsSequence(
-                constraint_collection = self
-            )
-
-            if result is not branch:
-                handler.setExceptionBranch(result)
-
-        exception_types = handler.getExceptionTypes()
-
-        if exception_types is not None:
-            for exception_type in exception_types:
-                self.onExpression(exception_type)
 
 
 class ConstraintCollectionBranch(ConstraintCollectionBase):
@@ -789,19 +703,11 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
     def onLocalVariableAssigned(self, variable, assign_source):
         self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
 
-    def onLocalVariableRead(self, variable):
-        self._getVariableUsage( variable ).markAsReadFrom()
-
     def onTempVariableAssigned(self, variable, assign_source):
         variable = variable.getReferenced()
         # assert variable.getOwner() is self.function_body
 
         self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
-
-    def onTempVariableRead(self, variable):
-        variable = variable.getReferenced()
-
-        self._getVariableUsage( variable ).markAsReadFrom()
 
 
 class ConstraintCollectionModule(CollectionStartpointMixin,
@@ -849,19 +755,11 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
 
         assert variable.getRealOwner() is self.module, variable.getOwner()
 
-        self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
-
-    def onTempVariableRead(self, variable):
-        variable = variable.getReferenced()
-
-        assert variable.getRealOwner() is self.module, variable.getOwner()
-
-        self._getVariableUsage( variable ).markAsReadFrom()
-
+        self._getVariableUsage( variable ).markAsWrittenTo(assign_source)
 
     def getWrittenVariables(self):
         return [
             variable
-            for variable, usage in iterItems( self.variable_usages )
+            for variable, usage in iterItems(self.variable_usages)
             if not usage.isReadOnly()
         ]

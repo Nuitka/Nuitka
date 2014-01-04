@@ -78,6 +78,8 @@ from .Helpers import (
     makeSequenceCreationOrConstant,
     makeDictCreationOrConstant,
     makeStatementsSequence,
+    pushIndicatorVariable,
+    popIndicatorVariable,
     buildStatementsNode,
     extractDocFromBody,
     buildNodeList,
@@ -160,7 +162,7 @@ def _buildClassNode3(provider, node, source_ref):
     statements = [
         StatementSetLocals(
             new_locals = ExpressionTempVariableRef(
-                variable   = tmp_prepared.makeReference( provider ),
+                variable   = tmp_prepared.makeReference(provider),
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -880,7 +882,12 @@ def buildClassNode(provider, node, source_ref):
     # Python2 and Python3 are similar, but fundamentally different, so handle
     # them in dedicated code.
 
-    if Utils.python_version >= 300:
-        return _buildClassNode3( provider, node, source_ref )
-    else:
-        return _buildClassNode2( provider, node, source_ref )
+    pushIndicatorVariable(Ellipsis)
+
+    try:
+        if Utils.python_version >= 300:
+            return _buildClassNode3( provider, node, source_ref )
+        else:
+            return _buildClassNode2( provider, node, source_ref )
+    finally:
+        popIndicatorVariable()

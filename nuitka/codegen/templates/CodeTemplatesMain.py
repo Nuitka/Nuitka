@@ -210,82 +210,6 @@ module_body_template = """
 PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
-NUITKA_MAY_BE_UNUSED static PyObject *GET_MODULE_VALUE0( PyObject *var_name )
-{
-    // For module variable values, need to lookup in module dictionary or in
-    // built-in dictionary.
-
-    PyObject *result = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)var_name );
-
-    if (likely( result != NULL ))
-    {
-        assertObject( result );
-
-        return result;
-    }
-
-    result = GET_STRING_DICT_VALUE( dict_builtin, (Nuitka_StringObject *)var_name );
-
-    if (likely( result != NULL ))
-    {
-        assertObject( result );
-
-        return result;
-    }
-
-    PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString(var_name ));
-    throw PythonException();
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *GET_MODULE_VALUE1( PyObject *var_name )
-{
-    return INCREASE_REFCOUNT( GET_MODULE_VALUE0( var_name ) );
-}
-
-NUITKA_MAY_BE_UNUSED void static DEL_MODULE_VALUE( PyObject *var_name, bool tolerant )
-{
-    int status = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, var_name );
-
-    if (unlikely( status == -1 && tolerant == false ))
-    {
-        PyErr_Format(
-            PyExc_NameError,
-            "global name '%%s' is not defined",
-            Nuitka_String_AsString( var_name )
-        );
-
-        throw PythonException();
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *GET_LOCALS_OR_MODULE_VALUE0( PyObject *locals_dict, PyObject *var_name )
-{
-    PyObject *result = PyDict_GetItem( locals_dict, var_name );
-
-    if ( result != NULL )
-    {
-        return result;
-    }
-    else
-    {
-        return GET_MODULE_VALUE0( var_name );
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *GET_LOCALS_OR_MODULE_VALUE1( PyObject *locals_dict, PyObject *var_name )
-{
-    PyObject *result = PyDict_GetItem( locals_dict, var_name );
-
-    if ( result != NULL )
-    {
-        return INCREASE_REFCOUNT( result );
-    }
-    else
-    {
-        return GET_MODULE_VALUE1( var_name );
-    }
-}
-
 // The module function declarations.
 %(module_functions_decl)s
 
@@ -445,12 +369,21 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Temp variables if any
 %(temps_decl)s
 
-    // Module code
+    // Module code.
 %(module_code)s
 
-   return MOD_RETURN_VALUE( module_%(module_identifier)s );
-}
+    return MOD_RETURN_VALUE( module_%(module_identifier)s );
+%(module_exit)s
 """
+
+template_module_exception_exit = """\
+module_exception_exit:
+    PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+    return MOD_RETURN_VALUE( NULL );
+}"""
+
+template_module_noexception_exit = """\
+}"""
 
 template_helper_impl_decl = """\
 // This file contains helper functions that are automatically created from
@@ -479,6 +412,8 @@ extern const unsigned char* constant_bin;
 #else
 extern "C" const unsigned char constant_bin[];
 #endif
+
+#define stream_data constant_bin
 
 // These modules should be loaded as bytecode. They must e.g. be loadable
 // during "Py_Initialize" already, or for irrelevance, they are only included

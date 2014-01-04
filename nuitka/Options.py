@@ -199,14 +199,6 @@ dump_group.add_option(
 )
 
 dump_group.add_option(
-    "--dump-tree",
-    action  = "store_true",
-    dest    = "dump_tree",
-    default = False,
-    help    = """Dump the final result of optimization as text, then exit."""
-)
-
-dump_group.add_option(
     "--display-tree",
     action  = "store_true",
     dest    = "display_tree",
@@ -534,9 +526,6 @@ def shallTraceExecution():
 
 def shallExecuteImmediately():
     return options.immediate_execution
-
-def shallDumpBuiltTree():
-    return options.dump_tree
 
 def shallDumpBuiltTreeXML():
     return options.dump_xml

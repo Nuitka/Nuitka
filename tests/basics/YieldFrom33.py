@@ -27,8 +27,8 @@ def h():
     yield 5
 
 def f():
-    print( "Yielded from returner", (yield from g()) )
-    print( "Yielded from non-return value", (yield from h()) )
+    print("Yielded from returner", (yield from g()))
+    print("Yielded from non-return value", (yield from h()))
 
 print( "Result", list( f() ) )
 

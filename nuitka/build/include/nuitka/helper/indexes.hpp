@@ -33,19 +33,12 @@ NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
 #endif
     if ( PyIndex_Check( value ) )
     {
-        Py_ssize_t result = PyNumber_AsSsize_t( value, NULL );
-
-        if (unlikely( result == -1 ))
-        {
-            THROW_IF_ERROR_OCCURED();
-        }
-
-        return result;
+        return PyNumber_AsSsize_t( value, NULL );
     }
     else
     {
         PyErr_Format( PyExc_TypeError, "slice indices must be integers or None or have an __index__ method" );
-        throw PythonException();
+        return -1;
     }
 }
 

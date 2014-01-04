@@ -21,6 +21,7 @@
 """
 
 from nuitka.nodes.StatementNodes import (
+    StatementGeneratorEntry,
     StatementsSequence,
     StatementsFrame
 )
@@ -73,26 +74,26 @@ def buildNode(provider, node, source_ref, allow_none = False):
         return None
 
     try:
-        kind = getKind( node )
+        kind = getKind(node)
 
-        if hasattr( node, "lineno" ):
-            source_ref = source_ref.atLineNumber( node.lineno )
+        if hasattr(node, "lineno"):
+            source_ref = source_ref.atLineNumber(node.lineno)
         else:
             source_ref = source_ref
 
         if kind in build_nodes_args3:
-            result = build_nodes_args3[ kind ](
+            result = build_nodes_args3[kind](
                 provider   = provider,
                 node       = node,
                 source_ref = source_ref
             )
         elif kind in build_nodes_args2:
-            result = build_nodes_args2[ kind ](
+            result = build_nodes_args2[kind](
                 node       = node,
                 source_ref = source_ref
             )
         elif kind in build_nodes_args1:
-            result = build_nodes_args1[ kind ](
+            result = build_nodes_args1[kind](
                 source_ref = source_ref
             )
         elif kind == "Pass":
@@ -179,11 +180,19 @@ def buildStatementsNode(provider, nodes, source_ref, frame = False):
             has_starlist  = parameters.getStarListArgumentName() is not None
             has_stardict  = parameters.getStarDictArgumentName() is not None
 
+            if provider.isGenerator():
+                statements.insert(
+                    0,
+                    StatementGeneratorEntry(
+                        source_ref = source_ref
+                    )
+                )
+
             return StatementsFrame(
                 statements    = statements,
                 guard_mode    = guard_mode,
                 var_names     = arg_names,
-                arg_count     = len( arg_names ),
+                arg_count     = len(arg_names),
                 kw_only_count = kw_only_count,
                 code_name     = code_name,
                 has_starlist  = has_starlist,
@@ -203,12 +212,14 @@ def buildStatementsNode(provider, nodes, source_ref, frame = False):
         )
 
 
-def mergeStatements(statements):
+def mergeStatements(statements, allow_none = False):
     """ Helper function that merges nested statement sequences. """
     merged_statements = []
 
     for statement in statements:
-        if statement.isStatement() or statement.isStatementsFrame():
+        if statement is None and allow_none:
+            pass
+        elif statement.isStatement() or statement.isStatementsFrame():
             merged_statements.append(statement)
         elif statement.isStatementsSequence():
             merged_statements.extend(mergeStatements(statement.getStatements()))
@@ -251,6 +262,7 @@ def makeStatementsSequence(statements, allow_none, source_ref):
     else:
         return None
 
+
 def makeStatementsSequenceFromStatement(statement):
     return StatementsSequence(
         statements = mergeStatements(
@@ -258,6 +270,7 @@ def makeStatementsSequenceFromStatement(statement):
         ),
         source_ref = statement.getSourceReference()
     )
+
 
 def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # Sequence creation. Tries to avoid creations with only constant
@@ -354,3 +367,28 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
             lazy_order = lazy_order,
             source_ref = source_ref
         )
+
+
+build_contexts = [None]
+
+def pushBuildContext(value):
+    build_contexts.append(value)
+
+def popBuildContext():
+    del build_contexts[-1]
+
+def getBuildContext():
+    return build_contexts[-1]
+
+indicator_variables = [Ellipsis]
+
+def getIndicatorVariables():
+    return indicator_variables
+
+def popIndicatorVariable():
+    result = indicator_variables[-1]
+    del indicator_variables[-1]
+    return result
+
+def pushIndicatorVariable(indicator_variable):
+    indicator_variables.append(indicator_variable)

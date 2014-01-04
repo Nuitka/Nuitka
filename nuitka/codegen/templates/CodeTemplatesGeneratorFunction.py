@@ -98,7 +98,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
         %(code_identifier)s,
         %(defaults)s,
 #if PYTHON_VERSION >= 300
-        %(kwdefaults)s,
+        %(kw_defaults)s,
         %(annotations)s,
 #endif
         %(module_identifier)s,
@@ -122,7 +122,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
         %(code_identifier)s,
         %(defaults)s,
 #if PYTHON_VERSION >= 300
-        %(kwdefaults)s,
+        %(kw_defaults)s,
         %(annotations)s,
 #endif
         %(module_identifier)s,
@@ -136,91 +136,59 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 genfunc_yielder_template = """
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
-    try
-    {
-        // Make context accessible if one is used.
+    // Make context accessible if one is used.
 %(context_access)s
 
-        // Local variable inits
+    // Local variable inits
 %(function_var_inits)s
 
-        // Actual function code.
+    // Actual function code.
 %(function_body)s
-    }
-    catch( ReturnValueException &e )
-    {
-        PyErr_SetObject( PyExc_StopIteration, e.getValue0() );
-    }
 
-    assert( ERROR_OCCURED() );
+%(generator_exit)s
+}"""
 
-    // TODO: Won't return, we should tell the compiler about that.
+template_generator_exception_exit = """\
+    PyErr_Restore( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
+
     generator->m_yielded = NULL;
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-}
+
+    // The above won't return, but we need to make it clear to the compiler
+    // as well, or else it will complain and/or generate inferior code.
+    assert(false);
+    return;
+function_exception_exit:
+    assert( exception_type );
+    assert( exception_tb );
+    PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+    generator->m_yielded = NULL;
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 """
 
-frame_guard_genfunc_template = """\
-static PyFrameObject *frame_%(frame_identifier)s = NULL;
-
-// Must be inside block, or else its d-tor will not be run.
-if ( isFrameUnusable( frame_%(frame_identifier)s ) )
-{
-    if ( frame_%(frame_identifier)s )
-    {
-#if _DEBUG_REFRAME
-        puts( "reframe for %(frame_identifier)s" );
-#endif
-        Py_DECREF( frame_%(frame_identifier)s );
-    }
-
-    frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
-}
-
-Py_INCREF( frame_%(frame_identifier)s );
-generator->m_frame = frame_%(frame_identifier)s;
-
-Py_CLEAR( generator->m_frame->f_back );
-
-generator->m_frame->f_back = PyThreadState_GET()->frame;
-Py_INCREF( generator->m_frame->f_back );
-
-PyThreadState_GET()->frame = generator->m_frame;
-
-FrameGuardLight frame_guard( &generator->m_frame );
-
-// TODO: The inject of the exception through C++ is very non-optimal, this flag
-// now indicates only if the exception occurs initially as supposed, or during
-// life, this could and should be shortcut.
-bool traceback;
-
-try
-{
-    // TODO: In case we don't raise exceptions ourselves, we would still have to do this, so
-    // beware to not optimize this away for generators without a replacement.
-    traceback = true;
-    CHECK_EXCEPTION( generator );
-    traceback = false;
-
-%(codes)s
-
-    PyErr_SetObject( PyExc_StopIteration, (PyObject *)NULL );
-}
-catch ( PythonException &_exception )
-{
-    if ( !_exception.hasTraceback() )
-    {
-        _exception.setTraceback( %(tb_making)s );
-    }
-    else if ( traceback == false )
-    {
-        _exception.addTraceback( generator->m_frame );
-    }
-    _exception.toPython();
-
-    // TODO: Moving this code is not allowed yet.
+template_generator_noexception_exit = """\
+    // Return statement must be present.
+    assert(false);
     generator->m_yielded = NULL;
-}"""
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+"""
+
+template_generator_return_exit = """\
+    // The above won't return, but we need to make it clear to the compiler
+    // as well, or else it will complain and/or generate inferior code.
+    assert(false);
+    return;
+function_return_exit:
+#if PYTHON_VERSION < 330
+    PyErr_Restore( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
+#else
+    PyErr_Restore( INCREASE_REFCOUNT( PyExc_StopIteration ), tmp_return_value, NULL );
+#endif
+    generator->m_yielded = NULL;
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+"""
+
 
 genfunc_common_context_use_template = """\
 struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self->m_context;
@@ -257,27 +225,18 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
     // Create context if any
 %(context_making)s
 
-    try
-    {
 %(generator_making)s
 
-        if (unlikely( result == NULL ))
-        {
-            PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-            return NULL;
-        }
-
-        // Copy to context parameter values and closured variables if any.
-%(context_copy)s
-
-        return result;
-    }
-    catch ( PythonException &_exception )
+    if (unlikely( result == NULL ))
     {
-        _exception.toPython();
-
+        PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
         return NULL;
     }
+
+    // Copy to context parameter values and closured variables if any.
+%(context_copy)s
+
+    return result;
 }
 """
 
@@ -290,8 +249,9 @@ generator_context_unused_template = """\
 // No context is used.
 """
 
-# TODO: The NUITKA_MAY_BE_UNUSED is because Nuitka doesn't yet detect the case of unused
-# parameters (which are stored in the context for generators to share) reliably.
+# TODO: The NUITKA_MAY_BE_UNUSED is because Nuitka doesn't yet detect the case
+# of unused parameters (which are stored in the context for generators to share)
+# reliably.
 generator_context_access_template2 = """
 NUITKA_MAY_BE_UNUSED struct _context_generator_%(function_identifier)s_t *_python_context = (_context_generator_%(function_identifier)s_t *)generator->m_context;
 """

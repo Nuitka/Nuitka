@@ -110,7 +110,7 @@ Builtin constant %s resolved""" % self.builtin_name
 
         if new_node.isExpressionBuiltinLocals() or \
            new_node.isExpressionBuiltinEval():
-            constraint_collection.assumeUnclearLocals()
+            constraint_collection.assumeUnclearLocals(self.source_ref)
 
         return new_node, tags, message
 
@@ -122,10 +122,11 @@ Builtin constant %s resolved""" % self.builtin_name
         return None
 
     def mayProvideReference(self):
-        # Dedicated code returns which returns from builtin module dictionary, but isn't
-        # available for Python3 yet.
+        # Dedicated code returns which returns from builtin module dictionary,
+        # but isn't available for Python3 yet.
 
         return python_version >= 300
+
 
 
 class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
@@ -160,8 +161,8 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
         return True
 
     def mayProvideReference(self):
-        # No reference provided from this, there are just a global identifiers, or
-        # accesses to them.
+        # No reference provided from this, there are just a global identifiers,
+        # or accesses to them.
 
         return False
 
@@ -195,6 +196,9 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     def isCompileTimeConstant(self):
         # Virtual method, pylint: disable=R0201
         return True
+
+    def mayRaiseException(self, exception_type):
+        return False
 
     def mayProvideReference(self):
         # No reference provided from this, it's just a global identifier.

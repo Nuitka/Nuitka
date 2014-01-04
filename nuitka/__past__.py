@@ -47,15 +47,26 @@ except ImportError:
 
     import subprocess as commands  # lint:ok
 
-
 def iterItems(d):
     try:
         return d.iteritems()
     except AttributeError:
         return d.items()
 
+if unicode is str:
+    raw_input = input
+else:
+    raw_input = raw_input
+
+# pylint: disable=E0611,F0401
+try:
+    from urllib.request import urlretrieve
+except ImportError:
+    from urllib import urlretrieve
+# pylint: enable=E0611,F0401
 
 # For PyLint to be happy.
 assert long
 assert unicode
 assert commands
+assert urlretrieve

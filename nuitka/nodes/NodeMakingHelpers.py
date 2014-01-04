@@ -81,15 +81,19 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
     return result
 
 def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
-    assert isinstance( exception, Exception )
+    assert isinstance(exception, Exception)
 
     args = exception.args
-    assert type( args ) is tuple and len( args ) == 1, args
+    if type(args) is tuple and len( args ) == 1:
+        value = args[0]
+    else:
+        assert type(args) is tuple
+        value = args
 
     return makeRaiseExceptionReplacementExpression(
         expression      = expression,
         exception_type  = exception.__class__.__name__,
-        exception_value = args[0]
+        exception_value = value
     )
 
 def isCompileTimeConstantValue(value):

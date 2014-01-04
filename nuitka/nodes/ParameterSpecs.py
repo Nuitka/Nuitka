@@ -137,7 +137,7 @@ class ParameterSpecTuple:
         return self.normal_variables
 
     def getParameterNames(self):
-        return Variables.getNames( self.getVariables() )
+        return Variables.getNames(self.getVariables())
 
 
 class ParameterSpec(ParameterSpecTuple):

@@ -109,8 +109,8 @@ class NodeBase(NodeMetaClassBase):
         # pylint: disable=W0702
         try:
             detail = self.getDetail()
-        except:
-            detail = "detail raises exception"
+        except Exception as e:
+            detail = "detail raises exception %s" % e
 
         if not detail:
             return "<Node %s>" % self.getDescription()
@@ -284,6 +284,10 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionOperationBool2(self):
         return self.kind.startswith( "EXPRESSION_BOOL_" )
 
+    def isStatementReraiseException(self):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
     def isExpressionMakeSequence(self):
         # Virtual method, pylint: disable=R0201,W0613
         return False
@@ -358,6 +362,20 @@ class NodeBase(NodeMetaClassBase):
 
         return True
 
+    def mayReturn(self):
+        return "_RETURN" in self.kind
+
+    def mayBreak(self):
+        return False
+
+    def mayContinue(self):
+        return False
+
+    def needsFrame(self):
+        """ Unless we are tolder otherwise, this depends on exception raise. """
+
+        return self.mayRaiseException(BaseException)
+
     def willRaiseException(self, exception_type):
         """ Unless we are told otherwise, nothing may raise anything. """
         # Virtual method, pylint: disable=R0201,W0613
@@ -366,7 +384,8 @@ class NodeBase(NodeMetaClassBase):
 
 
     def needsLineNumber(self):
-        return self.mayRaiseException( BaseException )
+        return self.mayRaiseException(BaseException)
+
 
     def isIndexable(self):
         """ Unless we are told otherwise, it's not indexable. """
@@ -702,38 +721,20 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
         return None
 
-    def registerProvidedVariables(self, variables):
+    def registerProvidedVariables(self, *variables):
         for variable in variables:
-            self.registerProvidedVariable( variable )
+            self.registerProvidedVariable(variable)
 
     def registerProvidedVariable(self, variable):
         assert variable is not None
 
-        self.providing[ variable.getName() ] = variable
+        self.providing[variable.getName()] = variable
 
     def getProvidedVariables(self):
         return self.providing.values()
 
-    def allocateTempKeeperVariable(self):
-        name = "keeper_%d" % len( self.keeper_variables )
-
-        result = Variables.TempKeeperVariable(
-            owner         = self,
-            variable_name = name
-        )
-
-        self.keeper_variables.add( result )
-
-        return result
-
-    def getTempKeeperVariables(self):
-        return self.keeper_variables
-
-    def removeTempKeeperVariable(self, variable):
-        self.keeper_variables.discard( variable )
-
     def allocateTempScope(self, name, allow_closure = False):
-        self.temp_scopes[ name ] = self.temp_scopes.get( name, 0 ) + 1
+        self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1
 
         # TODO: Instead of using overly long code name, could just visit parents
         # and make sure to allocate the scope at the top.
@@ -741,15 +742,23 @@ class ClosureGiverNodeBase(CodeNodeBase):
             return "%s_%s_%d" % (
                 self.getCodeName(),
                 name,
-                self.temp_scopes[ name ]
+                self.temp_scopes[name]
             )
         else:
-            return "%s_%d" % ( name, self.temp_scopes[ name ] )
+            return "%s_%d" % (
+                name,
+                self.temp_scopes[name]
+            )
 
     def allocateTempVariable(self, temp_scope, name):
         if temp_scope is not None:
-            full_name = "%s__%s" % ( temp_scope, name )
+            full_name = "%s__%s" % (
+                temp_scope,
+                name
+            )
         else:
+            assert name != "result"
+
             full_name = name
 
         del name
@@ -761,7 +770,7 @@ class ClosureGiverNodeBase(CodeNodeBase):
             variable_name = full_name
         )
 
-        self.temp_variables[ full_name ] = result
+        self.temp_variables[full_name] = result
 
         return result
 
@@ -793,7 +802,7 @@ class ParameterHavingNodeBase(ClosureGiverNodeBase):
         self.parameters.setOwner( self )
 
         self.registerProvidedVariables(
-            variables = self.parameters.getVariables()
+            *self.parameters.getVariables()
         )
 
     def getParameters(self):
@@ -831,12 +840,16 @@ class ClosureTakerMixin:
                 variable_name = variable_name
             )
 
-        return self.addClosureVariable( result )
+        return self.addClosureVariable(result)
+
+    def addClosureVariables(self, *variables):
+        for variable in variables:
+            self.addClosureVariable(variable)
 
     def addClosureVariable(self, variable):
-        variable = variable.makeReference( self )
+        variable = variable.makeReference(self)
 
-        self.taken.add( variable )
+        self.taken.add(variable)
 
         return variable
 
@@ -1038,6 +1051,7 @@ class ExpressionMixin:
         pass
 
 
+
 class CompileTimeConstantExpressionMixin(ExpressionMixin):
     def __init__(self):
         self.computed_attribute = False
@@ -1222,7 +1236,7 @@ class ExpressionBuiltinNoArgBase(NodeBase, ExpressionMixin):
 
 
 class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
-                                    ExpressionSpecBasedComputationMixin ):
+                                     ExpressionSpecBasedComputationMixin):
     named_children = (
         "value",
     )
@@ -1236,7 +1250,9 @@ class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
             source_ref = source_ref
         )
 
-    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
+    getValue = ExpressionChildrenHavingBase.childGetter(
+        "value"
+    )
 
     def computeExpression(self, constraint_collection):
         value = self.getValue()

@@ -22,17 +22,17 @@
 #define nb_nonzero nb_bool
 #endif
 
-NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
+NUITKA_MAY_BE_UNUSED static int CHECK_IF_TRUE( PyObject *object )
 {
     assertObject( object );
 
     if ( object == Py_True )
     {
-        return true;
+        return 1;
     }
     else if ( object == Py_False || object == Py_None )
     {
-        return false;
+        return 0;
     }
     else
     {
@@ -52,37 +52,48 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
         }
         else
         {
-            return true;
+            return 1;
         }
 
         if ( result > 0 )
         {
-            return true;
+            return 1;
         }
         else if ( result == 0 )
         {
-            return false;
+            return 0;
         }
         else
         {
-            throw PythonException();
+            return -1;
         }
     }
 }
 
-NUITKA_MAY_BE_UNUSED static bool CHECK_IF_FALSE( PyObject *object )
+NUITKA_MAY_BE_UNUSED static int CHECK_IF_FALSE( PyObject *object )
 {
-    return CHECK_IF_TRUE( object ) == false;
+    int result = CHECK_IF_TRUE( object );
+
+    if ( result == 0 ) return 1;
+    if ( result == 1 ) return 0;
+    return -1;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *BOOL_FROM( bool value )
 {
+    assertObject( Py_True );
+    assertObject( Py_False );
+
     return value ? Py_True : Py_False;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *UNARY_NOT( PyObject *object )
 {
-    return BOOL_FROM( CHECK_IF_FALSE( object ) );
+    int res = CHECK_IF_TRUE( object );
+
+    if ( res == 0 ) return Py_True;
+    if ( res == 1 ) return Py_False;
+    return NULL;
 }
 
 #undef nb_nonzero

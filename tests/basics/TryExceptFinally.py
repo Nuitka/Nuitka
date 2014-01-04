@@ -17,66 +17,71 @@
 #
 "Some doc"
 
+from __future__ import print_function
+
+def one():
+    return 1
+
 def tryScope1(x):
     try:
         try:
-            x += 1
+            x += one()
         finally:
-            print "Finally is executed"
+            print("Finally is executed")
 
             try:
-                z = 1
+                z = one()
             finally:
-                print "Deep Nested finally is executed"
+                print("Deep Nested finally is executed")
     except:
-        print "Exception occured"
+        print("Exception occured")
     else:
-        print "No exception occured"
+        print("No exception occured")
 
 tryScope1(1)
-print "*" * 20
+print("*" * 20)
 tryScope1([1])
 
 def tryScope2(x, someExceptionClass):
     try:
         x += 1
-    except someExceptionClass, e:
-        print "Exception class from argument occured:", someExceptionClass, repr(e)
+    except someExceptionClass as e:
+        print("Exception class from argument occured:", someExceptionClass, repr(e))
     else:
-        print "No exception occured"
+        print("No exception occured")
 
 def tryScope3(x):
     if x:
         try:
             x += 1
         except TypeError:
-            print "TypeError occured"
+            print("TypeError occured")
     else:
-        print "Not taken"
+        print("Not taken")
 
 
-print "*" * 20
+print("*" * 20)
 
 tryScope2(1, TypeError)
 tryScope2([ 1 ], TypeError)
 
-print "*" * 20
+print("*" * 20)
 
 tryScope3(1)
 tryScope3([1])
 tryScope3([])
 
-print "*" * 20
+print("*" * 20)
 
 def tryScope4(x):
     try:
         x += 1
     except:
-        print "exception occured"
+        print("exception occured")
     else:
-        print "no exception occured"
+        print("no exception occured")
     finally:
-        print "finally obeyed"
+        print("finally obeyed")
 
 tryScope4(1 )
 tryScope4([1])
@@ -84,12 +89,12 @@ tryScope4([1])
 def tryScope5():
     import sys
 
-    print "Exception info is initially", sys.exc_info()
+    print("Exception info is initially", sys.exc_info())
     try:
         try:
-            X += 1
+            undefined += 1
         finally:
-            print "Exception info in 'finally' clause is", sys.exc_info()
+            print("Exception info in 'finally' clause is", sys.exc_info())
     except:
         pass
 
