@@ -70,7 +70,7 @@ New Optimization
         ...
 
      # same as
-     for x in ( a, b, c ):
+     for x in (a, b, c):
         ...
 
   For constants, this is even more effective, because for mutable constants, no
@@ -424,7 +424,7 @@ New Features
      def f():
         pass
 
-     assert type( f ) == types.FunctionType
+     assert type(f) == types.FunctionType
 
   This of course also works for ``in`` operator, and is another step ahead in
   compatibility, and surprising too. And best of all, this works even if the
@@ -464,8 +464,8 @@ Cleanups
   consistent and better documented. Also updated the internal copy to 2.3.0 for
   the platforms that use it, mostly Windows.
 
-- Stop using ``os.system`` and ``subprocess.call( ..., shell = True )`` as it is
-  not really portable at all, use ``subprocess.call( ..., shell = False )``
+- Stop using ``os.system`` and ``subprocess.call(..., shell = True)`` as it is
+  not really portable at all, use ``subprocess.call(..., shell = False)``
   instead.
 
 - As usual lots of cleanups related to line length issues and PyLint.
@@ -700,10 +700,10 @@ Bug Fixes
 
   .. code-block:: python
 
-     def f( a, b = 2 ):
+     def f(a, b = 2):
          pass
 
-     f( b = 2 )
+     f(b = 2)
 
   This now properly raises the ``TypeError`` exception.
 
@@ -1127,7 +1127,7 @@ Bug Fixes
 
   .. code-block:: python
 
-     def f( *, a = X() )
+     def f(*, a = X())
         pass
 
      f()
@@ -1147,7 +1147,7 @@ Bug Fixes
   .. code-block:: python
 
      with a:      # This called a.__enter__().
-         return 2 # This didn't call a.__exit__( None, None, None ).
+         return 2 # This didn't call a.__exit__(None, None, None).
 
   This is of course quite huge, and unfortunately wasn't covered by any test
   suite so far. Turns out, the re-formulation of ``with`` statements, was
@@ -1172,7 +1172,7 @@ New Optimization
 
   .. code-block:: python
 
-     a = ( "something_special", )
+     a = ("something_special",)
      b = "something_special"
 
      assert a[0] is b # Now true
@@ -1286,7 +1286,7 @@ Bug fixes
 
   .. code-block:: python
 
-     def defaultKeepsIdentity( arg = "str_value" ):
+     def defaultKeepsIdentity(arg = "str_value"):
          print arg is "str_value"
 
      defaultKeepsIdentity()
@@ -1325,7 +1325,7 @@ New Optimization
      raise ZeroDivisionError, "integer division or modulo by zero"
 
      # Now optimizing:
-     function( a, 1/0 ).something
+     function(a, 1/0).something
      # into (minus normalization), notice the side effects of first checking
      # function and a as names to be defined, these may be removed only if
      # they can be demonstrated to have no effect.
@@ -1343,12 +1343,12 @@ New Optimization
   .. code-block:: python
 
      # This was already optimized, as it's a compile time constant.
-     a if ( "a", ) else b
+     a if ("a",) else b
      a if True else b
 
      # These are now optimized, as their truth value is known.
-     a if ( c, ) else b
-     a if not (c, ) else b
+     a if (c,) else b
+     a if not (c,) else b
 
   This is simply taking advantage of infrastructure that now exists. Each node
   kind can overload "getTruthValue" and benefit from it. Help would be welcome
@@ -1447,9 +1447,9 @@ New Features
 Bug fixes
 ---------
 
-- Checking compiled code with ``instance( some_function, types.FunctionType )``
-  as "zope.interfaces" does, was causing compatibility problems. Now this kind
-  of check passes for compiled functions too. `Issue#53
+- Checking compiled code with ``instance(some_function, types.FunctionType)`` as
+  "zope.interfaces" does, was causing compatibility problems. Now this kind of
+  check passes for compiled functions too. `Issue#53
   <http://bugs.nuitka.net/issue53>`__
 
 - The frame of modules had an empty locals dictionary, which is not compatible
@@ -1460,7 +1460,7 @@ Bug fixes
   in "sys.exc_info()" were not always fully compatible. They now are.
 
 - The ``range`` builtin was not raising exceptions if given arguments appeared
-  to not have side effects, but were still illegal, e.g. ``range( [], 1, -1 )``
+  to not have side effects, but were still illegal, e.g. ``range([], 1, -1)``
   was optimized away if the value was not used.
 
 - Don't crash on imported modules with syntax errors. Instead, the attempted
@@ -1712,8 +1712,8 @@ Bug fixes
 
   .. code-block:: python
 
-     a = ( ( 1, 2 ), 3 )
-     b = ( ( 1, ), 2, 3 )
+     a = ((1, 2), 3)
+     b = ((1,), 2, 3)
 
   Both tuples had the same name previously, not the end of the tuple is marked
   too. Fixed in 0.3.24.1 already.
@@ -2171,7 +2171,7 @@ New Features
         # For Python2/3 compatible source, we create a base class that has the
         # metaclass used and doesn't require making a choice.
 
-        CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (object, ), {} )
+        CPythonNodeMetaClassBase = NodeCheckMetaClass("CPythonNodeMetaClassBase", (object,), {})
 
 - The ``--dump-xml`` option works with Nuitka running under Python3. This was
   not previously supported.
@@ -2207,15 +2207,15 @@ New Optimization
 
      # The range isn't constructed at compile time, but we still know its
      # length.
-     len( range( 10000000 ) )
+     len(range(10000000))
 
      # The string isn't constructed at compile time, but we still know its
      # length.
-     len( "*" * 1000 )
+     len("*" * 1000)
 
      # The tuple isn't constructed, instead it's known length is used, and
      # side effects are maintained.
-     len( ( a(), b() ) )
+     len((a(), b()))
 
   This new optimization applies to all kinds of container creations and the
   ``range`` built-in initially.
@@ -2229,7 +2229,7 @@ New Optimization
 
   .. code-block:: python
 
-     if ( a, ):
+     if (a,):
         print "In Branch"
 
   It's clear, that the tuple will be true, we just need to maintain the side
@@ -2494,11 +2494,11 @@ Cleanups
 
   .. code-block:: python
 
-     _tmp_iter = iter( c )
-     _tmp1 = next( _tmp_iter )
-     _tmp2 = next( _tmp_iter )
-     if not finished( _tmp_iter ):
-         raise ValueError( "too many values to unpack" )
+     _tmp_iter = iter(c)
+     _tmp1 = next(_tmp_iter)
+     _tmp2 = next(_tmp_iter)
+     if not finished(_tmp_iter):
+         raise ValueError("too many values to unpack")
      a = _tmp1
      b = _tmp2
 
@@ -2763,7 +2763,7 @@ Cleanups
          def f():
              pass
 
-         f = staticmethod( f )
+         f = staticmethod(f)
 
      C = some_classdecorator(C)
 
@@ -3066,7 +3066,7 @@ Cleanups
 - New node for built-in name loopups, which allowed to remove tricks played with
   adding module variable lookups for ``staticmethod`` when adding them for
   ``__new__`` or module variable lookups for ``str`` when predicting the result
-  of ``type( 'a' )``, which was unlikely to cause a problem, but an important
+  of ``type('a')``, which was unlikely to cause a problem, but an important
   ``TODO`` item still.
 
 Organizational
@@ -4322,7 +4322,7 @@ New Tests
 
      from __builtin__ import len as _len
 
-     def len( x ):
+     def len(x):
         print x
 
      return _len(x)
@@ -4516,9 +4516,8 @@ Built-ins
   appropriate exceptions as required, plus it deals with keyword arguments just
   as well.
 
-  So, to Nuitka it doesn't matter now it you write ``int( value ) ``or ``int( x
-  = value )`` anymore. The ``base`` parameter of these built-ins is also
-  supported.
+  So, to Nuitka it doesn't matter now it you write ``int(value) ``or ``int(x =
+  value)`` anymore. The ``base`` parameter of these built-ins is also supported.
 
   The use of this call spec mechanism will the expanded, currently it is not
   applied to the built-ins that take only one parameter. This is a work in
@@ -5679,7 +5678,7 @@ New Optimization
 
 - The compiler more aggressively prepares tuples, lists and dicts from the
   source code as constants if their contents is "immutable" instead of building
-  at run time. An example of a "mutable" tuple would be ``( {}, )`` which is not
+  at run time. An example of a "mutable" tuple would be ``({},)`` which is not
   safe to share, and therefore will still be built at run time.
 
   For dictionaries and lists, copies will be made, under the assumption that
@@ -6253,9 +6252,9 @@ Consider this readable code on the module level:
 
     meters_per_nautical_mile = 1852
 
-    def convertMetersToNauticalMiles( meters ):
+    def convertMetersToNauticalMiles(meters):
         return meters / meters_per_nautical_mile
-    def convertNauticalMilesToMeters( miles ):
+    def convertNauticalMilesToMeters(miles):
         return miles * meters_per_nautical_mile
 
 Now imagine you are using this very frequently in code. Quickly you determine
@@ -6263,9 +6262,9 @@ that the following will be much faster:
 
 .. code-block:: python
 
-    def convertMetersToNauticalMiles( meters ):
+    def convertMetersToNauticalMiles(meters):
         return meters / 1852
-    def convertNauticalMilesToMeters( miles ):
+    def convertNauticalMilesToMeters(miles):
         return miles * 1852
 
 Still good? Well, probably next step you are going to inline the function calls
