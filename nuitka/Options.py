@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.0pre5
+Nuitka V0.5.0
 Copyright (C) 2013 Kay Hayen."""
 
 from . import Utils
