@@ -22,5 +22,5 @@ Provides a class that all finalization visitors should inherit from.
 
 from nuitka.tree import Operations
 
-class FinalizationVisitorBase( Operations.VisitorNoopMixin ):
+class FinalizationVisitorBase(Operations.VisitorNoopMixin):
     pass

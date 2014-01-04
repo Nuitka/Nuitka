@@ -232,7 +232,7 @@ def generatorOrderCheck():
 
         return 3
 
-    def generator( a = default1(), b = default2(), c = default3() ):
+    def generator(a = default1(), b = default2(), c = default3()):
         yield a
         yield b
         yield c
@@ -258,12 +258,12 @@ def classOrderCheck():
 
         return B2
 
-    def deco1( cls ):
+    def deco1(cls):
         print "deco1",
 
         return cls
 
-    def deco2( cls ):
+    def deco2(cls):
         print "deco2",
 
         return B2
@@ -271,7 +271,7 @@ def classOrderCheck():
 
     @deco2
     @deco1
-    class X( base1(), base2() ):
+    class X(base1(), base2()):
         print "class body",
 
     print
@@ -294,16 +294,16 @@ def inOrderCheck():
 
 def unpackOrderCheck():
     class Iterable:
-        def __init__( self ):
+        def __init__(self):
             self.consumed = 2
 
-        def __iter__( self ):
+        def __iter__(self):
             return Iterable()
 
-        def __del__( self ):
+        def __del__(self):
             print "Deleted with", self.consumed
 
-        def next( self ):
+        def next(self):
             print "Next with", self.consumed
 
             if self.consumed:

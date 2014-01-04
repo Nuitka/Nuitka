@@ -19,6 +19,6 @@ rem
 
 setlocal
 
-"%~dp0..\python" "%~dp0nuitka-python" %*
+"%~dp0..\python" "%~dp0nuitka-run" %*
 
 endlocal

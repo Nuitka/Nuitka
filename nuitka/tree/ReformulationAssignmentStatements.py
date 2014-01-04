@@ -57,7 +57,7 @@ from .Helpers import (
     getKind
 )
 
-def buildExtSliceNode( provider, node, source_ref ):
+def buildExtSliceNode(provider, node, source_ref):
     elements = []
 
     for dim in node.slice.dims:
@@ -310,7 +310,7 @@ def buildAssignmentStatements( provider, node, source, source_ref,
         source_ref = source_ref
     )
 
-def decodeAssignTarget( provider, node, source_ref, allow_none = False ):
+def decodeAssignTarget(provider, node, source_ref, allow_none = False):
     # Many cases to deal with, because of the different assign targets,
     # pylint: disable=R0911,R0912
 
@@ -403,7 +403,7 @@ def decodeAssignTarget( provider, node, source_ref, allow_none = False ):
     else:
         assert False, ( source_ref, kind )
 
-def buildAssignNode( provider, node, source_ref ):
+def buildAssignNode(provider, node, source_ref):
     assert len( node.targets ) >= 1, source_ref
 
     # Evaluate the right hand side first, so it can get names provided
@@ -471,10 +471,11 @@ def buildAssignNode( provider, node, source_ref ):
             source_ref = source_ref
         )
 
-def buildDeleteStatementFromDecoded( kind, detail, source_ref ):
-    if kind in ( "Name", "Name_Exception" ):
+def buildDeleteStatementFromDecoded(kind, detail, source_ref):
+    if kind in ("Name", "Name_Exception"):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
-        # insist on the variable already being defined.
+        # insist on the variable being defined, user code may do it too, and
+        # that will be fine, so make that tolerant.
         variable_ref = detail
 
         return StatementDelVariable(
@@ -484,7 +485,6 @@ def buildDeleteStatementFromDecoded( kind, detail, source_ref ):
         )
     elif kind == "Attribute":
         lookup_source, attribute_name = detail
-
 
         return StatementDelAttribute(
             expression     = lookup_source,
@@ -527,7 +527,7 @@ def buildDeleteStatementFromDecoded( kind, detail, source_ref ):
     else:
         assert False, ( kind, detail, source_ref )
 
-def buildDeleteNode( provider, node, source_ref ):
+def buildDeleteNode(provider, node, source_ref):
     # Build del statements.
 
     # Note: Each delete is sequential. It can succeed, and the failure of a
@@ -830,7 +830,7 @@ def _buildInplaceAssignSliceNode( provider, lookup_source, lower, upper,
 
     return statements
 
-def buildInplaceAssignNode( provider, node, source_ref ):
+def buildInplaceAssignNode(provider, node, source_ref):
     # There are many inplace assignment variables, and the detail is unpacked
     # into names, so we end up with a lot of variables, which is on purpose,
     # pylint: disable=R0914

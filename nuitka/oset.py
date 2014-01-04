@@ -34,7 +34,7 @@ import collections
 
 KEY, PREV, NEXT = range(3)
 
-class OrderedSet( collections.MutableSet ):
+class OrderedSet(collections.MutableSet):
 
     def __init__(self, iterable=None):
         self.end = end = []
@@ -55,7 +55,7 @@ class OrderedSet( collections.MutableSet ):
             curr = end[PREV]
             curr[NEXT] = end[PREV] = self.map[key] = [key, curr, end]
 
-    def update( self, values ):
+    def update(self, values):
         for value in values:
             self.add( value )
 

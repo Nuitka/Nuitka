@@ -17,8 +17,11 @@
 #
 """ These are just helpers to create nodes, often to replace existing nodes
 
-These are for use in optimizations and computations, and therefore cover mostly exceptions
-and constants. Otherwise the thread of cyclic dependency kicks in.
+These are for use in optimizations and computations, and therefore cover
+mostly exceptions and constants.
+
+Often cyclic dependencies kicks in, which is why this module is mostly only
+imported locally.
 """
 
 from .ConstantRefNodes import ExpressionConstantRef
@@ -45,13 +48,14 @@ from .SideEffectNodes import ExpressionSideEffects
 
 from logging import warning
 
-def makeConstantReplacementNode( constant, node ):
+def makeConstantReplacementNode(constant, node):
     return ExpressionConstantRef(
         constant   = constant,
         source_ref = node.getSourceReference()
     )
 
-def makeRaiseExceptionReplacementExpression( expression, exception_type, exception_value ):
+def makeRaiseExceptionReplacementExpression(expression, exception_type,
+                                            exception_value):
     source_ref = expression.getSourceReference()
 
     assert type( exception_type ) is str
@@ -76,7 +80,7 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
 
     return result
 
-def makeRaiseExceptionReplacementExpressionFromInstance( expression, exception ):
+def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
     assert isinstance( exception, Exception )
 
     args = exception.args
@@ -88,7 +92,7 @@ def makeRaiseExceptionReplacementExpressionFromInstance( expression, exception )
         exception_value = args[0]
     )
 
-def isCompileTimeConstantValue( value ):
+def isCompileTimeConstantValue(value):
     # This needs to match code in makeCompileTimeConstantReplacementNode
     if isConstant( value ):
         return True
@@ -97,7 +101,7 @@ def isCompileTimeConstantValue( value ):
     else:
         return False
 
-def makeCompileTimeConstantReplacementNode( value, node ):
+def makeCompileTimeConstantReplacementNode(value, node):
     # This needs to match code in isCompileTimeConstantValue
     if isConstant( value ):
         return makeConstantReplacementNode(
@@ -115,8 +119,8 @@ def makeCompileTimeConstantReplacementNode( value, node ):
     else:
         return node
 
-def getComputationResult( node, computation, description ):
-    """ With a computation function, execute it and return the constant result or
+def getComputationResult(node, computation, description):
+    """ With a computation function, execute it and return constant result or
         exception node.
 
     """
@@ -150,19 +154,33 @@ def getComputationResult( node, computation, description ):
 
     return new_node, change_tags, change_desc
 
-def makeStatementExpressionOnlyReplacementNode( expression, node ):
+def makeStatementExpressionOnlyReplacementNode(expression, node):
     return StatementExpressionOnly(
         expression = expression,
         source_ref = node.getSourceReference()
     )
 
-def makeStatementsSequenceReplacementNode( statements, node ):
+def mergeStatements(statements):
+    """ Helper function that merges nested statement sequences. """
+    merged_statements = []
+
+    for statement in statements:
+        if statement.isStatement() or statement.isStatementsFrame():
+            merged_statements.append(statement)
+        elif statement.isStatementsSequence():
+            merged_statements.extend(mergeStatements(statement.getStatements()))
+        else:
+            assert False, statement
+
+    return merged_statements
+
+def makeStatementsSequenceReplacementNode(statements, node):
     return StatementsSequence(
-        statements = statements,
+        statements = mergeStatements(statements),
         source_ref = node.getSourceReference()
     )
 
-def convertNoneConstantToNone( node ):
+def convertNoneConstantToNone(node):
     if node is None:
         return None
     elif node.isExpressionConstantRef() and node.getConstant() is None:
@@ -170,7 +188,7 @@ def convertNoneConstantToNone( node ):
     else:
         return node
 
-def wrapExpressionWithSideEffects( side_effects, old_node, new_node ):
+def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
     assert new_node.isExpression()
 
     if side_effects:
@@ -182,14 +200,14 @@ def wrapExpressionWithSideEffects( side_effects, old_node, new_node ):
 
     return new_node
 
-def wrapExpressionWithNodeSideEffects( new_node, old_node ):
+def wrapExpressionWithNodeSideEffects(new_node, old_node):
     return wrapExpressionWithSideEffects(
         side_effects = old_node.extractSideEffects(),
         old_node     = old_node,
         new_node     = new_node
     )
 
-def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
+def wrapStatementWithSideEffects(new_node, old_node, allow_none = False):
     assert new_node is not None or allow_none
 
     side_effects = old_node.extractSideEffects()
@@ -216,7 +234,7 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
 
     return new_node
 
-def makeStatementOnlyNodesFromExpressions( expressions ):
+def makeStatementOnlyNodesFromExpressions(expressions):
     statements = tuple(
         StatementExpressionOnly(
             expression = expression,
@@ -235,7 +253,7 @@ def makeStatementOnlyNodesFromExpressions( expressions ):
             source_ref = statements[0].getSourceReference()
         )
 
-def makeComparisonNode( left, right, comparator, source_ref ):
+def makeComparisonNode(left, right, comparator, source_ref):
     if comparator == "Is":
         return ExpressionComparisonIs(
             left       = left,

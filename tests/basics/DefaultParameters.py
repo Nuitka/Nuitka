@@ -17,10 +17,10 @@
 #
 module_level = 1
 
-def defaultValueTest1( no_default, some_default_constant = 1 ):
+def defaultValueTest1(no_default, some_default_constant = 1):
     return some_default_constant
 
-def defaultValueTest2( no_default, some_default_computed = module_level*2 ):
+def defaultValueTest2(no_default, some_default_computed = module_level*2):
     local_var = no_default = "1"
     return local_var, some_default_computed
 
@@ -36,7 +36,7 @@ def defaultValueTest5( no_default, tuple_defaulted = (1,2,3)):
     return tuple_defaulted
 
 def defaultValueTest6( no_default, list_defaulted = [1,2,3]):
-    list_defaulted.append( 5 )
+    list_defaulted.append(5)
 
     return list_defaulted
 
@@ -59,7 +59,7 @@ print defaultValueTest6("unused")
 
 print defaultValueTest6.func_defaults
 
-defaultValueTest6.func_defaults = ( [1,2,3], )
+defaultValueTest6.func_defaults = ([1,2,3],)
 print defaultValueTest6.func_defaults
 
 print defaultValueTest6(1)

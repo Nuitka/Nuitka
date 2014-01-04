@@ -31,12 +31,12 @@ from .NodeBases import (
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
-class ExpressionBuiltinEval( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
     named_children = ( "source", "globals", "locals" )
 
-    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
+    def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -51,17 +51,17 @@ class ExpressionBuiltinEval( ExpressionChildrenHavingBase ):
     getGlobals = ExpressionChildrenHavingBase.childGetter( "globals" )
     getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Attempt for constant values to do it.
         return self, None, None
 
 
 # Note: Python3 only so far.
 if Utils.python_version >= 300:
-    class ExpressionBuiltinExec( ExpressionBuiltinEval ):
+    class ExpressionBuiltinExec(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXEC"
 
-        def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
+        def __init__(self, source_code, globals_arg, locals_arg, source_ref):
             ExpressionBuiltinEval.__init__(
                 self,
                 source_code = source_code,
@@ -70,22 +70,38 @@ if Utils.python_version >= 300:
                 source_ref  = source_ref
             )
 
-        def needsLocalsDict( self ):
+        def needsLocalsDict(self):
             return True
 
-        def computeExpression( self, constraint_collection ):
+        def computeExpression(self, constraint_collection):
             # TODO: Attempt for constant values to do it.
             return self, None, None
+
+        def computeExpressionDrop(self, statement, constraint_collection):
+            if self.getParentVariableProvider().isEarlyClosure():
+                from .ExecEvalNodes import StatementExec
+
+                result = StatementExec(
+                    source_code = self.getSourceCode(),
+                    globals_arg = self.getGlobals(),
+                    locals_arg  = self.getLocals(),
+                    source_ref  = self.getSourceReference()
+                )
+
+                return result, "new_statements", """\
+Replaced builtin exec call to exec statement in early closure context."""
+            else:
+                return statement, None, None
 
 
 # Note: Python2 only
 if Utils.python_version < 300:
-    class ExpressionBuiltinExecfile( ExpressionBuiltinEval ):
+    class ExpressionBuiltinExecfile(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXECFILE"
 
         named_children = ( "source", "globals", "locals" )
 
-        def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
+        def __init__(self, source_code, globals_arg, locals_arg, source_ref):
             ExpressionBuiltinEval.__init__(
                 self,
                 source_code = source_code,
@@ -94,12 +110,33 @@ if Utils.python_version < 300:
                 source_ref  = source_ref
             )
 
-        def needsLocalsDict( self ):
+        def needsLocalsDict(self):
             return True
+
+        def computeExpressionDrop(self, statement, constraint_collection):
+            # In this case, the copy-back must be done and will only be done
+            # correctly by the code for exec statements.
+            provider = self.getParentVariableProvider()
+
+            if provider.isExpressionFunctionBody() and \
+               provider.isClassDictCreation():
+                from .ExecEvalNodes import StatementExec
+
+                result = StatementExec(
+                    source_code = self.getSourceCode(),
+                    globals_arg = self.getGlobals(),
+                    locals_arg  = self.getLocals(),
+                    source_ref  = self.getSourceReference()
+                )
+
+                return result, "new_statements", """\
+Changed execfile to exec on class level."""
+            else:
+                return statement, None, None
 
 
 # TODO: Find a place for this. Potentially as an attribute of nodes themselves.
-def _couldBeNone( node ):
+def _couldBeNone(node):
     if node is None:
         return True
     elif node.isExpressionMakeDict():
@@ -113,12 +150,12 @@ def _couldBeNone( node ):
         # assert False, node
         return True
 
-class StatementExec( StatementChildrenHavingBase ):
+class StatementExec(StatementChildrenHavingBase):
     kind = "STATEMENT_EXEC"
 
     named_children = ( "source", "globals", "locals" )
 
-    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
+    def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -129,7 +166,7 @@ class StatementExec( StatementChildrenHavingBase ):
             source_ref = source_ref,
         )
 
-    def setChild( self, name, value ):
+    def setChild(self, name, value):
         if name in ( "globals", "locals" ):
             from .NodeMakingHelpers import convertNoneConstantToNone
 
@@ -141,14 +178,14 @@ class StatementExec( StatementChildrenHavingBase ):
     getGlobals = StatementChildrenHavingBase.childGetter( "globals" )
     getLocals = StatementChildrenHavingBase.childGetter( "locals" )
 
-    def needsLocalsDict( self ):
+    def needsLocalsDict(self):
         return _couldBeNone( self.getGlobals() ) or \
                self.getGlobals().isExpressionBuiltinLocals() or \
                ( self.getLocals() is not None and \
                  self.getLocals().isExpressionBuiltinLocals()
                )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getSourceCode() )
         source_code = self.getSourceCode()
 

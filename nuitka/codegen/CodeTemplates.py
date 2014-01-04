@@ -17,8 +17,9 @@
 #
 """ Code templates one stop access. """
 
-# Wildcard imports are here to centralize the templates for access through one module
-# name, this one, they are not used here though. pylint: disable=W0401,W0614
+# Wildcard imports are here to centralize the templates for access through one
+# module name, this one, they are not used here though.
+# pylint: disable=W0401,W0614
 
 from .templates.CodeTemplatesMain import *
 from .templates.CodeTemplatesConstants import *
@@ -41,40 +42,51 @@ from .templates.CodeTemplatesSets import *
 
 from .templates.CodeTemplatesExecEval import *
 
+
 def enableDebug():
-    templates = dict( globals() )
+    templates = dict(globals())
 
     class TemplateWrapper:
-        """ Wrapper around templates, to better trace and control template usage. """
-        def __init__( self, name, value ):
+        """ Wrapper around templates.
+
+            To better trace and control template usage.
+
+        """
+        def __init__(self, name, value):
             self.name = name
             self.value = value
 
-        def __str__( self ):
+        def __str__(self):
             return self.value
 
-        def __mod__( self, other ):
+        def __mod__(self, other):
             assert type( other ) is dict, self.name
 
             for key in other.keys():
                 if "%%(%s)" % key not in self.value:
                     from logging import warning
 
-                    warning( "Extra value '%s' provided to template '%s'.", key, self.name )
+                    warning(
+                        "Extra value '%s' provided to template '%s'.",
+                        key,
+                        self.name
+                    )
 
             return self.value % other
 
-        def split( self, sep ):
+        def split(self, sep):
             return self.value.split( sep )
 
     from nuitka.__past__ import iterItems
 
-    for template_name, template_value in iterItems( templates ):
-        if template_name.startswith( "_" ):
+    for template_name, template_value in iterItems(templates):
+        # Ignore internal attribute like "__name__" that the module will also
+        # have of course.
+        if template_name.startswith("_"):
             continue
 
-        if type( template_value ) is str:
-            globals()[ template_name ] = TemplateWrapper(
+        if type(template_value) is str:
+            globals()[template_name] = TemplateWrapper(
                 template_name,
                 template_value
             )

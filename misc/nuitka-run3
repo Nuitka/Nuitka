@@ -20,7 +20,7 @@ import sys, os, subprocess
 if __name__ == "__main__":
     for ver in ( "3.3", "3.2" ):
         path = "/usr/bin/python" + ver
-        nuitka_cmd = "nuitka-python" if os.path.basename( sys.argv[0] ).lower().startswith( "nuitka-python" ) else "nuitka"
+        nuitka_cmd = "nuitka-run" if os.path.basename( sys.argv[0] ).lower().startswith( "nuitka-run" ) else "nuitka"
         if os.path.exists( path ):
             cmd = [ nuitka_cmd, "--python-version=%s" % ver ]
             cmd += sys.argv[1:]

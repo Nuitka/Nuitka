@@ -24,12 +24,12 @@ The try/except needs handlers, and these blocks are complex control flow.
 from .NodeBases import StatementChildrenHavingBase
 
 
-class StatementTryFinally( StatementChildrenHavingBase ):
+class StatementTryFinally(StatementChildrenHavingBase):
     kind = "STATEMENT_TRY_FINALLY"
 
     named_children = ( "tried", "final" )
 
-    def __init__( self, tried, final, source_ref ):
+    def __init__(self, tried, final, source_ref):
         assert tried is None or tried.isStatementsSequence()
         assert final is None or final.isStatementsSequence()
 
@@ -52,7 +52,7 @@ class StatementTryFinally( StatementChildrenHavingBase ):
     getBlockFinal = StatementChildrenHavingBase.childGetter( "final" )
     setBlockFinal = StatementChildrenHavingBase.childSetter( "final" )
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         # In try/finally there are two chances to raise or return a value, so we
         # need to "or" the both branches. One of them will do.
 
@@ -68,31 +68,31 @@ class StatementTryFinally( StatementChildrenHavingBase ):
 
         return False
 
-    def markAsExceptionContinue( self ):
+    def markAsExceptionContinue(self):
         self.continue_exception = True
 
-    def markAsExceptionBreak( self ):
+    def markAsExceptionBreak(self):
         self.break_exception = True
 
-    def markAsExceptionReturnValueCatch( self ):
+    def markAsExceptionReturnValueCatch(self):
         self.return_value_exception_catch = True
 
-    def markAsExceptionReturnValueReraise( self ):
+    def markAsExceptionReturnValueReraise(self):
         self.return_value_exception_reraise = True
 
-    def needsExceptionContinue( self ):
+    def needsExceptionContinue(self):
         return self.continue_exception
 
-    def needsExceptionBreak( self ):
+    def needsExceptionBreak(self):
         return self.break_exception
 
-    def needsExceptionReturnValueCatcher( self ):
+    def needsExceptionReturnValueCatcher(self):
         return self.return_value_exception_catch
 
-    def needsExceptionReturnValueReraiser( self ):
+    def needsExceptionReturnValueReraiser(self):
         return self.return_value_exception_reraise
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # The tried block must be considered as a branch, if it is not empty
         # already.
         tried_statement_sequence = self.getBlockTry()
@@ -100,8 +100,8 @@ class StatementTryFinally( StatementChildrenHavingBase ):
         # May be "None" from the outset, so guard against that, later in this
         # function we are going to remove it.
         if tried_statement_sequence is not None:
-            result = constraint_collection.onStatementsSequence(
-                tried_statement_sequence
+            result = tried_statement_sequence.computeStatementsSequence(
+                constraint_collection = constraint_collection
             )
 
             # Might be changed.
@@ -133,17 +133,17 @@ class StatementTryFinally( StatementChildrenHavingBase ):
 
 
             # Then assuming no exception, the no raise block if present.
-            result = constraint_collection.onStatementsSequence(
-                final_statement_sequence
+            result = final_statement_sequence.computeStatementsSequence(
+                constraint_collection = constraint_collection
             )
 
             if result is not final_statement_sequence:
-                self.setBlockFinal( result )
+                self.setBlockFinal(result)
 
                 final_statement_sequence = result
 
         # Note: Need to query again, because the object may have changed in the
-        # "onStatementsSequence" calls.
+        # "computeStatementsSequence" calls.
 
         if tried_statement_sequence is None:
             # If the tried block is empty, go to the final block directly, if
@@ -163,12 +163,15 @@ Removed try/finally with empty final block."""
             return self, None, None
 
 
-class StatementExceptHandler( StatementChildrenHavingBase ):
+class StatementExceptHandler(StatementChildrenHavingBase):
     kind = "STATEMENT_EXCEPT_HANDLER"
 
-    named_children = ( "exception_types", "body" )
+    named_children = (
+        "exception_types",
+        "body"
+    )
 
-    def __init__( self, exception_types, body, source_ref ):
+    def __init__(self, exception_types, body, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -181,16 +184,20 @@ class StatementExceptHandler( StatementChildrenHavingBase ):
     getExceptionTypes  = StatementChildrenHavingBase.childGetter(
         "exception_types"
     )
-    getExceptionBranch = StatementChildrenHavingBase.childGetter( "body" )
-    setExceptionBranch = StatementChildrenHavingBase.childSetter( "body" )
+    getExceptionBranch = StatementChildrenHavingBase.childGetter(
+        "body"
+    )
+    setExceptionBranch = StatementChildrenHavingBase.childSetter(
+        "body"
+    )
 
 
-class StatementTryExcept( StatementChildrenHavingBase ):
+class StatementTryExcept(StatementChildrenHavingBase):
     kind = "STATEMENT_TRY_EXCEPT"
 
     named_children = ( "tried", "handlers" )
 
-    def __init__( self, tried, handlers, source_ref ):
+    def __init__(self, tried, handlers, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -200,12 +207,18 @@ class StatementTryExcept( StatementChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getBlockTry = StatementChildrenHavingBase.childGetter( "tried" )
-    setBlockTry = StatementChildrenHavingBase.childSetter( "tried" )
+    getBlockTry = StatementChildrenHavingBase.childGetter(
+        "tried"
+    )
+    setBlockTry = StatementChildrenHavingBase.childSetter(
+        "tried"
+    )
 
-    getExceptionHandlers = StatementChildrenHavingBase.childGetter( "handlers" )
+    getExceptionHandlers = StatementChildrenHavingBase.childGetter(
+        "handlers"
+    )
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         tried_block = self.getBlockTry()
 
         # Happens during tree building only.
@@ -221,7 +234,7 @@ class StatementTryExcept( StatementChildrenHavingBase ):
 
         return True
 
-    def isStatementTryExceptOptimized( self ):
+    def isStatementTryExceptOptimized(self):
         tried_block = self.getBlockTry()
 
         tried_statements = tried_block.getStatements()
@@ -253,22 +266,25 @@ class StatementTryExcept( StatementChildrenHavingBase ):
         return False
 
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # The tried block can be processed normally.
         tried_statement_sequence = self.getBlockTry()
 
         # May be "None" from the outset, so guard against that, later we are
         # going to remove it.
         if tried_statement_sequence is not None:
-            result = constraint_collection.onStatementsSequence( tried_statement_sequence )
+            result = tried_statement_sequence.computeStatementsSequence(
+                constraint_collection = constraint_collection
+            )
 
             if result is not tried_statement_sequence:
-                self.setBlockTry( result )
+                self.setBlockTry(result)
 
                 tried_statement_sequence = result
 
         if tried_statement_sequence is None:
-            return None, "new_statements", "Removed try/except with empty tried block."
+            return None, "new_statements", """\
+Removed try/except with empty tried block."""
 
         from nuitka.optimizations.ConstraintCollections import \
             ConstraintCollectionHandler
@@ -284,7 +300,8 @@ class StatementTryExcept( StatementChildrenHavingBase ):
         # Without exception handlers remaining, nothing else to do. They may
         # e.g. be removed as only re-raising.
         if not self.getExceptionHandlers():
-            return tried_statement_sequence, "new_statements", "Removed try/except without any remaing handlers"
+            return tried_statement_sequence, "new_statements", """\
+Removed try/except without any remaing handlers."""
 
         # Give up, merging this is too hard for now, any amount of the tried
         # sequence may have executed together with one of the handlers, or all

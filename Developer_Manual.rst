@@ -149,7 +149,7 @@ separator.
 
    class SomeClass:
 
-      def doSomething( some_parameter ):
+      def doSomething(some_parameter):
          some_var = ( "foo", "bar" )
 
 Base classes that are abstract end in ``Base``, so that a meta class can use
@@ -250,12 +250,12 @@ Look at this code examples from Python:
 .. code-block:: python
 
    class A:
-       def getX( self ):
+       def getX(self):
            return 1
        x = property( getX )
 
-   class B( A ):
-      def getX( self ):
+   class B(A):
+      def getX(self):
          return 2
 
 
@@ -629,11 +629,6 @@ What follows is the (lengthy) list of arguments that the scons file processes:
   with the compiler in question. So far, this was not found to make major
   differences.
 
-* ``win_target``
-
-  Windows target mode, cross compile for Windows or compiling on windows
-  native.
-
 * ``win_disable_console``
 
   Windows subsystem mode: Disable console for windows builds.
@@ -733,10 +728,10 @@ changed.
   .. code-block:: python
 
      class X:
-        def f1( self ):
+        def f1(self):
            print( locals() )
 
-        def f2( self ):
+        def f2(self):
            print( locals() )
            super
 
@@ -1325,7 +1320,7 @@ re-formulation:
    # in module "SomeModule"
    # ...
 
-   class SomeClass( SomeBase, AnotherBase )
+   class SomeClass(SomeBase, AnotherBase)
        """ This is the class documentation. """
 
        some_member = 3
@@ -1348,7 +1343,7 @@ re-formulation:
        # used will be writable to.
        exec ""
 
-   SomeClass = make_class( "SomeClass", (SomeBase, AnotherBase), _makeSomeClass() )
+   SomeClass = make_class("SomeClass", (SomeBase, AnotherBase), _makeSomeClass())
 
 That is roughly the same, except that ``_makeSomeClass`` is *not* visible to its
 child functions when it comes to closure taking, which we cannot express in
@@ -1376,7 +1371,7 @@ not sure, what ``__prepare__`` is allowed to return.
    # in module "SomeModule"
    # ...
 
-   class SomeClass( SomeBase, AnotherBase, metaclass = SomeMetaClass )
+   class SomeClass(SomeBase, AnotherBase, metaclass = SomeMetaClass)
        """ This is the class documentation. """
 
        some_member = 3
@@ -1389,9 +1384,9 @@ not sure, what ``__prepare__`` is allowed to return.
    # Keyword arguments go next, __metaclass__ is just one of them. In principle
    # we need to forward the others as well, but this is ignored for the sake of
    # brevity.
-   tmp_metaclass = select_metaclass( tmp_bases, SomeMetaClass  )
+   tmp_metaclass = select_metaclass(tmp_bases, SomeMetaClass )
 
-   tmp_prepared = tmp_metaclass.__prepare__( "SomeClass", tmp_bases )
+   tmp_prepared = tmp_metaclass.__prepare__("SomeClass", tmp_bases)
 
    # The function that creates the class dictionary. Receives temporary variables
    # to work with.
@@ -1410,7 +1405,7 @@ not sure, what ``__prepare__`` is allowed to return.
 
        # Create the class, share the potential closure variable "__class__"
        # with others.
-       __class__ = tmp_metaclass( "SomeClass", tmp_bases, locals() )
+       __class__ = tmp_metaclass("SomeClass", tmp_bases, locals())
 
        return __class__
 
@@ -1431,7 +1426,7 @@ nested) for loops:
 
 .. code-block:: python
 
-    def _gen_helper( __iterator ):
+    def _gen_helper(__iterator):
        for x in __iterator:
           if cond():
               yield x*2
@@ -1451,7 +1446,7 @@ ever exists.
 
 .. code-block:: python
 
-    def _listcontr_helper( __iterator ):
+    def _listcontr_helper(__iterator):
        result = []
 
        for x in __iterator:
@@ -1583,7 +1578,7 @@ difficult stuff. Our example becomes this:
 
 .. code-block:: python
 
-   def _complex_call( called, pos, kw, star_list_arg, star_dict_arg ):
+   def _complex_call(called, pos, kw, star_list_arg, star_dict_arg):
        # Raises errors in case of duplicate arguments or tmp_star_dict not
        # being a mapping.
        tmp_merged_dict = merge_star_dict_arguments( called, tmp_named, mapping_check( called, tmp_star_dict ) )
@@ -1960,7 +1955,7 @@ propagate forward, how to handle this:
 
 .. code-block:: python
 
-   def my_append( a, b ):
+   def my_append(a, b):
       a.append( b )
 
       return a
@@ -2571,7 +2566,7 @@ The fourth goal is to understand the following:
 
 .. code-block:: python
 
-   def f( cond ):
+   def f(cond):
        y = 3
 
        if cond:
@@ -2679,13 +2674,6 @@ This an area where to drop random ideas on our minds, to later sort it out, and
 out it into action, which could be code changes, plan changes, issues created,
 etc.
 
-* The conditional expression needs to be handled like conditional statement for
-  propagation.
-
-  We branch conditional statements for value propagation, and we likely need to
-  do the same for conditional expressions too. May apply to ``or`` as well, and
-  ``and``, because there also only conditionally code is executed.
-
 * Make "SELECT_METACLASS" meta class selection transparent.
 
   Looking at the "SELECT_METACLASS" it should become an anonymous helper
@@ -2694,33 +2682,6 @@ etc.
 
   This of course makes most sense, if we have the optimizations in place that
   will allow this to actually happen.
-
-* Accesses to list constants sometimes chould become tuple constants.
-
-  .. code-block:: python
-
-     for x in [ 1, 2, 7 ]:
-        something( x )
-
-  Should be optimized into this:
-
-  .. code-block:: python
-
-     for x in ( 1, 2, 7 ):
-        something( x )
-
-  Otherwise, code generation suffers from assuming the list may be mutated and
-  is making a copy before using it. Instead, it would be needed to track, if
-  that list becomes writable, and if it's used as a list.
-
-  .. code-block:: python
-
-     # Examples, where lists need to be maintained, even if not written to
-     print [ 1,2 ]
-     print type( [ 1,2 ] )
-
-  The best approach is probably to track down ``in`` and other potential users,
-  that don't use the list nature and just convert then.
 
 * Keeping track of iterations
 
@@ -2897,6 +2858,10 @@ etc.
   ``RuntimeError`` error, when built-in module values are written to, that we
   don't support.
 
+.. raw:: pdf
+
+   PageBreak
+
 * SSA form for Nuitka nodes
 
   * Assignments collect a counter from the variable, which becomes the variable
@@ -2991,6 +2956,9 @@ etc.
   If the "caller" or the "called" can declare that it cannot be called by
   itself, we could leave it out.
 
+  TODO: Are they really that expensive? Unnecessary yes, but expensive may not
+  be true.
+
 * References
 
   Currently Nuitka has "Variable" objects. Every variable reference node type
@@ -3034,8 +3002,6 @@ etc.
   The outline functions would not be considered closure takers, nor closure
   givers. They should be visited when they are used, almost like a statement
   sequences, and returns would define their value.
-
-
 
 .. raw:: pdf
 

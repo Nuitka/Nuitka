@@ -113,21 +113,17 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
     }
     else if ( buffering == NULL )
     {
-        return _python_builtin_open.call_args(
-            MAKE_TUPLE2(
-               file_name,
-               mode
-            )
+        return _python_builtin_open.call2(
+            file_name,
+            mode
         );
     }
     else
     {
-        return _python_builtin_open.call_args(
-            MAKE_TUPLE3(
-                file_name,
-                mode,
-                buffering
-            )
+        return _python_builtin_open.call3(
+            file_name,
+            mode,
+            buffering
         );
     }
 }
@@ -633,6 +629,28 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 #endif
 }
 
+#if PYTHON_VERSION < 300
+extern PyObject *const_str_plain_xrange;
+
+static PythonBuiltin _python_builtin_xrange( &const_str_plain_xrange );
+
+PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step )
+{
+    if ( step != NULL )
+    {
+        return _python_builtin_xrange.call3( low, high, step );
+    }
+    else if ( high != NULL )
+    {
+        return _python_builtin_xrange.call2( low, high );
+    }
+    else
+    {
+        return _python_builtin_xrange.call1( low );
+    }
+}
+#endif
+
 PyObject *BUILTIN_LEN( PyObject *value )
 {
     assertObject( value );
@@ -1048,6 +1066,41 @@ PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool in
     return result;
 }
 
+PyObject *UNSTREAM_CHAR( unsigned char value, bool intern )
+{
+#if PYTHON_VERSION < 300
+    PyObject *result = PyString_FromStringAndSize( (char const  *)&value, 1 );
+#else
+    PyObject *result = PyUnicode_FromStringAndSize( (char const  *)&value, 1 );
+#endif
+
+    assert( !ERROR_OCCURED() );
+    assertObject( result );
+    assert( Nuitka_String_Check( result ) );
+
+#if PYTHON_VERSION < 300
+    assert( PyString_Size( result ) == 1 );
+#else
+    assert( PyUnicode_GET_SIZE( result ) == 1 );
+#endif
+
+    if ( intern )
+    {
+        Nuitka_StringIntern( &result );
+
+        assertObject( result );
+        assert( Nuitka_String_Check( result ) );
+
+#if PYTHON_VERSION < 300
+        assert( PyString_Size( result ) == 1 );
+#else
+        assert( PyUnicode_GET_SIZE( result ) == 1 );
+#endif
+    }
+
+    return result;
+}
+
 PyObject *UNSTREAM_FLOAT( unsigned char const *buffer )
 {
     double x = _PyFloat_Unpack8( buffer, 1 );
@@ -1058,6 +1111,19 @@ PyObject *UNSTREAM_FLOAT( unsigned char const *buffer )
 
     return result;
 }
+
+#if PYTHON_VERSION >= 300
+PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size )
+{
+    PyObject *result = PyBytes_FromStringAndSize( (char const  *)buffer, size );
+    assert( !ERROR_OCCURED() );
+    assertObject( result );
+
+    assert( PyBytes_GET_SIZE( result ) == size );
+    return result;
+}
+#endif
+
 
 #if PYTHON_VERSION < 300
 
@@ -1866,7 +1932,8 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 
 #include <osdefs.h>
-#if defined( _WIN32 )
+
+#if defined(_WIN32)
 #include <Shlwapi.h>
 #elif defined(__APPLE__)
 #include <mach-o/dyld.h>
@@ -1874,8 +1941,12 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 #include <libgen.h>
 #endif
 
-#if defined( _WIN32 )
+#if defined(_WIN32) && !defined(PATH_MAX)
 #define PATH_MAX MAXPATHLEN
+#endif
+
+#if defined( __FreeBSD__ )
+#include <sys/sysctl.h>
 #endif
 
 char *getBinaryDirectory()
@@ -1899,6 +1970,14 @@ char *getBinaryDirectory()
     {
         abort();
     }
+#elif defined( __FreeBSD__ )
+    int mib[4];
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_PROC;
+    mib[2] = KERN_PROC_PATHNAME;
+    mib[3] = -1;
+    size_t cb = sizeof(binary_directory);
+    sysctl(mib, 4, binary_directory, &cb, NULL, 0);
 #else
     // Readlink does not terminate result.
     memset( binary_directory, 0, PATH_MAX + 1 );
@@ -1917,6 +1996,41 @@ char *getBinaryDirectory()
 
 #if _NUITKA_FROZEN > 0
 extern struct _frozen Embedded_FrozenModules[];
+#endif
+
+#if _NUITKA_STANDALONE
+extern PyObject *const_str_plain___file__;
+
+void setEarlyFrozenModulesFileAttribute( void )
+{
+    Py_ssize_t ppos = 0;
+    PyObject *key, *value;
+
+    char buffer[4096];
+    strcpy(buffer,getBinaryDirectory());
+    char *w = buffer + strlen(buffer);
+    *w++ = SEP;
+    strcpy(w,"not_present.py");
+
+#if PYTHON_VERSION >= 300
+    PyObject *file_value = PyUnicode_FromString(buffer);
+#else
+    PyObject *file_value = PyString_FromString(buffer);
+#endif
+
+    while( PyDict_Next( PyImport_GetModuleDict(), &ppos, &key, &value ) )
+    {
+        if ( key != NULL && value != NULL && PyModule_Check( value ) )
+        {
+            if ( !PyObject_HasAttr( value, const_str_plain___file__ ) )
+            {
+                PyObject_SetAttr( value, const_str_plain___file__, file_value );
+            }
+        }
+    }
+
+    assert(!ERROR_OCCURED());
+}
 #endif
 
 void prepareStandaloneEnvironment()
@@ -1957,6 +2071,10 @@ void prepareStandaloneEnvironment()
     // the provided binary directory as the place to look for DLLs.
     char *binary_directory = getBinaryDirectory();
 
+#if defined( _WIN32 ) && defined( _MSC_VER )
+    SetDllDirectory( getBinaryDirectory() );
+#endif
+
     // get orignal value
     char *orignal_home = getenv( "PYTHONHOME" );
     char *orignal_path = getenv( "PYTHONPATH" );
@@ -1975,10 +2093,6 @@ void prepareStandaloneEnvironment()
 
     memset( insert_path, 0, insert_size );
     snprintf( insert_path, insert_size, env_string, binary_directory );
-
-#if defined( _NUITKA_STANDALONE ) && _WIN32
-    SetDllDirectory( binary_directory );
-#endif
 
     // set environment
     size_t python_home_size = orignal_home_size + insert_size;

@@ -159,6 +159,10 @@ int main( int argc, char *argv[] )
         assert ( _Py_Ticker >= 20 );
     }
 
+#if _NUITKA_STANDALONE
+    setEarlyFrozenModulesFileAttribute();
+#endif
+
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
 
@@ -229,7 +233,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_MODULE_VALUE0( PyObject *var_name )
         return result;
     }
 
-    PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( var_name ) );
+    PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString(var_name ));
     throw PythonException();
 }
 
@@ -326,7 +330,7 @@ static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
 MOD_INIT_DECL( %(module_identifier)s )
 {
 
-#if defined( _NUITKA_EXE ) || PYTHON_VERSION >= 300
+#if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
     static bool _init_done = false;
 
     // Packages can be imported recursively in deep executables.
@@ -470,10 +474,8 @@ template_frozen_modules = """\
 #include <Python.h>
 
 // Blob from which modules are unstreamed.
-static const unsigned char stream_data[] =
-{
-%(stream_data)s
-};
+extern "C" const unsigned char constant_bin[];
+#define stream_data constant_bin
 
 // These modules should be loaded as bytecode. They must e.g. be loadable
 // during "Py_Initialize" already, or for irrelevance, they are only included
@@ -485,5 +487,4 @@ struct _frozen Embedded_FrozenModules[] =
 %(frozen_modules)s
     { NULL, NULL, 0 }
 };
-
 """

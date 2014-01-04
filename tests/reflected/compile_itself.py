@@ -141,7 +141,10 @@ def executePASS1():
                 os.unlink( path )
 
         for filename in sorted( os.listdir( source_dir ) ):
-            if not filename.endswith( ".py" ):
+            if not filename.endswith(".py"):
+                continue
+
+            if filename.startswith(".#"):
                 continue
 
             path = os.path.join( source_dir, filename )
@@ -152,9 +155,10 @@ def executePASS1():
                 command = [
                     os.environ[ "PYTHON" ],
                     nuitka_main_path,
-                    path,
+                    "--module",
                     "--recurse-none",
-                    "--output-dir", target_dir
+                    "--output-dir=%s" % target_dir,
+                    path
                 ]
                 command += os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ).split()
 
@@ -175,10 +179,9 @@ def executePASS1():
     command = [
         os.environ[ "PYTHON" ],
         nuitka_main_path,
-        "nuitka.py",
-        "--exe",
         "--recurse-none",
-        "--output-dir", "."
+        "--output-dir=.",
+        "nuitka.py"
     ]
     command += os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ).split()
 
@@ -219,7 +222,10 @@ def compileAndCompareWith( nuitka ):
         source_dir = os.path.join( base_dir, package )
 
         for filename in sorted( os.listdir( source_dir ) ):
-            if not filename.endswith( ".py" ):
+            if not filename.endswith(".py"):
+                continue
+
+            if filename.startswith(".#"):
                 continue
 
             path = os.path.join( source_dir, filename )
@@ -236,9 +242,10 @@ def compileAndCompareWith( nuitka ):
 
                 command = [
                     nuitka,
-                    path,
+                    "--module",
                     "--recurse-none",
-                    "--output-dir", tmp_dir,
+                    "--output-dir=%s"% tmp_dir,
+                    path
                 ]
                 command += os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ).split()
 
@@ -298,7 +305,7 @@ def executePASS3():
         os.environ[ "PYTHON" ],
         nuitka_main_path,
         path,
-        "--output-dir", tmp_dir,
+        "--output-dir=%s" % tmp_dir,
         "--exe",
         "--recurse-all"
     ]
@@ -331,9 +338,10 @@ def executePASS5():
         os.environ[ "PYTHON" ],
         nuitka_main_path,
         path,
-        "--output-dir", tmp_dir,
+        "--output-dir=%s" % tmp_dir,
         "--recurse-all",
         "--recurse-dir=%s" % path,
+        "--module",
         path
 
     ]

@@ -20,15 +20,14 @@
 """
 
 from nuitka import Options, Utils, Importing, ModuleRegistry
-from nuitka.nodes.ModuleNodes import PythonPackage
-from nuitka.SourceCodeReferences import SourceCodeReference
+from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
 
 from . import ImportCache, Building
 
-from logging import info, warning
+from logging import debug, warning
 
-def recurseTo( module_package, module_filename, module_relpath, module_kind,
-               reason ):
+def recurseTo(module_package, module_filename, module_relpath, module_kind,
+             reason ):
     if not ImportCache.isImportedModuleByPath( module_relpath ):
         module, source_ref, source_filename = Building.decideModuleTree(
             filename = module_filename,
@@ -41,7 +40,7 @@ def recurseTo( module_package, module_filename, module_relpath, module_kind,
         # Check if the module name is known. In order to avoid duplicates,
         # learn the new filename, and continue build if its not.
         if not ImportCache.isImportedModuleByName( module.getFullName() ):
-            info(
+            debug(
                 "Recurse to import '%s' from %s. (%s)",
                 module.getFullName(),
                 module_relpath,
@@ -95,8 +94,8 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
         return ImportCache.getImportedModuleByPath( module_relpath ), False
 
 
-def decideRecursion( module_filename, module_name, module_package,
-                     module_kind ):
+def decideRecursion(module_filename, module_name, module_package,
+                    module_kind ):
     # Many branches, which make decisions immediately, pylint: disable=R0911
 
     if module_kind == "shlib":
@@ -105,12 +104,15 @@ def decideRecursion( module_filename, module_name, module_package,
         else:
             return False, "Shared library cannot be inspected."
 
-    no_case_modules = Options.getShallFollowInNoCase()
-
     if module_package is None:
         full_name = module_name
     else:
         full_name = module_package + "." + module_name
+
+    if isFrozenModule(full_name):
+        return False, "Module is frozen."
+
+    no_case_modules = Options.getShallFollowInNoCase()
 
     for no_case_module in no_case_modules:
         if full_name == no_case_module:
@@ -167,7 +169,7 @@ def decideRecursion( module_filename, module_name, module_package,
     )
 
 
-def considerFilename( module_filename, module_package ):
+def considerFilename(module_filename, module_package):
     assert module_package is None or \
            ( type( module_package ) is str and module_package != "" )
 
@@ -188,7 +190,7 @@ def considerFilename( module_filename, module_package ):
     else:
         return None
 
-def isSameModulePath( path1, path2 ):
+def isSameModulePath(path1, path2):
     if Utils.basename(path1) == "__init__.py":
         path1 = Utils.dirname(path1)
     if Utils.basename(path2) == "__init__.py":
@@ -196,8 +198,8 @@ def isSameModulePath( path1, path2 ):
 
     return Utils.abspath(path1) == Utils.abspath(path2)
 
-def _checkPluginPath( plugin_filename, module_package ):
-    info(
+def _checkPluginPath(plugin_filename, module_package):
+    debug(
         "Checking detail plugin path %s %s",
         plugin_filename,
         module_package
@@ -226,7 +228,7 @@ def _checkPluginPath( plugin_filename, module_package ):
                     plugin_info[0]
                 )
 
-                if not isSameModulePath(module.getFilename(),plugin_info[0]):
+                if not isSameModulePath(module.getFilename(), plugin_info[0]):
                     warning(
                         "Duplicate ignored '%s'.",
                         plugin_info[1]
@@ -234,7 +236,7 @@ def _checkPluginPath( plugin_filename, module_package ):
 
                     return
 
-            info(
+            debug(
                 "Recursed to %s %s %s",
                 module.getName(),
                 module.getPackage(),
@@ -259,7 +261,11 @@ def _checkPluginPath( plugin_filename, module_package ):
                     # Real packages will always be included.
                     useful = True
 
-                info("Package directory %s", package_dir)
+                debug(
+                    "Package directory %s",
+                    package_dir
+                )
+
 
                 for sub_path, sub_filename in Utils.listDir(package_dir):
                     if sub_filename in ("__init__.py", "__pycache__"):
@@ -280,8 +286,8 @@ def _checkPluginPath( plugin_filename, module_package ):
         else:
             warning( "Failed to include module from '%s'.", plugin_info[0] )
 
-def checkPluginPath( plugin_filename, module_package ):
-    info(
+def checkPluginPath(plugin_filename, module_package):
+    debug(
         "Checking top level plugin path %s %s",
         plugin_filename,
         module_package
@@ -294,17 +300,17 @@ def checkPluginPath( plugin_filename, module_package ):
 
     if plugin_info is not None:
         # File or package makes a difference, handle that
-        if Utils.isFile( plugin_info[0] ) or \
-           Importing.isPackageDir( plugin_info[0] ):
-            _checkPluginPath( plugin_filename, module_package )
-        elif Utils.isDir( plugin_info[0] ):
-            for sub_path, sub_filename in Utils.listDir( plugin_info[0] ):
+        if Utils.isFile(plugin_info[0]) or \
+           Importing.isPackageDir(plugin_info[0]):
+            _checkPluginPath(plugin_filename, module_package)
+        elif Utils.isDir(plugin_info[0]):
+            for sub_path, sub_filename in Utils.listDir(plugin_info[0]):
                 assert sub_filename != "__init__.py"
 
-                if Importing.isPackageDir( sub_path ) or \
-                   sub_path.endswith( ".py" ):
-                    _checkPluginPath( sub_path, None )
+                if Importing.isPackageDir(sub_path) or \
+                   sub_path.endswith(".py"):
+                    _checkPluginPath(sub_path, None)
         else:
-            warning( "Failed to include module from '%s'.", plugin_info[0] )
+            warning("Failed to include module from '%s'.", plugin_info[0])
     else:
-        warning( "Failed to recurse to directory '%s'." % plugin_filename )
+        warning("Failed to recurse to directory '%s'.", plugin_filename)

@@ -26,12 +26,12 @@ There will be a method "computeExpressionAttribute" to aid predicting them.
 from .NodeBases import ExpressionChildrenHavingBase
 
 
-class ExpressionAttributeLookup( ExpressionChildrenHavingBase ):
+class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
     named_children = ( "expression", )
 
-    def __init__( self, expression, attribute_name, source_ref ):
+    def __init__(self, expression, attribute_name, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -42,28 +42,28 @@ class ExpressionAttributeLookup( ExpressionChildrenHavingBase ):
 
         self.attribute_name = attribute_name
 
-    def getAttributeName( self ):
+    def getAttributeName(self):
         return self.attribute_name
 
-    def setAttributeName( self, attribute_name ):
+    def setAttributeName(self, attribute_name):
         self.attribute_name = attribute_name
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "attribute" : self.getAttributeName() }
 
-    def getDetail( self ):
+    def getDetail(self):
         return "attribute %s from %s" % ( self.getAttributeName(), self.getLookupSource() )
 
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    def makeCloneAt( self, source_ref ):
+    def makeCloneAt(self, source_ref):
         return ExpressionAttributeLookup(
             expression     = self.getLookupSource().makeCloneAt( source_ref ),
             attribute_name = self.getAttributeName(),
             source_ref     = source_ref
         )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException( BaseException ):
@@ -75,16 +75,16 @@ class ExpressionAttributeLookup( ExpressionChildrenHavingBase ):
             constraint_collection = constraint_collection
         )
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         # TODO: Could be known.
         return None
 
 
-class ExpressionSpecialAttributeLookup( ExpressionAttributeLookup ):
+class ExpressionSpecialAttributeLookup(ExpressionAttributeLookup):
     kind = "EXPRESSION_SPECIAL_ATTRIBUTE_LOOKUP"
 
     # TODO: Special lookups should be treated somehow different.
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException( BaseException ):
@@ -94,7 +94,7 @@ class ExpressionSpecialAttributeLookup( ExpressionAttributeLookup ):
         return self, None, None
 
 
-class ExpressionBuiltinGetattr( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
     named_children = ( "source", "attribute", "default" )
@@ -102,7 +102,7 @@ class ExpressionBuiltinGetattr( ExpressionChildrenHavingBase ):
     # Need to accept 'object' keyword argument, that is just the API of getattr,
     # pylint: disable=W0622
 
-    def __init__( self, object, name, default, source_ref ):
+    def __init__(self, object, name, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -117,7 +117,7 @@ class ExpressionBuiltinGetattr( ExpressionChildrenHavingBase ):
     getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
     getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         default = self.getDefault()
@@ -160,7 +160,7 @@ attribute '%s' to mere attribute lookup""" % attribute_name
         return self, None, None
 
 
-class ExpressionBuiltinSetattr( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
     named_children = ( "source", "attribute", "value" )
@@ -168,7 +168,7 @@ class ExpressionBuiltinSetattr( ExpressionChildrenHavingBase ):
     # Need to accept 'object' keyword argument, that is just the API of setattr,
     # pylint: disable=W0622
 
-    def __init__( self, object, name, value, source_ref ):
+    def __init__(self, object, name, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -183,14 +183,14 @@ class ExpressionBuiltinSetattr( ExpressionChildrenHavingBase ):
     getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         # Note: Might be possible to predict or downgrade to mere attribute set.
         return self, None, None
 
 
-class ExpressionBuiltinHasattr( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
     named_children = ( "source", "attribute" )
@@ -198,7 +198,7 @@ class ExpressionBuiltinHasattr( ExpressionChildrenHavingBase ):
     # Need to accept object keyword argument, that is just the API of hasattr,
     # pylint: disable=W0622
 
-    def __init__( self, object, name, source_ref ):
+    def __init__(self, object, name, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -211,13 +211,13 @@ class ExpressionBuiltinHasattr( ExpressionChildrenHavingBase ):
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
     getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         # Note: Might be possible to predict or downgrade to mere attribute check.
 
         return self, None, None
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # Dedicated code returns "True" or "False" only, which requires no reference.
         return False

@@ -29,12 +29,14 @@ from .NodeBases import (
 from nuitka.tree.Extractions import getVariablesWritten
 
 
-class StatementLoop( StatementChildrenHavingBase ):
+class StatementLoop(StatementChildrenHavingBase):
     kind = "STATEMENT_LOOP"
 
-    named_children = ( "frame", )
+    named_children = (
+        "frame",
+    )
 
-    def __init__( self, body, source_ref ):
+    def __init__(self, body, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -46,21 +48,21 @@ class StatementLoop( StatementChildrenHavingBase ):
         self.break_exception = False
         self.continue_exception = False
 
-    getLoopBody = StatementChildrenHavingBase.childGetter( "frame" )
+    getLoopBody = StatementChildrenHavingBase.childGetter("frame")
 
-    def markAsExceptionContinue( self ):
+    def markAsExceptionContinue(self):
         self.continue_exception = True
 
-    def markAsExceptionBreak( self ):
+    def markAsExceptionBreak(self):
         self.break_exception = True
 
-    def needsExceptionContinue( self ):
+    def needsExceptionContinue(self):
         return self.continue_exception
 
-    def needsExceptionBreak( self ):
+    def needsExceptionBreak(self):
         return self.break_exception
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         loop_body = self.getLoopBody()
 
         if loop_body is not None:
@@ -74,13 +76,14 @@ class StatementLoop( StatementChildrenHavingBase ):
                     variable = variable
                 )
 
-            result = constraint_collection.onStatementsSequence( loop_body )
+            result = loop_body.computeStatementsSequence(
+                constraint_collection = constraint_collection
+            )
 
             # Might be changed.
             if result is not loop_body:
                 loop_body.replaceWith( result )
                 loop_body = result
-
 
         # Consider trailing "continue" statements, these have no effect, so we
         # can remove them.
@@ -122,54 +125,54 @@ Removed loop immediately broken."""
 
         return self, None, None
 
-    def needsLineNumber( self ):
+    def needsLineNumber(self):
         # The loop itself cannot fail, the first statement will set the line
         # number if necessary.
         return False
 
 
-class StatementContinueLoop( NodeBase ):
+class StatementContinueLoop(NodeBase):
     kind = "STATEMENT_CONTINUE_LOOP"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.exception_driven = False
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         return True
 
-    def markAsExceptionDriven( self ):
+    def markAsExceptionDriven(self):
         self.exception_driven = True
 
-    def isExceptionDriven( self ):
+    def isExceptionDriven(self):
         return self.exception_driven
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # This statement being aborting, will already tell everything. TODO: The
         # fine difference that this jumps to loop start for sure, should be
         # represented somehow one day.
         return self, None, None
 
 
-class StatementBreakLoop( NodeBase ):
+class StatementBreakLoop(NodeBase):
     kind = "STATEMENT_BREAK_LOOP"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.exception_driven = False
 
-    def isStatementAborting( self ):
+    def isStatementAborting(self):
         return True
 
-    def markAsExceptionDriven( self ):
+    def markAsExceptionDriven(self):
         self.exception_driven = True
 
-    def isExceptionDriven( self ):
+    def isExceptionDriven(self):
         return self.exception_driven
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # This statement being aborting, will already tell everything. TODO: The
         # fine difference that this exits the loop for sure, should be
         # represented somehow one day.

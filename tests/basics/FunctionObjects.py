@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-def func( arg1, arg2, arg3, **star ):
+def func(arg1, arg2, arg3, **star):
    """ Some documentation. """
 
    pass
@@ -41,7 +41,7 @@ print "Reading its dict", func.my_value
 print "func_code", func.func_code, func.func_code.co_argcount
 print dir( func.func_code )
 
-def func2( arg1, arg2 = "default_arg2", arg3 = "default_arg3" ):
+def func2(arg1, arg2 = "default_arg2", arg3 = "default_arg3"):
    x = 1
    return x
 

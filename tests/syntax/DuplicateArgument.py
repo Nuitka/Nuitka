@@ -15,5 +15,5 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-def f( a, a ):
+def f(a, a):
     pass

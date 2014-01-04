@@ -25,7 +25,7 @@ print printHelloWorld
 
 printHelloWorld()
 
-def printHelloWorld2( arg ):
+def printHelloWorld2(arg):
     print arg
 
 print printHelloWorld2
@@ -33,7 +33,7 @@ print printHelloWorld2
 printHelloWorld2( "Hello World from Function positional argument" )
 printHelloWorld2( arg = "Hello World from Function keyword argument" )
 
-def printHelloWorld3( arg = "Hello World from Function default argument" ):
+def printHelloWorld3(arg = "Hello World from Function default argument"):
     print arg
 
 print printHelloWorld3

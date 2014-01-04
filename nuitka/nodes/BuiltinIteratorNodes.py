@@ -33,18 +33,19 @@ from .NodeBases import (
 from nuitka.optimizations import BuiltinOptimization
 
 
-class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_LEN"
 
     builtin_spec = BuiltinOptimization.builtin_len_spec
 
-    def getIntegerValue( self ):
+    def getIntegerValue(self):
         return self.getValue().getIterationLength()
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithNodeSideEffects
 
-        new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.computeExpression(
+        new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.\
+          computeExpression(
             self,
             constraint_collection = constraint_collection
         )
@@ -61,96 +62,100 @@ class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
                     old_node = self.getValue()
                 )
 
-                if new_node.isExpressionSideEffects(): # false alarm pylint: disable=E1101
+                if new_node.isExpressionSideEffects(): # false alarm pylint: disable=E1103
                     change_desc += " maintaining side effects"
 
         return new_node, change_tags, change_desc
 
 
-class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ITER1"
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         value = self.getValue()
 
+        # Iterator of an iterator can be removed.
         if value.isIteratorMaking():
-            return value, "new_builtin", "Eliminated useless iterator creation"
-        else:
-            return self, None, None
+            return value, "new_builtin", "Eliminated useless iterator creation."
 
-    def isIteratorMaking( self ):
+        return value.computeExpressionIter1(
+            iter_node             = self,
+            constraint_collection = constraint_collection
+        )
+
+    def isIteratorMaking(self):
         return True
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         if count is None:
             return True
 
         # TODO: Should ask value if it is.
         return None
 
-    def getIterationLength( self ):
+    def getIterationLength(self):
         return self.getValue().getIterationLength()
 
-    def extractSideEffects( self ):
+    def extractSideEffects(self):
         # Iterator making is the side effect itself.
         if self.getValue().isCompileTimeConstant():
             return ()
         else:
             return ( self, )
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         if self.getValue().isCompileTimeConstant():
             return self.getValue().isKnownToBeIterable( None )
 
         return True
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # Method overload, where it's fixed by type, pylint: disable=R0201
         return True
 
-    def isKnownToBeIterableAtMin( self, count ):
+    def isKnownToBeIterableAtMin(self, count):
         assert type( count ) is int
 
         iter_length = self.getValue().getIterationLength()
         return iter_length is not None and iter_length < count
 
-    def isKnownToBeIterableAtMax( self, count ):
+    def isKnownToBeIterableAtMax(self, count):
         assert type( count ) is int
 
         iter_length = self.getValue().getIterationLength()
 
         return iter_length is not None and count <= iter_length
 
-    def onRelease( self, constraint_collection ):
+    def onRelease(self, constraint_collection):
         # print "onRelease", self
         pass
 
 
 
-class ExpressionBuiltinNext1( ExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_NEXT1"
 
-    def getDetails( self ):
+    def getDetails(self):
         return {
             "iter" : self.getValue()
         }
 
-    def makeCloneAt( self, source_ref ):
+    def makeCloneAt(self, source_ref):
         return self.__class__(
             value      = self.getValue(),
             source_ref = source_ref
         )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Predict iteration result if possible via SSA variable trace of
         # the iterator state.
         return self, None, None
 
 
-class ExpressionSpecialUnpack( ExpressionBuiltinNext1 ):
+class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
     kind = "EXPRESSION_SPECIAL_UNPACK"
 
-    def __init__( self, value, count, source_ref ):
+    def __init__(self, value, count, source_ref):
         ExpressionBuiltinNext1.__init__(
             self,
             value      = value,
@@ -159,29 +164,29 @@ class ExpressionSpecialUnpack( ExpressionBuiltinNext1 ):
 
         self.count = count
 
-    def makeCloneAt( self, source_ref ):
+    def makeCloneAt(self, source_ref):
         return self.__class__(
             value      = self.getValue(),
             count      = self.getCount(),
             source_ref = source_ref
         )
 
-    def getDetails( self ):
+    def getDetails(self):
         result = ExpressionBuiltinNext1.getDetails( self )
         result[ "element_index" ] = self.getCount()
 
         return result
 
-    def getCount( self ):
+    def getCount(self):
         return self.count
 
 
-class StatementSpecialUnpackCheck( StatementChildrenHavingBase ):
+class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
     named_children = ( "iterator", )
 
-    def __init__( self, iterator, count, source_ref ):
+    def __init__(self, iterator, count, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -192,17 +197,17 @@ class StatementSpecialUnpackCheck( StatementChildrenHavingBase ):
 
         self.count = count
 
-    def getDetails( self ):
+    def getDetails(self):
         return {
             "count" : self.getCount(),
         }
 
-    def getCount( self ):
+    def getCount(self):
         return self.count
 
     getIterator = StatementChildrenHavingBase.childGetter( "iterator" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getIterator() )
         iterator = self.getIterator()
 
@@ -223,7 +228,7 @@ class StatementSpecialUnpackCheck( StatementChildrenHavingBase ):
         return self, None, None
 
 
-class ExpressionBuiltinIter2( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
     named_children = ( "callable", "sentinel", )
@@ -231,7 +236,7 @@ class ExpressionBuiltinIter2( ExpressionChildrenHavingBase ):
     # Need to accept 'callable' keyword argument, that is just the API of iter,
     # pylint: disable=W0622
 
-    def __init__( self, callable, sentinel, source_ref ):
+    def __init__(self, callable, sentinel, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values = {
@@ -244,21 +249,21 @@ class ExpressionBuiltinIter2( ExpressionChildrenHavingBase ):
     getCallable = ExpressionChildrenHavingBase.childGetter( "callable" )
     getSentinel = ExpressionChildrenHavingBase.childGetter( "sentinel" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: The "callable" should be investigated here, pylint: disable=W0613
 
         return self, None, None
 
-    def isIteratorMaking( self ):
+    def isIteratorMaking(self):
         return True
 
 
-class ExpressionBuiltinNext2( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"
 
     named_children = ( "iterator", "default", )
 
-    def __init__( self, iterator, default, source_ref ):
+    def __init__(self, iterator, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values = {
@@ -271,7 +276,7 @@ class ExpressionBuiltinNext2( ExpressionChildrenHavingBase ):
     getIterator = ExpressionChildrenHavingBase.childGetter( "iterator" )
     getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: The "iterator" should be investigated here, pylint: disable=W0613
 
         return self, None, None

@@ -24,25 +24,25 @@ loop.
 
 from .Operations import VisitorNoopMixin, visitTree
 
-class VariableWriteExtractor( VisitorNoopMixin ):
+class VariableWriteExtractor(VisitorNoopMixin):
     """ Extract variables written to.
 
     """
-    def __init__( self ):
+    def __init__(self):
         self.written_to = set()
 
-    def onEnterNode( self, node ):
+    def onEnterNode(self, node):
         if node.isExpressionTargetVariableRef() or \
            node.isExpressionAssignmentTempKeeper():
             key = node.getVariable(), node.getVariableVersion()
 
             self.written_to.add( key )
 
-    def getResult( self ):
+    def getResult(self):
         return self.written_to
 
 
-def getVariablesWritten( node ):
+def getVariablesWritten(node):
     visitor = VariableWriteExtractor()
     visitTree( node, visitor )
 

@@ -27,12 +27,12 @@ from . import CodeTemplates
 # 1..6 in any case, so we can use it in the C++ code freely without concern.
 make_tuples_used = set( range( 1, 6 ) )
 
-def addMakeTupleUse( value ):
+def addMakeTupleUse(value):
     assert type( value ) is int
 
     make_tuples_used.add( value )
 
-def getTupleCreationCode( context, order_relevance, element_identifiers ):
+def getTupleCreationCode(context, order_relevance, element_identifiers):
     if len( element_identifiers ) == 0:
         return ConstantIdentifier( "const_tuple_empty", () )
 

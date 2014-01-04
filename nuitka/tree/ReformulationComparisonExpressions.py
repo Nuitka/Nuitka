@@ -28,7 +28,7 @@ from .Helpers import (
     getKind
 )
 
-def buildComparisonNode( provider, node, source_ref ):
+def buildComparisonNode(provider, node, source_ref):
     from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
 
     assert len( node.comparators ) == len( node.ops )

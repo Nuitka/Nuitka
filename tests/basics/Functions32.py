@@ -16,12 +16,12 @@
 #     limitations under the License.
 #
 
-def kwonlysimple( *, a ):
+def kwonlysimple(*, a):
     return a
 
 print( "Most simple case", kwonlysimple( a = 3 ) )
 
-def kwonlysimpledefaulted( *, a = 5 ):
+def kwonlysimpledefaulted(*, a = 5):
     return a
 
 print( "Default simple case", kwonlysimpledefaulted() )
@@ -90,7 +90,7 @@ def annotation9():
 
     return "a9"
 
-def kwonlyfunc( x: annotation1(), y: annotation2() = default1(), z: annotation3() = default2(), *, a: annotation4(), b: annotation5() = default3(), c: annotation6() = default4(), d: annotation7(), **kw: annotation8() ) -> annotation9():
+def kwonlyfunc(x: annotation1(), y: annotation2() = default1(), z: annotation3() = default2(), *, a: annotation4(), b: annotation5() = default3(), c: annotation6() = default4(), d: annotation7(), **kw: annotation8()) -> annotation9():
     print( x, y, z, a, b, c, d )
 
 print( kwonlyfunc.__kwdefaults__ )
@@ -105,7 +105,7 @@ print( "After updating to None it is", kwonlyfunc.__annotations__ )
 kwonlyfunc.__annotations__ = { "k" : 9 }
 print( "After updating to None it is", kwonlyfunc.__annotations__ )
 
-def kwonlystarfunc( *, a, b, **d ):
+def kwonlystarfunc(*, a, b, **d):
     return a, b, d
 
 print( "kwonlystarfunc", kwonlystarfunc( a = 8, b = 12, k = 9, j = 7 ) )

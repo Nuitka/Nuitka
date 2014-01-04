@@ -20,12 +20,12 @@
 Variable traces indicate the flow of variables and merges their versions for
 the SSA (Single State Assignment) form being used in Nuitka.
 
-Variable version can start out:
+Variable version can start as:
 
-* Unknown (maybe initialized, maybe not
+* Unknown (maybe initialized, maybe not, we cannot know)
 * Uninit (definitely not initialized, first version, or after "del" statement)
 * Init (definitely initialized, e.g. parameter variables)
-* Merge (result of diverging code paths)
+* Merge (result of diverged code paths)
 
 """
 
@@ -44,6 +44,9 @@ class VariableTraceBase:
         # List of releases of the node.
         self.releases = []
 
+        # List of merges.
+        self.merges = []
+
         # If not None, this indicates the last usage, where the value was not
         # yet escaped. If it is 0, it escaped immediately. Escaping is a one
         # time action.
@@ -61,6 +64,9 @@ class VariableTraceBase:
     def addUsage(self, ref_node):
         self.usages.append(ref_node)
 
+    def addMerge(self, trace):
+        self.merges.append(trace)
+
     def addRelease(self, release_node):
         self.releases.append(release_node)
 
@@ -71,7 +77,15 @@ class VariableTraceBase:
         return self.escaped_at is not None
 
     def getPotentialUsages(self):
-        return self.usages
+        return self.usages + \
+               sum(
+                   [
+                       merge.getPotentialUsages()
+                       for merge in
+                       self.merges
+                   ],
+                   []
+               )
 
     def getDefiniteUsages(self):
         return self.usages
@@ -92,15 +106,15 @@ class VariableTraceBase:
         return False
 
 
-class VariableUninitTrace( VariableTraceBase ):
-    def __init__( self, variable, version ):
+class VariableUninitTrace(VariableTraceBase):
+    def __init__(self, variable, version):
         VariableTraceBase.__init__(
             self,
             variable = variable,
             version  = version
         )
 
-    def __repr__( self ):
+    def __repr__(self):
         return "<VariableUninitTrace {variable} {version}>".format(
             variable = self.variable,
             version  = self.version
@@ -110,7 +124,8 @@ class VariableUninitTrace( VariableTraceBase ):
         return True
 
     def dump(self):
-        debug("Trace of %s %d:",
+        debug(
+            "Trace of %s %d:",
             self.variable,
             self.version
         )
@@ -123,8 +138,8 @@ class VariableUninitTrace( VariableTraceBase ):
             debug("  Used at %s", usage)
 
 
-class VariableUnknownTrace( VariableTraceBase ):
-    def __init__( self, variable, version ):
+class VariableUnknownTrace(VariableTraceBase):
+    def __init__(self, variable, version):
         VariableTraceBase.__init__(
             self,
             variable = variable,
@@ -137,8 +152,9 @@ class VariableUnknownTrace( VariableTraceBase ):
             version  = self.version
         )
 
-    def dump( self ):
-        debug("Trace of %s %d:",
+    def dump(self):
+        debug(
+            "Trace of %s %d:",
             self.variable,
             self.version
         )
@@ -191,42 +207,38 @@ class VariableAssignTrace(VariableTraceBase):
         return self.assign_node
 
 
-class VariableMergeTrace( VariableTraceBase ):
+class VariableMergeTrace(VariableTraceBase):
+    """ Merge of two traces.
+
+        Happens at the end of two conditional blocks. This is "phi" in
+        SSA theory.
+    """
     def __init__(self, variable, version, trace_yes, trace_no):
         assert trace_no is not trace_yes, (variable, version, trace_no)
 
         VariableTraceBase.__init__(
             self,
-            variable=variable,
-            version=version
+            variable = variable,
+            version  = version
         )
 
         self.trace_yes = trace_yes
         self.trace_no = trace_no
 
-        self.forwarded = True
+        trace_yes.addMerge(self)
+        trace_no.addMerge(self)
 
     def isMergeTrace(self):
         return True
 
-    def addUsage(self, ref_node):
-        if not self.usages:
-            # Merging is usage.
-            self.trace_yes.addUsage(self)
-            if self.trace_no is not None:
-                self.trace_no.addUsage(self)
-
-        VariableTraceBase.addUsage(self, ref_node)
-
-    def getPotentialUsages(self):
-        assert False
-
     def dump(self):
-        debug("Trace of %s %d:",
+        debug(
+            "Trace of %s %d:",
             self.variable,
             self.version
         )
-        debug("  Merge of %s <-> %s",
+        debug(
+            "  Merge of %s <-> %s",
             self.trace_yes,
             self.trace_no
         )

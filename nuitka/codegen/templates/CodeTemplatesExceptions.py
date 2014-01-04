@@ -53,8 +53,9 @@ try_except_reraise_template = """\
 {
     PyTracebackObject *tb = _exception.getTraceback();
     frame_guard.setLineNumber( tb->tb_lineno );
-    _exception.setTraceback( tb->tb_next );
+    PyTracebackObject *tb_next = tb->tb_next;
     tb->tb_next = NULL;
+    _exception.setTraceback( tb_next );
 
     throw;
 }"""
@@ -82,6 +83,9 @@ else
 
 try_finally_template = """\
 PythonExceptionKeeper _caught_%(try_count)d;
+#if PYTHON_VERSION < 300
+int _at_lineno_%(try_count)d = 0;
+#endif
 
 %(rethrow_setups)s
 try
@@ -91,6 +95,7 @@ try
 }
 catch ( PythonException &_exception )
 {
+#if PYTHON_VERSION >= 300
     if ( !_exception.hasTraceback() )
     {
         _exception.setTraceback( %(tb_making)s );
@@ -99,6 +104,9 @@ catch ( PythonException &_exception )
     {
         _exception.addTraceback( frame_guard.getFrame0() );
     }
+#else
+    _at_lineno_%(try_count)d = frame_guard.getLineNumber();
+#endif
 
     _caught_%(try_count)d.save( _exception );
 
@@ -111,6 +119,12 @@ catch ( PythonException &_exception )
 %(rethrow_catchers)s
 // Final block:
 %(final_code)s
+#if PYTHON_VERSION < 300
+if ( _at_lineno_%(try_count)d != 0 )
+{
+   frame_guard.setLineNumber( _at_lineno_%(try_count)d );
+}
+#endif
 _caught_%(try_count)d.rethrow();
 // Final end
 %(rethrow_raisers)s"""

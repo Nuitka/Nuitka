@@ -18,7 +18,7 @@
 
 
 
-def decorator1( f ):
+def decorator1(f):
     print "Executing decorator 1"
 
     def deco_f():
@@ -26,7 +26,7 @@ def decorator1( f ):
 
     return deco_f
 
-def decorator2( f ):
+def decorator2(f):
     print "Executing decorator 2"
 
     def deco_f():

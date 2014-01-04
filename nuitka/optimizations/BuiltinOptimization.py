@@ -18,14 +18,19 @@
 """ Optimizations of builtins to builtin calls.
 
 """
-from nuitka.nodes.ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
+from nuitka.nodes.ParameterSpecs import (
+    ParameterSpec,
+    TooManyArguments,
+    matchCall
+)
 
 from nuitka.Utils import python_version
 
 import sys, math
 
-class BuiltinParameterSpec( ParameterSpec ):
-    def __init__( self, name, arg_names, default_count, list_star_arg = None, dict_star_arg = None ):
+class BuiltinParameterSpec(ParameterSpec):
+    def __init__( self, name, arg_names, default_count, list_star_arg = None,
+                  dict_star_arg = None ):
         ParameterSpec.__init__(
             self,
             name           = name,
@@ -38,20 +43,20 @@ class BuiltinParameterSpec( ParameterSpec ):
 
         self.builtin = __builtins__[ name ]
 
-    def __repr__( self ):
+    def __repr__(self):
         return "<BuiltinParameterSpec %s>" % self.name
 
-    def getName( self ):
+    def getName(self):
         return self.name
 
-    def isCompileTimeComputable( self, values ):
+    def isCompileTimeComputable(self, values):
         for value in values:
             if value is not None and not value.isCompileTimeConstant():
                 return False
         else:
             return True
 
-    def simulateCall( self, given_values ):
+    def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really
         # fatal, pylint: disable=W0142,W0703
 
@@ -70,14 +75,15 @@ class BuiltinParameterSpec( ParameterSpec ):
 
             arg_dict = {}
 
-            for arg_name, given_value in zip( self.normal_args, given_normal_args ):
-                assert type( given_value ) not in ( tuple, list ), ( "do not like a tuple %s" % ( given_value, ))
+            for arg_name, given_value in zip(self.normal_args, given_normal_args):
+                assert type( given_value ) not in ( tuple, list ), \
+                  ( "do not like a tuple %s" % ( given_value, ))
 
                 if given_value is not None:
                     arg_dict[ arg_name ] = given_value.getCompileTimeConstant()
 
             if given_dict_star_args:
-                for given_dict_star_arg in reversed( given_dict_star_args ):
+                for given_dict_star_arg in reversed(given_dict_star_args):
                     arg_name = given_dict_star_arg.getKey()
                     arg_value = given_dict_star_arg.getValue()
 
@@ -95,12 +101,12 @@ class BuiltinParameterSpec( ParameterSpec ):
             return self.builtin( **arg_dict )
 
 
-class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
+class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
 
-    def allowsKeywords( self ):
+    def allowsKeywords(self):
         return False
 
-    def simulateCall( self, given_values ):
+    def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really fatal,
         # pylint: disable=W0142,W0703
 
@@ -133,8 +139,8 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
         return self.builtin( *arg_list )
 
 
-class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
-    def __init__( self, exception_name, default_count ):
+class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
+    def __init__(self, exception_name, default_count):
         # TODO: Parameter default_count makes no sense for exceptions probably.
         BuiltinParameterSpec.__init__(
             self,
@@ -144,17 +150,17 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
             list_star_arg = "args"
         )
 
-    def allowsKeywords( self ):
+    def allowsKeywords(self):
         return False
 
-    def getKeywordRefusalText( self ):
+    def getKeywordRefusalText(self):
         return "exceptions.%s does not take keyword arguments" % self.name
 
-    def getCallableName( self ):
+    def getCallableName(self):
         return "exceptions." + self.getName()
 
 
-def makeBuiltinParameterSpec( exception_name ):
+def makeBuiltinParameterSpec(exception_name):
     if exception_name == "ImportError" and python_version >= 330:
         # TODO: Create this beast, needs keyword only arguments to be supported,
         # currently user of this function must take care to not have them.
@@ -166,11 +172,30 @@ def makeBuiltinParameterSpec( exception_name ):
     )
 
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
+
 # These builtins are only available for Python2
 if python_version < 300:
-    builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
-    builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "execfile", ( "filename", "globals", "locals" ), 2 )
-    builtin_unicode_spec = BuiltinParameterSpec( "unicode", ( "string", "encoding", "errors" ), 3 )
+    builtin_long_spec = BuiltinParameterSpec(
+        "long",
+        ("x", "base"),
+        2
+    )
+    builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
+        "execfile",
+        ("filename", "globals", "locals"),
+        2
+    )
+    builtin_unicode_spec = BuiltinParameterSpec(
+        "unicode",
+        ("string", "encoding", "errors"),
+        3
+    )
+    builtin_xrange_spec = BuiltinParameterSpec(
+        "xrange",
+        ("start", "stop", "step"),
+        2
+    )
+
 
 builtin_bool_spec = BuiltinParameterSpec( "bool", ( "x", ), 1 )
 builtin_float_spec = BuiltinParameterSpec( "float", ( "x", ), 1 )
@@ -224,24 +249,24 @@ builtin_setattr_spec = BuiltinParameterSpecNoKeywords( "setattr", ( "object", "n
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords( "isinstance", ( "instance", "cls" ), 0 )
 
 
-class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
-    def __init__( self, *args ):
+class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
+    def __init__(self, *args):
         BuiltinParameterSpecNoKeywords.__init__( self, *args )
 
-    def isCompileTimeComputable( self, values ):
+    def isCompileTimeComputable(self, values):
         result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
             self,
             values = values
         )
 
         if result:
-            arg_count = len( values )
+            arg_count = len(values)
 
             if arg_count == 1:
                 low = values[0]
 
-                # If it's not a number constant, we can compute the exception that will be
-                # raised.
+                # If it's not a number constant, we can compute the exception
+                # that will be raised.
                 if not low.isNumberConstant():
                     return True
 
@@ -249,8 +274,8 @@ class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
             elif arg_count == 2:
                 low, high = values
 
-                # If it's not a number constant, we can compute the exception that will be
-                # raised.
+                # If it's not a number constant, we can compute the exception
+                # that will be raised.
                 if not low.isNumberConstant() or not high.isNumberConstant():
                     return True
 
@@ -258,8 +283,9 @@ class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
             elif arg_count == 3:
                 low, high, step = values
 
-                if not low.isNumberConstant() or not high.isNumberConstant() or \
-                     not step.isNumberConstant():
+                if not low.isNumberConstant() or \
+                   not high.isNumberConstant() or \
+                   not step.isNumberConstant():
                     return True
 
                 low = low.getConstant()
@@ -286,16 +312,17 @@ class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
             return False
 
 
-builtin_range_spec = BuiltinRangeSpec( "range", ( "start", "stop", "step" ), 2 )
+builtin_range_spec = BuiltinRangeSpec("range", ( "start", "stop", "step" ), 2)
 
 
-def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class = None ):
+def extractBuiltinArgs( node, builtin_spec, builtin_class,
+                        empty_special_class = None ):
     try:
         kw = node.getCallKw()
 
 
-        # TODO: Could check for too many / too few, even if they are unknown, we might
-        # raise that error, but that need not be optimized immediately.
+        # TODO: Could check for too many / too few, even if they are unknown, we
+        # might raise that error, but that need not be optimized immediately.
         if not kw.isMappingWithConstantStringKeys():
             return None
 
@@ -314,7 +341,7 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class =
         positional = args.getIterationValues()
 
         if not positional and not pairs and empty_special_class is not None:
-            return empty_special_class( source_ref = node.getSourceReference() )
+            return empty_special_class(source_ref = node.getSourceReference())
 
         args_dict = matchCall(
             func_name     = builtin_spec.getName(),
@@ -351,7 +378,8 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class =
     if builtin_spec.getStarDictArgumentName() is not None:
         args_list.append( args_dict[ builtin_spec.getStarDictArgumentName() ] )
 
-    # Using list reference for passing the arguments without names, pylint: disable=W0142
+    # Using list reference for passing the arguments without names,
+    # pylint: disable=W0142
     return builtin_class(
         *args_list,
         source_ref = node.getSourceReference()

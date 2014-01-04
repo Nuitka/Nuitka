@@ -35,33 +35,32 @@ code_objects = {}
 # False alarms about "hashlib.md5" due to its strange way of defining what is
 # exported, pylint won't understand it. pylint: disable=E1101
 if python_version < 300:
-    def _calcHash( key ):
+    def _calcHash(key):
         hash_value = hashlib.md5(
             "%s%s%d%s%d%d%s%s%s%s" % key
         )
 
         return hash_value.hexdigest()
 else:
-    def _calcHash( key ):
+    def _calcHash(key):
         hash_value = hashlib.md5(
-            ( "%s%s%d%s%d%d%s%s%s%s" % key ).encode( "utf-8" )
+            ("%s%s%d%s%d%d%s%s%s%s" % key).encode("utf-8")
         )
 
         return hash_value.hexdigest()
 
 def _getCodeObjects():
-    return sorted( iterItems( code_objects ) )
+    return sorted(iterItems(code_objects))
 
 # Sad but true, code objects have these many details that actually are fed from
 # all different source, pylint: disable=R0913
 def getCodeObjectHandle( context, filename, code_name, line_number, var_names,
                          arg_count, kw_only_count, is_generator, is_optimized,
                          has_starlist, has_stardict ):
+    var_names = tuple(var_names)
 
-    var_names = tuple( var_names )
-
-    assert type( has_starlist ) is bool
-    assert type( has_stardict ) is bool
+    assert type(has_starlist) is bool
+    assert type(has_stardict) is bool
 
     key = (
         filename,
@@ -78,18 +77,18 @@ def getCodeObjectHandle( context, filename, code_name, line_number, var_names,
 
     if key not in code_objects:
         code_objects[ key ] = Identifier(
-            "codeobj_%s" % _calcHash( key ),
+            "codeobj_%s" % _calcHash(key),
             0
         )
 
-        getConstantHandle( context, filename )
-        getConstantHandle( context, code_name )
-        getConstantHandle( context, var_names )
+        getConstantHandle(context, filename)
+        getConstantHandle(context, code_name)
+        getConstantHandle(context, var_names)
 
-    return code_objects[ key ]
+    return code_objects[key]
 
 
-def getCodeObjectsDeclCode( for_header ):
+def getCodeObjectsDeclCode(for_header):
     # There are many cases for constants of different types.
     # pylint: disable=R0912
     statements = []
@@ -100,30 +99,30 @@ def getCodeObjectsDeclCode( for_header ):
         if for_header:
             declaration = "extern " + declaration
 
-        statements.append( declaration )
+        statements.append(declaration)
 
     return statements
 
-def getCodeObjectsInitCode( context ):
+def getCodeObjectsInitCode(context):
     statements = []
 
     for code_object_key, code_identifier in _getCodeObjects():
         co_flags = []
 
         if code_object_key[2] != 0:
-            co_flags.append( "CO_NEWLOCALS" )
+            co_flags.append("CO_NEWLOCALS")
 
         if code_object_key[6]:
-            co_flags.append( "CO_GENERATOR" )
+            co_flags.append("CO_GENERATOR")
 
         if code_object_key[7]:
-            co_flags.append( "CO_OPTIMIZED" )
+            co_flags.append("CO_OPTIMIZED")
 
         if code_object_key[8]:
-            co_flags.append( "CO_VARARGS" )
+            co_flags.append("CO_VARARGS")
 
         if code_object_key[9]:
-            co_flags.append( "CO_VARKEYWORDS" )
+            co_flags.append("CO_VARKEYWORDS")
 
         if python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
@@ -142,7 +141,7 @@ def getCodeObjectsInitCode( context ):
                     context  = context
                 ),
                 code_object_key[4],
-                " | ".join( co_flags ) or "0",
+                " | ".join(co_flags) or "0",
             )
         else:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
@@ -162,10 +161,9 @@ def getCodeObjectsInitCode( context ):
                 ),
                 code_object_key[4],
                 code_object_key[5],
-                " | ".join( co_flags ) or  "0",
+                " | ".join(co_flags) or  "0",
             )
 
-
-        statements.append( code )
+        statements.append(code)
 
     return statements

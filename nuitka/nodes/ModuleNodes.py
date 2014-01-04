@@ -31,42 +31,92 @@ from .IndicatorMixins import MarkContainsTryExceptIndicator
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.nodes.FutureSpecs import FutureSpec
 
-from nuitka import Variables, Utils
+from nuitka import Variables, Importing, Utils
 
 from nuitka.oset import OrderedSet
 
 class PythonModuleMixin:
-    def __init__( self, name, package_name ):
+    def __init__(self, name, package_name):
         assert type(name) is str, type(name)
         assert "." not in name, name
         assert package_name is None or \
-               ( type( package_name ) is str and package_name != "" )
+               (type( package_name ) is str and package_name != "")
 
         self.name = name
         self.package_name = package_name
         self.package = None
 
-    def getName( self ):
+    def getName(self):
         return self.name
 
-    def getPackage( self ):
+    def getPackage(self):
         return self.package_name
 
-    def getFullName( self ):
+    def getFullName(self):
         if self.package_name:
             return self.package_name + "." + self.getName()
         else:
             return self.getName()
 
-    def isMainModule( self ):
+    def isMainModule(self):
         return False
 
-    def isInternalModule( self ):
+    def isInternalModule(self):
         return False
 
+    def attemptRecursion(self):
+        # Make sure the package is recursed to.
+        from nuitka.tree import Recursion
+        from nuitka import Importing
 
-class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
-                    ClosureGiverNodeBase, MarkContainsTryExceptIndicator ):
+        # Return the list of newly added modules.
+        result = []
+
+        if self.package_name is not None and self.package is None:
+            package_package, _package_module_name, package_filename = \
+              Importing.findModule(
+                source_ref     = self.getSourceReference(),
+                module_name    = self.package_name,
+                parent_package = None,
+                level          = 1,
+                warn           = Utils.python_version < 330
+            )
+
+            # TODO: Temporary, if we can't find the package for Python3.3 that
+            # is semi-OK, maybe.
+            if Utils.python_version >= 330 and not package_filename:
+                return []
+
+            imported_module, is_added = Recursion.recurseTo(
+                module_package  = package_package,
+                module_filename = package_filename,
+                module_relpath  = Utils.relpath(package_filename),
+                module_kind     = "py",
+                reason          = "Containing package of recursed module.",
+            )
+
+            self.package = imported_module
+
+            if is_added:
+                result.append(imported_module)
+
+        if self.package:
+            from nuitka.ModuleRegistry import addUsedModule
+
+            addUsedModule(self.package)
+
+#            print "Recursed to package", self.package_name
+            result.extend(self.package.attemptRecursion())
+
+        return result
+
+def checkModuleBody(value):
+    assert value is None or value.isStatementsSequence()
+
+    return value
+
+class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
+                   ClosureGiverNodeBase, MarkContainsTryExceptIndicator):
     """ Module
 
         The module is the only possible root of a tree. When there are many
@@ -75,10 +125,15 @@ class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
 
     kind = "PYTHON_MODULE"
 
-    named_children = ( "body", )
+    named_children = (
+        "body",
+    )
 
-    def __init__( self, name, package_name, source_ref ):
+    checkers = {
+        "body": checkModuleBody
+    }
 
+    def __init__(self, name, package_name, source_ref):
         ClosureGiverNodeBase.__init__(
             self,
             name        = name,
@@ -88,7 +143,7 @@ class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
 
         ChildrenHavingMixin.__init__(
             self,
-            values = {}
+            values = {},
         )
 
         MarkContainsTryExceptIndicator.__init__( self )
@@ -109,14 +164,14 @@ class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
         # SSA trace based information about the module.
         self.collection = None
 
-    def getDetails( self ):
+    def getDetails(self):
         return {
             "filename" : self.source_ref.getFilename(),
             "package"  : self.package_name,
             "name"     : self.name
         }
 
-    def asXml( self ):
+    def asXml(self):
         # The class is new style, false alarm: pylint: disable=E1002
         result = super( PythonModule, self ).asXml()
 
@@ -125,146 +180,102 @@ class PythonModule( PythonModuleMixin, ChildrenHavingMixin,
 
         return result
 
-    getBody = ChildrenHavingMixin.childGetter( "body" )
-    setBody = ChildrenHavingMixin.childSetter( "body" )
+    getBody = ChildrenHavingMixin.childGetter("body")
+    setBody = ChildrenHavingMixin.childSetter("body")
 
-    def isPythonModule( self ):
+    def isPythonModule(self):
         return True
 
-    def getParent( self ):
+    def getParent(self):
         assert False
 
-    def getParentVariableProvider( self ):
+    def getParentVariableProvider(self):
         return None
 
-    def getVariables( self ):
+    def getVariables(self):
         return self.variables
 
-    def getFilename( self ):
+    def getFilename(self):
         return self.source_ref.getFilename()
 
-    def getVariableForAssignment( self, variable_name ):
-        result = self.getProvidedVariable( variable_name )
+    def getVariableForAssignment(self, variable_name):
+        result = self.getProvidedVariable(variable_name)
 
-        return result.makeReference( self )
+        return result.makeReference(self)
 
-    def getVariableForReference( self, variable_name ):
-        result = self.getProvidedVariable( variable_name )
+    def getVariableForReference(self, variable_name):
+        result = self.getProvidedVariable(variable_name)
 
-        return result.makeReference( self )
+        return result.makeReference(self)
 
-    def getVariableForClosure( self, variable_name ):
+    def getVariableForClosure(self, variable_name):
         return self.getProvidedVariable(
             variable_name = variable_name
         )
 
-    def createProvidedVariable( self, variable_name ):
+    def createProvidedVariable(self, variable_name):
         result = Variables.ModuleVariable(
             module        = self,
             variable_name = variable_name
         )
 
         assert result not in self.variables
-        self.variables.add( result )
+        self.variables.add(result)
 
         return result
 
-    def isEarlyClosure( self ):
+    def isEarlyClosure(self):
         # Modules should immediately closure variables on use.
         # pylint: disable=R0201
         return True
 
-    def getCodeName( self ):
-        return "module_" + self.getFullName().replace( ".", "__" ).replace( "-", "_" )
+    def getCodeName(self):
+        return "module_" + self.getFullName().\
+          replace(".", "__").replace("-", "_")
 
-    def addFunction( self, function_body ):
+    def addFunction(self, function_body):
         assert function_body not in self.functions
 
         self.functions.add( function_body )
 
-    def getFunctions( self ):
+    def getFunctions(self):
         return self.functions
 
-    def startTraversal( self ):
+    def startTraversal(self):
         self.active_functions = OrderedSet()
 
-    def addUsedFunction( self, function_body ):
+    def addUsedFunction(self, function_body):
         assert function_body in self.functions
 
         assert function_body.isExpressionFunctionBody()
 
         if function_body not in self.active_functions:
-            self.active_functions.add( function_body )
+            self.active_functions.add(function_body)
 
-    def getUsedFunctions( self ):
+    def getUsedFunctions(self):
         return self.active_functions
 
-    def getOutputFilename( self ):
+    def getOutputFilename(self):
         main_filename = self.getFilename()
 
-        if main_filename.endswith( ".py" ):
+        if main_filename.endswith(".py"):
             return main_filename[:-3]
         else:
             return main_filename
-
-    def attemptRecursion( self, constraint_collection ):
-        # Make sure the package is recursed to.
-        from nuitka.tree import Recursion
-        from nuitka import Importing
-
-        if self.package_name is not None and self.package is None:
-            package_package, _package_module_name, package_filename = \
-              Importing.findModule(
-                source_ref     = self.getSourceReference(),
-                module_name    = self.package_name,
-                parent_package = None,
-                level          = 1,
-                warn           = Utils.python_version < 330
-            )
-
-            # TODO: Temporary, if we can't find the package for Python3.3 that
-            # is semi-OK, maybe.
-            if Utils.python_version >= 330 and not package_filename:
-                return
-
-            imported_module, is_added = Recursion.recurseTo(
-                module_package  = package_package,
-                module_filename = package_filename,
-                module_relpath  = Utils.relpath(package_filename),
-                module_kind     = "py",
-                reason          = "Containing package of recursed module.",
-            )
-
-            self.package = imported_module
-
-            if is_added:
-                constraint_collection.signalChange(
-                    "new_code",
-                    imported_module.getSourceReference(),
-                    "Recursed to module package."
-                )
-
-        if self.package:
-            from nuitka.ModuleRegistry import addUsedModule
-
-            addUsedModule( self.package )
-
-#            print "Recursed to package", self.package_name
-            self.package.attemptRecursion( constraint_collection )
 
 
 class SingleCreationMixin:
     created = set()
 
-    def __init__( self ):
+    def __init__(self):
         assert self.__class__ not in self.created
         self.created.add( self.__class__ )
 
 
-class PythonMainModule( PythonModule, SingleCreationMixin ):
+class PythonMainModule(PythonModule, SingleCreationMixin):
     kind = "PYTHON_MAIN_MODULE"
 
-    def __init__( self, main_added, source_ref ):
+    def __init__(self, main_added, source_ref):
         PythonModule.__init__(
             self,
             name         = "__main__",
@@ -276,20 +287,20 @@ class PythonMainModule( PythonModule, SingleCreationMixin ):
 
         self.main_added = main_added
 
-    def isMainModule( self ):
+    def isMainModule(self):
         return True
 
-    def getOutputFilename( self ):
+    def getOutputFilename(self):
         if self.main_added:
-            return Utils.dirname( self.getFilename() )
+            return Utils.dirname(self.getFilename())
         else:
-            return PythonModule.getOutputFilename( self )
+            return PythonModule.getOutputFilename(self)
 
 
-class PythonInternalModule( PythonModule, SingleCreationMixin ):
+class PythonInternalModule(PythonModule, SingleCreationMixin):
     kind = "PYTHON_INTERNAL_MODULE"
 
-    def __init__( self ):
+    def __init__(self):
         PythonModule.__init__(
             self,
             name         = "__internal__",
@@ -304,17 +315,17 @@ class PythonInternalModule( PythonModule, SingleCreationMixin ):
 
         SingleCreationMixin.__init__( self )
 
-    def isInternalModule( self ):
+    def isInternalModule(self):
         return True
 
-    def getOutputFilename( self ):
+    def getOutputFilename(self):
         return "__internal"
 
 
-class PythonPackage( PythonModule ):
+class PythonPackage(PythonModule):
     kind = "PYTHON_PACKAGE"
 
-    def __init__( self, name, package_name, source_ref ):
+    def __init__(self, name, package_name, source_ref):
         assert name
 
         PythonModule.__init__(
@@ -324,15 +335,18 @@ class PythonPackage( PythonModule ):
             source_ref   = source_ref
         )
 
-    def getOutputFilename( self ):
+    def getOutputFilename(self):
         return Utils.dirname( self.getFilename() )
 
 
-class PythonShlibModule( PythonModuleMixin, NodeBase ):
+class PythonShlibModule(PythonModuleMixin, NodeBase):
     kind = "PYTHON_SHLIB_MODULE"
 
-    def __init__( self, name, package_name, source_ref ):
-        NodeBase.__init__( self, source_ref )
+    def __init__(self, name, package_name, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         PythonModuleMixin.__init__(
             self,
@@ -340,14 +354,78 @@ class PythonShlibModule( PythonModuleMixin, NodeBase ):
             package_name = package_name
         )
 
-    def getDetails( self ):
+    def getDetails(self):
         return {
-            "name": self.name,
+            "name"         : self.name,
             "package_name" : self.package_name
         }
 
-    def getFilename( self ):
+    def getFilename(self):
         return self.getSourceReference().getFilename()
 
-    def startTraversal( self ):
+    def startTraversal(self):
         pass
+
+
+    def getImplicitImports(self):
+        if self.getFullName() == "PyQt4.QtCore":
+            return (
+                ("atexit", None),
+                ("sip", None)
+            )
+        else:
+            return ()
+
+    def considerImplicitImports(self, signal_change):
+        for module_name, module_package in self.getImplicitImports():
+            _module_package, _module_name, module_filename = \
+              Importing.findModule(
+                source_ref     = self.source_ref,
+                module_name    = module_name,
+                parent_package = module_package,
+                level          = -1,
+                warn           = True
+            )
+
+            if Utils.isDir(module_filename):
+                module_kind = "py"
+            elif module_filename.endswith(".py"):
+                module_kind = "py"
+            elif module_filename.endswith(".so"):
+                module_kind = "shlib"
+            elif module_filename.endswith(".pyd"):
+                module_kind = "shlib"
+            else:
+                assert False
+
+            from nuitka.tree import Recursion
+
+            decision, reason = Recursion.decideRecursion(
+                module_filename = module_filename,
+                module_name     = module_name,
+                module_package  = module_package,
+                module_kind     = module_kind
+            )
+
+            assert decision, reason
+
+            if decision:
+                module_relpath = Utils.relpath(module_filename)
+
+                imported_module, added_flag = Recursion.recurseTo(
+                    module_package  = module_package,
+                    module_filename = module_filename,
+                    module_relpath  = module_relpath,
+                    module_kind     = module_kind,
+                    reason          = reason
+                )
+
+                from nuitka.ModuleRegistry import addUsedModule
+                addUsedModule(imported_module)
+
+                if added_flag:
+                    signal_change(
+                        "new_code",
+                        imported_module.getSourceReference(),
+                        "Recursed to module."
+                    )

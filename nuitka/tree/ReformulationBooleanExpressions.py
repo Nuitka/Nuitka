@@ -29,7 +29,7 @@ from .Helpers import (
     getKind
 )
 
-def buildBoolOpNode( provider, node, source_ref ):
+def buildBoolOpNode(provider, node, source_ref):
     bool_op = getKind( node.op )
 
     if bool_op == "Or":
@@ -57,7 +57,7 @@ def buildBoolOpNode( provider, node, source_ref ):
         assert False, bool_op
 
 
-def buildOrNode( provider, values, source_ref ):
+def buildOrNode(provider, values, source_ref):
     result = values[ -1 ]
     del values[ -1 ]
 
@@ -86,7 +86,7 @@ def buildOrNode( provider, values, source_ref ):
 
     return result
 
-def buildAndNode( provider, values, source_ref ):
+def buildAndNode(provider, values, source_ref):
     result = values[ -1 ]
     del values[ -1 ]
 

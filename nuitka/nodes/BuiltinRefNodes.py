@@ -40,31 +40,31 @@ from nuitka.Builtins import (
 
 from nuitka.Utils import python_version
 
-class ExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, NodeBase ):
-    def __init__( self, builtin_name, source_ref ):
+class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
+    def __init__(self, builtin_name, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
         CompileTimeConstantExpressionMixin.__init__( self )
 
         self.builtin_name = builtin_name
 
-    def makeCloneAt( self, source_ref ):
-        return self.__class__( self.builtin_name, source_ref )
+    def makeCloneAt(self, source_ref):
+        return self.__class__(self.builtin_name, source_ref)
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "builtin_name" : self.builtin_name }
 
-    def getBuiltinName( self ):
+    def getBuiltinName(self):
         return self.builtin_name
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         # Referencing the builtin name has no side effect
         return False
 
 
-class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
+class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_REF"
 
-    def __init__( self, builtin_name, source_ref ):
+    def __init__(self, builtin_name, source_ref):
         assert builtin_name in builtin_names, builtin_name
 
         ExpressionBuiltinRefBase.__init__(
@@ -73,14 +73,14 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
             source_ref   = source_ref
         )
 
-    def isCompileTimeConstant( self ):
+    def isCompileTimeConstant(self):
         # Virtual method, pylint: disable=R0201
         return True
 
-    def getCompileTimeConstant( self ):
+    def getCompileTimeConstant(self):
         return __builtins__[ self.builtin_name ]
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         quick_names = {
             "None"      : None,
             "True"      : True,
@@ -91,15 +91,16 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
 
         if self.builtin_name in quick_names:
             new_node = ExpressionConstantRef(
-                constant   = quick_names[ self.builtin_name ],
+                constant   = quick_names[self.builtin_name],
                 source_ref = self.getSourceReference()
             )
 
-            return new_node, "new_constant", "Builtin constant %s resolved" % self.builtin_name
+            return new_node, "new_constant", """\
+Builtin constant %s resolved""" % self.builtin_name
 
         return self, None, None
 
-    def computeExpressionCall( self, call_node, constraint_collection ):
+    def computeExpressionCall(self, call_node, constraint_collection):
         from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
         new_node, tags, message = computeBuiltinCall(
@@ -113,39 +114,39 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
 
         return new_node, tags, message
 
-    def getStringValue( self ):
+    def getStringValue(self):
         return repr( self.getCompileTimeConstant() )
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         # TODO: Why yes, some may be, could be told here.
         return None
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # Dedicated code returns which returns from builtin module dictionary, but isn't
         # available for Python3 yet.
 
         return python_version >= 300
 
 
-class ExpressionBuiltinOriginalRef( ExpressionBuiltinRef ):
+class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
     kind = "EXPRESSION_BUILTIN_ORIGINAL_REF"
 
-    def isCompileTimeConstant( self ):
+    def isCompileTimeConstant(self):
         # TODO: Actually the base class should not be constant and this one should be.
 
         # Virtual method, pylint: disable=R0201
         return False
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
 
         # Needs whole program analysis, we don't really know much about it.
         return self, None, None
 
 
-class ExpressionBuiltinAnonymousRef( ExpressionBuiltinRefBase ):
+class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
 
-    def __init__( self, builtin_name, source_ref ):
+    def __init__(self, builtin_name, source_ref):
         assert builtin_name in builtin_anon_names
 
         ExpressionBuiltinRefBase.__init__(
@@ -154,30 +155,30 @@ class ExpressionBuiltinAnonymousRef( ExpressionBuiltinRefBase ):
             source_ref   = source_ref
         )
 
-    def isCompileTimeConstant( self ):
+    def isCompileTimeConstant(self):
         # Virtual method, pylint: disable=R0201
         return True
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # No reference provided from this, there are just a global identifiers, or
         # accesses to them.
 
         return False
 
-    def getCompileTimeConstant( self ):
+    def getCompileTimeConstant(self):
         return builtin_anon_names[ self.builtin_name ]
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         return self, None, None
 
-    def getStringValue( self ):
+    def getStringValue(self):
         return repr( self.getCompileTimeConstant() )
 
 
-class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
+class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
 
-    def __init__( self, exception_name, source_ref ):
+    def __init__(self, exception_name, source_ref):
         assert exception_name in builtin_exception_names
 
         ExpressionBuiltinRefBase.__init__(
@@ -186,29 +187,29 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
             source_ref   = source_ref
         )
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "exception_name" : self.builtin_name }
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
-    def isCompileTimeConstant( self ):
+    def isCompileTimeConstant(self):
         # Virtual method, pylint: disable=R0201
         return True
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # No reference provided from this, it's just a global identifier.
 
         return False
 
-    def getCompileTimeConstant( self ):
+    def getCompileTimeConstant(self):
         return builtin_exception_values[ self.builtin_name ]
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         return self, None, None
 
-    def computeExpressionCall( self, call_node, constraint_collection ):
+    def computeExpressionCall(self, call_node, constraint_collection):
         exception_name = self.getExceptionName()
 
         # TODO: Keyword only arguments of it, are not properly handled yet by
@@ -219,7 +220,7 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
             if not kw.isExpressionConstantRef() or kw.getConstant() != {}:
                 return call_node, None, None
 
-        def createBuiltinMakeException( args, source_ref ):
+        def createBuiltinMakeException(args, source_ref):
             from nuitka.nodes.ExceptionNodes import ExpressionBuiltinMakeException
 
             return ExpressionBuiltinMakeException(

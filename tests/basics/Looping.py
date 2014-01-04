@@ -19,7 +19,7 @@
 def cond():
     return False
 
-def loopingFunction( a = 1*2 ):
+def loopingFunction(a = 1*2):
     c = []
     f = [ c, a ]
 

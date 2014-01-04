@@ -27,12 +27,12 @@ dedicated node.
 
 from .NodeBases import ExpressionChildrenHavingBase
 
-class ExpressionYield( ExpressionChildrenHavingBase ):
+class ExpressionYield(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_YIELD"
 
     named_children = ( "expression", )
 
-    def __init__( self, expression, source_ref ):
+    def __init__(self, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -43,15 +43,15 @@ class ExpressionYield( ExpressionChildrenHavingBase ):
 
         self.exception_preserving = False
 
-    def markAsExceptionPreserving( self ):
+    def markAsExceptionPreserving(self):
         self.exception_preserving = True
 
-    def isExceptionPreserving( self ):
+    def isExceptionPreserving(self):
         return self.exception_preserving
 
     getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         value = self.getExpression()
 
         if value.willRaiseException( BaseException ):
@@ -61,12 +61,12 @@ class ExpressionYield( ExpressionChildrenHavingBase ):
         return self, None, None
 
 
-class ExpressionYieldFrom( ExpressionChildrenHavingBase ):
+class ExpressionYieldFrom(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_YIELD_FROM"
 
     named_children = ( "expression", )
 
-    def __init__( self, expression, source_ref ):
+    def __init__(self, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -77,15 +77,15 @@ class ExpressionYieldFrom( ExpressionChildrenHavingBase ):
 
         self.exception_preserving = False
 
-    def markAsExceptionPreserving( self ):
+    def markAsExceptionPreserving(self):
         self.exception_preserving = True
 
-    def isExceptionPreserving( self ):
+    def isExceptionPreserving(self):
         return self.exception_preserving
 
     getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         value = self.getExpression()
 
         if value.willRaiseException( BaseException ):

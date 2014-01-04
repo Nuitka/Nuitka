@@ -20,15 +20,18 @@
 """
 
 
-from .NodeBases import ExpressionChildrenHavingBase, SideEffectsFromChildrenMixin
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    SideEffectsFromChildrenMixin
+)
 
 from nuitka import Constants
 
-class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
-                                  ExpressionChildrenHavingBase ):
-    named_children = ( "elements", )
+class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
+                                ExpressionChildrenHavingBase):
+    named_children = ("elements",)
 
-    def __init__( self, sequence_kind, elements, source_ref ):
+    def __init__(self, sequence_kind, elements, source_ref):
         assert sequence_kind in ( "TUPLE", "LIST", "SET" ), sequence_kind
 
         for element in elements:
@@ -45,19 +48,19 @@ class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
 
         )
 
-    def isExpressionMakeSequence( self ):
+    def isExpressionMakeSequence(self):
         return True
 
-    def getSequenceKind( self ):
+    def getSequenceKind(self):
         return self.sequence_kind
 
     getElements = ExpressionChildrenHavingBase.childGetter( "elements" )
 
-    def getSimulator( self ):
+    def getSimulator(self):
         # Abstract method, pylint: disable=R0201,W0613
         return None
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
 
         elements = self.getElements()
@@ -95,32 +98,43 @@ class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
             description = "%s with constant arguments." % simulator
         )
 
-    def mayHaveSideEffectsBool( self ):
+    def mayHaveSideEffectsBool(self):
         return False
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         return count is None or count == len( self.getElements() )
 
-    def getIterationValue( self, count ):
+    def getIterationValue(self, count):
         return self.getElements()[ count ]
 
-    def getIterationLength( self ):
+    def getIterationLength(self):
         return len( self.getElements() )
 
-    def canPredictIterationValues( self ):
+    def canPredictIterationValues(self):
         return True
 
-    def getIterationValues( self ):
+    def getIterationValues(self):
         return self.getElements()
 
-    def getTruthValue( self ):
+    def getTruthValue(self):
         return self.getIterationLength() > 0
 
+    def computeExpressionDrop(self, statement, constraint_collection):
+        from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-class ExpressionMakeTuple( ExpressionMakeSequenceBase ):
+        result = makeStatementOnlyNodesFromExpressions(
+            expressions = self.getElements()
+        )
+
+        return result, "new_statements", """\
+Removed sequence creation for unused sequence."""
+
+
+
+class ExpressionMakeTuple(ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_TUPLE"
 
-    def __init__( self, elements, source_ref ):
+    def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "TUPLE",
@@ -128,14 +142,14 @@ class ExpressionMakeTuple( ExpressionMakeSequenceBase ):
             source_ref    = source_ref
         )
 
-    def getSimulator( self ):
+    def getSimulator(self):
         return tuple
 
 
-class ExpressionMakeList( ExpressionMakeSequenceBase ):
+class ExpressionMakeList(ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_LIST"
 
-    def __init__( self, elements, source_ref ):
+    def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "LIST",
@@ -143,14 +157,25 @@ class ExpressionMakeList( ExpressionMakeSequenceBase ):
             source_ref    = source_ref
         )
 
-    def getSimulator( self ):
+    def getSimulator(self):
         return list
 
+    def computeExpressionIter1(self, iter_node, constraint_collection):
+        result = ExpressionMakeTuple(
+            elements   = self.getElements(),
+            source_ref = self.source_ref
+        )
 
-class ExpressionMakeSet( ExpressionMakeSequenceBase ):
+        self.replaceWith(result)
+
+        return iter_node, "new_expression", """\
+Iteration of list reduced to tuple."""
+
+
+class ExpressionMakeSet(ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_SET"
 
-    def __init__( self, elements, source_ref ):
+    def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "SET",
@@ -158,17 +183,28 @@ class ExpressionMakeSet( ExpressionMakeSequenceBase ):
             source_ref    = source_ref
         )
 
-    def getSimulator( self ):
+    def getSimulator(self):
         return set
 
+    def computeExpressionIter1(self, iter_node, constraint_collection):
+        result = ExpressionMakeTuple(
+            elements   = self.getElements(),
+            source_ref = self.source_ref
+        )
 
-class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
-                              ExpressionChildrenHavingBase ):
+        self.replaceWith(result)
+
+        return iter_node, "new_expression", """\
+Iteration of set reduced to tuple."""
+
+
+class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
+                            ExpressionChildrenHavingBase):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
     named_children = ( "key", "value" )
 
-    def __init__( self, key, value, source_ref ):
+    def __init__(self, key, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -181,16 +217,16 @@ class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
     getKey = ExpressionChildrenHavingBase.childGetter( "key" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
         key = self.getKey()
 
-        if key.willRaiseException( BaseException ):
+        if key.willRaiseException(BaseException):
             return key, "new_raise", "Dictionary key raises exception"
 
         value = self.getValue()
 
-        if value.willRaiseException( BaseException ):
+        if value.willRaiseException(BaseException):
             from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
             result = wrapExpressionWithNodeSideEffects(
@@ -203,13 +239,13 @@ class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
         return self, None, None
 
 
-class ExpressionMakeDict( SideEffectsFromChildrenMixin,
-                          ExpressionChildrenHavingBase ):
+class ExpressionMakeDict(SideEffectsFromChildrenMixin,
+                         ExpressionChildrenHavingBase):
     kind = "EXPRESSION_MAKE_DICT"
 
     named_children = ( "pairs", )
 
-    def __init__( self, pairs, lazy_order, source_ref ):
+    def __init__(self, pairs, lazy_order, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -222,7 +258,7 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
 
     getPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
         pairs = self.getPairs()
 
@@ -271,34 +307,34 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
             node     = self
         )
 
-        return new_node, "new_constant", "Created dictionary found to be constant."
+        return new_node, "new_constant", """\
+Created dictionary found to be constant."""
 
-    def mayHaveSideEffectsBool( self ):
+    def mayHaveSideEffectsBool(self):
         return False
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         return count is None or count == len( self.getPairs() )
 
-    def getIterationLength( self ):
+    def getIterationLength(self):
         return len( self.getPairs() )
 
-    def canPredictIterationValues( self ):
+    def canPredictIterationValues(self):
         # Dictionaries are fully predictable, pylint: disable=R0201
         return True
 
-    def getIterationValue( self, count ):
+    def getIterationValue(self, count):
         return self.getPairs()[ count ].getKey()
 
-    def getTruthValue( self ):
+    def getTruthValue(self):
         return self.getIterationLength() > 0
 
-    def isMapping( self ):
+    def isMapping(self):
         # Dictionaries are always mappings, but this is a virtual method,
         # pylint: disable=R0201
         return True
 
-    def isMappingWithConstantStringKeys( self ):
-
+    def isMappingWithConstantStringKeys(self):
         for pair in self.getPairs():
             key = pair.getKey()
 
@@ -307,8 +343,39 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
         else:
             return True
 
-    def getMappingStringKeyPairs( self ):
-        return [ ( pair.getKey().getConstant(), pair.getValue() ) for pair in self.getPairs() ]
+    def getMappingStringKeyPairs(self):
+        return [
+            (
+                pair.getKey().getConstant(),
+                pair.getValue()
+            )
+            for pair in
+            self.getPairs()
+        ]
 
-    def getMappingPairs( self ):
+    def getMappingPairs(self):
         return self.getPairs()
+
+    # TODO: Missing computeExpressionIter1 here. For now it would require us to
+    # add lots of temporary variables for keys, which then becomes the tuple,
+    # but for as long as we don't have efficient forward propagation of these,
+    # we won't do that. Otherwise we loose execution order of values with them
+    # remaining as side effects. We could limit ourselves to cases where
+    # isMappingWithConstantStringKeys is true, or keys had no side effects, but
+    # that feels wasted effort as we are going to have full propagation.
+
+    def computeExpressionDrop(self, statement, constraint_collection):
+        from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+        expressions = []
+
+        for pair in self.getPairs():
+            expressions.append(pair.getValue())
+            expressions.append(pair.getKey())
+
+        result = makeStatementOnlyNodesFromExpressions(
+            expressions = expressions
+        )
+
+        return result, "new_statements", """\
+Removed sequence creation for unused sequence."""

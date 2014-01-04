@@ -19,7 +19,7 @@
 #
 
 
-def someFunction( rounds ):
+def someFunction(rounds):
     # define functions
     def f(a,b,c,d=1,e=2,f=3):
         return f

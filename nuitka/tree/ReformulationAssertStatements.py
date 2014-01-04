@@ -34,7 +34,7 @@ from nuitka.nodes.ConditionalNodes import StatementConditional
 
 from .Helpers import buildNode
 
-def buildAssertNode( provider, node, source_ref ):
+def buildAssertNode(provider, node, source_ref):
     # Build assert statements. These are re-formulated as described in the
     # developer manual too. They end up as conditional statement with raises of
     # AssertionError exceptions.

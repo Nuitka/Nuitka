@@ -19,10 +19,10 @@
 import sys
 
 class X:
-    def __del__( self ):
+    def __del__(self):
         print "X.__del__ occured"
 
-def raising( doit ):
+def raising(doit):
     x = X()
 
     if doit:

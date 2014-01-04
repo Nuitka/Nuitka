@@ -27,39 +27,40 @@ from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import convertNoneConstantToNone
 
 
-class ExpressionSliceLookup( ExpressionChildrenHavingBase ):
+class ExpressionSliceLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SLICE_LOOKUP"
 
-    named_children = ( "expression", "lower", "upper" )
+    named_children = (
+        "expression",
+        "lower",
+        "upper"
+    )
 
-    def __init__( self, expression, lower, upper, source_ref ):
+    checkers   = {
+        "upper" : convertNoneConstantToNone,
+        "lower" : convertNoneConstantToNone
+    }
+
+    def __init__(self, expression, lower, upper, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression,
-                "upper"      : convertNoneConstantToNone( upper ),
-                "lower"      : convertNoneConstantToNone( lower )
+                "upper"      : upper,
+                "lower"      : lower
             },
             source_ref = source_ref
         )
 
-    # Automatically optimize lower and upper to not present children when they become
-    # value "None".
-    def setChild( self, name, value ):
-        if name in ( "lower", "upper" ):
-            value = convertNoneConstantToNone( value )
-
-        return ExpressionChildrenHavingBase.setChild( self, name, value )
-
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
-    setLower = ExpressionChildrenHavingBase.childSetter( "lower" )
+    getLower = ExpressionChildrenHavingBase.childGetter("lower")
+    setLower = ExpressionChildrenHavingBase.childSetter("lower")
 
-    getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
-    setUpper = ExpressionChildrenHavingBase.childSetter( "upper" )
+    getUpper = ExpressionChildrenHavingBase.childGetter("upper")
+    setUpper = ExpressionChildrenHavingBase.childSetter("upper")
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         lookup_source = self.getLookupSource()
 
         return lookup_source.computeExpressionSlice(
@@ -69,17 +70,17 @@ class ExpressionSliceLookup( ExpressionChildrenHavingBase ):
             constraint_collection = constraint_collection
         )
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         # TODO: Should ask SlicetRegistry
         return None
 
 
-class ExpressionSliceObject( ExpressionChildrenHavingBase ):
+class ExpressionSliceObject(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SLICE_OBJECT"
 
     named_children = ( "lower", "upper", "step" )
 
-    def __init__( self, lower, upper, step, source_ref ):
+    def __init__(self, lower, upper, step, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -94,6 +95,6 @@ class ExpressionSliceObject( ExpressionChildrenHavingBase ):
     getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
     getStep  = ExpressionChildrenHavingBase.childGetter( "step" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Not much to do, potentially simplify to slice instead?
         return self, None, None

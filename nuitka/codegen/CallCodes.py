@@ -27,7 +27,7 @@ from . import CodeTemplates
 
 from .Identifiers import Identifier
 
-def getCallCodeNoArgs( called_identifier ):
+def getCallCodeNoArgs(called_identifier):
     return Identifier(
         "CALL_FUNCTION_NO_ARGS( %(function)s )" % {
             "function" : called_identifier.getCodeTemporaryRef(),

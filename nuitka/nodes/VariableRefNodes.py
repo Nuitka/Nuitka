@@ -31,39 +31,39 @@ from .NodeBases import (
 
 from .ConstantRefNodes import ExpressionConstantRef
 
-def _isReadOnlyUnterdeterminedModuleVariable( variable ):
+def _isReadOnlyUnterdeterminedModuleVariable(variable):
     return variable.isModuleVariable() and \
            variable.getReadOnlyIndicator() is None
 
-def _isReadOnlyModuleVariable( variable ):
+def _isReadOnlyModuleVariable(variable):
     return (
         variable.isModuleVariable() and \
         variable.getReadOnlyIndicator() is True
     ) or variable.isMaybeLocalVariable()
 
 
-class ExpressionVariableRef( NodeBase, ExpressionMixin ):
+class ExpressionVariableRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_VARIABLE_REF"
 
-    def __init__( self, variable_name, source_ref ):
+    def __init__(self, variable_name, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable_name = variable_name
         self.variable = None
 
-    def getDetails( self ):
+    def getDetails(self):
         if self.variable is None:
             return { "name" : self.variable_name }
         else:
             return { "name" : self.variable_name, "variable" : self.variable }
 
-    def getDetail( self ):
+    def getDetail(self):
         if self.variable is None:
             return self.variable_name
         else:
             return repr( self.variable )
 
-    def makeCloneAt( self, source_ref ):
+    def makeCloneAt(self, source_ref):
         result = self.__class__(
             variable_name = self.variable_name,
             source_ref    = source_ref
@@ -73,22 +73,22 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
         return result
 
-    def isTargetVariableRef( self ):
+    def isTargetVariableRef(self):
         return False
 
-    def getVariableName( self ):
+    def getVariableName(self):
         return self.variable_name
 
-    def getVariable( self ):
+    def getVariable(self):
         return self.variable
 
-    def setVariable( self, variable ):
+    def setVariable(self, variable):
         assert isinstance( variable, Variables.Variable ), repr( variable )
         assert self.variable is None
 
         self.variable = variable
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         assert self.variable is not None
 
         if _isReadOnlyUnterdeterminedModuleVariable( self.variable ):
@@ -158,30 +158,30 @@ Replaced read-only module attribute '__package__' with constant value."""
 
         return self, None, None
 
-    def onContentEscapes( self, constraint_collection ):
+    def onContentEscapes(self, constraint_collection):
         constraint_collection.onVariableContentEscapes( self.variable )
 
-    def isKnownToBeIterable( self, count ):
+    def isKnownToBeIterable(self, count):
         return None
 
-    def mayProvideReference( self ):
+    def mayProvideReference(self):
         # Variables are capable of "asObject0".
         return False
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects(self):
         # TODO: Remembered traced could tell better.
         return True
 
 
-class ExpressionTargetVariableRef( ExpressionVariableRef ):
+class ExpressionTargetVariableRef(ExpressionVariableRef):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
-    def __init__( self, variable_name, source_ref ):
+    def __init__(self, variable_name, source_ref):
         ExpressionVariableRef.__init__( self, variable_name, source_ref )
 
         self.variable_version = None
 
-    def getDetails( self ):
+    def getDetails(self):
         if self.variable is None:
             return { "name" : self.variable_name }
         else:
@@ -191,7 +191,7 @@ class ExpressionTargetVariableRef( ExpressionVariableRef ):
                 "version"  : self.variable_version
             }
 
-    def makeCloneAt( self, source_ref ):
+    def makeCloneAt(self, source_ref):
         result = self.__class__(
             variable_name = self.variable_name,
             source_ref    = source_ref
@@ -202,98 +202,98 @@ class ExpressionTargetVariableRef( ExpressionVariableRef ):
 
         return result
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         assert False
 
-    def isTargetVariableRef( self ):
+    def isTargetVariableRef(self):
         return True
 
-    def getVariableVersion( self ):
+    def getVariableVersion(self):
         assert self.variable_version is not None, self
 
         return self.variable_version
 
-    def setVariable( self, variable ):
+    def setVariable(self, variable):
         ExpressionVariableRef.setVariable( self, variable )
 
         self.variable_version = variable.allocateTargetNumber()
         assert self.variable_version is not None
 
 
-class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
+class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
-    def __init__( self, variable, source_ref ):
+    def __init__(self, variable, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable = variable
 
-    def getDetails( self ):
+    def getDetails(self):
         return { "name" : self.variable.getName() }
 
-    def getDetail( self ):
+    def getDetail(self):
         return self.variable.getName()
 
-    def makeCloneAt( self, source_ref ):
+    def makeCloneAt(self, source_ref):
         return self.__class__(
             variable   = self.variable,
             source_ref = source_ref
         )
 
-    def getVariableName( self ):
+    def getVariableName(self):
         return self.variable.getName()
 
-    def getVariable( self ):
+    def getVariable(self):
         return self.variable
 
-    def isTargetVariableRef( self ):
+    def isTargetVariableRef(self):
         return False
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         constraint_collection.onVariableUsage( self )
 
         # Nothing to do here.
         return self, None, None
 
-    def onContentEscapes( self, constraint_collection ):
+    def onContentEscapes(self, constraint_collection):
         constraint_collection.onVariableContentEscapes( self.variable )
 
-    def mayRaiseException( self, exception_type ):
+    def mayRaiseException(self, exception_type):
         # Can't happen
         return False
 
-    def isKnownToBeIterableAtMin( self, count ):
+    def isKnownToBeIterableAtMin(self, count):
         # TODO: See through the variable current trace.
         return None
 
-    def isKnownToBeIterableAtMax( self, count ):
+    def isKnownToBeIterableAtMax(self, count):
         # TODO: See through the variable current trace.
         return None
 
     # Python3 only, it updates temporary variables that are closure variables.
-    def setVariable( self, variable ):
+    def setVariable(self, variable):
         self.variable = variable
 
 
-class ExpressionTargetTempVariableRef( ExpressionTempVariableRef ):
+class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
     kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
 
-    def __init__( self, variable, source_ref ):
+    def __init__(self, variable, source_ref):
         ExpressionTempVariableRef.__init__( self, variable, source_ref )
 
         self.variable_version = variable.allocateTargetNumber()
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         assert False, self.parent
 
-    def isTargetVariableRef( self ):
+    def isTargetVariableRef(self):
         return True
 
-    def getVariableVersion( self ):
+    def getVariableVersion(self):
         return self.variable_version
 
     # Python3 only, it updates temporary variables that are closure variables.
-    def setVariable( self, variable ):
+    def setVariable(self, variable):
         ExpressionTempVariableRef.setVariable( self, variable )
 
         self.variable_version = self.variable.allocateTargetNumber()

@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 
-def kwfunc( a, *, k ):
+def kwfunc(a, *, k):
     pass
 
 print( "Call function with mixed arguments with too wrong keyword argument." )
@@ -48,17 +48,17 @@ try:
 except TypeError as e:
     print( repr(e) )
 
-def kwfuncdefaulted( a, b = None, *, c = None ):
+def kwfuncdefaulted(a, b = None, *, c = None):
     pass
 
 print( "Call function with mixed arguments and defaults but too many position arguments." )
 
 try:
-    kwfuncdefaulted( 1, 2, 3 )
+    kwfuncdefaulted(1, 2, 3)
 except TypeError as e:
     print( repr(e) )
 
-def kwfunc2( a, *, k, l, m ):
+def kwfunc2(a, *, k, l, m):
     pass
 
 print( "Call function with mixed arguments with too little positional and keyword-only arguments." )

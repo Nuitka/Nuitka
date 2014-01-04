@@ -29,14 +29,12 @@ PyObject *_sentinel_value = NULL;
 
 %(constant_declarations)s
 
-// Blob from which objects are unstreamed.
-static const unsigned char stream_data[] =
-{
-%(stream_data)s
-};
+extern "C" const unsigned char constant_bin[];
+#define stream_data constant_bin
 
 static void __initConstants( void )
 {
+%(constant_locals)s
 %(constant_inits)s
 }
 

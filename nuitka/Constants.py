@@ -31,7 +31,7 @@ from .Utils import python_version
 
 NoneType = type( None )
 
-def compareConstants( a, b ):
+def compareConstants(a, b):
     # Many many cases to deal with, pylint: disable=R0911,R0912
 
     # Supposed fast path for comparison.
@@ -119,7 +119,7 @@ else:
         builtin_anon_names[ "instance" ]
     )
 
-def isConstant( constant ):
+def isConstant(constant):
     # Too many cases and all return, that is how we do it here,
     # pylint: disable=R0911,R0912
 
@@ -149,7 +149,7 @@ def isConstant( constant ):
     else:
         return False
 
-def isMutable( constant ):
+def isMutable(constant):
     """ Is a constant mutable
 
         That means a user of a reference to it, can modify it. Strings are
@@ -176,24 +176,24 @@ def isMutable( constant ):
     else:
         assert False, constant_type
 
-def isIterableConstant( constant ):
+def isIterableConstant(constant):
     return type( constant ) in (
         str, unicode, list, tuple, set, frozenset, dict, range, bytes
     )
 
-def getConstantIterationLength( constant ):
+def getConstantIterationLength(constant):
     assert isIterableConstant( constant )
 
     return len( constant )
 
-def isNumberConstant( constant ):
+def isNumberConstant(constant):
     return type( constant ) in ( int, long, float, bool )
 
-def isIndexConstant( constant ):
+def isIndexConstant(constant):
     return type( constant ) in ( int, long, bool )
 
 class HashableConstant:
-    def __init__( self, constant ):
+    def __init__(self, constant):
         self.constant = constant
 
         try:
@@ -206,19 +206,19 @@ class HashableConstant:
         except TypeError:
             self.hash = 55
 
-    def getConstant( self ):
+    def getConstant(self):
         return self.constant
 
-    def __hash__( self ):
+    def __hash__(self):
         return self.hash
 
-    def __eq__( self, other ):
+    def __eq__(self, other):
         assert isinstance( other, self.__class__ )
 
         return compareConstants( self.constant, other.constant )
 
 
-def createConstantDict( keys, values, lazy_order ):
+def createConstantDict(keys, values, lazy_order):
     if lazy_order:
         constant_value = {}
 

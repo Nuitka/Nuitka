@@ -29,14 +29,14 @@ from .Indentation import getBlockCode
 
 from .LineNumberCodes import getLineNumberCode
 
-def pickFirst( order_relevance ):
+def pickFirst(order_relevance):
     for value in order_relevance:
         if value:
             return value
     else:
         return None
 
-def _getAssignmentTempKeeperCode( source_identifier, variable_name, context ):
+def _getAssignmentTempKeeperCode(source_identifier, variable_name, context):
     ref_count = source_identifier.getCheapRefCount()
 
     context.addTempKeeperUsage( variable_name, ref_count )
@@ -152,7 +152,7 @@ def getOrderRelevanceEnforcedArgsCode( helper, tmp_scope, order_relevance, args,
                 ref_count
             )
 
-def _getMinimalOrderRelevance( order_relevance ):
+def _getMinimalOrderRelevance(order_relevance):
     last_true = None
 
     source_refs = []
@@ -175,7 +175,7 @@ def _getMinimalOrderRelevance( order_relevance ):
 
     return order_relevance, source_refs
 
-def _getTempDeclCode( order_relevance, names, values ):
+def _getTempDeclCode(order_relevance, names, values):
     assert len( names ) == len( values )
     assert len( names ) == len( order_relevance )
 

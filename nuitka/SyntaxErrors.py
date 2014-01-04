@@ -21,7 +21,7 @@ Format SyntaxError/IndentationError exception for output, as well as
 raise it for the given source code reference.
 """
 
-def formatOutput( e ):
+def formatOutput(e):
     if len( e.args ) > 1:
         reason, ( filename, lineno, colno, message ) = e.args
 
@@ -78,13 +78,14 @@ def formatOutput( e ):
          )
 
 
-def raiseSyntaxError( reason, source_ref, col_offset = None,
-                      display_file = True, display_line = True,
-                      source_line = None ):
-    def readSource():
-        source = open( source_ref.getFilename(), 'rU' ).readlines()
+def raiseSyntaxError(reason, source_ref, col_offset = None, display_file = True,
+                     display_line = True, source_line = None):
 
-        return source[ source_ref.getLineNumber() - 1 ]
+    # TODO: This could could "linecache" module maybe.
+    def readSource():
+        source = open(source_ref.getFilename(), 'rU').readlines()
+
+        return source[source_ref.getLineNumber() - 1]
 
     if display_file and display_line:
         if source_line is None:

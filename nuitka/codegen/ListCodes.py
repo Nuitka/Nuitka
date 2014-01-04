@@ -24,12 +24,12 @@ from . import CodeTemplates
 
 make_lists_used = set( range( 0, 1 ) )
 
-def addMakeListUse( value ):
+def addMakeListUse(value):
     assert type( value ) is int
 
     make_lists_used.add( value )
 
-def getListCreationCode( context, order_relevance, element_identifiers ):
+def getListCreationCode(context, order_relevance, element_identifiers):
     from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 
     args_length = len( element_identifiers )

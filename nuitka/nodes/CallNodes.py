@@ -17,9 +17,9 @@
 #
 """ Call node
 
-Function calls and generally calling expressions are the same thing. This is very
-important, because it allows to predict most things, and avoid expensive operations like
-parameter parsing at run time.
+Function calls and generally calling expressions are the same thing. This is
+very important, because it allows to predict most things, and avoid expensive
+operations like parameter parsing at run time.
 
 There will be a method "computeExpressionCall" to aid predicting them.
 """
@@ -29,12 +29,12 @@ from .NodeBases import ExpressionChildrenHavingBase
 from .ConstantRefNodes import ExpressionConstantRef
 
 
-class ExpressionCall( ExpressionChildrenHavingBase ):
+class ExpressionCall(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL"
 
     named_children = ( "called", "args", "kw" )
 
-    def __init__( self, called, args, kw, source_ref ):
+    def __init__(self, called, args, kw, source_ref):
         assert called.isExpression()
         assert args.isExpression()
         assert kw.isExpression()
@@ -53,22 +53,22 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
     getCallArgs = ExpressionChildrenHavingBase.childGetter( "args" )
     getCallKw = ExpressionChildrenHavingBase.childGetter( "kw" )
 
-    def isExpressionCall( self ):
+    def isExpressionCall(self):
         return True
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         called = self.getCalled()
 
-        if called.willRaiseException( BaseException ):
+        if called.willRaiseException(BaseException):
             return called, "new_raise", "Called expression raises exception"
 
         args = self.getCallArgs()
 
         from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
-        if args.willRaiseException( BaseException ):
+        if args.willRaiseException(BaseException):
             result = wrapExpressionWithSideEffects(
-                side_effects = ( called, ),
+                side_effects = (called,),
                 old_node     = self,
                 new_node     = args
             )
@@ -77,9 +77,9 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
 
         kw = self.getCallKw()
 
-        if kw.willRaiseException( BaseException ):
+        if kw.willRaiseException(BaseException):
             result = wrapExpressionWithSideEffects(
-                side_effects = ( called, args ),
+                side_effects = (called, args),
                 old_node     = self,
                 new_node     = kw
             )
@@ -91,19 +91,19 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
             constraint_collection = constraint_collection
         )
 
-    def extractPreCallSideEffects( self ):
+    def extractPreCallSideEffects(self):
         args = self.getCallArgs()
         kw = self.getCallKw()
 
         return args.extractSideEffects() + kw.extractSideEffects()
 
 
-class ExpressionCallNoKeywords( ExpressionCall ):
+class ExpressionCallNoKeywords(ExpressionCall):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
     named_children = ( "called", "args", "kw" )
 
-    def __init__( self, called, args, source_ref ):
+    def __init__(self, called, args, source_ref):
         assert called.isExpression()
 
         ExpressionCall.__init__(
@@ -117,12 +117,12 @@ class ExpressionCallNoKeywords( ExpressionCall ):
             source_ref = source_ref
         )
 
-class ExpressionCallKeywordsOnly( ExpressionCall ):
+class ExpressionCallKeywordsOnly(ExpressionCall):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
     named_children = ( "called", "args", "kw" )
 
-    def __init__( self, called, kw, source_ref ):
+    def __init__(self, called, kw, source_ref):
         assert called.isExpression()
 
         ExpressionCall.__init__(
@@ -137,12 +137,12 @@ class ExpressionCallKeywordsOnly( ExpressionCall ):
         )
 
 
-class ExpressionCallEmpty( ExpressionCall ):
+class ExpressionCallEmpty(ExpressionCall):
     kind = "EXPRESSION_CALL_EMPTY"
 
     named_children = ( "called", "args", "kw" )
 
-    def __init__( self, called, source_ref ):
+    def __init__(self, called, source_ref):
         assert called.isExpression()
 
         ExpressionCall.__init__(

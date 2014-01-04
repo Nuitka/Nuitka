@@ -47,12 +47,13 @@ from .ReformulationFunctionStatements import (
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    mergeStatements,
     buildNodeList,
     buildNode,
     getKind
 )
 
-def buildLambdaNode( provider, node, source_ref ):
+def buildLambdaNode(provider, node, source_ref):
     assert getKind( node ) == "Lambda"
 
     parameters = buildParameterSpec( "<lambda>", node, source_ref )
@@ -65,8 +66,13 @@ def buildLambdaNode( provider, node, source_ref ):
         source_ref = source_ref,
     )
 
-    defaults = buildNodeList( provider, node.args.defaults, source_ref )
-    kw_defaults = buildParameterKwDefaults( provider, node, function_body, source_ref )
+    defaults = buildNodeList(provider, node.args.defaults, source_ref)
+    kw_defaults = buildParameterKwDefaults(
+        provider      = provider,
+        node          = node,
+        function_body = function_body,
+        source_ref    = source_ref
+    )
 
     body = buildNode(
         provider   = function_body,
@@ -141,7 +147,9 @@ def buildLambdaNode( provider, node, source_ref ):
         )
 
     body = StatementsFrame(
-        statements    = ( body, ),
+        statements    = mergeStatements(
+            (body,)
+        ),
         guard_mode    = "generator" if function_body.isGenerator() else "full",
         var_names     = parameters.getCoArgNames(),
         arg_count     = parameters.getArgumentCount(),
@@ -152,9 +160,9 @@ def buildLambdaNode( provider, node, source_ref ):
         source_ref    = body.getSourceReference()
     )
 
-    function_body.setBody( body )
+    function_body.setBody(body)
 
-    annotations = buildParameterAnnotations( provider, node, source_ref )
+    annotations = buildParameterAnnotations(provider, node, source_ref)
 
     return ExpressionFunctionCreation(
         function_ref = ExpressionFunctionRef(

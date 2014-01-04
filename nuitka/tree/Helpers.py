@@ -22,8 +22,7 @@
 
 from nuitka.nodes.StatementNodes import (
     StatementsSequence,
-    StatementsFrame,
-    mergeStatements
+    StatementsFrame
 )
 
 from nuitka.nodes.NodeBases import NodeBase
@@ -42,13 +41,13 @@ from logging import warning
 
 import ast
 
-def dump( node ):
+def dump(node):
     Tracing.printLine( ast.dump( node ) )
 
-def getKind( node ):
-    return node.__class__.__name__.split( "." )[-1]
+def getKind(node):
+    return node.__class__.__name__.split(".")[-1]
 
-def extractDocFromBody( node ):
+def extractDocFromBody(node):
     # Work around ast.get_docstring breakage.
     if len( node.body ) > 0 and getKind( node.body[0] ) == "Expr" and getKind( node.body[0].value ) == "Str":
         return node.body[1:], node.body[0].value.s
@@ -59,7 +58,7 @@ build_nodes_args3 = None
 build_nodes_args2 = None
 build_nodes_args1 = None
 
-def setBuildDispatchers( path_args3, path_args2, path_args1 ):
+def setBuildDispatchers(path_args3, path_args2, path_args1):
     # Using global here, as this is really a singleton, in the form of a module,
     # and this is to break the cyclic dependency it has, pylint: disable=W0603
 
@@ -69,7 +68,7 @@ def setBuildDispatchers( path_args3, path_args2, path_args1 ):
     build_nodes_args2 = path_args2
     build_nodes_args1 = path_args1
 
-def buildNode( provider, node, source_ref, allow_none = False ):
+def buildNode(provider, node, source_ref, allow_none = False):
     if node is None and allow_none:
         return None
 
@@ -113,7 +112,7 @@ def buildNode( provider, node, source_ref, allow_none = False ):
         warning( "Problem at '%s' with %s." % ( source_ref, ast.dump( node ) ) )
         raise
 
-def buildNodeList( provider, nodes, source_ref, allow_none = False ):
+def buildNodeList(provider, nodes, source_ref, allow_none = False):
     if nodes is not None:
         result = []
 
@@ -132,7 +131,7 @@ def buildNodeList( provider, nodes, source_ref, allow_none = False ):
     else:
         return []
 
-def makeModuleFrame( module, statements, source_ref ):
+def makeModuleFrame(module, statements, source_ref):
     assert module.isPythonModule()
 
     if module.isMainModule():
@@ -153,15 +152,15 @@ def makeModuleFrame( module, statements, source_ref ):
     )
 
 
-def buildStatementsNode( provider, nodes, source_ref, frame = False ):
+def buildStatementsNode(provider, nodes, source_ref, frame = False):
     # We are not creating empty statement sequences.
     if nodes is None:
         return None
 
     # Build as list of statements, throw away empty ones, and remove useless
     # nesting.
-    statements = buildNodeList( provider, nodes, source_ref, allow_none = True )
-    statements = mergeStatements( statements )
+    statements = buildNodeList(provider, nodes, source_ref, allow_none = True)
+    statements = mergeStatements(statements)
 
     # We are not creating empty statement sequences. Might be empty, because
     # e.g. a global node generates not really a statement, or pass statements.
@@ -203,7 +202,23 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
             source_ref = source_ref
         )
 
-def makeStatementsSequenceOrStatement( statements, source_ref ):
+
+def mergeStatements(statements):
+    """ Helper function that merges nested statement sequences. """
+    merged_statements = []
+
+    for statement in statements:
+        if statement.isStatement() or statement.isStatementsFrame():
+            merged_statements.append(statement)
+        elif statement.isStatementsSequence():
+            merged_statements.extend(mergeStatements(statement.getStatements()))
+        else:
+            assert False, statement
+
+    return merged_statements
+
+
+def makeStatementsSequenceOrStatement(statements, source_ref):
     """ Make a statement sequence, but only if more than one statement
 
     Useful for when we can unroll constructs already here, but are not sure if
@@ -211,33 +226,40 @@ def makeStatementsSequenceOrStatement( statements, source_ref ):
     always.
     """
 
-    if len( statements ) > 1:
+    if len(statements) > 1:
         return StatementsSequence(
-            statements = statements,
+            statements = mergeStatements(statements),
             source_ref = source_ref
         )
     else:
         return statements[0]
 
-def makeStatementsSequence( statements, allow_none, source_ref ):
+def makeStatementsSequence(statements, allow_none, source_ref):
     if allow_none:
-        statements = tuple( statement for statement in statements if statement is not None )
+        statements = tuple(
+            statement
+            for statement in
+            statements
+            if statement is not None
+        )
 
     if statements:
         return StatementsSequence(
-            statements = statements,
+            statements = mergeStatements(statements),
             source_ref = source_ref
         )
     else:
         return None
 
-def makeStatementsSequenceFromStatement( statement ):
+def makeStatementsSequenceFromStatement(statement):
     return StatementsSequence(
-        statements = ( statement, ),
+        statements = mergeStatements(
+            (statement,)
+        ),
         source_ref = statement.getSourceReference()
     )
 
-def makeSequenceCreationOrConstant( sequence_kind, elements, source_ref ):
+def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # Sequence creation. Tries to avoid creations with only constant
     # elements. Would be caught by optimization, but would be useless churn. For
     # mutable constants we cannot do it though.
@@ -291,7 +313,7 @@ def makeSequenceCreationOrConstant( sequence_kind, elements, source_ref ):
             assert False, sequence_kind
 
 
-def makeDictCreationOrConstant( keys, values, lazy_order, source_ref ):
+def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable.
 

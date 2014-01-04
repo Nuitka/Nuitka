@@ -24,7 +24,7 @@ sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname( os.path.abspath( __file__ ) ),
+            os.path.dirname(os.path.abspath(__file__)),
             ".."
         )
     )
@@ -47,8 +47,10 @@ if start_at:
 else:
     active = True
 
-for filename in sorted( os.listdir( "." ) ):
-    if not os.path.isdir( filename ) or filename.endswith( ".build" ):
+extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS","")
+
+for filename in sorted(os.listdir( "." )):
+    if not os.path.isdir(filename) or filename.endswith(".build"):
         continue
 
     path = os.path.relpath( filename )
@@ -86,12 +88,12 @@ for filename in sorted( os.listdir( "." ) ):
         extra_flags.append("binary_python_path")
 
     if filename == "plugin_import":
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = \
-          "--recurse-all --recurse-directory=%s/some_package" % (
+        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = extra_options + \
+          " --recurse-all --recurse-directory=%s/some_package" % (
               os.path.abspath( filename )
           )
     else:
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all"
+        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = extra_options + " --recurse-all"
 
     if active:
         my_print( "Consider output of recursively compiled program:", path )

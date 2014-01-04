@@ -25,7 +25,7 @@ try:
 except NameError, e:
     print "Raised expected exception:", repr(e)
 
-def someFunction( b, c ):
+def someFunction(b, c):
    b = 1
 
    del b

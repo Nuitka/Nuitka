@@ -22,7 +22,7 @@ from __future__ import print_function
 __class__ = "Using module level __class__ variable, wrong for Python3"
 
 class ClassWithUnderClassClosure:
-  def g( self ):
+  def g(self):
     def h():
       print( "Variable __class__ in ClassWithUnderClassClosure is", __class__)
 
@@ -37,7 +37,7 @@ class ClassWithUnderClassClosure:
 ClassWithUnderClassClosure().g()
 
 class ClassWithoutUnderClassClosure:
-  def g( self ):
+  def g(self):
     __class__ = "Providing __class__ ourselves, then it must be used"
     print( __class__)
 
@@ -52,10 +52,10 @@ ClassWithoutUnderClassClosure().g()
 # For Python2 only.
 __class__ = "Global __class__"
 
-def deco( C ):
+def deco(C):
     print( "Decorating", repr( C ) )
 
-    class D( C ):
+    class D(C):
         pass
 
     return D
@@ -64,21 +64,21 @@ def deco( C ):
 class X:
     __class__ = "some string"
 
-    def f1( self ):
+    def f1(self):
         print( "f1", locals() )
         try:
             print( "f1", __class__ )
         except Exception as e:
             print( "Accessing __class__ in f1 gave", repr(e) )
 
-    def f2( self ):
+    def f2(self):
         print( "f2", locals() )
 
-    def f3( self ):
+    def f3(self):
         print( "f3", locals() )
         super
 
-    def f4( self ):
+    def f4(self):
         print( "f4", self )
         self = X()
         print( "f4", self )
@@ -92,14 +92,14 @@ class X:
 
     f5 = lambda x: __class__
 
-    def f6( self_by_another_name ):
+    def f6(self_by_another_name):
         try:
             print( "f6", super() )
         except TypeError:
             import sys
             assert sys.version < (3,)
 
-    def f7( self ):
+    def f7(self):
         try:
             yield super()
         except TypeError:

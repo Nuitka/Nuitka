@@ -50,15 +50,15 @@ print "Contraction for 2 fors and one final if refering to first for:"
 
 def trickyContraction():
    class Range:
-      def __init__( self, value ):
+      def __init__(self, value):
          self.value = value
 
-      def __iter__( self ):
+      def __iter__(self):
          print "Giving range iter to", self.value
 
          return iter( range( self.value ))
 
-   def Cond( y ):
+   def Cond(y):
       print "Checking against", y
 
       return y == 1
@@ -68,7 +68,7 @@ def trickyContraction():
 
 trickyContraction()
 
-def lambdaWithcontraction( x ):
+def lambdaWithcontraction(x):
    l = lambda x : [ z for z in range(x) ]
    r = l(x)
    print locals()
@@ -77,7 +77,7 @@ lambdaWithcontraction( 3 )
 
 print "Contraction that gets a del on the iterator variable:",
 
-def allowedDelOnIteratorVariable( z ):
+def allowedDelOnIteratorVariable(z):
     x = 2
     del x
     return [ x*z for x in range(z) ]

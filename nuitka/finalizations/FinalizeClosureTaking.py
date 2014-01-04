@@ -26,8 +26,8 @@ having it spoiled with these transitive only references.
 
 from .FinalizeBase import FinalizationVisitorBase
 
-class FinalizeClosureTaking( FinalizationVisitorBase ):
-    def onEnterNode( self, node ):
+class FinalizeClosureTaking(FinalizationVisitorBase):
+    def onEnterNode(self, node):
         assert node.isExpressionFunctionBody(), node
 
         # print node, node.provider

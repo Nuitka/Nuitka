@@ -23,12 +23,12 @@ The classes are are at the core of the language and have their complexities.
 
 from .NodeBases import ExpressionChildrenHavingBase
 
-class ExpressionSelectMetaclass( ExpressionChildrenHavingBase ):
+class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 
     named_children = ( "metaclass", "bases", )
 
-    def __init__( self, metaclass, bases, source_ref ):
+    def __init__(self, metaclass, bases, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values = {
@@ -38,20 +38,20 @@ class ExpressionSelectMetaclass( ExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Meta class selection is very computable, and should be done.
         return self, None, None
 
-    getMetaclass = ExpressionChildrenHavingBase.childGetter( "metaclass" )
+    getMetaclass = ExpressionChildrenHavingBase.childGetter("metaclass")
     getBases = ExpressionChildrenHavingBase.childGetter( "bases" )
 
 
-class ExpressionBuiltinType3( ExpressionChildrenHavingBase ):
+class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_TYPE3"
 
     named_children = ( "type_name", "bases", "dict" )
 
-    def __init__( self, type_name, bases, type_dict, source_ref ):
+    def __init__(self, type_name, bases, type_dict, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -66,7 +66,7 @@ class ExpressionBuiltinType3( ExpressionChildrenHavingBase ):
     getBases = ExpressionChildrenHavingBase.childGetter( "bases" )
     getDict = ExpressionChildrenHavingBase.childGetter( "dict" )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Should be compile time computable if bases and dict are.
 
         return self, None, None

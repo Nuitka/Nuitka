@@ -156,6 +156,7 @@ from .Helpers import (
     setBuildDispatchers,
     extractDocFromBody,
     makeModuleFrame,
+    mergeStatements,
     buildNodeList,
     buildNode,
     getKind
@@ -167,7 +168,7 @@ from .ImportCache import addImportedModule
 
 import ast, sys
 
-def buildVariableReferenceNode( provider, node, source_ref ):
+def buildVariableReferenceNode(provider, node, source_ref):
     # Python3 is influenced by the mere use of a variable name. So we need to
     # remember it, esp. for cases, where it is optimized away.
     if Utils.python_version >= 300 and \
@@ -181,13 +182,13 @@ def buildVariableReferenceNode( provider, node, source_ref ):
     )
 
 # Python3.4 only, True and False, are not given as variables anymore.
-def buildNamedConstantNode( node, source_ref ):
+def buildNamedConstantNode(node, source_ref):
     return ExpressionConstantRef(
         constant   = node.value,
         source_ref = source_ref
     )
 
-def buildSequenceCreationNode( provider, node, source_ref ):
+def buildSequenceCreationNode(provider, node, source_ref):
     return makeSequenceCreationOrConstant(
         sequence_kind = getKind( node ).upper(),
         elements      = buildNodeList( provider, node.elts, source_ref ),
@@ -195,7 +196,7 @@ def buildSequenceCreationNode( provider, node, source_ref ):
     )
 
 
-def buildDictionaryNode( provider, node, source_ref ):
+def buildDictionaryNode(provider, node, source_ref):
     return makeDictCreationOrConstant(
         keys       = buildNodeList( provider, node.keys, source_ref ),
         values     = buildNodeList( provider, node.values, source_ref ),
@@ -203,7 +204,7 @@ def buildDictionaryNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildConditionNode( provider, node, source_ref ):
+def buildConditionNode(provider, node, source_ref):
     # Conditional statements may have one or two branches. We will never see an
     # "elif", because that's already dealt with by module "ast", which turns it
     # into nested conditional statements.
@@ -223,7 +224,7 @@ def buildConditionNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildTryFinallyNode( provider, node, source_ref ):
+def buildTryFinallyNode(provider, node, source_ref):
     # Try/finally node statements.
 
     return StatementTryFinally(
@@ -240,18 +241,20 @@ def buildTryFinallyNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildTryNode( provider, node, source_ref ):
+def buildTryNode(provider, node, source_ref):
     # Note: This variant is used for Python3.3 or higher only, older stuff uses
     # the above ones, this one merges try/except with try/finally in the
     # "ast". We split it up again, as it's logically separated of course.
     return StatementTryFinally(
         tried      = StatementsSequence(
-            statements = (
-                buildTryExceptionNode(
-                    provider   = provider,
-                    node       = node,
-                    source_ref = source_ref
-                ),
+            statements = mergeStatements(
+                (
+                    buildTryExceptionNode(
+                        provider   = provider,
+                        node       = node,
+                        source_ref = source_ref
+                    ),
+                )
             ),
             source_ref = source_ref
         ),
@@ -263,7 +266,7 @@ def buildTryNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildRaiseNode( provider, node, source_ref ):
+def buildRaiseNode(provider, node, source_ref):
     # Raise statements. Under Python2 they may have type, value and traceback
     # attached, for Python3, you can only give type (actually value) and cause.
 
@@ -284,7 +287,7 @@ def buildRaiseNode( provider, node, source_ref ):
             source_ref      = source_ref
         )
 
-def buildSubscriptNode( provider, node, source_ref ):
+def buildSubscriptNode(provider, node, source_ref):
     # Subscript expression nodes.
 
     assert getKind( node.ctx ) == "Load", source_ref
@@ -347,7 +350,7 @@ def buildSubscriptNode( provider, node, source_ref ):
     else:
         assert False, kind
 
-def buildImportModulesNode( node, source_ref ):
+def buildImportModulesNode(node, source_ref):
     # Import modules statement. As described in the developer manual, these
     # statements can be treated as several ones.
 
@@ -415,7 +418,7 @@ def buildImportModulesNode( node, source_ref ):
         source_ref = source_ref
     )
 
-def enableFutureFeature( object_name, future_spec, source_ref ):
+def enableFutureFeature(object_name, future_spec, source_ref):
     if object_name == "unicode_literals":
         future_spec.enableUnicodeLiterals()
     elif object_name == "absolute_import":
@@ -443,7 +446,7 @@ def enableFutureFeature( object_name, future_spec, source_ref ):
 # For checking afterwards, if it was at the beginning of the file.
 _future_import_nodes = []
 
-def buildImportFromNode( provider, node, source_ref ):
+def buildImportFromNode(provider, node, source_ref):
     # "from .. import .." statements. This may trigger a star import, or
     # multiple names being looked up from the given module variable name.
 
@@ -551,7 +554,7 @@ from __future__ imports must occur at the beginning of the file""",
         )
 
 
-def handleGlobalDeclarationNode( provider, node, source_ref ):
+def handleGlobalDeclarationNode(provider, node, source_ref):
 
     if not source_ref.isExecReference():
         # On the module level, there is nothing to do.
@@ -613,7 +616,7 @@ def handleGlobalDeclarationNode( provider, node, source_ref ):
 
     return None
 
-def handleNonlocalDeclarationNode( provider, node, source_ref ):
+def handleNonlocalDeclarationNode(provider, node, source_ref):
     # The source reference of the nonlocal really doesn't matter.
     # pylint: disable=W0613
 
@@ -637,7 +640,7 @@ def handleNonlocalDeclarationNode( provider, node, source_ref ):
     return None
 
 
-def buildStringNode( node, source_ref ):
+def buildStringNode(node, source_ref):
     assert type( node.s ) in ( str, unicode )
 
     return ExpressionConstantRef(
@@ -646,7 +649,7 @@ def buildStringNode( node, source_ref ):
         user_provided = True
     )
 
-def buildNumberNode( node, source_ref ):
+def buildNumberNode(node, source_ref):
     assert type( node.n ) in ( int, long, float, complex ), type( node.n )
 
     return ExpressionConstantRef(
@@ -655,28 +658,28 @@ def buildNumberNode( node, source_ref ):
         user_provided = True
     )
 
-def buildBytesNode( node, source_ref ):
+def buildBytesNode(node, source_ref):
     return ExpressionConstantRef(
         constant      = node.s,
         source_ref    = source_ref,
         user_provided = True
     )
 
-def buildEllipsisNode( source_ref ):
+def buildEllipsisNode(source_ref):
     return ExpressionConstantRef(
         constant      = Ellipsis,
         source_ref    = source_ref,
         user_provided = True
     )
 
-def buildAttributeNode( provider, node, source_ref ):
+def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
         expression     = buildNode( provider, node.value, source_ref ),
         attribute_name = node.attr,
         source_ref     = source_ref
     )
 
-def buildReturnNode( provider, node, source_ref ):
+def buildReturnNode(provider, node, source_ref):
     if not provider.isExpressionFunctionBody() or \
        provider.isClassDictCreation():
         SyntaxErrors.raiseSyntaxError(
@@ -705,14 +708,14 @@ def buildReturnNode( provider, node, source_ref ):
         )
 
 
-def buildExprOnlyNode( provider, node, source_ref ):
+def buildExprOnlyNode(provider, node, source_ref):
     return StatementExpressionOnly(
         expression = buildNode( provider, node.value, source_ref ),
         source_ref = source_ref
     )
 
 
-def buildUnaryOpNode( provider, node, source_ref ):
+def buildUnaryOpNode(provider, node, source_ref):
     if getKind( node.op ) == "Not":
         return buildBoolOpNode(
             provider   = provider,
@@ -727,7 +730,7 @@ def buildUnaryOpNode( provider, node, source_ref ):
         )
 
 
-def buildBinaryOpNode( provider, node, source_ref ):
+def buildBinaryOpNode(provider, node, source_ref):
     operator = getKind( node.op )
 
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
@@ -740,14 +743,14 @@ def buildBinaryOpNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildReprNode( provider, node, source_ref ):
+def buildReprNode(provider, node, source_ref):
     return ExpressionOperationUnary(
         operator   = "Repr",
         operand    = buildNode( provider, node.value, source_ref ),
         source_ref = source_ref
     )
 
-def buildConditionalExpressionNode( provider, node, source_ref ):
+def buildConditionalExpressionNode(provider, node, source_ref):
     return ExpressionConditional(
         condition      = buildNode( provider, node.test, source_ref ),
         yes_expression = buildNode( provider, node.body, source_ref ),
@@ -1010,7 +1013,7 @@ from __future__ imports must occur at the beginning of the file""",
     else:
         assert False
 
-def decideModuleTree( filename, package, is_shlib, is_top, is_main ):
+def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
 
     assert package is None or type( package ) is str
@@ -1119,7 +1122,7 @@ def decideModuleTree( filename, package, is_shlib, is_top, is_main ):
 
     return result, source_ref, source_filename
 
-def createModuleTree( module, source_ref, source_filename, is_main ):
+def createModuleTree(module, source_ref, source_filename, is_main):
     source_code = readSourceCodeFromFilename( source_filename )
 
     module_body = buildParseTree(
@@ -1134,7 +1137,7 @@ def createModuleTree( module, source_ref, source_filename, is_main ):
 
     completeVariableClosures( module )
 
-def buildModuleTree( filename, package, is_top, is_main ):
+def buildModuleTree(filename, package, is_top, is_main):
     module, source_ref, source_filename = decideModuleTree(
         filename = filename,
         package  = package,

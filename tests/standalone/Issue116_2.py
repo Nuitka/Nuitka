@@ -17,4 +17,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print('7FF80000000000007FF0000000000000'.decode('hex'))
+print('4B4159'.decode('hex'))

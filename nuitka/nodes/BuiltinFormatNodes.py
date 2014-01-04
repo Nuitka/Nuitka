@@ -26,17 +26,17 @@ from .NodeBases import ExpressionBuiltinSingleArgBase
 
 from nuitka.optimizations import BuiltinOptimization
 
-class ExpressionBuiltinBin( ExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_BIN"
 
     builtin_spec = BuiltinOptimization.builtin_bin_spec
 
-class ExpressionBuiltinOct( ExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_OCT"
 
     builtin_spec = BuiltinOptimization.builtin_oct_spec
 
-class ExpressionBuiltinHex( ExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_HEX"
 
     builtin_spec = BuiltinOptimization.builtin_hex_spec

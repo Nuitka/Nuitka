@@ -18,7 +18,7 @@
 
 from __builtin__ import len as _len
 
-def len( x ):
+def len(x):
     print x
 
     return _len(x)

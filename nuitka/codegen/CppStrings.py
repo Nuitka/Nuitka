@@ -23,7 +23,7 @@ values and little more.
 
 from nuitka.__past__ import unicode # pylint: disable=W0622
 
-def _encodeString( value ):
+def _encodeString(value):
     """ Encode a string, so that it gives a C++ string literal.
 
         This doesn't handle limits.
@@ -59,7 +59,7 @@ def _encodeString( value ):
 
     return '"%s"' % result
 
-def encodeString( value ):
+def encodeString(value):
     """ Encode a string, so that it gives a C++ string literal.
 
     """

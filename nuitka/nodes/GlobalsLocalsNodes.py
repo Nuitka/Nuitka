@@ -32,23 +32,23 @@ from .NodeBases import (
 )
 
 
-class ExpressionBuiltinGlobals( NodeBase, ExpressionMixin ):
+class ExpressionBuiltinGlobals(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         return self, None, None
 
 
-class ExpressionBuiltinLocals( NodeBase, ExpressionMixin ):
+class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_BUILTIN_LOCALS"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # Just inform the collection that all escaped.
         for variable_ref in constraint_collection.getActiveVariables():
             variable = variable_ref
@@ -67,17 +67,17 @@ class ExpressionBuiltinLocals( NodeBase, ExpressionMixin ):
 
         return self, None, None
 
-    def needsLocalsDict( self ):
+    def needsLocalsDict(self):
         return self.getParentVariableProvider().isEarlyClosure() and \
                ( not self.getParent().isStatementReturn() or self.getParent().isExceptionDriven() )
 
 
-class StatementSetLocals( StatementChildrenHavingBase ):
+class StatementSetLocals(StatementChildrenHavingBase):
     kind = "STATEMENT_SET_LOCALS"
 
     named_children = ( "new_locals", )
 
-    def __init__( self, new_locals, source_ref ):
+    def __init__(self, new_locals, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -86,12 +86,12 @@ class StatementSetLocals( StatementChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def needsLocalsDict( self ):
+    def needsLocalsDict(self):
         return True
 
     getNewLocals = StatementChildrenHavingBase.childGetter( "new_locals" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         # Make sure that we don't even assume "unset" of things not set yet for anything.
         constraint_collection.removeAllKnowledge()
 
@@ -112,19 +112,19 @@ class StatementSetLocals( StatementChildrenHavingBase ):
 
 
 
-class ExpressionBuiltinDir0( NodeBase, ExpressionMixin ):
+class ExpressionBuiltinDir0(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_BUILTIN_DIR0"
 
-    def __init__( self, source_ref ):
+    def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         return self, None, None
 
 
-class ExpressionBuiltinDir1( ExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_DIR1"
 
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None

@@ -50,7 +50,7 @@ from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
 
-def buildForLoopNode( provider, node, source_ref ):
+def buildForLoopNode(provider, node, source_ref):
     # The for loop is re-formulated according to developer manual. An iterator
     # is created, and looped until it gives StopIteration. The else block is
     # taken if a for loop exits normally, i.e. because of iterator
@@ -258,7 +258,7 @@ def buildForLoopNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildWhileLoopNode( provider, node, source_ref ):
+def buildWhileLoopNode(provider, node, source_ref):
     # The while loop is re-formulated according to developer manual. The
     # condition becomes an early condition to break the loop. The else block is
     # taken if a while loop exits normally, i.e. because of condition not being

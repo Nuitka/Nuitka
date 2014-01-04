@@ -33,7 +33,7 @@ try:
 except TypeError, e:
     print repr(e)
 
-def functionOneParameter( a ):
+def functionOneParameter(a):
     print a
 
 print "Call a function with one parameter with two plain arguments:"
@@ -51,7 +51,7 @@ except TypeError, e:
 
 print "Call a function with two parameters with three plain arguments:"
 
-def functionTwoParameters( a, b ):
+def functionTwoParameters(a, b):
     print a, b
 
 try:
@@ -89,13 +89,13 @@ except TypeError, e:
     print repr(e)
 
 class MethodContainer:
-    def methodNoParameters( self ):
+    def methodNoParameters(self):
         pass
 
-    def methodOneParameter( self, a ):
+    def methodOneParameter(self, a):
         print a
 
-    def methodTwoParameters( self, a, b ):
+    def methodTwoParameters(self, a, b):
         print a, b
 
 obj = MethodContainer()
@@ -149,7 +149,7 @@ try:
 except TypeError, e:
     print repr(e)
 
-def functionPosBothStarArgs( a, b, c, *l, **d ):
+def functionPosBothStarArgs(a, b, c, *l, **d):
     print a, b, c, l, d
 
 l = [2]
@@ -164,7 +164,7 @@ except TypeError, e:
 
 print "Call a function with defaults with too little arguments:"
 
-def functionWithDefaults( a, b, c, d = 3 ):
+def functionWithDefaults(a, b, c, d = 3):
     print a, b, c, d
 
 try:

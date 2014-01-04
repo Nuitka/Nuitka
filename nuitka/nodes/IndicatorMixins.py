@@ -28,38 +28,38 @@ class MarkContainsTryExceptIndicator:
 
     """
 
-    def __init__( self ):
+    def __init__(self):
         self.try_except_containing = False
         self.try_finally_containing = False
         self.raise_containing = False
 
-    def markAsTryExceptContaining( self ):
+    def markAsTryExceptContaining(self):
         self.try_except_containing = True
 
-    def isTryExceptContaining( self ):
+    def isTryExceptContaining(self):
         return self.try_except_containing
 
-    def markAsTryFinallyContaining( self ):
+    def markAsTryFinallyContaining(self):
         self.try_finally_containing = True
 
-    def isTryFinallyContaining( self ):
+    def isTryFinallyContaining(self):
         return self.try_finally_containing
 
-    def markAsRaiseContaining( self ):
+    def markAsRaiseContaining(self):
         self.raise_containing = True
 
-    def isRaiseContaining( self ):
+    def isRaiseContaining(self):
         return self.raise_containing
 
 
 class MarkLocalsDictIndicator:
-    def __init__( self ):
+    def __init__(self):
         self.needs_locals_dict = False
 
-    def hasLocalsDict( self ):
+    def hasLocalsDict(self):
         return self.needs_locals_dict
 
-    def markAsLocalsDict( self ):
+    def markAsLocalsDict(self):
         self.needs_locals_dict = True
 
 
@@ -68,13 +68,13 @@ class MarkGeneratorIndicator:
 
     """
 
-    def __init__( self ):
+    def __init__(self):
         self.is_generator = False
 
-    def markAsGenerator( self ):
+    def markAsGenerator(self):
         self.is_generator = True
 
-    def isGenerator( self ):
+    def isGenerator(self):
         return self.is_generator
 
 
@@ -85,15 +85,15 @@ class MarkUnoptimizedFunctionIndicator:
         first, because they do.
     """
 
-    def __init__( self ):
+    def __init__(self):
         self.unoptimized_locals = False
         self.unqualified_exec = False
         self.exec_source_ref = None
 
-    def markAsExecContaining( self ):
+    def markAsExecContaining(self):
         self.unoptimized_locals = True
 
-    def markAsUnqualifiedExecContaining( self, source_ref ):
+    def markAsUnqualifiedExecContaining(self, source_ref):
         self.unqualified_exec = True
 
         # Let the first one win.
@@ -102,11 +102,11 @@ class MarkUnoptimizedFunctionIndicator:
 
     markAsStarImportContaining = markAsExecContaining
 
-    def isUnoptimized( self ):
+    def isUnoptimized(self):
         return self.unoptimized_locals
 
-    def isUnqualifiedExec( self ):
+    def isUnqualifiedExec(self):
         return self.unoptimized_locals and self.unqualified_exec
 
-    def getExecSourceRef( self ):
+    def getExecSourceRef(self):
         return self.exec_source_ref

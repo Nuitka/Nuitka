@@ -38,13 +38,13 @@ Requirements
 
   * The MinGW compiler on Windows
 
-  * Visual Studion 2008 and 2010 on Windows
+  * Visual Studion 2008 or higher on Windows
 
 - Python: Version 2.6, 2.7 or 3.2, 3.3 (support for upcoming 3.4 exists
   partially)
 
-  You need CPython to execute Nuitka, because itis tightly bound to the
-  reference implementation of Python, called "CPython".
+  You need the standard Python implementation, called CPython, to execute
+  Nuitka, because it is closely tied to using it.
 
   .. note::
 
@@ -65,8 +65,8 @@ Command Line
 ------------
 
 No environment variable changes are needed, you can call the ``nuitka`` and
-``nuitka-python`` scripts directly without any changes to the environment. You
-may want to add the ``bin`` directory to your ``PATH`` for your convenience, but
+``nuitka-run`` scripts directly without any changes to the environment. You may
+want to add the ``bin`` directory to your ``PATH`` for your convenience, but
 that step is optional.
 
 Nuitka has a ``--help`` option to output what it can do:
@@ -75,15 +75,16 @@ Nuitka has a ``--help`` option to output what it can do:
 
     nuitka --help
 
-The ``nuitka-python`` command is the same as ``nuitka``, but with different
-defaults. It tries to compile and directly execute a Python script:
+The ``nuitka-run`` command is the same as ``nuitka``, but with different
+default. It tries to compile and directly execute a Python script:
 
 .. code-block:: bash
 
-    nuitka-python --help
+    nuitka-run --help
 
-These options with different defaults are ``--exe`` and ``--execute``, so it is
-somewhat more similar to what plain ``python`` will do.
+These option that is different is ``--execute``, and passing on arguments after
+the first non-option to the created binary, so it is somewhat more similar to
+what plain ``python`` will do.
 
 License
 -------
@@ -110,12 +111,12 @@ that is the main program, do it like this:
 
 .. code-block:: bash
 
-    nuitka-python --recurse-all program.py
+    nuitka --recurse-all program.py
 
 .. note::
 
    The is more fine grained control than ``--recurse-all`` available. Consider
-   the output of ``nuitka-python --help``.
+   the output of ``nuitka --help``.
 
 In case you have a plugin directory, i.e. one which is not found by recursing
 after normal import statements (recommended way), you can always require that a
@@ -123,7 +124,7 @@ given directory shall also be included in the executable:
 
 .. code-block:: bash
 
-    nuitka-python --recurse-all --recurse-directory=plugin_dir program.py
+    nuitka --recurse-all --recurse-directory=plugin_dir program.py
 
 .. note::
 
@@ -150,7 +151,7 @@ If you want to compile a single extension module, all you have to do is this:
 
 .. code-block:: bash
 
-    nuitka some_module.py
+    nuitka --module some_module.py
 
 The resulting file "some_module.so" can then be used instead of
 "some_module.py". It's left as an exercise to the reader, what happens if both
@@ -168,7 +169,7 @@ feasible, use Nuitka like this:
 
 .. code-block:: bash
 
-    nuitka some_package --recurse-directory=some_package
+    nuitka --module some_package --recurse-directory=some_package
 
 .. note::
 
@@ -176,54 +177,6 @@ feasible, use Nuitka like this:
    otherwise the package is empty. Data files located inside the package will
    not be embedded yet.
 
-Use Case 4 - Cross compilation to Windows
------------------------------------------
-
-Nuitka can cross compile to Windows from other platforms, specifically Linux,
-and these are the instructions on how to do it.
-
-1. Make sure to have the latest wine installed.
-
-   .. code-block:: bash
-
-      apt-get install wine-unstable
-
-   .. note::
-
-      Make sure to actually use the "i386" architecture. From multiarch enabled
-      debian systems, that may mean to say "wine-unstable:i386", otherwise it
-      won't work.
-
-2. Make sure to use the latest "mxe" environment as the cross compiler.
-
-   .. code-block:: bash
-
-      git clone https://github.com/mxe/mxe.git
-      cd mxe
-      make gcc
-      mkdir -p /opt
-      cd /opt
-      ln -s $OLDPWD mingw
-
-   Nuitka will use "/opt/mingw" to locate the cross compiler.
-
-3. Install the *same* Python version as you have under Linux.
-
-   .. code-block:: bash
-
-      wine msiexec /i python-2.7.5.msi
-
-   .. note::
-
-      You don't have to install documentation, TCL/Tk files, or Python tests to
-      preserve disk space.
-
-.. code-block:: bash
-
-    nuitka-python --windows-target program.py
-
-To test the binary, use "wine program.exe", the "nuitka-python" does it
-automatically for you.
 
 Where to go next
 ================
@@ -236,19 +189,19 @@ Subscribe to its mailing lists
 ------------------------------
 
 Please visit the `mailing list page
-<http://www.nuitka.net/pages/mailinglist.html>`_ in order to subscribe the
+<http://www.nuitka.net/pages/mailinglist.html>`__ in order to subscribe the
 relatively low volume mailing list. All Nuitka issues can be discussed there.
 
 Report issues or bugs
 ---------------------
 
 Should you encounter any issues, bugs, or ideas, please visit the `Nuitka bug
-tracker <http://bugs.nuitka.net>`_ and report them.
+tracker <http://bugs.nuitka.net>`__ and report them.
 
 Contact me via email with your questions
 ----------------------------------------
 
-You are welcome to `contact me via email <mailto:Kay.Hayen@gmail.com>`_ with
+You are welcome to `contact me via email <mailto:Kay.Hayen@gmail.com>`__ with
 your questions.
 
 Word of Warning
@@ -269,18 +222,21 @@ project in all minor and major ways.
 
 The development of Nuitka occurs in git. We currently have these 2 branches:
 
-- `master <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`_:
+- `master
+  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`__:
 
   This branch contains the stable release to which only hotfixes for bugs will
   be done. It is supposed to work at all times and is supported.
 
-- `develop <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`_:
+- `develop
+  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`__:
 
   This branch contains the ongoing development. It may at times contain little
   regressions, but also new features. On this branch the integration work is
   done, whereas new features might be developed on feature branches.
 
-- `factory <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`_:
+- `factory
+  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`__:
 
   This branch contains potentially unfinished and incomplete work. It is very
   frequently subject ``git rebase`` and the public staging ground, where my work
@@ -298,7 +254,7 @@ The development of Nuitka occurs in git. We currently have these 2 branches:
 
 .. note::
 
-   The `Developer Manual <http://nuitka.net/doc/developer-manual.html>`_
+   The `Developer Manual <http://nuitka.net/doc/developer-manual.html>`__
    explains the coding rules, branching model used, with feature branches and
    hotfix releases, the Nuitka design and much more. Consider reading it to
    become a contributor. This document is intended for Nuitka users.
@@ -307,7 +263,7 @@ Donations
 =========
 
 Should you feel that you cannot help Nuitka directly, but still want to support,
-please consider `making a donation <http://nuitka.net/pages/donations.html>`_
+please consider `making a donation <http://nuitka.net/pages/donations.html>`__
 and help this way.
 
 Unsupported functionality
@@ -490,7 +446,7 @@ Consider the following code:
 
     try:
         b = 8
-        print range( 3, b, 0 )
+        print range(3, b, 0)
         print "Will not be executed"
     except ValueError, e:
         print e
@@ -503,7 +459,7 @@ without any risk.
 
     b = 8
     try:
-        print range( 3, b, 0 )
+        print range(3, b, 0)
         print "Will not be executed"
     except ValueError, e:
         print e
@@ -520,7 +476,7 @@ With the exception propagation it is then possible to transform this code:
 
     try:
         b = 8
-        print range( 3, b, 0 )
+        print range(3, b, 0)
         print "Will not be executed"
     except ValueError, e:
         print e
@@ -542,7 +498,7 @@ making it:
 
 Status: This is not implemented yet.
 
-Empty branch removal
+Empty Branch Removal
 --------------------
 
 For loops and conditional statements that contain only code without effect, it
@@ -550,7 +506,7 @@ should be possible to remove the whole construct:
 
 .. code-block:: python
 
-   for i in range( 1000 ):
+   for i in range(1000):
        pass
 
 The loop could be removed, at maximum it should be considered an assignment of
@@ -614,7 +570,7 @@ this could be a nice case for a dedicated class.
 
 Status: Future work, not even started.
 
-Quicker function calls
+Quicker Function Calls
 ----------------------
 
 Functions are structured so that their parameter parsing and ``tp_call``
@@ -623,7 +579,7 @@ optimized away. One problem is that the evaluation order can differ.
 
 .. code-block:: python
 
-   def f( a, b, c ):
+   def f(a, b, c):
        return a, b, c
 
    f( c = get1(), b = get2(), a = get3() )
@@ -642,6 +598,37 @@ order of parameters to C++.
 
 Status: Not even started.
 
+Lowering of iterated Container Types
+------------------------------------
+
+In some cases, accesses to ``list`` constants can become ``tuple`` constants
+instead.
+
+Consider that:
+
+.. code-block:: python
+
+   for x in [ 1, 2, 7 ]:
+       something( x )
+
+Can be optimized into this:
+
+.. code-block:: python
+
+   for x in ( 1, 2, 7 ):
+        something( x )
+
+This allows for simpler code to be generated, and less checks needed, because
+e.g. the ``tuple`` is clearly immutable, whereas the ``list`` needs a check to
+assert that.
+
+Something similar is possible for ``set`` and in theory also for ``dict``. For
+the later it will be non-trivial though to maintain the order of execution
+without temporary values introduced. The same thing is done for pure constants
+of these types, they change to ``tuple`` values when iterated.
+
+Status: Implemented, needs other optimization to become generally useful, will
+help others to become possible.
 
 Credits
 =======
@@ -682,8 +669,8 @@ The order is sorted by time.
   implementation was created by him.
 
 - Juan Carlos Paco: Submitted cleanup patches, creator of the `Nuitka GUI
-  <https://github.com/juancarlospaco/nuitka-gui>`_, creator of the `Ninja IDE
-  plugin <https://github.com/juancarlospaco/nuitka-ninja>`_ for Nuitka.
+  <https://github.com/juancarlospaco/nuitka-gui>`__, creator of the `Ninja IDE
+  plugin <https://github.com/juancarlospaco/nuitka-ninja>`__ for Nuitka.
 
 - "dr. Equivalent": Submitted the Nuitka Logo.
 
@@ -696,54 +683,47 @@ The order is sorted by time.
 Projects used by Nuitka
 -----------------------
 
-* The `CPython project <http://www.python.org>`_
+* The `CPython project <http://www.python.org>`__
 
   Thanks for giving us CPython, which is the base of Nuitka. We are nothing
   without it.
 
-* The `GCC project <http://gcc.gnu.org>`_
+* The `GCC project <http://gcc.gnu.org>`__
 
   Thanks for not only the best compiler suite, but also thanks for supporting
   C++11 which helped to get Nuitka off the ground. Your compiler was the first
   usable for Nuitka and with little effort.
 
-* The `Scons project <http://www.scons.org>`_
+* The `Scons project <http://www.scons.org>`__
 
   Thanks for tackling the difficult points and providing a Python environment to
   make the build results. This is such a perfect fit to Nuitka and a dependency
   that will likely remain.
 
-* The `valgrind project <http://valgrind.org>`_
+* The `valgrind project <http://valgrind.org>`__
 
   Luckily we can use Valgrind to determine if something is an actual improvement
   without the noise. And it's also helpful to determine what's actually
   happening when comparing.
 
-* The `NeuroDebian project <http://neuro.debian.net>`_
+* The `NeuroDebian project <http://neuro.debian.net>`__
 
   Thanks for hosting the build infrastructure that the Debian and sponsor
   Yaroslav Halchenko uses to provide packages for all Ubuntu versions.
 
-* The `openSUSE Buildservice <http://openbuildservice.org>`_
+* The `openSUSE Buildservice <http://openbuildservice.org>`__
 
   Thanks for hosting this excellent service that allows us to provide RPMs for a
   large variety of platforms and make them available immediately nearly at
   release time.
 
-* The `MinGW project <http://www.mingw.org>`_
+* The `MinGW project <http://www.mingw.org>`__
 
   Thanks for porting the gcc to Windows. This allowed portability of Nuitka with
   relatively little effort. Unfortunately this is currently limited to compiling
   CPython with 32 bits, and 64 bits requires MSVC compiler.
 
-* The `Wine project <http://www.winehq.org>`_
-
-  Thanks for enabling us to run the cross compiled binaries without have to
-  maintain a windows installation at all. Unfortunately this is currently
-  limited to compiling CPython with 32 bits, for 64 bits there is no solution
-  yet.
-
-* The Builtbot project <http://buildbot.net>_
+* The `Buildbot project <http://buildbot.net>`__
 
   Thanks for creating an easy to deploy and use continous integration framework
   that also runs on Windows and written and configured in Python. This allows to

@@ -894,6 +894,8 @@ extern PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 extern PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high );
 extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 
+extern PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step );
+
 // For quicker builtin len() functionality.
 extern PyObject *BUILTIN_LEN( PyObject *boundary );
 
@@ -964,8 +966,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
 extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern );
+extern PyObject *UNSTREAM_CHAR( unsigned char value, bool intern );
 #if PYTHON_VERSION < 300
 extern PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size );
+#else
+extern PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size );
 #endif
 extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
 
@@ -1095,6 +1100,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 extern void prepareStandaloneEnvironment();
 extern char *getBinaryDirectory();
+#endif
+
+#if _NUITKA_STANDALONE
+extern void setEarlyFrozenModulesFileAttribute( void );
 #endif
 
 #include <nuitka/threading.hpp>

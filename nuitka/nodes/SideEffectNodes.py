@@ -23,13 +23,31 @@ does not matter at all.
 
 from .NodeBases import ExpressionChildrenHavingBase
 
+def checkSideEffects(value):
+    real_value = []
 
-class ExpressionSideEffects( ExpressionChildrenHavingBase ):
+    for child in value:
+        if child.isExpressionSideEffects():
+            real_value.extend(child.getSideEffects())
+            real_value.append(child.getExpression())
+        else:
+            assert child.isExpression()
+
+            real_value.append( child )
+
+    return tuple(real_value)
+
+
+class ExpressionSideEffects(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
     named_children = ( "side_effects", "expression" )
 
-    def __init__( self, side_effects, expression, source_ref ):
+    checkers = {
+        "side_effects" : checkSideEffects
+    }
+
+    def __init__(self, side_effects, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values = {
@@ -40,28 +58,11 @@ class ExpressionSideEffects( ExpressionChildrenHavingBase ):
         )
 
     getSideEffects  = ExpressionChildrenHavingBase.childGetter( "side_effects" )
+    setSideEffects  = ExpressionChildrenHavingBase.childSetter("side_effects")
+
     getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    setSideEffects  = ExpressionChildrenHavingBase.childSetter( "side_effects" )
-
-    def setChild( self, name, value ):
-        if name == "side_effects":
-            real_value = []
-
-            for child in value:
-                if child.isExpressionSideEffects():
-                    real_value.extend( child.getSideEffects() )
-                    real_value.append( child.getExpression() )
-                else:
-                    assert child.isExpression()
-
-                    real_value.append( child )
-
-            value = real_value
-
-        return ExpressionChildrenHavingBase.setChild( self, name, value )
-
-    def computeExpression( self, constraint_collection ):
+    def computeExpression(self, constraint_collection):
         side_effects = self.getSideEffects()
         new_side_effects = []
 
@@ -86,9 +87,25 @@ class ExpressionSideEffects( ExpressionChildrenHavingBase ):
 
         return self, None, None
 
-    def willRaiseException( self, exception_type ):
+    def willRaiseException(self, exception_type):
         for child in self.getVisitableNodes():
-            if child.willRaiseException( exception_type ):
+            if child.willRaiseException(exception_type):
                 return True
         else:
             return False
+
+    def getTruthValue(self):
+        return self.getExpression().getTruthValue()
+
+    def computeExpressionDrop(self, statement, constraint_collection):
+        # Side effects can  become statements.
+        from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+        expressions = self.getSideEffects() + (self.getExpression(),)
+
+        result = makeStatementOnlyNodesFromExpressions(
+            expressions = expressions
+        )
+
+        return result, "new_statements", """\
+Turned side effects of expression only statement into statements."""

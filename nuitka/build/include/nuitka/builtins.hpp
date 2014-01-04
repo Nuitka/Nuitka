@@ -85,6 +85,25 @@ public:
         );
     }
 
+    PyObject *call2( PyObject *arg1, PyObject *arg2 )
+    {
+        return CALL_FUNCTION_WITH_ARGS2(
+            this->asObject0(),
+            arg1,
+            arg2
+        );
+    }
+
+    PyObject *call3( PyObject *arg1, PyObject *arg2, PyObject *arg3 )
+    {
+        return CALL_FUNCTION_WITH_ARGS3(
+            this->asObject0(),
+            arg1,
+            arg2,
+            arg3
+        );
+    }
+
     PyObject *call_args( PyObject *args )
     {
         return CALL_FUNCTION_WITH_POSARGS(

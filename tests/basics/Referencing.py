@@ -47,7 +47,7 @@ def simpleFunction4():
 
     return contained
 
-def simpleFunction5( a = 1*2 ):
+def simpleFunction5(a = 1*2):
     c = 1
     f = [ a, a + c ]
 
@@ -59,7 +59,7 @@ def simpleFunction6():
         pass
 
 
-def simpleFunction7( b = 1 ):
+def simpleFunction7(b = 1):
     for b in range(6):
         pass
 
@@ -67,13 +67,13 @@ def simpleFunction8():
     c = []
     c.append( x )
 
-def simpleFunction9( a = 1*2 ):
+def simpleFunction9(a = 1*2):
     if a == a:
         pass
 
 u = None
 
-def simpleFunction10( a = 1*2 ):
+def simpleFunction10(a = 1*2):
     x = [u for u in range(8)]
 
 def simpleFunction11():
@@ -90,7 +90,7 @@ def simpleFunction12():
 def cond():
     return 1
 
-def simpleFunction13( a = 1*2 ):
+def simpleFunction13(a = 1*2):
     pass
 
 def simpleFunction14p(x):
@@ -138,7 +138,7 @@ def simpleFunction18():
     closured = 1
 
     class NonEmptyClass:
-        def __init__( self, a, b ):
+        def __init__(self, a, b):
             self.a = a
             self.b = b
 
@@ -162,10 +162,10 @@ def simpleFunction20():
 
 def simpleFunction21():
     class EmptyBaseClass:
-        def base( self ):
+        def base(self):
             return 3
 
-    class EmptyObjectClass( EmptyBaseClass ):
+    class EmptyObjectClass(EmptyBaseClass):
         pass
 
     result = EmptyObjectClass()
@@ -180,7 +180,7 @@ def simpleFunction22():
 def simpleFunction23():
     not 2
 
-def simpleFunction24p( x ):
+def simpleFunction24p(x):
     pass
 
 def simpleFunction24():
@@ -191,7 +191,7 @@ def simpleFunction25():
     class X:
         f = 1
 
-    def inplace_adder( b ):
+    def inplace_adder(b):
         X.f += b
 
     return inplace_adder( 6**8 )
@@ -201,7 +201,7 @@ def simpleFunction26():
     class X:
         f = [ 5 ]
 
-    def inplace_adder( b ):
+    def inplace_adder(b):
         X.f += b
 
     return inplace_adder( [ 1, 2 ] )
@@ -209,7 +209,7 @@ def simpleFunction26():
 def simpleFunction27():
     a = { "g": 8 }
 
-    def inplace_adder( b ):
+    def inplace_adder(b):
         a[ "g" ] += b
 
     return inplace_adder( 3 )
@@ -217,7 +217,7 @@ def simpleFunction27():
 def simpleFunction28():
     a = { "g": [ 8 ], "h": 2 }
 
-    def inplace_adder( b ):
+    def inplace_adder(b):
         a[ "g" ] += b
 
     return inplace_adder( [ 3, 5 ] )
@@ -298,11 +298,11 @@ def simpleFunction38():
    class Base:
       pass
 
-   class Parent( Base ):
+   class Parent(Base):
       pass
 
 def simpleFunction39():
-   class Parent( object ):
+   class Parent(object):
       pass
 
 
@@ -329,13 +329,13 @@ def simpleFunction43():
    a.b = 1
 
 def simpleFunction44():
-   def nested_args_function( (a,b), c ):
+   def nested_args_function((a,b), c):
       return a, b, c
 
    nested_args_function( ( 1, 2 ), 3 )
 
 def simpleFunction45():
-   def nested_args_function( (a,b), c ):
+   def nested_args_function((a,b), c):
       return a, b, c
 
    try:
@@ -344,7 +344,7 @@ def simpleFunction45():
       pass
 
 def simpleFunction46():
-   def nested_args_function( (a,b), c ):
+   def nested_args_function((a,b), c):
       return a, b, c
 
    try:
@@ -372,7 +372,7 @@ def simpleFunction47():
 
 def simpleFunction48():
    class BlockExceptions:
-      def __enter__( self ):
+      def __enter__(self):
          pass
       def __exit__( self, exc, val, tb):
          return True
@@ -508,7 +508,7 @@ def simpleFunction62():
       pass
 
 class X:
-   def __del__( self ):
+   def __del__(self):
       # Super used to reference leak.
       x = super()
 
@@ -550,7 +550,7 @@ x = 17
 m1 = {}
 m2 = {}
 
-def snapObjRefCntMap( before ):
+def snapObjRefCntMap(before):
    if before:
       global m1
       m = m1
@@ -568,7 +568,7 @@ def snapObjRefCntMap( before ):
       m[ str( x ) ] = sys.getrefcount( x )
 
 
-def checkReferenceCount( checked_function, max_rounds = 10 ):
+def checkReferenceCount(checked_function, max_rounds = 10):
    assert sys.exc_info() == ( None, None, None ), sys.exc_info()
 
    print checked_function.func_name + ":",

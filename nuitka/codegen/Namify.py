@@ -34,10 +34,10 @@ import hashlib, re, math
 # False alarms about "hashlib.md5" due to its strange way of defining what is
 # exported, pylint won't understand it. pylint: disable=E1101
 
-class ExceptionCannotNamify( Exception ):
+class ExceptionCannotNamify(Exception):
     pass
 
-def namifyConstant( constant ):
+def namifyConstant(constant):
     # Many branches, statements and every case has a return, this is a huge case
     # statement, that encodes the naming policy of constants, with often complex
     # decisions to make, pylint: disable=R0911,R0912,R0915
@@ -163,7 +163,7 @@ def namifyConstant( constant ):
 
 _re_str_needs_no_digest = re.compile( r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S )
 
-def _namifyString( string ):
+def _namifyString(string):
     # Many branches case has a return, encodes the naming policy of strings
     # constants, with often complex decisions to make, pylint: disable=R0911
 
@@ -188,7 +188,7 @@ def _namifyString( string ):
         # Others are better digested to not cause compiler trouble
         return "digest_" + _digest( string )
 
-def _isAscii( string ):
+def _isAscii(string):
     try:
         _unused = str( string )
 
@@ -196,7 +196,7 @@ def _isAscii( string ):
     except UnicodeEncodeError:
         return False
 
-def _digest( value ):
+def _digest(value):
     if str is not unicode:
         return hashlib.md5( value ).hexdigest()
     else:

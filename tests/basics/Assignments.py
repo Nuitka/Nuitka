@@ -46,7 +46,7 @@ def someFunction():
     print "Assignment to list slice", v
 
 
-def varargsFunction( *args ):
+def varargsFunction(*args):
     f1, f2, f3, f4 = args
 
     print "Assignment from list", f1, f2, f3, f4
@@ -54,7 +54,7 @@ def varargsFunction( *args ):
 
 def otherFunction():
     class Iterable:
-        def __iter__( self ):
+        def __iter__(self):
             return iter(range(3))
 
     a, b, c = Iterable()
@@ -107,7 +107,7 @@ def otherFunction():
             return res
 
         if sys.version_info[0] < 3:
-            def next( self ):
+            def next(self):
                 return self.__next__()
 
     class IteratingSequenceClass:

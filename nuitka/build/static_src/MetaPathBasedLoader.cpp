@@ -42,7 +42,8 @@ static Nuitka_MetaPathBasedLoaderEntry *loader_entries = NULL;
 
 static char *_kwlist[] = {
     (char *)"fullname",
-    (char *)"unused", NULL
+    (char *)"unused",
+    NULL
 };
 
 static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, PyObject *kwds )
@@ -137,18 +138,29 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     );
 
 #ifdef _WIN32
-
     unsigned int old_mode = SetErrorMode( SEM_FAILCRITICALERRORS );
 
-    char abs_filename[ 260 ];
-    LPTSTR unused;
+    char abs_filename[ 4096 ];
+    LPTSTR unused = NULL;
 
     // Need to use absolute filename for Win9x to work correctly, however
     // important that is.
     GetFullPathName( filename, sizeof( abs_filename ), abs_filename, &unused );
 
+    if ( Py_VerboseFlag )
+    {
+        PySys_WriteStderr(
+            "import %s # LoadLibraryEx(\"%s\");\n",
+            filename
+        );
+    }
+
     HINSTANCE hDLL = LoadLibraryEx( abs_filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH );
-    assert( hDLL );
+    if (unlikely( hDLL == NULL ))
+    {
+        PyErr_Format( PyExc_ImportError, "LoadLibraryEx '%s' failed", abs_filename );
+        return NULL;
+    }
 
     entrypoint_t entrypoint = (entrypoint_t)GetProcAddress( hDLL, entry_function_name );
 
@@ -178,7 +190,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
         }
 
         PyErr_SetString( PyExc_ImportError, error );
-        MOD_RETURN_VALUE( NULL );
+        return NULL;
     }
 
     entrypoint_t entrypoint = (entrypoint_t)dlsym(
@@ -202,10 +214,11 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     _Py_PackageContext = old_context;
 
 #if PYTHON_VERSION < 300
-    PyObject *module = PyDict_GetItemString( PyImport_GetModuleDict(), name );
+    PyObject *module = PyDict_GetItemString(
+        PyImport_GetModuleDict(),
+        full_name
+    );
 #endif
-
-    assert( module );
 
     if (unlikely( module == NULL ))
     {
@@ -216,7 +229,6 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 
         return NULL;
     }
-
 
 #if PYTHON_VERSION >= 300
     struct PyModuleDef *def = PyModule_GetDef( module );
@@ -232,7 +244,6 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     }
 
 #if PYTHON_VERSION >= 300
-    PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
     PyDict_SetItemString( PyImport_GetModuleDict(), full_name, module );
 #endif
 
@@ -280,11 +291,12 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 #ifdef _NUITKA_STANDALONE
             if ( ( current->flags & NUITKA_SHLIB_MODULE ) != 0 )
             {
-                char filename[1024];
+                char filename[4096];
 
                 strcpy( filename, getBinaryDirectory() );
                 char *d = filename;
                 d += strlen( filename );
+                assert(*d == 0);
                 *d++ = SEP;
 
                 char *s = current->name;
@@ -294,6 +306,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
                     if ( *s == '.' )
                     {
                         *d++ = SEP;
+                        s++;
                     }
                     else
                     {
@@ -308,7 +321,10 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
                 strcat( filename, ".so" );
 #endif
 
-                callIntoShlibModule( current->name,  filename );
+                callIntoShlibModule(
+                    current->name,
+                    filename
+                );
             }
             else
 #endif
@@ -322,14 +338,12 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
                 return NULL;
             }
 
-            PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
-
             if ( Py_VerboseFlag )
             {
                 PySys_WriteStderr( "Loaded %s\n", name );
             }
 
-            return LOOKUP_SUBSCRIPT( sys_modules, module_name );
+            return LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
        }
 
        current++;

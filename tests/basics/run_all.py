@@ -38,7 +38,7 @@ from test_common import (
     hasDebugPython
 )
 
-python_version = setup( needs_io_encoding = True )
+python_version = setup(needs_io_encoding = True)
 
 search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
 

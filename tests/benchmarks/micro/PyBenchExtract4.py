@@ -19,7 +19,7 @@
 #
 
 
-def someFunction( rounds ):
+def someFunction(rounds):
     class c:
         pass
 

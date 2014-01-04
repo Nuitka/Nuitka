@@ -48,20 +48,20 @@ warned_about = set()
 # Directory where the main script lives. Should attempt to import from there.
 main_path = None
 
-def setMainScriptDirectory( main_dir ):
+def setMainScriptDirectory(main_dir):
     # We need to set this from the outside, pylint: disable=W0603
 
     global main_path
     main_path = main_dir
 
-def isPackageDir( dirname ):
+def isPackageDir(dirname):
     return Utils.isDir( dirname ) and \
            (
                Utils.python_version >= 330 or
                Utils.isFile( Utils.joinpath( dirname, "__init__.py" ) )
            )
 
-def findModule( source_ref, module_name, parent_package, level, warn ):
+def findModule(source_ref, module_name, parent_package, level, warn):
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
 
@@ -134,7 +134,7 @@ def findModule( source_ref, module_name, parent_package, level, warn ):
 
     return module_package_name, module_name, module_filename
 
-def _impFindModuleWrapper( module_name, search_path ):
+def _impFindModuleWrapper(module_name, search_path):
     """ This wraps imp.find_module because Python3.3 bugs.
 
     Python3.3 accepts imports on directory names in PYTHONPATH, but does not
@@ -174,7 +174,7 @@ def _impFindModuleWrapper( module_name, search_path ):
     return module_filename
 
 
-def _findModuleInPath( module_name, package_name ):
+def _findModuleInPath(module_name, package_name):
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
 
@@ -192,7 +192,7 @@ def _findModuleInPath( module_name, package_name ):
             module_name = package_name.split( "." )[ -1 ]
             package_name = ".".join( package_name.split( "." )[:-1] )
 
-        def getPackageDirname( element ):
+        def getPackageDirname(element):
             return Utils.joinpath( element, *package_name.split( "." ) )
 
         ext_path = [
@@ -222,26 +222,37 @@ def _findModuleInPath( module_name, package_name ):
         except SyntaxError:
             # Warn user, as this is kind of unusual.
             warning(
-                "%s: Module cannot be imported due to syntax errors",
+                "%s: Module cannot be imported due to syntax errors.",
                 module_name,
             )
+
+            return None, None
 
     ext_path = extra_paths + sys.path
 
     if _debug_module_finding:
         print( "_findModuleInPath: Non-package, using extended path", ext_path )
 
-    module_filename = _impFindModuleWrapper(
-        module_name = module_name,
-        search_path = ext_path
-    )
+    try:
+        module_filename = _impFindModuleWrapper(
+            module_name = module_name,
+            search_path = ext_path
+        )
+    except SyntaxError:
+        # Warn user, as this is kind of unusual.
+        warning(
+            "%s: Module cannot be imported due to syntax errors.",
+            module_name,
+        )
+
+        return None, None
 
     if _debug_module_finding:
         print( "_findModuleInPath: imp.find_module gave", module_filename )
 
     return module_filename, None
 
-def _findModule( module_name, parent_package ):
+def _findModule(module_name, parent_package):
     if _debug_module_finding:
         print( "_findModule: Enter", module_name, "in", parent_package )
 
@@ -251,12 +262,9 @@ def _findModule( module_name, parent_package ):
     if module_name == "os.path" and parent_package is None:
         parent_package = "os"
 
-        if not Options.isWindowsTarget():
-            module_name = Utils.basename( os.path.__file__ )
-            if module_name.endswith( ".pyc" ):
-                module_name = module_name[ : -4 ]
-        else:
-            module_name = "ntpath"
+        module_name = Utils.basename( os.path.__file__ )
+        if module_name.endswith( ".pyc" ):
+            module_name = module_name[ : -4 ]
 
     assert module_name != "" or parent_package is not None
 
@@ -294,7 +302,7 @@ def _findModule( module_name, parent_package ):
 
         return module_filename, package
 
-def _isWhiteListedNotExistingModule( module_name ):
+def _isWhiteListedNotExistingModule(module_name):
     white_list = (
         "mac", "nt", "os2", "posix", "_emx_link", "riscos", "ce", "riscospath",
         "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256",
@@ -408,6 +416,11 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # Standalone mode "site" import flexibilities
         "sitecustomize", "usercustomize", "apport_python_hook",
         "_frozen_importlib",
+
+        # Standard library stuff that is optional
+        "comtypes.server.inprocserver", "_tkinter", "_scproxy", "EasyDialogs",
+        "SOCKS", "rourl2path", "_winapi", "win32api", "win32con", "_gestalt",
+        "java.lang", "vms_lib", "ic", "readline", "termios", "_sysconfigdata",
     )
 
     # TODO: Turn this into a warning that encourages reporting.
@@ -417,7 +430,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
     return module_name in white_list
 
-def isStandardLibraryPath( path ):
+def isStandardLibraryPath(path):
     path = Utils.normcase( path )
 
     # In virtual-env, the "site.py" lives in a place that suggests it is not in

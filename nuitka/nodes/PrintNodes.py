@@ -28,12 +28,12 @@ from .NodeBases import StatementChildrenHavingBase
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
-class StatementPrint( StatementChildrenHavingBase ):
+class StatementPrint(StatementChildrenHavingBase):
     kind = "STATEMENT_PRINT"
 
     named_children = ( "dest", "values" )
 
-    def __init__( self, dest, values, newline, source_ref ):
+    def __init__(self, dest, values, newline, source_ref):
         assert values or newline
 
         StatementChildrenHavingBase.__init__(
@@ -47,17 +47,17 @@ class StatementPrint( StatementChildrenHavingBase ):
 
         self.newline = newline
 
-    def isNewlinePrint( self ):
+    def isNewlinePrint(self):
         return self.newline
 
-    def removeNewlinePrint( self ):
+    def removeNewlinePrint(self):
         self.newline = False
 
     getDestination = StatementChildrenHavingBase.childGetter( "dest" )
     getValues = StatementChildrenHavingBase.childGetter( "values" )
     setValues = StatementChildrenHavingBase.childSetter( "values" )
 
-    def computeStatement( self, constraint_collection ):
+    def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getDestination(), allow_none = True )
         dest = self.getDestination()
 

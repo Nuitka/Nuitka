@@ -38,61 +38,61 @@ from ..__past__ import iterItems
 # Many methods won't use self, but it's the interface. pylint: disable=R0201
 
 class PythonContextBase:
-    def __init__( self ):
+    def __init__(self):
         self.try_count = 0
 
         self.try_finally_counts = []
 
         self.temp_counts = {}
 
-    def isPythonModule( self ):
+    def isPythonModule(self):
         return False
 
-    def hasLocalsDict( self ):
+    def hasLocalsDict(self):
         return False
 
-    def allocateTryNumber( self ):
+    def allocateTryNumber(self):
         self.try_count += 1
 
         return self.try_count
 
-    def setTryFinallyCount( self, value ):
+    def setTryFinallyCount(self, value):
         self.try_finally_counts.append( value )
 
-    def removeFinallyCount( self ):
+    def removeFinallyCount(self):
         del self.try_finally_counts[-1]
 
-    def getTryFinallyCount( self ):
+    def getTryFinallyCount(self):
         if self.try_finally_counts:
             return self.try_finally_counts[-1]
         else:
             return None
 
-    def allocateTempNumber( self, tmp_scope ):
+    def allocateTempNumber(self, tmp_scope):
         result = self.temp_counts.get( tmp_scope, 0 ) + 1
         self.temp_counts[ tmp_scope ] = result
         return result
 
 
-class PythonChildContextBase( PythonContextBase ):
-    def __init__( self, parent ):
+class PythonChildContextBase(PythonContextBase):
+    def __init__(self, parent):
         PythonContextBase.__init__( self )
 
         self.parent = parent
 
-    def getConstantHandle( self, constant ):
+    def getConstantHandle(self, constant):
         return self.parent.getConstantHandle( constant )
 
-    def getModuleCodeName( self ):
+    def getModuleCodeName(self):
         return self.parent.getModuleCodeName()
 
-    def getModuleName( self ):
+    def getModuleName(self):
         return self.parent.getModuleName()
 
-    def addHelperCode( self, key, code ):
+    def addHelperCode(self, key, code):
         self.parent.addHelperCode( key, code )
 
-    def addDeclaration( self, key, code ):
+    def addDeclaration(self, key, code):
         self.parent.addDeclaration( key, code )
 
 
@@ -166,6 +166,12 @@ def _getConstantDefaultPopulation():
             "exc_traceback"
         )
 
+    # The xrange built-in is Python2 only.
+    if python_version < 300:
+        result += (
+            "xrange",
+        )
+
     # Executables only
     if not Options.shallMakeModule():
         result += ( "__main__", )
@@ -193,13 +199,13 @@ def _getConstantDefaultPopulation():
 
 
 class PythonGlobalContext:
-    def __init__( self ):
+    def __init__(self):
         self.constants = {}
 
         for value in _getConstantDefaultPopulation():
             self.getConstantHandle( value )
 
-    def getConstantHandle( self, constant, real_use = True ):
+    def getConstantHandle(self, constant, real_use = True):
         # There are many branches, each supposed to return.
         # pylint: disable=R0911
 
@@ -240,11 +246,11 @@ class PythonGlobalContext:
             else:
                 return Identifier( "const_" + namifyConstant( constant ), 0 )
 
-    def getConstants( self ):
+    def getConstants(self):
         return self.constants
 
 
-class PythonModuleContext( PythonContextBase ):
+class PythonModuleContext(PythonContextBase):
     # Plent of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
@@ -262,110 +268,121 @@ class PythonModuleContext( PythonContextBase ):
         self.declaration_codes = {}
         self.helper_codes = {}
 
-    def __repr__( self ):
+    def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
-    def isPythonModule( self ):
+    def isPythonModule(self):
         return True
 
-    def getFrameHandle( self ):
+    def getFrameHandle(self):
         return Identifier( "frame_guard.getFrame()", 1 )
 
-    def getFrameGuardClass( self ):
+    def getFrameGuardClass(self):
         return "FrameGuard"
 
-    def getConstantHandle( self, constant ):
-        return self.global_context.getConstantHandle( constant )
+    def getConstantHandle(self, constant):
+        return self.global_context.getConstantHandle(constant)
 
-    def getName( self ):
+    def getName(self):
         return self.name
 
-    def getFilename( self ):
+    def getFilename(self):
         return self.filename
 
-    def isEmptyModule( self ):
+    def isEmptyModule(self):
         return self.is_empty
 
     getModuleName = getName
 
-    def getModuleCodeName( self ):
+    def getModuleCodeName(self):
         return self.code_name
 
     # There cannot be local variable in modules no need to consider the name.
     # pylint: disable=W0613
-    def hasLocalVariable( self, var_name ):
+    def hasLocalVariable(self, var_name):
         return False
 
-    def hasClosureVariable( self, var_name ):
+    def hasClosureVariable(self, var_name):
         return False
     # pylint: enable=W0613
 
-    def setFrameGuardMode( self, guard_mode ):
+    def setFrameGuardMode(self, guard_mode):
         assert guard_mode == "once"
 
-    def getReturnErrorCode( self ):
+    def getReturnErrorCode(self):
         return "return MOD_RETURN_VALUE( NULL );"
 
-    def addHelperCode( self, key, code ):
+    def addHelperCode(self, key, code):
         assert key not in self.helper_codes, key
 
         self.helper_codes[ key ] = code
 
-    def getHelperCodes( self ):
+    def getHelperCodes(self):
         return self.helper_codes
 
-    def addDeclaration( self, key, code ):
+    def addDeclaration(self, key, code):
         assert key not in self.declaration_codes
 
         self.declaration_codes[ key ] = code
 
-    def getDeclarations( self ):
+    def getDeclarations(self):
         return self.declaration_codes
 
 
-class PythonFunctionContext( PythonChildContextBase ):
-    def __init__( self, parent, function ):
-        PythonChildContextBase.__init__( self, parent = parent )
+class PythonFunctionContext(PythonChildContextBase):
+    def __init__(self, parent, function):
+        PythonChildContextBase.__init__(
+            self,
+            parent = parent
+        )
 
         self.function = function
 
         # Make sure the local names are available as constants
         for local_name in function.getLocalVariableNames():
-            self.getConstantHandle( constant = local_name )
+            self.getConstantHandle(
+                constant = local_name
+            )
 
         self.guard_mode = None
 
-    def __repr__( self ):
+    def __repr__(self):
         return "<PythonFunctionContext for %s '%s'>" % (
             "function" if not self.function.isClassDictCreation() else "class",
             self.function.getName()
         )
 
-    def getFunction( self ):
+    def getFunction(self):
         return self.function
 
-    def hasLocalsDict( self ):
+    def hasLocalsDict(self):
         return self.function.hasLocalsDict()
 
-    def hasLocalVariable( self, var_name ):
+    def hasLocalVariable(self, var_name):
         return var_name in self.function.getLocalVariableNames()
 
-    def hasClosureVariable( self, var_name ):
+    def hasClosureVariable(self, var_name):
         return var_name in self.function.getClosureVariableNames()
 
-    def getFrameHandle( self ):
+    def getFrameHandle(self):
         if self.function.isGenerator():
-            return Identifier( "generator->m_frame", 0 )
+            return Identifier(
+                "generator->m_frame",
+                0
+            )
         else:
-            return Identifier( "frame_guard.getFrame()", 1 )
+            return Identifier(
+                "frame_guard.getFrame()",
+                1
+            )
 
-    def getFrameGuardMode( self ):
+    def getFrameGuardMode(self):
         return self.guard_mode
 
-    def setFrameGuardMode( self, guard_mode ):
+    def setFrameGuardMode(self, guard_mode):
         self.guard_mode = guard_mode
 
-    def getFrameGuardClass( self ):
+    def getFrameGuardClass(self):
         if self.guard_mode == "generator":
             return "FrameGuardLight"
         elif self.guard_mode == "full":
@@ -376,61 +393,61 @@ class PythonFunctionContext( PythonChildContextBase ):
             assert False, (self, self.guard_mode)
 
 
-class PythonFunctionDirectContext( PythonFunctionContext ):
-    def isForDirectCall( self ):
+class PythonFunctionDirectContext(PythonFunctionContext):
+    def isForDirectCall(self):
         return True
 
-    def isForCrossModuleUsage( self ):
+    def isForCrossModuleUsage(self):
         return self.function.isCrossModuleUsed()
 
-    def isForCreatedFunction( self ):
+    def isForCreatedFunction(self):
         return False
 
 
-class PythonFunctionCreatedContext( PythonFunctionContext ):
-    def isForDirectCall( self ):
+class PythonFunctionCreatedContext(PythonFunctionContext):
+    def isForDirectCall(self):
         return False
 
-    def isForCreatedFunction( self ):
+    def isForCreatedFunction(self):
         return True
 
 
-class PythonStatementContext( PythonChildContextBase ):
-    def __init__( self, parent ):
+class PythonStatementContext(PythonChildContextBase):
+    def __init__(self, parent):
         PythonChildContextBase.__init__( self, parent = parent )
 
         self.temp_keepers = {}
 
-    def getFrameHandle( self ):
+    def getFrameHandle(self):
         return self.parent.getFrameHandle()
 
-    def getFrameGuardClass( self ):
+    def getFrameGuardClass(self):
         return self.parent.getFrameGuardClass()
 
-    def hasLocalsDict( self ):
+    def hasLocalsDict(self):
         return self.parent.hasLocalsDict()
 
-    def isPythonModule( self ):
+    def isPythonModule(self):
         return self.parent.isPythonModule()
 
-    def getFunction( self ):
+    def getFunction(self):
         return self.parent.getFunction()
 
-    def allocateCallTempNumber( self ):
+    def allocateCallTempNumber(self):
         return self.parent.allocateCallTempNumber()
 
-    def addTempKeeperUsage( self, variable_name, ref_count ):
+    def addTempKeeperUsage(self, variable_name, ref_count):
         self.temp_keepers[ variable_name ] = ref_count
 
-    def getTempKeeperRefCount( self, variable_name ):
+    def getTempKeeperRefCount(self, variable_name):
         return self.temp_keepers[ variable_name ]
 
-    def getTempKeeperUsages( self ):
+    def getTempKeeperUsages(self):
         result = self.temp_keepers
         self.temp_keepers = {}
         return result
 
-    def getTempKeeperDecl( self ):
+    def getTempKeeperDecl(self):
         tmp_keepers = self.getTempKeeperUsages()
 
         return [
@@ -438,14 +455,14 @@ class PythonStatementContext( PythonChildContextBase ):
             for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
         ]
 
-    def allocateTryNumber( self ):
+    def allocateTryNumber(self):
         return self.parent.allocateTryNumber()
 
-    def setTryFinallyCount( self, value ):
+    def setTryFinallyCount(self, value):
         self.parent.setTryFinallyCount( value )
 
-    def removeFinallyCount( self ):
+    def removeFinallyCount(self):
         self.parent.removeFinallyCount()
 
-    def getTryFinallyCount( self ):
+    def getTryFinallyCount(self):
         return self.parent.getTryFinallyCount()
