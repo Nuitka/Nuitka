@@ -167,15 +167,6 @@ parser.add_option(
 Do not use Python3.3 even if available on the system. Default is %default."""
 )
 
-parser.add_option(
-    "--no-wine",
-    action  = "store_true",
-    dest    = "no_wine",
-    default = False,
-    help    = """\
-Do not use wine to cross compile. Default is %default."""
-)
-
 options, positional_args = parser.parse_args()
 
 if positional_args:
@@ -208,8 +199,6 @@ def checkExecutableCommand( command ):
     if command == "python3.2" and options.no32:
         return False
     if command == "python3.3" and options.no33:
-        return False
-    if command == "wine" and options.no_wine:
         return False
 
     # Shortcuts for python versions, also needed for Windows as it won't have

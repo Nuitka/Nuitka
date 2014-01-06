@@ -42,16 +42,6 @@ parser.add_option(
 Update the pbuilder chroot before building. Default %default."""
 )
 
-
-parser.add_option(
-    "--check-ubuntu-all",
-    action  = "store_true",
-    dest    = "ubuntu_all",
-    default = False,
-    help    = """\
-Check the created Debian package in all Ubuntu versions. Default %default."""
-)
-
 parser.add_option(
     "--no-check-debian-sid",
     action  = "store_false",
@@ -59,55 +49,6 @@ parser.add_option(
     default = True,
     help    = """\
 Check the created Debian package in a Debian Sid pbuilder. Default %default."""
-)
-
-parser.add_option(
-    "--check-debian-squeeze",
-    action  = "store_true",
-    dest    = "debian_squeeze",
-    default = False,
-    help    = """\
-Check the created Debian package in a Debian Sid pbuilder. Default %default."""
-)
-
-parser.add_option(
-    "--check-ubuntu-maverick",
-    action  = "store_true",
-    dest    = "ubuntu_maverick",
-    default = False,
-    help    = """\
-Check the created Debian package in a Ubuntu Maveric pbuilder. Default \
-%default."""
-)
-
-parser.add_option(
-    "--check-ubuntu-natty",
-    action  = "store_true",
-    dest    = "ubuntu_natty",
-    default = False,
-    help    = """\
-Check the created Debian package in a Ubuntu Natty pbuilder. Default \
-%default."""
-)
-
-parser.add_option(
-    "--check-ubuntu-oneiric",
-    action  = "store_true",
-    dest    = "ubuntu_oneiric",
-    default = False,
-    help    = """\
-Check the created Debian package in a Ubuntu Oneiric pbuilder. Default \
-%default."""
-)
-
-parser.add_option(
-    "--check-ubuntu-precise",
-    action  = "store_true",
-    dest    = "ubuntu_precise",
-    default = False,
-    help    = """\
-Check the created Debian package in a Ubuntu Precise pbuilder. Default \
-%default."""
 )
 
 options, positional_args = parser.parse_args()
@@ -281,21 +222,6 @@ basetgz_list = []
 
 if options.debian_sid:
     basetgz_list.append( "jessie.tgz" )
-
-if options.debian_squeeze:
-    basetgz_list.append( "squeeze.tgz" )
-
-if options.ubuntu_oneiric or options.ubuntu_all:
-    basetgz_list.append( "oneiric.tgz" )
-
-if options.ubuntu_maverick or options.ubuntu_all:
-    basetgz_list.append( "maverick.tgz" )
-
-if options.ubuntu_natty or options.ubuntu_all:
-    basetgz_list.append( "natty.tgz" )
-
-if options.ubuntu_precise  or options.ubuntu_all:
-    basetgz_list.append( "precise.tgz" )
 
 for basetgz in basetgz_list:
     if options.update_pbuilder:

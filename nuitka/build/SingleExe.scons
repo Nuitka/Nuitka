@@ -727,7 +727,7 @@ env.Append(
 )
 
 if debug_mode or unstriped_mode:
-    # Use debug format that wine understands, so we get good tracebacks from it.
+    # Use debug format, so we get good tracebacks from it.
     if gcc_mode:
         env.Append(
             CCFLAGS = ["-g"]

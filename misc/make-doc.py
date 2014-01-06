@@ -23,24 +23,22 @@ import sys, os, subprocess
 # identical, so made this optional.
 
 if "logo" in sys.argv:
-    assert 0 == os.system( "convert -background none misc/Logo/Nuitka-Logo-Vertical.svg images/Nuitka-Logo-Vertical.png" )
-    assert 0 == os.system( "convert -background none misc/Logo/Nuitka-Logo-Symbol.svg images/Nuitka-Logo-Symbol.png" )
-    assert 0 == os.system( "convert -background none misc/Logo/Nuitka-Logo-Horizontal.svg images/Nuitka-Logo-Horizontal.png" )
+    assert 0 == os.system("convert -background none misc/Logo/Nuitka-Logo-Vertical.svg images/Nuitka-Logo-Vertical.png")
+    assert 0 == os.system("convert -background none misc/Logo/Nuitka-Logo-Symbol.svg images/Nuitka-Logo-Symbol.png")
+    assert 0 == os.system("convert -background none misc/Logo/Nuitka-Logo-Horizontal.svg images/Nuitka-Logo-Horizontal.png")
 
-    assert 0 == os.system( "optipng -o2 images/Nuitka-Logo-Vertical.png" )
-    assert 0 == os.system( "optipng -o2 images/Nuitka-Logo-Symbol.png" )
-    assert 0 == os.system( "optipng -o2 images/Nuitka-Logo-Horizontal.png" )
-
-    assert 0 == os.system( "convert -background grey -resize 152x261 misc/Logo/Nuitka-Logo-Vertical.svg -alpha background images/Nuitka-Logo-WinInstaller.bmp" )
+    assert 0 == os.system("optipng -o2 images/Nuitka-Logo-Vertical.png")
+    assert 0 == os.system("optipng -o2 images/Nuitka-Logo-Symbol.png")
+    assert 0 == os.system("optipng -o2 images/Nuitka-Logo-Horizontal.png")
 
     if os.path.exists( "web/nikola-site" ):
-        assert 0 == os.system( "convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/favicon.ico" )
-        assert 0 == os.system( "convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/favicon.png" )
+        assert 0 == os.system( "convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.ico" )
+        assert 0 == os.system( "convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.png" )
 
-        assert 0 == os.system( "convert -resize 72x72 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/apple-touch-icon-ipad.png" )
-        assert 0 == os.system( "convert -resize 144x144 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/apple-touch-icon-ipad3.png" )
-        assert 0 == os.system( "convert -resize 57x57 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/apple-touch-icon-iphone.png" )
-        assert 0 == os.system( "convert -resize 114x114 misc/Logo/Nuitka-Logo-Symbol.svg web/nikola-site/files/apple-touch-icon-iphone4.png" )
+        assert 0 == os.system("convert -resize 72x72 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad.png")
+        assert 0 == os.system("convert -resize 144x144 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad3.png")
+        assert 0 == os.system("convert -resize 57x57 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone.png")
+        assert 0 == os.system("convert -resize 114x114 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone4.png")
 
 
 for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
@@ -79,17 +77,17 @@ if os.name != "nt":
         new_contents = []
         mark = False
 
-        for count, line in enumerate( manpage_contents ):
+        for count, line in enumerate(manpage_contents):
             if mark:
                 line = ".SS " + line + ".BR\n"
                 mark = False
-            elif line == ".IP\n" and manpage_contents[ count + 1 ].endswith( ":\n" ):
+            elif line == ".IP\n" and manpage_contents[ count + 1 ].endswith(":\n"):
                 mark = True
                 continue
 
             if line == r"\fB\-\-g\fR++\-only" + "\n":
                 line = r"\fB\-\-g\++\-only\fR" + "\n"
 
-            new_contents.append( line )
+            new_contents.append(line)
 
-        open( manpage, "w" ).writelines( new_contents )
+        open(manpage, "w").writelines( new_contents)
