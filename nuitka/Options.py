@@ -234,7 +234,8 @@ parser.add_option(
     help    = """\
 Python flags to use. Default uses what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
-Python executable. Currently supported "-S" (alias nosite). Default empty."""
+Python executable. Currently supported "-S" (alias nosite) ,
+"static_hashes" (not use Randomization). Default empty."""
 )
 
 codegen_group = OptionGroup(
@@ -676,6 +677,8 @@ def getPythonFlags():
     for part in options.python_flags:
         if part in ( "-S", "nosite", "no_site" ):
             result.append( "no_site" )
+        elif part in ( "static_hashes", "norandomization", "no_randomization" ):
+            result.append( "no_randomization" )
         elif part in ( "-v", "trace_imports", "trace_import" ):
             result.append( "trace_imports" )
         else:
