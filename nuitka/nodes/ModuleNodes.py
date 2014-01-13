@@ -35,6 +35,9 @@ from nuitka import Variables, Importing, Utils
 
 from nuitka.oset import OrderedSet
 
+import re
+
+
 class PythonModuleMixin:
     def __init__(self, name, package_name):
         assert type(name) is str, type(name)
@@ -230,8 +233,15 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return True
 
     def getCodeName(self):
-        return "module_" + self.getFullName().\
-          replace(".", "__").replace("-", "_")
+        def r(match):
+            c = match.group()
+            if c == '.':
+                return "$"
+            else:
+                return "$$%d$" % ord(c)
+
+        return "module_" + \
+          "".join(re.sub("[^a-zA-Z0-9_]", r ,c) for c in self.getFullName())
 
     def addFunction(self, function_body):
         assert function_body not in self.functions
