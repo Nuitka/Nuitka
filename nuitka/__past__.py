@@ -24,7 +24,7 @@ This is required to run the same code easily with both CPython2 and CPython3.
 """
 
 
-# pylint: disable=W0622
+# pylint: disable=W0622,C0103
 
 # Work around for CPython 3.x renaming long to int.
 try:

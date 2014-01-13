@@ -787,8 +787,8 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     assertObject( file );
     assertObject( object );
 
-    // need to hold a reference to the file or else __getattr__ may release "file" in the
-    // mean time.
+    // need to hold a reference to the file or else __getattr__ may release
+    // "file" in the mean time.
     Py_INCREF( file );
 
     bool softspace;
@@ -871,8 +871,8 @@ void PRINT_NEW_LINE_TO( PyObject *file )
         file = GET_STDOUT();
     }
 
-    // need to hold a reference to the file or else __getattr__ may release "file" in the
-    // mean time.
+    // need to hold a reference to the file or else __getattr__ may release
+    // "file" in the mean time.
     Py_INCREF( file );
 
     if (unlikely( PyFile_WriteString( "\n", file ) == -1))

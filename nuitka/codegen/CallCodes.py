@@ -38,8 +38,8 @@ def getCallCodeNoArgs(called_identifier):
 # Outside helper code relies on some quick call to be present.
 quick_calls_used = set( [ 1, 2, 3 ] )
 
-def getCallCodePosArgsQuick( context, order_relevance, called_identifier,
-                             arguments ):
+def getCallCodePosArgsQuick(context, order_relevance, called_identifier,
+                            arguments ):
 
     arg_size = len( arguments )
     quick_calls_used.add( arg_size )
@@ -60,8 +60,8 @@ def getCallCodePosArgsQuick( context, order_relevance, called_identifier,
     )
 
 
-def getCallCodePosArgs( context, order_relevance, called_identifier,
-                        argument_tuple ):
+def getCallCodePosArgs(context, order_relevance, called_identifier,
+                       argument_tuple ):
     from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 
     return getOrderRelevanceEnforcedArgsCode(
@@ -74,8 +74,8 @@ def getCallCodePosArgs( context, order_relevance, called_identifier,
         context         = context
     )
 
-def getCallCodeKeywordArgs( context, order_relevance, called_identifier,
-                            argument_dictionary ):
+def getCallCodeKeywordArgs(context, order_relevance, called_identifier,
+                           argument_dictionary):
     from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 
     return getOrderRelevanceEnforcedArgsCode(
@@ -88,8 +88,8 @@ def getCallCodeKeywordArgs( context, order_relevance, called_identifier,
         context         = context
     )
 
-def getCallCodePosKeywordArgs( context, order_relevance, called_identifier,
-                               argument_tuple, argument_dictionary ):
+def getCallCodePosKeywordArgs(context, order_relevance, called_identifier,
+                              argument_tuple, argument_dictionary):
     from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 
     return getOrderRelevanceEnforcedArgsCode(
@@ -98,30 +98,33 @@ def getCallCodePosKeywordArgs( context, order_relevance, called_identifier,
         ref_count       = 1,
         tmp_scope       = "call",
         order_relevance = order_relevance,
-        args            = ( called_identifier, argument_tuple,
-                            argument_dictionary ),
+        args            = (
+            called_identifier,
+            argument_tuple,
+            argument_dictionary
+        ),
         context         = context
     )
 
 def getCallsDecls():
     result = []
 
-    for quick_call_used in sorted( quick_calls_used ):
+    for quick_call_used in sorted(quick_calls_used):
         args_decl = [
             "PyObject *arg%d" % d
-            for d in range( quick_call_used )
+            for d in range(quick_call_used)
         ]
 
         result.append(
             CodeTemplates.template_call_function_with_args_decl % {
-                "args_decl"  : ", ".join( args_decl ),
+                "args_decl"  : ", ".join(args_decl),
                 "args_count" : quick_call_used
             }
         )
 
     return CodeTemplates.template_header_guard % {
         "header_guard_name" : "__NUITKA_CALLS_H__",
-        "header_body"       : "\n".join( result )
+        "header_body"       : "\n".join(result)
     }
 
 
@@ -139,19 +142,19 @@ def getCallsCode():
     for quick_call_used in sorted( quick_calls_used ):
         args_decl = [
             "PyObject *arg%d" % d
-            for d in range( 1, quick_call_used + 1 )
+            for d in range(1, quick_call_used + 1)
         ]
         args_list = [
             "arg%d" % d
-            for d in range( 1, quick_call_used + 1 )
+            for d in range(1, quick_call_used + 1)
         ]
 
         result.append(
             CodeTemplates.template_call_function_with_args_impl % {
-                "args_decl"  : ", ".join( args_decl ),
-                "args_list"  : ", ".join( args_list ),
+                "args_decl"  : ", ".join(args_decl),
+                "args_list"  : ", ".join(args_list),
                 "args_count" : quick_call_used
             }
         )
 
-    return "\n".join( result )
+    return "\n".join(result)

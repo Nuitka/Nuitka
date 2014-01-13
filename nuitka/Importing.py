@@ -35,6 +35,8 @@ module like it's done in "isStandardLibraryPath" of this module.
 
 """
 
+from __future__ import print_function
+
 from . import Options, Utils
 
 import sys, os, imp

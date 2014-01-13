@@ -106,7 +106,7 @@ def loadCodeObjectData(precompiled_filename):
 module_names = set()
 
 
-def _detectedSourceFile(filename, module_name, module_names, result, is_late):
+def _detectedSourceFile(filename, module_name, result, is_late):
     source_code = open(filename,"rb").read()
 
     if Utils.python_version >= 300:
@@ -137,7 +137,7 @@ def _detectedSourceFile(filename, module_name, module_names, result, is_late):
     module_names.add(module_name)
 
 
-def _detectedShlibFile(filename, module_name, module_names, result):
+def _detectedShlibFile(filename, module_name, result):
     if Utils.python_version >= 300:
         filename = filename.decode("utf-8")
 
@@ -241,7 +241,6 @@ def _detectImports(command, is_late):
                     _detectedSourceFile(
                         filename     = filename,
                         module_name  = module_name,
-                        module_names = module_names,
                         result       = result,
                         is_late      = is_late
                     )
@@ -249,7 +248,6 @@ def _detectImports(command, is_late):
                     _detectedShlibFile(
                         filename     = filename,
                         module_name  = module_name,
-                        module_names = module_names,
                         result       = result
                     )
             elif origin == b"dynamically":
@@ -260,7 +258,6 @@ def _detectImports(command, is_late):
                 _detectedShlibFile(
                     filename     = filename,
                     module_name  = module_name,
-                    module_names = module_names,
                     result       = result
                 )
 

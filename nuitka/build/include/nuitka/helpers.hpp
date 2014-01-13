@@ -494,7 +494,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "'%s' object is not iterable", Py_TYPE( iterated )->tp_name );
+        PyErr_Format(
+            PyExc_TypeError,
+            "'%s' object is not iterable",
+            Py_TYPE( iterated )->tp_name
+        );
+
         throw PythonException();
     }
 }

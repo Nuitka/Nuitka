@@ -18,7 +18,8 @@
 #ifndef __NUITKA_PRINTING_H__
 #define __NUITKA_PRINTING_H__
 
-// Helper functions for print. Need to play nice with Python softspace behaviour.
+// Helper functions for print. Need to play nice with Python softspace
+// behaviour.
 
 #include "nuitka/exceptions.hpp"
 
