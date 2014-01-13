@@ -288,3 +288,10 @@ for x in values:
         print "long", repr(x), long(x), long(x,2)
     except TypeError as e:
         print "caught", repr(e)
+
+
+z = range(5)
+try:
+    next(z)
+except TypeError as e:
+    print "caught", repr(e)

@@ -510,7 +510,23 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
 NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assertObject( iterator );
-    assert( Py_TYPE( iterator )->tp_iternext );
+
+    iternextfunc iternext = Py_TYPE( iterator )->tp_iternext;
+
+    if (unlikely( iternext == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+#if PYTHON_VERSION < 300
+            "%s object is not an iterator",
+#else
+            "'%s' object is not an iterator",
+#endif
+            Py_TYPE( iterator )->tp_name
+        );
+
+        throw PythonException();
+    }
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
@@ -529,13 +545,30 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 {
     assertObject( iterator );
-    assert( Py_TYPE( iterator )->tp_iternext );
 
-    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
+    iternextfunc iternext = Py_TYPE( iterator )->tp_iternext;
+
+    if (unlikely( iternext == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+#if PYTHON_VERSION < 300
+            "%s object is not an iterator",
+#else
+            "'%s' object is not an iterator",
+#endif
+            Py_TYPE( iterator )->tp_name
+        );
+
+        throw PythonException();
+    }
+
+    PyObject *result = (*iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
-        // The iteration can return NULL with no error, which means StopIteration.
+        // The iteration can return NULL with no error, which means
+        // StopIteration.
         if ( !ERROR_OCCURED() )
         {
             throw PythonException( PyExc_StopIteration );
