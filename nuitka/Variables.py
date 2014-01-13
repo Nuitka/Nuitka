@@ -386,7 +386,10 @@ class LocalVariable(Variable):
             if class_container is None:
                 return self.variable_name
             else:
-                return "_" + class_container.getName() + self.variable_name
+                return "_%s%s" % (
+                    class_container.getName().lstrip("_"),
+                    self.variable_name
+                )
 
 
 class ClassVariable(LocalVariable):
@@ -401,7 +404,10 @@ class ClassVariable(LocalVariable):
            self.variable_name.endswith( "__" ):
             return self.variable_name
         else:
-            return "_" + self.owner.getName() + self.variable_name
+            return "_%s%s" % (
+                self.getOwner().getName().lstrip("_"),
+                self.variable_name
+            )
 
 
 class MaybeLocalVariable(Variable):
