@@ -291,7 +291,7 @@ def detectLateImports():
 
 def detectEarlyImports():
     # TODO: Should recursively include all of encodings module.
-    command = "import encodings.utf_8;"
+    command = "import encodings.utf_8;import encodings.ascii;"
 
     if Utils.getOS() == "Windows":
         command += "import encodings.mbcs;"

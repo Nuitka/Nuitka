@@ -373,6 +373,10 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                 ("atexit", None),
                 ("sip", None)
             )
+        elif self.getFullName() == "lxml.etree":
+            return (
+                ("gzip", None),
+            )
         else:
             return ()
 
