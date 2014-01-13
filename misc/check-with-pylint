@@ -32,13 +32,13 @@
 import sys, os, subprocess
 
 # Go its own directory, to have it easy with path knowledge.
-os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
-os.chdir( ".." )
+os.chdir(os.path.dirname( os.path.abspath( __file__ ) ))
+os.chdir("..")
 
 pylint_options = """
 --rcfile=/dev/null
---include-ids=y
---disable=I0011,W0232
+--disable=I0011,W0232,C0326,W0120,C1001
+--msg-template="{path}:{line} {msg_id} {obj} {msg}"
 --reports=no
 --persistent=no
 --method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$
@@ -46,6 +46,7 @@ pylint_options = """
 --function-rgx=.*
 --variable-rgx=.*
 --argument-rgx=.*
+--dummy-variables-rgx=_.*
 --const-rgx=.*
 --max-line-length=120
 --no-docstring-rgx=.*
@@ -59,7 +60,6 @@ pylint_options = """
 
 from optparse import OptionParser
 
-
 parser = OptionParser()
 
 parser.add_option(
@@ -70,16 +70,6 @@ parser.add_option(
     help    = """\
     Default is %default."""
 )
-
-parser.add_option(
-    "--emacs",
-    action  = "store_true",
-    dest    = "emacs",
-    default = False,
-    help    = """\
-    Default is %default."""
-)
-
 
 options, positional_args = parser.parse_args()
 
@@ -112,17 +102,10 @@ def executePyLint( filename ):
 
     assert not _stderr
     if stdout:
-        for line in stdout.split( b"\n" ):
+        for line in stdout.split(b"\n"):
             output = line.decode()
 
-            if options.emacs and ":" in output:
-                parts = output.split( ":" )
-                output = filename + ":" + parts[1].split(",")[0].strip() + ": " + \
-                         parts[0] + " " + ":".join( parts[2:] )
-
-                sys.stderr.write( output + "\n" )
-            else:
-                print( output )
+            print(output)
 
     sys.stdout.flush()
 
@@ -133,9 +116,9 @@ if positional_args:
     for positional_arg in positional_args:
         executePyLint( positional_arg )
 else:
-    executePyLint( "bin/nuitka" )
+    executePyLint("bin/nuitka")
 
-    for dirpath, dirnames, filenames in os.walk( "nuitka" ):
+    for dirpath, dirnames, filenames in os.walk("nuitka"):
         dirnames.sort()
 
         if "inline_copy" in dirnames:
