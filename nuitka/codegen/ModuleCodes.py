@@ -33,12 +33,21 @@ from . import CodeTemplates
 
 from nuitka import Options
 
+import re
+
 def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
 def getModuleIdentifier(module_name):
-    return module_name.replace( ".", "__" ).replace( "-", "_" )
+    # TODO: This is duplication with ModuleNode.getCodeName, remove it.
+    def r(match):
+        c = match.group()
+        if c == '.':
+            return "$"
+        else:
+            return "$$%d$" % ord(c)
 
+    return "".join(re.sub("[^a-zA-Z0-9_]", r ,c) for c in module_name)
 
 def getModuleDeclarationCode(module_name, extra_declarations):
     module_header_code = CodeTemplates.module_header_template % {
@@ -47,7 +56,7 @@ def getModuleDeclarationCode(module_name, extra_declarations):
     }
 
     return CodeTemplates.template_header_guard % {
-        "header_guard_name" : "__%s_H__" % getModuleIdentifier( module_name ),
+        "header_guard_name" : "__%s_H__" % getModuleIdentifier(module_name),
         "header_body"       : module_header_code
     }
 
