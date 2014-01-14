@@ -142,7 +142,7 @@ public:
     // it's only used to emulate block scopes.
     void del( bool tolerant )
     {
-        assertObject( this->object );
+        if ( this->object ) assertObject( this->object );
 
         Py_XDECREF( this->object );
         this->object = NULL;
