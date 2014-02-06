@@ -245,7 +245,7 @@ assert 0 == os.system(
     "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry
 )
 
-assert 0 == os.system( "rm *.dsc *.debian.tar.gz" )
+assert 0 == os.system( "rm *.dsc *.debian.tar.xz" )
 os.chdir( entry )
 
 # Check for licenses and do not accept "UNKNOWN", because that means a proper
@@ -313,12 +313,6 @@ sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s \
 for filename in os.listdir( "dist/deb_dist" ):
     if os.path.isdir( "dist/deb_dist/" + filename ):
         shutil.rmtree( "dist/deb_dist/" + filename )
-
-# Build the Windows installer.
-assert 0 == os.system(
-    """DISPLAY= wine c:\\\\python27\\\\python.exe setup.py bdist_wininst \
---bitmap images/Nuitka-Logo-WinInstaller.bmp"""
-)
 
 # Sign the result files. The Debian binary package was copied here.
 for filename in os.listdir( "dist" ):

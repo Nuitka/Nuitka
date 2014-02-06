@@ -885,7 +885,7 @@ def discoverSourceFiles():
 
     if win_target:
         result.append(getStatic("win32_ucontext_src/fibers_win32.cpp"))
-    elif target_arch == "x86_64":
+    elif target_arch == "x86_64" and "linux" in sys.platform:
         result.append(getStatic("x64_ucontext_src/fibers_x64.cpp"))
         result.append(getStatic("x64_ucontext_src/swapfiber.S"))
     elif "arm" in target_arch:
