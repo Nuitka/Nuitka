@@ -294,7 +294,7 @@ def detectEarlyImports():
     command = "import encodings.utf_8;import encodings.ascii;"
 
     if Utils.getOS() == "Windows":
-        command += "import encodings.mbcs;"
+        command += "import encodings.mbcs;import encodings.cp437;"
 
     # String method hex depends on it.
     if Utils.python_version < 300:
