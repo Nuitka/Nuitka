@@ -280,7 +280,7 @@ os.system( "cp dist/deb_dist/*.deb dist/" )
 basetgz_list = []
 
 if options.debian_sid:
-    basetgz_list.append( "base.tgz" )
+    basetgz_list.append( "jessie.tgz" )
 
 if options.debian_squeeze:
     basetgz_list.append( "squeeze.tgz" )
