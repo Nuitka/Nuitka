@@ -7,8 +7,8 @@ override_dh_auto_install:
 	python setup.py install --root=debian/nuitka --install-layout=deb --install-lib=/usr/share/nuitka --install-scripts=/usr/share/nuitka/bin
 
 override_dh_auto_build:
-	rst2pdf README.txt || dpkg --compare-versions `rst2pdf --version 2>/dev/null` lt 0.16
-	rst2pdf Developer_Manual.rst || dpkg --compare-versions `rst2pdf --version 2>/dev/null` lt 0.16
+	rst2pdf README.txt
+	rst2pdf Developer_Manual.rst
 	cp Changelog.rst changelog
 	cp Developer_Manual.rst Developer_Manual.txt
 
