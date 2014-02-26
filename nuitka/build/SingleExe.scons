@@ -612,7 +612,9 @@ if win_target:
             env.Append(
                 LINKFLAGS = ["-Wl,--subsystem,windows"]
             )
-
+    env.Append(
+        CPPDEFINES = ["WIN32"]
+    )
     if win_disable_console:
         env.Append(
             CPPDEFINES = ["_NUITKA_WINMAIN_ENTRY_POINT"]
@@ -814,7 +816,8 @@ if gcc_mode and getLinkerArch() is not None:
     )
 
     constants_generated_filename = None
-else:
+elif not msvc_mode:
+    # On windows constants are in resource file
     constants_generated_filename = os.path.join(
         source_dir,
         "__constants_data.c"
@@ -835,7 +838,11 @@ else:
             output.write(" 0x%02x," % ord(stream_byte))
 
         output.write("\n};\n");
-
+else:
+    constants_generated_filename = None
+    env.Append(
+        CPPDEFINES = ["_NUITKA_CONSTANTS_IN_RESOURCE=1"]
+    )
 
 env.Append(
     CPPDEFINES = ["_NUITKA_FROZEN=%d" % frozen_modules]
@@ -914,46 +921,46 @@ source_targets = []
 # Prepare the use of a custom specs file for windows targets. We change the used
 # specs for linking to avoid the use of the wrong (for CPython) run time
 # library.
-if msvc_mode and not module_mode:
-    rc_content = []
+if msvc_mode:
+    rc_content = ["3 RCDATA __constants.bin"]
 
-    if python_version < "3.0":
-        manifest_filename = os.path.join( source_dir, "resources.manifest" )
+    if not module_mode:
+        if python_version < "3.0":
+            manifest_filename = os.path.join( source_dir, "resources.manifest" )
 
-        assert 0 == subprocess.call(
-            (
-                "mt",
-                "-inputresource:%s;#1" % os.path.join(
-                    python_prefix,
-                    "python.exe"
+            assert 0 == subprocess.call(
+                (
+                    "mt",
+                    "-inputresource:%s;#1" % os.path.join(
+                        python_prefix,
+                        "python.exe"
+                    ),
+                    "-out:%s" % manifest_filename
                 ),
-                "-out:%s" % manifest_filename
-            ),
-            stdout = subprocess.PIPE
-        )
-
-        rc_content.append( "1 RT_MANIFEST resources.manifest" )
-
-    if icon_path:
-        rc_content.append(
-            '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"' % (
-                icon_path.replace( "\\", "/" )
+                stdout = subprocess.PIPE
             )
-        )
 
-    if rc_content:
-        rc_filename = os.path.join( source_dir, "resources.rc" )
+            rc_content.append( "1 RT_MANIFEST resources.manifest" )
 
-        rc_file = open( rc_filename, "w" )
+        if icon_path:
+            rc_content.append(
+                '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"' % (
+                    icon_path.replace( "\\", "/" )
+                )
+            )
 
-        rc_content.insert( 0, '#include "winuser.h"' )
-        rc_file.write( "\n".join( rc_content ) )
+    rc_filename = os.path.join( source_dir, "resources.rc" )
 
-        rc_file.close()
+    rc_file = open( rc_filename, "w" )
 
-        source_targets.append(
-            env.RES( rc_filename )
-        )
+    rc_content.insert( 0, '#include "winuser.h"' )
+    rc_file.write( "\n".join( rc_content ) )
+
+    rc_file.close()
+
+    source_targets.append(
+        env.RES( rc_filename )
+    )
 
 source_files = discoverSourceFiles()
 

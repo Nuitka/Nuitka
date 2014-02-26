@@ -29,7 +29,22 @@ PyObject *_sentinel_value = NULL;
 
 %(constant_declarations)s
 
+#ifdef _NUITKA_CONSTANTS_IN_RESOURCE
+#ifdef WIN32
+#include <Windows.h>
+extern "C" const unsigned char* constant_bin = 0;
+struct __initResourceConstants
+{
+    __initResourceConstants()
+    {
+        constant_bin = (const unsigned char*)LockResource(LoadResource(NULL,
+                                                          FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)));
+    }
+} __initResourceConstants_static_initializer;
+#endif
+#else
 extern "C" const unsigned char constant_bin[];
+#endif
 #define stream_data constant_bin
 
 static void __initConstants( void )

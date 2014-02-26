@@ -482,9 +482,13 @@ extern "C" const unsigned char constant_bin[];
 // in this un-optimized form. These are not compiled by Nuitka, and therefore
 // are not accelerated at all, merely bundled with the binary or module, so
 // that Python library can start out.
-struct _frozen Embedded_FrozenModules[] =
+
+void NuitkaCopyFrozenModulesTo(void* destination)
 {
-%(frozen_modules)s
-    { NULL, NULL, 0 }
-};
+    _frozen frozen_modules[] = {
+        %(frozen_modules)s
+        { NULL, NULL, 0 }
+    };
+    memcpy(destination, frozen_modules, ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen ));
+}
 """
