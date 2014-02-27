@@ -18,7 +18,7 @@
 """ Utility module.
 
 Here the small things for file/dir names, Python version, CPU counting,
-etc. that fit nowhere else and don't deserve their own names.
+memory usage, etc. that fit nowhere else and don't deserve their own names.
 
 """
 
@@ -158,3 +158,44 @@ if python_version >= 300:
 else:
     get_input = raw_input
     from urllib import urlretrieve
+
+def getOwnProcessMemoryUsage():
+    """ Memory usage of own process in bytes.
+
+    """
+    import resource
+
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+
+def getHumanReadableProcessMemoryUsage(value = None):
+    if value is None:
+        value = getOwnProcessMemoryUsage()
+
+    if abs(value) < 1024*1014:
+        return "%.2f KB (%d bytes)" % (
+            value / 1024.0,
+            value
+        )
+    elif abs(value) < 1024*1014*1024:
+        return "%.2f MB (%d bytes)" % (
+            value / (1024*1024.0),
+            value
+        )
+    elif abs(value) < 1024*1014*1024*1024:
+        return "%.2f GB (%d bytes)" % (
+            value / (1024*1024*1024.0),
+            value
+        )
+    else:
+        return "%d bytes" % value
+
+class MemoryWatch:
+    def __init__(self):
+        self.start = getOwnProcessMemoryUsage()
+        self.stop = None
+
+    def finish(self):
+        self.stop = getOwnProcessMemoryUsage()
+
+    def asStr(self):
+        return getHumanReadableProcessMemoryUsage(self.stop - self.start)

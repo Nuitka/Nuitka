@@ -17,10 +17,12 @@
 #
 """ Outputs to the user.
 
-Printing with intends or plain, mostly a compensation for the print strageness. I want to
-avoid "from __future__ import print_function" in every file out there, which makes adding
-another print rather tedious. This should cover all calls/uses of "print" we have to do,
-and the make it easy to simply to "print for_debug" without much hassle (braces).
+Printing with intends or plain, mostly a compensation for the print strangeness.
+
+We want to avoid "from __future__ import print_function" in every file out
+there, which makes adding another debug print rather tedious. This should
+cover all calls/uses of "print" we have to do, and the make it easy to simply
+to "print for_debug" without much hassle (braces).
 
 """
 
