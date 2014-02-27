@@ -403,7 +403,7 @@ def detectBinaryDLLs(binary_filename, package_name):
             dll_name = Utils.basename(dll_filename).upper()
 
             # Win API can be assumed.
-            if dll_name.startswith("API-MS-WIN"):
+            if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
                 continue
 
             if dll_name in ("SHELL32.DLL", "USER32.DLL", "KERNEL32.DLL",
@@ -447,7 +447,15 @@ def detectBinaryDLLs(binary_filename, package_name):
                 "LPK.DLL", "USP10.DLL", "CFGMGR32.DLL", "MSIMG32.DLL",
                 "POWRPROF.DLL", "SETUPAPI.DLL", "WINSTA.DLL", "CRYPT32.DLL",
                 "IPHLPAPI.DLL", "MPR.DLL", "CREDUI.DLL", "NETPLWIZ.DLL",
-                "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL"):
+                "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL",
+                "APPREPAPI.DLL", "BCP47LANGS.DLL", "BCRYPTPRIMITIVES.DLL",
+                "CERTCA.DLL", "CHARTV.DLL", "COMBASE.DLL", "DCOMP.DLL",
+                "DPAPI.DLL", "DSPARSE.DLL", "FECLIENT.DLL", "FIREWALLAPI.DLL",
+                "FLTLIB.DLL", "MRMCORER.DLL", "MSVCRT.DLL",
+                "NINPUT.DLL", "NTASN1.DLL", "PCACLI.DLL", "RTWORKQ.DLL",
+                "SECHOST.DLL", "SETTINGSYNCPOLICY.DLL", "SHCORE.DLL",
+                "TBS.DLL", "TWINAPI.DLL", "TWINAPI.APPCORE.DLL", "VIRTDISK.DLL",
+                "WEBSOCKET.DLL", "WEVTAPI.DLL", "WINMMBASE.DLL", "WMICLNT.DLL"):
                 continue
 
             result.add(dll_filename)
