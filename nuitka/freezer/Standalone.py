@@ -191,7 +191,7 @@ def _detectImports(command, is_late):
         _stdout, stderr = process.communicate()
 
     # Don't let errors here go unnoticed.
-    assert process.returncode == 0
+    assert process.returncode == 0, stderr
 
     result = []
 
@@ -297,7 +297,11 @@ def detectEarlyImports():
         stdlib_modules = []
 
         stdlib_dir = os.path.dirname(os.__file__)
-        ignore_modules = ('__main__.py', '__init__.py', 'antigravity.py')
+        ignore_modules = [ '__main__.py', '__init__.py', 'antigravity.py' ]
+
+        if os.name != "nt":
+            ignore_modules.append("wintypes.py")
+            ignore_modules.append("cp65001.py")
 
         for root, dirs, files in os.walk(stdlib_dir):
             import_path = root[len(stdlib_dir):].strip('/\\')
@@ -305,9 +309,9 @@ def detectEarlyImports():
                 if 'site-packages' in dirs:
                     dirs.remove('site-packages')
 
-            for file in files:
-                if file.endswith('.py') and file not in ignore_modules:
-                    module_name = file[:-3]
+            for filename in files:
+                if filename.endswith('.py') and filename not in ignore_modules:
+                    module_name = filename[:-3]
                     if import_path == '':
                         stdlib_modules.append(module_name)
                     else:
