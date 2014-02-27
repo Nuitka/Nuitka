@@ -74,13 +74,13 @@ implies these options: "--recurse-all --recurse-stdlib". Defaults to off.""",
 )
 
 parser.add_option(
-    "--freeze-stdlib",
-    action  = "store_true",
+    "--nofreeze-stdlib",
+    action  = "store_false",
     dest    = "freeze_stdlib",
-    default = False,
+    default = True,
     help    = """\
-In standalone mode all modules of standard library will be frozen as bytecode.
-As a result compilation time will decrease.
+In standalone mode by default all modules of standard library will be frozen
+as bytecode. As a result compilation time will increase very much.
 """,
     )
 
