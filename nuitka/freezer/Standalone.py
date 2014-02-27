@@ -27,10 +27,8 @@ import sys
 from logging import debug, info
 import marshal
 
-from nuitka import Utils
+from nuitka import Utils, Options
 from nuitka.codegen.ConstantCodes import needsPickleInit
-
-python_dll_dir_name = "_python"
 
 
 def getDependsExePath():
@@ -174,15 +172,23 @@ def _detectImports(command, is_late):
 
     # Print statements for stuff to show, the modules loaded.
     if Utils.python_version >= 300:
-        command += r'import sys; print("\n".join(sorted("import " + module.__name__ + " # sourcefile " + module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301
+        command += '\nimport sys\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + ' \
+                   'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
+                   'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301
 
-    process = subprocess.Popen(
-        args   = [sys.executable, "-s", "-S", "-v", "-c", command],
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE
-    )
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        if Utils.python_version >= 300:
+            command = command.encode('ascii')
+        tmp.write(command)
+        tmp.flush()
 
-    _stdout, stderr = process.communicate()
+        process = subprocess.Popen(
+            args   = [sys.executable, "-s", "-S", "-v", tmp.name],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+        )
+        _stdout, stderr = process.communicate()
 
     # Don't let errors here go unnoticed.
     assert process.returncode == 0
@@ -287,19 +293,57 @@ def detectLateImports():
 
 
 def detectEarlyImports():
-    # TODO: Should recursively include all of encodings module.
-    command = "import encodings.utf_8;import encodings.ascii;"
+    if Options.freezeAllStdlib():
+        stdlib_modules = []
 
-    if Utils.getOS() == "Windows":
-        command += "import encodings.mbcs;import encodings.cp437;"
+        stdlib_dir = os.path.dirname(os.__file__)
+        ignore_modules = ('__main__.py', '__init__.py', 'antigravity.py')
 
-    # String method hex depends on it.
-    if Utils.python_version < 300:
-        command += "import encodings.hex_codec;"
+        for root, dirs, files in os.walk(stdlib_dir):
+            import_path = root[len(stdlib_dir):].strip('/\\')
+            if import_path == '':
+                if 'site-packages' in dirs:
+                    dirs.remove('site-packages')
 
-    command += "import locale;"
+            for file in files:
+                if file.endswith('.py') and file not in ignore_modules:
+                    module_name = file[:-3]
+                    if import_path == '':
+                        stdlib_modules.append(module_name)
+                    else:
+                        stdlib_modules.append(import_path + '.' + module_name)
 
-    result = _detectImports(command, False)
+            if Utils.python_version >= 300:
+                if '__pycache__' in dirs:
+                    dirs.remove('__pycache__')
+
+            for dir in dirs:
+                if import_path == '':
+                    stdlib_modules.append(dir)
+                else:
+                    stdlib_modules.append(import_path + '.' + dir)
+
+        import_code = 'import importlib\n'\
+                      'imports = ' + repr(stdlib_modules) + '\n'\
+                      'for imp in imports:\n' \
+                      '    try:\n' \
+                      '        importlib.import_module(imp)\n' \
+                      '    except ImportError:\n' \
+                      '        pass\n'
+    else:
+        # TODO: Should recursively include all of encodings module.
+        import_code = "import encodings.utf_8;import encodings.ascii;"
+
+        if Utils.getOS() == "Windows":
+            import_code += "import encodings.mbcs;import encodings.cp437;"
+
+        # String method hex depends on it.
+        if Utils.python_version < 300:
+            import_code += "import encodings.hex_codec;"
+
+        import_code += "import locale;"
+
+    result = _detectImports(import_code, False)
     debug("Finished detecting early imports.")
 
     return result

@@ -73,6 +73,17 @@ to other machines without it relying on an existing Python installation. It
 implies these options: "--recurse-all --recurse-stdlib". Defaults to off.""",
 )
 
+parser.add_option(
+    "--freeze-stdlib",
+    action  = "store_true",
+    dest    = "freeze_stdlib",
+    default = False,
+    help    = """\
+In standalone mode all modules of standard library will be frozen as bytecode.
+As a result compilation time will decrease.
+""",
+    )
+
 recurse_group = OptionGroup(
     parser,
     "Control the recursion into imported modules"
@@ -685,3 +696,6 @@ def getPythonFlags():
             logging.warning( "Unsupported flag '%s'.", part )
 
     return result
+
+def freezeAllStdlib():
+    return options.freeze_stdlib
