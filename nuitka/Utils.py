@@ -151,3 +151,10 @@ def encodeNonAscii(var_name):
         # TODO: Is this truly safe of collisions, I think it is not. It might be
         # necessary to use something that is not allowed otherwise.
         return var_name.replace( "&#", "$$" ).replace( ";", "" )
+
+if python_version >= 300:
+    get_input = input
+    from urllib.request import urlretrieve
+else:
+    get_input = raw_input
+    from urllib import urlretrieve
