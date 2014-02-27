@@ -410,7 +410,7 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
             elif module_filename.endswith(".pyd"):
                 module_kind = "shlib"
             else:
-                assert False
+                assert False, module_filename
 
             from nuitka.tree import Recursion
 
@@ -421,7 +421,7 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                 module_kind     = module_kind
             )
 
-            assert decision, reason
+            assert decision or reason == "Module is frozen."
 
             if decision:
                 module_relpath = Utils.relpath(module_filename)
