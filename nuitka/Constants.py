@@ -192,31 +192,6 @@ def isNumberConstant(constant):
 def isIndexConstant(constant):
     return type(constant) in ( int, long, bool )
 
-class HashableConstant:
-    __slots__ = ["constant"]
-
-    def __init__(self, constant):
-        self.constant = constant
-
-    def getConstant(self):
-        return self.constant
-
-    def __hash__(self):
-        try:
-            # For Python3: range objects with same ranges give different hash
-            # values. It's not even funny, is it.
-            if type(self.constant) is range:
-                raise TypeError
-
-            return hash(self.constant)
-        except TypeError:
-            return 7
-
-    def __eq__(self, other):
-        assert isinstance(other, self.__class__)
-
-        return compareConstants(self.constant, other.constant)
-
 
 def createConstantDict(keys, values, lazy_order):
     if lazy_order:

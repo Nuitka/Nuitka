@@ -26,8 +26,9 @@ from .Identifiers import (
 )
 
 from .Namify import namifyConstant
+from .ConstantCodes import HashableConstant
 
-from nuitka.Constants import HashableConstant, constant_builtin_types
+from nuitka.Constants import constant_builtin_types
 
 from nuitka.Utils import python_version
 
@@ -203,7 +204,7 @@ class PythonGlobalContext:
         self.constants = {}
 
         for value in _getConstantDefaultPopulation():
-            self.getConstantHandle( value )
+            self.getConstantHandle(value)
 
     def getConstantHandle(self, constant, real_use = True):
         # There are many branches, each supposed to return.
@@ -235,16 +236,16 @@ class PythonGlobalContext:
             )
         else:
             if real_use:
-                key = ( type( constant ), HashableConstant( constant ) )
+                key = HashableConstant(constant)
 
                 if key not in self.constants:
-                    self.constants[ key ] = "const_" + namifyConstant(
+                    self.constants[key] = "const_" + namifyConstant(
                         constant
                     )
 
-                return ConstantIdentifier( self.constants[ key ], constant )
+                return ConstantIdentifier(self.constants[ key ], constant)
             else:
-                return Identifier( "const_" + namifyConstant( constant ), 0 )
+                return Identifier("const_" + namifyConstant( constant ), 0)
 
     def getConstants(self):
         return self.constants
