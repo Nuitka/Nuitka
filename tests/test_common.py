@@ -365,8 +365,8 @@ def hasModule(module_name):
             "-c"
             "import %s" % module_name
         ),
-	stdout = open(os.devnull,"w"),
-	stderr = subprocess.STDOUT
+        stdout = open(os.devnull,"w"),
+        stderr = subprocess.STDOUT
     )
 
     return result == 0

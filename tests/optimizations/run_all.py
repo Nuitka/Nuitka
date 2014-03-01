@@ -24,7 +24,8 @@ import os, sys, subprocess, tempfile, shutil
 try:
     import lxml.etree
 except ImportError:
-    sys.exit( "Error, no 'lxml' module installed, cannot run XML based tests." )
+    print("Warning, no 'lxml' module installed, cannot do XML based tests.")
+    sys.exit(0)
 
 # Find common code relative in file system. Not using packages for test stuff.
 sys.path.insert(
@@ -40,10 +41,15 @@ from test_common import (
     my_print,
     setup,
     convertUsing2to3,
+    hasModule,
     check_output
 )
 
 python_version = setup()
+
+if not hasModule("lxml.etree"):
+    print("Warning, no 'lxml' module installed, cannot run XML based tests.")
+    sys.exit(0)
 
 search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
 
@@ -65,16 +71,17 @@ def getKind( node ):
 
 def getRole( node, role ):
     for child in node:
-        if child.tag == "role" and child.attrib[ "name" ] == role:
+        if child.tag == "role" and child.attrib["name"] == role:
             return child
     else:
         return None
 
 
-def checkSequence( statements ):
-    for statement in module_statements:
-        kind = getKind( statement )
+def checkSequence(statements):
+    for statement in statements:
+        kind = getKind(statement)
 
+        # Printing is fine.
         if kind == "Print":
             print_args = getRole( statement, "values" )
 
@@ -85,15 +92,37 @@ def checkSequence( statements ):
 
             if getKind( print_arg ) != "ConstantRef":
                 sys.exit( "Error, print of non-constant %s." % getKind( print_arg ) )
-        elif kind == "Frame":
-            pass
-        elif kind == "AssignmentVariable":
+
+            continue
+
+        # Printing in Python3 is a function call whose return value is ignored.
+        if kind == "Only":
+            only_expression = getRole(statement, "expression")[0]
+
+            if getKind( only_expression ) == "Call":
+                called_expression = getRole(only_expression, "called")[0]
+
+                if getKind(called_expression) == "BuiltinRef":
+                    if called_expression.attrib["builtin_name"] == "print":
+                        continue
+
+        if kind == "Frame":
+            checkSequence(getRole(statement, "statements"))
+
+            continue
+
+        if kind == "AssignmentVariable":
             assign_source = getRole( statement, "source" )[0]
 
-            if getKind( assign_source ) != "ConstantRef":
-                sys.exit( "Error, assignment from of non-constant %s." % getKind( assign_source ) )
-        else:
-            sys.exit( "Error, non-print statement of unknown kind '%s'." % kind )
+            source_kind = getKind( assign_source )
+
+            if source_kind not in( "ConstantRef", "ImportModuleHard" ):
+                sys.exit( "Error, assignment from of non-constant %s." % source_kind )
+            continue
+
+        print(lxml.etree.tostring(statement, pretty_print = True))
+
+        sys.exit("Error, non-print statement of unknown kind '%s'." % kind)
 
 
 for filename in sorted( os.listdir( "." ) ):
