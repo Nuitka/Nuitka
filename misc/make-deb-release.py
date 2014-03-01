@@ -63,10 +63,10 @@ def checkChangeLog(message):
     else:
         assert False, message # No new messages.
 
-if branch_name.startswith( "release" ) or \
+if branch_name.startswith("release") or \
    branch_name == "master" or \
-   branch_name.startswith( "hotfix/" ):
-    if nuitka_version.count( "." ) == 2:
+   branch_name.startswith("hotfix/"):
+    if nuitka_version.count(".") == 2:
         assert checkChangeLog("New upstream release.")
     else:
         assert checkChangeLog("New upstream hotfix release.")
@@ -218,7 +218,7 @@ with open("conf/distributions","w") as output:
 Origin: Nuitka
 Label: Nuitka
 Codename: %(codename)s
-Architectures: i386 amd64 armel
+Architectures: i386 amd64 armel armhf powerpc
 Components: main
 Description: Apt repository for project Nuitka %(codename)s
 SignWith: 2912B99C
