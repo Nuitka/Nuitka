@@ -187,35 +187,35 @@ def getConstantIterationLength(constant):
     return len( constant )
 
 def isNumberConstant(constant):
-    return type( constant ) in ( int, long, float, bool )
+    return type(constant) in ( int, long, float, bool )
 
 def isIndexConstant(constant):
-    return type( constant ) in ( int, long, bool )
+    return type(constant) in ( int, long, bool )
 
 class HashableConstant:
+    __slots__ = ["constant"]
+
     def __init__(self, constant):
         self.constant = constant
-
-        try:
-            # For Python3: range objects with same ranges give different hash
-            # values. It's not even funny, is it.
-            if type( constant ) is range:
-                raise TypeError
-
-            self.hash = hash( constant )
-        except TypeError:
-            self.hash = 55
 
     def getConstant(self):
         return self.constant
 
     def __hash__(self):
-        return self.hash
+        try:
+            # For Python3: range objects with same ranges give different hash
+            # values. It's not even funny, is it.
+            if type(self.constant) is range:
+                raise TypeError
+
+            return hash(self.constant)
+        except TypeError:
+            return 7
 
     def __eq__(self, other):
-        assert isinstance( other, self.__class__ )
+        assert isinstance(other, self.__class__)
 
-        return compareConstants( self.constant, other.constant )
+        return compareConstants(self.constant, other.constant)
 
 
 def createConstantDict(keys, values, lazy_order):
