@@ -312,6 +312,8 @@ def detectEarlyImports():
                     dirs.remove('dist-packages')
                 if 'test' in dirs:
                     dirs.remove('test')
+                if 'idlelib' in dirs:
+                    dirs.remove('idlelib')
 
             for filename in files:
                 if filename.endswith('.py') and filename not in ignore_modules:
