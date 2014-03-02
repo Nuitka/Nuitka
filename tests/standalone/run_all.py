@@ -77,7 +77,7 @@ for filename in sorted(os.listdir(".")):
             my_print("Skipping", filename, "not relevant.")
             continue
 
-        if not hasModule("PySide"):
+        if not hasModule("PySide.QtCore"):
             my_print(
                 "Skipping", filename, "PySide not installed for",
                 python_version, "but test needs it."
