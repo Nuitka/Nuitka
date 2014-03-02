@@ -1995,7 +1995,7 @@ char *getBinaryDirectory()
 }
 
 #if _NUITKA_FROZEN > 0
-extern void NuitkaCopyFrozenModulesTo(void* destination);
+extern void copyFrozenModulesTo(void* destination);
 #endif
 
 #if _NUITKA_STANDALONE
@@ -2057,7 +2057,7 @@ void prepareStandaloneEnvironment()
         PyImport_FrozenModules,
         pre_existing_count * sizeof( struct _frozen )
     );
-    NuitkaCopyFrozenModulesTo(merged + pre_existing_count);
+    copyFrozenModulesTo(merged + pre_existing_count);
     PyImport_FrozenModules = merged;
 #endif
 

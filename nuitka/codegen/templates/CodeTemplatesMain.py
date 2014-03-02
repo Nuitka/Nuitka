@@ -474,7 +474,12 @@ template_frozen_modules = """\
 #include <Python.h>
 
 // Blob from which modules are unstreamed.
+#if defined(_WIN32) && defined(_NUITKA_EXE)
+extern const unsigned char* constant_bin;
+#else
 extern "C" const unsigned char constant_bin[];
+#endif
+
 #define stream_data constant_bin
 
 // These modules should be loaded as bytecode. They must e.g. be loadable
@@ -483,7 +488,7 @@ extern "C" const unsigned char constant_bin[];
 // are not accelerated at all, merely bundled with the binary or module, so
 // that Python library can start out.
 
-void NuitkaCopyFrozenModulesTo(void* destination)
+void copyFrozenModulesTo(void* destination)
 {
     _frozen frozen_modules[] = {
         %(frozen_modules)s
