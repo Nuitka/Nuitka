@@ -528,7 +528,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
         throw PythonException();
     }
 
-    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
+    PyObject *result = (*iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
