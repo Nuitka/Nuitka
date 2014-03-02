@@ -148,7 +148,7 @@ def decideRecursion(module_filename, module_name, module_package,
             "Requested to not recurse at all."
         )
 
-    if Importing.isStandardLibraryPath( module_filename ):
+    if Importing.isStandardLibraryPath(module_filename):
         return (
             Options.shallFollowStandardLibrary(),
             "Requested to %srecurse to standard library." % (

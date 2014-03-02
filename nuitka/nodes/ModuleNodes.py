@@ -376,16 +376,25 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
     def startTraversal(self):
         pass
 
-
     def getImplicitImports(self):
-        if self.getFullName() == "PyQt4.QtCore":
+        full_name = self.getFullName()
+
+        if full_name == "PyQt4.QtCore":
             return (
                 ("atexit", None),
                 ("sip", None)
             )
-        elif self.getFullName() == "lxml.etree":
+        elif full_name == "lxml.etree":
             return (
                 ("gzip", None),
+            )
+        elif full_name == "gtk._gtk":
+            return (
+                ("pangocairo", None),
+                ("pango", None),
+                ("cairo", None),
+                ("gio", None),
+                ("atk", None),
             )
         else:
             return ()

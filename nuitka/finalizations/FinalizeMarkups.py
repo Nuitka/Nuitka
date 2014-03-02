@@ -31,11 +31,16 @@ are in another context.
 
 """
 
-from nuitka import Options, Utils
+from nuitka import Options, Utils, Importing
 
 from .FinalizeBase import FinalizationVisitorBase
 
 from logging import warning
+
+def isWhileListedImport(node):
+    module = node.getParentModule()
+
+    return Importing.isStandardLibraryPath(module.getFilename())
 
 class FinalizeMarkups(FinalizationVisitorBase):
     def onEnterNode(self, node):
@@ -174,7 +179,8 @@ class FinalizeMarkups(FinalizationVisitorBase):
             provider.markAsRaiseContaining()
 
         if node.isExpressionBuiltinImport() and \
-           not Options.getShallFollowExtra():
+           not Options.getShallFollowExtra() and \
+           not isWhileListedImport(node):
             warning( """Unresolved '__import__' call at '%s' may require use \
 of '--recurse-directory'.""" % (
                     node.getSourceReference().getAsString()
