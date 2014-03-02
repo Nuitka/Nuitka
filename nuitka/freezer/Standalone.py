@@ -310,6 +310,8 @@ def detectEarlyImports():
                     dirs.remove('site-packages')
                 if 'dist-packages' in dirs:
                     dirs.remove('dist-packages')
+                if 'test' in dirs:
+                    dirs.remove('test')
 
             for filename in files:
                 if filename.endswith('.py') and filename not in ignore_modules:
