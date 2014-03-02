@@ -332,7 +332,7 @@ def detectEarlyImports():
                     stdlib_modules.append(import_path + '.' + dir)
 
         import_code = 'import importlib\n'\
-                      'imports = ' + repr(stdlib_modules) + '\n'\
+                      'imports = ' + repr(sorted(stdlib_modules)) + '\n'\
                       'for imp in imports:\n' \
                       '    try:\n' \
                       '        importlib.import_module(imp)\n' \
