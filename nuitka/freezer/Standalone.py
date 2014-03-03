@@ -333,11 +333,10 @@ def detectEarlyImports():
                 else:
                     stdlib_modules.append(import_path + '.' + dir)
 
-        import_code = 'import importlib\n'\
-                      'imports = ' + repr(sorted(stdlib_modules)) + '\n'\
+        import_code = 'imports = ' + repr(sorted(stdlib_modules)) + '\n'\
                       'for imp in imports:\n' \
                       '    try:\n' \
-                      '        importlib.import_module(imp)\n' \
+                      '        __import__(imp)\n' \
                       '    except ImportError:\n' \
                       '        pass\n'
     else:
