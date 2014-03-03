@@ -250,7 +250,7 @@ def _detectImports(command, is_late):
                         result       = result,
                         is_late      = is_late
                     )
-                else:
+                elif not filename.endswith(b"<frozen>"):
                     _detectedShlibFile(
                         filename     = filename,
                         module_name  = module_name,

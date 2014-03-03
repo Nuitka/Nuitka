@@ -364,6 +364,8 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
             package_name = package_name
         )
 
+        assert Utils.basename(source_ref.getFilename()) != "<frozen>"
+
     def getDetails(self):
         return {
             "name"         : self.name,
