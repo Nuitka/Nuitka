@@ -155,7 +155,7 @@ assert 0 == os.system(
 )
 
 assert 0 == os.system(
-    "rm *.dsc *.debian.tar.gz"
+    "rm *.dsc *.debian.tar.[gx]z"
 )
 os.chdir(entry)
 
