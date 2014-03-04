@@ -164,7 +164,7 @@ def getOwnProcessMemoryUsage():
 
     """
 
-    if sys.platform == 'win32':
+    if os.name == "nt":
 
         # adapted from http://code.activestate.com/recipes/578513
         import ctypes
@@ -194,10 +194,10 @@ def getOwnProcessMemoryUsage():
             raise ctypes.WinError()
 
         return counters.PrivateUsage
+    else:
+        import resource
 
-    import resource
-
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
 
 def getHumanReadableProcessMemoryUsage(value = None):
     if value is None:
