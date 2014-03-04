@@ -163,6 +163,38 @@ def getOwnProcessMemoryUsage():
     """ Memory usage of own process in bytes.
 
     """
+
+    if sys.platform == 'win32':
+
+        # adapted from http://code.activestate.com/recipes/578513
+        import ctypes
+        from ctypes import wintypes
+
+        class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
+            _fields_ = [
+                ('cb', wintypes.DWORD),
+                ('PageFaultCount', wintypes.DWORD),
+                ('PeakWorkingSetSize', ctypes.c_size_t),
+                ('WorkingSetSize', ctypes.c_size_t),
+                ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
+                ('PagefileUsage', ctypes.c_size_t),
+                ('PeakPagefileUsage', ctypes.c_size_t),
+                ('PrivateUsage', ctypes.c_size_t),
+            ]
+
+        counters = PROCESS_MEMORY_COUNTERS_EX()
+        rv = ctypes.windll.psapi.GetProcessMemoryInfo(
+                 ctypes.windll.kernel32.GetCurrentProcess(),
+                 ctypes.byref(counters),
+                 ctypes.sizeof(counters))
+        if not rv:
+            raise ctypes.WinError()
+
+        return counters.PrivateUsage
+
     import resource
 
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
