@@ -297,13 +297,17 @@ def detectEarlyImports():
         stdlib_modules = []
 
         stdlib_dir = os.path.dirname(os.__file__)
-        ignore_modules = [ '__main__.py', '__init__.py', 'antigravity.py' ]
+        ignore_modules = [
+            "__main__.py",
+            "__init__.py",
+            "antigravity.py",
+        ]
 
         if os.name != "nt":
             ignore_modules.append("wintypes.py")
             ignore_modules.append("cp65001.py")
 
-        for root, dirs, files in os.walk(stdlib_dir):
+        for root, dirs, filenames in os.walk(stdlib_dir):
             import_path = root[len(stdlib_dir):].strip('/\\')
             if import_path == '':
                 if 'site-packages' in dirs:
@@ -314,8 +318,14 @@ def detectEarlyImports():
                     dirs.remove('test')
                 if 'idlelib' in dirs:
                     dirs.remove('idlelib')
+                if 'turtledemo' in dirs:
+                    dirs.remove('turtledemo')
 
-            for filename in files:
+            if import_path in ('tkinter', 'importlib'):
+                if 'test' in dirs:
+                    dirs.remove('test')
+
+            for filename in filenames:
                 if filename.endswith('.py') and filename not in ignore_modules:
                     module_name = filename[:-3]
                     if import_path == '':
