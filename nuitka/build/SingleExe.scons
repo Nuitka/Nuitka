@@ -921,7 +921,7 @@ if win_target:
             '3 RCDATA "%s"' % constants_bin_filename.replace( "\\", "/" )
         )
 
-        if python_version < "3.0" and msvc_mode:
+        if python_version < "3.3" and msvc_mode:
             manifest_filename = os.path.join(
                 source_dir,
                 "resources.manifest"
