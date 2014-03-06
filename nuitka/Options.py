@@ -162,7 +162,7 @@ execute_group = OptionGroup(
 )
 
 execute_group.add_option(
-    "--execute",
+    "--run", "--execute",
     action  = "store_true",
     dest    = "immediate_execution",
     default = is_nuitka_run,
