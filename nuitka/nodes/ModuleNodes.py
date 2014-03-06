@@ -398,6 +398,18 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                 ("gio", None),
                 ("atk", None),
             )
+        elif full_name == "_win32sysloader":
+            return (
+                ("cp850", "encodings"),
+            )
+        elif full_name == "win32api":
+            return (
+                ("pythoncom", None),
+            )
+        elif full_name == "pythoncom":
+            return (
+                ("gen_py", "win32com"),
+            )
         else:
             return ()
 
