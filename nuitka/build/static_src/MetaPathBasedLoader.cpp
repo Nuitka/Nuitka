@@ -429,7 +429,7 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
         PySys_WriteStderr( "setup nuitka compiled module/shlib importer\n" );
     }
 
-    // And also provide it as a meta path loader.
+    // Register it as a meta path loader.
     int res = PyList_Insert(
         PySys_GetObject( ( char *)"meta_path" ),
 #if PYTHON_VERSION < 330
