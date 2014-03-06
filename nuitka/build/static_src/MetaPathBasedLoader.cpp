@@ -151,6 +151,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     {
         PySys_WriteStderr(
             "import %s # LoadLibraryEx(\"%s\");\n",
+            full_name,
             filename
         );
     }
