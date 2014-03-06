@@ -1,8 +1,8 @@
-Nuitka Release 0.5.1 (Draft)
-============================
+Nuitka Release 0.5.1
+====================
 
 This release brings corrections and major improvements to how standalone mode
-performs. Most of these were contributed by others.
+performs. Much of it was contributed via patches and bug reports.
 
 Bug Fixes
 ---------
@@ -47,7 +47,8 @@ New Optimization
   releases are going to undo it.
 
 - On Windows the constants blob is now stored as a resource, avoiding
-  compilation via C code for MSVC.
+  compilation via C code for MSVC as well. MinGW was changed to use the same
+  code.
 
 New Tests
 ---------
@@ -62,7 +63,9 @@ This release is mostly an interim maintenance release for standalone. Major
 changes that provide optimization beyond that, termed "C-ish code generation"
 are delayed for future releases.
 
-This release makes standalone practical which is an important point.
+This release makes standalone practical which is an important point. Instead of
+hour long compilation, even for small programs, we are down to less than a
+minute.
 
 The solution of the scalability issues with many constants from many modules
 will be top priority going forward. Since they are about how even single use
