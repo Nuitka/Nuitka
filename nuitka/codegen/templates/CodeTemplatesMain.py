@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,7 @@ global_copyright = """\
 // Generated code for Python source for module '%(name)s'
 // created by Nuitka version %(version)s
 
-// This code is in part copyright 2013 Kay Hayen.
+// This code is in part copyright 2014 Kay Hayen.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -474,17 +474,24 @@ template_frozen_modules = """\
 #include <Python.h>
 
 // Blob from which modules are unstreamed.
+#if defined(_WIN32) && defined(_NUITKA_EXE)
+extern const unsigned char* constant_bin;
+#else
 extern "C" const unsigned char constant_bin[];
-#define stream_data constant_bin
+#endif
 
 // These modules should be loaded as bytecode. They must e.g. be loadable
 // during "Py_Initialize" already, or for irrelevance, they are only included
 // in this un-optimized form. These are not compiled by Nuitka, and therefore
 // are not accelerated at all, merely bundled with the binary or module, so
 // that Python library can start out.
-struct _frozen Embedded_FrozenModules[] =
+
+void copyFrozenModulesTo(void* destination)
 {
-%(frozen_modules)s
-    { NULL, NULL, 0 }
-};
+    _frozen frozen_modules[] = {
+        %(frozen_modules)s
+        { NULL, NULL, 0 }
+    };
+    memcpy(destination, frozen_modules, ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen ));
+}
 """

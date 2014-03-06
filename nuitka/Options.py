@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,8 +18,8 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.0.2
-Copyright (C) 2013 Kay Hayen."""
+Nuitka V0.5.1
+Copyright (C) 2014 Kay Hayen."""
 
 from . import Utils
 
@@ -72,6 +72,17 @@ Enable standalone mode in build. This allows you to transfer the created binary
 to other machines without it relying on an existing Python installation. It
 implies these options: "--recurse-all --recurse-stdlib". Defaults to off.""",
 )
+
+parser.add_option(
+    "--nofreeze-stdlib",
+    action  = "store_false",
+    dest    = "freeze_stdlib",
+    default = True,
+    help    = """\
+In standalone mode by default all modules of standard library will be frozen
+as bytecode. As a result compilation time will increase very much.
+""",
+    )
 
 recurse_group = OptionGroup(
     parser,
@@ -151,7 +162,7 @@ execute_group = OptionGroup(
 )
 
 execute_group.add_option(
-    "--execute",
+    "--run", "--execute",
     action  = "store_true",
     dest    = "immediate_execution",
     default = is_nuitka_run,
@@ -234,7 +245,8 @@ parser.add_option(
     help    = """\
 Python flags to use. Default uses what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
-Python executable. Currently supported "-S" (alias nosite). Default empty."""
+Python executable. Currently supported "-S" (alias nosite) ,
+"static_hashes" (not use Randomization). Default empty."""
 )
 
 codegen_group = OptionGroup(
@@ -676,9 +688,14 @@ def getPythonFlags():
     for part in options.python_flags:
         if part in ( "-S", "nosite", "no_site" ):
             result.append( "no_site" )
+        elif part in ( "static_hashes", "norandomization", "no_randomization" ):
+            result.append( "no_randomization" )
         elif part in ( "-v", "trace_imports", "trace_import" ):
             result.append( "trace_imports" )
         else:
             logging.warning( "Unsupported flag '%s'.", part )
 
     return result
+
+def freezeAllStdlib():
+    return options.freeze_stdlib

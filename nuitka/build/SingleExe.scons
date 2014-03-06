@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -80,7 +80,7 @@ experimental_mode = getBoolOption( "experimental", False )
 # support, the compiled result would not run correctly.
 lto_mode = getBoolOption( "lto_mode", False )
 
-# Windows target mode: Cross compile for Windows or compiling on windows.
+# Windows target mode: Compile for Windows.
 win_target = getBoolOption( "win_target", os.name == "nt" )
 
 # Windows subsystem mode: Disable console for windows builds.
@@ -727,7 +727,7 @@ env.Append(
 )
 
 if debug_mode or unstriped_mode:
-    # Use debug format that wine understands, so we get good tracebacks from it.
+    # Use debug format, so we get good tracebacks from it.
     if gcc_mode:
         env.Append(
             CCFLAGS = ["-g"]
@@ -790,16 +790,16 @@ def getLinkerArch():
         else:
             # TODO: Detect from objdump mayhaps.
             return None
-    elif os.name == "nt":
-        # This is MinGW, MSVC is handled by other code.
-        return "pe-i386"
     else:
-        # TODO: Missing for MacOS, Linux
+        # TODO: Missing for MacOS, FreeBSD, other Linux
         return None
 
 constants_bin_filename = os.path.join(source_dir,"__constants.bin")
 
-if gcc_mode and getLinkerArch() is not None:
+if win_target and not module_mode:
+    # On Windows constants are accesses as a resource, see below
+    constants_generated_filename = None
+elif gcc_mode and getLinkerArch() is not None:
     env.Append(
         LINKFLAGS = [
             "-Wl,-b", "-Wl,binary",
@@ -835,7 +835,6 @@ else:
             output.write(" 0x%02x," % ord(stream_byte))
 
         output.write("\n};\n");
-
 
 env.Append(
     CPPDEFINES = ["_NUITKA_FROZEN=%d" % frozen_modules]
@@ -914,46 +913,57 @@ source_targets = []
 # Prepare the use of a custom specs file for windows targets. We change the used
 # specs for linking to avoid the use of the wrong (for CPython) run time
 # library.
-if msvc_mode and not module_mode:
+if win_target:
     rc_content = []
 
-    if python_version < "3.0":
-        manifest_filename = os.path.join( source_dir, "resources.manifest" )
-
-        assert 0 == subprocess.call(
-            (
-                "mt",
-                "-inputresource:%s;#1" % os.path.join(
-                    python_prefix,
-                    "python.exe"
-                ),
-                "-out:%s" % manifest_filename
-            ),
-            stdout = subprocess.PIPE
-        )
-
-        rc_content.append( "1 RT_MANIFEST resources.manifest" )
-
-    if icon_path:
+    if not module_mode:
         rc_content.append(
-            '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"' % (
-                icon_path.replace( "\\", "/" )
+            '3 RCDATA "%s"' % constants_bin_filename.replace( "\\", "/" )
+        )
+
+        if python_version < "3.3" and msvc_mode:
+            manifest_filename = os.path.join(
+                source_dir,
+                "resources.manifest"
             )
-        )
 
-    if rc_content:
-        rc_filename = os.path.join( source_dir, "resources.rc" )
+            assert 0 == subprocess.call(
+                (
+                    "mt",
+                    "-inputresource:%s;#1" % os.path.join(
+                        python_prefix,
+                        "python.exe"
+                    ),
+                    "-out:%s" % manifest_filename
+                ),
+                stdout = subprocess.PIPE
+            )
 
-        rc_file = open( rc_filename, "w" )
+            rc_content.append(
+                "1 RT_MANIFEST resources.manifest"
+            )
 
-        rc_content.insert( 0, '#include "winuser.h"' )
-        rc_file.write( "\n".join( rc_content ) )
+        if icon_path:
+            rc_content.append(
+                '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"' % (
+                    icon_path.replace( "\\", "/" )
+                )
+            )
 
-        rc_file.close()
+    rc_filename = os.path.join( source_dir, "resources.rc" )
 
-        source_targets.append(
-            env.RES( rc_filename )
-        )
+    rc_file = open(rc_filename, "w")
+
+    rc_content.insert(
+        0,
+        '#include "winuser.h"'
+    )
+    rc_file.write("\n".join(rc_content))
+    rc_file.close()
+
+    source_targets.append(
+        env.RES(rc_filename)
+    )
 
 source_files = discoverSourceFiles()
 

@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,6 +34,8 @@ from the standard library, one can abuse the attribute "__file__" of the "os"
 module like it's done in "isStandardLibraryPath" of this module.
 
 """
+
+from __future__ import print_function
 
 from . import Options, Utils
 
@@ -431,11 +433,11 @@ areallylongpackageandmodulenametotestreprtruncation""",
     return module_name in white_list
 
 def isStandardLibraryPath(path):
-    path = Utils.normcase( path )
+    path = Utils.normcase(path)
 
     # In virtual-env, the "site.py" lives in a place that suggests it is not in
     # standard library, although it is.
-    if os.path.basename( path ) == "site.py":
+    if os.path.basename(path) == "site.py":
         return True
 
     # These never are in standard library paths.
@@ -443,21 +445,21 @@ def isStandardLibraryPath(path):
         return False
 
     os_filename = os.__file__
-    if os_filename.endswith( ".pyc" ):
+    if os_filename.endswith(".pyc"):
         os_filename = os_filename[:-1]
 
-    os_path = Utils.normcase( Utils.dirname( os_filename  ) )
+    os_path = Utils.normcase(Utils.dirname(os_filename))
 
-    candidates = [ os_path ]
+    candidates = [os_path]
 
     # Happens for virtual-env situation, some modules will come from the link
     # this points to.
-    if os.path.islink( os_filename ):
-        os_filename = os.readlink( os_filename )
-        candidates.append( Utils.normcase( Utils.dirname( os_filename  ) ) )
+    if os.path.islink(os_filename):
+        os_filename = os.readlink(os_filename)
+        candidates.append(Utils.normcase(Utils.dirname(os_filename)))
 
     for candidate in candidates:
-        if path.startswith( candidate ):
+        if path.startswith(candidate):
             return True
     else:
         return False

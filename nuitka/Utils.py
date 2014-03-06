@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,7 +18,7 @@
 """ Utility module.
 
 Here the small things for file/dir names, Python version, CPU counting,
-etc. that fit nowhere else and don't deserve their own names.
+memory usage, etc. that fit nowhere else and don't deserve their own names.
 
 """
 
@@ -151,3 +151,83 @@ def encodeNonAscii(var_name):
         # TODO: Is this truly safe of collisions, I think it is not. It might be
         # necessary to use something that is not allowed otherwise.
         return var_name.replace( "&#", "$$" ).replace( ";", "" )
+
+if python_version >= 300:
+    get_input = input
+    from urllib.request import urlretrieve
+else:
+    get_input = raw_input
+    from urllib import urlretrieve
+
+def getOwnProcessMemoryUsage():
+    """ Memory usage of own process in bytes.
+
+    """
+
+    if os.name == "nt":
+
+        # adapted from http://code.activestate.com/recipes/578513
+        import ctypes
+        from ctypes import wintypes
+
+        class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
+            _fields_ = [
+                ('cb', wintypes.DWORD),
+                ('PageFaultCount', wintypes.DWORD),
+                ('PeakWorkingSetSize', ctypes.c_size_t),
+                ('WorkingSetSize', ctypes.c_size_t),
+                ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
+                ('PagefileUsage', ctypes.c_size_t),
+                ('PeakPagefileUsage', ctypes.c_size_t),
+                ('PrivateUsage', ctypes.c_size_t),
+            ]
+
+        counters = PROCESS_MEMORY_COUNTERS_EX()
+        rv = ctypes.windll.psapi.GetProcessMemoryInfo(
+                 ctypes.windll.kernel32.GetCurrentProcess(),
+                 ctypes.byref(counters),
+                 ctypes.sizeof(counters))
+        if not rv:
+            raise ctypes.WinError()
+
+        return counters.PrivateUsage
+    else:
+        import resource
+
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+
+def getHumanReadableProcessMemoryUsage(value = None):
+    if value is None:
+        value = getOwnProcessMemoryUsage()
+
+    if abs(value) < 1024*1014:
+        return "%.2f KB (%d bytes)" % (
+            value / 1024.0,
+            value
+        )
+    elif abs(value) < 1024*1014*1024:
+        return "%.2f MB (%d bytes)" % (
+            value / (1024*1024.0),
+            value
+        )
+    elif abs(value) < 1024*1014*1024*1024:
+        return "%.2f GB (%d bytes)" % (
+            value / (1024*1024*1024.0),
+            value
+        )
+    else:
+        return "%d bytes" % value
+
+class MemoryWatch:
+    def __init__(self):
+        self.start = getOwnProcessMemoryUsage()
+        self.stop = None
+
+    def finish(self):
+        self.stop = getOwnProcessMemoryUsage()
+
+    def asStr(self):
+        return getHumanReadableProcessMemoryUsage(self.stop - self.start)

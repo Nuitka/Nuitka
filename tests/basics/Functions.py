@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -85,7 +85,7 @@ print "Call function that returns a nested list contraction with input from defa
 def defaultValueTest4( no_default, funced_defaulted = lambda x: x**2):
     return funced_defaulted(4)
 
-print "Call function that returns value caculated by a lamba function as default parameter", defaultValueTest4("ignored")
+print "Call function that returns value calculated by a lamba function as default parameter", defaultValueTest4("ignored")
 
 def defaultValueTest4a( no_default, funced_defaulted = lambda x: x**2):
     c = 1

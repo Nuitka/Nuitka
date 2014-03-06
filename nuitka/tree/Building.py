@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,6 +43,7 @@ from nuitka import (
     SourceCodeReferences,
     SyntaxErrors,
     Importing,
+    Tracing,
     Options,
     Utils
 )
@@ -1123,6 +1124,9 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     return result, source_ref, source_filename
 
 def createModuleTree(module, source_ref, source_filename, is_main):
+    if Options.isShowProgress():
+        memory_watch = Utils.MemoryWatch()
+
     source_code = readSourceCodeFromFilename( source_filename )
 
     module_body = buildParseTree(
@@ -1136,6 +1140,16 @@ def createModuleTree(module, source_ref, source_filename, is_main):
     module.setBody( module_body )
 
     completeVariableClosures( module )
+
+    if Options.isShowProgress():
+        memory_watch.finish()
+
+        Tracing.printLine(
+            "Memory usage changed loading module '%s': %s" % (
+                module.getFullName(),
+                memory_watch.asStr()
+            )
+        )
 
 def buildModuleTree(filename, package, is_top, is_main):
     module, source_ref, source_filename = decideModuleTree(

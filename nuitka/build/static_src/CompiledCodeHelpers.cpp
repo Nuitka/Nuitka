@@ -1,4 +1,4 @@
-//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -787,8 +787,8 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     assertObject( file );
     assertObject( object );
 
-    // need to hold a reference to the file or else __getattr__ may release "file" in the
-    // mean time.
+    // need to hold a reference to the file or else __getattr__ may release
+    // "file" in the mean time.
     Py_INCREF( file );
 
     bool softspace;
@@ -871,8 +871,8 @@ void PRINT_NEW_LINE_TO( PyObject *file )
         file = GET_STDOUT();
     }
 
-    // need to hold a reference to the file or else __getattr__ may release "file" in the
-    // mean time.
+    // need to hold a reference to the file or else __getattr__ may release
+    // "file" in the mean time.
     Py_INCREF( file );
 
     if (unlikely( PyFile_WriteString( "\n", file ) == -1))
@@ -1995,7 +1995,7 @@ char *getBinaryDirectory()
 }
 
 #if _NUITKA_FROZEN > 0
-extern struct _frozen Embedded_FrozenModules[];
+extern void copyFrozenModulesTo(void* destination);
 #endif
 
 #if _NUITKA_STANDALONE
@@ -2057,12 +2057,7 @@ void prepareStandaloneEnvironment()
         PyImport_FrozenModules,
         pre_existing_count * sizeof( struct _frozen )
     );
-    memcpy(
-        merged + pre_existing_count,
-        Embedded_FrozenModules,
-        ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen )
-    );
-
+    copyFrozenModulesTo(merged + pre_existing_count);
     PyImport_FrozenModules = merged;
 #endif
 

@@ -1,4 +1,4 @@
-//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -27,6 +27,11 @@
 // and registering of stuff.
 
 #include <osdefs.h>
+
+#ifdef _WIN32
+#undef SEP
+#define SEP '\\'
+#endif
 
 #include "nuitka/prelude.hpp"
 #include "nuitka/unfreezing.hpp"
@@ -151,6 +156,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     {
         PySys_WriteStderr(
             "import %s # LoadLibraryEx(\"%s\");\n",
+            full_name,
             filename
         );
     }
@@ -423,7 +429,7 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
         PySys_WriteStderr( "setup nuitka compiled module/shlib importer\n" );
     }
 
-    // And also provide it as a meta path loader.
+    // Register it as a meta path loader.
     int res = PyList_Insert(
         PySys_GetObject( ( char *)"meta_path" ),
 #if PYTHON_VERSION < 330

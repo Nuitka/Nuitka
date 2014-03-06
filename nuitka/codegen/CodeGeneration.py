@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -250,7 +250,7 @@ def generateConditionCode( condition, context, inverted = False,
             condition = result
         )
 
-    assert type( result ) is str, result
+    assert type(result) is str, result
 
     return result
 
@@ -374,7 +374,7 @@ def generateFunctionCreationCode( function_body, defaults, kw_defaults,
             closure_variables    = function_body.getClosureVariables(),
         )
 
-    context.addDeclaration( function_identifier, function_decl )
+    context.addDeclaration(function_identifier, function_decl)
 
     return Generator.getFunctionCreationCode(
         function_identifier = function_body.getCodeName(),
@@ -497,17 +497,17 @@ def generateDictionaryCreationCode(pairs, context):
     # Strange as it is, CPython evalutes the key/value pairs strictly in order,
     # but for each pair, the value first.
     for pair in pairs:
-        args.append( pair.getValue() )
-        args.append( pair.getKey() )
+        args.append(pair.getValue())
+        args.append(pair.getKey())
 
-    if _areConstants( args ):
+    if _areConstants(args):
         constant = {}
 
         for pair in pairs:
             key = pair.getKey()
             value = pair.getValue()
 
-            constant[ key.getConstant() ] = value.getConstant()
+            constant[key.getConstant()] = value.getConstant()
 
         return Generator.getConstantHandle(
             context  = context,
@@ -521,7 +521,7 @@ def generateDictionaryCreationCode(pairs, context):
 
         return Generator.getDictionaryCreationCode(
             context          = context,
-            order_relevance  = getOrderRelevance( args ),
+            order_relevance  = getOrderRelevance(args),
             args_identifiers = args_identifiers
         )
 
@@ -847,11 +847,11 @@ def getOrderRelevance(expressions, allow_none = False):
 
     for expression in expressions:
         if expression is None and allow_none:
-            result.append( None )
+            result.append(None)
         elif expression.isOrderRelevant():
-            result.append( expression.getSourceReference() )
+            result.append(expression.getSourceReference())
         else:
-            result.append( None )
+            result.append(None)
 
 
     return result
@@ -866,7 +866,7 @@ def _generateExpressionCode(expression, context, allow_none):
 
     # Make sure we don't generate code twice for any node, this uncovers bugs
     # where nodes are shared in the tree, which is not allowed.
-    assert not hasattr( expression, "code_generated" ), expression
+    assert not hasattr(expression, "code_generated"), expression
     expression.code_generated = True
 
     def makeExpressionCode(expression, allow_none = False):
@@ -886,7 +886,7 @@ def _generateExpressionCode(expression, context, allow_none):
 
     if expression.isExpressionVariableRef():
         if expression.getVariable() is None:
-            Tracing.printError( "Illegal variable reference, not resolved" )
+            Tracing.printError("Illegal variable reference, not resolved.")
 
             expression.dump()
             assert False, (
@@ -1245,7 +1245,9 @@ def _generateExpressionCode(expression, context, allow_none):
         )
     elif expression.isExpressionBuiltinNext1():
         identifier = Generator.getBuiltinNext1Code(
-            value = makeExpressionCode( expression.getValue() )
+            value = makeExpressionCode(
+                expression.getValue()
+            )
         )
     elif expression.isExpressionSpecialUnpack():
         identifier = Generator.getUnpackNextCode(
@@ -2494,10 +2496,10 @@ def generateStatementSequenceCode( statement_sequence, context,
         source_ref = statement.getSourceReference()
 
         if Options.shallTraceExecution():
-            statement_repr = repr( statement )
+            statement_repr = repr(statement)
 
             if Utils.python_version >= 300:
-                statement_repr = statement_repr.encode( "utf8" )
+                statement_repr = statement_repr.encode("utf8")
             codes.append(
                 Generator.getStatementTrace(
                     source_ref.getAsString(),
@@ -2547,8 +2549,6 @@ def generateStatementSequenceCode( statement_sequence, context,
 
     if statement_sequence.isStatementsFrame():
         provider = statement_sequence.getParentVariableProvider()
-
-        source_ref = statement_sequence.getSourceReference()
 
         needs_preserve = statement_sequence.needsFrameExceptionPreversing()
 
@@ -2625,7 +2625,7 @@ def generateModuleCode(global_context, module, module_name, other_modules):
 
     context = Contexts.PythonModuleContext(
         module_name    = module_name,
-        code_name      = Generator.getModuleIdentifier( module_name ),
+        code_name      = Generator.getModuleIdentifier(module_name),
         filename       = module.getFilename(),
         global_context = global_context,
         is_empty       = module.getBody() is None

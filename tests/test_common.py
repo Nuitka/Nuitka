@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -76,9 +76,13 @@ print(("x86_64" if "AMD64" in sys.version else "x86") if os.name=="nt" else os.u
     python_version = version_output.split(b"\n")[0].strip()
     python_arch = version_output.split(b"\n")[1].strip()
 
+    if sys.version.startswith("3"):
+        python_arch = python_arch.decode()
+
     my_print("Using concrete python", python_version, "on", python_arch)
 
-    assert type( python_version ) is bytes
+    assert type(python_version) is bytes
+    assert type(python_arch) is str
 
     return python_version
 
@@ -303,6 +307,9 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
                 for match in
                 re.findall(b'"(.*?)"', line)
             )
+
+        if sys.version.startswith("3"):
+            result = [s.decode("utf-8") for s in result]
     elif os.name == "nt":
         subprocess.call(
             (
@@ -353,9 +360,6 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
 
     result = list(sorted(set(result)))
 
-    if sys.version.startswith("3"):
-        result = [s.decode("utf-8") for s in result]
-
     return result
 
 def hasModule(module_name):
@@ -365,8 +369,8 @@ def hasModule(module_name):
             "-c"
             "import %s" % module_name
         ),
-	stdout = open(os.devnull,"w"),
-	stderr = subprocess.STDOUT
+        stdout = open(os.devnull,"w"),
+        stderr = subprocess.STDOUT
     )
 
     return result == 0

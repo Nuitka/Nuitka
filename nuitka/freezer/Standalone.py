@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,10 +27,8 @@ import sys
 from logging import debug, info
 import marshal
 
-from nuitka import Utils
+from nuitka import Utils, Options
 from nuitka.codegen.ConstantCodes import needsPickleInit
-
-python_dll_dir_name = "_python"
 
 
 def getDependsExePath():
@@ -60,14 +58,14 @@ to analyse the dependencies of Python extension modules. Is it OK to download
 and put it in APPDATA (no installer needed, cached, one time question)."""
         )
 
-        reply = raw_input("Proceed and download? [Yes]/No ")
+        reply = Utils.get_input("Proceed and download? [Yes]/No ")
 
         if reply.lower() in ("no", "n"):
             sys.exit("Nuitka does not work in --standalone on Windows without.")
 
         info("Downloading", depends_url)
 
-        urllib.urlretrieve(
+        Utils.urlretrieve(
             depends_url,
             nuitka_depends_zip
         )
@@ -106,7 +104,7 @@ def loadCodeObjectData(precompiled_filename):
 module_names = set()
 
 
-def _detectedSourceFile(filename, module_name, module_names, result, is_late):
+def _detectedSourceFile(filename, module_name, result, is_late):
     source_code = open(filename,"rb").read()
 
     if Utils.python_version >= 300:
@@ -137,7 +135,7 @@ def _detectedSourceFile(filename, module_name, module_names, result, is_late):
     module_names.add(module_name)
 
 
-def _detectedShlibFile(filename, module_name, module_names, result):
+def _detectedShlibFile(filename, module_name, result):
     if Utils.python_version >= 300:
         filename = filename.decode("utf-8")
 
@@ -174,18 +172,26 @@ def _detectImports(command, is_late):
 
     # Print statements for stuff to show, the modules loaded.
     if Utils.python_version >= 300:
-        command += r'import sys; print("\n".join(sorted("import " + module.__name__ + " # sourcefile " + module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301
+        command += '\nimport sys\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + ' \
+                   'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
+                   'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301
 
-    process = subprocess.Popen(
-        args   = [sys.executable, "-s", "-S", "-v", "-c", command],
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE
-    )
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        if Utils.python_version >= 300:
+            command = command.encode('ascii')
+        tmp.write(command)
+        tmp.flush()
 
-    _stdout, stderr = process.communicate()
+        process = subprocess.Popen(
+            args   = [sys.executable, "-s", "-S", "-v", tmp.name],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+        )
+        _stdout, stderr = process.communicate()
 
     # Don't let errors here go unnoticed.
-    assert process.returncode == 0
+    assert process.returncode == 0, stderr
 
     result = []
 
@@ -241,15 +247,13 @@ def _detectImports(command, is_late):
                     _detectedSourceFile(
                         filename     = filename,
                         module_name  = module_name,
-                        module_names = module_names,
                         result       = result,
                         is_late      = is_late
                     )
-                else:
+                elif not filename.endswith(b"<frozen>"):
                     _detectedShlibFile(
                         filename     = filename,
                         module_name  = module_name,
-                        module_names = module_names,
                         result       = result
                     )
             elif origin == b"dynamically":
@@ -260,7 +264,6 @@ def _detectImports(command, is_late):
                 _detectedShlibFile(
                     filename     = filename,
                     module_name  = module_name,
-                    module_names = module_names,
                     result       = result
                 )
 
@@ -290,19 +293,76 @@ def detectLateImports():
 
 
 def detectEarlyImports():
-    # TODO: Should recursively include all of encodings module.
-    command = "import encodings.utf_8;import encodings.ascii;"
+    if Options.freezeAllStdlib():
+        stdlib_modules = []
 
-    if Utils.getOS() == "Windows":
-        command += "import encodings.mbcs;import encodings.cp437;"
+        stdlib_dir = os.path.dirname(os.__file__)
+        ignore_modules = [
+            "__main__.py",
+            "__init__.py",
+            "antigravity.py",
+        ]
 
-    # String method hex depends on it.
-    if Utils.python_version < 300:
-        command += "import encodings.hex_codec;"
+        if os.name != "nt":
+            ignore_modules.append("wintypes.py")
+            ignore_modules.append("cp65001.py")
 
-    command += "import locale;"
+        for root, dirs, filenames in os.walk(stdlib_dir):
+            import_path = root[len(stdlib_dir):].strip('/\\')
+            if import_path == '':
+                if 'site-packages' in dirs:
+                    dirs.remove('site-packages')
+                if 'dist-packages' in dirs:
+                    dirs.remove('dist-packages')
+                if 'test' in dirs:
+                    dirs.remove('test')
+                if 'idlelib' in dirs:
+                    dirs.remove('idlelib')
+                if 'turtledemo' in dirs:
+                    dirs.remove('turtledemo')
 
-    result = _detectImports(command, False)
+            if import_path in ('tkinter', 'importlib'):
+                if 'test' in dirs:
+                    dirs.remove('test')
+
+            for filename in filenames:
+                if filename.endswith('.py') and filename not in ignore_modules:
+                    module_name = filename[:-3]
+                    if import_path == '':
+                        stdlib_modules.append(module_name)
+                    else:
+                        stdlib_modules.append(import_path + '.' + module_name)
+
+            if Utils.python_version >= 300:
+                if '__pycache__' in dirs:
+                    dirs.remove('__pycache__')
+
+            for dir in dirs:
+                if import_path == '':
+                    stdlib_modules.append(dir)
+                else:
+                    stdlib_modules.append(import_path + '.' + dir)
+
+        import_code = 'imports = ' + repr(sorted(stdlib_modules)) + '\n'\
+                      'for imp in imports:\n' \
+                      '    try:\n' \
+                      '        __import__(imp)\n' \
+                      '    except ImportError:\n' \
+                      '        pass\n'
+    else:
+        # TODO: Should recursively include all of encodings module.
+        import_code = "import encodings.utf_8;import encodings.ascii;"
+
+        if Utils.getOS() == "Windows":
+            import_code += "import encodings.mbcs;import encodings.cp437;"
+
+        # String method hex depends on it.
+        if Utils.python_version < 300:
+            import_code += "import encodings.hex_codec;"
+
+        import_code += "import locale;"
+
+    result = _detectImports(import_code, False)
     debug("Finished detecting early imports.")
 
     return result
@@ -406,7 +466,7 @@ def detectBinaryDLLs(binary_filename, package_name):
             dll_name = Utils.basename(dll_filename).upper()
 
             # Win API can be assumed.
-            if dll_name.startswith("API-MS-WIN"):
+            if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
                 continue
 
             if dll_name in ("SHELL32.DLL", "USER32.DLL", "KERNEL32.DLL",
@@ -450,7 +510,15 @@ def detectBinaryDLLs(binary_filename, package_name):
                 "LPK.DLL", "USP10.DLL", "CFGMGR32.DLL", "MSIMG32.DLL",
                 "POWRPROF.DLL", "SETUPAPI.DLL", "WINSTA.DLL", "CRYPT32.DLL",
                 "IPHLPAPI.DLL", "MPR.DLL", "CREDUI.DLL", "NETPLWIZ.DLL",
-                "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL"):
+                "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL",
+                "APPREPAPI.DLL", "BCP47LANGS.DLL", "BCRYPTPRIMITIVES.DLL",
+                "CERTCA.DLL", "CHARTV.DLL", "COMBASE.DLL", "DCOMP.DLL",
+                "DPAPI.DLL", "DSPARSE.DLL", "FECLIENT.DLL", "FIREWALLAPI.DLL",
+                "FLTLIB.DLL", "MRMCORER.DLL", "MSVCRT.DLL",
+                "NINPUT.DLL", "NTASN1.DLL", "PCACLI.DLL", "RTWORKQ.DLL",
+                "SECHOST.DLL", "SETTINGSYNCPOLICY.DLL", "SHCORE.DLL",
+                "TBS.DLL", "TWINAPI.DLL", "TWINAPI.APPCORE.DLL", "VIRTDISK.DLL",
+                "WEBSOCKET.DLL", "WEVTAPI.DLL", "WINMMBASE.DLL", "WMICLNT.DLL"):
                 continue
 
             result.add(dll_filename)

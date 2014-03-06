@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -70,13 +70,24 @@ import recursions, etc. fine. Default is %default."""
 )
 
 parser.add_option(
+    "--skip-optimizations-tests",
+    action  = "store_false",
+    dest    = "optimization_tests",
+    default = True,
+    help    = """\
+The optimization tests, execute these to check if Nuitka does optimize certain
+constructs fully away. Default is %default."""
+)
+
+parser.add_option(
     "--skip-standalone-tests",
     action  = "store_false",
     dest    = "standalone_tests",
-    default = os.name == "posix" and os.uname()[0] != "NetBSD",
+    default = os.name != "posix" or os.uname()[0] != "NetBSD",
     help    = """\
-The packages tests, execute these to check if Nuitka handles packages, e.g.
-import recursions, etc. fine. Default is %default."""
+The standalone tests, execute these to check if Nuitka standalone mode, e.g.
+not referring to outside, important 3rd library packages like PyQt fine.
+Default is %default."""
 )
 
 parser.add_option(
@@ -167,15 +178,6 @@ parser.add_option(
 Do not use Python3.3 even if available on the system. Default is %default."""
 )
 
-parser.add_option(
-    "--no-wine",
-    action  = "store_true",
-    dest    = "no_wine",
-    default = False,
-    help    = """\
-Do not use wine to cross compile. Default is %default."""
-)
-
 options, positional_args = parser.parse_args()
 
 if positional_args:
@@ -208,8 +210,6 @@ def checkExecutableCommand( command ):
     if command == "python3.2" and options.no32:
         return False
     if command == "python3.3" and options.no33:
-        return False
-    if command == "wine" and options.no_wine:
         return False
 
     # Shortcuts for python versions, also needed for Windows as it won't have
@@ -324,6 +324,15 @@ def execute_tests( where, use_python, flags ):
         print( "Running the package tests with options '%s' with %s:" % ( flags, use_python ) )
         setExtraFlags( where, "packages", flags )
         executeSubTest( "./tests/packages/run_all.py search" )
+
+    # At least one Debian Jessie, these versions won't have lxml installed, so
+    # don't run them there. Also these won't be very version dependent in their
+    # results.
+    if use_python != "python2.6" and use_python != "python3.2":
+        if options.optimization_tests:
+            print( "Running the optimizations tests with options '%s' with %s:" % ( flags, use_python ) )
+            setExtraFlags( where, "optimizations", flags )
+            executeSubTest( "./tests/optimizations/run_all.py search" )
 
     if options.standalone_tests:
         print( "Running the standalone tests with options '%s' with %s:" % ( flags, use_python ) )

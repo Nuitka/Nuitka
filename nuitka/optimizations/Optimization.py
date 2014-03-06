@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,7 @@ make others possible.
 
 from logging import debug
 
-from nuitka import ModuleRegistry, Options
+from nuitka import ModuleRegistry, Options, Utils
 from nuitka.Tracing import printLine
 
 from .ConstraintCollections import ConstraintCollectionModule
@@ -105,6 +105,9 @@ def optimizePythonModule(module):
 
     touched = False
 
+    if _progress:
+        memory_watch = Utils.MemoryWatch()
+
     while True:
         tag_set.clear()
 
@@ -117,6 +120,16 @@ def optimizePythonModule(module):
             break
 
         touched = True
+
+    if _progress:
+        memory_watch.finish()
+
+        printLine(
+            "Memory usage changed during optimization of '%s': %s" % (
+                module.getFullName(),
+                memory_watch.asStr()
+            )
+        )
 
     return touched
 
@@ -146,9 +159,10 @@ def optimize():
                 printLine(
                     """\
 Optimizing module '{module_name}', {remaining:d} more modules to go \
-after that.""".format(
+after that. Memory usage {memory}:""".format(
                         module_name = current_module.getFullName(),
-                        remaining   = ModuleRegistry.remainingCount()
+                        remaining   = ModuleRegistry.remainingCount(),
+                        memory      = Utils.getHumanReadableProcessMemoryUsage()
                     )
                 )
 

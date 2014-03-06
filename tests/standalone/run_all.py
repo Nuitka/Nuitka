@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Softwar where
@@ -77,7 +77,7 @@ for filename in sorted(os.listdir(".")):
             my_print("Skipping", filename, "not relevant.")
             continue
 
-        if not hasModule("PySide"):
+        if not hasModule("PySide.QtCore"):
             my_print(
                 "Skipping", filename, "PySide not installed for",
                 python_version, "but test needs it."
@@ -105,7 +105,25 @@ for filename in sorted(os.listdir(".")):
         # For the warnings.
         extra_flags.append( "ignore_stderr" )
 
-    if filename not in ("PySideUsing.py", "PyQtUsing.py"):
+    if filename == "GtkUsing.py":
+        # Don't test on platforms not supported by current Debian testing, and
+        # which should be considered irrelevant by now.
+        if python_version.startswith(b"2.6") or \
+           python_version.startswith(b"3.2"):
+            my_print("Skipping", filename, "not relevant.")
+            continue
+
+        if not hasModule("pygtk"):
+            my_print(
+                "Skipping", filename, "pygtk not installed for",
+                python_version, "but test needs it."
+            )
+            continue
+
+        # For the warnings.
+        extra_flags.append( "ignore_stderr" )
+
+    if filename not in ("PySideUsing.py", "PyQtUsing.py", "GtkUsing.py"):
         extra_flags += [
             "no_site"
         ]
@@ -161,6 +179,9 @@ for filename in sorted(os.listdir(".")):
             if loaded_filename.startswith("/usr/share/locale/"):
                 continue
 
+            if loaded_filename.startswith("/usr/share/X11/locale/"):
+                continue
+
             if loaded_filename.startswith("/lib/libdl.") or \
                loaded_filename.startswith("/lib64/libdl."):
                 continue
@@ -194,10 +215,30 @@ for filename in sorted(os.listdir(".")):
             if os.path.basename(loaded_filename) == "gconv-modules.cache":
                 continue
 
+            # PySide accesses its directory.
             if loaded_filename == "/usr/lib/python" + \
-	          python_version[:3].decode() + \
+               python_version[:3].decode() + \
                   "/dist-packages/PySide":
                 continue
+
+            # GTK accesses package directories only.
+            if loaded_filename == "/usr/lib/python" + \
+               python_version[:3].decode() + \
+                  "/dist-packages/gtk-2.0/gtk":
+                continue
+            if loaded_filename == "/usr/lib/python" + \
+               python_version[:3].decode() + \
+                  "/dist-packages/glib":
+                continue
+            if loaded_filename == "/usr/lib/python" + \
+               python_version[:3].decode() + \
+                  "/dist-packages/gtk-2.0/gio":
+                continue
+            if loaded_filename == "/usr/lib/python" + \
+               python_version[:3].decode() + \
+                  "/dist-packages/gobject":
+                continue
+
 
             loaded_basename = os.path.basename(loaded_filename).upper()
             # Windows baseline DLLs

@@ -1,4 +1,4 @@
-//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -18,7 +18,8 @@
 #ifndef __NUITKA_PRINTING_H__
 #define __NUITKA_PRINTING_H__
 
-// Helper functions for print. Need to play nice with Python softspace behaviour.
+// Helper functions for print. Need to play nice with Python softspace
+// behaviour.
 
 #include "nuitka/exceptions.hpp"
 

@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -288,3 +288,10 @@ for x in values:
         print "long", repr(x), long(x), long(x,2)
     except TypeError as e:
         print "caught", repr(e)
+
+
+z = range(5)
+try:
+    next(z)
+except TypeError as e:
+    print "caught", repr(e)

@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,7 @@ This is required to run the same code easily with both CPython2 and CPython3.
 """
 
 
-# pylint: disable=W0622
+# pylint: disable=W0622,C0103
 
 # Work around for CPython 3.x renaming long to int.
 try:

@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,11 +36,11 @@ from .Identifiers import (
 from ..__past__ import unicode, long, iterItems
 # pylint: enable=W0622
 
-from ..Constants import HashableConstant, constant_builtin_types, isMutable
+from ..Constants import constant_builtin_types, isMutable, compareConstants
 
 import re, struct
 
-stream_data = StreamData()
+stream_data = StreamData("constant_bin")
 
 def getConstantHandle(context, constant):
     return context.getConstantHandle(
@@ -431,17 +431,44 @@ def getConstantsInitCode(context):
         if statement not in statements:
             statements.append(statement)
 
-    for (constant_type, constant_value), constant_identifier in \
+    for constant_value, constant_identifier in \
           sorted(all_constants.items(), key = _lengthKey):
         _addConstantInitCode(
             emit                = receiveStatement,
-            constant_type       = constant_type,
+            constant_type       = type(constant_value.getConstant()),
             constant_value      = constant_value.getConstant(),
             constant_identifier = constant_identifier,
             context             = context
         )
 
     return statements
+
+
+class HashableConstant:
+    __slots__ = ["constant"]
+
+    def __init__(self, constant):
+        self.constant = constant
+
+    def getConstant(self):
+        return self.constant
+
+    def __hash__(self):
+        try:
+            # For Python3: range objects with same ranges give different hash
+            # values. It's not even funny, is it.
+            if type(self.constant) is range:
+                raise TypeError
+
+            return hash(self.constant)
+        except TypeError:
+            return 7
+
+    def __eq__(self, other):
+        assert isinstance(other, self.__class__)
+
+        return compareConstants(self.constant, other.constant)
+
 
 def getConstantsDeclCode(context, for_header):
     # There are many cases for constants of different types.
@@ -471,7 +498,7 @@ def getConstantsDeclCode(context, for_header):
         if constant_type is type:
             return
 
-        key = constant_type, HashableConstant(constant_value)
+        key = HashableConstant(constant_value)
 
         if key not in contained_constants:
             constant_identifier = getConstantCodeName(context, constant_value)
@@ -487,8 +514,10 @@ def getConstantsDeclCode(context, for_header):
                     considerForDeferral(value)
 
 
-    for (constant_type, constant_value), constant_identifier in \
+    for constant_value, constant_identifier in \
             sorted(constants.items(), key = _lengthKey):
+        constant_type = type(constant_value.getConstant())
+
         # Need not declare built-in types.
         if constant_type is type:
             continue

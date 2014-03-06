@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -364,6 +364,8 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
             package_name = package_name
         )
 
+        assert Utils.basename(source_ref.getFilename()) != "<frozen>"
+
     def getDetails(self):
         return {
             "name"         : self.name,
@@ -376,16 +378,25 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
     def startTraversal(self):
         pass
 
-
     def getImplicitImports(self):
-        if self.getFullName() == "PyQt4.QtCore":
+        full_name = self.getFullName()
+
+        if full_name == "PyQt4.QtCore":
             return (
                 ("atexit", None),
                 ("sip", None)
             )
-        elif self.getFullName() == "lxml.etree":
+        elif full_name == "lxml.etree":
             return (
                 ("gzip", None),
+            )
+        elif full_name == "gtk._gtk":
+            return (
+                ("pangocairo", None),
+                ("pango", None),
+                ("cairo", None),
+                ("gio", None),
+                ("atk", None),
             )
         else:
             return ()
@@ -410,7 +421,7 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
             elif module_filename.endswith(".pyd"):
                 module_kind = "shlib"
             else:
-                assert False
+                assert False, module_filename
 
             from nuitka.tree import Recursion
 
@@ -421,7 +432,7 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                 module_kind     = module_kind
             )
 
-            assert decision, reason
+            assert decision or reason == "Module is frozen."
 
             if decision:
                 module_relpath = Utils.relpath(module_filename)

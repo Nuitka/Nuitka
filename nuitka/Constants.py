@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -187,35 +187,10 @@ def getConstantIterationLength(constant):
     return len( constant )
 
 def isNumberConstant(constant):
-    return type( constant ) in ( int, long, float, bool )
+    return type(constant) in ( int, long, float, bool )
 
 def isIndexConstant(constant):
-    return type( constant ) in ( int, long, bool )
-
-class HashableConstant:
-    def __init__(self, constant):
-        self.constant = constant
-
-        try:
-            # For Python3: range objects with same ranges give different hash
-            # values. It's not even funny, is it.
-            if type( constant ) is range:
-                raise TypeError
-
-            self.hash = hash( constant )
-        except TypeError:
-            self.hash = 55
-
-    def getConstant(self):
-        return self.constant
-
-    def __hash__(self):
-        return self.hash
-
-    def __eq__(self, other):
-        assert isinstance( other, self.__class__ )
-
-        return compareConstants( self.constant, other.constant )
+    return type(constant) in ( int, long, bool )
 
 
 def createConstantDict(keys, values, lazy_order):

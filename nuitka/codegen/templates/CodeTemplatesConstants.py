@@ -1,4 +1,4 @@
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,8 +29,24 @@ PyObject *_sentinel_value = NULL;
 
 %(constant_declarations)s
 
+#if defined(_WIN32) && defined(_NUITKA_EXE)
+#include <Windows.h>
+const unsigned char* constant_bin;
+struct __initResourceConstants
+{
+    __initResourceConstants()
+    {
+        constant_bin = (const unsigned char*)LockResource(
+            LoadResource(
+                NULL,
+                FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)
+            )
+        );
+    }
+} __initResourceConstants_static_initializer;
+#else
 extern "C" const unsigned char constant_bin[];
-#define stream_data constant_bin
+#endif
 
 static void __initConstants( void )
 {

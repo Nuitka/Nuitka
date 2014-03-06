@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -63,10 +63,10 @@ def checkChangeLog(message):
     else:
         assert False, message # No new messages.
 
-if branch_name.startswith( "release" ) or \
+if branch_name.startswith("release") or \
    branch_name == "master" or \
-   branch_name.startswith( "hotfix/" ):
-    if nuitka_version.count( "." ) == 2:
+   branch_name.startswith("hotfix/"):
+    if nuitka_version.count(".") == 2:
         assert checkChangeLog("New upstream release.")
     else:
         assert checkChangeLog("New upstream hotfix release.")
@@ -155,7 +155,7 @@ assert 0 == os.system(
 )
 
 assert 0 == os.system(
-    "rm *.dsc *.debian.tar.gz"
+    "rm *.dsc *.debian.tar.[gx]z"
 )
 os.chdir(entry)
 
@@ -218,7 +218,7 @@ with open("conf/distributions","w") as output:
 Origin: Nuitka
 Label: Nuitka
 Codename: %(codename)s
-Architectures: i386 amd64 armel
+Architectures: i386 amd64 armel armhf powerpc
 Components: main
 Description: Apt repository for project Nuitka %(codename)s
 SignWith: 2912B99C
@@ -240,7 +240,7 @@ assert 0 == os.system(
     )
 )
 assert 0 == os.system(
-    "rsync -avz dists pool root@nuitka.net:/var/www/deb/%s/%s/" % (
+    "rsync -avz dists pool --chown www-data root@nuitka.net:/var/www/deb/%s/%s/" % (
         category,
         codename
     )
