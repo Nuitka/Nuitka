@@ -40,7 +40,7 @@ from ..Constants import constant_builtin_types, isMutable, compareConstants
 
 import re, struct
 
-stream_data = StreamData()
+stream_data = StreamData("constant_bin")
 
 def getConstantHandle(context, constant):
     return context.getConstantHandle(

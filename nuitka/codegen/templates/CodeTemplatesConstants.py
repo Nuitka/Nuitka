@@ -47,7 +47,6 @@ struct __initResourceConstants
 #else
 extern "C" const unsigned char constant_bin[];
 #endif
-#define stream_data constant_bin
 
 static void __initConstants( void )
 {

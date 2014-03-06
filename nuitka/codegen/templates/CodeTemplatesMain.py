@@ -480,8 +480,6 @@ extern const unsigned char* constant_bin;
 extern "C" const unsigned char constant_bin[];
 #endif
 
-#define stream_data constant_bin
-
 // These modules should be loaded as bytecode. They must e.g. be loadable
 // during "Py_Initialize" already, or for irrelevance, they are only included
 // in this un-optimized form. These are not compiled by Nuitka, and therefore
