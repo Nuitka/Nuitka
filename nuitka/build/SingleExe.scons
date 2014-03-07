@@ -916,10 +916,16 @@ source_targets = []
 if win_target:
     rc_content = []
 
+    # Which files to depend on.
+    rc_file_dependencies = []
+
     if not module_mode:
+
         rc_content.append(
             '3 RCDATA "%s"' % constants_bin_filename.replace( "\\", "/" )
         )
+
+        rc_file_dependencies.append(constants_bin_filename)
 
         if python_version < "3.3" and msvc_mode:
             manifest_filename = os.path.join(
@@ -943,12 +949,16 @@ if win_target:
                 "1 RT_MANIFEST resources.manifest"
             )
 
+            rc_file_dependencies.append(manifest_filename)
+
         if icon_path:
             rc_content.append(
                 '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"' % (
                     icon_path.replace( "\\", "/" )
                 )
             )
+
+            rc_file_dependencies.append(icon_path)
 
     rc_filename = os.path.join( source_dir, "resources.rc" )
 
@@ -961,8 +971,13 @@ if win_target:
     rc_file.write("\n".join(rc_content))
     rc_file.close()
 
+    res_target = env.RES(rc_filename)
+
+    for rc_file_dependency in rc_file_dependencies:
+        Depends(res_target, rc_file_dependency)
+
     source_targets.append(
-        env.RES(rc_filename)
+        res_target
     )
 
 source_files = discoverSourceFiles()
