@@ -1725,6 +1725,16 @@ void _initBuiltinModule()
     dict_builtin = (PyDictObject *)module_builtin->md_dict;
     assert( PyDict_Check( dict_builtin ) );
 
+#ifdef _NUITKA_STANDALONE
+    int res = PyDict_SetItemString(
+        (PyObject *)dict_builtin,
+        "__nuitka_binary_dir",
+        PyUnicode_FromString(getBinaryDirectory())
+    );
+
+    assert(res == 0);
+#endif
+
     // init Nuitka_BuiltinModule_Type, PyType_Ready wont copy all member from
     // base type, so we need copy all members from PyModule_Type manual for
     // safety.  PyType_Ready will change tp_flags, we need define it again. Set
@@ -1998,7 +2008,7 @@ char *getBinaryDirectory()
 extern void copyFrozenModulesTo(void* destination);
 #endif
 
-#if _NUITKA_STANDALONE
+#ifdef _NUITKA_STANDALONE
 extern PyObject *const_str_plain___file__;
 
 void setEarlyFrozenModulesFileAttribute( void )
