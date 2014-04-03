@@ -103,6 +103,42 @@ def loadCodeObjectData(precompiled_filename):
 
 module_names = set()
 
+def _detectedPrecompiledFile(filename, module_name, result, is_late):
+    if filename.endswith(".pyc"):
+        if os.path.exists(filename[:-1]):
+            return _detectedSourceFile(
+                filename    = filename[:-1],
+                module_name = module_name,
+                result      = result,
+                is_late     = is_late
+            )
+
+    if Utils.python_version >= 300:
+        filename = filename.decode("utf-8")
+
+    if module_name in module_names:
+        return
+
+    debug(
+        "Freezing module '%s' (from '%s').",
+        module_name,
+        filename
+    )
+
+    result.append(
+        (
+            module_name,
+            loadCodeObjectData(
+                precompiled_filename = filename
+            ),
+            "__init__" in filename,
+            filename,
+            is_late
+        ),
+    )
+
+    module_names.add(module_name)
+
 
 def _detectedSourceFile(filename, module_name, result, is_late):
     source_code = open(filename,"rb").read()
@@ -113,6 +149,13 @@ def _detectedSourceFile(filename, module_name, result, is_late):
 
     if module_name in module_names:
         return
+
+    if module_name == "site":
+        source_code = "__file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<xxxfrozen>';%s" % (
+            os.path.sep,
+            os.path.basename(filename),
+            source_code
+        )
 
     debug(
         "Freezing module '%s' (from '%s').",
@@ -215,31 +258,12 @@ def _detectImports(command, is_late):
                 # chance to do anything, we need to preserve it.
                 filename = parts[1][len(b"precompiled from "):]
 
-                if Utils.python_version >= 300:
-                    filename = filename.decode("utf-8")
-
-                if module_name in module_names:
-                    continue
-
-                debug(
-                    "Freezing module '%s' (from '%s').",
-                    module_name,
-                    filename
+                _detectedPrecompiledFile(
+                    filename     = filename,
+                    module_name  = module_name,
+                    result       = result,
+                    is_late      = is_late
                 )
-
-                result.append(
-                    (
-                        module_name,
-                        loadCodeObjectData(
-                            precompiled_filename = filename
-                        ),
-                        "__init__" in filename,
-                        filename,
-                        is_late
-                    ),
-                )
-
-                module_names.add(module_name)
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
 
