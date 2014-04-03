@@ -48,6 +48,14 @@ class NodeTreeModelItem:
                 self.node.getVisitableNodes()
             ]
 
+        if self.node.isPythonModule():
+            self.children.extend(
+                NodeTreeModelItem( child, self )
+                for child in
+                self.node.getFunctions()
+            )
+
+
         return self.children
 
     def child(self, row):
