@@ -27,6 +27,7 @@ from nuitka import PythonOperators
 
 import math
 
+
 class ExpressionOperationBase(ExpressionChildrenHavingBase):
     def __init__(self, operator, simulator, values, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -121,7 +122,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                         # otherwise, we will have to do it at runtime.
 
                         if left_value != 0 and right_value != 0:
-                            if math.log10( abs( left_value ) ) + math.log10( abs( right_value ) ) > 20:
+                            if math.log10(abs(left_value)) + math.log10(abs(right_value)) > 20:
                                 return self, None, None
 
             elif operator == "Mult" and left.isNumberConstant():

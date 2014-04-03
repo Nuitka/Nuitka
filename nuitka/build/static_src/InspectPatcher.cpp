@@ -163,7 +163,7 @@ void patchBuiltinModule()
 {
     assertObject( (PyObject *)module_builtin );
 
-    // Patch "inspect.isfunction" unless it is already patched.
+    // Patch "inspect.isinstance" unless it is already patched.
     PyObject *old_isinstance = PyObject_GetAttrString( (PyObject *)module_builtin, "isinstance" );
     assertObject( old_isinstance );
 

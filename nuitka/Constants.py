@@ -29,7 +29,7 @@ from .__past__ import long, unicode, iterItems
 from .Builtins import builtin_anon_names
 from .Utils import python_version
 
-NoneType = type( None )
+NoneType = type(None)
 
 def compareConstants(a, b):
     # Many many cases to deal with, pylint: disable=R0911,R0912
