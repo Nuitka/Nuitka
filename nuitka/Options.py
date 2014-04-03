@@ -191,7 +191,7 @@ dump_group = OptionGroup(
 )
 
 dump_group.add_option(
-    "--dump-xml",
+    "--dump-xml", "--xml",
     action  = "store_true",
     dest    = "dump_xml",
     default = False,
