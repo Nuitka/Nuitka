@@ -134,6 +134,7 @@ def _getAnonBuiltins():
         "compiled_function"          : BuiltinFunctionType,
         "generator"                  : GeneratorType,
         "compiled_generator"         : GeneratorType, # see above
+        "code"                       : type( _getAnonBuiltins.__code__ )
     }
 
     anon_codes = {
@@ -144,6 +145,7 @@ def _getAnonBuiltins():
         "builtin_function_or_method" : "&PyCFunction_Type",
         "compiled_function"          : "&Nuitka_Function_Type",
         "compiled_generator"         : "&Nuitka_Generator_Type",
+        "code"                       : "&PyCode_Type"
     }
 
     if Utils.python_version < 300:
