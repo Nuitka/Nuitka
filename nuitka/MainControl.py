@@ -602,6 +602,8 @@ def compileTree(main_module):
 
     return result, options
 
+data_files = []
+
 def main():
     """ Main program flow of Nuitka
 
@@ -632,6 +634,19 @@ def main():
     if Options.isStandaloneMode():
         for early_import in detectEarlyImports():
             addFrozenModule(early_import)
+
+            if early_import[0] == "site":
+                origin_prefix_filename = Utils.joinpath(
+                    Utils.dirname(early_import[3]),
+                    "orig-prefix.txt"
+                )
+
+                if Utils.isFile(origin_prefix_filename):
+                    global data_files
+
+                    data_files.append(
+                        (filename, "orig-prefix.txt")
+                    )
 
     # Turn that source code into a node tree structure.
     try:
@@ -704,6 +719,16 @@ def main():
 
                 if Options.isShowInclusion():
                     info("Included used shared library '%s'.", early_dll)
+
+        if Options.isStandaloneMode():
+            for source_filename, target_filename in data_files:
+                shutil.copy2(
+                    source_filename,
+                    Utils.joinpath(
+                        getStandaloneDirectoryPath(main_module),
+                        target_filename
+                    )
+                )
 
         # Modules should not be executable, but Scons creates them like it, fix
         # it up here.

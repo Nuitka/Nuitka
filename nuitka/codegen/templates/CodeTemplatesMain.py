@@ -159,7 +159,7 @@ int main( int argc, char *argv[] )
         assert ( _Py_Ticker >= 20 );
     }
 
-#if _NUITKA_STANDALONE
+#ifdef _NUITKA_STANDALONE
     setEarlyFrozenModulesFileAttribute();
 #endif
 
