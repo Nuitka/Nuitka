@@ -185,11 +185,21 @@ def getOwnProcessMemoryUsage():
                 ('PrivateUsage', ctypes.c_size_t),
             ]
 
+        GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo
+        GetProcessMemoryInfo.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(PROCESS_MEMORY_COUNTERS_EX),
+            wintypes.DWORD,
+        ]
+        GetProcessMemoryInfo.restype = wintypes.BOOL
+
         counters = PROCESS_MEMORY_COUNTERS_EX()
-        rv = ctypes.windll.psapi.GetProcessMemoryInfo(
-                 ctypes.windll.kernel32.GetCurrentProcess(),
-                 ctypes.byref(counters),
-                 ctypes.sizeof(counters))
+        rv = GetProcessMemoryInfo(
+            ctypes.windll.kernel32.GetCurrentProcess(),
+            ctypes.byref(counters),
+            ctypes.sizeof(counters)
+        )
+
         if not rv:
             raise ctypes.WinError()
 
