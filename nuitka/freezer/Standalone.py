@@ -64,7 +64,7 @@ and put it in APPDATA (no installer needed, cached, one time question)."""
         if reply.lower() in ("no", "n"):
             sys.exit("Nuitka does not work in --standalone on Windows without.")
 
-        info("Downloading", depends_url)
+        info("Downloading '%s'" % depends_url)
 
         urlretrieve(
             depends_url,
@@ -85,11 +85,25 @@ and put it in APPDATA (no installer needed, cached, one time question)."""
     )
 
     if not Utils.isFile(depends_exe):
-        info("Extracting", depends_exe)
+        info("Extracting to '%s'" % depends_exe)
 
         import zipfile
-        depends_zip = zipfile.ZipFile(nuitka_depends_zip)
-        depends_zip.extractall(nuitka_depends_dir)
+
+        try:
+            depends_zip = zipfile.ZipFile(nuitka_depends_zip)
+            depends_zip.extractall(nuitka_depends_dir)
+        except Exception:
+            info("Problem with the downloaded zip file, deleting it.")
+
+            Utils.deleteFile(depends_exe, must_exist = False)
+            Utils.deleteFile(nuitka_depends_zip, must_exist = True)
+
+            sys.exit(
+                "Error, need '%s' as extracted from '%s'." % (
+                    depends_exe,
+                    depends_url
+                )
+            )
 
     assert Utils.isFile(depends_exe)
 
