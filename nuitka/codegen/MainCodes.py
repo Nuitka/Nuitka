@@ -82,7 +82,7 @@ def getMainCode(codes, context):
             if hasattr( sys.flags, "unicode" ) else 0 ),
         "python_sysflag_bytes_warning" : sys.flags.bytes_warning,
         "python_sysflag_hash_randomization" : ( sys.flags.hash_randomization
-            if hasattr( sys.flags, "hash_randomization" )  and "no_randomization" not in python_flags else 0 ),
+            if (hasattr( sys.flags, "hash_randomization" ) and "no_randomization" not in python_flags) else 0 ),
         "code_identifier"      : code_identifier.getCodeTemporaryRef()
     }
 
