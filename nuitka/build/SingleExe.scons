@@ -646,6 +646,25 @@ if gcc_mode and "linux" in sys.platform:
                 ]
             )
 
+# For venv of Python3.3, it seems necessary to find things at a higher
+if os.name != "nt" and python_version >= "3.3" and \
+    os.path.exists(os.path.join(python_prefix, "bin/activate")):
+
+    python_binary = os.path.join(python_prefix, "bin", "python")
+    while os.path.islink(python_binary):
+        python_binary = os.path.join(
+            os.path.join(python_prefix, "bin"),
+            os.readlink(python_binary)
+        )
+
+    python_prefix = os.path.normpath(
+        os.path.join(
+            python_binary,
+            "..",
+            ".."
+        )
+    )
+
 if os.name == "nt":
     # On Windows, the installation layout is relatively fixed.
     python_header_path = os.path.join(python_prefix, "include")
