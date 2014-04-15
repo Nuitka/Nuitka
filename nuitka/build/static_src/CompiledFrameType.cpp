@@ -173,10 +173,10 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
     { NULL }
 };
 
+
 static void Nuitka_Frame_tp_dealloc( Nuitka_FrameObject *nuitka_frame )
 {
     Nuitka_GC_UnTrack( nuitka_frame );
-    Py_TRASHCAN_SAFE_BEGIN( nuitka_frame )
 
     PyFrameObject *frame = &nuitka_frame->m_frame;
 
@@ -206,8 +206,6 @@ static void Nuitka_Frame_tp_dealloc( Nuitka_FrameObject *nuitka_frame )
     Py_CLEAR( frame->f_exc_traceback );
 
     PyObject_GC_Del( nuitka_frame );
-
-    Py_TRASHCAN_SAFE_END( nuitka_frame )
 }
 
 static int Nuitka_Frame_tp_traverse( PyFrameObject *frame, visitproc visit, void *arg )
