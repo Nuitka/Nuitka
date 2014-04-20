@@ -557,7 +557,7 @@ if debug_mode:
         env.Append(
             CCFLAGS = [
                 "/W4", "/wd4505", "/wd4127", "/wd4100", "/wd4702", "/wd4189",
-                "/wd4211"
+                "/wd4211", "/WX"
             ]
         )
 
