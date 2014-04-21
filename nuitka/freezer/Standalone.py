@@ -104,7 +104,7 @@ def loadCodeObjectData(precompiled_filename):
 module_names = set()
 
 def _detectedPrecompiledFile(filename, module_name, result, is_late):
-    if filename.endswith(".pyc"):
+    if filename.endswith(b".pyc"):
         if os.path.exists(filename[:-1]):
             return _detectedSourceFile(
                 filename    = filename[:-1],
