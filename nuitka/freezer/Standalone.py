@@ -38,8 +38,6 @@ def getDependsExePath():
     else:
         depends_url = "http://dependencywalker.com/depends22_x64.zip"
 
-    import urllib
-
     if "APPDATA" not in os.environ:
         sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
 
@@ -92,7 +90,7 @@ and put it in APPDATA (no installer needed, cached, one time question)."""
         try:
             depends_zip = zipfile.ZipFile(nuitka_depends_zip)
             depends_zip.extractall(nuitka_depends_dir)
-        except Exception:
+        except Exception: # Catching anything zip throws, pylint:disable=W0703
             info("Problem with the downloaded zip file, deleting it.")
 
             Utils.deleteFile(depends_exe, must_exist = False)
@@ -193,7 +191,7 @@ def _detectedSourceFile(filename, module_name, result, is_late):
     module_names.add(module_name)
 
 
-def _detectedShlibFile(filename, module_name, result):
+def _detectedShlibFile(filename, module_name):
     if Utils.python_version >= 300:
         filename = filename.decode("utf-8")
 
@@ -292,8 +290,7 @@ def _detectImports(command, is_late):
                 elif not filename.endswith(b"<frozen>"):
                     _detectedShlibFile(
                         filename     = filename,
-                        module_name  = module_name,
-                        result       = result
+                        module_name  = module_name
                     )
             elif origin == b"dynamically":
                 # Shared library in early load, happens on RPM based systems and
@@ -301,9 +298,8 @@ def _detectImports(command, is_late):
                 filename = parts[1][len(b"dynamically loaded from "):]
 
                 _detectedShlibFile(
-                    filename     = filename,
-                    module_name  = module_name,
-                    result       = result
+                    filename    = filename,
+                    module_name = module_name
                 )
 
     return result
