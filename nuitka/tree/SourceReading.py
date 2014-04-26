@@ -107,7 +107,7 @@ def _readSourceCodeFromFilename2(source_filename):
         # Try and detect SyntaxError from missing or wrong encodings.
         if type(source_code) is not unicode and encoding == "ascii":
             try:
-                source_code = source_code.decode(encoding)
+                _source_code = source_code.decode(encoding)
             except UnicodeDecodeError as e:
                 lines = source_code.split("\n")
                 so_far = 0
