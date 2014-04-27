@@ -109,7 +109,7 @@ PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
     // Set the __builtins__ in globals, it is expected to be present.
     if ( PyDict_GetItem( globals, const_str_plain___builtins__ ) == NULL )
     {
-        if ( PyDict_SetItem( globals, const_str_plain___builtins__, (PyObject *)module_builtin ) == -1 )
+        if ( PyDict_SetItem( globals, const_str_plain___builtins__, (PyObject *)builtin_module ) == -1 )
         {
             return NULL;
         }
@@ -1809,7 +1809,7 @@ PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *valu
 }
 
 PyDictObject *dict_builtin = NULL;
-PyModuleObject *module_builtin = NULL;
+PyModuleObject *builtin_module = NULL;
 
 #define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( const_str_plain_##name );
 
@@ -1886,18 +1886,18 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 void _initBuiltinModule()
 {
 #if _NUITKA_MODULE
-    if ( module_builtin ) return;
+    if ( builtin_module ) return;
 #else
-    assert( module_builtin == NULL );
+    assert( builtin_module == NULL );
 #endif
 
 #if PYTHON_VERSION < 300
-    module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
+    builtin_module = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
 #else
-    module_builtin = (PyModuleObject *)PyImport_ImportModule( "builtins" );
+    builtin_module = (PyModuleObject *)PyImport_ImportModule( "builtins" );
 #endif
-    assert( module_builtin );
-    dict_builtin = (PyDictObject *)module_builtin->md_dict;
+    assert( builtin_module );
+    dict_builtin = (PyDictObject *)builtin_module->md_dict;
     assert( PyDict_Check( dict_builtin ) );
 
 #ifdef _NUITKA_STANDALONE
@@ -1933,8 +1933,8 @@ void _initBuiltinModule()
     assert( ret == 0 );
 
     // Replace type of builtin module to take over.
-    ((PyObject *)module_builtin)->ob_type = &Nuitka_BuiltinModule_Type;
-    assert( PyModule_Check( module_builtin ) == 1 );
+    ((PyObject *)builtin_module)->ob_type = &Nuitka_BuiltinModule_Type;
+    assert( PyModule_Check( builtin_module ) == 1 );
 }
 
 

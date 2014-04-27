@@ -20,7 +20,7 @@
 
 #include "__helpers.hpp"
 
-extern PyModuleObject *module_builtin;
+extern PyModuleObject *builtin_module;
 extern PyDictObject *dict_builtin;
 
 #include "nuitka/calling.hpp"

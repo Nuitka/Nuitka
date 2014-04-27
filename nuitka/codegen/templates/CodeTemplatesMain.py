@@ -339,7 +339,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     if ( PyDict_GetItem( module_dict, const_str_plain___builtins__ ) == NULL )
     {
-        PyObject *value = ( PyObject *)module_builtin;
+        PyObject *value = (PyObject *)builtin_module;
 
 #ifdef _NUITKA_EXE
         if ( module_%(module_identifier)s != module___main__ )
