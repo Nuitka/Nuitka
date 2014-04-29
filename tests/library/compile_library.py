@@ -30,29 +30,35 @@ if start_at:
 else:
     active = True
 
-os_path = os.path.normcase( os.path.dirname( os.__file__  ) )
+os_path = os.path.normcase(os.path.dirname( os.__file__  ))
 
 print "Using standard library path", os_path
 
 try:
     import numpy
 
-    extra_path = os.path.normcase( os.path.dirname( os.path.dirname( numpy.__file__  ) ) )
+    extra_path = os.path.normcase(
+        os.path.dirname(
+            os.path.dirname(
+                numpy.__file__
+            )
+        )
+    )
 
     print "Using extra library path", extra_path
 except ImportError:
     extra_path = os_path
 
-os_path = os.path.normpath( os_path )
-extra_path = os.path.normpath( extra_path )
+os_path = os.path.normpath(os_path)
+extra_path = os.path.normpath(extra_path)
 
 tmp_dir = tempfile.gettempdir()
 
 # Try to avoid RAM disk /tmp and use the disk one instead.
-if tmp_dir == "/tmp" and os.path.exists( "/var/tmp" ):
+if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
     tmp_dir = "/var/tmp"
 
-stage_dir = os.path.join( tmp_dir, "compile_library" )
+stage_dir = os.path.join(tmp_dir, "compile_library")
 
 blacklist = (
     "__phello__.foo.py", # Triggers error for "." in module name
@@ -61,16 +67,18 @@ blacklist = (
 def compilePath( path ):
     global active
 
-    for root, dirnames, filenames in os.walk( path ):
+    for root, dirnames, filenames in os.walk(path):
         dirnames.sort()
 
-        filenames = [ filename for filename in filenames if filename.endswith( ".py" ) and not filename in blacklist ]
+        filenames = [
+            filename
+            for filename in filenames
+            if filename.endswith(".py")
+            if not filename in blacklist
+        ]
 
-        if not filenames:
-            continue
-
-        for filename in sorted( filenames ):
-            path = os.path.join( root, filename )
+        for filename in sorted(filenames):
+            path = os.path.join(root, filename)
 
             if not active and start_at in ( filename, path ):
                 active = True
@@ -88,14 +96,21 @@ def compilePath( path ):
                 "--remove-output"
             ]
 
-            command += os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ).split()
+            command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
-            command.append( path )
+            command.append(path)
             print path
 
-            subprocess.check_call( command )
+            subprocess.check_call(command)
 
-            os.unlink( os.path.join( stage_dir, os.path.basename( path ).replace( ".py", ".so" ) ) )
+            target_filename = os.path.basename(path).replace(".py",".so")
+            target_filename = target_filename.replace("(","").replace(")","")
+
+            os.unlink(
+                os.path.join(
+                    stage_dir, target_filename
+                )
+            )
 
 compilePath( os_path )
 

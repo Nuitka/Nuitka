@@ -415,8 +415,6 @@ class NodeBase(NodeMetaClassBase):
 class CodeNodeBase(NodeBase):
     def __init__(self, name, code_prefix, source_ref):
         assert name is not None
-        assert " " not in name, name
-        assert "<" not in name, name
 
         NodeBase.__init__( self, source_ref = source_ref )
 

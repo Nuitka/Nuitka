@@ -266,9 +266,13 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         main_filename = self.getFilename()
 
         if main_filename.endswith(".py"):
-            return main_filename[:-3]
+            result = main_filename[:-3]
         else:
-            return main_filename
+            result = main_filename
+
+        # There are some characters that somehow are passed to shell, by
+        # Scons or unknown, so lets avoid them for now.
+        return result.replace(")","").replace("(","")
 
     # TODO: Can't really use locals for modules, this should probably be made
     # sure to not be used.

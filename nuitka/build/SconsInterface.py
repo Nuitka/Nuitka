@@ -155,4 +155,4 @@ def runScons(options, quiet):
     if Options.isShowScons():
         Tracing.printLine("Scons command:", " ".join(scons_command))
 
-    return 0 == subprocess.call(scons_command)
+    return 0 == subprocess.call(scons_command, shell = False)

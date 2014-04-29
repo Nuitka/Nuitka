@@ -186,12 +186,15 @@ else:
     if filename.endswith(".py"):
         exe_filename = exe_filename[:-3]
 
+    exe_filename = exe_filename.replace(")","").replace("(","")
     exe_filename += ".exe"
 
     nuitka_cmd2 = [
         os.path.join(output_dir, exe_filename)
     ]
 
+if trace_command:
+    print("CPython command:", *cpython_cmd )
 
 process = subprocess.Popen(
     args   = cpython_cmd,
