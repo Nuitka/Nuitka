@@ -78,6 +78,9 @@ def compilePath( path ):
         ]
 
         for filename in sorted(filenames):
+            if "(" in filename:
+                continue
+
             path = os.path.join(root, filename)
 
             if not active and start_at in ( filename, path ):
