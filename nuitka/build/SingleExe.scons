@@ -568,12 +568,6 @@ if debug_mode:
             CCFLAGS = ["-Wno-sequence-point"]
         )
 
-    # Benefit from clang checking memory accesses.
-    if "clang" in env[ "CXX" ] and clang_version >= 330:
-        env.Append(
-            CCFLAGS = ["-fsanatize=address,bounds,return"]
-        )
-
 if full_compat_mode:
     env.Append(
         CPPDEFINES = ["_NUITKA_FULL_COMPAT"]
