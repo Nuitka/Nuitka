@@ -559,6 +559,37 @@ def detectBinaryDLLs(binary_filename, package_name):
             result.add(dll_filename)
 
         os.unlink(binary_filename + ".depends")
+    elif Utils.getOS() == "Darwin":
+        # print "Darwin", binary_filename
+        process = subprocess.Popen(
+            args   = [
+                "otool",
+                "-L",
+                binary_filename
+            ],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE
+        )
+
+        stdout, _stderr = process.communicate()
+        sysstops = [b"/usr/lib/", b"/System/Library/Frameworks/"]
+        for line in stdout.split(b"\n"):
+            if not line:
+                continue
+
+            if line.startswith(b"\t"):
+                filename = line.split(b" (")[0].strip()
+                stop = False
+                for w in sysstops:
+                    if filename.startswith(w):
+                        stop = True
+                        break
+                if not stop:
+                    if Utils.python_version >= 300:
+                        filename = filename.decode("utf-8")
+
+                    # print "adding", filename
+                    result.add(filename)
     else:
         # Support your platform above.
         assert False, Utils.getOS()
