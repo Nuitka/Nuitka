@@ -25,6 +25,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 filename = sys.argv[1]
 args     = sys.argv[2:]
@@ -397,7 +398,7 @@ def compareOutput(kind, out_cpython, out_nuitka):
         makeDiffable(out_cpython),
         makeDiffable(out_nuitka),
         "{program} ({detail})".format(
-            program = os.environ[ "PYTHON" ],
+            program = os.environ["PYTHON"],
             detail  = kind
         ),
         "{program} ({detail})".format(
@@ -459,7 +460,17 @@ if remove_output:
                 # likely because --execute spawns a subprocess that might still
                 # be doing the cleanup work.
                 os.rename(nuitka_cmd2[0], nuitka_cmd2[0]+".away")
-                os.unlink(nuitka_cmd2[0]+".away")
+                for i in range(10):
+                    try:
+                        os.unlink(nuitka_cmd2[0]+".away")
+                    except OSError:
+                        time.sleep(2)
+                        continue
+                    else:
+                        break
+
+                assert not os.path.exists(nuitka_cmd2[0]+".away")
+
             else:
                 os.unlink(nuitka_cmd2[0])
     else:
