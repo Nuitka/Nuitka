@@ -794,8 +794,9 @@ if optimize_mode:
 
 
 # Set load libpython from binary directory default
-if standalone_mode and gcc_mode:
-    env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
+if standalone_mode and gcc_mode and sys.platform != "darwin":
+    env.Append(
+        LINKFLAGS = ["-Wl,-R,'$$ORIGIN'"])
 
 def getLinkerArch():
     if "linux" in sys.platform:
@@ -1030,13 +1031,13 @@ else:
 # Avoid IO for compilation as much as possible, this should make the
 # compilation more memory hungry, but also faster.
 if gcc_mode:
-    env.Append( CCFLAGS = "-pipe" )
+    env.Append(CCFLAGS = "-pipe")
 
 if "CCFLAGS" in os.environ:
-    env.Append(CCFLAGS = os.environ[ "CCFLAGS" ].split())
+    env.Append(CCFLAGS = os.environ["CCFLAGS"].split())
 
 if "LDFLAGS" in os.environ:
-    env.Append(LINKFLAGS = os.environ[ "LDFLAGS" ].split())
+    env.Append(LINKFLAGS = os.environ["LDFLAGS"].split())
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild
 # and then lingers from previous builds,
