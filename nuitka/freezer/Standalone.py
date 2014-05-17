@@ -164,7 +164,7 @@ def _detectedSourceFile(filename, module_name, result, is_late):
         return
 
     if module_name == "site":
-        source_code = "__file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<xxxfrozen>';%s" % (
+        source_code = "__file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s" % (
             os.path.sep,
             os.path.basename(filename),
             source_code
