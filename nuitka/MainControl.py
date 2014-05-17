@@ -45,6 +45,7 @@ from .optimizations import Optimization
 from .finalizations import Finalization
 
 from nuitka.freezer.Standalone import (
+    fixupBinaryDLLPaths,
     detectEarlyImports,
     detectLateImports,
     detectUsedDLLs
@@ -693,6 +694,8 @@ def main():
             if Utils.getOS() == "NetBSD":
                 warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
 
+            dll_map = []
+
             for early_dll in detectUsedDLLs(standalone_entry_points):
                 shutil.copy(
                     early_dll,
@@ -702,8 +705,17 @@ def main():
                     )
                 )
 
+                dll_map.append(
+                    (early_dll, Utils.basename(early_dll))
+                )
+
                 if Options.isShowInclusion():
                     info("Included used shared library '%s'.", early_dll)
+
+            if Utils.getOS() == "Darwin":
+                # For MacOS, the binary needs to be changed to reflect the DLL
+                # location in the dist folder.
+                fixupBinaryDLLPaths(binary_filename, dll_map)
 
         if Options.isStandaloneMode():
             for source_filename, target_filename in data_files:

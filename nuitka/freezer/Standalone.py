@@ -609,3 +609,29 @@ def detectUsedDLLs(standalone_entry_points):
         )
 
     return result
+
+def fixupBinaryDLLPaths(binary_filename, dll_map):
+    """ For MacOS, the binary needs to be told to use relative DLL paths """
+
+    command = [
+        "install_name_tool"
+    ]
+
+    for original_path, dist_path in dll_map:
+        command += [
+            "-change",
+            original_path,
+            "@executable_path/" + dist_path,
+        ]
+
+    command.append(binary_filename)
+
+    process = subprocess.Popen(
+        args   = command,
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE,
+    )
+    _stdout, _stderr = process.communicate()
+
+    # Don't let errors here go unnoticed.
+    assert process.returncode == 0, _stderr
