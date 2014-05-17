@@ -1,3 +1,59 @@
+Nuitka Release 0.5.2 (Draft)
+============================
+
+This is a major release, with huge changes to code generation that improve
+performance in a significant way.
+
+Bug Fixes
+---------
+
+- Windows: The resource files were cached by Scons and re-used, even if the
+  input changed. The could lead to corrupted incremental builds. `Issue#129
+  <http://bugs.nuitka.net/issue129>`__. Fixed in 0.5.1.1 already.
+
+- Windows: For functions with too many local variables, the MSVC failed with an
+  error "C1026: parser stack overflow, program too complex". The rewritten code
+  generation doesn't burden the compiler as much. `Issue#127
+  <http://bugs.nuitka.net/issue127>`__.
+
+- Compatibility: The timing deletion of nested call arguments was different from
+  C++. This shortcoming has been addressed in the rewritten code
+  generation. `Issue#62 <http://bugs.nuitka.net/issue62>`__.
+
+- Compatibility: The ``__future__`` flags and ``CO_FREECELL`` were not present
+  in frame flags. These were then not always properly inherited to ``eval`` and
+  ``exec`` in all cases.
+
+- Compatibility: Compiled frames for Python3 had ``f_restricted`` attribute,
+  which is Python2 only. Removed it.
+
+- Compatibility: The ``SyntaxError`` of having a ``continue`` in a finally
+  clause is now properly raised.
+
+- Python2: The ``exec`` statement with no locals argument provided, was
+  preventing list contractions to take closure variables.
+
+- Python2: Having the ASCII encoding declared in a module wasn't working.
+
+- Standalone: Included the ``idna`` encoding as well. `Issue#135
+  <http://bugs.nuitka.net/issue135>`__.
+
+- Standalone: For virtualenv, the file ``orig-prefix.txt`` needs to be present,
+  now it's copied into the "dist" directory as well. `Issue#126
+  <http://bugs.nuitka.net/issue126>`__. Fixed in 0.5.1.1 already.
+
+
+Organizational
+--------------
+
+- Replying to emails of the issue tracker works now.
+
+Summary
+-------
+
+This release is not done yet.
+
+
 Nuitka Release 0.5.1
 ====================
 
