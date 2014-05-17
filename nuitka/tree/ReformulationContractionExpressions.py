@@ -341,7 +341,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             source_ref = source_ref
         )
 
-        if len( conditions ) == 1:
+        if len(conditions) == 1:
             loop_statements.append(
                 StatementConditional(
                     condition  = conditions[0],
@@ -405,7 +405,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         statements.append(
             StatementReturn(
                 expression = ExpressionTempVariableRef(
-                    variable   = container_tmp.makeReference( function_body ),
+                    variable   = container_tmp.makeReference(function_body),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref

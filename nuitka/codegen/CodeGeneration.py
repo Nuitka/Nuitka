@@ -403,7 +403,6 @@ def generateConditionCode(condition, emit, context, inverted = False,
 
         Generator.getErrorExitBoolCode(
             condition = "%s == -1" % truth_name,
-            quick_exception = None,
             emit      = emit,
             context   = context
         )

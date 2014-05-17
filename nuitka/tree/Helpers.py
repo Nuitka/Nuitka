@@ -43,14 +43,14 @@ from logging import warning
 import ast
 
 def dump(node):
-    Tracing.printLine( ast.dump( node ) )
+    Tracing.printLine(ast.dump(node))
 
 def getKind(node):
     return node.__class__.__name__.split(".")[-1]
 
 def extractDocFromBody(node):
     # Work around ast.get_docstring breakage.
-    if len( node.body ) > 0 and getKind( node.body[0] ) == "Expr" and getKind( node.body[0].value ) == "Str":
+    if len(node.body) > 0 and getKind(node.body[0]) == "Expr" and getKind(node.body[0].value) == "Str":
         return node.body[1:], node.body[0].value.s
     else:
         return node.body, None

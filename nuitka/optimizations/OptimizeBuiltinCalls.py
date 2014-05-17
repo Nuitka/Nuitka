@@ -904,14 +904,14 @@ _dispatch_dict = {
 }
 
 if python_version < 300:
-    _dispatch_dict[ "long" ] = long_extractor
-    _dispatch_dict[ "unicode" ] = unicode_extractor
-    _dispatch_dict[ "execfile" ] = execfile_extractor
+    _dispatch_dict["long"] = long_extractor
+    _dispatch_dict["unicode"] = unicode_extractor
+    _dispatch_dict["execfile"] = execfile_extractor
 
     # The handling of 'open' built-in for Python3 is not yet correct.
-    _dispatch_dict[ "open" ] = open_extractor
+    _dispatch_dict["open"] = open_extractor
 else:
-    _dispatch_dict[ "exec" ] = exec_extractor
+    _dispatch_dict["exec"] = exec_extractor
 
 def check():
     from nuitka.Builtins import builtin_names

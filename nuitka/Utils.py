@@ -130,11 +130,13 @@ def callExec(args):
     # On Windows os.execl does not work properly
     if getOS() != "Windows":
         # The star arguments is the API of execl, pylint: disable=W0142
-        os.execl( *args )
+        os.execl(*args)
     else:
-        args = list( args )
+        args = list(args)
         del args[1]
-        sys.exit( subprocess.call( args ) )
+        sys.exit(
+            subprocess.call(args)
+        )
 
 def encodeNonAscii(var_name):
     """ Encode variable name that is potentially not ASCII to ASCII only.

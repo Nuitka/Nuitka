@@ -19,10 +19,10 @@
 import tempfile, sys, os
 
 print "eval 3+3=", eval("3+3")
-print "eval  3+3=", eval(" 3+3")
+print "eval  4+4=", eval(" 4+4")
 
 def functionEval1():
-    return eval(" 3+3")
+    return eval(" 5+5")
 
 print "eval in a function with nothing provided", functionEval1()
 
