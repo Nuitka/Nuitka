@@ -649,7 +649,10 @@ if gcc_mode and "linux" in sys.platform:
 
 if os.name != "nt" and os.path.islink(os.path.join(python_prefix, ".Python")):
     # Some virtualenv, at least on MacOS, have such handy links.
-    python_prefix = os.path.readlink(os.path.join(python_prefix,".Python"))
+    python_prefix = os.path.join(
+        os.readlink(os.path.join(python_prefix,".Python")),
+        ".."
+    )
 elif os.name != "nt" and python_version >= "3.3" and \
      os.path.exists(os.path.join(python_prefix, "bin/activate")):
     # For venv of Python3.3, it seems necessary to find things at a higher
