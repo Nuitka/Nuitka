@@ -2103,6 +2103,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 #include <Shlwapi.h>
 #elif defined(__APPLE__)
 #include <mach-o/dyld.h>
+#include <libgen.h>
 #else
 #include <libgen.h>
 #endif
@@ -2125,7 +2126,7 @@ char *getBinaryDirectory()
         return binary_directory;
     }
 
-#if defined( _WIN32 )
+#if defined(_WIN32)
     GetModuleFileName( NULL, binary_directory, PATH_MAX + 1 );
     PathRemoveFileSpec( binary_directory );
 #elif defined(__APPLE__)
@@ -2136,6 +2137,11 @@ char *getBinaryDirectory()
     {
         abort();
     }
+
+    // On MacOS, dirname creates a separate internal string, we can safely
+    // copy back.
+    strncpy(binary_directory, dirname(binary_directory), PATH_MAX + 1);
+
 #elif defined( __FreeBSD__ )
     int mib[4];
     mib[0] = CTL_KERN;
