@@ -461,6 +461,18 @@ def raiseOrderCheck():
     except Exception as e:
         print "caught", repr(e)
 
+def callOrderCheck():
+    print("Checking order of nested call arguments:")
+
+    class A:
+        def __del__(self):
+            print "Doing del A()"
+    def check(obj):
+        print "Outer function"
+    def p(obj):
+        print "Inner function"
+
+    check(p(A()))
 
 dictOrderCheck()
 listOrderCheck()
@@ -487,3 +499,4 @@ nextOrderCheck()
 longOrderCheck()
 intOrderCheck()
 raiseOrderCheck()
+callOrderCheck()
