@@ -445,3 +445,51 @@ def popIndicatorVariable():
 
 def pushIndicatorVariable(indicator_variable):
     indicator_variables.append(indicator_variable)
+
+
+later = []
+
+def wrapTryFinallyLater(node, final):
+    later.append(
+        (node, final)
+    )
+
+def applyLaterWrappers():
+    for node, final in later:
+        parent = node.getParent()
+
+        # Skip over nodes, that current have a difficulty with being wrapped
+        # TODO: This must not be necessary, and is a broken thing then, if one
+        # node, must have a child of specific kind.
+        while parent.isExpressionKeyValuePair():
+            parent = parent.getParent()
+
+        if parent.isExpression():
+            # Replacement wrapper node, with no expression initially, to not
+            # reparent already.
+            new_node = makeTryFinallyExpression(
+                expression = None, # see below
+                tried      = None,
+                final      = final,
+                source_ref = final.getSourceReference()
+            )
+            parent.replaceWith(new_node)
+            new_node.setExpression(parent)
+
+            assert parent.parent.isExpressionTryFinally()
+        elif parent.isStatement():
+            # Replacement wrapper node, with no tried initially, to not
+            # reparent already.
+            new_node = makeTryFinallyStatement(
+                tried      = None, # see below
+                final      = final,
+                source_ref = final.getSourceReference()
+            )
+            parent.replaceWith(new_node)
+            new_node.setBlockTry(
+                makeStatementsSequenceFromStatement(parent)
+            )
+        else:
+            assert False, parent
+
+    del later[:]

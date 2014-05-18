@@ -19,8 +19,6 @@
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.ConditionalNodes import ExpressionConditional
 
-from nuitka.nodes.TryNodes import ExpressionTryFinally
-
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
@@ -32,11 +30,13 @@ from nuitka.nodes.VariableRefNodes import (
 )
 
 from .Helpers import (
-    makeStatementsSequence,
+    makeTryFinallyExpression,
+    wrapTryFinallyLater,
     buildNodeList,
     buildNode,
     getKind
 )
+
 
 def buildBoolOpNode(provider, node, source_ref):
     bool_op = getKind( node.op )
@@ -87,18 +87,47 @@ def buildOrNode(provider, values, source_ref):
         )
         count += 1
 
-        tried = [
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
+        tried = StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = keeper_variable.makeReference(provider),
+                source_ref = source_ref
+            ),
+            source       = values[-1],
+            source_ref   = source_ref,
+        )
+
+        result = makeTryFinallyExpression(
+            tried      = tried,
+            final      = None,
+            expression = ExpressionConditional(
+                condition      = ExpressionTempVariableRef(
                     variable   = keeper_variable.makeReference(provider),
                     source_ref = source_ref
                 ),
-                source       = values[-1],
-                source_ref   = source_ref,
-            )
-        ]
+                yes_expression  = ExpressionTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                no_expression   = makeTryFinallyExpression(
+                    expression = result,
+                    final      = None,
+                    tried      = StatementDelVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
+                            variable   = keeper_variable.makeReference(provider),
+                            source_ref = source_ref
+                        ),
+                        tolerant     = False,
+                        source_ref   = source_ref,
+                    ),
+                    source_ref = source_ref
+                ),
+                source_ref      = source_ref
+            ),
+            source_ref = source_ref
+        )
 
-        final = [
+        wrapTryFinallyLater(
+            result,
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
                     variable   = keeper_variable.makeReference(provider),
@@ -107,29 +136,7 @@ def buildOrNode(provider, values, source_ref):
                 tolerant     = True,
                 source_ref   = source_ref,
             )
-        ]
-
-        # TODO: The delete must be placed later.
-        final = ()
-
-        result = ExpressionConditional(
-            condition      = ExpressionTryFinally(
-                tried       = makeStatementsSequence(tried, False, source_ref),
-                final       = makeStatementsSequence(final, False, source_ref),
-                expression  = ExpressionTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
-                    source_ref = source_ref
-                ),
-                source_ref  = source_ref
-            ),
-            yes_expression  = ExpressionTempVariableRef(
-                variable   = keeper_variable.makeReference(provider),
-                source_ref = source_ref
-            ),
-            no_expression   = result,
-            source_ref      = source_ref
         )
-
 
         del values[-1]
 
@@ -157,18 +164,47 @@ def buildAndNode(provider, values, source_ref):
         )
         count += 1
 
-        tried = [
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
+        tried = StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = keeper_variable.makeReference(provider),
+                source_ref = source_ref
+            ),
+            source       = values[-1],
+            source_ref   = source_ref,
+        )
+
+        result = makeTryFinallyExpression(
+            tried      = tried,
+            final      = None,
+            expression = ExpressionConditional(
+                condition  = ExpressionTempVariableRef(
                     variable   = keeper_variable.makeReference(provider),
                     source_ref = source_ref
                 ),
-                source       = values[-1],
-                source_ref   = source_ref,
-            )
-        ]
+                no_expression   = ExpressionTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                yes_expression  = makeTryFinallyExpression(
+                    expression = result,
+                    final      = None,
+                    tried      = StatementDelVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
+                            variable   = keeper_variable.makeReference(provider),
+                            source_ref = source_ref
+                        ),
+                        tolerant     = False,
+                        source_ref   = source_ref,
+                    ),
+                    source_ref = source_ref
+                ),
+                source_ref      = source_ref
+            ),
+            source_ref = source_ref
+        )
 
-        final = [
+        wrapTryFinallyLater(
+            result,
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
                     variable   = keeper_variable.makeReference(provider),
@@ -177,30 +213,9 @@ def buildAndNode(provider, values, source_ref):
                 tolerant     = True,
                 source_ref   = source_ref,
             )
-        ]
-
-        # TODO: The delete must be placed later.
-        final = ()
-
-        result = ExpressionConditional(
-            condition      = ExpressionTryFinally(
-                tried       = makeStatementsSequence(tried, False, source_ref),
-                final       = makeStatementsSequence(final, False, source_ref),
-                expression  = ExpressionTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
-                    source_ref = source_ref
-                ),
-                source_ref  = source_ref
-            ),
-            no_expression = ExpressionTempVariableRef(
-                variable   = keeper_variable.makeReference(provider),
-                source_ref = source_ref
-            ),
-            yes_expression  = result,
-            source_ref      = source_ref
         )
 
-        del values[-1]
 
+        del values[-1]
 
     return result

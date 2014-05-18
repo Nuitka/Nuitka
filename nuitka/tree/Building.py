@@ -164,6 +164,7 @@ from .Helpers import (
     getIndicatorVariables,
     buildStatementsNode,
     setBuildDispatchers,
+    applyLaterWrappers,
     extractDocFromBody,
     getBuildContext,
     makeModuleFrame,
@@ -1069,12 +1070,17 @@ from __future__ imports must occur at the beginning of the file""",
         )
 
 
+
     if is_module:
-        return makeModuleFrame(
+        result = makeModuleFrame(
             module     = provider,
             statements = statements,
             source_ref = source_ref
         )
+
+        applyLaterWrappers()
+
+        return result
     else:
         assert False
 
