@@ -2869,6 +2869,11 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     tried_block = statement.getBlockTry()
     final_block = statement.getBlockFinal()
 
+    if to_name is not None:
+        expression = statement.getExpression()
+    else:
+        expression = None
+
     # The tried statements might raise, for which we define an escape. As we
     # only want to have the final block one, we use this as the target for the
     # others, but make them set flags.
@@ -2940,7 +2945,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     if to_name is not None:
         generateExpressionCode(
             to_name    = to_name,
-            expression = statement.getExpression(),
+            expression = expression,
             emit       = emit,
             context    = context
         )
@@ -2963,6 +2968,10 @@ def generateTryFinallyCode(to_name, statement, emit, context):
                             tried_block.mayRaiseException(BaseException)
     # TODO: This should be true, but it isn't.
     # assert tried_block_may_raise or to_name is not None
+
+    if not tried_block_may_raise:
+        tried_block_may_raise = expression is not None and \
+                                expression.mayRaiseException(BaseException)
 
     if tried_block_may_raise:
         emit("// Final block of try/finally")
