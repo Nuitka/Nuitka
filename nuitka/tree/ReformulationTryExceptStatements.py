@@ -40,7 +40,10 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 from nuitka.nodes.TryNodes import (
     StatementTryFinally,
     StatementTryExcept
@@ -69,9 +72,6 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
     # execution, we use an indicator variable instead, which will signal that
     # the tried block executed up to the end. And then we make the else block be
     # a conditional statement checking that.
-
-    # This is a separate function, so it can be re-used in other
-    # re-formulations, e.g. with statements.
 
     assert no_raise is not None
 
@@ -106,19 +106,6 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
     )
 
     statements = (
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_handler_indicator_variable.makeReference(
-                    provider
-                ),
-                source_ref = source_ref.atInternal()
-            ),
-            source     = ExpressionConstantRef(
-                constant   = True,
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
-        ),
         StatementTryExcept(
             tried      = tried,
             handling   = handling,
@@ -145,10 +132,52 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
         )
     )
 
-    return StatementsSequence(
+    tried = StatementsSequence(
         statements = statements,
         source_ref = source_ref
     )
+
+    final = StatementsSequence(
+        statements = (
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_handler_indicator_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref.atInternal()
+                ),
+                tolerant   = False,
+                source_ref = source_ref.atInternal()
+            ),
+        ),
+        source_ref = source_ref
+    )
+
+    return StatementsSequence(
+        statements = (
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_handler_indicator_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref.atInternal()
+                ),
+                source     = ExpressionConstantRef(
+                    constant   = True,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref.atInternal()
+            ),
+            StatementTryFinally(
+                tried      = tried,
+                final      = final,
+                public_exc = False,
+                source_ref = source_ref
+            )
+        ),
+        source_ref = source_ref
+    )
+
 
 
 def makeReraiseExceptionStatement(source_ref):
