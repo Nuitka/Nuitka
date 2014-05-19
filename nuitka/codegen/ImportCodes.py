@@ -91,7 +91,7 @@ def getImportFromStarCode(module_name, emit, context):
         )
     else:
         emit(
-            "%s = IMPORT_MODULE_STAR( locals_dict.object, false, %s );" % (
+            "%s = IMPORT_MODULE_STAR( locals_dict, false, %s );" % (
                 res_name,
                 module_name
             )

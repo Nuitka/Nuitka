@@ -210,7 +210,7 @@ def getVariableAccessCode(to_name, variable, emit, context):
 
         emit(
             CodeTemplates.template_read_maybe_local_unclear % {
-                "locals_dict"       : "locals_dict.object",
+                "locals_dict"       : "locals_dict",
                 "module_identifier" : context.getModuleCodeName(),
                 "tmp_name"          : to_name,
                 "var_name"          : getConstantCode(

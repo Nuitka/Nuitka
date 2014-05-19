@@ -495,6 +495,9 @@ def getFunctionCode( context, function_name, function_identifier, parameters,
 
     if context.hasLocalsDict():
         function_locals += CodeTemplates.function_dict_setup.split("\n")
+        function_cleanup = "Py_DECREF( locals_dict );\n"
+    else:
+        function_cleanup = ""
 
     function_locals += function_parameter_decl + local_var_inits
 
@@ -508,12 +511,16 @@ def getFunctionCode( context, function_name, function_identifier, parameters,
         context_access_function_impl = str( CodeTemplates.function_context_unused_template )
 
     if needs_exception_exit:
-        function_exit = CodeTemplates.template_function_exception_exit % {}
+        function_exit = CodeTemplates.template_function_exception_exit % {
+            "function_cleanup" : function_cleanup
+        }
     else:
         function_exit = CodeTemplates.template_function_noexception_exit % {}
 
     if context.hasTempName("return_value"):
-        function_exit += CodeTemplates.template_function_return_exit % {}
+        function_exit += CodeTemplates.template_function_return_exit % {
+            "function_cleanup" : function_cleanup
+        }
 
     if context.isForDirectCall():
         for closure_variable in closure_variables:
@@ -672,7 +679,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     function_locals = []
 
     if context.hasLocalsDict():
-        function_locals += CodeTemplates.function_dict_setup.split( "\n" )
+        function_locals += CodeTemplates.function_dict_setup.split("\n")
 
     function_locals += function_var_inits
 

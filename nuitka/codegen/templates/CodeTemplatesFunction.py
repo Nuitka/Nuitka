@@ -120,6 +120,7 @@ template_function_exception_exit = """\
     // Return statement must be present.
     assert(false);
 function_exception_exit:
+%(function_cleanup)s\
     assert( exception_type );
     PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
     return NULL;
@@ -133,6 +134,7 @@ template_function_noexception_exit = """\
 
 template_function_return_exit = """\
 function_return_exit:
+%(function_cleanup)s\
     return tmp_return_value;
 """
 
@@ -154,8 +156,7 @@ function_direct_body_template = """\
 
 function_dict_setup = """\
 // Locals dictionary setup.
-PyObjectTempVariable locals_dict;
-locals_dict.object = PyDict_New();
+PyObject *locals_dict = PyDict_New();
 """
 
 # Bad to read, but the context declaration should be on one line.

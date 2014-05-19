@@ -156,11 +156,11 @@ def getExecCode(source_name, globals_name, filename_name, locals_name,
 
         emit(
             """\
-if ( %(locals_name)s == locals_dict.object )
+if ( %(locals_name)s == locals_dict )
 {
     %(locals_source)s = %(locals_name)s;
 }
-else if ( %(globals_name)s == locals_dict.object )
+else if ( %(globals_name)s == locals_dict )
 {
     %(locals_source)s = %(globals_name)s;
 }

@@ -162,7 +162,7 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             assert False
 
             emit(
-                "%s = PyDict_Copy( locals_dict.object )" % (
+                "%s = PyDict_Copy( locals_dict )" % (
                     to_name,
                 )
             )
@@ -174,7 +174,7 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             )
 
             emit(
-                "%s = locals_dict.object;" % (
+                "%s = locals_dict;" % (
                     to_name
                 )
             )
@@ -197,15 +197,15 @@ def getSetLocalsCode(new_locals_name, emit, context):
 
     emit(
         """\
-Py_DECREF(locals_dict.object);
-locals_dict.object = %s;""" % (
+Py_DECREF(locals_dict);
+locals_dict = %s;""" % (
             new_locals_name
         )
     )
 
     if not ref_count:
         emit(
-            "Py_INCREF(locals_dict.object);"
+            "Py_INCREF(locals_dict);"
         )
 
     if ref_count:
