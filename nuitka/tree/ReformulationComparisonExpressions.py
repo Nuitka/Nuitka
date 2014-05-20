@@ -18,7 +18,10 @@
 
 from nuitka.nodes.TryNodes import ExpressionTryFinally
 
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
@@ -28,6 +31,7 @@ from nuitka.nodes.VariableRefNodes import (
 from .ReformulationBooleanExpressions import buildAndNode
 
 from .Helpers import (
+    makeTryFinallyExpression,
     makeStatementsSequence,
     buildNode,
     getKind
@@ -53,15 +57,17 @@ def buildComparisonNode(provider, node, source_ref):
 
     # Only the first comparison has as left operands as the real thing, the
     # others must reference the previous comparison right one temp variable ref.
-    result = []
+    values = []
 
     # For PyLint to like it, this will hold the previous one, normally.
     keeper_variable = None
 
     temp_scope = None
 
+    final = []
+
     for comparator, right in zip(node.ops, rights):
-        if result:
+        if values:
             # Now we know it's not the only one, so we change the "left" to be a
             # reference to the previously saved right side.
             left = ExpressionTempVariableRef(
@@ -86,23 +92,30 @@ def buildComparisonNode(provider, node, source_ref):
                 name       = "value_%d" % (rights.index(right)+2),
             )
 
-            tried = [
-                StatementAssignmentVariable(
+            tried = StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source       = right,
+                source_ref   = source_ref,
+            )
+
+            # TODO: The delete must be placed later.
+            final.append(
+                StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
                         variable   = keeper_variable.makeReference(provider),
                         source_ref = source_ref
                     ),
-                    source       = right,
+                    tolerant     = True,
                     source_ref   = source_ref,
                 )
-            ]
+            )
 
-            # TODO: The delete must be placed later.
-            final = []
-
-            right = ExpressionTryFinally(
-                tried       = makeStatementsSequence(tried, False, source_ref),
-                final       = makeStatementsSequence(final, False, source_ref),
+            right = makeTryFinallyExpression(
+                tried       = tried,
+                final       = None,
                 expression  = ExpressionTempVariableRef(
                     variable   = keeper_variable.makeReference(provider),
                     source_ref = source_ref
@@ -112,7 +125,7 @@ def buildComparisonNode(provider, node, source_ref):
 
         comparator = getKind(comparator)
 
-        result.append(
+        values.append(
             makeComparisonNode(
                 left       = left,
                 right      = right,
@@ -123,8 +136,18 @@ def buildComparisonNode(provider, node, source_ref):
 
     assert keeper_variable is None
 
-    return buildAndNode(
+    result = buildAndNode(
         provider   = provider,
-        values     = result,
+        values     = values,
         source_ref = source_ref
     )
+
+    if final:
+        return makeTryFinallyExpression(
+            tried      = None,
+            expression = result,
+            final      = final,
+            source_ref = source_ref
+        )
+    else:
+        return result

@@ -532,6 +532,37 @@ def boolOrderCheck():
                     print(r)
                     del r
 
+
+def comparisonChainOrderCheck():
+    print("Checking order of comparison chains:")
+
+    class A(int):
+        def __init__(self, value):
+            self.value = value
+        def __del__(self):
+            print("Doing del of %s" % self)
+        def __le__(self, other):
+            print("Test of %s <= %s" % (self, other))
+            return self.value <= other.value
+        def __str__(self):
+            return "<%s %r>" % (self.__class__.__name__, self.value)
+    class B(A):
+        pass
+    class C(A):
+        pass
+
+    # See above, not really doing it right.
+    if False:
+        print("Three arguments, A <= B <= C:")
+        for a in range(3):
+            for b in range(3):
+                for c in range(3):
+                    print("Case %d <= %d <= %d" % (a,b,c))
+                    r = A(a) <= B(b) <= C(c)
+                    print(r)
+                    del r
+
+
 dictOrderCheck()
 listOrderCheck()
 subscriptOrderCheck()
@@ -559,3 +590,4 @@ intOrderCheck()
 raiseOrderCheck()
 callOrderCheck()
 boolOrderCheck()
+comparisonChainOrderCheck()
