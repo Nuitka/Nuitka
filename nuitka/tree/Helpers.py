@@ -28,6 +28,10 @@ from nuitka.nodes.StatementNodes import (
 
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.TryNodes import (
+    StatementTryFinally,
+    ExpressionTryFinally
+)
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionKeyValuePair,
     ExpressionMakeTuple,
@@ -368,6 +372,55 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
             source_ref = source_ref
         )
 
+
+def makeTryFinallyStatement(tried, final, source_ref):
+    if type(tried) in (tuple, list):
+        tried = StatementsSequence(
+            statements = tried,
+            source_ref = source_ref
+        )
+    if type(final) in (tuple, list):
+        final = StatementsSequence(
+            statements = final,
+            source_ref = source_ref
+        )
+
+    if tried is not None and not tried.isStatementsSequence():
+        tried = makeStatementsSequenceFromStatement(tried)
+    if final is not None and not final.isStatementsSequence():
+        final = makeStatementsSequenceFromStatement(final)
+
+    return StatementTryFinally(
+        tried      = tried,
+        final      = final,
+        public_exc = False,
+        source_ref = source_ref
+    )
+
+
+def makeTryFinallyExpression(expression, tried, final, source_ref):
+    if type(tried) in (tuple, list):
+        tried = StatementsSequence(
+            statements = tried,
+            source_ref = source_ref
+        )
+    if type(final) in (tuple, list):
+        final = StatementsSequence(
+            statements = final,
+            source_ref = source_ref
+        )
+
+    if tried is not None and not tried.isStatementsSequence():
+        tried = makeStatementsSequenceFromStatement(tried)
+    if final is not None and not final.isStatementsSequence():
+        final = makeStatementsSequenceFromStatement(final)
+
+    return ExpressionTryFinally(
+        expression = expression,
+        tried      = tried,
+        final      = final,
+        source_ref = source_ref
+    )
 
 build_contexts = [None]
 
