@@ -2931,6 +2931,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     _generateStatementSequenceCode(
         statement_sequence = tried_block,
         emit               = emit,
+        allow_none         = True,
         context            = context
     )
 
@@ -2958,7 +2959,8 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     # not raise, continue, or break at all, but it would merely be there to do
     # something before an expression. Kind of as a side effect. To address that
     # we need to check.
-    tried_block_may_raise = tried_block.mayRaiseException(BaseException)
+    tried_block_may_raise = tried_block is not None and \
+                            tried_block.mayRaiseException(BaseException)
     # TODO: This should be true, but it isn't.
     # assert tried_block_may_raise or to_name is not None
 

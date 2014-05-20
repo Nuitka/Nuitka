@@ -361,10 +361,11 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
 
                 final_statement_sequence = result
 
-        if tried_statement_sequence is None and final_statement_sequence:
+        if tried_statement_sequence is None and \
+           final_statement_sequence is None:
             # If the tried and final block is empty, go to the expression
             # directly.
-            return self.getExpression, "new_expression", """\
+            return self.getExpression(), "new_expression", """\
 Removed try/finally expression with empty tried and final block."""
         else:
             # TODO: Can't really merge it yet.
