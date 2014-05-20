@@ -736,7 +736,7 @@ This document is written in REST. That is an ASCII format which is readable as
 ASCII, but used to generate PDF or HTML documents.
 
 You will find the current source under:
-http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.txt
+http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
 
 And the current PDF under:
 http://nuitka.net/doc/README.pdf

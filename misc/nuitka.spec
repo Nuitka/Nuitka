@@ -53,7 +53,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%doc README.txt Changelog.rst
+%doc README.rst Changelog.rst
 %{_bindir}/nuitka
 %{_bindir}/nuitka-run
 %{_bindir}/nuitka3
