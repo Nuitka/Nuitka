@@ -41,7 +41,7 @@ if "logo" in sys.argv:
         assert 0 == os.system("convert -resize 114x114 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone4.png")
 
 
-for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
+for document in ( "README.rst", "Developer_Manual.rst", "Changelog.rst" ):
     args = []
 
     if document != "Changelog.rst":
