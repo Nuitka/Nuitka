@@ -37,7 +37,10 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 
 from .ReformulationFunctionStatements import (
     buildParameterAnnotations,
@@ -47,6 +50,7 @@ from .ReformulationFunctionStatements import (
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
     mergeStatements,
     buildNodeList,
     buildNode,
@@ -130,9 +134,18 @@ def buildLambdaNode(provider, node, source_ref):
                     source_ref = source_ref
                 )
             )
-
-            body = StatementsSequence(
-                statements = statements,
+            body = makeTryFinallyStatement(
+                tried      = statements,
+                final      = StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable = tmp_return_value.makeReference(
+                            function_body
+                        ),
+                        source_ref = source_ref,
+                    ),
+                    tolerant   = False,
+                    source_ref = source_ref
+                ),
                 source_ref = source_ref
             )
         else:
