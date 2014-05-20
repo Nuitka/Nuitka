@@ -1,4 +1,4 @@
-include LICENSE.txt
+include LICENSE.rst
 include MANIFEST.in
 include README.rst README.pdf
 include Changelog.rst Changelog.pdf
