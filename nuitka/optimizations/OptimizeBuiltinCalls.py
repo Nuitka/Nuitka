@@ -101,7 +101,10 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.TryNodes import ExpressionTryFinally
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     ExpressionBuiltinOriginalRef,
@@ -549,6 +552,21 @@ def eval_extractor(node):
         source_variable = provider.allocateTempVariable(
             temp_scope = temp_scope,
             name       = "source"
+        )
+
+        final.setStatements(
+            final.getStatements() + (
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = source_variable.makeReference(
+                            provider
+                        ),
+                        source_ref = source_ref
+                    ),
+                    tolerant     = True,
+                    source_ref   = source_ref
+                ),
+            )
         )
 
         strip_choice =  ExpressionConstantRef(
