@@ -44,14 +44,12 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
 )
-from nuitka.nodes.TryNodes import (
-    StatementTryFinally,
-    StatementTryExcept
-)
+from nuitka.nodes.TryNodes import StatementTryExcept
 
 from .ReformulationAssignmentStatements import (
     buildDeleteStatementFromDecoded,
     buildAssignmentStatements,
+    makeTryFinallyStatement,
     decodeAssignTarget
 )
 
@@ -105,7 +103,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
         source_ref = source_ref
     )
 
-    statements = (
+    tried = (
         StatementTryExcept(
             tried      = tried,
             handling   = handling,
@@ -132,26 +130,16 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
         )
     )
 
-    tried = StatementsSequence(
-        statements = statements,
-        source_ref = source_ref
-    )
-
-    final = StatementsSequence(
-        statements = (
-            StatementDelVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_handler_indicator_variable.makeReference(
-                        provider
-                    ),
-                    source_ref = source_ref.atInternal()
-                ),
-                tolerant   = False,
-                source_ref = source_ref.atInternal()
+    final = StatementDelVariable(
+        variable_ref = ExpressionTargetTempVariableRef(
+            variable   = tmp_handler_indicator_variable.makeReference(
+                provider
             ),
+            source_ref = source_ref.atInternal()
         ),
-        source_ref = source_ref
-    )
+        tolerant   = False,
+        source_ref = source_ref.atInternal()
+    ),
 
     return StatementsSequence(
         statements = (
@@ -168,10 +156,9 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
                 ),
                 source_ref = source_ref.atInternal()
             ),
-            StatementTryFinally(
+            makeTryFinallyStatement(
                 tried      = tried,
                 final      = final,
-                public_exc = False,
                 source_ref = source_ref
             )
         ),
@@ -179,12 +166,11 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
     )
 
 
-
 def makeReraiseExceptionStatement(source_ref):
     return StatementsSequence(
         statements = (
             StatementRaiseException(
-                exception_type = None,
+                exception_type  = None,
                 exception_value = None,
                 exception_trace = None,
                 exception_cause = None,
@@ -193,6 +179,7 @@ def makeReraiseExceptionStatement(source_ref):
         ),
         source_ref  = source_ref
     )
+
 
 def makeTryExceptSingleHandlerNode(tried, exception_name, handler_body,
                                    public_exc, source_ref):
@@ -230,17 +217,11 @@ def makeTryExceptSingleHandlerNode(tried, exception_name, handler_body,
 
     if Utils.python_version >= 300 and public_exc:
         statements = [
-            StatementTryFinally(
-                tried      = StatementsSequence(
-                    statements = statements,
-                    source_ref = source_ref
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = StatementRestoreFrameException(
+                    source_ref = source_ref.atInternal()
                 ),
-                final      = makeStatementsSequenceFromStatement(
-                    statement = StatementRestoreFrameException(
-                        source_ref = source_ref.atInternal()
-                    )
-                ),
-                public_exc = False,
                 source_ref = source_ref.atInternal()
             )
         ]
@@ -325,23 +306,17 @@ def buildTryExceptionNode(provider, node, source_ref):
                     ),
                     source_ref = source_ref.atInternal()
                 ),
-                StatementTryFinally(
+                makeTryFinallyStatement(
                     tried      = buildStatementsNode(
                         provider   = provider,
                         nodes      = exception_block,
                         source_ref = source_ref
                     ),
-                    final      = StatementsSequence(
-                        statements = (
-                            buildDeleteStatementFromDecoded(
-                                kind       = kind,
-                                detail     = detail,
-                                source_ref = source_ref
-                            ),
-                        ),
+                    final      = buildDeleteStatementFromDecoded(
+                        kind       = kind,
+                        detail     = detail,
                         source_ref = source_ref
                     ),
-                    public_exc = False,
                     source_ref = source_ref
                 )
             ]
@@ -438,15 +413,12 @@ def buildTryExceptionNode(provider, node, source_ref):
         else:
             exception_handling = StatementsSequence(
                 statements = prelude + (
-                    StatementTryFinally(
+                    makeTryFinallyStatement(
                         tried = exception_handling,
-                        final = makeStatementsSequenceFromStatement(
-                            statement = StatementRestoreFrameException(
-                                source_ref = source_ref.atInternal()
-                            ),
+                        final = StatementRestoreFrameException(
+                            source_ref = source_ref.atInternal()
                         ),
-                        public_exc = False,
-                        source_ref = source_ref.atInternal()
+                        source_ref = source_ref
                     ),
                 ),
                 source_ref = source_ref.atInternal()
