@@ -388,7 +388,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
         trace = constraint_collection.getVariableCurrentTrace( variable )
 
         # Optimize away tolerant "del" that is not needed.
-        if trace.isUninitTrace():
+        if trace.isUninitTrace() and False:
             if self.isTolerant():
                 return (
                     None,
