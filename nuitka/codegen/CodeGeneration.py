@@ -4075,7 +4075,7 @@ def generateStatementSequenceCode(statement_sequence, context,
 
         needs_preserve = statement_sequence.needsFrameExceptionPreserving()
 
-        if statement_sequence.mayReturn():
+        if statement_sequence.mayReturn() and guard_mode != "pass_through":
             parent_return_exit = statement_context.getReturnTarget()
 
             statement_context.setReturnTarget(
