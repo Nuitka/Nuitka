@@ -38,6 +38,7 @@ from nuitka.nodes.TryNodes import StatementTryFinally
 from .Helpers import (
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
+    makeTryFinallyStatement,
     pushIndicatorVariable,
     popIndicatorVariable,
     getIndicatorVariables,
@@ -121,43 +122,36 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
             source_ref = source_ref
         )
 
-        statements = (
-            StatementConditional(
-                condition = ExpressionComparisonIs(
-                    left       = ExpressionTempVariableRef(
-                        variable   = tmp_indicator_variable.makeReference(
-                            provider
-                        ),
-                        source_ref = source_ref.atInternal()
-                    ),
-                    right      = ExpressionConstantRef(
-                        constant = False,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
-                yes_branch = StatementsSequence(
-                    statements = (
-                        StatementPreserveFrameException(
-                            source_ref = source_ref.atInternal()
-                        ),
-                        StatementPublishException(
-                            source_ref = source_ref.atInternal()
-                        )
+        prelude = StatementConditional(
+            condition = ExpressionComparisonIs(
+                left       = ExpressionTempVariableRef(
+                    variable   = tmp_indicator_variable.makeReference(
+                        provider
                     ),
                     source_ref = source_ref.atInternal()
                 ),
-                no_branch  = None,
+                right      = ExpressionConstantRef(
+                    constant = False,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = StatementsSequence(
+                statements = (
+                    StatementPreserveFrameException(
+                        source_ref = source_ref.atInternal()
+                    ),
+                    StatementPublishException(
+                        source_ref = source_ref.atInternal()
+                    )
+                ),
                 source_ref = source_ref.atInternal()
             ),
+            no_branch  = None,
+            source_ref = source_ref.atInternal()
         )
 
-        prelude = StatementsSequence(
-            statements = statements,
-            source_ref = source_ref
-        )
-
-        statements = (
+        postlude = (
             StatementConditional(
                 condition = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
@@ -185,19 +179,13 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
             ),
         )
 
-        postlude = StatementsSequence(
-            statements = statements,
-            source_ref = source_ref
-        )
-
         final = StatementsSequence(
             statements = mergeStatements(
                 (
                     prelude,
-                    StatementTryFinally(
+                    makeTryFinallyStatement(
                         tried      = final,
                         final      = postlude,
-                        public_exc = False,
                         source_ref = source_ref.atInternal()
                     ),
                 )
