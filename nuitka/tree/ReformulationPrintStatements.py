@@ -37,10 +37,10 @@ from nuitka.nodes.AssignNodes import (
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.TryNodes import StatementTryFinally
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
     buildNodeList,
     buildNode
 )
@@ -154,24 +154,18 @@ def buildPrintNode(provider, node, source_ref):
             )
 
         statements.append(
-            StatementTryFinally(
-                tried      = StatementsSequence(
-                    statements = print_statements,
-                    source_ref = source_ref
-                ),
-                final      = makeStatementsSequenceFromStatement(
-                    statement = StatementDelVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_target_variable.makeReference(
-                                provider
-                            ),
-                            source_ref = source_ref
+            makeTryFinallyStatement(
+                tried      = print_statements,
+                final      = StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_target_variable.makeReference(
+                            provider
                         ),
-                        tolerant     = False,
-                        source_ref   = source_ref
-                    )
+                        source_ref = source_ref
+                    ),
+                    tolerant     = False,
+                    source_ref   = source_ref
                 ),
-                public_exc = False,
                 source_ref = source_ref
             )
         )
