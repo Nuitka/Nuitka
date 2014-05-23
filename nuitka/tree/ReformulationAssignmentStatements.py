@@ -23,7 +23,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.TryNodes import StatementTryFinally
 from nuitka.nodes.BuiltinIteratorNodes import (
     StatementSpecialUnpackCheck,
     ExpressionSpecialUnpack,
@@ -53,6 +52,7 @@ from .Helpers import (
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
     makeSequenceCreationOrConstant,
+    makeTryFinallyStatement,
     buildNode,
     getKind
 )
@@ -96,6 +96,7 @@ def buildExtSliceNode(provider, node, source_ref):
         elements      = elements,
         source_ref    = source_ref
     )
+
 
 def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
                                           source_ref ):
@@ -273,16 +274,9 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
                 )
             )
 
-        return StatementTryFinally(
-            tried = StatementsSequence(
-                statements = statements,
-                source_ref = source_ref
-            ),
-            final = StatementsSequence(
-                statements = final_statements,
-                source_ref = source_ref
-            ),
-            public_exc = False,
+        return makeTryFinallyStatement(
+            tried      = statements,
+            final      = final_statements,
             source_ref = source_ref
         )
     else:
@@ -310,6 +304,7 @@ def buildAssignmentStatements( provider, node, source, source_ref,
         source     = source,
         source_ref = source_ref
     )
+
 
 def decodeAssignTarget(provider, node, source_ref, allow_none = False):
     # Many cases to deal with, because of the different assign targets,
@@ -404,14 +399,15 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
     else:
         assert False, ( source_ref, kind )
 
+
 def buildAssignNode(provider, node, source_ref):
-    assert len( node.targets ) >= 1, source_ref
+    assert len(node.targets) >= 1, source_ref
 
     # Evaluate the right hand side first, so it can get names provided
     # before the left hand side exists.
     source = buildNode( provider, node.value, source_ref )
 
-    if len( node.targets ) == 1:
+    if len(node.targets) == 1:
         # Simple assignment case, one source, one target.
 
         return buildAssignmentStatements(
@@ -467,16 +463,9 @@ def buildAssignNode(provider, node, source_ref):
             ),
         )
 
-        return StatementTryFinally(
-           tried = StatementsSequence(
-                statements = statements,
-                source_ref = source_ref
-            ),
-            final = StatementsSequence(
-                statements = final_statements,
-                source_ref = source_ref
-            ),
-            public_exc = False,
+        return makeTryFinallyStatement(
+            tried      = statements,
+            final      = final_statements,
             source_ref = source_ref
         )
 
@@ -537,6 +526,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
     else:
         assert False, ( kind, detail, source_ref )
 
+
 def buildDeleteNode(provider, node, source_ref):
     # Build del statements.
 
@@ -567,6 +557,7 @@ def buildDeleteNode(provider, node, source_ref):
         statements = statements,
         source_ref = source_ref
     )
+
 
 def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
                                     tmp_variable2, operator, expression,
@@ -633,28 +624,33 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
     return (
         preserve_to_tmp,
         # making sure the above temporary variable is deleted in any case.
-        StatementTryFinally(
-            tried = StatementsSequence(
-                statements = (
-                    inplace_to_tmp,
-                    copy_back_from_tmp
-                ),
-                source_ref = source_ref
+        makeTryFinallyStatement(
+            tried = (
+                inplace_to_tmp,
+                copy_back_from_tmp
             ),
-            final = makeStatementsSequenceFromStatement(
-                statement = StatementDelVariable(
+            final = (
+                StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
                         variable   = tmp_variable1.makeReference(provider),
                         source_ref = source_ref
                     ),
                     tolerant     = False,
                     source_ref   = source_ref
-                )
+                ),
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_variable2.makeReference(provider),
+                        source_ref = source_ref
+                    ),
+                    tolerant     = True,
+                    source_ref   = source_ref
+                ),
             ),
-            public_exc = False,
             source_ref = source_ref
         )
     )
+
 
 def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
                                      tmp_variable1, tmp_variable2, operator,
@@ -719,51 +715,35 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
         source_ref = source_ref
     )
 
-    copy_back_from_tmp = StatementTryFinally(
-        tried = StatementsSequence(
-            statements = (
-                copy_back_from_tmp,
+    copy_back_from_tmp = makeTryFinallyStatement(
+        tried = copy_back_from_tmp,
+        final = StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_variable2.makeReference(provider),
+                source_ref = source_ref
             ),
-            source_ref = source_ref
+            tolerant     = False,
+            source_ref   = source_ref
         ),
-        final = makeStatementsSequenceFromStatement(
-            statement = StatementDelVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_variable2.makeReference(provider),
-                    source_ref = source_ref
-                ),
-                tolerant     = False,
-                source_ref   = source_ref
-            )
-        ),
-        public_exc = False,
         source_ref = source_ref
     )
 
     return (
         preserve_to_tmp,
         # making sure the above temporary variable is deleted in any case.
-        StatementTryFinally(
-            tried = StatementsSequence(
-                statements = (
-                    inplace_to_tmp,
-
-                                copy_back_from_tmp,
-
+        makeTryFinallyStatement(
+            tried = (
+                inplace_to_tmp,
+                copy_back_from_tmp,
+            ),
+            final = StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_variable1.makeReference(provider),
+                    source_ref = source_ref
                 ),
-                source_ref = source_ref
+                tolerant     = False,
+                source_ref   = source_ref
             ),
-            final = makeStatementsSequenceFromStatement(
-                statement = StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_variable1.makeReference(provider),
-                        source_ref = source_ref
-                    ),
-                    tolerant     = False,
-                    source_ref   = source_ref
-                )
-            ),
-            public_exc = False,
             source_ref = source_ref
         )
     )
@@ -782,7 +762,7 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
         source_ref = source_ref
     )
     # Second assign the subscript value to a temporary variable
-    preserve_to_tmp2  =StatementAssignmentVariable(
+    preserve_to_tmp2  = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
             variable   = tmp_variable2.makeReference( provider ),
             source_ref = source_ref
@@ -823,39 +803,33 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
 
     return (
         preserve_to_tmp1,
-        StatementTryFinally(
-            tried      = StatementsSequence(
-                statements = (
-                    preserve_to_tmp2,
-                    execute_in_place,
-                ),
-                source_ref = source_ref
+        makeTryFinallyStatement(
+            tried      = (
+                preserve_to_tmp2,
+                execute_in_place,
             ),
-            final      = StatementsSequence(
-                statements = (
-                    StatementDelVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_variable1.makeReference(provider),
-                            source_ref = source_ref
-                        ),
-                        tolerant     = False,
-                        source_ref   = source_ref
+            final      = (
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_variable1.makeReference(provider),
+                        source_ref = source_ref
                     ),
-                    StatementDelVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_variable2.makeReference(provider),
-                            source_ref = source_ref
-                        ),
-                        tolerant     = True,
-                        source_ref   = source_ref
-                    )
+                    tolerant     = False,
+                    source_ref   = source_ref
                 ),
-                source_ref = source_ref
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_variable2.makeReference(provider),
+                        source_ref = source_ref
+                    ),
+                    tolerant     = True,
+                    source_ref   = source_ref
+                )
             ),
-            public_exc = False,
             source_ref = source_ref
         )
     )
+
 
 def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
                                  tmp_variable1, tmp_variable2, tmp_variable3,
@@ -982,19 +956,13 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
 
     return (
         copy_to_tmp,
-        StatementTryFinally(
-            tried = StatementsSequence(
-                statements = statements,
-                source_ref = source_ref
-            ),
-            final = StatementsSequence(
-                statements = final_statements,
-                source_ref = source_ref
-            ),
-            public_exc = False,
+        makeTryFinallyStatement(
+            tried      = statements,
+            final      = final_statements,
             source_ref = source_ref
         )
     )
+
 
 def buildInplaceAssignNode(provider, node, source_ref):
     # There are many inplace assignment variables, and the detail is unpacked
@@ -1006,7 +974,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
-    expression = buildNode( provider, node.value, source_ref )
+    expression = buildNode(provider, node.value, source_ref)
 
     kind, detail = decodeAssignTarget(
         provider   = provider,
@@ -1014,7 +982,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    temp_scope = provider.allocateTempScope( "inplace_assign" )
+    temp_scope = provider.allocateTempScope("inplace_assign")
 
     if kind == "Name":
         variable_ref = detail
