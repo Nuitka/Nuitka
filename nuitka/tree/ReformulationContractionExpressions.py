@@ -74,6 +74,7 @@ from .ReformulationBooleanExpressions import buildAndNode
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
     mergeStatements,
     buildNodeList,
     buildNode,
@@ -84,34 +85,34 @@ def buildListContractionNode(provider, node, source_ref):
     # List contractions are dealt with by general code.
 
     return _buildContractionNode(
-        provider         = provider,
-        node             = node,
-        name             = "<listcontraction>",
-        emit_class       = ExpressionListOperationAppend,
-        start_value      = ExpressionConstantRef(
+        provider        = provider,
+        node            = node,
+        name            = "<listcontraction>",
+        emit_class      = ExpressionListOperationAppend,
+        start_value     = ExpressionConstantRef(
             constant   = [],
             source_ref = source_ref
         ),
         # Note: For Python3, the list contractions no longer assign to the outer
         # scope.
-        assign_provider  = Utils.python_version < 300,
-        source_ref       = source_ref
+        assign_provider = Utils.python_version < 300,
+        source_ref      = source_ref
     )
 
 def buildSetContractionNode(provider, node, source_ref):
     # Set contractions are dealt with by general code.
 
     return _buildContractionNode(
-        provider         = provider,
-        node             = node,
-        name             = "<setcontraction>",
-        emit_class       = ExpressionSetOperationAdd,
-        start_value      = ExpressionConstantRef(
+        provider        = provider,
+        node            = node,
+        name            = "<setcontraction>",
+        emit_class      = ExpressionSetOperationAdd,
+        start_value     = ExpressionConstantRef(
             constant   = set(),
             source_ref = source_ref
         ),
-        assign_provider  = False,
-        source_ref       = source_ref
+        assign_provider = False,
+        source_ref      = source_ref
     )
 
 def buildDictContractionNode(provider, node, source_ref):
@@ -133,16 +134,16 @@ def buildDictContractionNode(provider, node, source_ref):
 def buildGeneratorExpressionNode(provider, node, source_ref):
     # Generator expressions are dealt with by general code.
 
-    assert getKind( node ) == "GeneratorExp"
+    assert getKind(node) == "GeneratorExp"
 
     return _buildContractionNode(
-        provider         = provider,
-        node             = node,
-        name             = "<genexpr>",
-        emit_class       = ExpressionYield,
-        start_value      = None,
-        assign_provider  = False,
-        source_ref       = source_ref
+        provider        = provider,
+        node            = node,
+        name            = "<genexpr>",
+        emit_class      = ExpressionYield,
+        start_value     = None,
+        assign_provider = False,
+        source_ref      = source_ref
     )
 
 def _buildContractionNode(provider, node, name, emit_class, start_value,
@@ -175,21 +176,24 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         statements = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = container_tmp.makeReference( function_body ),
+                    variable   = container_tmp.makeReference(function_body),
                     source_ref = source_ref
                 ),
                 source     = start_value,
                 source_ref = source_ref.atInternal()
             )
         ]
+
+        tmp_variables = [container_tmp]
     else:
         statements = []
+        tmp_variables = []
 
     if hasattr( node, "elt" ):
         if start_value is not None:
             current_body = emit_class(
                 ExpressionTempVariableRef(
-                    variable   = container_tmp.makeReference( function_body ),
+                    variable   = container_tmp.makeReference(function_body),
                     source_ref = source_ref
                 ),
                 buildNode(
@@ -217,7 +221,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
         current_body = emit_class(
             ExpressionTempVariableRef(
-                variable   = container_tmp.makeReference( function_body ),
+                variable   = container_tmp.makeReference(function_body),
                 source_ref = source_ref
             ),
             key = buildNode(
@@ -243,6 +247,8 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             temp_scope = None,
             name       = "iter_value_%d" % count
         )
+
+        tmp_variables.append(tmp_value_variable)
 
         # The first iterated value is to be calculated outside of the function
         # and will be given as a parameter "_iterated", the others are built
@@ -272,6 +278,8 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                 temp_scope = None,
                 name       = "contraction_iter_%d" % count
             )
+
+            tmp_variables.append(tmp_iter_variable)
 
             nested_statements = [
                 StatementAssignmentVariable(
@@ -422,6 +430,27 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                 source_ref = source_ref
             )
         )
+
+    del_statements = []
+    for tmp_variable in tmp_variables:
+        del_statements.append(
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_variable.makeReference(function_body),
+                    source_ref = source_ref
+                ),
+                tolerant   = True,
+                source_ref = source_ref.atInternal()
+            )
+        )
+
+    statements = (
+        makeTryFinallyStatement(
+            tried      = statements,
+            final      = del_statements,
+            source_ref = source_ref.atInternal()
+        ),
+    )
 
     function_body.setBody(
         StatementsFrame(
