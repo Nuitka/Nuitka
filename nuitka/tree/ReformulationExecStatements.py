@@ -377,6 +377,21 @@ exec: arg 1 must be a string, file, or code object""",
         tried.getStatements() + statements
     )
 
+    final.setStatements(
+        final.getStatements() + (
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = source_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+        )
+    )
+
     return StatementTryFinally(
         tried      = tried,
         final      = final,
