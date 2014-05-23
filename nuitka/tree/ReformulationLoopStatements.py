@@ -41,12 +41,13 @@ from nuitka.nodes.AssignNodes import (
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
     makeStatementsSequence,
+    pushIndicatorVariable,
+    popIndicatorVariable,
     buildStatementsNode,
     pushBuildContext,
     popBuildContext,
-    pushIndicatorVariable,
-    popIndicatorVariable,
     buildNode
 )
 
@@ -227,18 +228,15 @@ def buildForLoopNode(provider, node, source_ref):
             ),
             source_ref   = source_ref
         ),
-        StatementTryFinally(
-            tried = makeStatementsSequenceFromStatement(
-                statement = StatementLoop(
-                    body       = loop_body,
-                    source_ref = source_ref
-                )
+        makeTryFinallyStatement(
+            tried = StatementLoop(
+                body       = loop_body,
+                source_ref = source_ref
             ),
             final = StatementsSequence(
                 statements = cleanup_statements,
                 source_ref = source_ref.atInternal()
             ),
-            public_exc = False,
             source_ref = source_ref.atInternal()
         )
     ]
@@ -248,7 +246,8 @@ def buildForLoopNode(provider, node, source_ref):
             StatementConditional(
                 condition  = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
-                        variable   = tmp_break_indicator_variable.makeReference( provider ),
+                        variable   = tmp_break_indicator_variable.\
+                          makeReference(provider),
                         source_ref = source_ref
                     ),
                     right      = ExpressionConstantRef(
