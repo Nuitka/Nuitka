@@ -45,7 +45,6 @@ from nuitka.nodes.StatementNodes import (
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.TryNodes import StatementTryFinally
 
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
@@ -53,6 +52,7 @@ from .ReformulationAssignmentStatements import buildAssignmentStatements
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
     makeStatementsSequence,
     buildStatementsNode,
     buildNode
@@ -170,103 +170,101 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     source_ref = source_ref.atInternal()
 
     statements += [
-        StatementTryFinally(
-            tried      = makeStatementsSequenceFromStatement(
-                statement = makeTryExceptSingleHandlerNode(
-                    tried          = with_body,
-                    exception_name = "BaseException",
-                    handler_body   = StatementsSequence(
-                        statements = (
-                            # Prevents final block from calling __exit__ as
-                            # well.
-                            StatementAssignmentVariable(
-                                variable_ref = ExpressionTargetTempVariableRef(
-                                    variable   = tmp_indicator_variable.makeReference( provider ),
-                                    source_ref = source_ref
-                                ),
-                                source       = ExpressionConstantRef(
-                                    constant   = False,
-                                    source_ref = source_ref
-                                ),
-                                source_ref   = source_ref
-                            ),
-                            StatementConditional(
-                                condition  = ExpressionCallNoKeywords(
-                                    called          = ExpressionTempVariableRef(
-                                        variable   = tmp_exit_variable.makeReference( provider ),
-                                        source_ref = source_ref
-                                    ),
-                                    args = ExpressionMakeTuple(
-                                        elements   = (
-                                            ExpressionCaughtExceptionTypeRef(
-                                                source_ref = source_ref
-                                            ),
-                                            ExpressionCaughtExceptionValueRef(
-                                                source_ref = source_ref
-                                            ),
-                                            ExpressionCaughtExceptionTracebackRef(
-                                                source_ref = source_ref
-                                            ),
-                                        ),
-                                        source_ref = source_ref
-                                    ),
-                                    source_ref      = source_ref
-                                ),
-                                no_branch  = makeStatementsSequenceFromStatement(
-                                    statement = StatementRaiseException(
-                                        exception_type  = None,
-                                        exception_value = None,
-                                        exception_trace = None,
-                                        exception_cause = None,
-                                        source_ref      = source_ref
-                                    )
-                                ),
-                                yes_branch = None,
+        makeTryFinallyStatement(
+            tried      = makeTryExceptSingleHandlerNode(
+                tried          = with_body,
+                exception_name = "BaseException",
+                handler_body   = StatementsSequence(
+                    statements = (
+                        # Prevents final block from calling __exit__ as
+                        # well.
+                        StatementAssignmentVariable(
+                            variable_ref = ExpressionTargetTempVariableRef(
+                                variable   = tmp_indicator_variable.\
+                                  makeReference(provider),
                                 source_ref = source_ref
                             ),
-                        ),
-                        source_ref     = source_ref
-                    ),
-                    public_exc = Utils.python_version >= 270,
-                    source_ref = source_ref
-                ),
-            ),
-            final      = makeStatementsSequenceFromStatement(
-                statement = StatementConditional(
-                    condition      = ExpressionComparisonIs(
-                        left       = ExpressionTempVariableRef(
-                            variable   = tmp_indicator_variable.makeReference(
-                                provider
+                            source       = ExpressionConstantRef(
+                                constant   = False,
+                                source_ref = source_ref
                             ),
+                            source_ref   = source_ref
+                        ),
+                        StatementConditional(
+                            condition  = ExpressionCallNoKeywords(
+                                called          = ExpressionTempVariableRef(
+                                    variable   = tmp_exit_variable.\
+                                      makeReference(provider),
+                                    source_ref = source_ref
+                                ),
+                                args = ExpressionMakeTuple(
+                                    elements   = (
+                                        ExpressionCaughtExceptionTypeRef(
+                                            source_ref = source_ref
+                                        ),
+                                        ExpressionCaughtExceptionValueRef(
+                                            source_ref = source_ref
+                                        ),
+                                        ExpressionCaughtExceptionTracebackRef(
+                                            source_ref = source_ref
+                                        ),
+                                    ),
+                                    source_ref = source_ref
+                                ),
+                                source_ref      = source_ref
+                            ),
+                            no_branch  = makeStatementsSequenceFromStatement(
+                                statement = StatementRaiseException(
+                                    exception_type  = None,
+                                    exception_value = None,
+                                    exception_trace = None,
+                                    exception_cause = None,
+                                    source_ref      = source_ref
+                                )
+                            ),
+                            yes_branch = None,
                             source_ref = source_ref
                         ),
-                        right      = ExpressionConstantRef(
-                            constant    = True,
-                            source_ref = source_ref
+                    ),
+                    source_ref     = source_ref
+                ),
+                public_exc = Utils.python_version >= 270,
+                source_ref = source_ref
+            ),
+            final      = StatementConditional(
+                condition      = ExpressionComparisonIs(
+                    left       = ExpressionTempVariableRef(
+                        variable   = tmp_indicator_variable.makeReference(
+                            provider
                         ),
                         source_ref = source_ref
                     ),
-                    yes_branch = makeStatementsSequenceFromStatement(
-                        statement = StatementExpressionOnly(
-                            expression = ExpressionCallNoKeywords(
-                                called     = ExpressionTempVariableRef(
-                                    variable   = tmp_exit_variable.makeReference(provider),
-                                    source_ref = source_ref
-                                ),
-                                args       = ExpressionConstantRef(
-                                    constant   = (None, None, None),
-                                    source_ref = source_ref
-                                ),
+                    right      = ExpressionConstantRef(
+                        constant    = True,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_branch = makeStatementsSequenceFromStatement(
+                    statement = StatementExpressionOnly(
+                        expression = ExpressionCallNoKeywords(
+                            called     = ExpressionTempVariableRef(
+                                variable   = tmp_exit_variable.\
+                                  makeReference(provider),
                                 source_ref = source_ref
                             ),
-                            source_ref     = source_ref
-                        )
-                    ),
-                    no_branch  = None,
-                    source_ref = source_ref
-                )
+                            args       = ExpressionConstantRef(
+                                constant   = (None, None, None),
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                        source_ref     = source_ref
+                    )
+                ),
+                no_branch  = None,
+                source_ref = source_ref
             ),
-            public_exc = False,
             source_ref = source_ref
         )
     ]
