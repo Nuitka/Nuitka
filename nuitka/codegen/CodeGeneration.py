@@ -3027,7 +3027,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     old_continue_target = context.getLoopContinueTarget()
 
     if final_block is not None:
-        if Utils.python_version < 300 or True:
+        if Utils.python_version < 300 and final_block.needsLineNumber():
             tried_lineno_name = context.allocateTempName("tried_lineno", "int")
             Generator.getLineNumberCode(tried_lineno_name, emit, context)
 
@@ -3053,7 +3053,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
             context            = context
         )
 
-        if Utils.python_version < 300 or True:
+        if Utils.python_version < 300 and final_block.needsLineNumber():
             Generator.getSetLineNumberCodeRaw(tried_lineno_name, emit, context)
     else:
         # Final block is only optional for try/finally expressions. For
