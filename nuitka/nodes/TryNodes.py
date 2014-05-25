@@ -375,16 +375,28 @@ Removed try/finally expression with empty tried and final block."""
             return self, None, None
 
     def computeExpressionDrop(self, statement, constraint_collection):
+        from .NodeMakingHelpers import (
+          makeStatementExpressionOnlyReplacementNode,
+          makeStatementsSequenceReplacementNode
+        )
+
         tried = self.getBlockTry()
 
-        from .NodeMakingHelpers import \
-          makeStatementExpressionOnlyReplacementNode
+        if tried is None:
+            statements = ()
+        else:
+            statements = tried.getStatements()
 
-        tried.setChild(
-            "statements",
-            tried.getStatements() + (
-                makeStatementExpressionOnlyReplacementNode(self.getExpression(), self),
-            )
+        statements += (
+            makeStatementExpressionOnlyReplacementNode(
+                expression = self.getExpression(),
+                node       = self.getExpression()
+            ),
+        )
+
+        tried = makeStatementsSequenceReplacementNode(
+            statements = statements,
+            node       = self
         )
 
         result = StatementTryFinally(
@@ -396,6 +408,17 @@ Removed try/finally expression with empty tried and final block."""
 
         return result, "new_statements", """\
 Replaced try/finally expression with try/finally statement."""
+
+
+    def canPredictIterationValues(self):
+        return False
+
+        # TODO: Users should not rely on this to be able to directly extract
+        # values, but preserve our side effects.
+        return self.getExpression().canPredictIterationValues()
+
+    def getIterationValues(self):
+        return self.getExpression().getIterationValues()
 
 
 class StatementTryExcept(StatementChildrenHavingBase):
