@@ -468,9 +468,9 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
     )
 
 
-def _makeStarDictArgumentToDictStatement( result, called_variable_ref,
-                                          star_dict_target_variable_ref,
-                                          star_dict_variable_ref ):
+def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
+                                         star_dict_target_variable_ref,
+                                         star_dict_variable_ref):
     raise_statement = StatementRaiseException(
         exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
@@ -593,7 +593,7 @@ def _makeStarDictArgumentToDictStatement( result, called_variable_ref,
         # removed once code generation is apt enough.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable.makeReference( result ),
+                variable   = tmp_keys_variable.makeReference(result),
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
@@ -607,12 +607,14 @@ def _makeStarDictArgumentToDictStatement( result, called_variable_ref,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_keys_variable.makeReference( result ),
+                        variable   = tmp_keys_variable.makeReference(result),
                         source_ref = source_ref
                     ),
                     source     = ExpressionCallEmpty(
                         called = ExpressionAttributeLookup(
-                            expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
+                            expression     = star_dict_variable_ref.makeCloneAt(
+                                source_ref
+                            ),
                             attribute_name = "keys",
                             source_ref     = source_ref
                         ),
@@ -630,12 +632,12 @@ def _makeStarDictArgumentToDictStatement( result, called_variable_ref,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable.makeReference( result ),
+                variable   = tmp_iter_variable.makeReference(result),
                 source_ref = source_ref
             ),
             source     = ExpressionBuiltinIter1(
                 value      = ExpressionTempVariableRef(
-                    variable   = tmp_keys_variable.makeReference( result ),
+                    variable   = tmp_keys_variable.makeReference(result),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref

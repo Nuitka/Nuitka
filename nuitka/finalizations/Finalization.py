@@ -30,10 +30,10 @@ from nuitka.tree import Operations
 
 def prepareCodeGeneration(tree):
     visitor = FinalizeMarkups()
-    Operations.visitTree( tree, visitor )
+    Operations.visitTree(tree, visitor)
     for function in tree.getUsedFunctions():
-        Operations.visitTree( function, visitor )
+        Operations.visitTree(function, visitor)
 
     visitor = FinalizeClosureTaking()
     for function in tree.getUsedFunctions():
-        Operations.visitFunction( function, visitor )
+        Operations.visitFunction(function, visitor)

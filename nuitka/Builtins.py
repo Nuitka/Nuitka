@@ -89,7 +89,7 @@ assert "NotImplemented" in builtin_exception_names
 
 def _getBuiltinNames():
     names = [
-        str( x )
+        str(x)
         for x in __builtins__.keys()
     ]
 

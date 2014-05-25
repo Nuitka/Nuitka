@@ -189,9 +189,6 @@ class StatementTryFinally(StatementChildrenHavingBase,
 
                 final_statement_sequence = result
 
-        # Note: Need to query again, because the object may have changed in the
-        # "computeStatementsSequence" calls.
-
         if tried_statement_sequence is None:
             # If the tried block is empty, go to the final block directly, if
             # any.

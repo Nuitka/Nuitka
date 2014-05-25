@@ -18,20 +18,20 @@
 
 import sys, os
 
-scripts = [ "bin/nuitka", "bin/nuitka-run" ]
+scripts = ["bin/nuitka", "bin/nuitka-run"]
 
 if os.name == "nt":
-    scripts += [ "misc/nuitka.bat", "misc/nuitka-run.bat" ]
+    scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
 
 def detectVersion():
     version_line, = [
         line
         for line in
-        open( "nuitka/Options.py" )
-        if line.startswith( "Nuitka V" )
+        open("nuitka/Options.py")
+        if line.startswith( "Nuitka V")
     ]
 
-    return version_line.split( "V" )[1].strip()
+    return version_line.split("V")[1].strip()
 
 version = detectVersion()
 
@@ -87,31 +87,33 @@ class nuitka_installscripts( install_scripts ):
     """
 
     def initialize_options( self ):
-        install_scripts.initialize_options( self )
+        install_scripts.initialize_options(self)
 
         self.install_lib = None
 
     def finalize_options( self ):
         install_scripts.finalize_options(self)
 
-        self.set_undefined_options( "install", ( "install_lib", "install_lib" ) )
+        self.set_undefined_options("install", ("install_lib", "install_lib"))
 
-    def run( self ):
-        install_scripts.run( self )
+    def run(self):
+        install_scripts.run(self)
 
-        if ( os.path.splitdrive( self.install_dir )[0] != os.path.splitdrive( self.install_lib )[0] ):
+        if os.path.splitdrive(self.install_dir)[0] != os.path.splitdrive(self.install_lib)[0]:
             # can't make relative paths from one drive to another, so use an
             # absolute path instead
             libdir = self.install_lib
         else:
-            common = os.path.commonprefix( (self. install_dir, self.install_lib ) )
-            rest = self.install_dir[ len(common) : ]
-            uplevel = len( [n for n in os.path.split( rest ) if n ] )
+            common = os.path.commonprefix(
+                (self.install_dir, self.install_lib )
+            )
+            rest = self.install_dir[len(common):]
+            uplevel = len([n for n in os.path.split(rest) if n ])
 
-            libdir = uplevel * ( ".." + os.sep ) + self.install_lib[ len(common) : ]
+            libdir = uplevel * (".." + os.sep) + self.install_lib[len(common):]
 
         for outfile in self.outfiles:
-            fp = open( outfile, "rb" )
+            fp = open(outfile, "rb")
             data = fp.read()
             fp.close()
 
@@ -119,29 +121,16 @@ class nuitka_installscripts( install_scripts ):
             if b'\0' in data:
                 continue
 
-            data = data.replace( b"@LIBDIR@", libdir.encode( "unicode_escape" ) )
-            fp = open( outfile, "wb" )
-            fp.write( data )
+            data = data.replace( b"@LIBDIR@", libdir.encode("unicode_escape"))
+            fp = open(outfile, "wb")
+            fp.write(data)
             fp.close()
 
 cmdclass = {
-    "install_scripts": nuitka_installscripts
+    "install_scripts" : nuitka_installscripts
 }
 
-def findSources():
-    result = []
-
-    for root, _dirnames, filenames in os.walk("src"):
-        for filename in filenames:
-            if filename.endswith(".cpp") or \
-               filename.endswith(".h") or \
-               filename.endswith(".asm") or \
-               filename.endswith(".S"):
-                result.append(os.path.join(root, filename))
-
-    return result
-
-if os.path.exists( "/usr/bin/scons" ) and \
+if os.path.exists("/usr/bin/scons") and \
    "sdist" not in sys.argv and \
    "bdist_wininst" not in sys.argv and \
    "bdist_msi" not in sys.argv:
@@ -170,7 +159,7 @@ setup(
 
     package_data = {
         # Include extra files
-        "" : ['*.txt', '*.rst', '*.cpp', '*.hpp', '*.ui' ],
+        "" : ['*.txt', '*.rst', '*.cpp', '*.hpp', '*.ui'],
         "nuitka.build" : [
             "SingleExe.scons",
             "static_src/*.cpp",
@@ -191,7 +180,7 @@ setup(
     author       = "Kay Hayen",
     author_email = "Kay.Hayen@gmail.com",
     url          = "http://nuitka.net",
-    description  = "Python compiler with full language support and CPython compatibility",
-
+    description  = """\
+Python compiler with full language support and CPython compatibility""",
     keywords     = "compiler,python,nuitka",
 )

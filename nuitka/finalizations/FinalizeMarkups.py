@@ -37,7 +37,7 @@ from .FinalizeBase import FinalizationVisitorBase
 
 from logging import warning
 
-def isWhileListedImport(node):
+def isWhiteListedImport(node):
     module = node.getParentModule()
 
     return Importing.isStandardLibraryPath(module.getFilename())
@@ -144,7 +144,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
         if node.isExpressionBuiltinImport() and \
            not Options.getShallFollowExtra() and \
-           not isWhileListedImport(node):
+           not isWhiteListedImport(node):
             warning( """Unresolved '__import__' call at '%s' may require use \
 of '--recurse-directory'.""" % (
                     node.getSourceReference().getAsString()

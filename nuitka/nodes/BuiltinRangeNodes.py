@@ -132,7 +132,9 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
 class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
     kind = "EXPRESSION_BUILTIN_RANGE1"
 
-    named_children = ( "low", )
+    named_children = (
+        "low",
+    )
 
     def __init__(self, low, source_ref):
         assert low is not None
@@ -140,7 +142,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
         ExpressionBuiltinRangeBase.__init__(
             self,
             values     = {
-                "low"  : low,
+                "low" : low,
             },
             source_ref = source_ref
         )

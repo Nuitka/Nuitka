@@ -348,9 +348,9 @@ def range_extractor(node):
         if high is None:
             return ExpressionBuiltinRange1( low, source_ref )
         elif step is None:
-            return ExpressionBuiltinRange2( low, high, source_ref )
+            return ExpressionBuiltinRange2(low, high, source_ref)
         else:
-            return ExpressionBuiltinRange3( low, high, step, source_ref )
+            return ExpressionBuiltinRange3(low, high, step, source_ref)
 
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,

@@ -499,7 +499,7 @@ from __future__ imports must occur at the beginning of the file""",
 
         # Remember it for checks to be applied once module is complete.
         node.source_ref = source_ref
-        _future_import_nodes.append( node )
+        _future_import_nodes.append(node)
 
     target_names = []
     import_names = []
@@ -508,7 +508,7 @@ from __future__ imports must occur at the beginning of the file""",
         object_name, local_name = import_desc.name, import_desc.asname
 
         if object_name == "*":
-            target_names.append( None )
+            target_names.append(None)
         else:
             target_names.append(
                 local_name
@@ -516,12 +516,12 @@ from __future__ imports must occur at the beginning of the file""",
                 object_name
             )
 
-        import_names.append( object_name )
+        import_names.append(object_name)
 
     if None in target_names:
         # More than "*" is a syntax error in Python, need not care about this at
         # all, it's only allowed value for import list in  this case.
-        assert target_names == [ None ]
+        assert target_names == [None]
 
         # Python3 made this a syntax error unfortunately.
         if not provider.isPythonModule() and Utils.python_version >= 300:
@@ -670,6 +670,7 @@ def buildStringNode(node, source_ref):
         user_provided = True
     )
 
+
 def buildNumberNode(node, source_ref):
     assert type( node.n ) in ( int, long, float, complex ), type( node.n )
 
@@ -679,6 +680,7 @@ def buildNumberNode(node, source_ref):
         user_provided = True
     )
 
+
 def buildBytesNode(node, source_ref):
     return ExpressionConstantRef(
         constant      = node.s,
@@ -686,12 +688,14 @@ def buildBytesNode(node, source_ref):
         user_provided = True
     )
 
+
 def buildEllipsisNode(source_ref):
     return ExpressionConstantRef(
         constant      = Ellipsis,
         source_ref    = source_ref,
         user_provided = True
     )
+
 
 def buildStatementContinueLoop(provider, node, source_ref):
     if getBuildContext() == "finally":
@@ -739,6 +743,7 @@ def buildAttributeNode(provider, node, source_ref):
         source_ref     = source_ref
     )
 
+
 def buildReturnNode(provider, node, source_ref):
     if not provider.isExpressionFunctionBody() or \
        provider.isClassDictCreation():
@@ -770,6 +775,7 @@ def buildReturnNode(provider, node, source_ref):
         ),
         is_loop_exit = False
     )
+
 
 def buildExprOnlyNode(provider, node, source_ref):
     return StatementExpressionOnly(

@@ -44,7 +44,7 @@ from nuitka.__past__ import iterItems
 
 def generateTupleCreationCode(to_name, elements, emit, context):
     if _areConstants(elements):
-        Generator.getConstantAccessC(
+        Generator.getConstantAccess(
             to_name  = to_name,
             constant = tuple(
                 element.getConstant() for element in elements
@@ -897,7 +897,7 @@ def generateCallCode(to_name, call_node, emit, context):
 
             assert call_arg_names
 
-            Generator.getCallCodePosArgsQuickC(
+            Generator.getCallCodePosArgsQuick(
                 to_name     = to_name,
                 called_name = called_name,
                 arg_names   = call_arg_names,
@@ -913,7 +913,7 @@ def generateCallCode(to_name, call_node, emit, context):
             for call_arg_element in call_args_value:
                 call_arg_name = context.allocateTempName("call_arg_element")
 
-                Generator.getConstantAccessC(
+                Generator.getConstantAccess(
                     to_name    = call_arg_name,
                     constant   = call_arg_element,
                     emit       = emit,
@@ -923,7 +923,7 @@ def generateCallCode(to_name, call_node, emit, context):
                 call_arg_names.append(call_arg_name)
 
             if call_arg_names:
-                Generator.getCallCodePosArgsQuickC(
+                Generator.getCallCodePosArgsQuick(
                     to_name     = to_name,
                     called_name = called_name,
                     arg_names   = call_arg_names,
@@ -931,7 +931,7 @@ def generateCallCode(to_name, call_node, emit, context):
                     context     = context
                 )
             else:
-                Generator.getCallCodeNoArgsC(
+                Generator.getCallCodeNoArgs(
                     to_name     = to_name,
                     called_name = called_name,
                     emit        = emit,
@@ -947,7 +947,7 @@ def generateCallCode(to_name, call_node, emit, context):
                 context    = context
             )
 
-            Generator.getCallCodePosArgsC(
+            Generator.getCallCodePosArgs(
                 to_name     = to_name,
                 called_name = called_name,
                 args_name   = args_name,
@@ -1120,7 +1120,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             context  = context
         )
     elif expression.isExpressionConstantRef():
-        Generator.getConstantAccessC(
+        Generator.getConstantAccess(
             to_name  = to_name,
             constant = expression.getConstant(),
             emit     = emit,
@@ -4216,9 +4216,9 @@ def generateModuleCode(global_context, module, module_name, other_modules):
             context       = context
         )
 
-        assert type( function_code ) is str
+        assert type(function_code) is str
 
-        function_body_codes.append( function_code )
+        function_body_codes.append(function_code)
 
         if function_body.needsDirectCall():
             function_decl = Generator.getFunctionDirectDecl(

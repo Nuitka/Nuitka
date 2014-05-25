@@ -164,22 +164,24 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
         element_vars = [
             provider.allocateTempVariable(
                 temp_scope = temp_scope,
-                name       = "element_%d" % ( element_index + 1 )
+                name       = "element_%d" % (
+                    element_index + 1
+                )
             )
             for element_index in
-            range( len( detail ) )
+            range(len(detail))
         ]
 
         starred = False
 
-        for element_index, element in enumerate( detail ):
-            element_var = element_vars[ element_index ]
+        for element_index, element in enumerate(detail):
+            element_var = element_vars[element_index]
 
             if element[0] != "Starred":
                 statements.append(
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = element_var.makeReference( provider ),
+                            variable   = element_var.makeReference(provider),
                             source_ref = source_ref
                         ),
                         source = ExpressionSpecialUnpack(
@@ -201,7 +203,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
                 statements.append(
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = element_var.makeReference( provider ),
+                            variable   = element_var.makeReference(provider),
                             source_ref = source_ref
                         ),
                         source = ExpressionBuiltinList(
@@ -221,19 +223,19 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
             statements.append(
                 StatementSpecialUnpackCheck(
                     iterator   = ExpressionTempVariableRef(
-                        variable   = source_iter_var.makeReference( provider ),
+                        variable   = source_iter_var.makeReference(provider),
                         source_ref = source_ref
                     ),
-                    count      = len( detail ),
+                    count      = len(detail),
                     source_ref = source_ref
                 )
             )
 
-        for element_index, element in enumerate( detail ):
+        for element_index, element in enumerate(detail):
             if element[0] == "Starred":
                 element = element[1]
 
-            element_var = element_vars[ element_index ]
+            element_var = element_vars[element_index]
 
             statements.append(
                 buildAssignmentStatementsFromDecoded(
@@ -241,7 +243,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
                     kind       = element[0],
                     detail     = element[1],
                     source     = ExpressionTempVariableRef(
-                        variable   = element_var.makeReference( provider ),
+                        variable   = element_var.makeReference(provider),
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
@@ -253,7 +255,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
         final_statements.append(
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_iter_var.makeReference( provider ),
+                    variable   = source_iter_var.makeReference(provider),
                     source_ref = source_ref
                 ),
                 tolerant     = True,
@@ -266,7 +268,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
             final_statements.append(
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = element_var.makeReference( provider ),
+                        variable   = element_var.makeReference(provider),
                         source_ref = source_ref
                     ),
                     tolerant     = True,
@@ -283,8 +285,8 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
         assert False, ( kind, source_ref, detail )
 
 
-def buildAssignmentStatements( provider, node, source, source_ref,
-                               allow_none = False, temp_provider = None ):
+def buildAssignmentStatements(provider, node, source, source_ref,
+                              allow_none = False, temp_provider = None):
     if node is None and allow_none:
         return None
 
@@ -313,12 +315,12 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
     if node is None and allow_none:
         return None
 
-    if hasattr( node, "ctx" ):
-        assert getKind( node.ctx ) in ( "Store", "Del" )
+    if hasattr(node, "ctx"):
+        assert getKind(node.ctx) in ("Store", "Del")
 
-    kind = getKind( node )
+    kind = getKind(node)
 
-    if type( node ) is str:
+    if type(node) is str:
         return "Name", ExpressionTargetVariableRef(
             variable_name = node,
             source_ref    = source_ref
@@ -366,11 +368,11 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
         elif slice_kind == "ExtSlice":
             return "Subscript", (
                 buildNode( provider, node.value, source_ref ),
-                buildExtSliceNode( provider, node, source_ref )
+                buildExtSliceNode(provider, node, source_ref)
             )
         elif slice_kind == "Ellipsis":
             return "Subscript", (
-                buildNode( provider, node.value, source_ref ),
+                buildNode(provider, node.value, source_ref),
                 ExpressionConstantRef(
                     constant   = Ellipsis,
                     source_ref = source_ref
@@ -405,7 +407,7 @@ def buildAssignNode(provider, node, source_ref):
 
     # Evaluate the right hand side first, so it can get names provided
     # before the left hand side exists.
-    source = buildNode( provider, node.value, source_ref )
+    source = buildNode(provider, node.value, source_ref)
 
     if len(node.targets) == 1:
         # Simple assignment case, one source, one target.
@@ -421,7 +423,7 @@ def buildAssignNode(provider, node, source_ref):
         # source in a temporary variable, and then assign from it multiple
         # times.
 
-        temp_scope = provider.allocateTempScope( "assign_unpack" )
+        temp_scope = provider.allocateTempScope("assign_unpack")
 
         tmp_source = provider.allocateTempVariable(
             temp_scope = temp_scope,
@@ -431,7 +433,7 @@ def buildAssignNode(provider, node, source_ref):
         statements = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_source.makeReference( provider ),
+                    variable   = tmp_source.makeReference(provider),
                     source_ref = source_ref
                 ),
                 source       = source,
@@ -445,22 +447,20 @@ def buildAssignNode(provider, node, source_ref):
                     provider   = provider,
                     node       = target,
                     source     = ExpressionTempVariableRef(
-                        variable   = tmp_source.makeReference( provider ),
+                        variable   = tmp_source.makeReference(provider),
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
                 )
             )
 
-        final_statements = (
-            StatementDelVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_source.makeReference( provider ),
-                    source_ref = source_ref
-                ),
-                tolerant     = False,
-                source_ref   = source_ref
+        final_statements = StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_source.makeReference(provider),
+                source_ref = source_ref
             ),
+            tolerant     = True,
+            source_ref   = source_ref
         )
 
         return makeTryFinallyStatement(

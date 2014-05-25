@@ -95,8 +95,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *fast_python_call( PyObject *func, PyObject
 }"""
 
 template_call_function_with_args_decl = """\
-extern PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s );
-extern PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d_C( PyObject *called, %(args_decl)s );"""
+extern PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s );"""
 
 template_call_function_with_args_impl = """\
 PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s )

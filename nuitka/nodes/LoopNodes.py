@@ -80,7 +80,7 @@ class StatementLoop(StatementChildrenHavingBase):
 
         if loop_body is not None:
             # Look ahead. what will be written.
-            variable_writes = getVariablesWritten( loop_body )
+            variable_writes = getVariablesWritten(loop_body)
 
             # Mark all variables as unknown that are written in the loop body,
             # so it destroys the assumptions for loop turn around.
@@ -95,7 +95,7 @@ class StatementLoop(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not loop_body:
-                loop_body.replaceWith( result )
+                loop_body.replaceWith(result)
                 loop_body = result
 
         # Consider trailing "continue" statements, these have no effect, so we
@@ -108,11 +108,11 @@ class StatementLoop(StatementChildrenHavingBase):
 
             last_statement = statements[-1]
             if last_statement.isStatementContinueLoop():
-                loop_body.removeStatement( last_statement )
+                loop_body.removeStatement(last_statement)
                 statements = loop_body.getStatements()
 
                 if not statements:
-                    loop_body.replaceWith( None )
+                    loop_body.replaceWith(None)
                     loop_body = None
 
                 constraint_collection.signalChange(

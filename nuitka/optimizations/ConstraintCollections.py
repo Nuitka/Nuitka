@@ -164,8 +164,6 @@ class CollectionTracingMixin:
         return tuple( self.variable_actives.keys() )
 
     def markActiveVariableAsUnknown(self, variable):
-
-
         current = self.getVariableCurrentTrace(
             variable = variable,
         )
@@ -233,11 +231,11 @@ class CollectionStartpointMixin:
             trace_no     = trace_no
         )
 
-        self.addVariableTrace( variable, version, trace_merge )
+        self.addVariableTrace(variable, version, trace_merge)
 
         # Merging is using, might imply releasing.
-        trace_yes.addUsage( trace_merge )
-        trace_no.addUsage( trace_merge )
+        trace_yes.addUsage(trace_merge)
+        trace_no.addUsage(trace_merge)
 
         return version
 
@@ -364,7 +362,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         )
 
         # Make references point to it.
-        self.markCurrentVariableTrace( variable, version )
+        self.markCurrentVariableTrace(variable, version)
 
     def onVariableDel(self, target_node):
         # Add a new trace, allocating a new version for the variable, and
@@ -552,8 +550,8 @@ Side effects of assignments promoted to statements."""
             for variable in collection.getActiveVariables():
                 # print "ACTIVE", variable, self.getCurrentVariableVersion( variable )
 
-                trace_old = self.getVariableCurrentTrace( variable )
-                trace_new = collection.getVariableCurrentTrace( variable )
+                trace_old = self.getVariableCurrentTrace(variable)
+                trace_new = collection.getVariableCurrentTrace(variable)
 
                 assert trace_old is not None
                 assert trace_new is not None
@@ -570,8 +568,8 @@ Side effects of assignments promoted to statements."""
             return
         else:
             for variable in collection_yes.getActiveVariables():
-                trace_yes = collection_yes.getVariableCurrentTrace( variable )
-                trace_no = collection_no.getVariableCurrentTrace( variable )
+                trace_yes = collection_yes.getVariableCurrentTrace(variable)
+                trace_no = collection_no.getVariableCurrentTrace(variable)
 
                 if trace_yes is not trace_no:
                     version = self.addVariableMergeTrace(
@@ -640,7 +638,7 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
             function_body.setStatements( None )
             statements_sequence = None
 
-        self.setupVariableTraces( function_body )
+        self.setupVariableTraces(function_body)
 
         if statements_sequence is not None:
             result = statements_sequence.computeStatementsSequence(
@@ -652,8 +650,9 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
         # TODO: Should become trace based as well.
         self.setIndications()
+        # self.dumpTraces()
 
-        self.makeVariableTraceOptimizations( function_body )
+        self.makeVariableTraceOptimizations(function_body)
 
         if not Options.isExperimental() or self.removes_knowledge:
             return
@@ -706,6 +705,9 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
                         # print "HIT", variable_trace
 
 
+    def __repr__(self):
+        return "<ConstraintCollectionFunction for %s>" % self.function_body
+
     def onLocalVariableAssigned(self, variable, assign_source):
         self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
 
@@ -713,7 +715,7 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
         variable = variable.getReferenced()
         # assert variable.getOwner() is self.function_body
 
-        self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
+        self._getVariableUsage(variable).markAsWrittenTo(assign_source)
 
 
 class ConstraintCollectionModule(CollectionStartpointMixin,

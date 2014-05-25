@@ -202,7 +202,10 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
                             ExpressionChildrenHavingBase):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
-    named_children = ( "key", "value" )
+    named_children = (
+        "key",
+        "value"
+    )
 
     def __init__(self, key, value, source_ref):
         ExpressionChildrenHavingBase.__init__(

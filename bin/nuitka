@@ -110,8 +110,8 @@ if sys.flags.no_site == 0 and "no_site" in python_flags:
 # changing it every single time Nuitka is run. This kills any attempt at
 # caching it, and comparing generated source code. While the created binary
 # actually should use it, we don't want to. So lets disable it.
-if os.environ.get( "PYTHONHASHSEED", "-1" ) != "0":
-    os.environ[ "PYTHONHASHSEED" ] = "0"
+if os.environ.get("PYTHONHASHSEED", "-1") != "0":
+    os.environ["PYTHONHASHSEED"] = "0"
     needs_reexec = True
 
 # In case we need to re-execute.

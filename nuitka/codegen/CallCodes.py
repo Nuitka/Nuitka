@@ -29,7 +29,7 @@ from .ErrorCodes import getReleaseCode, getReleaseCodes, getErrorExitCode
 
 from .ExceptionCodes import getExceptionIdentifier
 
-def getCallCodeNoArgsC(to_name, called_name, emit, context):
+def getCallCodeNoArgs(to_name, called_name, emit, context):
     emit(
         "%s = CALL_FUNCTION_NO_ARGS( %s );" % (
             to_name,
@@ -57,7 +57,7 @@ def getCallCodeNoArgsC(to_name, called_name, emit, context):
 # Outside helper code relies on some quick call to be present.
 quick_calls_used = set( [ 1, 2, 3 ] )
 
-def getCallCodePosArgsQuickC(to_name, called_name, arg_names, emit, context):
+def getCallCodePosArgsQuick(to_name, called_name, arg_names, emit, context):
 
     arg_size = len(arg_names)
     quick_calls_used.add(arg_size)
@@ -89,7 +89,7 @@ def getCallCodePosArgsQuickC(to_name, called_name, arg_names, emit, context):
     context.addCleanupTempName(to_name)
 
 
-def getCallCodePosArgsC(to_name, called_name, args_name, emit, context):
+def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
 
     emit(
         "%s = CALL_FUNCTION_WITH_POSARGS( %s, %s );" % (
@@ -223,7 +223,7 @@ def getCallsCode():
 def getMakeBuiltinExceptionCode(to_name, exception_type, arg_names, emit,
                                 context):
     if arg_names:
-        getCallCodePosArgsQuickC(
+        getCallCodePosArgsQuick(
             to_name     = to_name,
             called_name = getExceptionIdentifier(exception_type),
             arg_names   = arg_names,
@@ -232,7 +232,7 @@ def getMakeBuiltinExceptionCode(to_name, exception_type, arg_names, emit,
         )
 
     else:
-        getCallCodeNoArgsC(
+        getCallCodeNoArgs(
             to_name     = to_name,
             called_name = getExceptionIdentifier(exception_type),
             emit        = emit,

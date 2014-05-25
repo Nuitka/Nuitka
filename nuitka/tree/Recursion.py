@@ -27,8 +27,8 @@ from . import ImportCache, Building
 from logging import debug, warning
 
 def recurseTo(module_package, module_filename, module_relpath, module_kind,
-             reason ):
-    if not ImportCache.isImportedModuleByPath( module_relpath ):
+             reason):
+    if not ImportCache.isImportedModuleByPath(module_relpath):
         module, source_ref, source_filename = Building.decideModuleTree(
             filename = module_filename,
             package  = module_package,
@@ -39,7 +39,7 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
 
         # Check if the module name is known. In order to avoid duplicates,
         # learn the new filename, and continue build if its not.
-        if not ImportCache.isImportedModuleByName( module.getFullName() ):
+        if not ImportCache.isImportedModuleByName(module.getFullName()):
             debug(
                 "Recurse to import '%s' from %s. (%s)",
                 module.getFullName(),
@@ -121,7 +121,7 @@ def decideRecursion(module_filename, module_name, module_package,
                 "Module listed explicitely to not recurse to."
             )
 
-        if full_name.startswith( no_case_module + "." ):
+        if full_name.startswith(no_case_module + "."):
             return (
                 False,
                 "Module in package listed explicitely to not recurse to."

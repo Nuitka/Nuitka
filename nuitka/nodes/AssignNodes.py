@@ -54,6 +54,15 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
 
         self.inplace_suspect = None
 
+    def getDetail(self):
+        variable_ref = self.getTargetVariableRef()
+        variable = variable_ref.getVariable()
+
+        if variable is not None:
+            return "to variable %s" % variable
+        else:
+            return "to variable %s" % self.getTargetVariableRef()
+
     getTargetVariableRef = StatementChildrenHavingBase.childGetter(
         "variable_ref"
     )
@@ -382,10 +391,11 @@ class StatementDelVariable(StatementChildrenHavingBase):
     getTargetVariableRef = StatementChildrenHavingBase.childGetter(
         "variable_ref"
     )
+
     def computeStatement(self, constraint_collection):
         variable = self.getTargetVariableRef().getVariable()
 
-        trace = constraint_collection.getVariableCurrentTrace( variable )
+        trace = constraint_collection.getVariableCurrentTrace(variable)
 
         # Optimize away tolerant "del" that is not needed.
         if trace.isUninitTrace():

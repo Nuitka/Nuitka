@@ -319,11 +319,10 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
 builtin_range_spec = BuiltinRangeSpec("range", ( "start", "stop", "step" ), 2)
 
 
-def extractBuiltinArgs( node, builtin_spec, builtin_class,
-                        empty_special_class = None ):
+def extractBuiltinArgs(node, builtin_spec, builtin_class,
+                       empty_special_class = None ):
     try:
         kw = node.getCallKw()
-
 
         # TODO: Could check for too many / too few, even if they are unknown, we
         # might raise that error, but that need not be optimized immediately.
@@ -374,13 +373,13 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class,
     args_list = []
 
     for argument_name in builtin_spec.getArgumentNames():
-        args_list.append( args_dict[ argument_name ] )
+        args_list.append(args_dict[argument_name])
 
     if builtin_spec.getStarListArgumentName() is not None:
-        args_list.append( args_dict[ builtin_spec.getStarListArgumentName() ] )
+        args_list.append(args_dict[builtin_spec.getStarListArgumentName()])
 
     if builtin_spec.getStarDictArgumentName() is not None:
-        args_list.append( args_dict[ builtin_spec.getStarDictArgumentName() ] )
+        args_list.append(args_dict[builtin_spec.getStarDictArgumentName()])
 
     # Using list reference for passing the arguments without names,
     # pylint: disable=W0142

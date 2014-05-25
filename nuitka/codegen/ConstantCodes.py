@@ -511,7 +511,7 @@ def getConstantsDeclCode(context, for_header):
     return statements, statements2
 
 
-def getConstantAccessC(to_name, constant, emit, context):
+def getConstantAccess(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
     # empty.  pylint: disable=R0911,R0912, R0915
 

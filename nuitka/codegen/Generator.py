@@ -59,10 +59,10 @@ from .YieldCodes import (
 from .CallCodes import (
     getMakeBuiltinExceptionCode,
     getCallCodePosKeywordArgs,
-    getCallCodePosArgsQuickC,
+    getCallCodePosArgsQuick,
     getCallCodeKeywordArgs,
-    getCallCodePosArgsC,
-    getCallCodeNoArgsC,
+    getCallCodePosArgs,
+    getCallCodeNoArgs,
     getCallsDecls,
     getCallsCode
 )
@@ -70,7 +70,7 @@ from .CallCodes import (
 from .ConstantCodes import (
     getConstantsInitCode,
     getConstantsDeclCode,
-    getConstantAccessC,
+    getConstantAccess,
     getConstantCode,
     needsPickleInit,
     stream_data

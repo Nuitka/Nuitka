@@ -41,7 +41,10 @@ def checkSideEffects(value):
 class ExpressionSideEffects(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
-    named_children = ( "side_effects", "expression" )
+    named_children = (
+        "side_effects",
+        "expression"
+    )
 
     checkers = {
         "side_effects" : checkSideEffects
@@ -51,16 +54,16 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self,
             values = {
-                "side_effects" : tuple( side_effects ),
+                "side_effects" : tuple(side_effects),
                 "expression"   : expression
             },
             source_ref = source_ref
         )
 
-    getSideEffects  = ExpressionChildrenHavingBase.childGetter( "side_effects" )
+    getSideEffects  = ExpressionChildrenHavingBase.childGetter("side_effects")
     setSideEffects  = ExpressionChildrenHavingBase.childSetter("side_effects")
 
-    getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
     def computeExpression(self, constraint_collection):
         side_effects = self.getSideEffects()
@@ -73,7 +76,9 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
         expression = self.getExpression()
 
         if expression.isExpressionSideEffects():
-            new_side_effects.extend( expression.getSideEffects() )
+            new_side_effects.extend(
+                expression.getSideEffects()
+            )
 
             expression.setSideEffects( new_side_effects )
 
