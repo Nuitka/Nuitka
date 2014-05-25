@@ -240,6 +240,9 @@ for filename in sorted(os.listdir(".")):
                   "/dist-packages/gobject":
                 continue
 
+            if loaded_filename == "/usr/bin/python3.2mu":
+                continue
+
 
             loaded_basename = os.path.basename(loaded_filename).upper()
             # Windows baseline DLLs
