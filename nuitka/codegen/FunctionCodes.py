@@ -187,10 +187,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                 constant = function_name,
                 context  = context
             ),
-            "function_qualname_obj"      : getConstantCode(
-                constant = function_qualname,
-                context  = context
-            ),
+            "function_qualname_obj"      : function_qualname_obj,
             "function_identifier"        : function_identifier,
             "fparse_function_identifier" : getParameterEntryPointIdentifier(
                 function_identifier = function_identifier,
@@ -233,10 +230,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                 constant = function_name,
                 context  = context
             ),
-            "function_qualname_obj"      : getConstantCode(
-                constant = function_qualname,
-                context  = context
-            ),
+            "function_qualname_obj"      : function_qualname_obj,
             "function_identifier"        : function_identifier,
             "fparse_function_identifier" : getParameterEntryPointIdentifier(
                 function_identifier = function_identifier,
