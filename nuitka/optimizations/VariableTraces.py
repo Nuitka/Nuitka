@@ -137,6 +137,12 @@ class VariableUninitTrace(VariableTraceBase):
 
             debug("  Used at %s", usage)
 
+        for merge in self.merges:
+            debug("   Merged to %s", merge)
+
+        for release in self.releases:
+            debug("   Release by %s", release)
+
 
 class VariableUnknownTrace(VariableTraceBase):
     def __init__(self, variable, version):
@@ -166,6 +172,12 @@ class VariableUnknownTrace(VariableTraceBase):
 
             debug("  Used at %s", usage)
 
+        for merge in self.merges:
+            debug("   Merged to %s", merge)
+
+        for release in self.releases:
+            debug("   Release by %s", release)
+
     def isUnknownTrace(self):
         return True
 
@@ -193,12 +205,19 @@ class VariableAssignTrace(VariableTraceBase):
             self.variable,
             self.version
         )
+        debug("  Starts assigned")
 
         for count, usage in enumerate(self.usages):
             if count == self.escaped_at:
                 debug("  Escaped value")
 
             debug("  Used at %s", usage)
+
+        for merge in self.merges:
+            debug("   Merged to %s", merge)
+
+        for release in self.releases:
+            debug("   Release by %s", release)
 
     def isAssignTrace(self):
         return True

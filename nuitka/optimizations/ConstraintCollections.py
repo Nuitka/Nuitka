@@ -239,11 +239,13 @@ class CollectionStartpointMixin:
         trace_yes.addUsage( trace_merge )
         trace_no.addUsage( trace_merge )
 
+        return version
 
     def dumpTraces(self):
-        debug( "Constraint collection state:" )
-        for variable_desc, variable_trace in iterItems( self.variable_traces ):
-            debug( "%r: %r", variable_desc, variable_trace )
+        debug("Constraint collection state: %s", self)
+        for variable_desc, variable_trace in sorted(iterItems(self.variable_traces)):
+
+            # debug( "%r: %r", variable_trace )
             variable_trace.dump()
 
     def initVariableUnknown(self, variable):
@@ -333,7 +335,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
     def addVariableMergeTrace(self, variable, trace_yes, trace_no):
         assert self.parent is not None, self
 
-        self.parent.addVariableMergeTrace( variable, trace_yes, trace_no )
+        return self.parent.addVariableMergeTrace(variable, trace_yes, trace_no)
 
     def onVariableSet(self, assign_node):
         if assign_node.isStatementAssignmentVariable():
@@ -557,11 +559,13 @@ Side effects of assignments promoted to statements."""
                 assert trace_new is not None
 
                 if trace_old is not trace_new:
-                    self.addVariableMergeTrace(
+                    version = self.addVariableMergeTrace(
                         variable  = variable,
                         trace_yes = trace_new,
                         trace_no  = trace_old
                     )
+
+                    self.markCurrentVariableTrace(variable, version)
 
             return
         else:
@@ -570,11 +574,13 @@ Side effects of assignments promoted to statements."""
                 trace_no = collection_no.getVariableCurrentTrace( variable )
 
                 if trace_yes is not trace_no:
-                    self.addVariableMergeTrace(
+                    version = self.addVariableMergeTrace(
                         variable  = variable,
                         trace_yes = trace_yes,
                         trace_no  = trace_no
                     )
+
+                    self.markCurrentVariableTrace(variable, version)
 
 
 class ConstraintCollectionBranch(ConstraintCollectionBase):
