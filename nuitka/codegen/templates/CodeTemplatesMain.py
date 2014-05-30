@@ -181,23 +181,9 @@ int main( int argc, char *argv[] )
 }
 """
 
-module_header_template = """\
-
-#include <nuitka/helpers.hpp>
-
-MOD_INIT_DECL( %(module_identifier)s );
-
-extern PyObject *module_%(module_identifier)s;
-extern PyDictObject *moduledict_%(module_identifier)s;
-
-// Declarations from this module to other modules if any.
-%(extra_declarations)s
-"""
-
 module_body_template = """
 #include "nuitka/prelude.hpp"
 
-#include "__modules.hpp"
 #include "__constants.hpp"
 #include "__helpers.hpp"
 
@@ -239,6 +225,7 @@ static struct PyModuleDef mdef_%(module_identifier)s =
 
 // Table for lookup to find "frozen" modules or DLLs, i.e. the ones included in
 // or along this binary.
+%(metapath_module_decls)s
 static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
 {
 %(metapath_loader_inittab)s
@@ -341,13 +328,9 @@ MOD_INIT_DECL( %(module_identifier)s )
     {
         PyObject *value = (PyObject *)builtin_module;
 
-#ifdef _NUITKA_EXE
-        if ( module_%(module_identifier)s != module___main__ )
-        {
-#endif
-            value = PyModule_GetDict( value );
-#ifdef _NUITKA_EXE
-        }
+        // Check if main module, not a dict then.
+#if defined(_NUITKA_EXE) && !%(is_main_module)s
+        value = PyModule_GetDict( value );
 #endif
 
 #ifndef __NUITKA_NO_ASSERT__

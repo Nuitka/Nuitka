@@ -160,6 +160,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         self.functions = OrderedSet()
 
         self.active_functions = OrderedSet()
+        self.cross_used_functions = OrderedSet()
 
         # SSA trace based information about the module.
         self.collection = None
@@ -261,6 +262,13 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     def getUsedFunctions(self):
         return self.active_functions
+
+    def addCrossUsedFunction(self, function_body):
+        if function_body not in self.cross_used_functions:
+            self.cross_used_functions.add(function_body)
+
+    def getCrossUsedFunctions(self):
+        return self.cross_used_functions
 
     def getOutputFilename(self):
         main_filename = self.getFilename()

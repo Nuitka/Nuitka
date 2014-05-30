@@ -231,10 +231,7 @@ def pickSourceFilenames(source_dir, modules):
 
         base_filename += hash_suffix
 
-        cpp_filename = base_filename + ".cpp"
-        hpp_filename = base_filename + ".hpp"
-
-        module_filenames[module] = (cpp_filename, hpp_filename)
+        module_filenames[module] = base_filename + ".cpp"
 
     return module_filenames
 
@@ -281,13 +278,11 @@ def makeSourceDirectory(main_module):
         modules    = modules
     )
 
-    module_hpps = []
-
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
-            cpp_filename, hpp_filename = module_filenames[module]
+            cpp_filename = module_filenames[module]
 
-            source_code, header_code, module_context = \
+            source_code, module_context = \
               CodeGeneration.generateModuleCode(
                   global_context = global_context,
                   module         = module,
@@ -305,16 +300,9 @@ def makeSourceDirectory(main_module):
                     codes       = source_code
                 )
 
-            module_hpps.append( hpp_filename )
-
             writeSourceCode(
                 filename     = cpp_filename,
                 source_code  = source_code
-            )
-
-            writeSourceCode(
-                filename     = hpp_filename,
-                source_code  = header_code
             )
 
             if Options.isShowInclusion():
@@ -373,16 +361,6 @@ def makeSourceDirectory(main_module):
         source_code = helper_impl_code
     )
 
-    module_hpp_include = [
-        '#include "%s"\n' % Utils.basename( module_hpp )
-        for module_hpp in
-        module_hpps
-    ]
-
-    writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__modules.hpp" ),
-        source_code = "".join( module_hpp_include )
-    )
 
 def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and

@@ -4208,7 +4208,6 @@ def generateModuleCode(global_context, module, module_name, other_modules):
 
     function_decl_codes = []
     function_body_codes = []
-    extra_declarations = []
 
     for function_body in module.getUsedFunctions():
         function_code = generateFunctionBodyCode(
@@ -4230,21 +4229,33 @@ def generateModuleCode(global_context, module, module_name, other_modules):
                 )
             )
 
-            if function_body.isCrossModuleUsed():
-                extra_declarations.append( function_decl )
-            else:
-                function_decl_codes.append( function_decl )
+            function_decl_codes.append(function_decl)
 
-    for _identifier, code in sorted( iterItems( context.getHelperCodes() ) ):
-        function_body_codes.append( code )
+    for function_body in module.getCrossUsedFunctions():
+        assert function_body.isCrossModuleUsed()
 
-    for _identifier, code in sorted( iterItems( context.getDeclarations() ) ):
-        function_decl_codes.append( code )
+        function_decl = Generator.getFunctionDirectDecl(
+            function_identifier = function_body.getCodeName(),
+            closure_variables   = function_body.getClosureVariables(),
+            parameter_variables = function_body.getParameters().getAllVariables(),
+            file_scope          = Generator.getExportScopeCode(
+                cross_module = function_body.isCrossModuleUsed()
+            )
+        )
 
-    function_body_codes = "\n\n".join( function_body_codes )
-    function_decl_codes = "\n\n".join( function_decl_codes )
+        function_decl_codes.append(function_decl)
+
+    for _identifier, code in sorted(iterItems(context.getHelperCodes())):
+        function_body_codes.append(code)
+
+    for _identifier, code in sorted(iterItems(context.getDeclarations())):
+        function_decl_codes.append(code)
+
+    function_body_codes = "\n\n".join(function_body_codes)
+    function_decl_codes = "\n\n".join(function_decl_codes)
 
     metapath_loader_inittab = []
+    metapath_module_decls = []
 
     for other_module in other_modules:
         metapath_loader_inittab.append(
@@ -4254,25 +4265,26 @@ def generateModuleCode(global_context, module, module_name, other_modules):
             )
         )
 
+        if not other_module.isPythonShlibModule():
+            metapath_module_decls.append(
+                "MOD_INIT_DECL( %s );" % Generator.getModuleIdentifier(
+                    other_module.getFullName()
+                )
+            )
 
     module_source_code = Generator.getModuleCode(
         module_name             = module_name,
         codes                   = codes,
         metapath_loader_inittab = metapath_loader_inittab,
+        metapath_module_decls   = metapath_module_decls,
         function_decl_codes     = function_decl_codes,
         function_body_codes     = function_body_codes,
         temp_variables          = module.getTempVariables(),
+        is_main_module          = module.isMainModule(),
         context                 = context,
     )
 
-    extra_declarations = "\n".join( extra_declarations )
-
-    module_header_code = Generator.getModuleDeclarationCode(
-        module_name        = module_name,
-        extra_declarations = extra_declarations
-    )
-
-    return module_source_code, module_header_code, context
+    return module_source_code, context
 
 
 def generateMainCode(main_module, codes, context):

@@ -160,10 +160,14 @@ of '--recurse-directory'.""" % (
               markAsDirectlyCalled()
 
         if node.isExpressionFunctionRef():
-            parent_module = node.getFunctionBody().getParentModule()
+            function_body = node.getFunctionBody()
+            parent_module = function_body.getParentModule()
 
-            if node.getParentModule() is not parent_module:
-                node.getFunctionBody().markAsCrossModuleUsed()
+            node_module = node.getParentModule()
+            if node_module is not parent_module:
+                function_body.markAsCrossModuleUsed()
+
+                node_module.addCrossUsedFunction(function_body)
 
         if node.isStatementAssignmentVariable():
             target_var = node.getTargetVariableRef().getVariable()

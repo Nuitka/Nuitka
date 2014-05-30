@@ -49,17 +49,6 @@ def getModuleIdentifier(module_name):
 
     return "".join(re.sub("[^a-zA-Z0-9_]", r ,c) for c in module_name)
 
-def getModuleDeclarationCode(module_name, extra_declarations):
-    module_header_code = CodeTemplates.module_header_template % {
-        "module_identifier"  : getModuleIdentifier( module_name ),
-        "extra_declarations" : extra_declarations
-    }
-
-    return CodeTemplates.template_header_guard % {
-        "header_guard_name" : "__%s_H__" % getModuleIdentifier(module_name),
-        "header_body"       : module_header_code
-    }
-
 def getModuleMetapathLoaderEntryCode(module_name, is_shlib):
     if is_shlib:
         return CodeTemplates.template_metapath_loader_shlib_module_entry % {
@@ -72,8 +61,9 @@ def getModuleMetapathLoaderEntryCode(module_name, is_shlib):
         }
 
 
-def getModuleCode( context, module_name, codes, metapath_loader_inittab,
-                   function_decl_codes, function_body_codes, temp_variables ):
+def getModuleCode(context, module_name, codes, metapath_loader_inittab,
+                  metapath_module_decls, function_decl_codes,
+                  function_body_codes, temp_variables, is_main_module):
     # For the module code, lots of attributes come together.
     # pylint: disable=R0914
     module_identifier = getModuleIdentifier(module_name)
@@ -138,11 +128,12 @@ def getModuleCode( context, module_name, codes, metapath_loader_inittab,
         module_exit = CodeTemplates.template_module_noexception_exit
 
     module_code = CodeTemplates.module_body_template % {
-        "module_name"           : module_name,
-        "module_name_obj"       : getConstantCode(
+        "module_name"             : module_name,
+        "module_name_obj"         : getConstantCode(
             context  = context,
             constant = module_name
         ),
+        "is_main_module"          : 1 if is_main_module else 0,
         "module_identifier"       : module_identifier,
         "module_functions_decl"   : function_decl_codes,
         "module_functions_code"   : function_body_codes,
@@ -151,6 +142,10 @@ def getModuleCode( context, module_name, codes, metapath_loader_inittab,
         "module_exit"             : module_exit,
         "metapath_loader_inittab" : indented(
             sorted(metapath_loader_inittab)
+        ),
+        "metapath_module_decls"   : indented(
+            sorted(metapath_module_decls),
+            0
         ),
         "use_unfreezer"           : 1 if metapath_loader_inittab else 0
 
