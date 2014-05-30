@@ -44,7 +44,10 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
@@ -111,7 +114,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         # First assign the with context to a temporary variable.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_source_variable.makeReference( provider ),
+                variable   = tmp_source_variable.makeReference(provider),
                 source_ref = source_ref
             ),
             source       = with_source,
@@ -126,7 +129,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
             ),
             source       = attribute_lookup_class(
                 expression     = ExpressionTempVariableRef(
-                    variable   = tmp_source_variable.makeReference( provider ),
+                    variable   = tmp_source_variable.makeReference(provider),
                     source_ref = source_ref
                 ),
                 attribute_name = "__exit__",
@@ -156,7 +159,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_indicator_variable.makeReference( provider ),
+                variable   = tmp_indicator_variable.makeReference(provider),
                 source_ref = source_ref
             ),
             source       = ExpressionConstantRef(
@@ -269,9 +272,43 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         )
     ]
 
-    return StatementsSequence(
-        statements = statements,
-        source_ref = source_ref
+    return makeTryFinallyStatement(
+        tried = statements,
+        final = (
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_source_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_enter_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_exit_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_indicator_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+        ),
+        source_ref  = source_ref
     )
 
 
