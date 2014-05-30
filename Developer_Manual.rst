@@ -11,7 +11,7 @@ Nuitka Developer Manual
    SetPageCounter 1
 
 The purpose of this developer manual is to present the current design of Nuitka,
-the coding rules, and the motivations for choices made. It is intended to be a
+the project rules, and the motivations for choices made. It is intended to be a
 guide to the source code, and to give explanations that don't fit into the
 source code in comments form.
 
@@ -29,8 +29,8 @@ Milestones
    absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
-   older CPython release. For CPython 3.2 it also has been reached. We do not
-   target older CPython 3.1 and 3.0 releases.
+   older CPython release. For CPython 3.2, and CPython 3.3 it also has been
+   reached. We do not target older CPython 3.1 and 3.0 releases.
 
    This milestone was reached.
 
@@ -73,19 +73,20 @@ should express which of these, we consider done.
   used "0.2.x" version numbers.
 
   Before milestone 2 and 3, we used "0.3.x" version numbers. After almost
-  reaching 3, and beginning with 4, we use "0.4.x" version numbers.
+  reaching 3, and beginning with 4, we use "0.4.x" version numbers. Due to an
+  interface change, "0.5.x" version numbers are being used.
 
 - Future:
 
   When we start to have sufficient amount of type inference in a stable release,
-  that will be "0.5.x" version numbers. With ``ctypes`` bindings in a sufficient
-  state it will be "0.6.x".
+  that will be "0.6.x" version numbers. With ``ctypes`` bindings in a sufficient
+  state it will be "0.7.x".
 
 - Final:
 
   We will then round it up and call it "Nuitka 1.0" when this works as expected
-  for a bunch of people. The plan is to reach this goal during 2014. This is
-  based on lots of assumptions that may not hold up though.
+  for a bunch of people. The plan is to reach this goal during 2015. This is
+  based on positive assumptions that may not hold up though.
 
 Of course, this may be subject to change.
 
@@ -98,8 +99,8 @@ Nuitka top level works like this:
 - ``nuitka.tree.Building`` outputs node tree
 - ``nuitka.optimization`` enhances it as best as it can
 - ``nuitka.finalization`` marks the tree for code generation
-- ``nuitka.codegen.CodeGeneration`` creates identifier objects and code snippets
-- ``nuitka.codegen.Generator`` knows how identifiers and code is constructed
+- ``nuitka.codegen.CodeGeneration`` creates code snippets and joins them
+- ``nuitka.codegen.Generator`` knows how identifiers and code are constructed
 - ``nuitka.MainControl`` keeps it all together
 
 This design is intended to last.
@@ -111,8 +112,9 @@ Regarding Types, the state is:
 - The only more specific use of type is "compile time constant", which can be
   used to predict some operations, conditions, etc.
 
-- Every operation is expected to have ``PyObject *`` as result, if it is not a constant,
-  then we know nothing about it.
+- Every operation is expected to have ``PyObject *`` as result, if it is not a
+  constant, then we know nothing about it. For some interfaces, e.g. iteration,
+  there are initial attempts at abstracting it.
 
 The limitation to only ``PyObject *`` will go away.
 
@@ -128,7 +130,7 @@ Line Length
 -----------
 
 No more than 120 characters. Screens are wider these days, but most of the code
-aims at keeping the lines below 100.
+aims at keeping the lines below 80.
 
 
 Indentation
@@ -141,19 +143,19 @@ Identifiers
 -----------
 
 Classes are camel case with leading upper case. Methods are with leading verb in
-lower case, but also camel case. Around braces, and after comma, there is spaces
-for better readability. Variables and parameters are lower case with "_" as a
-separator.
+lower case, but also camel case. Around braces there are no spaces, but after
+comma, there is spaces for better readability. Variables and arguments are
+lower case with "_" as a separator.
 
 .. code-block:: python
 
    class SomeClass:
 
       def doSomething(some_parameter):
-         some_var = ( "foo", "bar" )
+         some_var = ("foo", "bar")
 
-Base classes that are abstract end in ``Base``, so that a meta class can use
-that convention.
+Base classes that are abstract have their name end with ``Base``, so that a meta
+class can use that convention, and readers immediately know.
 
 Function calls use keyword argument preferably. These are slower in CPython, but
 more readable:
@@ -174,22 +176,23 @@ ideally with one value per line:
 
 .. code-block:: python
 
-    return Identifier(
-        "TO_BOOL( %s )" % identifier.getCodeTemporaryRef(),
-        0
-    )
+   context.setLoopContinueTarget(
+       handler_start_target,
+       continue_name
+   )
 
-Here, ``Identifier`` will be so well known that the reader is expected to know
-the argument names and their meaning, but it would be still better to add them.
+Here, ``setLoopContinueTarget`` will be so well known that the reader is
+expected to know the argument names and their meaning, but it would be still
+better to add them.
 
 Contractions should span across multiple lines for increased readability:
 
 .. code-block:: python
 
    result = [
-       "PyObject *decorator_%d" % ( d + 1 )
+       "PyObject *decorator_%d" % (d + 1)
        for d in
-       range( decorator_count )
+       range(decorator_count)
    ]
 
 
@@ -228,15 +231,15 @@ Prefer list contractions over built-ins
 This concerns ``map``, ``filter``, and ``apply``. Usage of these built-ins is
 highly discouraged within Nuitka source code. Using them is considered worth a
 warning by "PyLint" e.g. "Used builtin function 'map'". We should use list
-comprehensions instead, because they are more readable.
+contractions instead, because they are more readable.
 
-List contractions are a generalization for all of them. We love readable and
+List contractions are a generalization for all of them. We love readability and
 with Nuitka as a compiler will there won't be any performance difference at all.
 
-I can imagine that there are cases where list comprehensions are faster because
-you can avoid to make a function call. And there may be cases, where map is
-faster, if a function must be called. These calls can be very expensive, and if
-you introduce a function, just for ``map``, then it might be slower.
+There are cases where a list contraction are faster because you can avoid to
+make a function call. And there may be cases, where map is faster, if a function
+must be called. These calls can be very expensive in CPython, and if you
+introduce a function, just for ``map``, then it might be slower.
 
 But of course, Nuitka is the project to free us from what is faster and to allow
 us to use what is more readable, so whatever is faster, we don't care. We make
@@ -252,7 +255,7 @@ Look at this code examples from Python:
    class A:
        def getX(self):
            return 1
-       x = property( getX )
+       x = property(getX)
 
    class B(A):
       def getX(self):
@@ -268,7 +271,7 @@ functions and not members, and because they then are not part of the class, they
 cannot be overloaded without re-declaring them.
 
 Overloading is then not at all obvious anymore. Now imagine having a setter and
-only overloading the getter. How to you easily update the property?
+only overloading the getter. How to update the property easily?
 
 So, that's not likable about them. And then we are also for clarity in these
 internal APIs too. Properties try and hide the fact that code needs to run and
@@ -276,7 +279,7 @@ may do things. So lets not use them.
 
 For an external API you may exactly want to hide things, but internally that has
 no use, and in Nuitka, every API is internal API. One exception may be the
-``hints`` module, which will gladly use such tricks for easier write syntax.
+``hints`` module, which will gladly use such tricks for an easier write syntax.
 
 
 The "git flow" model
@@ -299,7 +302,14 @@ The "git flow" model
 
   The future release, supposedly in almost ready for release state at nearly all
   times, but this is as strict. It is not officially supported, and may have
-  problems and at times inconsistencies.
+  problems and at times inconsistencies. Normally this branch is supposed to not
+  be rebased. For severe problems it may be done though.
+
+* Factory (default feature branch)
+
+  Code under construction. We publish commits there, that may not hold up in
+  testing, and before it enters develop branch. Factory may have severe
+  regressions frequently, and commits become rebased all the time.
 
 * Feature Branches
 
@@ -307,20 +317,13 @@ The "git flow" model
   contain changes that break Nuitka temporarily. They need not be functional at
   all.
 
-  Current Feature branches:
-
-  - ``feature/ctypes_annotation``: Achieve the inlining of ctypes calls, so they
-    become executed at no speed penalty compared to direct calls via extension
-    modules. This being fully CPython compatible and pure Python, is considered
-    the "Nuitka" way of creating extension modules that provide bindings.
-
 
 Checking the Source
 ===================
 
-The checking for errors is currently done with "PyLint". In the future, Nuitka
-will gain the ability to present its findings in a similar way, but this is not
-a priority, and not there yet.
+The static checking for errors is currently done with "PyLint". In the future,
+Nuitka itself will gain the ability to present its findings in a similar way,
+but this is not a priority, and we are not there yet.
 
 So, we currently use "PyLint" with options defined in a script.
 
@@ -328,15 +331,15 @@ So, we currently use "PyLint" with options defined in a script.
 
    ./misc/check-with-pylint --hide-todos
 
-Ideally the above command gives no warnings. This has not yet been reached. The
-existing warnings often still serve as a kind of "TODO" items. We are not white
-listing them, because they indicate a problem that should be solved.
+Ideally the above command gives no warnings, but that has never been true so
+far. This has not yet been reached. The existing warnings often still serve as a
+kind of "TODO" items. We are not white listing them, because they indicate a
+problem that should be solved.
 
 If you submit a patch, it would be good if you checked that it doesn't introduce
 new warnings, but that is not strictly required. it will happen before release,
 and that is considered enough. You probably are already aware of the beneficial
 effects.
-
 
 Running the Tests
 =================
@@ -348,7 +351,7 @@ Running all Tests
 
 The top level access to the tests is as simple as this:
 
-.. code-block:: bash
+.. code-block:: sh
 
    ./misc/check-release
 
@@ -373,32 +376,33 @@ For fine grained control, it has the following options::
                         all corner cases to be covered. With Python 2.6 these
                         are not run. Default is True.
   --skip-cpython32      The standard CPython3.2 test suite. Execute this for all
-                        corner cases to be covered. With Python 2.x these are not
-                        run. Default is True.
+                        corner cases to be covered. With Python 2.x these are
+                        not run. Default is True.
 
 
 You will only run the CPython test suites, if you have the submodules of the
 Nuitka git repository checked out. Otherwise, these will be skipped
 automatically with a warning that they are not available.
 
-
 The policy is generally, that ``./misc/check-release`` running and passing all
-tests shall be considered sufficient for a release.
+the tests on Linux and Windows shall be considered sufficient for a release.
 
 Basic Tests
 -----------
 
 You can run the "basic" tests like this:
 
-.. code-block:: bash
+.. code-block:: sh
 
    ./tests/basics/run_all.py search
 
 These tests normally give sufficient coverage to assume that a change is
-correct, if these tests pass. To control the Python version used for testing,
-you can set the ``PYTHON`` environment variable to e.g. "python3.2", or execute
-the "run_all.py" with the intended version, it is portable across all supported
-Python versions.
+correct, if these "basic" tests pass. The most important constructs and
+built-ins are excercised.
+
+To control the Python version used for testing, you can set the ``PYTHON``
+environment variable to e.g. "python3.2", or execute the "run_all.py" with the
+intended version, it is portable across all supported Python versions.
 
 Syntax Tests
 ------------
@@ -406,22 +410,26 @@ Syntax Tests
 Then there are "syntax" tests, i.e. language constructs that need to give a
 syntax error.
 
-It sometimes happens that Nuitka must do this itself, because the ``ast.parse``
-don't see the problem. Using ``global`` on a function argument is an example of
+It sometimes so happens that Nuitka must do this itself, because the
+``ast.parse`` doesn't see the problem and raises no ``SyntaxError`` of its
+own.
+
+Using the ``global`` statementon a function argument is an example of
 this. These tests make sure that the errors of Nuitka and CPython are totally
 the same for this:
 
-.. code-block:: bash
+.. code-block:: sh
 
    ./tests/syntax/run_all.py search
 
 Program Tests
 -------------
 
-Then there are small programs tests, that exercise all kinds of import tricks
-and problems with inter-module behavior. These can be run like this:
+Then there are small programs tests, that e.g. exercise all kinds of import
+tricks and are designed to reveal problems with inter-module behavior. These can
+be run like this:
 
-.. code-block:: bash
+.. code-block:: sh
 
    ./tests/programs/run_all.py search
 
@@ -429,14 +437,16 @@ Compile Nuitka with Nuitka
 --------------------------
 
 And there is the "compile itself" or "reflected" test. This test makes Nuitka
-compile itself and compare the resulting C++, which helps to find
-in-determinism. The test compiles every module of Nuitka into an extension
-module and all of Nuitka into a single binary.
+compile itself and compare the resulting C++ when running compiled to
+non-compiled, which helps to find in-determinism.
+
+The test compiles every module of Nuitka into an extension module and all of
+Nuitka into a single binary.
 
 That test case also gives good coverage of the ``import`` mechanisms, because
 Nuitka uses a lot of packages.
 
-.. code-block:: bash
+.. code-block:: sh
 
    ./tests/reflected/compile_itself.py
 
@@ -465,13 +475,12 @@ The logo was submitted by "dr. Equivalent". It's source is contained in
 
   .. image:: images/Nuitka-Logo-Vertical.png
 
-From these logos, PNG images, "favicons", and a BMP file for the Windows
-installer are derived.
+From these logos, PNG images, and "favicons", and are derived.
 
-The exact ImageMagick commands are in ``misc/make-doc.py``, but are now executed
+The exact ImageMagick commands are in ``misc/make-doc.py``, but are not executed
 each time, the commands are also replicated here:
 
-.. code-block:: bash
+.. code-block:: sh
 
    convert -background none misc/Logo/Nuitka-Logo-Symbol.svg images/Nuitka-Logo-Symbol.png
    convert -background none misc/Logo/Nuitka-Logo-Vertical.svg images/Nuitka-Logo-Vertical.png
@@ -480,8 +489,6 @@ each time, the commands are also replicated here:
    optipng -o2 images/Nuitka-Logo-Symbol.png
    optipng -o2 images/Nuitka-Logo-Vertical.png
    optipng -o2 images/Nuitka-Logo-Horizontal.png
-
-   convert -background grey -resize 152x261 misc/Logo/Nuitka-Logo-Vertical.svg -alpha background images/Nuitka-Logo-WinInstaller.bmp
 
 
 Choice of the Target Language
@@ -500,27 +507,26 @@ Choice of the Target Language
 
 * These candidates were considered
 
-  * C++03, C++11, Ada
+  * C++03, C++11, Ada, C
 
 .. table:: Requirement to Language matrix:
 
-   =====================  ======  =========   =========
-   Requirement\\Language  C++03   C++11       Ada
-   =====================  ======  =========   =========
-   Portable               Yes     No [1]_     Yes
-   ---------------------  ------  ---------   ---------
-   Knowledge              Yes     No [2]_     Yes
-   ---------------------  ------  ---------   ---------
-   Python C-API           Yes     Yes         No [3]_
-   ---------------------  ------  ---------   ---------
-   Runtime checks         No      No          Yes [4]_
-   ---------------------  ------  ---------   ---------
-   Code Generation        Hard    Easy        Harder
-   =====================  ======  =========   =========
+   =====================  =====   ======  =========   =========
+   Requirement\\Language  C       C++03   C++11       Ada
+   =====================  =====   ======  =========   =========
+   Portable               Yes     Yes     No [1]_     Yes
+   ---------------------  -----   ------  ---------   ---------
+   Knowledge              Yes     Yes     No [2]_     Yes
+   ---------------------  -----   ------  ---------   ---------
+   Python C-API           Yes     Yes     Yes         No [3]_
+   ---------------------  -----   ------  ---------   ---------
+   Runtime checks         No      No      No          Yes [4]_
+   ---------------------  -----   ------  ---------   ---------
+   Code Generation        Tough   Hard    Easy        Harder
+   =====================  =====   ======  =========   =========
 
 
-_`1`:: C++11 is not fully supported from any compiler
-(temporary problem)
+_`1`:: C++11 is not fully supported by all compilers.
 
 _`2`:: Not a whole lot of people have C++11 knowledge. My *only* C++11 code was
 that in Nuitka.
@@ -528,14 +534,15 @@ that in Nuitka.
 _`3`:: The Python C-API for Ada would have to be created by us, possible just
 big project by itself.
 
-_`4`:: Runtime checks exist only for Ada in that quality. I miss automatic
+_`4`:: Run time checks exist only for Ada in that quality. I miss automatic
 ``CONSTRAINT_ERROR`` exceptions, for data structures with validity indicators,
 where in other languages, I need to check myself.
 
-The *decision for C++03* is ultimately:
+The *decision for C* is ultimately:
 
 * for portability
 * for language knowledge
+* for control over created code.
 
 All of these are important advantages.
 
@@ -549,29 +556,54 @@ order, so that code that used it, needed to be changed to generating instances
 of their code. And raw strings turned out to be not as perfect as one wants to
 be, and solving the problem with C++03 is feasible too, even if not pretty.
 
+For C++03 initially spoke less explicit code generation:
+
+* Destructors can ensure cleanups happen
+* Local objects could e.g. repair the stack frames
+
 For Ada would have spoken the time savings through run time checks, which would
 have shortened some debugging sessions quite some. But building the Python C-API
 bindings on our own, and potentially incorrectly, would have eaten that up.
 
+Later, it was found that using C++ for exceptions is tremendously inefficient,
+and must be avoided. In order to do this, a more C style code generation is
+needed, where even less things are done with C++, e.g. the cleanup of temporary
+variables inside a statement will be done manually instead.
+
+The current status is C-ish. That is, with very few classes remaining, the
+syntax used is C++ still, but we are approaching being pure C.
+
+
 Use of Scons internally
 -----------------------
 
-Nuitka does not make its users interface with Scons at all, it's purely used
+Nuitka does not involve Scons in its user interface at all; Scons is purely used
 internally. Nuitka itself, being pure Python, will run without any build process
 just fine.
 
-For interfacing, there is the module ``nuitka.build.SconsInterface`` that will
-support calling scons - potentially from an inline copy on Windows or when using
-source releases - and passing arguments to it. These arguments are passed as
-``key=value``, and decoded in the scons file of Nuitka.
+Nuitka prepares ".build" folders with lots of files and tasks scons to execute
+the final build.
+
+.. note::
+
+   When we speak of "standalone" mode, this is handled outside of Scons, and
+   after it, creating the ".dist" folder. This is done in ``nuitka.MainControl``
+   module.
+
+For interfacing to Scons, there is the module ``nuitka.build.SconsInterface``
+that will support calling scons - potentially from an inline copy, mainly on
+Windows or when using source releases - and passing arguments to it. These
+arguments are passed as ``key=value``, and decoded in the scons file of Nuitka.
 
 The scons file is named ``SingleExe.scons`` for lack of better name. It's really
 wrong now, but we have yet to find a better name. It once expressed the
-intention to be used to create executables, but the same works for modules too.
+intention to be used to create executables, but the same works for modules too,
+as in terms of building, and to Scons, things really are the same.
 
-It supports operation in multiple modes, and modules is just one of them. It
-runs outside of Nuitka process scope, even with a different Python version
-potentially, so all the information must be passed on the command line.
+The scons file supports operation in multiple modes for many things, and modules
+is just one of them. It runs outside of Nuitka process scope, even with a
+different Python version potentially, so all the information must be passed on
+the command line.
 
 What follows is the (lengthy) list of arguments that the scons file processes:
 
@@ -701,10 +733,9 @@ The search for of modules used is driven by ``nuitka.Importing`` module.
 Hooking for module ``import`` process
 -------------------------------------
 
-Currently, in created code, for every ``import`` variable a normal
-``__import__()`` call is executed. The "ModuleUnfreezer.cpp" (located in
-"nuitka/build/static_src") provides the implementation of a ``sys.meta_path``
-hook.
+Currently, in created code, for every ``import`` a normal ``__import__()`` call
+is executed. The "ModuleUnfreezer.cpp" (located in "nuitka/build/static_src")
+provides the implementation of a ``sys.meta_path`` hook.
 
 This one allows us to have the Nuitka provided module imported even when
 imported by non-compiled code.
@@ -818,7 +849,7 @@ Consider the following code.
 
 In this example, the frame is not needed for all the code, because the condition
 checked wouldn't possibly raise at all. The idea is the make the frame guard
-explicit and then to move it downwards in the tree, whenever possible.
+explicit and then to reduce its scope whenever possible.
 
 So we start out with code like this one:
 
@@ -845,7 +876,8 @@ This is to be optimized into:
 
 Notice how the frame guard taking is limited and may be avoided, or in best
 cases, it might be removed completely. Also this will play a role when in-lining
-function, it will not be lost or need any extra care.
+function. The frame stack entry will then be automatically preserved without
+extra care.
 
 Parameter Parsing
 -----------------
@@ -857,9 +889,10 @@ for easier overview.
 Input
 +++++
 
-The input is an argument tuple (type is fixed), which contains the positional
-arguments, and potentially an argument dictionary (type is fixed, but could also
-be ``NULL``, indicating no keyword arguments.
+The input is an argument ``tuple`` (the type is fixed), which contains the
+positional arguments, and potentially an argument ``dict`` (type is fixed as
+well, but could also be ``NULL``, indicating that there are no keyword
+arguments.
 
 Keyword dictionary
 ++++++++++++++++++
@@ -882,7 +915,7 @@ What's noteworthy here, is that in comparison of the keywords, we can hope that
 they are the same value as we use. The interning of strings increases chances
 for non-compiled code to do that, esp. for short names.
 
-We then can do a simple ``==`` comparison and only fall back to real string
+We then can do a simple ``is`` comparison and only fall back to real string `==`
 comparisons, after all of these failed. That means more code, but also a lot
 faster code in the positive case.
 
@@ -899,6 +932,82 @@ get picked from the argument tuple.
 Otherwise, the length of the argument tuple should be checked against its
 position and if possible, values should be taken from there. If it's already set
 (from the keyword dictionary), raise an error instead.
+
+Code Generation towards C
+-------------------------
+
+Currently, Nuitka use C++ as a glorified C, it will tend to use less and less
+actual C++ patterns. To control the order to object deletion, this is vital.
+
+Exceptions
+++++++++++
+
+To handle and work with exceptions, every construct that can raise has to have a
+``bool`` return code or ``PyObject *`` with ``NULL`` return value. This is very
+much in line with that the Python C-API does.
+
+Every helper function that contains code that might raise needs these
+variables. After a failed call, ``PyErr_Fetch`` must be used to catch the
+defined error, unless some quick exception cases apply. Sometimes e.g. ``NULL``
+return from C-API means ``StopIteration``.
+
+The difficulty here, is only to discover the need for these variables, because
+we would like to not have unused variables declared. In principle, the
+``mayRaiseException`` should be used to discover this.
+
+As an optimization, functions that raise exceptions, but are known not to do so,
+for whatever reason, may only be asserted.
+
+Statement Temporary Variables
++++++++++++++++++++++++++++++
+
+For statements and larger constructs the context object track temporary values,
+that represent references. For some, these should be released at the end of the
+statement, or they represent a leak.
+
+The larger scope temporary variables, are tracked in the function or module
+context, where they are supposed to have explicit "del" to release their
+references.
+
+Exit Targets
+++++++++++++
+
+Each error or other exit releases statement temporary values and then executes a
+``goto`` to the exit target. These targets need to be setup. The
+``try``/``except`` will e.g. catch error exits.
+
+Other exits are ``continue``, ``break``, and ``return`` exits. They all work
+alike.
+
+For frames, later, local variables will need to be freed on the way out. The way
+out for a frame, should either be a function return, or another frame exit. We
+will later have a ``try``/``finally`` with
+
+Generally, the exits stack of with constructs that need to register themselves
+for some exit types. A loop e.g. registers the ``continue exit, and a contained
+``try``/``finally`` too, so it can execute the final code.
+
+Frames
+++++++
+
+Frames are containers for variable declarations and cleanups. As such, frames
+provide error exits and success exits, which remove the frame from the frame
+stack, and then proceed to the parent exit.
+
+Once local variables are to be released, the frames should establish that this
+is happening.
+
+Abortive Statements
++++++++++++++++++++
+
+The ``return``, ``continue``, and ``break`` of Python must be treated like an
+exception to ``try``/``finally``. So for success exit paths, a "return value
+variable" is maintained as well. It being set, causes ``finally`` exit to
+``return`` it again.
+
+Similarly their are flags that make the ``continue`` or ``break`` happen at the
+end the end of a ``finally`` handler, but these are mere ``bool`` indicator
+flags.
 
 
 Language Conversions to make things simpler
@@ -1308,10 +1417,36 @@ conditional checks on the result of comparison operations.
        else:
           handlerElse()
 
-
 For Python3, the assigned ``e`` variables get deleted at the end of the handler
 block. Should that value be already deleted, that ``del`` does not raise,
-therefore it's tolerant.
+therefore it's tolerant. This has to be done in any case, so for Python3 it is
+even more complex.
+
+.. code-block:: python
+
+    try:
+        block()
+    except:
+        # These are special nodes that access the exception, and don't really
+        # use the "sys" module.
+        tmp_exc_type = sys.exc_info()[0]
+        tmp_exc_value = sys.exc_info()[1]
+
+        # exception_matches is a comparison operation, also a special node.
+        if exception_matches(tmp_exc_type, (A,)):
+            try:
+                e = tmp_exc_value
+                handlerA(e)
+            finally:
+                del e
+        elif exception_matches(tmp_exc_type, (B,)):
+            try:
+                e = tmp_exc_value
+                handlerB(e)
+            finally:
+                del e
+        else:
+            handlerElse()
 
 Should there be no ``else:`` branch, a default re-raise statement is used
 instead.
@@ -1533,6 +1668,13 @@ With this the branch that the "short-circuit" expresses, becomes obvious, at the
 expense of having the assignment expression to the temporary variable, that one
 needs to create anyway.
 
+.. note::
+
+   The release of "_tmp" should happen as soon as the expression using the value
+   of the ``or``/``and`` expression is finished. This is achieving by wrapping
+   that one with a ``del`` statement in a ``ExpressionTryFinally``.
+
+
 Simple Calls
 ++++++++++++
 
@@ -1541,13 +1683,13 @@ there is still some hidden semantic going on, that we expose.
 
 .. code-block:: python
 
-   func( arg1, arg2, named1 = arg3, named2 = arg4 )
+   func(arg1, arg2, named1 = arg3, named2 = arg4)
 
 On the C-API level there is a tuple and dictionary built. This one is exposed:
 
 .. code-block:: python
 
-   func( *( arg1, arg2 ), **{ "named1" : arg3, "named2" : arg4 } )
+   func(*(arg1, arg2), **{"named1" : arg3, "named2" : arg4})
 
 A called function will access this tuple and the dictionary to parse the
 arguments, once that is also re-formulated (argument parsing), it can then lead
@@ -1573,7 +1715,7 @@ The evaluation order is precisely that. An example would be:
 
 .. code-block:: python
 
-   something( pos1, pos2, name1 = named1, name2 = named2, *star_list, **star_dict )
+   something(pos1, pos2, name1 = named1, name2 = named2, *star_list, **star_dict)
 
 The task here is that first all the arguments are evaluated, left to right, and
 then they are merged into only two, that is positional and named arguments
@@ -1587,7 +1729,7 @@ argument raises first.
 
 .. code-block:: python
 
-   something( *1, **2 )
+   something(*1, **2)
 
 This raises "TypeError: something() argument after ** must be a mapping, not
 int" as opposed to a possibly more expected "TypeError: something() argument
@@ -1649,6 +1791,35 @@ compile time optimized, this is made visible in the node tree.
 Only string objects are spared from the ``str`` built-in wrapper, because that
 would only cause noise in optimization stage.
 
+Additionally, each ``print`` may have a target, and multiple arguments, which we
+break down as well for dumber code generation. The target is evaluated first and
+should be a file, kept referenced throughout the whole print statement.
+
+.. code-block:: python
+
+    print >>target_file, str(arg1), "1", str(1)
+
+This is being reformulated to:
+
+    try:
+        tmp_target = target_file
+
+        print >>tmp_target, str(arg1),
+        print >>tmp_target, "1",
+        print >>tmp_target, str(1),
+        print >>tmp_target
+    finally:
+        del tmp_target
+
+This allows code generation to not deal with arbitrary amount of arguments to
+``print``. It also separates the newline indicator from the rest of things,
+which makes sense too, having it as a special node, as it's behaviour with
+regards to soft-space is different of course.
+
+And finally, for ``print`` without a target, we still assume that a target was
+given, which would be ``sys.stdout`` in a rather hard-coded way (no variable
+look-ups involved).
+
 
 Nodes that serve special purposes
 ---------------------------------
@@ -1664,7 +1835,7 @@ Consider this code:
 
 .. code-block:: python
 
-   f( a(), 1 / 0 )
+   f(a(), 1 / 0)
 
 The second argument will create a ``ZeroDivisionError`` exception, but before
 that ``a()`` must be executed, but the call to ``f`` will never happen and no
@@ -1673,15 +1844,15 @@ leads to code that is internally like this:
 
 .. code-block:: python
 
-   f( a(), raise ZeroDivisionError )
+   f(a(), raise ZeroDivisionError)
 
 which is then modeled as:
 
 .. code-block:: python
 
-   side_effect( a(), f, raise ZeroDivisionError )
+   side_effect(a(), f, raise ZeroDivisionError)
 
-where you can consider side_effect a function that returns the last
+where we can consider "side_effect" to be a function that returns the last
 expression. Of course, if this is not part of another expression, but close to
 statement level, side effects, can be converted to multiple statements simply.
 
@@ -1690,14 +1861,16 @@ the language still requires things to happen, consider this:
 
 .. code-block:: python
 
-   a = len( ( f(), g() ) )
+   a = len(
+      ( f(), g() )
+   )
 
 We can tell that ``a`` will be 2, but the call to ``f`` and ``g`` must still be
 performed, so it becomes:
 
 .. code-block:: python
 
-   a = side_effects( f(), g(), 2 )
+   a = side_effects(f(), g(), 2)
 
 Modelling side effects explicitely has the advantage of recognizing them easily
 and allowing to drop the call to the tuple building and checking its length,
@@ -1713,6 +1886,17 @@ check its type for values, etc.
 For these, not ``sys.exc_info()`` is used, instead there are special nodes
 dedicated to these values: ``CaughtExceptionTypeRef`` and
 ``CaughtExceptionValueRef``.
+
+
+Hard Module Imports
+-------------------
+
+These are module look-ups that don't depend on any local variable for the module
+to be looked up, but with hard-coded names. These may be the result of
+optimization gaining such level of certainty.
+
+Currently they are used to represent ``sys.stdout`` usage for ``print``
+statements, but other usages will follow.
 
 
 Plan to replace "python-qt" for the GUI
@@ -2800,35 +2984,6 @@ etc.
 
   Calling "upx" on the created binaries, would be easy.
 
-* The timing of ``__del__`` calls.
-
-  When you do a(b(c())) in Python, it deletes the argument value, i.e. return
-  value of c() immediately after calling b().
-
-  Currently we translate that to C++ roughly like this: a(b(c())) as well. Only
-  that in C++, b returns an object, that has a scope. It appears, the d-tor is
-  executed at the end of the statement. In C++ the ";" is a sequence point,
-  i.e. things must be done by then.
-
-  Unfortunately C++ loves temporaries so much, it won't immediately delete them
-  after use, but only after full expression, which means ")" or ";", and
-  attempts with fake sequence points all failed.
-
-  But, there may be another way. Right now, ``PyObject *`` is the interface for
-  about everything passed around. And "PyObjectTemporary" releases values that
-  are needed by the interface to have a reference, and deleted afterwards.
-
-  But it could, and should be different. All helper functions should be template
-  functions that accept ``PyObjectRef1`` and ``PyObjectRef0``, and know about
-  the reference, and then manage ``PyObjectRef1`` instances to release their
-  reference as soon as they are not needed. With ``PyObjectRef0`` that would be
-  a no-op.
-
-  This is a lot of work. The good news, is that it's work that will be needed,
-  to support types other than ``PyObject *`` efficiently. Them being converted
-  to ``PyObject *`` and releasing that reference, it would be transparent to all
-  code.
-
 * In-lining constant "exec" and "eval".
 
   It should be possible to re-formulate at least cases without "locals" or
@@ -3028,6 +3183,11 @@ etc.
   The outline functions would not be considered closure takers, nor closure
   givers. They should be visited when they are used, almost like a statement
   sequences, and returns would define their value.
+
+* Statement Sequences with only a frame contained should be optimized
+
+  While it's probably not all that relevant, it appears that the empty module at
+  least contains a statement sequence that ends up with only a frame child.
 
 .. raw:: pdf
 
