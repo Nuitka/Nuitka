@@ -2851,7 +2851,7 @@ Py_XDECREF( exception_tb );
 
     Generator.popLineNumberBranch()
 
-_temp_whitelist = []
+_temp_whitelist = [()]
 
 def generateTryFinallyCode(to_name, statement, emit, context):
     # The try/finally is very hard for C-ish code generation. We need to react
@@ -2864,7 +2864,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     global _temp_whitelist
 
     if to_name is not None:
-        _temp_whitelist = context.getCleanupTempnames()
+        _temp_whitelist.append(context.getCleanupTempnames())
 
     tried_block = statement.getBlockTry()
     final_block = statement.getBlockFinal()
@@ -3228,7 +3228,7 @@ Py_XDECREF( %(keeper_tb)s );%(keeper_tb)s = NULL;""" % {
 
     # Restore whitelist to previous state.
     if to_name is not None:
-        _temp_whitelist = []
+        _temp_whitelist.pop()
 
 
 def generateRaiseCode(statement, emit, context):
@@ -3988,7 +3988,7 @@ def generateStatementCode(statement, emit, context):
            not try_finally_candidate.isExpression():
             # Complain if any temporary was not dealt with yet.
             assert not context.getCleanupTempnames() or \
-                  context.getCleanupTempnames() == _temp_whitelist, \
+                  context.getCleanupTempnames() == _temp_whitelist[-1], \
               context.getCleanupTempnames()
     except Exception:
         Tracing.printError(
