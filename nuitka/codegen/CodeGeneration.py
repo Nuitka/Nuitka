@@ -134,7 +134,7 @@ def generateSetCreationCode(to_name, elements, emit, context):
 
     element_name = context.allocateTempName("set_element")
 
-    for count, element in enumerate(elements):
+    for element in elements:
         generateExpressionCode(
             to_name    = element_name,
             expression = element,
@@ -169,7 +169,7 @@ def generateDictionaryCreationCode(to_name, pairs, emit, context):
 
     # Strange as it is, CPython evalutes the key/value pairs strictly in order,
     # but for each pair, the value first.
-    for count, pair in enumerate(pairs):
+    for pair in pairs:
         generateExpressionCode(
             to_name    = dict_value_name,
             expression = pair.getValue(),
@@ -390,15 +390,13 @@ def generateConditionCode(condition, emit, context, inverted = False,
             Generator.getConditionCheckFalseCode(
                 to_name    = truth_name,
                 value_name = condition_name,
-                emit       = emit,
-                context    = context
+                emit       = emit
             )
         else:
             Generator.getConditionCheckTrueCode(
                 to_name    = truth_name,
                 value_name = condition_name,
-                emit       = emit,
-                context    = context
+                emit       = emit
             )
 
         Generator.getErrorExitBoolCode(
@@ -1015,8 +1013,8 @@ def generateBuiltinLocalsCode(to_name, locals_node, emit, context):
 
 def _generateExpressionCode(to_name, expression, emit, context, allow_none):
     # This is a dispatching function with a branch per expression node type, and
-    # therefore many statements even if every branch is small
-    # pylint: disable=R0912,R0915
+    # therefore many statements even if every branch is relatively small.
+    # pylint: disable=R0912,R0915,R0914
 
     if expression is None and allow_none:
         return None
@@ -1298,8 +1296,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         Generator.getBuiltinAnonymousRefCode(
             to_name      = to_name,
             builtin_name = expression.getBuiltinName(),
-            emit         = emit,
-            context      = context
+            emit         = emit
         )
     elif expression.isExpressionBuiltinMakeException():
         exception_arg_names = []
@@ -2701,6 +2698,9 @@ def generateExecCode(exec_def, emit, context):
 
 
 def generateTryNextExceptStopIterationCode(statement, emit, context):
+    # This has many branches which mean this optimized code generation is not
+    # applicable, we return each time. pylint: disable=R0911
+
     if statement.public_exc:
         return False
 

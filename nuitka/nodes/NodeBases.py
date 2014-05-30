@@ -40,51 +40,50 @@ class NodeCheckMetaClass(type):
     kinds = set()
 
     def __new__(mcs, name, bases, dictionary):
-        assert len( bases ) == len( set( bases ) )
-
-        # Uncomment this for debug view of class tags.
-        # print name, dictionary[ "tags" ]
+        assert len(bases) == len(set(bases))
 
         return type.__new__( mcs, name, bases, dictionary )
 
-    def __init__(mcs, name, bases, dictionary):
-        if not name.endswith( "Base" ):
-            assert ( "kind" in dictionary ), name
-            kind = dictionary[ "kind" ]
+    def __init__(cls, name, bases, dictionary):
+        if not name.endswith("Base"):
+            assert ("kind" in dictionary), name
+            kind = dictionary["kind"]
 
-            assert type( kind ) is str, name
+            assert type(kind) is str, name
             assert kind not in NodeCheckMetaClass.kinds, name
 
-            NodeCheckMetaClass.kinds.add( kind )
+            NodeCheckMetaClass.kinds.add(kind)
 
             def convert(value):
-                if value in ( "AND", "OR", "NOT" ):
+                if value in ("AND", "OR", "NOT"):
                     return value
                 else:
                     return value.title()
 
             kind_to_name_part = "".join(
-                [ convert( x ) for x in kind.split( "_" ) ]
+                [convert(x) for x in kind.split("_")]
             )
-            assert name.endswith( kind_to_name_part ), ( name, kind_to_name_part )
+            assert name.endswith(kind_to_name_part), \
+              (name, kind_to_name_part)
 
-            # Automatically add checker methods for everything to the common base class
+            # Automatically add checker methods for everything to the common
+            # base class
             checker_method = "is" + kind_to_name_part
 
             def checkKind(self):
                 return self.kind == kind
 
-            if not hasattr( NodeBase, checker_method ):
+            if not hasattr(NodeBase, checker_method):
                 setattr( NodeBase, checker_method, checkKind )
 
-        type.__init__( mcs, name, bases, dictionary )
+        type.__init__(cls, name, bases, dictionary)
 
 # For every node type, there is a test, and then some more members,
 # pylint: disable=R0904
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
 # used and doesn't require making a choice.
-NodeMetaClassBase = NodeCheckMetaClass( "NodeMetaClassBase", (object, ), {} )
+NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object, ), {})
 
 class NodeBase(NodeMetaClassBase):
     kind = None
@@ -93,6 +92,8 @@ class NodeBase(NodeMetaClassBase):
     value_friend_maker = None
 
     def __init__(self, source_ref):
+        # The base class has no __init__ worth calling, pylint: disable=W0231
+
         assert source_ref is not None
         assert source_ref.line is not None
 
@@ -106,7 +107,7 @@ class NodeBase(NodeMetaClassBase):
 
     def __repr__(self):
         # This is to avoid crashes, because of bugs in detail.
-        # pylint: disable=W0702
+        # pylint: disable=W0703
         try:
             detail = self.getDetail()
         except Exception as e:
@@ -632,23 +633,21 @@ class ChildrenHavingMixin:
                             )
                         )
 
-                    break
+                    return key
             elif isinstance(value, NodeBase):
                 if old_node is value:
                     self.setChild(key, new_node)
 
-                    break
+                    return key
             else:
                 assert False, ( key, value, value.__class__ )
-        else:
-            raise AssertionError(
-                "Didn't find child",
-                old_node,
-                "in",
-                self
-            )
 
-        return key
+        raise AssertionError(
+            "Didn't find child",
+            old_node,
+            "in",
+            self
+        )
 
     def makeCloneAt(self, source_ref):
         values = {}

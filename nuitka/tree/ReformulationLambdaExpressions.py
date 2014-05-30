@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of lambda expressions.
+
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
 
 from nuitka import Utils
 
@@ -30,7 +36,6 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
-    StatementsSequence,
     StatementsFrame
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT

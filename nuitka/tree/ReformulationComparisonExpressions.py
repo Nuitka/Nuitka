@@ -15,8 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of comparison chain expressions.
 
-from nuitka.nodes.TryNodes import ExpressionTryFinally
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
@@ -32,7 +36,6 @@ from .ReformulationBooleanExpressions import buildAndNode
 
 from .Helpers import (
     makeTryFinallyExpression,
-    makeStatementsSequence,
     buildNode,
     getKind
 )

@@ -101,6 +101,8 @@ def optimizePythonModule(module):
             )
         )
 
+    # The tag set is global, so it can react to changes without context.
+    # pylint: disable=W0603
     global tag_set
     tag_set = TagSet()
 
@@ -138,6 +140,8 @@ def optimizeShlibModule(module):
     # Pick up parent package if any.
     _attemptRecursion(module)
 
+    # The tag set is global, so it can react to changes without context.
+    # pylint: disable=W0603
     global tag_set
     tag_set = TagSet()
 

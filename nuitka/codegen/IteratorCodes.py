@@ -89,7 +89,8 @@ if (%s == NULL)
 
     getGotoCode(break_target, emit)
 
-    emit("""
+    emit(
+    """
     }
     else
     {
@@ -99,21 +100,12 @@ if (%s == NULL)
     }
 }
 """ % (
-        indented(getErrorExitReleaseCode(context), 2),
-        context.getExceptionEscape()
-    )
+            indented(getErrorExitReleaseCode(context), 2),
+            context.getExceptionEscape()
+        )
     )
 
     context.addCleanupTempName(to_name)
-
-
-def getUnpackNextCode(iterator_identifier, count):
-    emit(
-        "UNPACK_NEXT( %s, %d )" % (
-            iterator_identifier.getCodeTemporaryRef(),
-            count - 1
-        )
-    )
 
 
 def getUnpackNextCode(to_name, value, count, emit, context):

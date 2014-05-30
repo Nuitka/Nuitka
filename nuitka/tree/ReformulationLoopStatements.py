@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of loop statements.
+
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
@@ -33,7 +39,6 @@ from nuitka.nodes.LoopNodes import (
     StatementLoop
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.TryNodes import StatementTryFinally
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable

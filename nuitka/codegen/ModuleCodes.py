@@ -93,7 +93,7 @@ def getModuleCode(context, module_name, codes, metapath_loader_inittab,
         # For finally handlers of Python3, which have conditions on assign and
         # use.
         if Options.isDebug() and Utils.python_version >= 300:
-            keeper_init = " = NULL";
+            keeper_init = " = NULL"
         else:
             keeper_init = ""
 

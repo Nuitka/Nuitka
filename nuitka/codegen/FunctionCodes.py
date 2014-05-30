@@ -117,10 +117,10 @@ def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
 
 
 def getFunctionMakerCode(function_name, function_qualname, function_identifier,
-                          parameters, local_variables, closure_variables,
-                          defaults_name, kw_defaults_name, annotations_name,
-                          source_ref, function_doc, is_generator, emit,
-                          context):
+                         parameters, local_variables, closure_variables,
+                         defaults_name, kw_defaults_name, annotations_name,
+                         source_ref, function_doc, is_generator, emit,
+                         context):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables
@@ -446,7 +446,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters,
         # For finally handlers of Python3, which have conditions on assign and
         # use.
         if Options.isDebug() and Utils.python_version >= 300:
-            keeper_init = " = NULL";
+            keeper_init = " = NULL"
         else:
             keeper_init = ""
 

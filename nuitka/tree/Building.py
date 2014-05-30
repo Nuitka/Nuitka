@@ -161,7 +161,6 @@ from .Helpers import (
     makeStatementsSequenceOrStatement,
     makeSequenceCreationOrConstant,
     makeDictCreationOrConstant,
-    getIndicatorVariables,
     buildStatementsNode,
     setBuildDispatchers,
     applyLaterWrappers,
@@ -727,6 +726,9 @@ def buildStatementContinueLoop(provider, node, source_ref):
 
 
 def buildStatementBreakLoop(provider, node, source_ref):
+    # A bit unusual, we need the provider, but not the node,
+    # pylint: disable=W0613
+
     return makeTryFinallyIndicator(
         provider     = provider,
         statement    = StatementBreakLoop(
@@ -890,6 +892,9 @@ setBuildDispatchers(
 )
 
 def buildParseTree(provider, source_code, source_ref, is_module, is_main):
+    # There are a bunch of branches here, mostly to deal with version
+    # differences for module default variables. pylint: disable=R0912
+
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
     if not source_code.endswith("\n"):

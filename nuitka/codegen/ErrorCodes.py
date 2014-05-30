@@ -15,6 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Error codes
+
+These are the helper functions that will emit the error exit codes. They
+can abstractly check conditions or values directly. The release of statement
+temporaries from context is automatic.
+
+Also formatting errors is done here, avoiding PyErr_Format as much as
+possible.
+"""
 
 from .ExceptionCodes import (
     getExceptionIdentifier

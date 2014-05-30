@@ -54,6 +54,10 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     """
 
     def onEnterNode(self, node):
+        # Mighty complex code with lots of branches and statements, but it
+        # couldn't be less without making it more difficult.
+        # pylint: disable=R0912,R0915
+
         if node.isExpressionTargetVariableRef():
             if node.getVariable() is None:
                 variable_name = node.getVariableName()

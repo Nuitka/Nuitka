@@ -17,12 +17,11 @@
 #
 """ Code generation for sets.
 
-Right now only the creation is done here. But more should be added later on.
+Right now only the creation, and set add code is done here. But more should be
+added later on.
 """
 
-from . import CodeTemplates
-
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
 
 
 def getSetOperationAddCode(to_name, set_name, value_name, emit, context):

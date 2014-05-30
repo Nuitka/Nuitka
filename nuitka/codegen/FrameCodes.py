@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Frame codes
+
+This is about frame stacks and their management. There are different kinds
+of frames for different uses.
+"""
+
 
 from . import (
     CodeTemplates,
@@ -106,7 +112,7 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
         )
 
         # TODO: Not using locals, which is only OK for modules
-        assert False
+        assert False, locals_code
 
     return CodeTemplates.template_frame_guard_once % {
         "frame_identifier"      : frame_identifier,

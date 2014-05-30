@@ -321,7 +321,7 @@ def getLoopContinueCode(emit, context):
     getGotoCode(continue_target, emit)
 
 
-def getConditionCheckTrueCode(to_name, value_name, emit, context):
+def getConditionCheckTrueCode(to_name, value_name, emit):
     emit(
         "%s = CHECK_IF_TRUE( %s );" % (
             to_name,
@@ -330,7 +330,7 @@ def getConditionCheckTrueCode(to_name, value_name, emit, context):
     )
 
 
-def getConditionCheckFalseCode(to_name, value_name, emit, context):
+def getConditionCheckFalseCode(to_name, value_name, emit):
     emit(
         "%s = CHECK_IF_FALSE( %s );" % (
             to_name,
@@ -359,11 +359,11 @@ def getBuiltinRefCode(to_name, builtin_name, emit, context):
     # Gives no reference
 
 
-def getBuiltinAnonymousRefCode(to_name, builtin_name, emit, context):
+def getBuiltinAnonymousRefCode(to_name, builtin_name, emit):
     emit(
         "%s = (PyObject *)%s;" % (
             to_name,
-            Builtins.builtin_anon_codes[ builtin_name ]
+            Builtins.builtin_anon_codes[builtin_name]
         )
     )
 

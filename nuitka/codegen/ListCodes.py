@@ -20,9 +20,7 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from . import CodeTemplates
-
-from .ErrorCodes import getErrorExitCode, getReleaseCodes, getErrorExitBoolCode
+from .ErrorCodes import getReleaseCodes, getErrorExitBoolCode
 
 def getListOperationAppendCode(to_name, list_name, value_name, emit, context):
     res_name = context.getIntResName()

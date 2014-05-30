@@ -582,11 +582,11 @@ def main():
         representation of the internal node tree after optimization, etc.
     """
 
-    # Main has to fullfil many options, leading to many branches
-    # pylint: disable=R0912
+    # Main has to fullfil many options, leading to many branches and statements
+    # to deal with them.  pylint: disable=R0912,R0915
 
     positional_args = Options.getPositionalArgs()
-    assert len( positional_args ) > 0
+    assert len(positional_args) > 0
 
     filename = Options.getPositionalArgs()[0]
 

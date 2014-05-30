@@ -20,8 +20,6 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from . import CodeTemplates
-
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 
 
