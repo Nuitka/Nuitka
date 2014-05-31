@@ -294,7 +294,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 source_ref):
         if fromlist is None:
             fromlist = ExpressionConstantRef(
-                constant   = [],
+                constant   = (),
                 source_ref = source_ref
             )
 

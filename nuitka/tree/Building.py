@@ -535,7 +535,7 @@ from __future__ imports must occur at the beginning of the file""",
         return StatementImportStar(
             module_import = ExpressionImportModule(
                 module_name = module_name,
-                import_list = ( "*", ),
+                import_list = ("*",),
                 level       = level,
                 source_ref  = source_ref
             ),
@@ -554,7 +554,7 @@ from __future__ imports must occur at the beginning of the file""",
                     source     = ExpressionImportName(
                         module      = ExpressionImportModule(
                             module_name = module_name,
-                            import_list = import_names,
+                            import_list = tuple(import_names),
                             level       = level,
                             source_ref  = source_ref
                         ),
