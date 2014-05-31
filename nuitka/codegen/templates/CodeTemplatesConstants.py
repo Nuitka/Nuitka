@@ -62,10 +62,6 @@ static void __initConstants( void )
 %(constant_inits)s
 
     return;
-
-constants_init_exception:;
-    abort();
-    goto constants_init_exception; // NUITKA_MAY_BE_UNUSED
 }
 
 void _initConstants( void )
