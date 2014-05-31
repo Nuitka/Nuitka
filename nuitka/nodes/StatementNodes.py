@@ -320,10 +320,7 @@ class StatementsFrame(StatementsSequence):
         provider = self.getParentVariableProvider()
 
         # TODO: Why do this accessing a node, do this outside.
-        from nuitka.codegen.CodeObjectCodes import getCodeObjectHandle
-
-        return getCodeObjectHandle(
-            context       = context,
+        return context.getCodeObjectHandle(
             filename      = self.source_ref.getFilename(),
             var_names     = self.getVarNames(),
             arg_count     = self.getArgumentCount(),

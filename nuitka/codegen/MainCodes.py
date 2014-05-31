@@ -25,7 +25,6 @@ frame object data (filename, etc).
 """
 
 from .ConstantCodes import getModuleConstantCode
-from .CodeObjectCodes import getCodeObjectHandle
 
 from . import CodeTemplates
 
@@ -39,8 +38,7 @@ def getMainCode(main_module, codes, context):
     if context.isEmptyModule():
         code_identifier = "NULL"
     else:
-        code_identifier = getCodeObjectHandle(
-            context       = context,
+        code_identifier = context.getCodeObjectHandle(
             filename      = context.getFilename(),
             var_names     = (),
             arg_count     = 0,

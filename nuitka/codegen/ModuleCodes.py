@@ -27,6 +27,11 @@ from .VariableCodes import (
     getLocalVariableInitCode,
 )
 
+from .CodeObjectCodes import (
+    getCodeObjectsDeclCode,
+    getCodeObjectsInitCode
+)
+
 from .Indentation import indented
 
 from . import CodeTemplates
@@ -128,24 +133,32 @@ def getModuleCode(context, module_name, codes, metapath_loader_inittab,
         module_exit = CodeTemplates.template_module_noexception_exit
 
     module_code = CodeTemplates.module_body_template % {
-        "module_name"             : module_name,
-        "module_name_obj"         : getConstantCode(
+        "module_name"              : module_name,
+        "module_name_obj"          : getConstantCode(
             context  = context,
             constant = module_name
         ),
-        "is_main_module"          : 1 if is_main_module else 0,
-        "module_identifier"       : module_identifier,
-        "module_functions_decl"   : function_decl_codes,
-        "module_functions_code"   : function_body_codes,
-        "temps_decl"              : indented(local_var_inits),
-        "module_code"             : indented(codes),
-        "module_exit"             : module_exit,
-        "metapath_loader_inittab" : indented(
+        "is_main_module"           : 1 if is_main_module else 0,
+        "module_identifier"        : module_identifier,
+        "module_functions_decl"    : function_decl_codes,
+        "module_functions_code"    : function_body_codes,
+        "temps_decl"               : indented(local_var_inits),
+        "module_code"              : indented(codes),
+        "module_exit"              : module_exit,
+        "metapath_loader_inittab"  : indented(
             sorted(metapath_loader_inittab)
         ),
-        "metapath_module_decls"   : indented(
+        "metapath_module_decls"    : indented(
             sorted(metapath_module_decls),
             0
+        ),
+        "module_code_objects_decl" : indented(
+            getCodeObjectsDeclCode(context),
+            0
+        ),
+        "module_code_objects_init" : indented(
+            getCodeObjectsInitCode(context),
+            1
         ),
         "use_unfreezer"           : 1 if metapath_loader_inittab else 0
 

@@ -35,10 +35,6 @@ from .ConstantCodes import (
     getConstantCode,
 )
 
-from .CodeObjectCodes import (
-    getCodeObjectHandle,
-)
-
 from .Indentation import indented
 
 from .ModuleCodes import (
@@ -135,8 +131,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
         if not local_variable.isParameterVariable()
     ]
 
-    code_identifier = getCodeObjectHandle(
-        context       = context,
+    code_identifier = context.getCodeObjectHandle(
         filename      = source_ref.getFilename(),
         var_names     = var_names,
         arg_count     = parameters.getArgumentCount(),
@@ -717,8 +712,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         "generator_exit"      : generator_exit
     }
 
-    code_identifier = getCodeObjectHandle(
-        context       = context,
+    code_identifier = context.getCodeObjectHandle(
         filename      = source_ref.getFilename(),
         var_names     = parameters.getCoArgNames(),
         arg_count     = parameters.getArgumentCount(),

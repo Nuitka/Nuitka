@@ -30,6 +30,8 @@ from nuitka import Options
 
 from ..__past__ import iterItems
 
+import hashlib
+
 # Many methods won't use self, but it's the interface. pylint: disable=R0201
 
 class TempMixin:
@@ -219,6 +221,65 @@ class TempMixin:
         result = self.frame_preservation_stack[-1]
         del self.frame_preservation_stack[-1]
         return result
+
+
+class CodeObjectsMixin:
+    def __init__(self):
+        # Code objects needed made unique by a key.
+        self.code_objects = {}
+
+    def getCodeObjects(self):
+        return sorted(iterItems(self.code_objects))
+
+    # Sad but true, code objects have these many details that actually are fed
+    # from all different sources, pylint: disable=R0913
+    def getCodeObjectHandle(self, filename, code_name, line_number, var_names,
+                            arg_count, kw_only_count, is_generator,
+                            is_optimized, has_starlist, has_stardict,
+                            has_closure, future_flags):
+        var_names = tuple(var_names)
+
+        assert type(has_starlist) is bool
+        assert type(has_stardict) is bool
+
+        key = (
+            filename,
+            code_name,
+            line_number,
+            var_names,
+            arg_count,
+            kw_only_count,
+            is_generator,
+            is_optimized,
+            has_starlist,
+            has_stardict,
+            has_closure,
+            future_flags
+        )
+
+        if key not in self.code_objects:
+            self.code_objects[key] = "codeobj_%s" % self._calcHash(key)
+
+        return self.code_objects[key]
+
+
+    # False alarms about "hashlib.md5" due to its strange way of defining what
+    # is exported, pylint won't understand it. pylint: disable=E1101
+    if python_version < 300:
+        def _calcHash(self, key):
+            hash_value = hashlib.md5(
+                "%s%s%d%s%d%d%s%s%s%s%s%s" % key
+            )
+
+            return hash_value.hexdigest()
+    else:
+        def _calcHash(self, key):
+            hash_value = hashlib.md5(
+                ("%s%s%d%s%d%d%s%s%s%s%s%s" % key).encode("utf-8")
+            )
+
+            return hash_value.hexdigest()
+
 
 
 class PythonContextBase:
@@ -430,7 +491,7 @@ class PythonGlobalContext:
 
 
 
-class PythonModuleContext(PythonContextBase, TempMixin):
+class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
     # Plent of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
@@ -439,6 +500,7 @@ class PythonModuleContext(PythonContextBase, TempMixin):
         PythonContextBase.__init__(self)
 
         TempMixin.__init__(self)
+        CodeObjectsMixin.__init__(self)
 
         self.name = module_name
         self.code_name = code_name
@@ -582,6 +644,9 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin):
     def mayRecurse(self):
         # TODO: Determine this at compile time.
         return True
+
+    def getCodeObjectHandle(self, **kw):
+        return self.parent.getCodeObjectHandle(**kw)
 
 
 class PythonFunctionDirectContext(PythonFunctionContext):
@@ -755,3 +820,6 @@ class PythonStatementCContext(PythonChildContextBase):
 
     def popFrameExceptionPreservationDepth(self):
         return self.parent.popFrameExceptionPreservationDepth()
+
+    def getCodeObjectHandle(self, **kw):
+        return self.parent.getCodeObjectHandle(**kw)

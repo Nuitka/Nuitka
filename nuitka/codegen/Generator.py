@@ -220,11 +220,6 @@ from .VariableCodes import (
 )
 # pylint: enable=W0611
 
-from .CodeObjectCodes import (
-    getCodeObjectsDeclCode,
-    getCodeObjectsInitCode,
-)
-
 from . import (
     CodeTemplates,
     OperatorCodes,
@@ -547,10 +542,6 @@ def getConstantsDeclarationCode(context):
         for_header = True
     )
 
-    constant_declarations += getCodeObjectsDeclCode(
-        for_header = True
-    )
-
     header_body = CodeTemplates.template_constants_declaration % {
         "constant_declarations" : "\n".join(constant_declarations)
     }
@@ -566,16 +557,8 @@ def getConstantsDefinitionCode(context):
         context    = context
     )
 
-    constant_inits += getCodeObjectsInitCode(
-        context    = context
-    )
-
     constant_declarations, constant_locals = getConstantsDeclCode(
         context    = context,
-        for_header = False
-    )
-
-    constant_declarations += getCodeObjectsDeclCode(
         for_header = False
     )
 

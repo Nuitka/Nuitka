@@ -196,11 +196,20 @@ module_body_template = """
 PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
+// The module code objects.
+%(module_code_objects_decl)s
+
+static void _initModuleCodeObjects(void)
+{
+%(module_code_objects_init)s;
+}
+
 // The module function declarations.
 %(module_functions_decl)s
 
 // The module function definitions.
 %(module_functions_code)s
+
 
 #if PYTHON_VERSION >= 300
 static struct PyModuleDef mdef_%(module_identifier)s =
@@ -282,6 +291,8 @@ MOD_INIT_DECL( %(module_identifier)s )
     registerMetaPathBasedUnfreezer( meta_path_loader_entries );
 #endif
 
+    _initModuleCodeObjects();
+
     // puts( "in init%(module_identifier)s" );
 
     // Create the module object first. There are no methods initially, all are
@@ -329,7 +340,7 @@ MOD_INIT_DECL( %(module_identifier)s )
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then.
-#if defined(_NUITKA_EXE) && !%(is_main_module)s
+#if !defined(_NUITKA_EXE) || !%(is_main_module)s
         value = PyModule_GetDict( value );
 #endif
 
