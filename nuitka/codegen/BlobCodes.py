@@ -33,9 +33,9 @@ class StreamData:
             self.stream_data += value
 
         if fixed_size:
-            return "&stream_data[ %d ]" % offset
+            return "&constant_bin[ %d ]" % offset
         else:
-            return "&stream_data[ %d ], %d" % (
+            return "&constant_bin[ %d ], %d" % (
                 offset,
                 len(value)
             )

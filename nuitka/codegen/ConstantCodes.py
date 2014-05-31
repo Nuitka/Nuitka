@@ -54,27 +54,33 @@ _needs_pickle = False
 def needsPickleInit():
     return _needs_pickle
 
-def _getUnstreamCode(constant_value, constant_identifier):
+
+def _getUnstreamCode2(constant_value):
     saved = getStreamedConstant(
         constant_value = constant_value
     )
 
-    assert type( saved ) is bytes
+    assert type(saved) is bytes
 
     # We need to remember having to use pickle, pylint: disable=W0603
     global _needs_pickle
     _needs_pickle = True
 
+    return stream_data.getStreamDataCode(saved)
+
+
+def _getUnstreamCode(constant_value, constant_identifier):
     return "%s = UNSTREAM_CONSTANT( %s );" % (
         constant_identifier,
-        stream_data.getStreamDataCode( saved )
+        _getUnstreamCode2(constant_value)
     )
 
+
 def _packFloat(value):
-    return struct.pack( "<d", value )
+    return struct.pack("<d", value)
 
 import ctypes
-sizeof_long = ctypes.sizeof( ctypes.c_long )
+sizeof_long = ctypes.sizeof(ctypes.c_long)
 
 max_unsigned_long = 2**(sizeof_long*8)-1
 
@@ -83,6 +89,47 @@ max_unsigned_long = 2**(sizeof_long*8)-1
 min_signed_long = -(2**(sizeof_long*8-1)-1)
 
 done = set()
+
+def _getConstantInitValueCode(context, constant_value, constant_type):
+    if constant_type is unicode:
+        try:
+            encoded = constant_value.encode("utf-8")
+
+            if str is not unicode:
+                return "UNSTREAM_UNICODE( %s )" % (
+                    stream_data.getStreamDataCode(encoded)
+                )
+            else:
+                return "UNSTREAM_STRING( %s, %d )" % (
+                    stream_data.getStreamDataCode(encoded),
+                    1 if _isAttributeName(constant_value) else 0
+                )
+        except UnicodeEncodeError:
+            return None
+    elif constant_type is str:
+        # Python3: Strings that can be encoded as UTF-8 are done more or less
+        # directly. When they cannot be expressed as UTF-8, that is rare not we
+        # can indeed use pickling.
+        assert str is not unicode
+
+        if len(constant_value) == 1:
+            return "UNSTREAM_CHAR( %d, %d )" % (
+                ord(constant_value[0]),
+                1 if _isAttributeName(constant_value) else 0
+            )
+        else:
+            return "UNSTREAM_STRING( %s, %d )" % (
+                stream_data.getStreamDataCode(constant_value),
+                1 if _isAttributeName(constant_value) else 0
+            )
+    elif constant_type is bytes:
+        assert str is unicode
+
+        return "UNSTREAM_BYTES( %s )" % (
+            constant_identifier,
+            stream_data.getStreamDataCode(constant_value)
+        )
+
 
 def _addConstantInitCode(context, emit, constant_type, constant_value,
                          constant_identifier):
@@ -206,7 +253,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         emit(
             "%s = UNSTREAM_BYTES( %s );" % (
                 constant_identifier,
-                stream_data.getStreamDataCode( constant_value )
+                stream_data.getStreamDataCode(constant_value)
             )
         )
 
@@ -217,7 +264,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
             "%s = UNSTREAM_FLOAT( %s );" % (
                 constant_identifier,
                 stream_data.getStreamDataCode(
-                    value      = _packFloat( constant_value ),
+                    value      = _packFloat(constant_value),
                     fixed_size = True
                 )
             )
@@ -612,3 +659,17 @@ def getConstantAccess(to_name, constant, emit, context):
 
     if ref_count:
         context.addCleanupTempName(to_name)
+
+
+def getModuleConstantCode(constant, context):
+    assert type(constant) is str
+
+    result = _getConstantInitValueCode(
+        context = context,
+        constant_value = constant,
+        constant_type  = type(constant)
+    )
+
+    assert result is not None
+
+    return result

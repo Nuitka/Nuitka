@@ -92,14 +92,14 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     context.markAsNeedsExceptionVariables()
 
     if len(args) == 1:
-        from .ConstantCodes import getConstantCode
+        from .ConstantCodes import getModuleConstantCode
 
         set_exception = """\
 exception_type = INCREASE_REFCOUNT( %s );
-exception_value = INCREASE_REFCOUNT( %s );
+exception_value = %s;
 exception_tb = NULL;""" % (
             exception,
-            getConstantCode(
+            getModuleConstantCode(
                 constant = args[0],
                 context  = context
             )

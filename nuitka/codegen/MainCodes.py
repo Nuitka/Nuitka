@@ -24,7 +24,7 @@ Examples of these are sys.executable, and sys.flags, but of course also the
 frame object data (filename, etc).
 """
 
-from .ConstantCodes import getConstantCode
+from .ConstantCodes import getModuleConstantCode
 from .CodeObjectCodes import getCodeObjectHandle
 
 from . import CodeTemplates
@@ -57,7 +57,7 @@ def getMainCode(main_module, codes, context):
         )
 
     main_code        = CodeTemplates.main_program % {
-        "sys_executable"       : getConstantCode(
+        "sys_executable"       : getModuleConstantCode(
             constant = "python.exe"
                          if Utils.getOS() == "Windows" and \
                             Options.isStandaloneMode() else
@@ -78,13 +78,13 @@ def getMainCode(main_module, codes, context):
         "python_sysflag_no_user_site" : sys.flags.no_user_site,
         "python_sysflag_ignore_environment" : sys.flags.ignore_environment,
         "python_sysflag_tabcheck" : ( sys.flags.tabcheck
-            if hasattr( sys.flags, "tabcheck" ) else 0 ),
+            if hasattr(sys.flags, "tabcheck") else 0 ),
         "python_sysflag_verbose" : 1 if "trace_imports" in python_flags else 0,
         "python_sysflag_unicode" : ( sys.flags.unicode
-            if hasattr( sys.flags, "unicode" ) else 0 ),
+            if hasattr(sys.flags, "unicode") else 0 ),
         "python_sysflag_bytes_warning" : sys.flags.bytes_warning,
         "python_sysflag_hash_randomization" : ( sys.flags.hash_randomization
-            if (hasattr( sys.flags, "hash_randomization" ) and "no_randomization" not in python_flags) else 0 ),
+            if (hasattr(sys.flags, "hash_randomization") and "no_randomization" not in python_flags) else 0 ),
         "code_identifier"      : code_identifier
     }
 

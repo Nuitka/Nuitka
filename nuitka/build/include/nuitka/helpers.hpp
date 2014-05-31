@@ -809,6 +809,14 @@ extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
 #include "nuitka/importing.hpp"
 
 // For the constant loading:
+
+#if defined(_WIN32) && defined(_NUITKA_EXE)
+#include <Windows.h>
+extern const unsigned char* constant_bin;
+#else
+extern "C" const unsigned char constant_bin[];
+#endif
+
 extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern );
