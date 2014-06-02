@@ -20,6 +20,8 @@
 """
 
 from .ConstantCodes import (
+    allocateNestedConstants,
+    getConstantInitCodes,
     getConstantCode,
 )
 
@@ -66,17 +68,13 @@ def getModuleMetapathLoaderEntryCode(module_name, is_shlib):
         }
 
 
-def getModuleCode(context, module_name, codes, metapath_loader_inittab,
-                  metapath_module_decls, function_decl_codes,
-                  function_body_codes, temp_variables, is_main_module):
+def prepareModuleCode(context, module_name, codes, metapath_loader_inittab,
+                      metapath_module_decls, function_decl_codes,
+                      function_body_codes, temp_variables, is_main_module,
+                      is_internal_module):
     # For the module code, lots of attributes come together.
     # pylint: disable=R0914
     module_identifier = getModuleIdentifier(module_name)
-
-    header = CodeTemplates.global_copyright % {
-        "name"    : module_name,
-        "version" : Options.getVersion()
-    }
 
     # Temp local variable initializations
     local_var_inits = [
@@ -132,7 +130,7 @@ def getModuleCode(context, module_name, codes, metapath_loader_inittab,
     else:
         module_exit = CodeTemplates.template_module_noexception_exit
 
-    module_code = CodeTemplates.module_body_template % {
+    module_body_template_values = {
         "module_name"              : module_name,
         "module_name_obj"          : getConstantCode(
             context  = context,
@@ -161,7 +159,34 @@ def getModuleCode(context, module_name, codes, metapath_loader_inittab,
             1
         ),
         "use_unfreezer"           : 1 if metapath_loader_inittab else 0
-
     }
 
-    return header + module_code
+    allocateNestedConstants(context)
+
+    # Force internal module to not need constants init, by making all its
+    # constants be shared.
+    if is_internal_module:
+        for constant in context.getConstants():
+            context.global_context.countConstantUse(constant)
+
+    return module_body_template_values
+
+def getModuleCode(module_context, template_values):
+    header = CodeTemplates.global_copyright % {
+        "name"    : module_context.getName(),
+        "version" : Options.getVersion()
+    }
+
+    decls, inits = getConstantInitCodes(module_context)
+
+    template_values["constant_decl_codes"] = indented(
+        decls,
+        0
+    )
+
+    template_values["constant_init_codes"] = indented(
+        inits,
+        1
+    )
+
+    return header + CodeTemplates.module_body_template % template_values

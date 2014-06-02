@@ -43,10 +43,10 @@ def getConstantCode(context, constant):
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 
 def getConstantCodeName(context, constant):
-    return context.getConstantCode(constant, real_use = False)
+    return context.getConstantCode(constant)
 
 def _isAttributeName(value):
-    return _match_attribute_names.match( value )
+    return _match_attribute_names.match(value)
 
 # Indicator to standalone mode code, if we need pickling module early on.
 _needs_pickle = False
@@ -132,12 +132,30 @@ def _getConstantInitValueCode(context, constant_value, constant_type):
 
 
 def _addConstantInitCode(context, emit, constant_type, constant_value,
-                         constant_identifier):
+                         constant_identifier, module_level):
     # This has many cases, that all return, and do a lot.
     # pylint: disable=R0911,R0912,R0915
 
+    if constant_value in constant_builtin_types:
+        return
+    if constant_value is None:
+        return
+    if constant_value is False:
+        return
+    if constant_value is True:
+        return
+    if constant_value is Ellipsis:
+        return
     if constant_identifier in done:
         return
+
+    if module_level:
+        if context.global_context.getConstantUseCount(constant_identifier) != 1:
+            return
+    else:
+        if context.getConstantUseCount(constant_identifier) == 1:
+            return
+
 
     done.add(constant_identifier)
 
@@ -272,18 +290,6 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
         return
 
-    if constant_value is None:
-        return
-
-    if constant_value is False:
-        return
-
-    if constant_value is True:
-        return
-
-    if constant_value is Ellipsis:
-        return
-
     if constant_type is dict:
         emit(
             "%s = _PyDict_NewPresized( %d );" % (
@@ -291,6 +297,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
                 len(constant_value)
             )
         )
+
         for key, value in iterItems(constant_value):
             key_name = getConstantCodeName(context, key)
             _addConstantInitCode(
@@ -298,6 +305,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
                 constant_type       = type(key),
                 constant_value      = key,
                 constant_identifier = key_name,
+                module_level        = module_level,
                 context             = context
             )
 
@@ -307,6 +315,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
                 constant_type       = type(value),
                 constant_value      = value,
                 constant_identifier = value_name,
+                module_level        = module_level,
                 context             = context
             )
 
@@ -342,6 +351,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
                     context  = context,
                     constant = element_value
                 ),
+                module_level        = module_level,
                 context             = context
             )
 
@@ -376,6 +386,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
                 constant_type       = type(element_value),
                 constant_value      = element_value,
                 constant_identifier = element_name,
+                module_level        = module_level,
                 context             = context
             )
 
@@ -405,6 +416,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
                     constant_type       = type(element_value),
                     constant_value      = element_value,
                     constant_identifier = element_name,
+                    module_level        = module_level,
                     context             = context
                 )
 
@@ -422,18 +434,8 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
         return
 
-    if constant_value in constant_builtin_types:
-        return
-
     assert False, ( type(constant_value), constant_value, constant_identifier )
 
-def _lengthKey(value):
-    return (
-        len(value[1]),
-        value[1]
-    )
-
-the_contained_constants = {}
 
 def getConstantsInitCode(context):
     # There are many cases for constants to be created in the most efficient
@@ -441,123 +443,51 @@ def getConstantsInitCode(context):
 
     emit = SourceCodeCollector()
 
-    all_constants = the_contained_constants
-    all_constants.update(context.getConstants())
+    sorted_constants = sorted(
+        iterItems(context.getConstants()),
+        key = lambda k: (len(k), k )
+    )
 
-    for constant_value, constant_identifier in \
-          sorted(all_constants.items(), key = _lengthKey):
+    for constant_identifier, constant_value in sorted_constants:
         _addConstantInitCode(
             emit                = emit,
-            constant_type       = type(constant_value.getConstant()),
-            constant_value      = constant_value.getConstant(),
+            constant_type       = type(constant_value),
+            constant_value      = constant_value,
             constant_identifier = constant_identifier,
+            module_level        = False,
             context             = context
         )
 
     return emit.codes
 
 
-class HashableConstant(object):
-    __slots__ = ["constant"]
-
-    def __init__(self, constant):
-        self.constant = constant
-
-    def getConstant(self):
-        return self.constant
-
-    def __hash__(self):
-        try:
-            # For Python3: range objects with same ranges give different hash
-            # values. It's not even funny, is it.
-            if type(self.constant) is range:
-                raise TypeError
-
-            return hash(self.constant)
-        except TypeError:
-            return 7
-
-    def __eq__(self, other):
-        assert isinstance(other, self.__class__)
-
-        return compareConstants(self.constant, other.constant)
-
-
-def getConstantsDeclCode(context, for_header):
+def getConstantsDeclCode(context):
     # There are many cases for constants of different types.
     # pylint: disable=R0912
     statements = []
-    statements2 = []
 
-    constants = context.getConstants()
+    sorted_constants = sorted(
+        iterItems(context.getConstants()),
+        key = lambda k: (len(k), k )
+    )
 
-    contained_constants = {}
-
-    def considerForDeferral(constant_value):
-        if constant_value is None:
-            return
-
-        if constant_value is False:
-            return
-
-        if constant_value is True:
-            return
-
-        if constant_value is Ellipsis:
-            return
-
-        constant_type = type(constant_value)
-
-        if constant_type is type:
-            return
-
-        key = HashableConstant(constant_value)
-
-        if key not in contained_constants:
-            constant_identifier = getConstantCodeName(context, constant_value)
-
-            contained_constants[key] = constant_identifier
-
-            if constant_type in (tuple, list, set, frozenset):
-                for element in constant_value:
-                    considerForDeferral(element)
-            elif constant_type is dict:
-                for key, value in iterItems(constant_value):
-                    considerForDeferral(key)
-                    considerForDeferral(value)
-
-
-    for constant_value, constant_identifier in \
-            sorted(constants.items(), key = _lengthKey):
-        constant_type = type(constant_value.getConstant())
-
+    for constant_identifier, constant_value in sorted_constants:
         # Need not declare built-in types.
-        if constant_type is type:
+        if constant_value in constant_builtin_types:
+            continue
+        if constant_value is None:
+            continue
+        if constant_value is False:
+            continue
+        if constant_value is True:
+            continue
+        if constant_value is Ellipsis:
             continue
 
-        declaration = "PyObject *%s;" % constant_identifier
+        if context.getConstantUseCount(constant_identifier) != 1:
+            statements.append("PyObject *%s;" % constant_identifier)
 
-        if for_header:
-            declaration = "extern " + declaration
-        else:
-            if constant_type in (tuple, dict, list, set, frozenset):
-                considerForDeferral( constant_value.getConstant() )
-
-        statements.append(declaration)
-
-    for key, value in sorted(contained_constants.items(), key = _lengthKey):
-        if key not in constants:
-            declaration = "PyObject *%s;" % value
-
-            statements2.append(declaration)
-
-    if not for_header:
-        # Using global here, as this is really a singleton, in the form of a
-        # module, pylint: disable=W0603
-        global the_contained_constants
-        the_contained_constants = contained_constants
-
-    return statements, statements2
+    return statements
 
 
 def getConstantAccess(to_name, constant, emit, context):
@@ -675,3 +605,66 @@ def getModuleConstantCode(constant, context):
     assert result is not None
 
     return result
+
+constant_counts = {}
+
+def getConstantInitCodes(module_context):
+    decls = []
+    inits = []
+
+    sorted_constants = sorted(
+        module_context.getConstants(),
+        key = lambda k: (len(k), k )
+    )
+
+    global_context = module_context.global_context
+
+    for constant_identifier in sorted_constants:
+        if not constant_identifier.startswith("const_"):
+            continue
+
+        if global_context.getConstantUseCount(constant_identifier ) == 1:
+            qualifier = "static "
+
+            constant_value = global_context.constants[constant_identifier]
+
+            _addConstantInitCode(
+                emit                = inits.append,
+                constant_type       = type(constant_value),
+                constant_value      = constant_value,
+                constant_identifier = constant_identifier,
+                module_level        = True,
+                context             = module_context
+            )
+        else:
+            qualifier = "extern "
+
+        decls.append(qualifier + "PyObject *" + constant_identifier + ";")
+
+
+    return decls, inits
+
+
+def allocateNestedConstants(module_context):
+    def considerForDeferral(constant_value):
+        module_context.getConstantCode(constant_value)
+
+        constant_type = type(constant_value)
+
+        if constant_type in (tuple, list, set, frozenset):
+            for element in constant_value:
+                considerForDeferral(element)
+        elif constant_type is dict:
+            for key, value in iterItems(constant_value):
+                considerForDeferral(key)
+                considerForDeferral(value)
+
+    for constant_identifier in set(module_context.getConstants()):
+        constant_value = module_context.global_context.constants[
+            constant_identifier
+        ]
+
+        constant_type = type(constant_value)
+
+        if constant_type in (tuple, dict, list, set, frozenset):
+            considerForDeferral(constant_value)

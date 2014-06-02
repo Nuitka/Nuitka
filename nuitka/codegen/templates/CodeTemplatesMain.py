@@ -184,7 +184,6 @@ int main( int argc, char *argv[] )
 module_body_template = """
 #include "nuitka/prelude.hpp"
 
-#include "__constants.hpp"
 #include "__helpers.hpp"
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
@@ -196,12 +195,20 @@ module_body_template = """
 PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
+// The module constants used
+%(constant_decl_codes)s
+
+static void _initModuleConstants(void)
+{
+%(constant_init_codes)s
+}
+
 // The module code objects.
 %(module_code_objects_decl)s
 
 static void _initModuleCodeObjects(void)
 {
-%(module_code_objects_init)s;
+%(module_code_objects_init)s
 }
 
 // The module function declarations.
@@ -291,6 +298,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     registerMetaPathBasedUnfreezer( meta_path_loader_entries );
 #endif
 
+    _initModuleConstants();
     _initModuleCodeObjects();
 
     // puts( "in init%(module_identifier)s" );

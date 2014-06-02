@@ -176,7 +176,7 @@ def cleanSourceDirectory(source_dir):
                                             ".manifest"):
                 Utils.deleteFile(path, True)
     else:
-        Utils.makePath( source_dir )
+        Utils.makePath(source_dir)
 
     static_source_dir = Utils.joinpath(
         source_dir,
@@ -278,18 +278,38 @@ def makeSourceDirectory(main_module):
         modules    = modules
     )
 
+    # First pass, generate code and use constants doing so, but prepare the
+    # final code generation only, because constants code will be added at the
+    # end only.
+    prepared_modules = {}
+
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
             cpp_filename = module_filenames[module]
 
-            source_code, module_context = \
-              CodeGeneration.generateModuleCode(
-                  global_context = global_context,
-                  module         = module,
-                  module_name    = module.getFullName(),
-                  other_modules  = other_modules
-                                     if module is main_module else
-                                   ()
+            prepared_modules[cpp_filename] = CodeGeneration.prepareModuleCode(
+                global_context = global_context,
+                module         = module,
+                module_name    = module.getFullName(),
+                other_modules  = other_modules
+                                   if module is main_module else
+                                 ()
+            )
+
+            # Main code constants need to be allocated already too.
+            if module is main_module and not Options.shallMakeModule():
+                prepared_modules[cpp_filename][1].getConstantCode(0)
+
+
+    for module in sorted(modules, key = lambda x : x.getFullName()):
+        if module.isPythonModule():
+            cpp_filename = module_filenames[module]
+
+            template_values, module_context = prepared_modules[cpp_filename]
+
+            source_code = CodeGeneration.generateModuleCode(
+                module_context  = module_context,
+                template_values = template_values
             )
 
             # The main of an executable module gets a bit different code.
@@ -334,13 +354,6 @@ def makeSourceDirectory(main_module):
             )
         else:
             assert False, module
-
-    writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__constants.hpp" ),
-        source_code = CodeGeneration.generateConstantsDeclarationCode(
-            context = global_context
-        )
-    )
 
     writeSourceCode(
         filename    = Utils.joinpath( source_dir, "__constants.cpp" ),

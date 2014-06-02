@@ -20,7 +20,6 @@
 """
 
 from .Namify import namifyConstant
-from .ConstantCodes import HashableConstant
 
 from nuitka.Constants import constant_builtin_types
 
@@ -444,21 +443,28 @@ def _getConstantDefaultPopulation():
 class PythonGlobalContext:
     def __init__(self):
         self.constants = {}
+        self.constant_use_count = {}
 
-        for value in _getConstantDefaultPopulation():
-            self.getConstantCode(value)
+        for constant in _getConstantDefaultPopulation():
+            code = self.getConstantCode(constant)
+
+            # Force them to be global.
+            self.countConstantUse(code)
+            self.countConstantUse(code)
 
         self.needs_exception_variables = False
 
-    def getConstantCode(self, constant, real_use = True):
+    def getConstantCode(self, constant):
+        # Use in user code, or for constants building code itself
+
         if constant is None:
-            return "Py_None"
+            key = "Py_None"
         elif constant is True:
-            return "Py_True"
+            key = "Py_True"
         elif constant is False:
-            return "Py_False"
+            key = "Py_False"
         elif constant is Ellipsis:
-            return "Py_Ellipsis"
+            key = "Py_Ellipsis"
         elif constant in constant_builtin_types:
             type_name = constant.__name__
 
@@ -471,20 +477,23 @@ class PythonGlobalContext:
             if constant is str and python_version > 300:
                 type_name = "unicode"
 
-            return "(PyObject *)&Py%s_Type" % type_name.title()
+            key = "(PyObject *)&Py%s_Type" % type_name.title()
         else:
-            # Use in user code, or for constants building code itself
-            if real_use:
-                key = HashableConstant(constant)
+            key = "const_" + namifyConstant(constant)
 
-                if key not in self.constants:
-                    self.constants[key] = "const_" + namifyConstant(
-                        constant
-                    )
+        if key not in self.constants:
+            self.constants[key] = constant
 
-                return self.constants[ key ]
-            else:
-                return "const_" + namifyConstant( constant )
+        return key
+
+    def countConstantUse(self, constant):
+        if constant not in self.constant_use_count:
+            self.constant_use_count[constant] = 0
+
+        self.constant_use_count[constant] += 1
+
+    def getConstantUseCount(self, constant):
+        return self.constant_use_count[constant]
 
     def getConstants(self):
         return self.constants
@@ -512,6 +521,8 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
         self.declaration_codes = {}
         self.helper_codes = {}
 
+        self.constants = set()
+
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
@@ -523,9 +534,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
 
     def getFrameHandle(self):
         return "frame_module"
-
-    def getConstantCode(self, constant):
-        return self.global_context.getConstantCode(constant)
 
     def getName(self):
         return self.name
@@ -583,6 +591,18 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
 
     def mayRecurse(self):
         return False
+
+    def getConstantCode(self, constant):
+        result = self.global_context.getConstantCode(constant)
+
+        if result not in self.constants:
+            self.constants.add(result)
+            self.global_context.countConstantUse(result)
+
+        return result
+
+    def getConstants(self):
+        return self.constants
 
 
 class PythonFunctionContext(PythonChildContextBase, TempMixin):

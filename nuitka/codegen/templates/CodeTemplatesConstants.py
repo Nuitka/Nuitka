@@ -58,7 +58,6 @@ static void __initConstants( void )
     (void *)exception_type; (void *)exception_value; (void *)exception_tb;
 #endif
 
-%(constant_locals)s
 %(constant_inits)s
 
     return;
@@ -79,11 +78,4 @@ void _initConstants( void )
         __initConstants();
     }
 }
-"""
-
-template_constants_declaration = """\
-// Call this to initialize all of the below
-void _initConstants( void );
-
-%(constant_declarations)s
 """

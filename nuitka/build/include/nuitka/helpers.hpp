@@ -810,6 +810,9 @@ extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
 
 // For the constant loading:
 
+// Call this to initialize all common constants pre-main.
+void _initConstants( void );
+
 #if defined(_WIN32) && defined(_NUITKA_EXE)
 #include <Windows.h>
 extern const unsigned char* constant_bin;

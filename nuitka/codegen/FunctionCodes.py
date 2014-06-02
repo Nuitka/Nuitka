@@ -208,7 +208,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                                            "NULL",
             "annotations"                : "annotations"
                                              if annotations_name else
-                                           "const_dict_empty",
+                                           context.getConstantCode({}),
             "module_identifier"          : getModuleAccessCode(
                 context = context
             ),
@@ -250,7 +250,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                                            "NULL",
             "annotations"                : "annotations"
                                              if annotations_name else
-                                           "const_dict_empty",
+                                           context.getConstantCode({}),
             "module_identifier"          : getModuleAccessCode(
                 context = context
             ),

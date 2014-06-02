@@ -128,6 +128,7 @@ from .ModuleCodes import (
     getModuleMetapathLoaderEntryCode,
     getModuleAccessCode,
     getModuleIdentifier,
+    prepareModuleCode,
     getModuleCode
 )
 
@@ -536,34 +537,16 @@ def getStatementTrace(source_desc, statement_repr):
     )
 
 
-def getConstantsDeclarationCode(context):
-    constant_declarations, _constant_locals = getConstantsDeclCode(
-        context    = context,
-        for_header = True
-    )
-
-    header_body = CodeTemplates.template_constants_declaration % {
-        "constant_declarations" : "\n".join(constant_declarations)
-    }
-
-    return CodeTemplates.template_header_guard % {
-        "header_guard_name" : "__NUITKA_DECLARATIONS_H__",
-        "header_body"       : header_body
-    }
-
-
 def getConstantsDefinitionCode(context):
     constant_inits = getConstantsInitCode(
         context    = context
     )
 
-    constant_declarations, constant_locals = getConstantsDeclCode(
-        context    = context,
-        for_header = False
+    constant_declarations = getConstantsDeclCode(
+        context = context
     )
 
     return CodeTemplates.template_constants_reading % {
         "constant_declarations" : "\n".join(constant_declarations),
         "constant_inits"        : indented(constant_inits),
-        "constant_locals"       : indented(constant_locals)
     }

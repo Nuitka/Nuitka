@@ -4183,7 +4183,7 @@ def generateStatementSequenceCode(statement_sequence, context,
     return codes
 
 
-def generateModuleCode(global_context, module, module_name, other_modules):
+def prepareModuleCode(global_context, module, module_name, other_modules):
     assert module.isPythonModule(), module
 
     context = Contexts.PythonModuleContext(
@@ -4272,7 +4272,7 @@ def generateModuleCode(global_context, module, module_name, other_modules):
                 )
             )
 
-    module_source_code = Generator.getModuleCode(
+    template_values = Generator.prepareModuleCode(
         module_name             = module_name,
         codes                   = codes,
         metapath_loader_inittab = metapath_loader_inittab,
@@ -4281,10 +4281,20 @@ def generateModuleCode(global_context, module, module_name, other_modules):
         function_body_codes     = function_body_codes,
         temp_variables          = module.getTempVariables(),
         is_main_module          = module.isMainModule(),
+        is_internal_module      = module.isInternalModule(),
         context                 = context,
     )
 
-    return module_source_code, context
+    if Utils.python_version >= 330:
+        context.getConstantCode("__loader__")
+
+    return template_values, context
+
+def generateModuleCode(module_context, template_values):
+    return Generator.getModuleCode(
+        module_context  = module_context,
+        template_values = template_values
+    )
 
 
 def generateMainCode(main_module, codes, context):
@@ -4292,12 +4302,6 @@ def generateMainCode(main_module, codes, context):
         main_module = main_module,
         context     = context,
         codes       = codes
-    )
-
-
-def generateConstantsDeclarationCode(context):
-    return Generator.getConstantsDeclarationCode(
-        context = context
     )
 
 

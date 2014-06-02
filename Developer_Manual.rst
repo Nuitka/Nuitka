@@ -1009,6 +1009,44 @@ Similarly their are flags that make the ``continue`` or ``break`` happen at the
 end the end of a ``finally`` handler, but these are mere ``bool`` indicator
 flags.
 
+Constant Preparation
+--------------------
+
+Early versions of Nuitka, created all constants for the whole program for ready
+access to generated code, before the program launches. It did so in a single
+file, but that approach didn't scale well.
+
+Problems were
+
+* Even unused code contributed to start-up time.
+
+* The massive amount of constant creation codes gave C++ compilers a harder time
+  than necessary.
+
+.. note::
+
+   This is so far only a plan.
+
+The new approach is as follows. Code generation uses the same identifiers for
+constants as before, but these will be declared module local ("static"), if the
+module is the only user, or "extern" if it is not.
+
+The "extern" values will be globally created pre-main. Some values, that are
+e.g. used in pre-main code, references to "None" module should enforce this
+behavior.
+
+Code for all modules will be created with a delay. The final association with
+the module body template must wait until all are ready, because only then the
+scope of the constants will be known.
+
+The most important goal is to avoid globally initializing constants that are
+used only in one module.
+
+We need to trace used constants per module, and for nested ones, we also need to
+associate them. The global constants code is special in that it can only use
+"static" for nested values it exclusively uses, and has to export values that
+others use.
+
 
 Language Conversions to make things simpler
 -------------------------------------------

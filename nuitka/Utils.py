@@ -130,8 +130,8 @@ def listDir(path):
 
 
 def deleteFile(path, must_exist):
-    if must_exist or isFile( path ):
-        os.unlink( path )
+    if must_exist or isFile(path):
+        os.unlink(path)
 
 
 def makePath(path):
