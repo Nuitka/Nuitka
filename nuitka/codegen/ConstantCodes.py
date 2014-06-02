@@ -347,9 +347,10 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
             # Do not take references, these won't be deleted ever.
             emit(
-                "PyTuple_SET_ITEM( %s, %d, INCREASE_REFCOUNT( %s ) );" % (
+                "PyTuple_SET_ITEM( %s, %d, %s ); Py_INCREF( %s );" % (
                     constant_identifier,
                     count,
+                    element_name,
                     element_name
                 )
             )
@@ -380,9 +381,10 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
             # Do not take references, these won't be deleted ever.
             emit(
-                "PyList_SET_ITEM( %s, %d, INCREASE_REFCOUNT( %s ) );" % (
+                "PyList_SET_ITEM( %s, %d, %s ); Py_INCREF( %s );" % (
                     constant_identifier,
                     count,
+                    element_name,
                     element_name
                 )
             )
