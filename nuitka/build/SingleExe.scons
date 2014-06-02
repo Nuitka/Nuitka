@@ -647,6 +647,11 @@ if gcc_mode and "linux" in sys.platform:
             )
 
 
+# For Nuitka, it generally is OK to break out of the virtualenv, and use the
+# original install. Mind you, this is not about executing anything, this is
+# about building, and finding the headers to compile against that Python, we
+# do not care about any site packages, and so on.
+
 if os.name != "nt" and os.path.islink(os.path.join(python_prefix, ".Python")):
     # Some virtualenv, at least on MacOS, have such handy links.
     python_prefix = os.path.join(
@@ -670,6 +675,13 @@ elif os.name != "nt" and python_version >= "3.3" and \
             ".."
         )
     )
+elif os.path.exists(os.path.join(python_prefix, "Lib/orig-prefix.txt")):
+    python_prefix = open(
+        os.path.join(python_prefix, "Lib/orig-prefix.txt")
+    ).read()
+
+    # Trailing spaces in the python prefix, please not.
+    assert python_prefix == python_prefix.strip()
 
 if os.name == "nt":
     # On Windows, the installation layout is relatively fixed.
@@ -956,17 +968,26 @@ if win_target:
                 "resources.manifest"
             )
 
-            assert 0 == subprocess.call(
+            # Find the "python.exe" in a normal install, this is assuming we
+            # broke out of the virtualenv already.
+            python_exe = os.path.join(
+                 python_prefix,
+                 "python.exe"
+            )
+
+            assert os.path.exists(python_exe), python_exe
+
+            result = subprocess.call(
                 (
-                    "mt",
-                    "-inputresource:%s;#1" % os.path.join(
-                        python_prefix,
-                        "python.exe"
-                    ),
+                    env["MT"],
+                    "-inputresource:%s;#1" % python_exe,
                     "-out:%s" % manifest_filename
                 ),
                 stdout = subprocess.PIPE
             )
+
+            if result != 0:
+                sys.exit("Error, call to 'mt.exe' failed.")
 
             rc_content.append(
                 "1 RT_MANIFEST resources.manifest"
