@@ -20,9 +20,12 @@ import sys, os
 
 scripts = ["bin/nuitka", "bin/nuitka-run"]
 
+# For Windows, there are batch files to launch Nuitka.
 if os.name == "nt":
     scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
 
+# Detect the version of Nuitka from its source directly. Without calling it, we
+# don't mean to pollute with ".pyc" files and similar effects.
 def detectVersion():
     version_line, = [
         line
@@ -35,13 +38,13 @@ def detectVersion():
 
 version = detectVersion()
 
+# The MSI installer enforces a 3 digit version number, which is stupid, but no way
+# around it, so we map our number to it, in some way.
 if os.name == "nt" and "bdist_msi" in sys.argv:
-    # The MSI enforces a 3 digit version number, which is stupid, but no way
-    # around it, so we map our number to it, in some way.
 
-    # Prereleases are always smaller.
+    # Prereleases are always smaller, official releases get the "1".
     middle = 1 if "pre" not in version else 0
-    version = version.replace( "pre", "" )
+    version = version.replace("pre", "")
     parts = version.split(".")
     major, first, last = parts[:3]
     hotfix = parts[3] if len(parts) > 3 else 0
@@ -75,8 +78,6 @@ def find_packages():
     return result
 
 package = find_packages()
-
-from distutils.core import setup, Command, Extension
 
 from distutils.command.install_scripts import install_scripts
 class nuitka_installscripts( install_scripts ):
@@ -152,10 +153,14 @@ else:
         "inline_copy/*/*/*/*/*/*.py",
     ]
 
+# Have different project names for MSI installers, so 32 and 64 bit versions do
+# not conflict.
 if "bdist_msi" in sys.argv:
     project_name = "Nuitka%s" % (64 if "AMD64" in sys.version else 32)
 else:
     project_name = "Nuitka"
+
+from distutils.core import setup
 
 setup(
     name     = project_name,
