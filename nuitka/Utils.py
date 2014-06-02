@@ -106,6 +106,14 @@ def isDir(path):
     return os.path.isdir(path)
 
 
+def isLink(path):
+    return os.path.islink(path)
+
+
+def readLink(path):
+    return os.readlink(path)
+
+
 def listDir(path):
     """ Give a sorted path, basename pairs of a directory."""
 

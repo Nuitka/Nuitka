@@ -436,10 +436,60 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
     return module_name in white_list
 
+stdlib_paths = None
+
+def getStandardLibraryPaths():
+    global stdlib_paths
+
+    if stdlib_paths is None:
+        os_filename = os.__file__
+        if os_filename.endswith(".pyc"):
+            os_filename = os_filename[:-1]
+
+        os_path = Utils.normcase(Utils.dirname(os_filename))
+
+        stdlib_paths = set([os_path])
+
+        # Happens for virtualenv situation, some modules will come from the link
+        # this points to.
+        if Utils.isLink(os_filename):
+            os_filename = Utils.readLink(os_filename)
+            stdlib_paths.add(Utils.normcase(Utils.dirname(os_filename)))
+
+        # Another possibility is "orig-prefix.txt" file near the os.py, which
+        # points to the original install.
+        orig_prefix_filename = Utils.joinpath(os_path, "orig-prefix.txt")
+
+        if Utils.isFile(orig_prefix_filename):
+            stdlib_paths.add(
+                Utils.normcase(
+                    Utils.joinpath(
+                        open(orig_prefix_filename).read(),
+                        "lib"
+                    )
+                )
+            )
+
+        # And yet another possibility, for MacOS Homebrew created virtualenv
+        # at least is a link ".Python", which points to the original install.
+        python_link_filename = Utils.joinpath(os_path, "..", ".Python")
+        if Utils.isLink(python_link_filename):
+            stdlib_paths.add(
+                Utils.normcase(
+                    Utils.joinpath(
+                        Utils.readLink(python_link_filename),
+                        "lib"
+                    )
+                )
+            )
+
+    return stdlib_paths
+
+
 def isStandardLibraryPath(path):
     path = Utils.normcase(path)
 
-    # In virtual-env, the "site.py" lives in a place that suggests it is not in
+    # In virtualenv, the "site.py" lives in a place that suggests it is not in
     # standard library, although it is.
     if os.path.basename(path) == "site.py":
         return True
@@ -448,21 +498,8 @@ def isStandardLibraryPath(path):
     if "dist-packages" in path or "site-packages" in path:
         return False
 
-    os_filename = os.__file__
-    if os_filename.endswith(".pyc"):
-        os_filename = os_filename[:-1]
 
-    os_path = Utils.normcase(Utils.dirname(os_filename))
-
-    candidates = [os_path]
-
-    # Happens for virtual-env situation, some modules will come from the link
-    # this points to.
-    if os.path.islink(os_filename):
-        os_filename = os.readlink(os_filename)
-        candidates.append(Utils.normcase(Utils.dirname(os_filename)))
-
-    for candidate in candidates:
+    for candidate in getStandardLibraryPaths():
         if path.startswith(candidate):
             return True
     else:
