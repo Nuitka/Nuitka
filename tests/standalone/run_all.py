@@ -207,6 +207,10 @@ for filename in sorted(os.listdir(".")):
                os.path.basename(loaded_filename).startswith("libnsl"):
                 continue
 
+            # Loaded by dtruss on MacOS X.
+            if loaded_filename.startswith("/usr/lib/dtrace/"):
+                continue
+
             if loaded_filename.startswith("/home/") or \
                loaded_filename.startswith("/data/") or \
                loaded_filename.startswith("/root/") or \

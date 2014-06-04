@@ -15,6 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Common test infrastructure functions. To be used by test runners. """
 
 from __future__ import print_function
 
@@ -268,12 +269,22 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
     result = []
 
     if os.name == "posix":
-        args = (
-            "strace",
-            "-e", "file",
-            "-s4096", # Some paths are truncated otherwise.
-            path
-        )
+        if sys.platform == "darwin":
+            args = (
+                "sudo",
+                "dtruss",
+                "-f",
+                "-t",
+                "open",
+                path
+            )
+        else:
+            args = (
+                "strace",
+                "-e", "file",
+                "-s4096", # Some paths are truncated otherwise.
+                path
+            )
 
         process = subprocess.Popen(
             args   = args,
@@ -318,7 +329,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
             result.extend(
                 os.path.abspath(match)
                 for match in
-                re.findall(b'"(.*?)"', line)
+                re.findall(b'"(.*?)(?:\\\\0)?"', line)
             )
 
         if sys.version.startswith("3"):
