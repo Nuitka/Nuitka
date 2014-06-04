@@ -209,23 +209,29 @@ Display the final result of optimization in a GUI, then exit."""
 
 parser.add_option_group( dump_group )
 
-supported_python_versions = ("2.6", "2.7", "3.2", "3.3")
+def getSupportedPythonVersions():
+    return ("2.6", "2.7", "3.2", "3.3")
 
-supported_python_versions_str = repr(supported_python_versions)[1:-1]
-supported_python_versions_str = re.sub(
-    r"(.*),(.*)$",
-    r"\1, or\2",
-    supported_python_versions_str
-)
+def getSupportedPythonVersionStr():
+    supported_python_versions = getSupportedPythonVersions()
+
+    supported_python_versions_str = repr(supported_python_versions)[1:-1]
+    supported_python_versions_str = re.sub(
+        r"(.*),(.*)$",
+        r"\1, or\2",
+        supported_python_versions_str
+    )
+
+    return supported_python_versions_str
 
 parser.add_option(
     "--python-version",
     action  = "store",
     dest    = "python_version",
-    choices = supported_python_versions,
+    choices = getSupportedPythonVersions(),
     default = None,
     help    = """Major version of Python to be used, one of %s.""" % (
-       supported_python_versions_str
+       getSupportedPythonVersionStr()
     )
 )
 

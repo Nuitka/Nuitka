@@ -89,8 +89,6 @@ if intended_version is None:
 # If it's a different version, we find it by guessing it, otherwise we use the
 # one previously used.
 if current_version != intended_version:
-    assert intended_version in ("2.6", "2.7", "3.2", "3.3", "3.4")
-
     if Utils.getOS() == "Windows":
         python_binary = r"C:\Python%s\python.exe" % \
           intended_version.replace( ".", "" )
@@ -132,6 +130,12 @@ if needs_reexec:
 
     Utils.callExec(args)
 
+# Inform the user about potential issues.
+if current_version not in Options.getSupportedPythonVersions():
+    logging.warning(
+        "The version '%s' is not currently supported. Expect problems.",
+        current_version
+    )
 
 # Now the main program.
 from nuitka import MainControl  # isort:skip
