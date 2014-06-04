@@ -320,7 +320,7 @@ builtin_range_spec = BuiltinRangeSpec("range", ( "start", "stop", "step" ), 2)
 
 
 def extractBuiltinArgs(node, builtin_spec, builtin_class,
-                       empty_special_class = None ):
+                       empty_special_class = None):
     try:
         kw = node.getCallKw()
 

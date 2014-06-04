@@ -417,6 +417,12 @@ Replaced try/finally expression with try/finally statement."""
     def getIterationValues(self):
         return self.getExpression().getIterationValues()
 
+    def isMappingWithConstantStringKeys(self):
+        return False
+
+        # TODO: Uses should not depend on this to mean there is no side effects,
+        # then we could delegate.
+
 
 class StatementTryExcept(StatementChildrenHavingBase):
     kind = "STATEMENT_TRY_EXCEPT"
