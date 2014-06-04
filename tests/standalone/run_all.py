@@ -211,6 +211,14 @@ for filename in sorted(os.listdir(".")):
             if loaded_filename.startswith("/usr/lib/dtrace/"):
                 continue
 
+            # Loaded by cowbuilder and pbuilder on Debian
+            if os.path.basename(loaded_filename) == ".ilist":
+                continue
+            if "cowdancer" in loaded_filename:
+                continue
+            if "eatmydata" in loaded_filename:
+                continue
+
             if loaded_filename.startswith("/home/") or \
                loaded_filename.startswith("/data/") or \
                loaded_filename.startswith("/root/") or \
