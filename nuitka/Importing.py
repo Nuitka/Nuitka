@@ -427,6 +427,11 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "comtypes.server.inprocserver", "_tkinter", "_scproxy", "EasyDialogs",
         "SOCKS", "rourl2path", "_winapi", "win32api", "win32con", "_gestalt",
         "java.lang", "vms_lib", "ic", "readline", "termios", "_sysconfigdata",
+        "al", "AL", "sunaudiodev", "SUNAUDIODEV", "Audio_mac",
+        "test.test_MimeWriter", "dos", "win32pipe", "Carbon", "Carbon.Files",
+        "sgi", "ctypes.macholib.dyld", "bsddb3", "_pybsddb", "_xmlrpclib",
+        "netbios", "win32wnet", "email.Parser", "elementree.cElementTree",
+        "elementree.ElementTree", "_gbdm",
     )
 
     # TODO: Turn this into a warning that encourages reporting.
