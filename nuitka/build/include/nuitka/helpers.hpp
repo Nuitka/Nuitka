@@ -691,7 +691,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
     {
         if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
         {
+#if PYTHON_VERSION < 340
             PyErr_Format( PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString( import_name ));
+#else
+            PyErr_Format( PyExc_ImportError, "cannot import name '%s'", Nuitka_String_AsString( import_name ));
+#endif
         }
 
         return NULL;
