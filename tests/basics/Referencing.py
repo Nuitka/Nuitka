@@ -531,14 +531,14 @@ def simpleFunction64():
 def simpleFunction65():
     import array
 
-    a = array.array("b", "")
+    a = array.array("b", b"")
     assert a == eval(repr(a), {"array": array.array})
 
     d = {
         "x" : 2,
         "y" : 3
     }
-    z = eval( repr(d), d )
+    z = eval(repr(d), d)
 
 
 def simpleFunction66():
