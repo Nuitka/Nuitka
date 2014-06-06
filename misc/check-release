@@ -178,6 +178,15 @@ parser.add_option(
 Do not use Python3.3 even if available on the system. Default is %default."""
 )
 
+parser.add_option(
+    "--no-python3.4",
+    action  = "store_true",
+    dest    = "no34",
+    default = False,
+    help    = """\
+Do not use Python3.4 even if available on the system. Default is %default."""
+)
+
 options, positional_args = parser.parse_args()
 
 if positional_args:
@@ -211,6 +220,8 @@ def checkExecutableCommand( command ):
         return False
     if command == "python3.3" and options.no33:
         return False
+    if command == "python3.4" and options.no34:
+        return False
 
     # Shortcuts for python versions, also needed for Windows as it won't have
     # the version number in the Python binaries at all.
@@ -221,6 +232,8 @@ def checkExecutableCommand( command ):
     if command == "python3.2" and sys.version_info[0:2] == (3,2):
        return True
     if command == "python3.3" and sys.version_info[0:2] == (3,3):
+       return True
+    if command == "python3.4" and sys.version_info[0:2] == (3,4):
        return True
 
     path = os.environ[ "PATH" ]
@@ -300,6 +313,11 @@ def execute_tests( where, use_python, flags ):
                 os.environ[ "PYTHON" ] = sys.executable
             else:
                 os.environ[ "PYTHON" ] = r"C:\Python33\python.exe"
+        elif use_python == "python3.4":
+            if sys.version.startswith( "3.4"):
+                os.environ[ "PYTHON" ] = sys.executable
+            else:
+                os.environ[ "PYTHON" ] = r"C:\Python34\python.exe"
         else:
             assert False, use_python
     else:
@@ -388,7 +406,7 @@ def execute_tests( where, use_python, flags ):
     if "NUITKA_EXTRA_OPTIONS" in os.environ:
         del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
 
-assert checkExecutableCommand( "python2.6" ) or checkExecutableCommand( "python2.7" ) or checkExecutableCommand( "python3.2" ) or checkExecutableCommand( "python3.3" )
+assert checkExecutableCommand( "python2.6" ) or checkExecutableCommand( "python2.7" ) or checkExecutableCommand( "python3.2" ) or checkExecutableCommand( "python3.3" ) or checkExecutableCommand( "python3.4" )
 
 # Just the quick syntax test, full tests are run later.
 if checkExecutableCommand( "python3.2" ):
@@ -433,6 +451,11 @@ if checkExecutableCommand( "python3.3" ):
     execute_tests( "python3.2-nodebug", "python3.3", "" )
 else:
     print( "Cannot execute tests with Python 3.3, disabled or not installed." )
+
+if checkExecutableCommand( "python3.4" ):
+    execute_tests( "python3.2-nodebug", "python3.4", "" )
+else:
+    print( "Cannot execute tests with Python 3.4, disabled or not installed." )
 
 if checkExecutableCommand( "cppcheck" ):
     command = [

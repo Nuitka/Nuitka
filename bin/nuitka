@@ -132,10 +132,14 @@ if needs_reexec:
 
 # Inform the user about potential issues.
 if current_version not in Options.getSupportedPythonVersions():
-    logging.warning(
-        "The version '%s' is not currently supported. Expect problems.",
-        current_version
-    )
+
+    # Do not disturb run of automatic tests, detected from the presence of
+    # that environment variable.
+    if "PYTHON" not in os.environ:
+        logging.warning(
+            "The version '%s' is not currently supported. Expect problems.",
+            current_version
+        )
 
 # Now the main program.
 from nuitka import MainControl  # isort:skip
