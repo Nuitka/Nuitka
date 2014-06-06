@@ -291,7 +291,7 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
                     return self.provider.getVariableForReference(
                         variable_name
                     )
-                elif Utils.python_version >= 340:
+                elif Utils.python_version >= 340 and False: # TODO: Temporarily reverted
                     result = self.getTempVariable(
                         temp_scope = None,
                         name       = "__class__"

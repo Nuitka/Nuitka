@@ -216,7 +216,7 @@ def _buildClassNode3(provider, node, source_ref):
             )
         )
 
-    if Utils.python_version >= 340:
+    if Utils.python_version >= 340 and False: # TODO: Temporarily reverted:
         tmp_class = class_creation_function.allocateTempVariable(
             temp_scope = None,
             name       = "__class__"

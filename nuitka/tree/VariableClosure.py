@@ -282,7 +282,7 @@ contains a nested function with free variables""" % parent_provider.getName(),
     if python_version >= 300:
         def onLeaveNode(self, node):
             if node.isExpressionFunctionBody() and node.isClassClosureTaker():
-                if python_version < 340:
+                if python_version < 340 or True: # TODO: Temporarily reverted:
                     node.getVariableForReference(
                         variable_name = "__class__"
                     )

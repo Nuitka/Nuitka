@@ -774,7 +774,7 @@ def super_extractor(node):
         if type is None and python_version >= 300:
             provider = node.getParentVariableProvider()
 
-            if python_version < 340:
+            if python_version < 340 or True: # TODO: Temporarily reverted:
                 type = ExpressionVariableRef(
                     variable_name = "__class__",
                     source_ref    = source_ref
