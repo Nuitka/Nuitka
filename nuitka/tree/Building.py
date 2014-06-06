@@ -655,13 +655,13 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
                 display_line = not Options.isFullCompat()
             )
 
-    provider.addNonlocalsDeclaration( node.names, source_ref )
+    provider.addNonlocalsDeclaration(node.names, source_ref)
 
     return None
 
 
 def buildStringNode(node, source_ref):
-    assert type( node.s ) in ( str, unicode )
+    assert type(node.s) in (str, unicode)
 
     return ExpressionConstantRef(
         constant      = node.s,

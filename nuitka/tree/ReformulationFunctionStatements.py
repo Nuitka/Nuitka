@@ -248,10 +248,10 @@ def buildParameterAnnotations(provider, node, source_ref):
             assert False, getKind( arg )
 
     for arg in node.args.args:
-        extractArg( arg )
+        extractArg(arg)
 
     for arg in node.args.kwonlyargs:
-        extractArg( arg )
+        extractArg(arg)
 
     if Utils.python_version < 340:
         if node.args.varargannotation is not None:

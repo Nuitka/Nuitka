@@ -656,9 +656,9 @@ class ChildrenHavingMixin:
             assert type( value ) is not list, key
 
             if value is None:
-                values[ key ] = None
-            elif type( value ) is tuple:
-                values[ key ] = tuple(
+                values[key] = None
+            elif type(value) is tuple:
+                values[key] = tuple(
                     v.makeCloneAt(
                         source_ref = v.getSourceReference()
                     )
@@ -670,7 +670,9 @@ class ChildrenHavingMixin:
                     value.getSourceReference()
                 )
 
-        values.update( self.getDetails() )
+        values.update(
+            self.getDetails()
+        )
 
         try:
             return self.__class__(
@@ -678,7 +680,7 @@ class ChildrenHavingMixin:
                 **values
             )
         except TypeError as e:
-            print( "Problem cloning", self.__class__ )
+            print("Problem cloning", self.__class__)
 
             raise
 
