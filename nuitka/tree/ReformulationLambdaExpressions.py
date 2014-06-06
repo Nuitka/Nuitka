@@ -148,7 +148,7 @@ def buildLambdaNode(provider, node, source_ref):
                         ),
                         source_ref = source_ref,
                     ),
-                    tolerant   = False,
+                    tolerant   = True,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
