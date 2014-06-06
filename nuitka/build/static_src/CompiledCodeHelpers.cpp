@@ -2215,7 +2215,7 @@ void prepareStandaloneEnvironment()
 #if _NUITKA_FROZEN > 0
     // The CPython library has some pre-existing frozen modules, we only append
     // to that.
-    _frozen *search = PyImport_FrozenModules;
+    const _frozen *search = PyImport_FrozenModules;
     while( search->name )
     {
         search++;
