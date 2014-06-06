@@ -93,9 +93,9 @@ def annotation9():
 def kwonlyfunc(x: annotation1(), y: annotation2() = default1(), z: annotation3() = default2(), *, a: annotation4(), b: annotation5() = default3(), c: annotation6() = default4(), d: annotation7(), **kw: annotation8()) -> annotation9():
     print( x, y, z, a, b, c, d )
 
-print( kwonlyfunc.__kwdefaults__ )
+print("__kwdefaults__", kwonlyfunc.__kwdefaults__)
 
-print( "Keyword only function" )
+print("Keyword only function")
 kwonlyfunc( 7, a = 8, d = 12 )
 
 print( "Annotations come out as", sorted( kwonlyfunc.__annotations__ ) )
