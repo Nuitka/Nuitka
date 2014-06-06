@@ -650,9 +650,14 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
                 reason       = "name '%s' is parameter and nonlocal" % (
                     variable_name
                 ),
-                source_ref   = None if Options.isFullCompat() else source_ref,
-                display_file = not Options.isFullCompat(),
-                display_line = not Options.isFullCompat()
+                source_ref   = None
+                                 if Options.isFullCompat() and \
+                                 Utils.python_version < 340 else
+                               source_ref,
+                display_file = not Options.isFullCompat() or \
+                               Utils.python_version >= 340,
+                display_line = not Options.isFullCompat() or \
+                               Utils.python_version >= 340
             )
 
     provider.addNonlocalsDeclaration(node.names, source_ref)

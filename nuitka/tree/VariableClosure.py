@@ -70,13 +70,16 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 # Inside an exec, we need to ignore global declarations that are
                 # not ours, so we replace it with ours, unless it came from an
                 # 'global' declaration inside the exec
-                if node.source_ref.isExecReference() and not provider.isPythonModule():
-                    if variable.isModuleVariableReference() and not variable.isFromExecStatement():
-                        variable = provider.providing[ variable_name ] = provider.createProvidedVariable(
+                if node.source_ref.isExecReference() and \
+                   not provider.isPythonModule():
+                    if variable.isModuleVariableReference() and \
+                       not variable.isFromExecStatement():
+                        variable = provider.providing[variable_name] = \
+                          provider.createProvidedVariable(
                             variable_name = variable_name
                         )
 
-                node.setVariable( variable )
+                node.setVariable(variable)
         elif node.isExpressionVariableRef():
             if node.getVariable() is None:
                 provider = node.getParentVariableProvider()
@@ -95,7 +98,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
                 )
 
-                assert node.getVariable().isClosureReference(), node.getVariable()
+                assert node.getVariable().isClosureReference(), \
+                  node.getVariable()
         elif python_version >= 300 and node.isExpressionFunctionBody():
             # Take closure variables for non-local declarations.
 
@@ -114,9 +118,14 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             "no binding for nonlocal '%s' found" % (
                                 non_local_name
                             ),
-                            source_ref   = None if isFullCompat() else source_ref,
-                            display_file = not isFullCompat(),
-                            display_line = not isFullCompat()
+                            source_ref   = None
+                                             if isFullCompat() and \
+                                             python_version < 340 else
+                                           source_ref,
+                            display_file = not isFullCompat() or \
+                                           python_version >= 340,
+                            display_line = not isFullCompat() or \
+                                           python_version >= 340
                         )
         # Attribute access of names of class functions should be mangled, if
         # they start with "__", but do not end in "__" as well.
@@ -342,8 +351,8 @@ def completeVariableClosures(tree):
         )
 
     for visitor in visitors:
-        visitTree( tree, visitor )
+        visitTree(tree, visitor)
 
         if tree.isPythonModule():
             for function in tree.getFunctions():
-                visitTree( function, visitor )
+                visitTree(function, visitor)
