@@ -1050,7 +1050,10 @@ from __future__ imports must occur at the beginning of the file""",
             )
         )
 
-    if Utils.python_version >= 330 and not provider.isMainModule():
+    needs__initializing__ = not provider.isMainModule() and \
+      (Utils.python_version >= 330 and Utils.python_version < 340)
+
+    if needs__initializing__:
         # Set initialzing at the beginning to True
         statements.append(
             StatementAssignmentVariable(
@@ -1073,7 +1076,7 @@ from __future__ imports must occur at the beginning of the file""",
             result.getStatements()
         )
 
-    if Utils.python_version >= 330 and not provider.isMainModule():
+    if needs__initializing__:
         # Set initialzing at the beginning to True
         statements.append(
             StatementAssignmentVariable(
