@@ -595,7 +595,12 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                               if Utils.python_version < 300 else
                             "parameter"
                         ),
-                        source_ref = provider.getSourceReference()
+                        source_ref = (
+                            source_ref
+                              if not Options.isFullCompat() or \
+                                 Utils.python_version >= 340 else
+                            provider.getSourceReference()
+                        )
                     )
         except AttributeError:
             pass
