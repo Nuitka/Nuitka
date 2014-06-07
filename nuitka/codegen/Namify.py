@@ -200,10 +200,11 @@ def _isAscii(string):
 
 def _digest(value):
     if str is not unicode:
-        return hashlib.md5( value ).hexdigest()
+        return hashlib.md5(value).hexdigest()
     else:
-        if type( value ) is bytes:
-            return hashlib.md5( value ).hexdigest()
+        if type(value) is bytes:
+            return hashlib.md5(value).hexdigest()
         else:
-            # Do the hash not in UTF-8 as that won't allow "surrogates".
-            return hashlib.md5( value.encode( "utf-16" ) ).hexdigest()
+            return hashlib.md5(
+                value.encode("utf-8", errors="backslashreplace")
+            ).hexdigest()
