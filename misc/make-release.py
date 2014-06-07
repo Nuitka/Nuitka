@@ -51,6 +51,16 @@ parser.add_option(
 Check the created Debian package in a Debian Sid pbuilder. Default %default."""
 )
 
+parser.add_option(
+    "--no-branch-check",
+    action  = "store_true",
+    dest    = "no_branch_check",
+    default = False,
+    help    = """\
+Do not check the git branch. Default %default."""
+)
+
+
 options, positional_args = parser.parse_args()
 
 assert not positional_args, positional_args
@@ -70,9 +80,9 @@ def checkAtHome():
 
             git_dir = line[ 8:]
 
-    git_description_filename = os.path.join( git_dir, "description" )
+    git_description_filename = os.path.join(git_dir, "description")
 
-    assert open( git_description_filename ).read().strip() == "Nuitka Staging"
+    assert open(git_description_filename).read().strip() == "Nuitka Staging"
 
 checkAtHome()
 
@@ -84,7 +94,7 @@ branch_name = subprocess.check_output(
     "git name-rev --name-only HEAD".split()
 ).strip()
 
-assert branch_name in (
+assert options.no_branch_check or branch_name in (
     b"master",
     b"develop",
     b"release/" + nuitka_version,
