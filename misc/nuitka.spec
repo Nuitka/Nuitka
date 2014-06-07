@@ -62,7 +62,7 @@ rm -rf %{buildroot}
 %{python_sitearch}/*
 
 %changelog
-* Sat Sep 08 2013 Kay Hayen <kay.hayen@gmail.com 0.4.6
+* Sun Sep 08 2013 Kay Hayen <kay.hayen@gmail.com 0.4.6
 - changed description to match what we use for Debian
 
 * Fri Mar 15 2013 Kay Hayen <kay.hayen@gmail.com 0.4.2
