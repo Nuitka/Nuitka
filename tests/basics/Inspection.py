@@ -16,6 +16,7 @@
 #     limitations under the License.
 #
 
+from __future__ import print_function
 
 import inspect, types, sys
 
@@ -63,19 +64,21 @@ assert inspect.isgenerator( compiledGenerator() ) is True
 
 def someFunction():
    assert inspect.isframe( sys._getframe() )
-   print inspect.getframeinfo( sys._getframe() )
+   print("Running frame getframeinfo()", inspect.getframeinfo( sys._getframe() ))
 
 someFunction()
 
 import sys
 
 class C:
-    print "Class locals", str( sys._getframe().f_locals ).replace( ", '__locals__': {...}", "" ).replace( "'__qualname__': 'C', ", "" )
-    print "Class flags", sys._getframe().f_code.co_flags | 64
+    print("Class locals", str( sys._getframe().f_locals ).replace( ", '__locals__': {...}", "" ).replace( "'__qualname__': 'C', ", "" ))
+    # TODO: Why is 64 necessary
+    print( "Class flags", sys._getframe().f_code.co_flags | 64 )
 
 def f():
-    print "Func locals", sys._getframe().f_locals
-    print "Func flags", sys._getframe().f_code.co_flags | 64
+    print( "Func locals", sys._getframe().f_locals )
+    # TODO: Why is 64 necessary
+    print( "Func flags", sys._getframe().f_code.co_flags | 64 )
 
 f()
 
@@ -86,8 +89,8 @@ def displayDict(d):
 
     return repr( d )
 
-print "Module frame locals", displayDict( sys._getframe().f_locals )
-print "Module flags", sys._getframe().f_code.co_flags  | 64
-print "Module code name", sys._getframe().f_code.co_name
+print("Module frame locals", displayDict(sys._getframe().f_locals))
+print("Module flags", sys._getframe().f_code.co_flags | 64)
+print("Module code name", sys._getframe().f_code.co_name)
 
-print "Module frame dir", dir(sys._getframe())
+print("Module frame dir", dir(sys._getframe()))
