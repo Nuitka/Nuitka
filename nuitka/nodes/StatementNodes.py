@@ -337,7 +337,8 @@ class StatementsFrame(StatementsSequence):
             has_starlist  = self.has_starlist,
             has_stardict  = self.has_stardict,
             has_closure   = provider.isExpressionFunctionBody() and \
-                            provider.getClosureVariables() != (),
+                            provider.getClosureVariables() != () and \
+                            not provider.isClassDictCreation(),
             future_flags  = provider.getSourceReference().getFutureSpec().\
                               asFlags()
         )
