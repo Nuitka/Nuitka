@@ -69,7 +69,6 @@ class PythonModuleMixin:
     def attemptRecursion(self):
         # Make sure the package is recursed to.
         from nuitka.tree import Recursion
-        from nuitka import Importing
 
         # Return the list of newly added modules.
         result = []

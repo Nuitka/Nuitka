@@ -39,10 +39,10 @@ lxml = TreeXML.lxml
 class NodeCheckMetaClass(type):
     kinds = set()
 
-    def __new__(mcs, name, bases, dictionary):
+    def __new__(cls, name, bases, dictionary):
         assert len(bases) == len(set(bases))
 
-        return type.__new__( mcs, name, bases, dictionary )
+        return type.__new__(cls, name, bases, dictionary)
 
     def __init__(cls, name, bases, dictionary):
         if not name.endswith("Base"):
@@ -679,7 +679,7 @@ class ChildrenHavingMixin:
                 source_ref = source_ref,
                 **values
             )
-        except TypeError as e:
+        except TypeError:
             print("Problem cloning", self.__class__)
 
             raise

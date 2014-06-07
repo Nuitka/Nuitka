@@ -66,8 +66,6 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         already exists.
     """
 
-    pre_statements = []
-
     globals_keeper_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
         name       = "globals"

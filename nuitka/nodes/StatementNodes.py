@@ -122,9 +122,9 @@ class StatementsSequence(StatementChildrenHavingBase):
         else:
             return False
 
-    def mayRaiseException(self, BaseException):
+    def mayRaiseException(self, exception_type):
         for statement in self.getStatements():
-            if statement.mayRaiseException(BaseException):
+            if statement.mayRaiseException(exception_type):
                 return True
         else:
             return False

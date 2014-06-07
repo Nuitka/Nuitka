@@ -241,7 +241,7 @@ class CollectionStartpointMixin:
 
     def dumpTraces(self):
         debug("Constraint collection state: %s", self)
-        for variable_desc, variable_trace in sorted(iterItems(self.variable_traces)):
+        for _variable_desc, variable_trace in sorted(iterItems(self.variable_traces)):
 
             # debug( "%r: %r", variable_trace )
             variable_trace.dump()

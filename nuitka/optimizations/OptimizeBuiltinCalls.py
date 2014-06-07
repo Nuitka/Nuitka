@@ -700,8 +700,8 @@ if python_version >= 300:
         # Need to accept globals and local keyword argument, that is just the
         # API of exec, pylint: disable=W0622
 
-        def wrapExpressionBuiltinExecCreation( source, globals, locals,
-                                               source_ref ):
+        def wrapExpressionBuiltinExecCreation(source, globals, locals,
+                                              source_ref):
             provider = node.getParentVariableProvider()
 
             # TODO: Can't really be true, can it?

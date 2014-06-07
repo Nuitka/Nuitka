@@ -79,8 +79,6 @@ if Utils.python_version >= 300:
 
         def computeExpressionDrop(self, statement, constraint_collection):
             if self.getParentVariableProvider().isEarlyClosure():
-                from .ExecEvalNodes import StatementExec
-
                 result = StatementExec(
                     source_code = self.getSourceCode(),
                     globals_arg = self.getGlobals(),
@@ -120,8 +118,6 @@ if Utils.python_version < 300:
 
             if provider.isExpressionFunctionBody() and \
                provider.isClassDictCreation():
-                from .ExecEvalNodes import StatementExec
-
                 result = StatementExec(
                     source_code = self.getSourceCode(),
                     globals_arg = self.getGlobals(),

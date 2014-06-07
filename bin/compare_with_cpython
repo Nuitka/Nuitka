@@ -263,7 +263,7 @@ else:
         stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
     else:
         if trace_command:
-             print("Nuitka command 2:", nuitka_cmd2)
+            print("Nuitka command 2:", nuitka_cmd2)
 
         process = subprocess.Popen(
             args   = nuitka_cmd2,

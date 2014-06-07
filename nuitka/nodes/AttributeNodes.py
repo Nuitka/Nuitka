@@ -104,7 +104,7 @@ class ExpressionSpecialAttributeLookup(ExpressionAttributeLookup):
 class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
-    named_children = ( "source", "attribute", "default" )
+    named_children = ("source", "attribute", "default")
 
     # Need to accept 'object' keyword argument, that is just the API of getattr,
     # pylint: disable=W0622
@@ -120,9 +120,9 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
-    getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
-    getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
+    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
+    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
