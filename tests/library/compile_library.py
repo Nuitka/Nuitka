@@ -19,20 +19,22 @@
 #     limitations under the License.
 #
 
+from __future__ import print_function
+
 import os, sys, tempfile, subprocess
 
 search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
 
-start_at = sys.argv[2] if len( sys.argv ) > 2 else None
+start_at = sys.argv[2] if len(sys.argv) > 2 else None
 
 if start_at:
     active = False
 else:
     active = True
 
-os_path = os.path.normcase(os.path.dirname( os.__file__  ))
+os_path = os.path.normcase(os.path.dirname(os.__file__))
 
-print "Using standard library path", os_path
+print("Using standard library path", os_path)
 
 try:
     import numpy
@@ -45,7 +47,7 @@ try:
         )
     )
 
-    print "Using extra library path", extra_path
+    print("Using extra library path", extra_path)
 except ImportError:
     extra_path = os_path
 
@@ -64,17 +66,15 @@ blacklist = (
     "__phello__.foo.py", # Triggers error for "." in module name
 )
 
-def compilePath( path ):
+def compilePath(path):
     global active
 
-    for root, dirnames, filenames in os.walk(path):
-        dirnames.sort()
-
+    for root, _dirnames, filenames in os.walk(path):
         filenames = [
             filename
             for filename in filenames
             if filename.endswith(".py")
-            if not filename in blacklist
+            if filename not in blacklist
         ]
 
         for filename in sorted(filenames):
@@ -91,7 +91,13 @@ def compilePath( path ):
 
             command = [
                 sys.executable,
-                os.path.join( os.path.dirname( __file__ ), "..", "..", "bin", "nuitka" ),
+                os.path.join(
+                    os.path.dirname( __file__ ),
+                    "..",
+                    "..",
+                    "bin",
+                    "nuitka"
+                ),
                 "--module",
                 "--output-dir",
                 stage_dir,
@@ -102,11 +108,19 @@ def compilePath( path ):
             command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
             command.append(path)
-            print path
+            print(path, ":", end = " ")
+            sys.stdout.flush()
 
             subprocess.check_call(command)
 
-            target_filename = os.path.basename(path).replace(".py",".so")
+            print("OK")
+
+            if os.name == "nt":
+                suffix = "pyd"
+            else:
+                suffix = "so"
+
+            target_filename = os.path.basename(path).replace(".py","."+suffix)
             target_filename = target_filename.replace("(","").replace(")","")
 
             os.unlink(
@@ -115,7 +129,9 @@ def compilePath( path ):
                 )
             )
 
-compilePath( os_path )
+
+
+compilePath(os_path)
 
 if os_path != extra_path:
-    compilePath( extra_path )
+    compilePath(extra_path)
