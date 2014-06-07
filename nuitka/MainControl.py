@@ -688,12 +688,24 @@ def main():
             dll_map = []
 
             for early_dll in detectUsedDLLs(standalone_entry_points):
+                target_path = Utils.joinpath(
+                    getStandaloneDirectoryPath(main_module),
+                    Utils.basename(early_dll)
+                )
+
+                # Check that if a DLL has the name name, if it's identical,
+                # happens at least for OSC and Fedora 20.
+                if os.path.exists(target_path):
+                    import filecmp
+
+                    if filecmp.cmp(early_dll, target_path):
+                        continue
+                    else:
+                        sys.exit("Error, conflicting DLLs.")
+
                 shutil.copy(
                     early_dll,
-                    Utils.joinpath(
-                        getStandaloneDirectoryPath(main_module),
-                        Utils.basename(early_dll)
-                    )
+                    target_path
                 )
 
                 dll_map.append(
