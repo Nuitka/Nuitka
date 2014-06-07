@@ -410,7 +410,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     {
         frame->f_locals = NULL;
     }
-    else if ( likely( (code->co_flags & CO_NEWLOCALS ) ) )
+    else if (likely( code->co_firstlineno != 0 ))
     {
         frame->f_locals = PyDict_New();
 

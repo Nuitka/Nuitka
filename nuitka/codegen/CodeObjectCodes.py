@@ -43,7 +43,8 @@ def getCodeObjectsInitCode(context):
     for code_object_key, code_identifier in context.getCodeObjects():
         co_flags = []
 
-        if code_object_key[2] != 0:
+        if code_object_key[2] != 0 and \
+           (code_object_key[7] or python_version < 340):
             co_flags.append("CO_NEWLOCALS")
 
         if code_object_key[6]:

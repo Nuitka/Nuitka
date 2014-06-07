@@ -118,9 +118,6 @@ for filename in sorted(os.listdir(".")):
         # seems.
         "GeneratorExpressions.py",
 
-        # Extra flags for class.
-        "Inspection.py",
-
         # Order change for dictionary contraction"
         "ListContractions.py"
     )
