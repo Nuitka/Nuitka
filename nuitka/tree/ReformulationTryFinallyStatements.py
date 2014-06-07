@@ -31,7 +31,10 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
@@ -74,17 +77,17 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
     else:
         temp_scope = provider.allocateTempScope("try_finally")
 
-        tmp_indicator_variable = provider.allocateTempVariable(
+        tmp_indicator_var = provider.allocateTempVariable(
             temp_scope = temp_scope,
             name       = "unhandled_indicator"
         )
 
-        pushIndicatorVariable(tmp_indicator_variable)
+        pushIndicatorVariable(tmp_indicator_var)
 
         statements = (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_indicator_variable.makeReference(
+                    variable   = tmp_indicator_var.makeReference(
                         provider
                     ),
                     source_ref = source_ref.atInternal()
@@ -98,7 +101,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
             build_tried(),
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_indicator_variable.makeReference(
+                    variable   = tmp_indicator_var.makeReference(
                         provider
                     ),
                     source_ref = source_ref.atInternal()
@@ -130,7 +133,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         prelude = StatementConditional(
             condition = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
-                    variable   = tmp_indicator_variable.makeReference(
+                    variable   = tmp_indicator_var.makeReference(
                         provider
                     ),
                     source_ref = source_ref.atInternal()
@@ -160,7 +163,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
             StatementConditional(
                 condition = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
-                        variable   = tmp_indicator_variable.makeReference(
+                        variable   = tmp_indicator_var.makeReference(
                             provider
                         ),
                         source_ref = source_ref.atInternal()
@@ -173,13 +176,37 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                 ),
                 yes_branch = StatementsSequence(
                     statements = (
+                        StatementDelVariable(
+                            variable_ref = ExpressionTargetTempVariableRef(
+                                variable   = tmp_indicator_var.makeReference(
+                                    provider
+                                ),
+                                source_ref = source_ref.atInternal()
+                            ),
+                            tolerant   = False,
+                            source_ref = source_ref.atInternal()
+                        ),
                         StatementReraiseFrameException(
                             source_ref = source_ref.atInternal()
                         ),
                     ),
                     source_ref = source_ref.atInternal()
                 ),
-                no_branch  = None,
+                no_branch  = StatementsSequence(
+                    statements = (
+                        StatementDelVariable(
+                            variable_ref = ExpressionTargetTempVariableRef(
+                                variable   = tmp_indicator_var.makeReference(
+                                    provider
+                                ),
+                                source_ref = source_ref.atInternal()
+                            ),
+                            tolerant   = False,
+                            source_ref = source_ref.atInternal()
+                        ),
+                    ),
+                    source_ref = source_ref.atInternal()
+                ),
                 source_ref = source_ref.atInternal()
             ),
         )
