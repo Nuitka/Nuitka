@@ -71,14 +71,13 @@ someFunction()
 import sys
 
 class C:
-    print("Class locals", str( sys._getframe().f_locals ).replace( ", '__locals__': {...}", "" ).replace( "'__qualname__': 'C', ", "" ))
-    # TODO: Why is 64 necessary
-    print( "Class flags", sys._getframe().f_code.co_flags | 64 )
+    print("Class frame", sys._getframe().f_code)
+    print("Class locals", str(sys._getframe().f_locals).replace( ", '__locals__': {...}", "" ).replace( "'__qualname__': 'C', ", "" ))
+    print( "Class flags", sys._getframe().f_code.co_flags)
 
 def f():
     print( "Func locals", sys._getframe().f_locals )
-    # TODO: Why is 64 necessary
-    print( "Func flags", sys._getframe().f_code.co_flags | 64 )
+    print( "Func flags", sys._getframe().f_code.co_flags)
 
 f()
 
@@ -90,7 +89,7 @@ def displayDict(d):
     return repr( d )
 
 print("Module frame locals", displayDict(sys._getframe().f_locals))
-print("Module flags", sys._getframe().f_code.co_flags | 64)
+print("Module flags", sys._getframe().f_code.co_flags)
 print("Module code name", sys._getframe().f_code.co_name)
 
 print("Module frame dir", dir(sys._getframe()))
