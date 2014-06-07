@@ -202,6 +202,10 @@ for filename in sorted(os.listdir(".")):
                loaded_filename.startswith("/lib64/libpthread."):
                 continue
 
+            if loaded_filename.startswith("/lib/libgcc_s.") or \
+               loaded_filename.startswith("/lib64/libgcc_s."):
+                continue
+
             # Loaded by C library potentially for DNS lookups.
             if os.path.basename(loaded_filename).startswith("libnss_") or \
                os.path.basename(loaded_filename).startswith("libnsl"):
