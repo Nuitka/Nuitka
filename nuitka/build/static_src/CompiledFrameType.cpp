@@ -417,6 +417,10 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     frame->f_lineno = code->co_firstlineno;
     frame->f_iblock = 0;
 
+#if PYTHON_VERSION >= 340
+    frame->f_gen = NULL;
+#endif
+
     Nuitka_GC_Track( result );
     return (PyFrameObject *)result;
 }
@@ -523,6 +527,10 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame, PyObject *locals
 
     assert( old_frame->f_iblock == 0 );
     new_frame->f_iblock = 0;
+
+#if PYTHON_VERSION >= 340
+    new_frame->f_gen = NULL;
+#endif
 
     Nuitka_GC_Track( new_frame );
 
