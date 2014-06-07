@@ -80,7 +80,7 @@ class FutureSpec:
         if self.absolute_import and Utils.python_version < 300:
             result.append("CO_FUTURE_ABSOLUTE_IMPORT")
 
-        if self.future_print:
+        if self.future_print and Utils.python_version < 300:
             result.append("CO_FUTURE_PRINT_FUNCTION")
 
         if self.barry_bdfl and Utils.python_version >= 300:
