@@ -58,6 +58,8 @@ def getModuleIdentifier(module_name):
 
 def getModuleMetapathLoaderEntryCode(module_name, is_shlib):
     if is_shlib:
+        assert module_name != "__main__"
+
         return CodeTemplates.template_metapath_loader_shlib_module_entry % {
             "module_name" : module_name
         }

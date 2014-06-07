@@ -380,6 +380,9 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
 
         assert Utils.basename(source_ref.getFilename()) != "<frozen>"
 
+        # That is too likely a bug.
+        assert name != "__main__"
+
     def getDetails(self):
         return {
             "name"         : self.name,

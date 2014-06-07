@@ -154,14 +154,23 @@ def _detectedPrecompiledFile(filename, module_name, result, is_late):
 
 
 def _detectedSourceFile(filename, module_name, result, is_late):
+    if module_name in module_names:
+        return
+
+    if module_name == "collections.abc":
+        _detectedSourceFile(
+            filename    = filename,
+            module_name = "_collections_abc",
+            result      = result,
+            is_late     = is_late
+        )
+
     source_code = open(filename,"rb").read()
 
     if Utils.python_version >= 300:
         source_code = source_code.decode("utf-8")
         filename = filename.decode("utf-8")
 
-    if module_name in module_names:
-        return
 
     if module_name == "site":
         source_code = "__file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s" % (
@@ -194,6 +203,10 @@ def _detectedSourceFile(filename, module_name, result, is_late):
 def _detectedShlibFile(filename, module_name):
     if Utils.python_version >= 300:
         filename = filename.decode("utf-8")
+
+    # That is not a shared library, but looks like one.
+    if module_name == "__main__":
+        return
 
     parts = module_name.split(".")
     if len(parts) == 1:
@@ -609,6 +622,7 @@ def detectUsedDLLs(standalone_entry_points):
         )
 
     return result
+
 
 def fixupBinaryDLLPaths(binary_filename, dll_map):
     """ For MacOS, the binary needs to be told to use relative DLL paths """

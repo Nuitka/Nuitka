@@ -319,7 +319,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
                 if filename in (b"/usr", b"/usr/bin"):
                     continue
 
-                if filename == b"/usr/bin/python" + python_version[:3]:
+                if filename == b"/usr/bin/python" + python_version[:3].encode("utf8"):
                     continue
 
                 if filename in (b"/usr/bin/python", b"/usr/bin/python2",
