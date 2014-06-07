@@ -270,6 +270,26 @@ static void Nuitka_Frame_tp_clear( PyFrameObject *frame )
     }
 }
 
+#if PYTHON_VERSION >= 340
+static PyObject *Nuitka_Frame_clear( PyFrameObject *frame )
+{
+    if ( frame->f_executing )
+    {
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "cannot clear an executing frame"
+        );
+
+        return NULL;
+    }
+
+    Nuitka_Frame_tp_clear( frame );
+
+    Py_RETURN_NONE;
+}
+
+#endif
+
 static PyObject *Nuitka_Frame_sizeof( PyFrameObject *frame )
 {
     Py_ssize_t slots =
@@ -283,6 +303,9 @@ static PyObject *Nuitka_Frame_sizeof( PyFrameObject *frame )
 
 static PyMethodDef Nuitka_Frame_methods[] =
 {
+#if PYTHON_VERSION >= 340
+    { "clear",      (PyCFunction)Nuitka_Frame_clear,   METH_NOARGS, "F.clear(): clear most references held by the frame" },
+#endif
     { "__sizeof__", (PyCFunction)Nuitka_Frame_sizeof,  METH_NOARGS, "F.__sizeof__() -> size of F in memory, in bytes" },
     { NULL, NULL }
 };

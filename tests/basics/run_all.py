@@ -118,7 +118,7 @@ for filename in sorted(os.listdir(".")):
         # seems.
         "GeneratorExpressions.py",
 
-        # No clear in frame dir, and extra flags for class.
+        # Extra flags for class.
         "Inspection.py",
 
         # Order change for dictionary contraction"
