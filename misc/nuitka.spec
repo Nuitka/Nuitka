@@ -16,6 +16,7 @@ BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  gcc-c++
 BuildRequires:  strace
+BuildRequires:  chrpath
 Requires:       python-devel
 Requires:       gcc-c++
 Requires:       strace
