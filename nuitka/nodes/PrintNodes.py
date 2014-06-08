@@ -26,13 +26,13 @@ cases.
 """
 
 from .NodeBases import StatementChildrenHavingBase
-
 from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
-    wrapStatementWithSideEffects,
-    makeConstantReplacementNode
+    wrapStatementWithSideEffects
 )
+
 
 class StatementPrintValue(StatementChildrenHavingBase):
     kind = "STATEMENT_PRINT_VALUE"

@@ -19,9 +19,10 @@
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
-    getReleaseCodes,
-    getReleaseCode
+    getReleaseCode,
+    getReleaseCodes
 )
+
 
 def getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit,
                        context):

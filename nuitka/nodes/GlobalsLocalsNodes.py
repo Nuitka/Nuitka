@@ -26,9 +26,9 @@ anymore, if we start to not know where their value goes.
 
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
-    StatementChildrenHavingBase,
     ExpressionMixin,
-    NodeBase
+    NodeBase,
+    StatementChildrenHavingBase
 )
 
 

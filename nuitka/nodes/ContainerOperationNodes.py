@@ -19,10 +19,7 @@
 
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase
-)
+from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 
 class ExpressionListOperationAppend(ExpressionChildrenHavingBase):

@@ -21,10 +21,11 @@
 
 from .NodeBases import (
     ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase,
     ExpressionMixin,
-    NodeBase
+    NodeBase,
+    StatementChildrenHavingBase
 )
+
 
 class StatementRaiseException(StatementChildrenHavingBase):
     kind = "STATEMENT_RAISE_EXCEPTION"

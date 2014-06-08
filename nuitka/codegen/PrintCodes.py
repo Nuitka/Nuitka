@@ -17,11 +17,7 @@
 #
 
 
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getReleaseCodes,
-    getReleaseCode
-)
+from .ErrorCodes import getErrorExitBoolCode, getReleaseCode, getReleaseCodes
 
 
 def getPrintValueCode(dest_name, value_name, emit, context):

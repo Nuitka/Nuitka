@@ -60,10 +60,10 @@ PACKAGE_LIST = (
     'nuitka/finalizations',
 )
 
-def diffRecursive( dir1, dir2 ):
+def diffRecursive(dir1, dir2):
     done = set()
 
-    for filename in os.listdir( dir1 ):
+    for filename in os.listdir(dir1):
         path1 = os.path.join(dir1, filename)
         path2 = os.path.join(dir2, filename)
 
@@ -79,10 +79,10 @@ def diffRecursive( dir1, dir2 ):
         if filename == ".sconsign.dblite":
             continue
 
-        if not os.path.exists( path2 ):
+        if not os.path.exists(path2):
             sys.exit("Only in %s: %s" % (dir1, filename))
 
-        if os.path.isdir( path1 ):
+        if os.path.isdir(path1):
             diffRecursive(path1, path2)
         elif os.path.isfile(path1):
             fromdate = time.ctime(os.stat(path1).st_mtime)

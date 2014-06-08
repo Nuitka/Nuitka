@@ -22,32 +22,27 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
-from nuitka.nodes.PrintNodes import (
-    StatementPrintNewline,
-    StatementPrintValue
-)
-from nuitka.nodes.ImportNodes import (
-    ExpressionImportModuleHard,
-)
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
-)
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
 )
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ImportNodes import ExpressionImportModuleHard
+from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
+)
 
 from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement,
+    buildNode,
     buildNodeList,
-    buildNode
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement
 )
 
 

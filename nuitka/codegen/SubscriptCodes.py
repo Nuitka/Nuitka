@@ -16,11 +16,8 @@
 #     limitations under the License.
 #
 
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCodes
- )
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+
 
 def getIntegerSubscriptLookupCode(to_name, target_name, subscript_name,
                                   subscript_value, emit, context):

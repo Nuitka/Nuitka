@@ -19,24 +19,21 @@
 
 """
 
-from .NodeBases import NodeBase, CompileTimeConstantExpressionMixin
+from logging import warning
 
+from nuitka.__past__ import iterItems, unicode  # pylint: disable=W0622
 from nuitka.Constants import (
     getConstantIterationLength,
-    isIterableConstant,
-    isIndexConstant,
-    isNumberConstant,
     isConstant,
-    isMutable
+    isIndexConstant,
+    isIterableConstant,
+    isMutable,
+    isNumberConstant
 )
-
 from nuitka.Options import isDebug
 
-# pylint: disable=W0622
-from nuitka.__past__ import iterItems, unicode
-# pylint: enable=W0622
+from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
 
-from logging import warning
 
 class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
     kind = "EXPRESSION_CONSTANT_REF"

@@ -24,29 +24,23 @@ Often cyclic dependencies kicks in, which is why this module is mostly only
 imported locally.
 """
 
-from .ConstantRefNodes import ExpressionConstantRef
+from logging import warning
 
-from nuitka.Constants import isConstant
 from nuitka.Builtins import builtin_names
-from nuitka.Options import shallWarnImplicitRaises, isDebug
+from nuitka.Constants import isConstant
+from nuitka.Options import isDebug, shallWarnImplicitRaises
 
-from .BuiltinRefNodes import (
-    ExpressionBuiltinExceptionRef,
-    ExpressionBuiltinRef
-)
-from .ExceptionNodes import ExpressionRaiseException
-from .StatementNodes import (
-    StatementExpressionOnly,
-    StatementsSequence
-)
+from .BuiltinRefNodes import ExpressionBuiltinExceptionRef, ExpressionBuiltinRef
 from .ComparisonNodes import (
     ExpressionComparison,
     ExpressionComparisonIs,
     ExpressionComparisonIsNOT
 )
+from .ConstantRefNodes import ExpressionConstantRef
+from .ExceptionNodes import ExpressionRaiseException
 from .SideEffectNodes import ExpressionSideEffects
+from .StatementNodes import StatementExpressionOnly, StatementsSequence
 
-from logging import warning
 
 def makeConstantReplacementNode(constant, node):
     return ExpressionConstantRef(

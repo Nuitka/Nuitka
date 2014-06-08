@@ -24,9 +24,8 @@ operations like parameter parsing at run time.
 There will be a method "computeExpressionCall" to aid predicting them.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
-
 from .ConstantRefNodes import ExpressionConstantRef
+from .NodeBases import ExpressionChildrenHavingBase
 
 
 class ExpressionCall(ExpressionChildrenHavingBase):

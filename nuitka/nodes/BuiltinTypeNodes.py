@@ -21,16 +21,16 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
+from nuitka.optimizations import BuiltinOptimization
+from nuitka.Utils import python_version
+
 from .NodeBases import (
-    ExpressionSpecBasedComputationMixin,
-    ExpressionBuiltinSingleArgBase,
     ChildrenHavingMixin,
+    ExpressionBuiltinSingleArgBase,
+    ExpressionSpecBasedComputationMixin,
     NodeBase
 )
 
-from nuitka.optimizations import BuiltinOptimization
-
-from nuitka.Utils import python_version
 
 class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
     pass

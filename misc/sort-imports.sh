@@ -1,3 +1,4 @@
+#!/bin/bash
 #     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -15,26 +16,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" XML node tree handling
 
-Means to create XML elements from Nuitka tree nodes and to convert the
-XML tree to ASCII or output it.
-"""
-
-from . import Tracing, Utils
-
-try:
-    import lxml.etree
-except ImportError:
-    lxml = None
-
-def toString(xml):
-    return lxml.etree.tostring(xml, pretty_print = True)
-
-def dump(xml):
-    value = toString(xml).rstrip()
-
-    if Utils.python_version >= 300:
-        value = value.decode("utf-8")
-
-    Tracing.printLine(value)
+for filename in $(find nuitka -name \*.py -a \! -path *inline_copy*; find bin -name \*.py; echo bin/nuitka);
+do
+    echo isort -ot -m3 $filename
+done

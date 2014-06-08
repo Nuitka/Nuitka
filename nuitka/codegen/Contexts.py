@@ -19,17 +19,15 @@
 
 """
 
-from .Namify import namifyConstant
-
-from nuitka.Constants import constant_builtin_types
-
-from nuitka.Utils import python_version
+import hashlib
 
 from nuitka import Options
+from nuitka.__past__ import iterItems
+from nuitka.Constants import constant_builtin_types
+from nuitka.Utils import python_version
 
-from ..__past__ import iterItems
+from .Namify import namifyConstant
 
-import hashlib
 
 # Many methods won't use self, but it's the interface. pylint: disable=R0201
 

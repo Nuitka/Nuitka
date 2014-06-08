@@ -16,22 +16,13 @@
 #     limitations under the License.
 #
 
-from .ModuleCodes import (
-    getModuleAccessCode,
-)
-
-from .VariableCodes import (
-    getVariableAssignmentCode,
-    getVariableCode,
-)
-
-from .ConstantCodes import (
-    getConstantCode,
-)
-
 from nuitka import Utils
 
+from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitBoolCode
+from .ModuleCodes import getModuleAccessCode
+from .VariableCodes import getVariableAssignmentCode, getVariableCode
+
 
 def getLoadGlobalsCode(to_name, emit, context):
     assert type(to_name) is str

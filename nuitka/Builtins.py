@@ -19,11 +19,10 @@
 
 """
 
+import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
-from nuitka import Utils
-
-import sys
+from . import Utils
 
 
 def _getBuiltinExceptionNames():

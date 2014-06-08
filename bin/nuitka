@@ -104,10 +104,11 @@ python_flags = Options.getPythonFlags()
 if sys.flags.no_site == 0 and "no_site" in python_flags:
     needs_reexec = True
 
-# The hash randomization totally destroys the created source code created,
+# The hash randomization totally changes the created source code created,
 # changing it every single time Nuitka is run. This kills any attempt at
 # caching it, and comparing generated source code. While the created binary
-# actually should use it, we don't want to. So lets disable it.
+# actually may still use it, during compilation we don't want to. So lets
+# disable it.
 if os.environ.get("PYTHONHASHSEED", "-1") != "0":
     os.environ["PYTHONHASHSEED"] = "0"
     needs_reexec = True

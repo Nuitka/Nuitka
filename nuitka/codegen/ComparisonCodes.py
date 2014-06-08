@@ -21,14 +21,14 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 "isinstance" check as used in conditons.
 """
 
+from . import OperatorCodes
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
-    getReleaseCodes,
-    getReleaseCode
+    getReleaseCode,
+    getReleaseCodes
 )
 
-from . import OperatorCodes
 
 def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
                                 emit, context):

@@ -22,11 +22,13 @@ can be computed here, so the code generation can be quick and doesn't have to
 check it many times.
 
 """
-from .FinalizeMarkups import FinalizeMarkups
+from nuitka.tree import Operations
+
 from .FinalizeClosureTaking import FinalizeClosureTaking
+from .FinalizeMarkups import FinalizeMarkups
+
 
 # Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
-from nuitka.tree import Operations
 
 def prepareCodeGeneration(tree):
     visitor = FinalizeMarkups()

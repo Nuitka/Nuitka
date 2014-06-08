@@ -20,10 +20,8 @@
 The normal yield, and the Python 3.3 or higher yield from variant.
 """
 
-from .ErrorCodes import (
-    getErrorExitCode,
-    getReleaseCode
-)
+from .ErrorCodes import getErrorExitCode, getReleaseCode
+
 
 def getYieldCode(to_name, value_name, in_handler, emit, context):
     emit(

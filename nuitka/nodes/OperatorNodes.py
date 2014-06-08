@@ -21,11 +21,11 @@ No short-circuit involved, boolean 'not' is an unary operation like '-' is,
 no real difference.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+import math
 
 from nuitka import PythonOperators
 
-import math
+from .NodeBases import ExpressionChildrenHavingBase
 
 
 class ExpressionOperationBase(ExpressionChildrenHavingBase):

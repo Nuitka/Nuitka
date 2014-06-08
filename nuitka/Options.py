@@ -21,11 +21,12 @@ version_string = """\
 Nuitka V0.5.2pre8
 Copyright (C) 2014 Kay Hayen."""
 
+import logging
+import re
+import sys
+from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
+
 from . import Utils
-
-from optparse import OptionParser, OptionGroup, SUPPRESS_HELP
-
-import sys, logging, re
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.

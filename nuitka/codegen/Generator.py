@@ -24,213 +24,165 @@ else.
 
 """
 
-from .Indentation import (
-    indented
-)
+# These are here to be imported from here
+# pylint: disable=W0611
 
-# imported from here pylint: disable=W0611
-from .LineNumberCodes import (
-    getSetLineNumberCodeRaw,
-    mergeLineNumberBranches,
-    pushLineNumberBranch,
-    popLineNumberBranch,
-    getSetLineNumberCode,
-    getLineNumberCode,
-    resetLineNumber
-)
-from .ListCodes import (
-    getListOperationAppendCode
-)
-from .DictCodes import (
-    getDictOperationSetCode,
-    getDictOperationGetCode,
-    getDictOperationRemoveCode,
-    getBuiltinDict2Code
-)
-from .SetCodes import (
-    getSetOperationAddCode,
-)
+from nuitka import Builtins, Utils
 
-from .YieldCodes import (
-    getYieldFromCode,
-    getYieldCode
+from . import CodeTemplates, CppStrings, OperatorCodes
+from .AttributeCodes import (
+    getAttributeAssignmentClassSlotCode,
+    getAttributeAssignmentCode,
+    getAttributeAssignmentDictSlotCode,
+    getAttributeCheckBoolCode,
+    getAttributeDelCode,
+    getAttributeLookupCode,
+    getSpecialAttributeLookupCode
 )
-
 from .CallCodes import (
-    getMakeBuiltinExceptionCode,
-    getCallCodePosKeywordArgs,
-    getCallCodePosArgsQuick,
     getCallCodeKeywordArgs,
-    getCallCodePosArgs,
     getCallCodeNoArgs,
+    getCallCodePosArgs,
+    getCallCodePosArgsQuick,
+    getCallCodePosKeywordArgs,
+    getCallsCode,
     getCallsDecls,
-    getCallsCode
+    getMakeBuiltinExceptionCode
 )
-
+from .ComparisonCodes import (
+    getBranchingCode,
+    getBuiltinIsinstanceBoolCode,
+    getComparisonExpressionBoolCode,
+    getComparisonExpressionCode
+)
 from .ConstantCodes import (
-    getConstantsInitCode,
-    getConstantsDeclCode,
     getConstantAccess,
     getConstantCode,
+    getConstantsDeclCode,
+    getConstantsInitCode,
     needsPickleInit,
     stream_data
 )
-
+from .DictCodes import (
+    getBuiltinDict2Code,
+    getDictOperationGetCode,
+    getDictOperationRemoveCode,
+    getDictOperationSetCode
+)
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes
+)
+from .EvalCodes import getCompileCode, getEvalCode, getExecCode
+from .ExceptionCodes import (
+    getExceptionCaughtTracebackCode,
+    getExceptionCaughtTypeCode,
+    getExceptionCaughtValueCode,
+    getExceptionIdentifier,
+    getExceptionRefCode,
+    getExceptionUnpublishedReleaseCode,
+    getTracebackMakingIdentifier
+)
+from .FrameCodes import (
+    getFrameGuardHeavyCode,
+    getFrameGuardLightCode,
+    getFrameGuardOnceCode,
+    getFrameLocalsUpdateCode,
+    getFramePreserveExceptionCode,
+    getFrameReraiseExceptionCode,
+    getFrameRestoreExceptionCode
+)
 from .FunctionCodes import (
-    getFunctionContextDefinitionCode,
     getDirectFunctionCallCode,
-    getGeneratorFunctionCode,
+    getFunctionCode,
+    getFunctionContextDefinitionCode,
     getFunctionCreationCode,
     getFunctionDirectDecl,
     getFunctionMakerCode,
     getFunctionMakerDecl,
-    getFunctionCode,
+    getGeneratorFunctionCode
 )
-
-from .IteratorCodes import (
-    getBuiltinLoopBreakNextCode,
-    getBuiltinNext1Code,
-    getUnpackNextCode,
-    getUnpackCheckCode,
-)
-
-from .ErrorCodes import (
-    getErrorExitCode,
-    getErrorExitBoolCode,
-    getReleaseCodes,
-    getReleaseCode
-)
-
-from .ExceptionCodes import (
-    getTracebackMakingIdentifier,
-    getExceptionIdentifier,
-    getExceptionRefCode,
-    getExceptionCaughtValueCode,
-    getExceptionCaughtTypeCode,
-    getExceptionCaughtTracebackCode,
-    getExceptionUnpublishedReleaseCode
-)
-
-from .RaisingCodes import (
-    getRaiseExceptionWithCauseCode,
-    getRaiseExceptionWithValueCode,
-    getRaiseExceptionWithTypeCode,
-    getRaiseExceptionWithTracebackCode,
-    getReRaiseExceptionCode,
-)
-
-from .PrintCodes import (
-    getPrintNewlineCode,
-    getPrintValueCode,
-)
-
-from .ModuleCodes import (
-    getModuleMetapathLoaderEntryCode,
-    getModuleAccessCode,
-    getModuleIdentifier,
-    prepareModuleCode,
-    getModuleCode
-)
-
-from .FrameCodes import (
-    getFramePreserveExceptionCode,
-    getFrameRestoreExceptionCode,
-    getFrameReraiseExceptionCode,
-    getFrameLocalsUpdateCode,
-    getFrameGuardHeavyCode,
-    getFrameGuardOnceCode,
-    getFrameGuardLightCode
-)
-
-from .ImportCodes import (
-    getImportNameCode,
-    getImportModuleHardCode,
-    getBuiltinImportCode,
-    getImportFromStarCode
-)
-
 from .GlobalsLocalsCodes import (
     getLoadGlobalsCode,
     getLoadLocalsCode,
     getSetLocalsCode,
-    getStoreLocalsCode,
+    getStoreLocalsCode
 )
-
-from .ComparisonCodes import (
-    getComparisonExpressionCode,
-    getComparisonExpressionBoolCode,
-    getBuiltinIsinstanceBoolCode,
-    getBranchingCode
+from .ImportCodes import (
+    getBuiltinImportCode,
+    getImportFromStarCode,
+    getImportModuleHardCode,
+    getImportNameCode
 )
-
+from .Indentation import indented
+from .IndexCodes import (
+    getIndexCode,
+    getIndexValueCode,
+    getMaxIndexCode,
+    getMinIndexCode
+)
+from .IteratorCodes import (
+    getBuiltinLoopBreakNextCode,
+    getBuiltinNext1Code,
+    getUnpackCheckCode,
+    getUnpackNextCode
+)
+from .LabelCodes import getGotoCode, getLabelCode
+from .LineNumberCodes import (
+    getLineNumberCode,
+    getSetLineNumberCode,
+    getSetLineNumberCodeRaw,
+    mergeLineNumberBranches,
+    popLineNumberBranch,
+    pushLineNumberBranch,
+    resetLineNumber
+)
+from .ListCodes import getListOperationAppendCode
+from .MainCodes import getMainCode
+from .ModuleCodes import (
+    getModuleAccessCode,
+    getModuleCode,
+    getModuleIdentifier,
+    getModuleMetapathLoaderEntryCode,
+    prepareModuleCode
+)
+from .PrintCodes import getPrintNewlineCode, getPrintValueCode
+from .PythonAPICodes import getCAPIIntCode, getCAPIObjectCode
+from .RaisingCodes import (
+    getRaiseExceptionWithCauseCode,
+    getRaiseExceptionWithTracebackCode,
+    getRaiseExceptionWithTypeCode,
+    getRaiseExceptionWithValueCode,
+    getReRaiseExceptionCode
+)
+from .SetCodes import getSetOperationAddCode
 from .SliceCodes import (
-    getSliceAssignmentIndexesCode,
     getSliceAssignmentCode,
-    getSliceLookupIndexesCode,
-    getSliceObjectCode,
-    getSliceLookupCode,
+    getSliceAssignmentIndexesCode,
     getSliceDelCode,
+    getSliceLookupCode,
+    getSliceLookupIndexesCode,
+    getSliceObjectCode
 )
-
 from .SubscriptCodes import (
     getIntegerSubscriptAssignmentCode,
-    getSubscriptLookupCode,
     getSubscriptAssignmentCode,
-    getSubscriptDelCode
+    getSubscriptDelCode,
+    getSubscriptLookupCode
 )
-
-from .AttributeCodes import (
-    getAttributeCheckBoolCode,
-    getSpecialAttributeLookupCode,
-    getAttributeAssignmentClassSlotCode,
-    getAttributeAssignmentDictSlotCode,
-    getAttributeAssignmentCode,
-    getAttributeLookupCode,
-    getAttributeDelCode
-)
-
-from .IndexCodes import (
-    getIndexValueCode,
-    getIndexCode,
-    getMinIndexCode,
-    getMaxIndexCode,
-)
-
-from .LabelCodes import getGotoCode, getLabelCode
-
-from .MainCodes import getMainCode
-
-from .PythonAPICodes import getCAPIObjectCode, getCAPIIntCode
-
-from .EvalCodes import (
-    getCompileCode,
-    getExecCode,
-    getEvalCode
-)
-
-# imported from here pylint: enable=W0611
-
-# These are here to be imported from here
-# pylint: disable=W0611
 from .VariableCodes import (
-    getVariableAssignmentCode,
     getLocalVariableInitCode,
     getVariableAccessCode,
-    getVariableDelCode,
-    getVariableCode
+    getVariableAssignmentCode,
+    getVariableCode,
+    getVariableDelCode
 )
+from .YieldCodes import getYieldCode, getYieldFromCode
+
+
 # pylint: enable=W0611
-
-from . import (
-    CodeTemplates,
-    OperatorCodes,
-    CppStrings
-)
-
-from nuitka import (
-    Builtins,
-    Utils
-)
 
 
 def getOperationCode(to_name, operator, arg_names, emit, context):

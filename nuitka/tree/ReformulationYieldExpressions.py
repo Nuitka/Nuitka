@@ -22,13 +22,13 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka import SyntaxErrors, Utils
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
-
-from nuitka import Utils, SyntaxErrors
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
 
 from .Helpers import buildNode
+
 
 def _markAsGenerator(provider, node, source_ref):
     if provider.isPythonModule():

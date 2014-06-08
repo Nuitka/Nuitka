@@ -19,12 +19,13 @@
 
 """
 
-from nuitka import Options, Utils, Importing, ModuleRegistry
+from logging import debug, warning
+
+from nuitka import Importing, ModuleRegistry, Options, Utils
 from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
 
-from . import ImportCache, Building
+from . import Building, ImportCache
 
-from logging import debug, warning
 
 def recurseTo(module_package, module_filename, module_relpath, module_kind,
              reason):

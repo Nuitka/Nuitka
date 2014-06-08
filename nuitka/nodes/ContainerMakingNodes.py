@@ -20,12 +20,13 @@
 """
 
 
+from nuitka import Constants
+
 from .NodeBases import (
     ExpressionChildrenHavingBase,
     SideEffectsFromChildrenMixin
 )
 
-from nuitka import Constants
 
 class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
                                 ExpressionChildrenHavingBase):

@@ -24,10 +24,8 @@ to do.
 
 from nuitka import Utils
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase,
-)
+from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 

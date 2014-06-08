@@ -22,72 +22,64 @@ source code comments with developer manual sections.
 
 """
 
+from nuitka import Utils
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeLookup,
+    ExpressionBuiltinHasattr
+)
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
+from nuitka.nodes.CallNodes import ExpressionCall, ExpressionCallNoKeywords
+from nuitka.nodes.ClassNodes import ExpressionSelectMetaclass
+from nuitka.nodes.ComparisonNodes import ExpressionComparison
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditional,
+    StatementConditional
+)
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerOperationNodes import (
+    ExpressionDictOperationGet,
+    StatementDictOperationRemove
+)
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionBody,
+    ExpressionFunctionCall,
+    ExpressionFunctionCreation,
+    ExpressionFunctionRef
+)
+from nuitka.nodes.GlobalsLocalsNodes import (
+    ExpressionBuiltinLocals,
+    StatementSetLocals
+)
+from nuitka.nodes.ParameterSpecs import ParameterSpec
+from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
-from nuitka.nodes.ComparisonNodes import ExpressionComparison
-
-from nuitka.nodes.CallNodes import (
-    ExpressionCallNoKeywords,
-    ExpressionCall
-)
-from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
-from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
-    ExpressionBuiltinHasattr
-)
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCreation,
-    ExpressionFunctionBody,
-    ExpressionFunctionCall,
-    ExpressionFunctionRef
-)
-from nuitka.nodes.ClassNodes import ExpressionSelectMetaclass
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.ContainerOperationNodes import (
-    StatementDictOperationRemove,
-    ExpressionDictOperationGet
-)
-from nuitka.nodes.StatementNodes import StatementsSequence
-
-from nuitka.nodes.ConditionalNodes import (
-    ExpressionConditional,
-    StatementConditional
-)
-from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable
-)
-
-from nuitka.nodes.GlobalsLocalsNodes import (
-    ExpressionBuiltinLocals,
-    StatementSetLocals
-)
-
-from nuitka.nodes.ParameterSpecs import ParameterSpec
 
 from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeSequenceCreationOrConstant,
-    makeDictCreationOrConstant,
-    makeStatementsSequence,
-    pushIndicatorVariable,
-    popIndicatorVariable,
+    buildNode,
+    buildNodeList,
     buildStatementsNode,
     extractDocFromBody,
-    buildNodeList,
-    buildNode,
-    getKind
+    getKind,
+    makeDictCreationOrConstant,
+    makeSequenceCreationOrConstant,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+    popIndicatorVariable,
+    pushIndicatorVariable
 )
-
-from nuitka import Utils
 
 # TODO: Once we start to modify these, we should make sure, the copy is not
 # shared.

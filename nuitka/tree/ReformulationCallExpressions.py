@@ -22,18 +22,19 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.CallNodes import ExpressionCall
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCreation,
     ExpressionFunctionCall,
+    ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
+
 from .Helpers import (
-    makeSequenceCreationOrConstant,
-    makeDictCreationOrConstant,
+    buildNode,
     buildNodeList,
-    buildNode
+    makeDictCreationOrConstant,
+    makeSequenceCreationOrConstant
 )
 
 

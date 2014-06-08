@@ -23,38 +23,37 @@ source code comments with developer manual sections.
 """
 
 from nuitka import Utils
-
-from nuitka.nodes.StatementNodes import (
-    StatementPreserveFrameException,
-    StatementReraiseFrameException,
-    StatementPublishException,
-    StatementsSequence
-)
-from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
 )
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.StatementNodes import (
+    StatementPreserveFrameException,
+    StatementPublishException,
+    StatementReraiseFrameException,
+    StatementsSequence
+)
+from nuitka.nodes.TryNodes import StatementTryFinally
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-
-from nuitka.nodes.TryNodes import StatementTryFinally
 
 from .Helpers import (
+    buildStatementsNode,
+    getIndicatorVariables,
     makeStatementsSequenceOrStatement,
     makeTryFinallyStatement,
-    pushIndicatorVariable,
-    popIndicatorVariable,
-    getIndicatorVariables,
-    buildStatementsNode,
     mergeStatements,
-    pushBuildContext,
     popBuildContext,
+    popIndicatorVariable,
+    pushBuildContext,
+    pushIndicatorVariable
 )
+
 
 def buildTryFinallyNode(provider, build_tried, node, source_ref):
 

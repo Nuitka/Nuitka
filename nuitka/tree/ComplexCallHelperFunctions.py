@@ -19,83 +19,75 @@
 
 One for each type of call. """
 
-from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionBody,
-    ExpressionFunctionCreation,
-    ExpressionFunctionCall,
-    ExpressionFunctionRef
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentSubscript,
+    StatementAssignmentVariable,
+    StatementDelVariable
 )
-from nuitka.nodes.StatementNodes import (
-    StatementsSequence,
-)
-from nuitka.nodes.LoopNodes import (
-    StatementLoop,
-    StatementBreakLoop
-)
-from nuitka.nodes.TypeNodes import (
-    ExpressionBuiltinIsinstance,
-    ExpressionBuiltinType1
+from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
+from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionBuiltinIter1,
+    ExpressionBuiltinNext1
 )
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     ExpressionBuiltinRef
 )
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
+from nuitka.nodes.CallNodes import (
+    ExpressionCall,
+    ExpressionCallEmpty,
+    ExpressionCallKeywordsOnly,
+    ExpressionCallNoKeywords
+)
 from nuitka.nodes.ComparisonNodes import ExpressionComparison
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ExceptionNodes import (
+    ExpressionBuiltinMakeException,
+    StatementRaiseException
+)
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionBody,
+    ExpressionFunctionCall,
+    ExpressionFunctionCreation,
+    ExpressionFunctionRef
+)
+from nuitka.nodes.FutureSpecs import FutureSpec
+from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.ModuleNodes import PythonInternalModule
+from nuitka.nodes.OperatorNodes import (
+    ExpressionOperationBinary,
+    ExpressionOperationNOT
+)
+from nuitka.nodes.ParameterSpecs import ParameterSpec
+from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinIsinstance,
+    ExpressionBuiltinType1
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.nodes.CallNodes import (
-    ExpressionCallKeywordsOnly,
-    ExpressionCallNoKeywords,
-    ExpressionCallEmpty,
-    ExpressionCall
-)
-from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentSubscript,
-    StatementDelVariable
-)
-from nuitka.nodes.ExceptionNodes import (
-    StatementRaiseException,
-    ExpressionBuiltinMakeException
-)
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
-from nuitka.nodes.OperatorNodes import (
-    ExpressionOperationBinary,
-    ExpressionOperationNOT
-)
-from nuitka.nodes.BuiltinIteratorNodes import (
-    ExpressionBuiltinIter1,
-    ExpressionBuiltinNext1
-)
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
-from nuitka.nodes.ModuleNodes import PythonInternalModule
-
-from nuitka.nodes.ParameterSpecs import ParameterSpec
-from nuitka.nodes.FutureSpecs import FutureSpec
-
 from nuitka.SourceCodeReferences import fromFilename
-
-from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .VariableClosure import completeVariableClosures
+from nuitka.Utils import python_version
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
     makeTryFinallyStatement
 )
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from .VariableClosure import completeVariableClosures
 
 source_ref = fromFilename("internal", FutureSpec()).atInternal()
 
-from nuitka.Utils import python_version
 
 # Cache result. TODO: no more as special as it used to be, maybe can be found in
 # stdlib.

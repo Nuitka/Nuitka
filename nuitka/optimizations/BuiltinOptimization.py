@@ -18,15 +18,16 @@
 """ Optimizations of builtins to builtin calls.
 
 """
+import math
+import sys
+
 from nuitka.nodes.ParameterSpecs import (
     ParameterSpec,
     TooManyArguments,
     matchCall
 )
-
 from nuitka.Utils import python_version
 
-import sys, math
 
 class BuiltinParameterSpec(ParameterSpec):
     def __init__( self, name, arg_names, default_count, list_star_arg = None,

@@ -22,16 +22,16 @@ the platforms.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 from logging import debug, info
-import marshal
-import shutil
 
-from nuitka import Utils, Options
+import marshal
+from nuitka import Options, Utils
+from nuitka.__past__ import raw_input, urlretrieve  # pylint: disable=W0622
 from nuitka.codegen.ConstantCodes import needsPickleInit
 
-from nuitka.__past__ import raw_input, urlretrieve
 
 def getDependsExePath():
     if Utils.getArchitecture() == "x86":
@@ -174,7 +174,8 @@ def _detectedSourceFile(filename, module_name, result, is_late):
 
 
     if module_name == "site":
-        source_code = "__file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s" % (
+        source_code = """\
+__file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
             os.path.sep,
             os.path.basename(filename),
             source_code
@@ -646,10 +647,10 @@ def fixupBinaryDLLPaths(binary_filename, dll_map):
         stdout = subprocess.PIPE,
         stderr = subprocess.PIPE,
     )
-    _stdout, _stderr = process.communicate()
+    _stdout, stderr = process.communicate()
 
     # Don't let errors here go unnoticed.
-    assert process.returncode == 0, _stderr
+    assert process.returncode == 0, stderr
 
 
 def removeSharedLibraryRPATH(filename):
@@ -660,12 +661,12 @@ def removeSharedLibraryRPATH(filename):
         shell  = False
     )
 
-    stdout_output, stderr_output = process.communicate()
+    stdout, _stderr = process.communicate()
     retcode = process.poll()
 
     assert retcode == 0, filename
 
-    for line in stdout_output.split(b"\n"):
+    for line in stdout.split(b"\n"):
         if b"RPATH" in line:
             if Options.isShowInclusion():
                 info("Removing RPATH from '%s'.", filename)

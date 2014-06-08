@@ -27,6 +27,7 @@ that should be unified at some point.
 
 from .NodeBases import StatementChildrenHavingBase
 
+
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class StatementAssignmentVariable(StatementChildrenHavingBase):

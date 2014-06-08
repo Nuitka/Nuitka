@@ -21,9 +21,10 @@ This is tremendously more complex than one might think, due to encoding issues
 and version differences of Python.
 """
 
-from nuitka import Utils, SyntaxErrors, SourceCodeReferences
-
 import re
+
+from nuitka import SourceCodeReferences, SyntaxErrors, Utils
+
 
 def _readSourceCodeFromFilename3(source_filename):
     with open(source_filename, "rb") as source_file:

@@ -22,25 +22,23 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
-from nuitka.nodes.ConditionalNodes import ExpressionConditional
-
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
 )
-
+from nuitka.nodes.ConditionalNodes import ExpressionConditional
+from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
 
 from .Helpers import (
-    makeTryFinallyExpression,
-    wrapTryFinallyLater,
-    buildNodeList,
     buildNode,
-    getKind
+    buildNodeList,
+    getKind,
+    makeTryFinallyExpression,
+    wrapTryFinallyLater
 )
 
 

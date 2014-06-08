@@ -20,31 +20,26 @@
 
 """
 
-from nuitka.nodes.StatementNodes import (
-    StatementGeneratorEntry,
-    StatementsSequence,
-    StatementsFrame
-)
-
-from nuitka.nodes.NodeBases import NodeBase
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.TryNodes import (
-    StatementTryFinally,
-    ExpressionTryFinally
-)
-from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeTuple,
-    ExpressionMakeList,
-    ExpressionMakeDict,
-    ExpressionMakeSet
-)
-
-from nuitka import Tracing, Constants
-
+import ast
 from logging import warning
 
-import ast
+from nuitka import Constants, Tracing
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import (
+    ExpressionKeyValuePair,
+    ExpressionMakeDict,
+    ExpressionMakeList,
+    ExpressionMakeSet,
+    ExpressionMakeTuple
+)
+from nuitka.nodes.NodeBases import NodeBase
+from nuitka.nodes.StatementNodes import (
+    StatementGeneratorEntry,
+    StatementsFrame,
+    StatementsSequence
+)
+from nuitka.nodes.TryNodes import ExpressionTryFinally, StatementTryFinally
+
 
 def dump(node):
     Tracing.printLine(ast.dump(node))

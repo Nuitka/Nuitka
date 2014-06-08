@@ -21,11 +21,15 @@ That is import as expression, and star import.
 """
 
 
+from .ConstantCodes import getConstantCode
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes
+)
 from .ModuleCodes import getModuleAccessCode
 
-from .ErrorCodes import getErrorExitCode, getErrorExitBoolCode, getReleaseCodes, getReleaseCode
-
-from .ConstantCodes import getConstantCode
 
 def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
                          import_list_name, level_name, emit, context):

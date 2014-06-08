@@ -20,16 +20,15 @@
 Attribute lookup, setting.
 """
 
+from .ComparisonCodes import getBranchingCode
+from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
-    getErrorExitCode,
     getErrorExitBoolCode,
-    getReleaseCodes,
-    getReleaseCode
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes
 )
 
-from .ConstantCodes import getConstantCode
-
-from .ComparisonCodes import getBranchingCode
 
 def getSpecialAttributeLookupCode(to_name, source_name, attr_name, emit,
                                   context):

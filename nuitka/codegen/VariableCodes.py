@@ -21,15 +21,13 @@
 
 from nuitka import Variables
 
-from .ConstantCodes import getConstantCode
-
 from . import CodeTemplates
-
+from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
-    getErrorFormatExitBoolCode,
-    getErrorFormatExitCode,
     getErrorExitBoolCode,
-    getErrorExitCode
+    getErrorExitCode,
+    getErrorFormatExitBoolCode,
+    getErrorFormatExitCode
 )
 
 

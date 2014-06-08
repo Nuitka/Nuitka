@@ -22,42 +22,37 @@ the Python C/API, to compile it to either an executable or an extension module.
 
 """
 
-from .tree import (
-    Recursion,
-    Building
-)
+import os
+import shutil
+import subprocess
+import sys
+from logging import info, warning
 
 from . import (
-    ModuleRegistry,
-    SyntaxErrors,
     Importing,
+    ModuleRegistry,
+    Options,
+    SyntaxErrors,
     Tracing,
     TreeXML,
-    Options,
     Utils
 )
-
 from .build import SconsInterface
-
 from .codegen import CodeGeneration, ConstantCodes
-
-from .optimizations import Optimization
 from .finalizations import Finalization
-
-from nuitka.freezer.Standalone import (
-    detectEarlyImports,
-    detectLateImports,
-    copyUsedDLLs
-)
-from nuitka.freezer.BytecodeModuleFreezer import (
+from .freezer.BytecodeModuleFreezer import (
+    addFrozenModule,
     generateBytecodeFrozenCode,
-    getFrozenModuleCount,
-    addFrozenModule
+    getFrozenModuleCount
 )
+from .freezer.Standalone import (
+    copyUsedDLLs,
+    detectEarlyImports,
+    detectLateImports
+)
+from .optimizations import Optimization
+from .tree import Building, Recursion
 
-import sys, os, subprocess, shutil
-
-from logging import warning, info
 
 def createNodeTree(filename):
     """ Create a node tree.

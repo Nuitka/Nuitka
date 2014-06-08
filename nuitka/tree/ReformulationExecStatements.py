@@ -22,39 +22,41 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.ExecEvalNodes import StatementExec
-from nuitka.nodes.TryNodes import StatementTryFinally
-from nuitka.nodes.ConditionalNodes import (
-    StatementConditional,
-    ExpressionConditional
-)
-from nuitka.nodes.GlobalsLocalsNodes import (
-    ExpressionBuiltinGlobals,
-    ExpressionBuiltinLocals,
-)
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
 )
-from nuitka.nodes.CallNodes import ExpressionCallEmpty
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinAnonymousRef,
+    ExpressionBuiltinExceptionRef
+)
+from nuitka.nodes.CallNodes import ExpressionCallEmpty
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditional,
+    StatementConditional
+)
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.ExecEvalNodes import StatementExec
+from nuitka.nodes.GlobalsLocalsNodes import (
+    ExpressionBuiltinGlobals,
+    ExpressionBuiltinLocals
+)
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.TryNodes import StatementTryFinally
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
-from nuitka.nodes.StatementNodes import StatementsSequence
 
 from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeStatementsSequence,
     buildNode,
-    getKind
+    getKind,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement
 )
 
 
@@ -398,4 +400,4 @@ exec: arg 1 must be a string, file, or code object""",
     )
 
 # This is here, to make sure it can register, pylint: disable=W0611
-import nuitka.optimizations.OptimizeBuiltinCalls
+import nuitka.optimizations.OptimizeBuiltinCalls # isort:skip

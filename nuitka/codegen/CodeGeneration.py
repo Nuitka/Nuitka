@@ -26,21 +26,11 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
-from . import (
-    Generator,
-    Emission,
-    Contexts,
-)
-
-from nuitka import (
-    PythonOperators,
-    Constants,
-    Tracing,
-    Options,
-    Utils
-)
-
+from nuitka import Constants, Options, PythonOperators, Tracing, Utils
 from nuitka.__past__ import iterItems
+
+from . import Contexts, Emission, Generator
+
 
 def generateTupleCreationCode(to_name, elements, emit, context):
     if _areConstants(elements):

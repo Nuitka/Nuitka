@@ -26,19 +26,14 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
 )
-
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
 
+from .Helpers import buildNode, getKind, makeTryFinallyExpression
 from .ReformulationBooleanExpressions import buildAndNode
 
-from .Helpers import (
-    makeTryFinallyExpression,
-    buildNode,
-    getKind
-)
 
 def buildComparisonNode(provider, node, source_ref):
     from nuitka.nodes.NodeMakingHelpers import makeComparisonNode

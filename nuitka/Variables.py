@@ -23,7 +23,8 @@ module variable references.
 
 """
 
-from nuitka import Utils
+from . import Utils
+
 
 class Variable:
     def __init__(self, owner, variable_name):

@@ -19,12 +19,12 @@
 
 """
 
-from . import CodeTemplates
+from nuitka.Utils import python_version
 
+from . import CodeTemplates
 from .ConstantCodes import getConstantCode
 from .Indentation import indented
 
-from nuitka.Utils import python_version
 
 def getParameterEntryPointIdentifier(function_identifier):
     return "fparse_" + function_identifier

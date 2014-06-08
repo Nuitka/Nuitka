@@ -24,13 +24,13 @@ Examples of these are sys.executable, and sys.flags, but of course also the
 frame object data (filename, etc).
 """
 
-from .ConstantCodes import getModuleConstantCode
-
-from . import CodeTemplates
+import sys
 
 from nuitka import Options, Utils
 
-import sys
+from . import CodeTemplates
+from .ConstantCodes import getModuleConstantCode
+
 
 def getMainCode(main_module, codes, context):
     python_flags = Options.getPythonFlags()

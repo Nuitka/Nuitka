@@ -24,10 +24,9 @@ able to execute them without creating the argument dictionary at all.
 """
 
 from . import CodeTemplates
-
-from .ErrorCodes import getReleaseCode, getReleaseCodes, getErrorExitCode
-
+from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 from .ExceptionCodes import getExceptionIdentifier
+
 
 def getCallCodeNoArgs(to_name, called_name, emit, context):
     emit(

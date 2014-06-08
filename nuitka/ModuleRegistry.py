@@ -25,7 +25,7 @@
     the existing set of modules.
 """
 
-from nuitka.oset import OrderedSet
+from .oset import OrderedSet
 
 root_modules = OrderedSet()
 

@@ -23,47 +23,54 @@ source code comments with developer manual sections.
 """
 
 from nuitka import Utils
-
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
+from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionBuiltinIter1,
+    ExpressionBuiltinNext1
+)
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerOperationNodes import (
+    ExpressionDictOperationSet,
+    ExpressionListOperationAppend,
+    ExpressionSetOperationAdd
+)
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionBody,
+    ExpressionFunctionCall,
+    ExpressionFunctionCreation,
+    ExpressionFunctionRef
+)
+from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
 from nuitka.nodes.ParameterSpecs import ParameterSpec
-
+from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.StatementNodes import (
+    StatementExpressionOnly,
+    StatementGeneratorEntry,
+    StatementsFrame,
+    StatementsSequence
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable
-)
-from nuitka.nodes.StatementNodes import (
-    StatementGeneratorEntry,
-    StatementExpressionOnly,
-    StatementsSequence,
-    StatementsFrame
-)
-from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCreation,
-    ExpressionFunctionBody,
-    ExpressionFunctionCall,
-    ExpressionFunctionRef
-)
-from nuitka.nodes.LoopNodes import (
-    StatementBreakLoop,
-    StatementLoop
-)
-from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.BuiltinIteratorNodes import (
-    ExpressionBuiltinNext1,
-    ExpressionBuiltinIter1
-)
-from nuitka.nodes.ContainerOperationNodes import (
-    ExpressionListOperationAppend,
-    ExpressionDictOperationSet,
-    ExpressionSetOperationAdd
-)
-from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.YieldNodes import ExpressionYield
+
+from .Helpers import (
+    buildNode,
+    buildNodeList,
+    getKind,
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
+    mergeStatements
+)
+from .ReformulationAssignmentStatements import buildAssignmentStatements
+from .ReformulationBooleanExpressions import buildAndNode
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
 make_contraction_parameters = ParameterSpec(
     name          = "contraction",
@@ -74,18 +81,7 @@ make_contraction_parameters = ParameterSpec(
     kw_only_args  = ()
 )
 
-from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationBooleanExpressions import buildAndNode
 
-from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement,
-    mergeStatements,
-    buildNodeList,
-    buildNode,
-    getKind
-)
 
 def buildListContractionNode(provider, node, source_ref):
     # List contractions are dealt with by general code.

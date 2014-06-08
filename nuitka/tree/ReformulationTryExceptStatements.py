@@ -22,49 +22,46 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Utils, SyntaxErrors, Options
-
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
-)
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.ExceptionNodes import (
-    ExpressionCaughtExceptionValueRef,
-    ExpressionCaughtExceptionTypeRef,
-    StatementRaiseException
+from nuitka import Options, SyntaxErrors, Utils
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
 )
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
     ExpressionComparisonIs
 )
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ExceptionNodes import (
+    ExpressionCaughtExceptionTypeRef,
+    ExpressionCaughtExceptionValueRef,
+    StatementRaiseException
+)
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
-    StatementRestoreFrameException,
     StatementPublishException,
+    StatementRestoreFrameException,
     StatementsSequence
 )
-from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable
-)
 from nuitka.nodes.TryNodes import StatementTryExcept
-
-from .ReformulationAssignmentStatements import (
-    buildDeleteStatementFromDecoded,
-    buildAssignmentStatements,
-    makeTryFinallyStatement,
-    decodeAssignTarget
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
 )
 
-
-from .Helpers import(
-    makeStatementsSequence,
+from .Helpers import (
+    buildNode,
     buildStatementsNode,
-    mergeStatements,
-    buildNode
+    makeStatementsSequence,
+    mergeStatements
+)
+from .ReformulationAssignmentStatements import (
+    buildAssignmentStatements,
+    buildDeleteStatementFromDecoded,
+    decodeAssignTarget,
+    makeTryFinallyStatement
 )
 
 

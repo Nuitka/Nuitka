@@ -17,13 +17,12 @@
 #
 """ Eval/exec/execfile/compile built-in related codes. """
 
-from .GlobalsLocalsCodes import getStoreLocalsCode
+from nuitka.Utils import python_version
 
 from .ConstantCodes import getConstantCode
-
 from .ErrorCodes import getErrorExitCode, getReleaseCodes
+from .GlobalsLocalsCodes import getStoreLocalsCode
 
-from nuitka.Utils import python_version
 
 def getCompileCode(to_name, source_name, filename_name, mode_name,
                    flags_name, dont_inherit_name, optimize_name, emit, context):

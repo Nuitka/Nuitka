@@ -37,11 +37,12 @@ module like it's done in "isStandardLibraryPath" of this module.
 
 from __future__ import print_function
 
-from . import Options, Utils
-
-import sys, os, imp
-
+import imp
+import os
+import sys
 from logging import warning
+
+from . import Options, Utils
 
 _debug_module_finding = False
 
@@ -441,12 +442,12 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
     return module_name in white_list
 
-stdlib_paths = None
 
 def getStandardLibraryPaths():
-    global stdlib_paths
 
-    if stdlib_paths is None:
+    # Using the function object to cache its result, avoiding global variable
+    # usage.
+    if not hasattr(getStandardLibraryPaths, "result"):
         os_filename = os.__file__
         if os_filename.endswith(".pyc"):
             os_filename = os_filename[:-1]
@@ -488,7 +489,9 @@ def getStandardLibraryPaths():
                 )
             )
 
-    return stdlib_paths
+        getStandardLibraryPaths.result = stdlib_paths
+
+    return getStandardLibraryPaths.result
 
 
 def isStandardLibraryPath(path):

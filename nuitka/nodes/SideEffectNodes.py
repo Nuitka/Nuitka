@@ -23,6 +23,7 @@ does not matter at all.
 
 from .NodeBases import ExpressionChildrenHavingBase
 
+
 def checkSideEffects(value):
     real_value = []
 

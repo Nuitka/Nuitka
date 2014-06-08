@@ -21,21 +21,18 @@
 # module name, this one, they are not used here though.
 # pylint: disable=W0401,W0614
 
-from .templates.CodeTemplatesMain import *
-from .templates.CodeTemplatesConstants import *
+from nuitka.Options import isDebug
 
+from .templates.CodeTemplatesCalls import *
+from .templates.CodeTemplatesConstants import *
+from .templates.CodeTemplatesExceptions import *
+from .templates.CodeTemplatesFrames import *
 from .templates.CodeTemplatesFunction import *
 from .templates.CodeTemplatesGeneratorFunction import *
-
-from .templates.CodeTemplatesFrames import *
-
-from .templates.CodeTemplatesParameterParsing import *
-
-from .templates.CodeTemplatesVariables import *
-
-from .templates.CodeTemplatesExceptions import *
 from .templates.CodeTemplatesIterators import *
-from .templates.CodeTemplatesCalls import *
+from .templates.CodeTemplatesMain import *
+from .templates.CodeTemplatesParameterParsing import *
+from .templates.CodeTemplatesVariables import *
 
 
 def enableDebug():
@@ -86,7 +83,6 @@ def enableDebug():
                 template_value
             )
 
-from nuitka.Options import isDebug
 
 if isDebug():
     enableDebug()

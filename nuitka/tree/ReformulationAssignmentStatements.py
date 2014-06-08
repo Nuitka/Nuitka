@@ -22,46 +22,46 @@ source code comments with developer manual sections.
 
 """
 
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentAttribute,
+    StatementAssignmentSlice,
+    StatementAssignmentSubscript,
+    StatementAssignmentVariable,
+    StatementDelAttribute,
+    StatementDelSlice,
+    StatementDelSubscript,
+    StatementDelVariable
+)
+from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionBuiltinIter1,
+    ExpressionSpecialUnpack,
+    StatementSpecialUnpackCheck
+)
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryInplace
+from nuitka.nodes.SliceNodes import ExpressionSliceLookup, ExpressionSliceObject
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.BuiltinIteratorNodes import (
-    StatementSpecialUnpackCheck,
-    ExpressionSpecialUnpack,
-    ExpressionBuiltinIter1,
-)
-from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
-from nuitka.nodes.SliceNodes import ExpressionSliceObject
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
-from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentAttribute,
-    StatementAssignmentSubscript,
-    StatementAssignmentSlice,
-    StatementDelAttribute,
-    StatementDelSubscript,
-    StatementDelVariable,
-    StatementDelSlice,
-)
-from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryInplace
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.SliceNodes import ExpressionSliceLookup
 
 from .Helpers import (
+    buildNode,
+    getKind,
+    makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
-    makeSequenceCreationOrConstant,
-    makeTryFinallyStatement,
-    buildNode,
-    getKind
+    makeTryFinallyStatement
 )
+
 
 def buildExtSliceNode(provider, node, source_ref):
     elements = []

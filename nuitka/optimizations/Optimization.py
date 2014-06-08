@@ -31,7 +31,6 @@ from nuitka.Tracing import printLine
 from .ConstraintCollections import ConstraintCollectionModule
 from .Tags import TagSet
 
-
 _progress = Options.isShowProgress()
 
 def _attemptRecursion(module):

@@ -24,6 +24,7 @@ expressed via nesting of conditional statements.
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
+
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 

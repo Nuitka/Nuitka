@@ -22,9 +22,9 @@ of operations allowed.
 
 """
 
-from .Utils import python_version
-
 import operator
+
+from .Utils import python_version
 
 if python_version >= 300:
     operator.div = operator.truediv
@@ -96,9 +96,7 @@ all_comparison_functions = dict(rich_comparison_functions)
 all_comparison_functions.update(other_comparison_functions)
 
 def matchException(left, right):
-    from nuitka import Utils
-
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         if type(right) is tuple:
             for element in right:
                 if not isinstance(BaseException,element):

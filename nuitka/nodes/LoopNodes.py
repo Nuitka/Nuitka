@@ -22,11 +22,9 @@ statements for it. These reformulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
-from .NodeBases import (
-    StatementChildrenHavingBase,
-    NodeBase
-)
 from nuitka.tree.Extractions import getVariablesWritten
+
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 class StatementLoop(StatementChildrenHavingBase):

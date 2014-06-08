@@ -33,151 +33,121 @@ The output of this module is a node tree, which contains only relatively low
 level operations. A property of the output module is also an overlaid tree
 of provider structure that indicates variable provision.
 
+Classes are handled in a separate module. They are re-formulated into functions
+producing dictionaries used to call the metaclass with.
+
+Try/except/else statements are handled in a separate module. They are
+re-formulated into using a temporary variable to track if the else branch
+should execute.
+
+Try/finally statements are handled in a separate module. They are re-formulated
+to use a nested try/finally for (un)publishing the exception for Python3.
+
+With statements are handled in a separate module. They are re-formulated into
+special attribute lookups for "__enter__" and "__exit__", calls of them,
+catching and passing in exceptions raised.
+
 """
 
-# pylint: disable=W0622
-from nuitka.__past__ import long, unicode
-# pylint: enable=W0622
+
+import ast
+import sys
 
 from nuitka import (
+    Importing,
+    Options,
     SourceCodeReferences,
     SyntaxErrors,
-    Importing,
     Tracing,
-    Options,
     Utils
 )
-
-from nuitka.nodes.FutureSpecs import FutureSpec
-
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetVariableRef,
-    ExpressionVariableRef
+from nuitka.__past__ import long, unicode  # pylint: disable=W0622
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditional,
+    StatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.SliceNodes import (
-    ExpressionSliceLookup,
-    ExpressionSliceObject
-)
-from nuitka.nodes.StatementNodes import (
-    StatementExpressionOnly,
-    StatementsSequence
-)
+from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
     ExpressionImportName,
-    StatementImportStar,
+    StatementImportStar
+)
+from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
+from nuitka.nodes.ModuleNodes import (
+    PythonMainModule,
+    PythonModule,
+    PythonPackage,
+    PythonShlibModule
 )
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationUnary
 )
-from nuitka.nodes.LoopNodes import (
-    StatementContinueLoop,
-    StatementBreakLoop,
-)
-from nuitka.nodes.ConditionalNodes import (
-    ExpressionConditional,
-    StatementConditional
-)
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.ModuleNodes import (
-    PythonShlibModule,
-    PythonMainModule,
-    PythonPackage,
-    PythonModule
+from nuitka.nodes.SliceNodes import ExpressionSliceLookup, ExpressionSliceObject
+from nuitka.nodes.StatementNodes import (
+    StatementExpressionOnly,
+    StatementsSequence
+)
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetVariableRef,
+    ExpressionVariableRef
 )
 
-
-from .VariableClosure import completeVariableClosures
-
-# Classes are handled in a separate file. They are re-formulated into functions
-# producing dictionaries used to call the metaclass with.
+from .Helpers import (
+    applyLaterWrappers,
+    buildNode,
+    buildNodeList,
+    buildStatementsNode,
+    extractDocFromBody,
+    getBuildContext,
+    getKind,
+    makeDictCreationOrConstant,
+    makeModuleFrame,
+    makeSequenceCreationOrConstant,
+    makeStatementsSequenceOrStatement,
+    mergeStatements,
+    setBuildDispatchers
+)
+from .ImportCache import addImportedModule
+from .ReformulationAssertStatements import buildAssertNode
+from .ReformulationAssignmentStatements import (
+    buildAssignNode,
+    buildDeleteNode,
+    buildExtSliceNode,
+    buildInplaceAssignNode
+)
+from .ReformulationBooleanExpressions import buildBoolOpNode
+from .ReformulationCallExpressions import buildCallNode
 from .ReformulationClasses import buildClassNode
-
-# Try/except/else statements are handled in a separate file. They are
-# re-formulated into using a temporary variable to track if the else branch
-# should execute.
+from .ReformulationComparisonExpressions import buildComparisonNode
+from .ReformulationContractionExpressions import (
+    buildDictContractionNode,
+    buildGeneratorExpressionNode,
+    buildListContractionNode,
+    buildSetContractionNode
+)
+from .ReformulationExecStatements import buildExecNode
+from .ReformulationFunctionStatements import buildFunctionNode
+from .ReformulationLambdaExpressions import buildLambdaNode
+from .ReformulationLoopStatements import buildForLoopNode, buildWhileLoopNode
+from .ReformulationNamespacePackages import createNamespacePackage
+from .ReformulationPrintStatements import buildPrintNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
-
-# Try/finally statements are handled in a separate file. They are re-formulated
-# to use a nested try/finally for (un)publishing the exception for Python3.
 from .ReformulationTryFinallyStatements import (
     buildTryFinallyNode,
     makeTryFinallyIndicator
 )
-
-
-# With statements are handled in a separate file. They are re-formulated into
-# special attribute lookups for "__enter__" and "__exit__", calls of them,
-# catching and passing in exceptions raised.
 from .ReformulationWithStatements import buildWithNode
-
-from .ReformulationAssignmentStatements import (
-    buildInplaceAssignNode,
-    buildExtSliceNode,
-    buildAssignNode,
-    buildDeleteNode
-)
-
-from .ReformulationLoopStatements import (
-    buildWhileLoopNode,
-    buildForLoopNode
-)
-
-from .ReformulationAssertStatements import buildAssertNode
-
-from .ReformulationPrintStatements import buildPrintNode
-
-from .ReformulationFunctionStatements import buildFunctionNode
-
-from .ReformulationLambdaExpressions import buildLambdaNode
-
-from .ReformulationBooleanExpressions import buildBoolOpNode
-
-from .ReformulationComparisonExpressions import buildComparisonNode
-
-from .ReformulationContractionExpressions import (
-    buildGeneratorExpressionNode,
-    buildListContractionNode,
-    buildDictContractionNode,
-    buildSetContractionNode
-)
-
-from .ReformulationCallExpressions import buildCallNode
-
-from .ReformulationExecStatements import buildExecNode
-
-from .ReformulationYieldExpressions import buildYieldNode, buildYieldFromNode
-
-from .ReformulationNamespacePackages import createNamespacePackage
-
-# Some helpers.
-from .Helpers import (
-    makeStatementsSequenceOrStatement,
-    makeSequenceCreationOrConstant,
-    makeDictCreationOrConstant,
-    buildStatementsNode,
-    setBuildDispatchers,
-    applyLaterWrappers,
-    extractDocFromBody,
-    getBuildContext,
-    makeModuleFrame,
-    mergeStatements,
-    buildNodeList,
-    buildNode,
-    getKind
-)
-
+from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
 from .SourceReading import readSourceCodeFromFilename
+from .VariableClosure import completeVariableClosures
 
-from .ImportCache import addImportedModule
-
-import ast, sys
 
 def buildVariableReferenceNode(provider, node, source_ref):
     # Python3 is influenced by the mere use of a variable name. So we need to

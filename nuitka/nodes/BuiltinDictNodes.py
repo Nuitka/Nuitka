@@ -19,12 +19,11 @@
 
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .ContainerMakingNodes import ExpressionKeyValuePair
-
-from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
+from .NodeBases import ExpressionChildrenHavingBase
 
 
 class ExpressionBuiltinDict(ExpressionChildrenHavingBase):

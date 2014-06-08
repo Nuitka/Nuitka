@@ -20,19 +20,14 @@
 Next variants and unpacking with related checks.
 """
 
-from .Indentation import (
-    indented
-)
-
 from . import CodeTemplates
-
-from .LabelCodes import getGotoCode
-
 from .ErrorCodes import (
-    getErrorExitReleaseCode,
     getErrorExitCode,
+    getErrorExitReleaseCode,
     getReleaseCode
 )
+from .Indentation import indented
+from .LabelCodes import getGotoCode
 
 
 def getBuiltinNext1Code(to_name, value, emit, context):

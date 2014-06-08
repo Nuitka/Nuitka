@@ -22,15 +22,15 @@ source code comments with developer manual sections.
 
 """
 from nuitka import Utils
-
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
-from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
+from nuitka.nodes.StatementNodes import StatementsSequence
 
 from .Helpers import buildNode
+
 
 def buildAssertNode(provider, node, source_ref):
     # Build assert statements. These are re-formulated as described in the

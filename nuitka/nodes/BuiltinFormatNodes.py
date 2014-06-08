@@ -22,9 +22,10 @@ result prediction will help to be smarter, but generally these should not be tha
 about performance critical.
 
 """
+from nuitka.optimizations import BuiltinOptimization
+
 from .NodeBases import ExpressionBuiltinSingleArgBase
 
-from nuitka.optimizations import BuiltinOptimization
 
 class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_BIN"

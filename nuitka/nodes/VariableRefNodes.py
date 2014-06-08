@@ -22,14 +22,11 @@ and its expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Variables, Builtins
-
-from .NodeBases import (
-    ExpressionMixin,
-    NodeBase
-)
+from nuitka import Builtins, Variables
 
 from .ConstantRefNodes import ExpressionConstantRef
+from .NodeBases import ExpressionMixin, NodeBase
+
 
 def _isReadOnlyUnterdeterminedModuleVariable(variable):
     return variable.isModuleVariable() and \

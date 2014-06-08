@@ -22,17 +22,10 @@ These classes provide the generic base classes available for nodes.
 """
 
 
+from nuitka import Options, Tracing, TreeXML, Variables
+from nuitka.__past__ import iterItems
 from nuitka.odict import OrderedDict
 from nuitka.oset import OrderedSet
-
-from nuitka import (
-    Variables,
-    Tracing,
-    TreeXML,
-    Options
-)
-
-from nuitka.__past__ import iterItems
 
 lxml = TreeXML.lxml
 

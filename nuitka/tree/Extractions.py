@@ -24,6 +24,7 @@ loop.
 
 from .Operations import VisitorNoopMixin, visitTree
 
+
 class VariableWriteExtractor(VisitorNoopMixin):
     """ Extract variables written to.
 

@@ -23,16 +23,13 @@ result of it can be predicted still, and these are interesting for warnings.
 
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    ExpressionBuiltinNoArgBase
-)
+import math
 
 from nuitka.optimizations import BuiltinOptimization
-
 from nuitka.Utils import python_version
 
-import math
+from .NodeBases import ExpressionBuiltinNoArgBase, ExpressionChildrenHavingBase
+
 
 class ExpressionBuiltinRange0(ExpressionBuiltinNoArgBase):
     kind = "EXPRESSION_BUILTIN_RANGE0"

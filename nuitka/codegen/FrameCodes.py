@@ -22,36 +22,15 @@ of frames for different uses.
 """
 
 
-from . import (
-    CodeTemplates,
-    Emission
-)
-
-from .Indentation import (
-    indented,
-)
-
-from .LabelCodes import (
-    getGotoCode
-)
-
-from .ExceptionCodes import (
-    getTracebackMakingIdentifier,
-)
-
-from .ModuleCodes import (
-    getModuleAccessCode
-)
-
-from .GlobalsLocalsCodes import (
-    getLoadLocalsCode
-)
-
-from .LineNumberCodes import (
-    getSetLineNumberCodeRaw
-)
-
 from nuitka.Utils import python_version
+
+from . import CodeTemplates, Emission
+from .ExceptionCodes import getTracebackMakingIdentifier
+from .GlobalsLocalsCodes import getLoadLocalsCode
+from .Indentation import indented
+from .LabelCodes import getGotoCode
+from .LineNumberCodes import getSetLineNumberCodeRaw
+from .ModuleCodes import getModuleAccessCode
 
 
 def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,

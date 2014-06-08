@@ -20,21 +20,21 @@ Namespace packages of Python3.3
 
 """
 
-from nuitka.nodes.ModuleNodes import PythonPackage
-
-from nuitka.SourceCodeReferences import SourceCodeReference
-from nuitka.nodes.FutureSpecs import FutureSpec
-
-from nuitka.tree.Helpers import makeStatementsSequenceFromStatement
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.tree.VariableClosure import completeVariableClosures
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
-    ExpressionImportName,
-    ExpressionImportModule
+    ExpressionImportModule,
+    ExpressionImportName
 )
+from nuitka.nodes.ModuleNodes import PythonPackage
+from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
+from nuitka.SourceCodeReferences import SourceCodeReference
+
+from .Helpers import makeStatementsSequenceFromStatement
+from .VariableClosure import completeVariableClosures
+
 
 def createNamespacePackage(package_name, module_relpath):
     parts = package_name.split(".")

@@ -22,10 +22,7 @@ This contains tools to compare, classify and test constants.
 
 import math
 
-# pylint: disable=W0622
-from .__past__ import long, unicode, iterItems
-# pylint: enable=W0622
-
+from .__past__ import iterItems, long, unicode  # pylint: disable=W0622
 from .Builtins import builtin_anon_names
 from .Utils import python_version
 

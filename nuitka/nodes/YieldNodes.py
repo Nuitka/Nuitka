@@ -27,6 +27,7 @@ dedicated node.
 
 from .NodeBases import ExpressionChildrenHavingBase
 
+
 class ExpressionYield(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_YIELD"
 

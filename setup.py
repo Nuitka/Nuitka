@@ -38,8 +38,8 @@ def detectVersion():
 
 version = detectVersion()
 
-# The MSI installer enforces a 3 digit version number, which is stupid, but no way
-# around it, so we map our number to it, in some way.
+# The MSI installer enforces a 3 digit version number, which is stupid, but no
+# way around it, so we map our number to it, in some way.
 if os.name == "nt" and "bdist_msi" in sys.argv:
 
     # Prereleases are always smaller, official releases get the "1".

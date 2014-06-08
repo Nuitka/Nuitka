@@ -19,9 +19,10 @@
 
 """
 
+from nuitka import PythonOperators
+
 from .NodeBases import ExpressionChildrenHavingBase
 
-from nuitka import PythonOperators
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 

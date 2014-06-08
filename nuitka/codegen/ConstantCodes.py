@@ -19,19 +19,16 @@
 
 """
 
-from .Pickling import getStreamedConstant
+import ctypes
+import re
+import struct
+
+from nuitka.__past__ import iterItems, long, unicode  # pylint: disable=W0622
+from nuitka.Constants import constant_builtin_types, isMutable
 
 from .BlobCodes import StreamData
-
 from .Emission import SourceCodeCollector
-
-# pylint: disable=W0622
-from ..__past__ import unicode, long, iterItems
-# pylint: enable=W0622
-
-from ..Constants import constant_builtin_types, isMutable, compareConstants
-
-import re, struct
+from .Pickling import getStreamedConstant
 
 stream_data = StreamData()
 
@@ -79,7 +76,6 @@ def _getUnstreamCode(constant_value, constant_identifier):
 def _packFloat(value):
     return struct.pack("<d", value)
 
-import ctypes
 sizeof_long = ctypes.sizeof(ctypes.c_long)
 
 max_unsigned_long = 2**(sizeof_long*8)-1

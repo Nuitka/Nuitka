@@ -17,11 +17,12 @@
 #
 
 from .ErrorCodes import (
-    getErrorExitCode,
     getErrorExitBoolCode,
-    getReleaseCodes,
-    getReleaseCode
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes
 )
+
 
 def getCAPIObjectCode(to_name, capi, arg_names, ref_count, emit, context):
     emit(

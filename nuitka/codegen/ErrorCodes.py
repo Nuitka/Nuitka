@@ -25,17 +25,10 @@ Also formatting errors is done here, avoiding PyErr_Format as much as
 possible.
 """
 
-from .ExceptionCodes import (
-    getExceptionIdentifier
-)
+from . import CodeTemplates
+from .ExceptionCodes import getExceptionIdentifier
+from .Indentation import indented
 
-from .Indentation import (
-    indented
-)
-
-from . import (
-    CodeTemplates,
-)
 
 def getErrorExitReleaseCode(context):
     return "\n".join(

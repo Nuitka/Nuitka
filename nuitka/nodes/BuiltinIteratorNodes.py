@@ -24,13 +24,13 @@ The length of things is an important optimization issue for these to be
 good.
 """
 
+from nuitka.optimizations import BuiltinOptimization
+
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase,
     StatementChildrenHavingBase
 )
-
-from nuitka.optimizations import BuiltinOptimization
 
 
 class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):

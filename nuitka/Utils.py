@@ -22,7 +22,10 @@ memory usage, etc. that fit nowhere else and don't deserve their own names.
 
 """
 
-import sys, os, subprocess
+import os
+import subprocess
+import sys
+
 
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]

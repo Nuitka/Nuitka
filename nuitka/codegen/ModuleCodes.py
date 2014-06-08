@@ -19,28 +19,20 @@
 
 """
 
-from .ConstantCodes import (
-    allocateNestedConstants,
-    getConstantInitCodes,
-    getConstantCode,
-)
-
-from .VariableCodes import (
-    getLocalVariableInitCode,
-)
-
-from .CodeObjectCodes import (
-    getCodeObjectsDeclCode,
-    getCodeObjectsInitCode
-)
-
-from .Indentation import indented
-
-from . import CodeTemplates
+import re
 
 from nuitka import Options, Utils
 
-import re
+from . import CodeTemplates
+from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
+from .ConstantCodes import (
+    allocateNestedConstants,
+    getConstantCode,
+    getConstantInitCodes
+)
+from .Indentation import indented
+from .VariableCodes import getLocalVariableInitCode
+
 
 def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()

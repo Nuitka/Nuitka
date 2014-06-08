@@ -21,55 +21,34 @@ For builtin name references, we check if it's one of the supported builtin
 types.
 """
 
-from nuitka.Utils import python_version
-from nuitka.Options import isDebug, shallMakeModule
-
-from nuitka.nodes.BuiltinIteratorNodes import (
-    ExpressionBuiltinNext1,
-    ExpressionBuiltinNext2,
-    ExpressionBuiltinIter1,
-    ExpressionBuiltinIter2,
-    ExpressionBuiltinLen
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
 )
-from nuitka.nodes.BuiltinTypeNodes import (
-    ExpressionBuiltinFloat,
-    ExpressionBuiltinTuple,
-    ExpressionBuiltinList,
-    ExpressionBuiltinBool,
-    ExpressionBuiltinInt,
-    ExpressionBuiltinStr,
-    ExpressionBuiltinSet
-)
-from nuitka.nodes.BuiltinFormatNodes import (
-    ExpressionBuiltinBin,
-    ExpressionBuiltinOct,
-    ExpressionBuiltinHex,
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeLookup,
+    ExpressionBuiltinGetattr,
+    ExpressionBuiltinHasattr,
+    ExpressionBuiltinSetattr
 )
 from nuitka.nodes.BuiltinDecodingNodes import (
     ExpressionBuiltinChr,
     ExpressionBuiltinOrd,
     ExpressionBuiltinOrd0
 )
-from nuitka.nodes.ExecEvalNodes import (
-    ExpressionBuiltinCompile,
-    ExpressionBuiltinEval
-)
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
-    ExpressionVariableRef
-)
-from nuitka.nodes.GlobalsLocalsNodes import (
-    ExpressionBuiltinGlobals,
-    ExpressionBuiltinLocals,
-    ExpressionBuiltinDir1
-)
-from nuitka.nodes.OperatorNodes import (
-    ExpressionOperationUnary,
-    ExpressionOperationNOT
-)
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
+from nuitka.nodes.BuiltinFormatNodes import (
+    ExpressionBuiltinBin,
+    ExpressionBuiltinHex,
+    ExpressionBuiltinOct
+)
+from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionBuiltinIter1,
+    ExpressionBuiltinIter2,
+    ExpressionBuiltinLen,
+    ExpressionBuiltinNext1,
+    ExpressionBuiltinNext2
+)
 from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinOpen
 from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange0,
@@ -77,44 +56,61 @@ from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange2,
     ExpressionBuiltinRange3
 )
-from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
-from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
-from nuitka.nodes.TypeNodes import (
-    ExpressionBuiltinSuper,
-    ExpressionBuiltinType1,
-    ExpressionBuiltinIsinstance
-)
-from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
-from nuitka.nodes.CallNodes import (
-    ExpressionCallNoKeywords,
-    ExpressionCallEmpty
-)
-from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
-    ExpressionBuiltinGetattr,
-    ExpressionBuiltinSetattr,
-    ExpressionBuiltinHasattr
-)
-from nuitka.nodes.ConditionalNodes import (
-    StatementConditional,
-    ExpressionConditional
-)
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.TryNodes import ExpressionTryFinally
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable
-)
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     ExpressionBuiltinOriginalRef,
-    ExpressionBuiltinRef,
+    ExpressionBuiltinRef
+)
+from nuitka.nodes.BuiltinTypeNodes import (
+    ExpressionBuiltinBool,
+    ExpressionBuiltinFloat,
+    ExpressionBuiltinInt,
+    ExpressionBuiltinList,
+    ExpressionBuiltinSet,
+    ExpressionBuiltinStr,
+    ExpressionBuiltinTuple
+)
+from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
+from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
+from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditional,
+    StatementConditional
+)
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ExecEvalNodes import (
+    ExpressionBuiltinCompile,
+    ExpressionBuiltinEval
+)
+from nuitka.nodes.GlobalsLocalsNodes import (
+    ExpressionBuiltinDir1,
+    ExpressionBuiltinGlobals,
+    ExpressionBuiltinLocals
+)
+from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
+from nuitka.nodes.OperatorNodes import (
+    ExpressionOperationNOT,
+    ExpressionOperationUnary
 )
 from nuitka.nodes.StatementNodes import StatementsSequence
-
+from nuitka.nodes.TryNodes import ExpressionTryFinally
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinIsinstance,
+    ExpressionBuiltinSuper,
+    ExpressionBuiltinType1
+)
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef,
+    ExpressionVariableRef
+)
+from nuitka.Options import isDebug, shallMakeModule
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
+from nuitka.Utils import python_version
 
 from . import BuiltinOptimization
+
 
 def dir_extractor(node):
     def buildDirEmptyCase(source_ref):

@@ -21,6 +21,7 @@
 
 from nuitka import Utils
 
+
 def getExceptionIdentifier(exception_type):
     assert "PyExc" not in exception_type, exception_type
 

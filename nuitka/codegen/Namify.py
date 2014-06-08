@@ -22,14 +22,14 @@ it is really necessary.
 
 """
 
-# pylint: disable=W0622
-from nuitka.__past__ import long, unicode
-# pylint: enable=W0622
 
-
+import hashlib
+import math
+import re
 from logging import warning
 
-import hashlib, re, math
+from nuitka.__past__ import long, unicode  # pylint: disable=W0622
+
 
 # False alarms about "hashlib.md5" due to its strange way of defining what is
 # exported, pylint won't understand it. pylint: disable=E1101

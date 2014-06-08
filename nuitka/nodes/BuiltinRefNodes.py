@@ -25,20 +25,18 @@ to variables only ever read.
 """
 
 
-from .NodeBases import NodeBase, CompileTimeConstantExpressionMixin
-
-from .ConstantRefNodes import ExpressionConstantRef
-
-from nuitka.optimizations import BuiltinOptimization
-
 from nuitka.Builtins import (
+    builtin_anon_names,
     builtin_exception_names,
     builtin_exception_values,
-    builtin_anon_names,
     builtin_names
 )
-
+from nuitka.optimizations import BuiltinOptimization
 from nuitka.Utils import python_version
+
+from .ConstantRefNodes import ExpressionConstantRef
+from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
+
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     def __init__(self, builtin_name, source_ref):
@@ -225,7 +223,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
                 return call_node, None, None
 
         def createBuiltinMakeException(args, source_ref):
-            from nuitka.nodes.ExceptionNodes import ExpressionBuiltinMakeException
+            from .ExceptionNodes import ExpressionBuiltinMakeException
 
             return ExpressionBuiltinMakeException(
                 exception_name = exception_name,

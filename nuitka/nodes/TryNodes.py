@@ -21,10 +21,8 @@ The try/except needs handlers, and these blocks are complex control flow.
 
 """
 
-from .NodeBases import (
-    StatementChildrenHavingBase,
-    ExpressionChildrenHavingBase
-)
+from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+
 
 class ReturnBreakContinueHandlingMixin:
     def __init__(self):

@@ -24,12 +24,12 @@ will then know it's limited after the fact.
 
 """
 
+from nuitka.Builtins import builtin_names
+
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
-
-from nuitka.Builtins import builtin_names
 
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):

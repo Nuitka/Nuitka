@@ -27,18 +27,17 @@ deeper that what it normally could. The import expression node can recurse. An
 compile time constant.
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase,
-    ExpressionMixin,
-    NodeBase
-)
-
-from .ConstantRefNodes import ExpressionConstantRef
+from logging import warning
 
 from nuitka import Importing, Utils
 
-from logging import warning
+from .ConstantRefNodes import ExpressionConstantRef
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    ExpressionMixin,
+    NodeBase,
+    StatementChildrenHavingBase
+)
 
 
 class ExpressionImportModule(NodeBase, ExpressionMixin):

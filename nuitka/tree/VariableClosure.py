@@ -25,13 +25,12 @@ complete.
 """
 
 from nuitka import SyntaxErrors
-
-from nuitka.Utils import python_version
+from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
+from nuitka.Utils import python_version
 
 from .Operations import VisitorNoopMixin, visitTree
 
-from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 
 # Note: We do the variable scope assignment, as an extra step from tree
 # building, because tree building creates the tree without any consideration of

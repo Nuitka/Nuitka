@@ -31,6 +31,8 @@
 #
 # E1120 / E1123: Constructor call checks frequently fail miserably.
 #
+# E1103: Instance of 'x' has no 'y' member but some types could not be inferred
+#
 # W0632: Possible unbalanced tuple unpacking with sequence defined at
 #
 import sys, os, subprocess
@@ -41,7 +43,7 @@ os.chdir("..")
 
 pylint_options = """
 --rcfile=/dev/null
---disable=I0011,W0232,C0326,W0120,C1001,E1120,E1123,W0632
+--disable=I0011,W0232,C0326,C0330,W0120,C1001,E1120,E1123,E1103,W0632
 --msg-template="{path}:{line} {msg_id} {obj} {msg}"
 --reports=no
 --persistent=no

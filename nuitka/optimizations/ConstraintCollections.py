@@ -24,25 +24,23 @@ This is about collecting these constraints and to manage them.
 """
 
 # Python3 compatibility.
-from nuitka.__past__ import iterItems
-
-from nuitka.nodes.NodeMakingHelpers import (
-    makeStatementExpressionOnlyReplacementNode,
-    makeStatementsSequenceReplacementNode,
-)
-
-from nuitka.nodes.AssignNodes import StatementDelVariable
-
-from nuitka import Options
-
 from logging import debug, warning
 
-from .VariableTraces import (
-    VariableUnknownTrace,
-    VariableAssignTrace,
-    VariableUninitTrace,
-    VariableMergeTrace
+from nuitka import Options
+from nuitka.__past__ import iterItems
+from nuitka.nodes.AssignNodes import StatementDelVariable
+from nuitka.nodes.NodeMakingHelpers import (
+    makeStatementExpressionOnlyReplacementNode,
+    makeStatementsSequenceReplacementNode
 )
+
+from .VariableTraces import (
+    VariableAssignTrace,
+    VariableMergeTrace,
+    VariableUninitTrace,
+    VariableUnknownTrace
+)
+
 
 # TODO: This will be removed, to be replaced by variable trace information.
 class VariableUsageProfile:

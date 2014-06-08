@@ -22,27 +22,24 @@ have their complexities.
 
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    SideEffectsFromChildrenMixin,
-    ParameterHavingNodeBase,
-    ExpressionMixin,
-    ChildrenHavingMixin,
-    ClosureTakerMixin,
-    NodeBase
-)
+from nuitka import Utils, Variables
+from nuitka.__past__ import iterItems
 
 from .IndicatorMixins import (
-    MarkUnoptimizedFunctionIndicator,
+    MarkGeneratorIndicator,
     MarkLocalsDictIndicator,
-    MarkGeneratorIndicator
+    MarkUnoptimizedFunctionIndicator
 )
-
+from .NodeBases import (
+    ChildrenHavingMixin,
+    ClosureTakerMixin,
+    ExpressionChildrenHavingBase,
+    ExpressionMixin,
+    NodeBase,
+    ParameterHavingNodeBase,
+    SideEffectsFromChildrenMixin
+)
 from .ParameterSpecs import TooManyArguments, matchCall
-
-from nuitka import Variables, Utils
-
-from nuitka.__past__ import iterItems
 
 
 class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,

@@ -21,20 +21,14 @@ The top of the tree. Packages are also modules. Modules are what hold a program
 together and cross-module optimizations are the most difficult to tackle.
 """
 
-from .NodeBases import (
-    ClosureGiverNodeBase,
-    ChildrenHavingMixin,
-    NodeBase
-)
-
-from nuitka.SourceCodeReferences import SourceCodeReference
-from nuitka.nodes.FutureSpecs import FutureSpec
-
-from nuitka import Variables, Importing, Utils
-
-from nuitka.oset import OrderedSet
-
 import re
+
+from nuitka import Importing, Utils, Variables
+from nuitka.oset import OrderedSet
+from nuitka.SourceCodeReferences import SourceCodeReference
+
+from .FutureSpecs import FutureSpec
+from .NodeBases import ChildrenHavingMixin, ClosureGiverNodeBase, NodeBase
 
 
 class PythonModuleMixin:

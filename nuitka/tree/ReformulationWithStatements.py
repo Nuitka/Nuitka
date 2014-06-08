@@ -23,49 +23,44 @@ source code comments with developer manual sections.
 """
 
 from nuitka import Utils
-
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
 )
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeLookup,
+    ExpressionSpecialAttributeLookup
+)
+from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
-    ExpressionCaughtExceptionValueRef,
     ExpressionCaughtExceptionTypeRef,
+    ExpressionCaughtExceptionValueRef,
     StatementRaiseException
-)
-from nuitka.nodes.CallNodes import (
-    ExpressionCallNoKeywords,
-    ExpressionCallEmpty
-)
-from nuitka.nodes.AttributeNodes import (
-    ExpressionSpecialAttributeLookup,
-    ExpressionAttributeLookup
 )
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
 )
-from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
 )
-
-from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-
-from .ReformulationAssignmentStatements import buildAssignmentStatements
 
 from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement,
-    makeStatementsSequence,
+    buildNode,
     buildStatementsNode,
-    buildNode
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement
 )
+from .ReformulationAssignmentStatements import buildAssignmentStatements
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+
 
 def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     with_source = buildNode( provider, context_expr, source_ref )

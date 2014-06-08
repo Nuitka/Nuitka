@@ -19,9 +19,9 @@
 
 """
 
-from .NodeBases import StatementChildrenHavingBase, NodeBase
-
 from nuitka.Utils import python_version
+
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 def checkStatements(value):

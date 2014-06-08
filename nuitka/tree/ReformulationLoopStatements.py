@@ -22,40 +22,35 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
-)
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-
-from nuitka.nodes.BuiltinIteratorNodes import (
-    ExpressionBuiltinNext1,
-    ExpressionBuiltinIter1
-)
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.LoopNodes import (
-    StatementBreakLoop,
-    StatementLoop
-)
-from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
 )
-
-from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement,
-    makeStatementsSequence,
-    pushIndicatorVariable,
-    popIndicatorVariable,
-    buildStatementsNode,
-    pushBuildContext,
-    popBuildContext,
-    buildNode
+from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionBuiltinIter1,
+    ExpressionBuiltinNext1
+)
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
 )
 
+from .Helpers import (
+    buildNode,
+    buildStatementsNode,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
+    popBuildContext,
+    popIndicatorVariable,
+    pushBuildContext,
+    pushIndicatorVariable
+)
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 

@@ -19,35 +19,22 @@
 
 """
 
-from .VariableCodes import (
-    getLocalVariableInitCode,
-    getVariableCode
-)
+from nuitka import Options, Utils
 
+from . import CodeTemplates
+from .ConstantCodes import getConstantCode
+from .ErrorCodes import getErrorExitCode
+from .Indentation import indented
+from .ModuleCodes import getModuleAccessCode
 from .ParameterParsing import (
     getDirectFunctionEntryPointIdentifier,
     getParameterEntryPointIdentifier,
-    getQuickEntryPointIdentifier,
     getParameterParsingCode,
+    getQuickEntryPointIdentifier
 )
-
-from .ConstantCodes import (
-    getConstantCode,
-)
-
-from .Indentation import indented
-
-from .ModuleCodes import (
-    getModuleAccessCode,
-)
-
 from .PythonAPICodes import getReferenceExportCode
+from .VariableCodes import getLocalVariableInitCode, getVariableCode
 
-from .ErrorCodes import getErrorExitCode
-
-from . import CodeTemplates
-
-from nuitka import Utils, Options
 
 def getClosureVariableProvisionCode(context, closure_variables):
     result = []

@@ -31,11 +31,12 @@ are in another context.
 
 """
 
-from nuitka import Options, Utils, Importing
+from logging import warning
+
+from nuitka import Importing, Options, Utils
 
 from .FinalizeBase import FinalizationVisitorBase
 
-from logging import warning
 
 def isWhiteListedImport(node):
     module = node.getParentModule()

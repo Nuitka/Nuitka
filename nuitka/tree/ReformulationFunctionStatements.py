@@ -22,34 +22,33 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Utils, SyntaxErrors
-
-from nuitka.nodes.ParameterSpecs import ParameterSpec
-
-from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka import SyntaxErrors, Utils
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCreation,
     ExpressionFunctionBody,
+    ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 
 from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeDictCreationOrConstant,
-    pushIndicatorVariable,
-    popIndicatorVariable,
+    buildNode,
+    buildNodeList,
     buildStatementsNode,
     extractDocFromBody,
-    buildNodeList,
-    buildNode,
-    getKind
+    getKind,
+    makeDictCreationOrConstant,
+    makeStatementsSequenceFromStatement,
+    popIndicatorVariable,
+    pushIndicatorVariable
 )
+
 
 def buildFunctionNode(provider, node, source_ref):
     assert getKind( node ) == "FunctionDef"
