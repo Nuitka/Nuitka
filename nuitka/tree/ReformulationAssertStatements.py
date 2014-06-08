@@ -49,7 +49,7 @@ def buildAssertNode(provider, node, source_ref):
 
     exception_value = buildNode(provider, node.msg, source_ref, True)
 
-    if exception_value is not None and Utils.python_version >= 270:
+    if exception_value is not None and Utils.python_version > 272:
         exception_value = ExpressionMakeTuple(
             elements   = (exception_value,),
             source_ref = source_ref
