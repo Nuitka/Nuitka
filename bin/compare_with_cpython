@@ -107,7 +107,7 @@ else:
     ]
 
 if no_site:
-    cpython_cmd.insert(1,"-S")
+    cpython_cmd.insert(1, "-S")
 
 if "NUITKA" in os.environ:
     nuitka_call = [os.environ["NUITKA"]]
@@ -133,9 +133,9 @@ if binary_python_path:
     else:
         python_path_sep = ":"
 
-    python_path = os.environ.get("PYTHONPATH","")
+    python_path = os.environ.get("PYTHONPATH", "")
     os.environ["PYTHONPATH"] = python_path_sep.join(
-        python_path.split(python_path_sep)+\
+        python_path.split(python_path_sep) + \
         [os.path.dirname(os.path.abspath(filename))]
     )
 
@@ -151,7 +151,7 @@ if not two_step_execution:
           ["--execute", filename]
 
     if no_site:
-        nuitka_cmd.insert(len(nuitka_cmd)-1,"--python-flag=-S")
+        nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")
 
 else:
     if module_mode:
@@ -165,7 +165,7 @@ else:
           [filename]
 
     if no_site:
-        nuitka_cmd1.insert(len(nuitka_cmd1)-1,"--python-flag=-S")
+        nuitka_cmd1.insert(len(nuitka_cmd1) - 1, "--python-flag=-S")
 
 
 dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_options)
@@ -187,7 +187,7 @@ else:
     if filename.endswith(".py"):
         exe_filename = exe_filename[:-3]
 
-    exe_filename = exe_filename.replace(")","").replace("(","")
+    exe_filename = exe_filename.replace(")", "").replace("(", "")
     exe_filename += ".exe"
 
     nuitka_cmd2 = [
@@ -195,7 +195,7 @@ else:
     ]
 
 if trace_command:
-    print("CPython command:", *cpython_cmd )
+    print("CPython command:", *cpython_cmd)
 
 process = subprocess.Popen(
     args   = cpython_cmd,
