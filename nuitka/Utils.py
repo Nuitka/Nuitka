@@ -195,6 +195,23 @@ def encodeNonAscii(var_name):
         return var_name.replace("&#", "$$").replace(";", "")
 
 
+def isExecutableCommand(command):
+    path = os.environ["PATH"]
+
+    suffixes = (".exe",) if os.name == "nt" else ("",)
+    path_sep = ";" if os.name == "nt" else ":"
+
+    for part in path.split(path_sep):
+        if not part:
+            continue
+
+        for suffix in suffixes:
+            if isFile(joinpath(part, command + suffix)):
+                return True
+
+    return False
+
+
 def getOwnProcessMemoryUsage():
     """ Memory usage of own process in bytes.
 

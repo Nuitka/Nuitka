@@ -26,6 +26,7 @@ import subprocess
 import sys
 from logging import debug, info
 import marshal
+import shutil
 
 from nuitka import Utils, Options
 from nuitka.codegen.ConstantCodes import needsPickleInit
@@ -649,3 +650,89 @@ def fixupBinaryDLLPaths(binary_filename, dll_map):
 
     # Don't let errors here go unnoticed.
     assert process.returncode == 0, _stderr
+
+
+def removeSharedLibraryRPATH(filename):
+    process = subprocess.Popen(
+        ["readelf", "-d", filename],
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE,
+        shell  = False
+    )
+
+    stdout_output, stderr_output = process.communicate()
+    retcode = process.poll()
+
+    assert retcode == 0, filename
+
+    for line in stdout_output.split(b"\n"):
+        if b"RPATH" in line:
+            if Options.isShowInclusion():
+                info("Removing RPATH from '%s'.", filename)
+
+            if not Utils.isExecutableCommand("chrpath"):
+                sys.exit(
+                    """\
+Error, needs chrpath on your system, due to RPATH settings in used shared
+libraries."""
+                )
+
+            process = subprocess.Popen(
+                ["chrpath", "-d", filename],
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+                shell  = False
+            )
+            process.communicate()
+            retcode = process.poll()
+
+            assert retcode == 0, filename
+
+
+def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
+    dll_map = []
+
+    for early_dll in detectUsedDLLs(standalone_entry_points):
+        target_path = Utils.joinpath(
+            dist_dir,
+            Utils.basename(early_dll)
+        )
+
+        # Check that if a DLL has the name name, if it's identical,
+        # happens at least for OSC and Fedora 20.
+        if Utils.isFile(target_path):
+            import filecmp
+
+            if filecmp.cmp(early_dll, target_path):
+                continue
+            else:
+                sys.exit("Error, conflicting DLLs.")
+
+        shutil.copy(
+            early_dll,
+            target_path
+        )
+
+        dll_map.append(
+            (early_dll, Utils.basename(early_dll))
+        )
+
+        if Options.isShowInclusion():
+            info("Included used shared library '%s'.", early_dll)
+
+    if Utils.getOS() == "Darwin":
+        # For MacOS, the binary needs to be changed to reflect the DLL
+        # location in the dist folder.
+        fixupBinaryDLLPaths(binary_filename, dll_map)
+
+    if Utils.getOS() == "Linux":
+        # For Linux, the rpath of libraries may be an issue.
+        for _original_path, early_dll in dll_map:
+            removeSharedLibraryRPATH(
+                Utils.joinpath(dist_dir, early_dll)
+            )
+
+        for standalone_entry_point in standalone_entry_points[1:]:
+            removeSharedLibraryRPATH(
+                standalone_entry_point[0]
+            )

@@ -45,10 +45,9 @@ from .optimizations import Optimization
 from .finalizations import Finalization
 
 from nuitka.freezer.Standalone import (
-    fixupBinaryDLLPaths,
     detectEarlyImports,
     detectLateImports,
-    detectUsedDLLs
+    copyUsedDLLs
 )
 from nuitka.freezer.BytecodeModuleFreezer import (
     generateBytecodeFrozenCode,
@@ -350,7 +349,7 @@ def makeSourceDirectory(main_module):
             )
 
             standalone_entry_points.append(
-                (target_filename,module.getPackage())
+                (target_filename, module.getPackage())
             )
         else:
             assert False, module
@@ -685,42 +684,14 @@ def main():
             if Utils.getOS() == "NetBSD":
                 warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
 
-            dll_map = []
+            copyUsedDLLs(
+                dist_dir                = getStandaloneDirectoryPath(
+                    main_module
+                ),
+                binary_filename         = binary_filename,
+                standalone_entry_points = standalone_entry_points
+            )
 
-            for early_dll in detectUsedDLLs(standalone_entry_points):
-                target_path = Utils.joinpath(
-                    getStandaloneDirectoryPath(main_module),
-                    Utils.basename(early_dll)
-                )
-
-                # Check that if a DLL has the name name, if it's identical,
-                # happens at least for OSC and Fedora 20.
-                if os.path.exists(target_path):
-                    import filecmp
-
-                    if filecmp.cmp(early_dll, target_path):
-                        continue
-                    else:
-                        sys.exit("Error, conflicting DLLs.")
-
-                shutil.copy(
-                    early_dll,
-                    target_path
-                )
-
-                dll_map.append(
-                    (early_dll, Utils.basename(early_dll))
-                )
-
-                if Options.isShowInclusion():
-                    info("Included used shared library '%s'.", early_dll)
-
-            if Utils.getOS() == "Darwin":
-                # For MacOS, the binary needs to be changed to reflect the DLL
-                # location in the dist folder.
-                fixupBinaryDLLPaths(binary_filename, dll_map)
-
-        if Options.isStandaloneMode():
             for source_filename, target_filename in data_files:
                 shutil.copy2(
                     source_filename,

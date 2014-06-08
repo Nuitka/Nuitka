@@ -259,6 +259,9 @@ for filename in sorted(os.listdir(".")):
             if loaded_filename == "/usr/bin/python3.2mu":
                 continue
 
+            # Accessing SE-Linux is OK.
+            if loaded_filename == "/sys/fs/selinux":
+                continue
 
             loaded_basename = os.path.basename(loaded_filename).upper()
             # Windows baseline DLLs

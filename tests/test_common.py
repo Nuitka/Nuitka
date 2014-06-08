@@ -308,6 +308,9 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
             if b"ENOENT" in line:
                 continue
 
+            if line.startswith(b"stat(") and b"S_IFDIR" in line:
+                continue
+
             # Allow stats on the python binary, and stuff pointing to the
             # standard library, just not uses of it. It will search there
             # for stuff.
