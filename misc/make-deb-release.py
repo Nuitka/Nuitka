@@ -240,7 +240,7 @@ assert 0 == os.system(
     )
 )
 assert 0 == os.system(
-    "rsync -avz dists pool --chown www-data root@nuitka.net:/var/www/deb/%s/%s/" % (
+    "rsync -avz --delete dists pool --chown www-data root@nuitka.net:/var/www/deb/%s/%s/" % (
         category,
         codename
     )
