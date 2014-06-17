@@ -103,25 +103,37 @@ Bug Fixes
 - Standalone: Removing "rpath" settings of shared libraries and extension
   modules included. This makes standalone binaries more robust on Fedora 20.
 
+- Python2: Wasn't falsely rejecting ``unicode`` strings as values for ``int``
+  and ``long`` variants with base argument provided.
+
+- Windows: For Python3.2 and 64 bits, global variable accesses could give false
+  ``NameError`` exceptions. Fixed in 0.5.1.6 already.
+
 Organizational
 --------------
 
-- Replying to emails of the issue tracker works now.
+- Replying to emails of the `issue tracker <http://bugs.nuitka.net>`__ works
+  now.
 
 - Added alias ``--xml`` for ``--dump-xml``.
 
 - Remove option ``--dump-tree``, it had been broken for a long time and unused
   in favor of XML dumps.
 
-- New digital art folder with 3D version of Nuitka logo.
+- New digital art folder with 3D version of Nuitka logo. Thanks to Juan Carlos
+  for creating it.
 
 - Using "README.rst" instead of "README.txt" to make it look better on web
   pages.
 
-- More complete white-listing of missing imports in standard library. These give
-  no warnings anymore.
+- More complete white-listing of missing imports in standard library. These
+  should give no warnings anymore.
 
-- Updated the GUI to the latest version, with enhanced features.
+- Updated the Nuitka GUI to the latest version, with enhanced features.
+
+- The builds of releases and update of the `downloads page
+  <http://nuitka.net/pages/download.html>`__ is now driven by Buildbot. Page
+  will be automatically updated as updated binaries arrive.
 
 Cleanups
 --------
@@ -180,6 +192,7 @@ most important problems have been dealt with. Others are still in the pipeline.
 More work will be needed to take full advantage. This has been explained in a
 `separate post <http://nuitka.net/posts/state-of-nuitka.html>`__ in greater
 detail.
+
 
 Nuitka Release 0.5.1
 ====================
