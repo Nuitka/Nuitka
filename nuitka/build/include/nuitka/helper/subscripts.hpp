@@ -114,6 +114,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
             PyExc_TypeError,
 #if PYTHON_VERSION < 270
             "'%s' object is unsubscriptable",
+#elif PYTHON_VERSION >= 300
+            "'%s' object is not subscriptable",
 #else
             "'%s' object has no attribute '__getitem__'",
 #endif
@@ -168,6 +170,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
                 PyExc_TypeError,
 #if PYTHON_VERSION < 270
                 "'%s' object is unsubscriptable",
+#elif PYTHON_VERSION >= 300
+                "'%s' object is not subscriptable",
 #else
                 "'%s' object has no attribute '__getitem__'",
 #endif
@@ -182,6 +186,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
             PyExc_TypeError,
 #if PYTHON_VERSION < 270
             "'%s' object is unsubscriptable",
+#elif PYTHON_VERSION >= 300
+            "'%s' object is not subscriptable",
 #else
             "'%s' object has no attribute '__getitem__'",
 #endif

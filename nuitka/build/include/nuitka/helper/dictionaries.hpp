@@ -43,7 +43,7 @@ static PyDictEntry *GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_StringObje
 #if PYTHON_VERSION < 300
     long hash = key->ob_shash;
 #else
-    long hash = key->hash;
+    Py_hash_t hash = key->hash;
 #endif
 
     // Only improvement would be to identify how to ensure that the hash is
