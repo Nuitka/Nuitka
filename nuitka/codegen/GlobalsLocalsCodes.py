@@ -165,7 +165,7 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             )
 
             emit(
-                "%s = locals_dict;" % (
+                "%s = INCREASE_REFCOUNT( locals_dict );" % (
                     to_name
                 )
             )
@@ -178,9 +178,9 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
                     context   = context
                 )
 
+            context.addCleanupTempName(to_name)
         else:
             assert False
-
 
 
 def getSetLocalsCode(new_locals_name, emit, context):
