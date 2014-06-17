@@ -49,6 +49,7 @@ python_debug       = hasArg("python_debug")
 module_mode        = hasArg("module_mode")
 two_step_execution = hasArg("two_step_execution")
 binary_python_path = hasArg("binary_python_path")
+keep_python_path   = hasArg("keep_python_path")
 trace_command      = hasArg("trace_command")
 remove_output      = hasArg("remove_output")
 standalone_mode    = hasArg("standalone")
@@ -126,8 +127,6 @@ if remove_output:
     extra_options += " --remove-output"
 
 if binary_python_path:
-    extra_options += " --keep-pythonpath"
-
     if os.name == "nt":
         python_path_sep = ";"
     else:
@@ -138,6 +137,9 @@ if binary_python_path:
         python_path.split(python_path_sep) + \
         [os.path.dirname(os.path.abspath(filename))]
     )
+
+if keep_python_path or binary_python_path:
+    extra_options += " --keep-pythonpath"
 
 if not two_step_execution:
     if module_mode:
