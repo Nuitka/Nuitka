@@ -65,7 +65,11 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
 
         result += CodeTemplates.template_frame_guard_full_exception_handler % {
             "frame_identifier"      : frame_identifier,
-            "store_frame_locals"    : indented(locals_code, 0, vert_block = True),
+            "store_frame_locals"    : indented(
+                locals_code,
+                0,
+                vert_block = True
+            ),
             "tb_making"             : getTracebackMakingIdentifier(context),
             "parent_exception_exit" : parent_exception_exit,
             "frame_exception_exit"  : frame_exception_exit,

@@ -633,14 +633,14 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     if context_decl:
         result = CodeTemplates.genfunc_context_body_template % {
             "function_identifier"            : function_identifier,
-            "function_common_context_decl"   : indented( context_decl ),
-            "function_instance_context_decl" : indented( instance_context_decl ),
-            "context_free"                   : indented( context_free, 2 ),
+            "function_common_context_decl"   : indented(context_decl),
+            "function_instance_context_decl" : indented(instance_context_decl),
+            "context_free"                   : indented(context_free, 2),
         }
     elif instance_context_decl:
         result = CodeTemplates.genfunc_context_local_only_template % {
             "function_identifier"            : function_identifier,
-            "function_instance_context_decl" : indented( instance_context_decl )
+            "function_instance_context_decl" : indented(instance_context_decl)
         }
     else:
         result = ""
@@ -724,7 +724,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
                 "function_identifier" : function_identifier,
             }
 
-        context_making = context_making.split( "\n" )
+        context_making = context_making.split("\n")
 
         if context.isForDirectCall():
             context_making += context_copy

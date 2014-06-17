@@ -123,10 +123,10 @@ def isConstant(constant):
     constant_type = type(constant)
 
     if constant_type is dict:
-        for key, value in iterItems( constant ):
-            if not isConstant( key ):
+        for key, value in iterItems(constant):
+            if not isConstant(key):
                 return False
-            if not isConstant( value ):
+            if not isConstant(value):
                 return False
         else:
             return True
@@ -145,6 +145,7 @@ def isConstant(constant):
         return constant in constant_builtin_types
     else:
         return False
+
 
 def isMutable(constant):
     """ Is a constant mutable
@@ -173,18 +174,22 @@ def isMutable(constant):
     else:
         assert False, constant_type
 
+
 def isIterableConstant(constant):
     return type( constant ) in (
         str, unicode, list, tuple, set, frozenset, dict, range, bytes
     )
+
 
 def getConstantIterationLength(constant):
     assert isIterableConstant( constant )
 
     return len( constant )
 
+
 def isNumberConstant(constant):
     return type(constant) in ( int, long, float, bool )
+
 
 def isIndexConstant(constant):
     return type(constant) in ( int, long, bool )

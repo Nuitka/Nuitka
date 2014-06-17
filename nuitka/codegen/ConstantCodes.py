@@ -42,8 +42,10 @@ _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 def getConstantCodeName(context, constant):
     return context.getConstantCode(constant)
 
+
 def _isAttributeName(value):
     return _match_attribute_names.match(value)
+
 
 # Indicator to standalone mode code, if we need pickling module early on.
 _needs_pickle = False
@@ -122,7 +124,6 @@ def _getConstantInitValueCode(context, constant_value, constant_type):
         assert str is unicode
 
         return "UNSTREAM_BYTES( %s )" % (
-            constant_identifier,
             stream_data.getStreamDataCode(constant_value)
         )
 
@@ -593,7 +594,7 @@ def getModuleConstantCode(constant, context):
     assert type(constant) is str
 
     result = _getConstantInitValueCode(
-        context = context,
+        context        = context,
         constant_value = constant,
         constant_type  = type(constant)
     )
@@ -601,6 +602,7 @@ def getModuleConstantCode(constant, context):
     assert result is not None
 
     return result
+
 
 constant_counts = {}
 

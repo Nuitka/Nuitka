@@ -424,7 +424,7 @@ NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( PyObject **exception_type, P
         Py_DECREF( *exception_type );
 
         *exception_type = INCREASE_REFCOUNT( PyExc_RuntimeError );
-        *exception_value = PyUnicode_FromString("No active exception to reraise");
+        *exception_value = PyUnicode_FromString( "No active exception to reraise" );
         *exception_tb = NULL;
 #else
         PyErr_Format(

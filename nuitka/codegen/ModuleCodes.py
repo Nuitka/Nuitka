@@ -37,6 +37,7 @@ from .VariableCodes import getLocalVariableInitCode
 def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
+
 def getModuleIdentifier(module_name):
     # TODO: This is duplication with ModuleNode.getCodeName, remove it.
     def r(match):
@@ -47,6 +48,7 @@ def getModuleIdentifier(module_name):
             return "$$%d$" % ord(c)
 
     return "".join(re.sub("[^a-zA-Z0-9_]", r ,c) for c in module_name)
+
 
 def getModuleMetapathLoaderEntryCode(module_name, is_shlib):
     if is_shlib:
@@ -164,6 +166,7 @@ def prepareModuleCode(context, module_name, codes, metapath_loader_inittab,
             context.global_context.countConstantUse(constant)
 
     return module_body_template_values
+
 
 def getModuleCode(module_context, template_values):
     header = CodeTemplates.global_copyright % {
