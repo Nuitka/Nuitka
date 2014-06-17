@@ -683,6 +683,11 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         context.getTempNameInfos()
     ]
 
+    # TODO: Could avoid this unless try/except or try/finally with returns
+    # occur.
+    if context.hasTempName("generator_return"):
+        function_locals.append("tmp_generator_return = false;")
+
     if needs_exception_exit:
         generator_exit = CodeTemplates.template_generator_exception_exit % {}
     else:
