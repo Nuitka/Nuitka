@@ -91,3 +91,9 @@ n = None
 print l[n:n]
 print l[3:n]
 print l[n:3]
+
+value = None
+try:
+    x = value[1]
+except Exception as e:
+    print "Indexing None gives", repr(e)
