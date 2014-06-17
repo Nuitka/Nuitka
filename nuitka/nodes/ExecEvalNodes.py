@@ -69,7 +69,7 @@ if Utils.python_version >= 300:
             )
 
         def needsLocalsDict(self):
-            return True
+            return False
 
         def computeExpression(self, constraint_collection):
             # TODO: Attempt for constant values to do it.
