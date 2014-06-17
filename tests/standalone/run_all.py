@@ -260,7 +260,7 @@ for filename in sorted(os.listdir(".")):
                 continue
 
             # Accessing SE-Linux is OK.
-            if loaded_filename == "/sys/fs/selinux":
+            if loaded_filename in ("/sys/fs/selinux", "/selinux"):
                 continue
 
             loaded_basename = os.path.basename(loaded_filename).upper()
