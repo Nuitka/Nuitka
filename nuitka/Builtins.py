@@ -125,20 +125,21 @@ def _getAnonBuiltins():
     # False positive for "__code__" attribute of function,
     # pylint: disable=E1101
 
-    anon_names = {
-        # Strangely not Python3 types module
-        "NoneType"                   : type(None),
-        "ellipsis"                   : type(Ellipsis), # see above
-        "NotImplementedType"         : type(NotImplemented),
-        "function"                   : FunctionType,
-        "builtin_function_or_method" : BuiltinFunctionType,
-        # Can't really have it any better way.
-        "compiled_function"          : BuiltinFunctionType,
-        "generator"                  : GeneratorType,
-        "compiled_generator"         : GeneratorType, # see above
-        "code"                       : type(_getAnonBuiltins.__code__),
-        "file"                       : type(open(sys.executable))
-    }
+    with open(sys.executable) as any_file:
+        anon_names = {
+            # Strangely not Python3 types module
+            "NoneType"                   : type(None),
+            "ellipsis"                   : type(Ellipsis), # see above
+            "NotImplementedType"         : type(NotImplemented),
+            "function"                   : FunctionType,
+            "builtin_function_or_method" : BuiltinFunctionType,
+            # Can't really have it any better way.
+            "compiled_function"          : BuiltinFunctionType,
+            "generator"                  : GeneratorType,
+            "compiled_generator"         : GeneratorType, # see above
+            "code"                       : type(_getAnonBuiltins.__code__),
+            "file"                       : type(any_file)
+        }
 
     anon_codes = {
         "NoneType"                   : "Py_TYPE( Py_None )",
