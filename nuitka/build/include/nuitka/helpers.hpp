@@ -176,7 +176,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
     }
 
 #if PYTHON_VERSION < 300
-    if (unlikely( !Nuitka_String_Check( value ) ))
+    if (unlikely( !Nuitka_String_Check( value ) && !PyUnicode_Check( value ) ))
     {
         PyErr_Format( PyExc_TypeError, "int() can't convert non-string with explicit base" );
         return NULL;
@@ -271,7 +271,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG2( PyObject *value, PyObject *base 
     }
 
 #if PYTHON_VERSION < 300
-    if (unlikely( !Nuitka_String_Check( value ) ))
+    if (unlikely( !Nuitka_String_Check( value ) && !PyUnicode_Check( value ) ))
     {
         PyErr_Format( PyExc_TypeError, "long() can't convert non-string with explicit base" );
         return NULL;

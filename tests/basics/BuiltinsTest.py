@@ -152,10 +152,20 @@ print "Bools from constants", bool( "3.3" ), bool( x = 9.1 ), bool(0), bool()
 print "Found during optimization", bool( float( "3.3" ) ), bool( x = float( 0.0 ) )
 
 print "Ints from constants", int( "3" ), int( x = "9" ), int( "f", 16 ), int( x = "e", base = 16 ), int( "0101", base = 2 ), int(0), int()
-print "Found during optimization", int( int( "3" ) ), int( x = int( 0.0 ) )
+print "Found ints during optimization", int( int( "3" ) ), int( x = int( 0.0 ) )
+
+print "Longs from constants", long("3"), long(x = "9"), long("f", 16), long(x = "e", base = 16), long("0101", base = 2), long(0), long()
+print "Found longs during optimization", long(long( "3" )), long(x = long( 0.0))
 
 try:
-    print "Int with only base", int( base = 2 ),
+    print "Int with only base", int(base = 2),
+except Exception as e:
+    print "Caused", repr(e)
+else:
+    print "Worked"
+
+try:
+    print "Long with only base", long(base = 2),
 except Exception as e:
     print "Caused", repr(e)
 else:
@@ -187,6 +197,12 @@ print "Unoptimized call of int", int( "0" * f, base = 16 )
 
 d = { "x" : "12", "base" : 8 }
 print "Dict call of int", int( **d )
+
+
+base = 16
+value = u"20"
+
+print "Unoptimized calls of int with unicode args", int(value, base), int(value)
 
 try:
     print chr()
