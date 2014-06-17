@@ -77,6 +77,7 @@ from .Helpers import (
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
     popIndicatorVariable,
     pushIndicatorVariable
 )
@@ -540,12 +541,15 @@ def _buildClassNode3(provider, node, source_ref):
             source     = decorated_body,
             source_ref = source_ref
         ),
+    )
+
+    final = (
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_bases.makeReference( provider ),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
             source_ref = source_ref
         ),
         StatementDelVariable(
@@ -553,7 +557,7 @@ def _buildClassNode3(provider, node, source_ref):
                 variable   = tmp_class_decl_dict.makeReference(provider),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
             source_ref = source_ref
         ),
         StatementDelVariable(
@@ -561,7 +565,7 @@ def _buildClassNode3(provider, node, source_ref):
                 variable   = tmp_metaclass.makeReference(provider),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
             source_ref = source_ref
         ),
         StatementDelVariable(
@@ -569,16 +573,16 @@ def _buildClassNode3(provider, node, source_ref):
                 variable   = tmp_prepared.makeReference( provider ),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
             source_ref = source_ref
         )
     )
 
-    return StatementsSequence(
-        statements = statements,
+    return makeTryFinallyStatement(
+        tried      = statements,
+        final      = final,
         source_ref = source_ref
     )
-
 
 
 def _buildClassNode2(provider, node, source_ref):
@@ -782,30 +786,6 @@ def _buildClassNode2(provider, node, source_ref):
             ),
             source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_bases.makeReference( provider ),
-                source_ref = source_ref
-            ),
-            tolerant   = False,
-            source_ref = source_ref
-        ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_class_dict.makeReference(provider),
-                source_ref = source_ref
-            ),
-            tolerant   = False,
-            source_ref = source_ref
-        ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_metaclass.makeReference(provider),
-                source_ref = source_ref
-            ),
-            tolerant   = False,
-            source_ref = source_ref
-        )
     ]
 
     for decorator in buildNodeList(
@@ -852,21 +832,47 @@ def _buildClassNode2(provider, node, source_ref):
         )
     )
 
-    statements.append(
+    final = (
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_class.makeReference(provider),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_bases.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_class_dict.makeReference(provider),
+                source_ref = source_ref
+            ),
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_metaclass.makeReference(provider),
+                source_ref = source_ref
+            ),
+            tolerant   = True,
             source_ref = source_ref
         )
     )
 
-    return StatementsSequence(
-        statements = statements,
+    return makeTryFinallyStatement(
+        tried      = statements,
+        final      = final,
         source_ref = source_ref
     )
+
 
 def buildClassNode(provider, node, source_ref):
     assert getKind( node ) == "ClassDef"

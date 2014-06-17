@@ -55,13 +55,13 @@ from .Helpers import (
     buildNode,
     buildStatementsNode,
     makeStatementsSequence,
+    makeTryFinallyStatement,
     mergeStatements
 )
 from .ReformulationAssignmentStatements import (
     buildAssignmentStatements,
     buildDeleteStatementFromDecoded,
-    decodeAssignTarget,
-    makeTryFinallyStatement
+    decodeAssignTarget
 )
 
 
@@ -152,11 +152,11 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
                     ),
                     source_ref = source_ref.atInternal()
                 ),
-                source     = ExpressionConstantRef(
+                source       = ExpressionConstantRef(
                     constant   = True,
                     source_ref = source_ref
                 ),
-                source_ref = source_ref.atInternal()
+                source_ref   = source_ref.atInternal()
             ),
             makeTryFinallyStatement(
                 tried      = tried,
