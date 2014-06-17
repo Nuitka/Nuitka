@@ -666,12 +666,27 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         ]
 
     for keeper_variable in range(1, context.getKeeperVariableCount()+1):
-        function_locals += [
-            "PyObject *exception_keeper_type_%d;" % keeper_variable,
-            "PyObject *exception_keeper_value_%d;" % keeper_variable,
-            "PyTracebackObject *exception_keeper_tb_%d;" % keeper_variable
-        ]
+        # For finally handlers of Python3, which have conditions on assign and
+        # use.
+        if Options.isDebug() and Utils.python_version >= 300:
+            keeper_init = " = NULL"
+        else:
+            keeper_init = ""
 
+        function_locals += [
+            "PyObject *exception_keeper_type_%d%s;" % (
+                keeper_variable,
+                keeper_init
+            ),
+            "PyObject *exception_keeper_value_%d%s;" % (
+                keeper_variable,
+                keeper_init
+            ),
+            "PyTracebackObject *exception_keeper_tb_%d%s;" % (
+                keeper_variable,
+                keeper_init
+            )
+        ]
 
     function_locals += [
         "%s%s%s;" % (
