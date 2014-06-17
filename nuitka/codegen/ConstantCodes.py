@@ -23,8 +23,13 @@ import ctypes
 import re
 import struct
 
+import marshal
 from nuitka.__past__ import iterItems, long, unicode  # pylint: disable=W0622
-from nuitka.Constants import constant_builtin_types, isMutable
+from nuitka.Constants import (
+    constant_builtin_types,
+    getConstantWeight,
+    isMutable
+)
 
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
@@ -128,6 +133,38 @@ def _getConstantInitValueCode(context, constant_value, constant_type):
         )
 
 
+def isMarshalConstant(constant_value):
+    if getConstantWeight(constant_value) < 20:
+        return False
+
+    marshal_value = marshal.dumps(constant_value)
+    restored = marshal.loads(marshal_value)
+
+    return constant_value == restored
+
+
+def attemptToMarshal(constant_identifier, constant_value, emit):
+    # Only do it for sufficiently large constants, typically tuples of 20
+    # elements, or dicts of more than 10.
+    if getConstantWeight(constant_value) < 20:
+        return False
+
+    marshal_value = marshal.dumps(constant_value)
+    restored = marshal.loads(marshal_value)
+
+    if constant_value != restored:
+        return False
+
+    emit(
+        """%s = PyMarshal_ReadObjectFromString( (char *)%s );""" % (
+            constant_identifier,
+            stream_data.getStreamDataCode(marshal_value)
+        )
+    )
+
+    return True
+
+
 def _addConstantInitCode(context, emit, constant_type, constant_value,
                          constant_identifier, module_level):
     # This has many cases, that all return, and do a lot.
@@ -152,7 +189,6 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
     else:
         if context.getConstantUseCount(constant_identifier) == 1:
             return
-
 
     done.add(constant_identifier)
 
@@ -288,6 +324,9 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     if constant_type is dict:
+        if attemptToMarshal(constant_identifier, constant_value, emit):
+            return
+
         emit(
             "%s = _PyDict_NewPresized( %d );" % (
                 constant_identifier,
@@ -327,6 +366,9 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     if constant_type is tuple:
+        if attemptToMarshal(constant_identifier, constant_value, emit):
+            return
+
         emit(
             "%s = PyTuple_New( %d );" % (
                 constant_identifier,
@@ -365,6 +407,9 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     if constant_type is list:
+        if attemptToMarshal(constant_identifier, constant_value, emit):
+            return
+
         emit(
             "%s = PyList_New( %d );" % (
                 constant_identifier,
@@ -400,7 +445,10 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     if constant_type is set:
-        emit( "%s = PySet_New( NULL );" % constant_identifier )
+        if attemptToMarshal(constant_identifier, constant_value, emit):
+            return
+
+        emit("%s = PySet_New( NULL );" % constant_identifier)
 
         for element_value in constant_value:
             element_name = getConstantCodeName(
@@ -409,13 +457,13 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
             )
 
             _addConstantInitCode(
-                    emit                = emit,
-                    constant_type       = type(element_value),
-                    constant_value      = element_value,
-                    constant_identifier = element_name,
-                    module_level        = module_level,
-                    context             = context
-                )
+                emit                = emit,
+                constant_type       = type(element_value),
+                constant_value      = element_value,
+                constant_identifier = element_name,
+                module_level        = module_level,
+                context             = context
+            )
 
             emit(
                 "PySet_Add( %s, %s );" % (
@@ -427,7 +475,10 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     if constant_type in (frozenset, complex, unicode, long, range):
-        emit( _getUnstreamCode( constant_value, constant_identifier ) )
+        if attemptToMarshal(constant_identifier, constant_value, emit):
+            return
+
+        emit(_getUnstreamCode(constant_value, constant_identifier))
 
         return
 
@@ -645,6 +696,9 @@ def getConstantInitCodes(module_context):
 
 def allocateNestedConstants(module_context):
     def considerForDeferral(constant_value):
+        if isMarshalConstant(constant_value):
+            return
+
         module_context.getConstantCode(constant_value)
 
         constant_type = type(constant_value)

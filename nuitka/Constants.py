@@ -214,3 +214,28 @@ def createConstantDict(keys, values, lazy_order):
         constant_value[ key ] = value
 
     return constant_value
+
+
+def getConstantWeight(constant):
+    # Too many cases and all return, that is how we do it here,
+    # pylint: disable=R0911,R0912
+
+    constant_type = type(constant)
+
+    if constant_type is dict:
+        result = 0
+
+        for key, value in iterItems(constant):
+            result += getConstantWeight(key)
+            result += getConstantWeight(value)
+
+        return result
+    elif constant_type in (tuple, list, set, frozenset):
+        result = 0
+
+        for element_value in constant:
+            result += getConstantWeight(element_value)
+
+        return result
+    else:
+        return 1

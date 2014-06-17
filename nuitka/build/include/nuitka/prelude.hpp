@@ -40,6 +40,7 @@
 #include "methodobject.h"
 #include "frameobject.h"
 #include "pydebug.h"
+#include "marshal.h"
 
 #if PYTHON_VERSION < 300
 #undef initproc
