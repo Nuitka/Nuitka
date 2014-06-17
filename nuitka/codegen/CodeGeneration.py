@@ -3627,7 +3627,7 @@ def generateGeneratorReturnCode(statement, emit, context):
             unique = True
         )
 
-        emit("%s = false;" % generator_return_name)
+        emit("%s = true;" % generator_return_name)
 
     Generator.getGotoCode(context.getReturnTarget(), emit)
 
