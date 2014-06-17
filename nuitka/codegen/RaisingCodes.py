@@ -26,7 +26,11 @@ def getReRaiseExceptionCode(emit, context):
         emit(
             "RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
         )
-
+        emit(
+            "if (exception_tb && exception_tb->tb_frame == %(frame_identifier)s) %(frame_identifier)s->f_lineno = exception_tb->tb_lineno;" % {
+                "frame_identifier" : context.getFrameHandle()
+            }
+        )
     emit(
         "goto %s;" % context.getExceptionEscape()
     )
