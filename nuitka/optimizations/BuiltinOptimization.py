@@ -62,10 +62,10 @@ class BuiltinParameterSpec(ParameterSpec):
         # fatal, pylint: disable=W0142,W0703
 
         try:
-            given_normal_args = given_values[ : len( self.normal_args ) ]
+            given_normal_args = given_values[:len(self.normal_args)]
 
             if self.list_star_arg:
-                given_list_star_args = given_values[ len( self.normal_args ) ]
+                given_list_star_args = given_values[len( self.normal_args )]
             else:
                 given_list_star_args = None
 
@@ -85,13 +85,13 @@ class BuiltinParameterSpec(ParameterSpec):
 
             if given_dict_star_args:
                 for given_dict_star_arg in reversed(given_dict_star_args):
-                    arg_name = given_dict_star_arg.getKey()
-                    arg_value = given_dict_star_arg.getValue()
+                    arg_name = given_dict_star_arg.getKey().getCompileTimeConstant()
+                    arg_value = given_dict_star_arg.getValue().getCompileTimeConstant()
 
-                    arg_dict[ arg_name.getCompileTimeConstant() ] = arg_value.getCompileTimeConstant()
+                    arg_dict[arg_name] = arg_value
 
         except Exception as e:
-            sys.exit( "Fatal problem: %r" % e )
+            sys.exit("Fatal problem: %r" % e)
 
         if given_list_star_args:
             return self.builtin(
@@ -99,7 +99,7 @@ class BuiltinParameterSpec(ParameterSpec):
                 **arg_dict
             )
         else:
-            return self.builtin( **arg_dict )
+            return self.builtin(**arg_dict)
 
 
 class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):

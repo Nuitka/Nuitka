@@ -312,7 +312,9 @@ def _buildClassNode3(provider, node, source_ref):
         decorated_body = ExpressionCallNoKeywords(
             called     = decorator,
             args       = ExpressionMakeTuple(
-                elements   = ( decorated_body, ),
+                elements   = (
+                    decorated_body,
+                ),
                 source_ref = source_ref
             ),
             source_ref = decorator.getSourceReference()
@@ -349,7 +351,7 @@ def _buildClassNode3(provider, node, source_ref):
                     node.keywords
                 ],
                 values = [
-                    buildNode( provider, keyword.value, source_ref )
+                    buildNode(provider, keyword.value, source_ref)
                     for keyword in
                     node.keywords
                 ],
@@ -396,7 +398,7 @@ def _buildClassNode3(provider, node, source_ref):
                     ),
                     no_expression  = ExpressionConditional(
                         condition      = ExpressionTempVariableRef(
-                            variable   = tmp_bases.makeReference( provider ),
+                            variable   = tmp_bases.makeReference(provider),
                             source_ref = source_ref
                         ),
                         no_expression  = ExpressionBuiltinRef(
@@ -425,7 +427,7 @@ def _buildClassNode3(provider, node, source_ref):
                     source_ref     = source_ref
                 ),
                 bases     = ExpressionTempVariableRef(
-                    variable   = tmp_bases.makeReference( provider ),
+                    variable   = tmp_bases.makeReference(provider),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -546,7 +548,7 @@ def _buildClassNode3(provider, node, source_ref):
     final = (
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_bases.makeReference( provider ),
+                variable   = tmp_bases.makeReference(provider),
                 source_ref = source_ref
             ),
             tolerant   = True,
@@ -570,7 +572,7 @@ def _buildClassNode3(provider, node, source_ref):
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_prepared.makeReference( provider ),
+                variable   = tmp_prepared.makeReference(provider),
                 source_ref = source_ref
             ),
             tolerant   = True,

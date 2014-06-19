@@ -82,11 +82,11 @@ def f():
 f()
 
 def displayDict(d):
-    d = dict(d)
     if "__loader__" in d:
-        d[ "__loader__" ] = "<loader removed>"
+        d = dict(d)
+        d["__loader__"] = "<loader removed>"
 
-    return repr( d )
+    return repr(d)
 
 print("Module frame locals", displayDict(sys._getframe().f_locals))
 print("Module flags", sys._getframe().f_code.co_flags)

@@ -28,65 +28,65 @@ print( "Default simple case", kwonlysimpledefaulted() )
 
 
 def default1():
-    print( "Called", default1 )
+    print("Called", default1)
     return 1
 
 def default2():
-    print( "Called", default2 )
+    print("Called", default2)
 
     return 2
 
 def default3():
-    print( "Called", default3 )
+    print("Called", default3)
     return 3
 
 def default4():
-    print( "Called", default4 )
+    print("Called", default4)
 
     return 4
 
 def annotation1():
-    print ( "Called", annotation1 )
+    print("Called", annotation1)
 
     return "a1"
 
 def annotation2():
-    print ( "Called", annotation2 )
+    print("Called", annotation2)
 
     return "a2"
 
 def annotation3():
-    print ( "Called", annotation3 )
+    print("Called", annotation3)
 
     return "a3"
 
 def annotation4():
-    print ( "Called", annotation4 )
+    print("Called", annotation4)
 
     return "a4"
 
 def annotation5():
-    print ( "Called", annotation5 )
+    print("Called", annotation5)
 
     return "a5"
 
 def annotation6():
-    print ( "Called", annotation6 )
+    print("Called", annotation6)
 
     return "a6"
 
 def annotation7():
-    print ( "Called", annotation7 )
+    print("Called", annotation7)
 
     return "a7"
 
 def annotation8():
-    print ( "Called", annotation8 )
+    print("Called", annotation8)
 
     return "a8"
 
 def annotation9():
-    print ( "Called", annotation9 )
+    print("Called", annotation9)
 
     return "a9"
 

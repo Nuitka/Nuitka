@@ -66,9 +66,9 @@ if "PYTHONHASHSEED" not in os.environ:
 if "PYTHON" not in os.environ:
     os.environ["PYTHON"] = sys.executable
 
-if python_debug and os.path.exists(os.path.join("/usr/bin/",
-                                   os.environ["PYTHON"] + "-dbg")):
-    os.environ["PYTHON"] += "-dbg"
+if python_debug:
+    if os.path.exists(os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")):
+        os.environ["PYTHON"] += "-dbg"
 
 if os.environ["PYTHON"].endswith("-dbg"):
     python_debug = True
