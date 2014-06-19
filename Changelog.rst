@@ -30,16 +30,23 @@ New Optimization
   code. Explicit temporary objects are now used for statement temporary
   variables.
 
-- Exception handling no longer uses C++ exception, therefore has become much
-  faster.
-
 - The constants creation code is no more in a single file, but distributed
   across all modules, with only shared values created in a single file. This
   means improved scalability. There are remaining bad modules, but more often,
   standalone mode is now fast.
 
+- Exception handling no longer uses C++ exception, therefore has become much
+  faster.
+
+- Loops that only break are eliminated.
+
+- Dead code after loops that do not break is now removed.
+
 - The ``try``/``finally`` and ``try``/``except`` constructs are now eliminated,
   where that is possible.
+
+- The ``try``/``finally`` part of the re-formulation for ``print`` statements is
+  now only done when printing to a file, avoiding useless node tree bloat.
 
 - Tuples and lists are now generated with faster code.
 
@@ -48,6 +55,17 @@ New Optimization
 - Added support for the anonymous ``code`` type built-in.
 
 - Added support for ``compile`` built-in.
+
+- Generators that statically return immediately, e.g. due to optimization
+  results, are no longer using frame objects.
+
+- The complex call helpers use no pseudo frames anymore. Previous code
+  generation required to have them, but with C-ish code generation that is no
+  more necessary, speeding up those kind of calls.
+
+- Modules with only code that cannot raise, need not have a frame created for
+  them. This avoids useless code size bloat because of them. Previously the
+  frame stack entry was mandatory.
 
 Bug Fixes
 ---------
@@ -109,6 +127,12 @@ Bug Fixes
 - Windows: For Python3.2 and 64 bits, global variable accesses could give false
   ``NameError`` exceptions. Fixed in 0.5.1.6 already.
 
+- Compatibility: Many ``exec`` and ``eval`` details have become more correctly,
+  the argument handling is more compatible, and e.g. future flags are now passed
+  along properly.
+
+- Compatibility: Using ``open`` with no arguments is now giving the same error.
+
 Organizational
 --------------
 
@@ -138,10 +162,11 @@ Organizational
 Cleanups
 --------
 
+- Temp keeper variables and the nodes to handle them are now unified with normal
+  temporary variables, greatly simplifying variable handling on that level.
+
 - Less code is coming from templates, more is actually derived from the node
   tree instead.
-
-- Temp keeper variables are now unified with normal temporary variables.
 
 - Releasing the references to temporary variables is now always explicit in the
   node tree.
@@ -151,6 +176,9 @@ Cleanups
 
 - Exception handling is now done with a single handle that checks with branches
   on the exception. This eliminates exception handler nodes.
+
+- The ``dir`` built-in with no arguments is now re-formulated to ``locals`` or
+  ``globals`` with their ``.keys()`` attribute taken.
 
 - Dramatic amounts of cleanups to code generation specialties, that got done
   right for the new C-ish code generation.
