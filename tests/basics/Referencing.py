@@ -643,6 +643,20 @@ def simpleFunction75():
         except MyException:
             pass
 
+def simpleFunction76():
+    class weirdstr(str):
+        def __getitem__(self, index):
+            return weirdstr(str.__getitem__(self, index))
+
+    (weirdstr("1234"))
+    # filter(lambda x: x>="33", weirdstr("1234"))
+
+
+def simpleFunction77():
+    a = "x = 2"
+    exec(a)
+
+
 x = 17
 
 m1 = {}
@@ -815,3 +829,7 @@ checkReferenceCount(simpleFunction72)
 checkReferenceCount(simpleFunction73)
 checkReferenceCount(simpleFunction74)
 checkReferenceCount(simpleFunction75)
+# TODO: The class taking a closure of itself, causes a reference leak, that
+# we accept for now.
+# checkReferenceCount( simpleFunction76 )
+checkReferenceCount(simpleFunction77)

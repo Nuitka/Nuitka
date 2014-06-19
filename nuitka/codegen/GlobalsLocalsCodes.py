@@ -235,6 +235,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
             emit( "if (%s != NULL)" % value_name )
             emit( "{" )
 
+            context.addCleanupTempName(value_name)
             getVariableAssignmentCode(
                 variable   = variable,
                 tmp_name   = value_name,
