@@ -173,6 +173,9 @@ for filename in sorted(os.listdir(".")):
             if loaded_filename.startswith("/dev/"):
                 continue
 
+            if loaded_filename.startswith("/tmp/"):
+                continue
+
             if loaded_filename.startswith("/usr/lib/locale/"):
                 continue
 
