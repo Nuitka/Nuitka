@@ -20,7 +20,7 @@
 from nuitka.Utils import python_version
 
 from .ConstantCodes import getConstantCode
-from .ErrorCodes import getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getErrorExitCode, getReleaseCodes, getReleaseCode
 from .GlobalsLocalsCodes import getStoreLocalsCode
 
 
@@ -139,7 +139,7 @@ def getExecCode(source_name, globals_name, filename_name, locals_name,
     )
 
     getReleaseCodes(
-        release_names = (to_name, compiled_name, globals_name, locals_name),
+        release_names = (compiled_name, globals_name, locals_name),
         emit          = emit,
         context       = context
     )
@@ -150,7 +150,15 @@ def getExecCode(source_name, globals_name, filename_name, locals_name,
         context    = context
     )
 
-    if store_back:
+    # Immediately release the exec result.
+    context.addCleanupTempName(to_name)
+    getReleaseCode(
+        release_name = to_name,
+        emit         = emit,
+        context      = context
+    )
+
+    if store_back :
         locals_source = context.allocateTempName("locals_source", unique = True)
 
         emit(
