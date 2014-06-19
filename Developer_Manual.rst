@@ -1925,6 +1925,12 @@ For these, not ``sys.exc_info()`` is used, instead there are special nodes
 dedicated to these values: ``CaughtExceptionTypeRef`` and
 ``CaughtExceptionValueRef``.
 
+Call to ``dir`` without arguments
+---------------------------------
+
+This expression is reformulated to ``locals().keys()`` for Python2, and
+``list(locals.keys())``.
+
 
 Hard Module Imports
 -------------------
