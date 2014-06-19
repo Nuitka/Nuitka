@@ -71,6 +71,8 @@ def getBuiltinDict2Code(to_name, seq_name, dict_name, emit, context):
             emit       = emit,
             context    = context
         )
+
+        context.addCleanupTempName(to_name)
     else:
         # TODO: This could be avoided entirely, but it's only an alias, so we
         # leave it to the C++ compiler for now.
