@@ -74,26 +74,19 @@ static char const *GET_CLASS_NAME( PyObject *klass )
     }
     else
     {
-        PyObject *name = PyObject_GetAttr( klass, const_str_plain___name__ );
-
-        if (unlikely( name == NULL ))
+#if PYTHON_VERSION < 300
+        if ( PyClass_Check( klass ) )
         {
-            PyErr_Clear();
-            return "?";
+            return Nuitka_String_AsString( ((PyClassObject *)klass)->cl_name );
         }
-        else
+#endif
+
+        if ( !PyType_Check( klass ) )
         {
-            if ( !Nuitka_String_Check( name ) )
-            {
-                Py_DECREF( name );
-                return "?";
-            }
-
-            char *const result = Nuitka_String_AsString_Unchecked( name );
-            Py_DECREF( name );
-
-            return result;
+            klass = (PyObject *)Py_TYPE( klass );
         }
+
+        return ((PyTypeObject *)klass)->tp_name;
     }
 }
 
