@@ -19,12 +19,12 @@
 def kwonlysimple(*, a):
     return a
 
-print( "Most simple case", kwonlysimple( a = 3 ) )
+print( "Keyword only function case: ", kwonlysimple( a = 3 ) )
 
 def kwonlysimpledefaulted(*, a = 5):
     return a
 
-print( "Default simple case", kwonlysimpledefaulted() )
+print( "Keyword only function, using default value: ", kwonlysimpledefaulted() )
 
 
 def default1():
@@ -89,6 +89,8 @@ def annotation9():
     print("Called", annotation9)
 
     return "a9"
+
+print("Defining function with annotations, and defaults as functions for everything:")
 
 def kwonlyfunc(x: annotation1(), y: annotation2() = default1(), z: annotation3() = default2(), *, a: annotation4(), b: annotation5() = default3(), c: annotation6() = default4(), d: annotation7(), **kw: annotation8()) -> annotation9():
     print( x, y, z, a, b, c, d )

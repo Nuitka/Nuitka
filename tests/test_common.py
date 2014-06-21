@@ -61,6 +61,16 @@ def setup(needs_io_encoding = False, silent = False):
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
 
+    # Allow providing 33, 27, and expand that to python2.7
+    if len(os.environ["PYTHON"]) == 2 and \
+       os.environ["PYTHON"].isdigit() and \
+       os.name != "nt":
+
+        os.environ["PYTHON"] = "python%s.%s" % (
+            os.environ["PYTHON"][0],
+            os.environ["PYTHON"][1]
+        )
+
     if needs_io_encoding and "PYTHONIOENCODING" not in os.environ:
         os.environ["PYTHONIOENCODING"] = "utf-8"
 

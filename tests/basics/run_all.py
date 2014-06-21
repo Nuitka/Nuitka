@@ -82,7 +82,6 @@ for filename in sorted(os.listdir(".")):
     # This test should be run with the debug Python, and makes outputs to
     # standard error that might be ignored.
     if filename.startswith( "Referencing" ):
-        extra_flags.append( "ignore_stderr" )
         extra_flags.append( "python_debug" )
 
     # This tests warns about __import__() used.
@@ -90,23 +89,15 @@ for filename in sorted(os.listdir(".")):
         extra_flags.append( "ignore_stderr" )
 
     # TODO: Nuitka does not give output for ignored exception in dtor, this is
-    # not fully compatible and potentially in error.
+    # not fully compatible and potentially an error.
     if filename == "YieldFrom33.py":
-        extra_flags.append( "ignore_stderr" )
+        extra_flags.append("ignore_stderr")
 
     # These tests don't work with 3.4 yet, and the list is considered the major
     # TODO for 3.4 support.
     skips_34 = (
         # The "__class__" doesn't work as expected.
         "BuiltinSuper.py",
-
-        # Calling dict built-in in compile time optimizable form gives different
-        # order
-        "BuiltinsTest.py",
-
-        # Metaclasses extra arguments seem to be lost/gained, unsure about the
-        # change.
-        "Classes32.py",
 
         # Dictionary order changes from star args usages
         "Constants.py",
@@ -120,8 +111,8 @@ for filename in sorted(os.listdir(".")):
     )
 
     if active:
-        if filename.startswith( "Referencing" ) and not hasDebugPython():
-            my_print( "Skipped (no debug Python)" )
+        if filename.startswith("Referencing") and not hasDebugPython():
+            my_print("Skipped (no debug Python)")
             continue
 
         needs_2to3 = python_version.startswith("3") and \
