@@ -24,7 +24,9 @@ from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 from .ConstantRefNodes import ExpressionConstantRef
 from .ContainerMakingNodes import ExpressionKeyValuePair
 from .NodeBases import ExpressionChildrenHavingBase
+from .NodeMakingHelpers import makeConstantReplacementNode
 
+from nuitka.Utils import python_version
 
 class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_DICT"
@@ -82,6 +84,23 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 pos_args = (
                     pos_arg,
                 )
+            elif python_version >= 340:
+                # Doing this here, because calling dict built-in apparently
+                # mutates existing dictionaries in Python 3.4
+                result = {}
+
+                for pair in reversed(self.getNamedArgumentPairs()):
+                    arg_name = pair.getKey().getCompileTimeConstant()
+                    arg_value = pair.getValue().getCompileTimeConstant()
+
+                    result[arg_name] = arg_value
+
+                new_node = makeConstantReplacementNode(
+                    constant = result,
+                    node     = self
+                )
+
+                return new_node, "new_expression", "Replace dict call with constant arguments."
             else:
                 pos_args = None
 
