@@ -93,7 +93,9 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
 class StatementSetLocals(StatementChildrenHavingBase):
     kind = "STATEMENT_SET_LOCALS"
 
-    named_children = ( "new_locals", )
+    named_children = (
+        "new_locals",
+    )
 
     def __init__(self, new_locals, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -107,18 +109,22 @@ class StatementSetLocals(StatementChildrenHavingBase):
     def needsLocalsDict(self):
         return True
 
-    getNewLocals = StatementChildrenHavingBase.childGetter( "new_locals" )
+    def mayRaiseException(self, exception_type):
+        return self.getNewLocals().mayRaiseException(exception_type)
+
+    getNewLocals = StatementChildrenHavingBase.childGetter("new_locals")
 
     def computeStatement(self, constraint_collection):
         # Make sure that we don't even assume "unset" of things not set yet for
         # anything.
         constraint_collection.removeAllKnowledge()
 
-        constraint_collection.onExpression( self.getNewLocals() )
+        constraint_collection.onExpression(self.getNewLocals())
         new_locals = self.getNewLocals()
 
-        if new_locals.willRaiseException( BaseException ):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+        if new_locals.willRaiseException(BaseException):
+            from .NodeMakingHelpers import \
+               makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = new_locals,

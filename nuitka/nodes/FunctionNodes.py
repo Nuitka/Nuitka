@@ -42,11 +42,11 @@ from .NodeBases import (
 from .ParameterSpecs import TooManyArguments, matchCall
 
 
-class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
-                              ParameterHavingNodeBase, ExpressionMixin,
-                              MarkGeneratorIndicator,
-                              MarkLocalsDictIndicator,
-                              MarkUnoptimizedFunctionIndicator ):
+class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
+                             ParameterHavingNodeBase, ExpressionMixin,
+                             MarkGeneratorIndicator,
+                             MarkLocalsDictIndicator,
+                             MarkUnoptimizedFunctionIndicator):
     # We really want these many ancestors, as per design, we add properties via
     # base class mixins a lot, pylint: disable=R0901
 
@@ -410,7 +410,7 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
 
             return (
                 result,
-                "new_statements", # TODO: More appropiate tag maybe.
+                "new_statements", # TODO: More appropriate tag maybe.
                 """Replaced call to created function body '%s' with direct \
 function call""" % self.getName()
             )
@@ -432,14 +432,14 @@ function call""" % self.getName()
 
             return (
                 result,
-                "new_statements,new_raise", # TODO: More appropiate tag maybe.
+                "new_statements,new_raise", # TODO: More appropriate tag maybe.
                 """Replaced call to created function body '%s' to argument \
 error""" % self.getName()
             )
 
 
     def isCompileTimeConstant(self):
-        # TODO: It's actually pretty much compile time accessible mayhaps.
+        # TODO: It's actually pretty much compile time accessible maybe.
         return None
 
     def mayHaveSideEffects(self):
@@ -514,8 +514,8 @@ class ExpressionFunctionCreation( SideEffectsFromChildrenMixin,
         "kw_defaults" : convertNoneConstantOrEmptyDictToNone,
     }
 
-    def __init__( self, function_ref, defaults, kw_defaults, annotations,
-                  source_ref ):
+    def __init__(self, function_ref, defaults, kw_defaults, annotations,
+                 source_ref):
         assert kw_defaults is None or kw_defaults.isExpression()
         assert annotations is None or annotations.isExpression()
         assert function_ref.isExpressionFunctionRef()
@@ -523,22 +523,23 @@ class ExpressionFunctionCreation( SideEffectsFromChildrenMixin,
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "function_ref"  : function_ref,
-                "defaults"      : tuple(defaults),
-                "kw_defaults"   : kw_defaults,
-                "annotations"   : annotations
+                "function_ref" : function_ref,
+                "defaults"     : tuple(defaults),
+                "kw_defaults"  : kw_defaults,
+                "annotations"  : annotations
             },
             source_ref = source_ref
         )
 
     def computeExpression(self, constraint_collection):
-        # TODO: Function body may know something.
+        # TODO: Function body may know something, creation of defaults may
+        # raise, etc.
         return self, None, None
 
-    getFunctionRef = ExpressionChildrenHavingBase.childGetter( "function_ref" )
-    getDefaults = ExpressionChildrenHavingBase.childGetter( "defaults" )
-    getKwDefaults = ExpressionChildrenHavingBase.childGetter( "kw_defaults" )
-    getAnnotations = ExpressionChildrenHavingBase.childGetter( "annotations" )
+    getFunctionRef = ExpressionChildrenHavingBase.childGetter("function_ref")
+    getDefaults = ExpressionChildrenHavingBase.childGetter("defaults")
+    getKwDefaults = ExpressionChildrenHavingBase.childGetter("kw_defaults")
+    getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
     def mayRaiseException(self, exception_type):
         return True

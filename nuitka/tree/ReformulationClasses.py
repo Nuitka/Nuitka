@@ -170,7 +170,7 @@ def _buildClassNode3(provider, node, source_ref):
                 source_ref    = source_ref,
                 user_provided = True
             ),
-            source_ref   = source_ref.atInternal()
+            source_ref   = source_ref
         )
     ]
 
@@ -886,8 +886,8 @@ def buildClassNode(provider, node, source_ref):
 
     try:
         if Utils.python_version >= 300:
-            return _buildClassNode3( provider, node, source_ref )
+            return _buildClassNode3(provider, node, source_ref)
         else:
-            return _buildClassNode2( provider, node, source_ref )
+            return _buildClassNode2(provider, node, source_ref)
     finally:
         popIndicatorVariable()
