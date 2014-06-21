@@ -145,6 +145,29 @@ def generateSetCreationCode(to_name, elements, emit, context):
 
 
 def generateDictionaryCreationCode(to_name, pairs, emit, context):
+    if Options.isFullCompat() and Utils.python_version >= 340:
+        return _generateDictionaryCreationCode340(
+            to_name = to_name,
+            pairs   = pairs,
+            emit    = emit,
+            context = context
+        )
+    else:
+        return _generateDictionaryCreationCode(
+            to_name = to_name,
+            pairs   = pairs,
+            emit    = emit,
+            context = context
+        )
+
+
+def _generateDictionaryCreationCode340(to_name, pairs, emit, context):
+
+    # Note: This is only for Python3.4 full compatibility, it's worse than for
+    # the other versions, and only to be used if that level of compatibility is
+    # requested. It is to avoid changes in dictionary items order that are
+    # normal with random hashing.
+
     emit(
         "%s = _PyDict_NewPresized( %d );" % (
             to_name,
@@ -154,12 +177,69 @@ def generateDictionaryCreationCode(to_name, pairs, emit, context):
 
     context.addCleanupTempName(to_name)
 
-    dict_key_name = context.allocateTempName("dict_key")
-    dict_value_name = context.allocateTempName("dict_value")
+    dict_key_names = []
+    dict_value_names = []
 
     # Strange as it is, CPython evalutes the key/value pairs strictly in order,
     # but for each pair, the value first.
     for pair in pairs:
+        dict_key_name = context.allocateTempName("dict_key")
+        dict_value_name = context.allocateTempName("dict_value")
+
+        generateExpressionCode(
+            to_name    = dict_value_name,
+            expression = pair.getValue(),
+            emit       = emit,
+            context    = context
+        )
+
+        generateExpressionCode(
+            to_name    = dict_key_name,
+            expression = pair.getKey(),
+            emit       = emit,
+            context    = context
+        )
+
+        dict_key_names.append(dict_key_name)
+        dict_value_names.append(dict_value_name)
+
+    for dict_key_name, dict_value_name in zip(reversed(dict_key_names), reversed(dict_value_names)):
+        emit(
+            "PyDict_SetItem( %s, %s, %s );" % (
+                to_name,
+                dict_key_name,
+                dict_value_name
+            )
+        )
+
+        if context.needsCleanup(dict_value_name):
+            emit("Py_DECREF( %s );" % dict_value_name)
+            context.removeCleanupTempName(dict_value_name)
+
+        if context.needsCleanup(dict_key_name):
+            emit("Py_DECREF( %s );" % dict_key_name)
+            context.removeCleanupTempName(dict_key_name)
+
+
+def _generateDictionaryCreationCode(to_name, pairs, emit, context):
+    emit(
+        "%s = _PyDict_NewPresized( %d );" % (
+            to_name,
+            len(pairs)
+        )
+    )
+
+    context.addCleanupTempName(to_name)
+
+    dict_key_names = []
+    dict_value_names = []
+
+    # Strange as it is, CPython evalutes the key/value pairs strictly in order,
+    # but for each pair, the value first.
+    for pair in pairs:
+        dict_key_name = context.allocateTempName("dict_key")
+        dict_value_name = context.allocateTempName("dict_value")
+
         generateExpressionCode(
             to_name    = dict_value_name,
             expression = pair.getValue(),
