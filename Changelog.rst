@@ -139,7 +139,11 @@ Organizational
 - Replying to emails of the `issue tracker <http://bugs.nuitka.net>`__ works
   now.
 
-- Added alias ``--xml`` for ``--dump-xml``.
+- Added option name alias ``--xml`` for ``--dump-xml``.
+
+- Added option name alias ``--python-dbg`` for ``--python-debug``, which
+  actually might make it a bit more clear that it is about using the CPython
+  debug run time.
 
 - Remove option ``--dump-tree``, it had been broken for a long time and unused
   in favor of XML dumps.
