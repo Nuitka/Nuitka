@@ -237,7 +237,7 @@ parser.add_option(
 )
 
 parser.add_option(
-    "--python-debug",
+    "--python-debug", "--python-dbg",
     action  = "store_true",
     dest    = "python_debug",
     default = None,
