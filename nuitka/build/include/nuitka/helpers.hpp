@@ -304,7 +304,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_BOOL( PyObject *value )
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *encoding, PyObject *errors )
 {
-    assertObject( encoding );
+    assertObject( value );
+    if ( encoding ) assertObject( encoding );
+    if ( errors ) assertObject( errors );
 
     char *encoding_str;
 

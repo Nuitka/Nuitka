@@ -2949,7 +2949,6 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     if handler_start_target is not None:
         Generator.getLabelCode(handler_start_target,emit)
 
-
     # For the try/finally expression, we allow that the tried block may in fact
     # not raise, continue, or break at all, but it would merely be there to do
     # something before an expression. Kind of as a side effect. To address that

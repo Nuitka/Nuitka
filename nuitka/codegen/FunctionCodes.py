@@ -702,6 +702,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     # occur.
     if context.hasTempName("generator_return"):
         function_locals.append("tmp_generator_return = false;")
+    if context.hasTempName("return_value"):
+        function_locals.append("tmp_return_value = NULL;")
 
     if needs_exception_exit:
         generator_exit = CodeTemplates.template_generator_exception_exit % {}
