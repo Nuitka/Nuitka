@@ -111,9 +111,6 @@ for filename in sorted(os.listdir(".")):
         # Dictionary order changes from star args usages
         "Constants.py",
 
-        # kwdefaults have different order.
-        "Functions32.py",
-
         # Too little attributes for generator objects, "__del__" is missing it
         # seems.
         "GeneratorExpressions.py",

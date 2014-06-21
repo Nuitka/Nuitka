@@ -497,9 +497,18 @@ class ExpressionFunctionCreation( SideEffectsFromChildrenMixin,
     # Note: The order of evaluation for these is a bit unexpected, but
     # true. Keyword defaults go first, then normal defaults, and annotations of
     # all kinds go last.
-    named_children = (
-        "kw_defaults", "defaults", "annotations", "function_ref"
-    )
+
+    # A bug of CPython3.x not fixed before version 3.4, see bugs.python.org/issue16967
+    kw_defaults_before_defaults = Utils.python_version < 340
+
+    if kw_defaults_before_defaults:
+        named_children = (
+            "kw_defaults", "defaults", "annotations", "function_ref"
+        )
+    else:
+        named_children = (
+            "defaults", "kw_defaults", "annotations", "function_ref"
+        )
 
     checkers   = {
         "kw_defaults" : convertNoneConstantOrEmptyDictToNone,

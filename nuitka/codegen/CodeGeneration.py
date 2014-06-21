@@ -443,37 +443,50 @@ _generated_functions = {}
 
 
 def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
-                                  annotations, emit, context):
+                                  annotations, defaults_first, emit, context):
     assert function_body.needsCreation(), function_body
 
     parameters = function_body.getParameters()
 
-    if kw_defaults:
-        kw_defaults_name = context.allocateTempName("kw_defaults")
+    def handleKwDefaults():
+        if kw_defaults:
+            kw_defaults_name = context.allocateTempName("kw_defaults")
 
-        assert not kw_defaults.isExpressionConstantRef() or \
-               not kw_defaults.getConstant() == {}, kw_defaults.getConstant()
+            assert not kw_defaults.isExpressionConstantRef() or \
+                   not kw_defaults.getConstant() == {}, kw_defaults.getConstant()
 
-        generateExpressionCode(
-            to_name    = kw_defaults_name,
-            expression = kw_defaults,
-            emit       = emit,
-            context    = context
-        )
+            generateExpressionCode(
+                to_name    = kw_defaults_name,
+                expression = kw_defaults,
+                emit       = emit,
+                context    = context
+            )
+        else:
+            kw_defaults_name = None
+
+        return kw_defaults_name
+
+    def handleDefaults():
+        if defaults:
+            defaults_name = context.allocateTempName("defaults")
+
+            generateTupleCreationCode(
+                to_name  = defaults_name,
+                elements = defaults,
+                emit     = emit,
+                context  = context
+            )
+        else:
+            defaults_name = None
+
+        return defaults_name
+
+    if defaults_first:
+        defaults_name = handleDefaults()
+        kw_defaults_name = handleKwDefaults()
     else:
-        kw_defaults_name = None
-
-    if defaults:
-        defaults_name = context.allocateTempName("defaults")
-
-        generateTupleCreationCode(
-            to_name  = defaults_name,
-            elements = defaults,
-            emit     = emit,
-            context  = context
-        )
-    else:
-        defaults_name = None
+        kw_defaults_name = handleKwDefaults()
+        defaults_name = handleDefaults()
 
     if annotations:
         annotations_name = context.allocateTempName("annotations")
@@ -1254,6 +1267,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             defaults       = expression.getDefaults(),
             kw_defaults    = expression.getKwDefaults(),
             annotations    = expression.getAnnotations(),
+            defaults_first = not expression.kw_defaults_before_defaults,
             emit           = emit,
             context        = context
         )
