@@ -101,11 +101,9 @@ assert options.no_branch_check or branch_name in (
     b"hotfix/" + nuitka_version
 ), branch_name
 
-def checkChangeLog( message ):
-    for line in open( "debian/changelog" ):
-        print line,
-
-        if line.startswith( " --" ):
+def checkDebianChangeLog(message):
+    for line in open("debian/changelog"):
+        if line.startswith(" --"):
             return False
 
         if message in line:
@@ -113,28 +111,39 @@ def checkChangeLog( message ):
     else:
         assert False, message # No new messages.
 
-if branch_name.startswith( "release" ) or \
-   branch_name == "master" or \
-   branch_name.startswith( "hotfix/" ):
-    if nuitka_version.count( "." ) == 2:
-        assert checkChangeLog( "New upstream release." )
-    else:
-        assert checkChangeLog( "New upstream hotfix release." )
-else:
-    assert checkChangeLog( "New upstream pre-release." )
+def checkNuitkaChangelog():
+    first_line = open("Changelog.rst").readline()
 
-shutil.rmtree( "dist", ignore_errors = True )
-shutil.rmtree( "build", ignore_errors = True )
+    if "(Draft)" in first_line:
+        return "draft"
+    else:
+        return "final"
+
+if branch_name.startswith("release") or \
+   branch_name == "master" or \
+   branch_name.startswith("hotfix/"):
+    if nuitka_version.count(".") == 2:
+        assert checkDebianChangeLog("New upstream release.")
+    else:
+        assert checkDebianChangeLog("New upstream hotfix release.")
+
+    assert checkNuitkaChangelog() == "final", checkNuitkaChangelog()
+else:
+    assert checkDebianChangeLog("New upstream pre-release.")
+    assert checkNuitkaChangelog() == "draft", checkNuitkaChangelog()
+
+shutil.rmtree("dist", ignore_errors = True)
+shutil.rmtree("build", ignore_errors = True)
 
 assert 0 == os.system( "python setup.py sdist --formats=bztar,gztar,zip" )
 
-os.chdir( "dist" )
+os.chdir("dist")
 
 # Clean the stage for the debian package. The name "deb_dist" is what "py2dsc"
 # uses for its output later on.
 
-if os.path.exists( "deb_dist" ):
-    shutil.rmtree( "deb_dist" )
+if os.path.exists("deb_dist"):
+    shutil.rmtree("deb_dist")
 
 # Provide a re-packed tar.gz for the Debian package as input.
 
