@@ -28,8 +28,8 @@ from . import Utils
 
 class Variable:
     def __init__(self, owner, variable_name):
-        assert type( variable_name ) is str, variable_name
-        assert type( owner ) not in ( tuple, list ), owner
+        assert type(variable_name) is str, variable_name
+        assert type(owner ) not in (tuple, list), owner
 
         self.variable_name = variable_name
         self.owner = owner
@@ -45,10 +45,6 @@ class Variable:
         return self.variable_name
 
     def getOwner(self):
-        return self.owner
-
-    # TODO: Seems obsolete now
-    def getRealOwner(self):
         return self.owner
 
     def addReference(self, reference):
@@ -212,7 +208,7 @@ class VariableReferenceBase(Variable):
         if self.reference_class is None:
             self.reference_class = variable.reference_class
 
-        variable.addReference( self )
+        variable.addReference(self)
         self.variable = variable
 
         del self.read_only_indicator

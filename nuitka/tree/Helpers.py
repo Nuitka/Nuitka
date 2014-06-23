@@ -244,6 +244,7 @@ def makeStatementsSequenceOrStatement(statements, source_ref):
     else:
         return statements[0]
 
+
 def makeStatementsSequence(statements, allow_none, source_ref):
     if allow_none:
         statements = tuple(

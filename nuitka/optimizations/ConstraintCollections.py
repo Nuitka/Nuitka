@@ -759,8 +759,6 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
     def onTempVariableAssigned(self, variable, assign_source):
         variable = variable.getReferenced()
 
-        assert variable.getRealOwner() is self.module, variable.getOwner()
-
         self._getVariableUsage( variable ).markAsWrittenTo(assign_source)
 
     def getWrittenVariables(self):

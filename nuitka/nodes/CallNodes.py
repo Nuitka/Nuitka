@@ -31,7 +31,9 @@ from .NodeBases import ExpressionChildrenHavingBase
 class ExpressionCall(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL"
 
-    named_children = ( "called", "args", "kw" )
+    named_children = (
+        "called", "args", "kw"
+    )
 
     def __init__(self, called, args, kw, source_ref):
         assert called.isExpression()

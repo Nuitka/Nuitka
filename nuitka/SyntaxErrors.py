@@ -22,8 +22,8 @@ raise it for the given source code reference.
 """
 
 def formatOutput(e):
-    if len( e.args ) > 1:
-        reason, ( filename, lineno, colno, message ) = e.args
+    if len(e.args) > 1:
+        reason, (filename, lineno, colno, message) = e.args
 
         if message is None and colno is not None:
             colno = None
@@ -36,7 +36,7 @@ def formatOutput(e):
         message = None
 
     if colno is not None:
-        colno = colno - len( message ) + len( message.lstrip() )
+        colno = colno - len(message) + len(message.lstrip())
 
         return """\
   File "%s", line %d

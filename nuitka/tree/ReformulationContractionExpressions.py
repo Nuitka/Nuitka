@@ -101,6 +101,7 @@ def buildListContractionNode(provider, node, source_ref):
         source_ref      = source_ref
     )
 
+
 def buildSetContractionNode(provider, node, source_ref):
     # Set contractions are dealt with by general code.
 
@@ -117,6 +118,7 @@ def buildSetContractionNode(provider, node, source_ref):
         source_ref      = source_ref
     )
 
+
 def buildDictContractionNode(provider, node, source_ref):
     # Dict contractions are dealt with by general code.
 
@@ -132,6 +134,7 @@ def buildDictContractionNode(provider, node, source_ref):
         assign_provider  = False,
         source_ref       = source_ref
     )
+
 
 def buildGeneratorExpressionNode(provider, node, source_ref):
     # Generator expressions are dealt with by general code.
@@ -191,7 +194,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         statements = []
         tmp_variables = []
 
-    if hasattr( node, "elt" ):
+    if hasattr(node, "elt"):
         if start_value is not None:
             current_body = emit_class(
                 ExpressionTempVariableRef(
@@ -362,7 +365,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                     source_ref = source_ref
                 )
             )
-        elif len( conditions ) > 1:
+        elif len(conditions) > 1:
             loop_statements.append(
                 StatementConditional(
                     condition = buildAndNode(

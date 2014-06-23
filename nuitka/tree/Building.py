@@ -1078,22 +1078,23 @@ from __future__ imports must occur at the beginning of the file""",
     else:
         assert False
 
+
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
 
-    assert package is None or type( package ) is str
+    assert package is None or type(package) is str
 
-    if is_main and Utils.isDir( filename ):
-        source_filename = Utils.joinpath( filename, "__main__.py" )
+    if is_main and Utils.isDir(filename):
+        source_filename = Utils.joinpath(filename, "__main__.py")
 
-        if not Utils.isFile( source_filename ):
+        if not Utils.isFile(source_filename):
             sys.stderr.write(
                 "%s: can't find '__main__' module in '%s'\n" % (
-                    Utils.basename( sys.argv[0] ),
+                    Utils.basename(sys.argv[0]),
                     filename
                 )
             )
-            sys.exit( 2 )
+            sys.exit(2)
 
         filename = source_filename
 
@@ -1101,7 +1102,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     else:
         main_added = False
 
-    if Utils.isFile( filename ):
+    if Utils.isFile(filename):
         source_filename = filename
 
         source_ref = SourceCodeReferences.fromFilename(
@@ -1112,9 +1113,9 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         if is_main:
             module_name = "__main__"
         else:
-            module_name = Utils.basename( filename )
+            module_name = Utils.basename(filename)
 
-            if module_name.endswith( ".py" ):
+            if module_name.endswith(".py"):
                 module_name = module_name[:-3]
 
             if is_shlib:
@@ -1127,7 +1128,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                     )
                 )
 
-                sys.exit( 2 )
+                sys.exit(2)
 
         if is_shlib:
             result = PythonShlibModule(
@@ -1186,6 +1187,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         source_ref = source_ref.atInternal()
 
     return result, source_ref, source_filename
+
 
 def createModuleTree(module, source_ref, source_filename, is_main):
     if Options.isShowProgress():
