@@ -25,13 +25,12 @@ complete.
 """
 
 from nuitka import SyntaxErrors
-
-from nuitka.Utils import python_version
+from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
+from nuitka.Utils import python_version
 
 from .Operations import VisitorNoopMixin, visitTree
 
-from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 
 # Note: We do the variable scope assignment, as an extra step from tree
 # building, because tree building creates the tree without any consideration of
@@ -54,6 +53,10 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     """
 
     def onEnterNode(self, node):
+        # Mighty complex code with lots of branches and statements, but it
+        # couldn't be less without making it more difficult.
+        # pylint: disable=R0912,R0915
+
         if node.isExpressionTargetVariableRef():
             if node.getVariable() is None:
                 variable_name = node.getVariableName()
@@ -66,13 +69,16 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 # Inside an exec, we need to ignore global declarations that are
                 # not ours, so we replace it with ours, unless it came from an
                 # 'global' declaration inside the exec
-                if node.source_ref.isExecReference() and not provider.isPythonModule():
-                    if variable.isModuleVariableReference() and not variable.isFromExecStatement():
-                        variable = provider.providing[ variable_name ] = provider.createProvidedVariable(
+                if node.source_ref.isExecReference() and \
+                   not provider.isPythonModule():
+                    if variable.isModuleVariableReference() and \
+                       not variable.isFromExecStatement():
+                        variable = provider.providing[variable_name] = \
+                          provider.createProvidedVariable(
                             variable_name = variable_name
                         )
 
-                node.setVariable( variable )
+                node.setVariable(variable)
         elif node.isExpressionVariableRef():
             if node.getVariable() is None:
                 provider = node.getParentVariableProvider()
@@ -91,7 +97,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
                 )
 
-                assert node.getVariable().isClosureReference(), node.getVariable()
+                assert node.getVariable().isClosureReference(), \
+                  node.getVariable()
         elif python_version >= 300 and node.isExpressionFunctionBody():
             # Take closure variables for non-local declarations.
 
@@ -110,9 +117,14 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             "no binding for nonlocal '%s' found" % (
                                 non_local_name
                             ),
-                            source_ref   = None if isFullCompat() else source_ref,
-                            display_file = not isFullCompat(),
-                            display_line = not isFullCompat()
+                            source_ref   = None
+                                             if isFullCompat() and \
+                                             python_version < 340 else
+                                           source_ref,
+                            display_file = not isFullCompat() or \
+                                           python_version >= 340,
+                            display_line = not isFullCompat() or \
+                                           python_version >= 340
                         )
         # Attribute access of names of class functions should be mangled, if
         # they start with "__", but do not end in "__" as well.
@@ -120,7 +132,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
              node.isStatementDelAttribute():
             attribute_name = node.getAttributeName()
 
-            if attribute_name.startswith( "__" ) and not attribute_name.endswith( "__" ):
+            if attribute_name.startswith( "__" ) and \
+               not attribute_name.endswith( "__" ):
                 seen_function = False
 
                 current = node
@@ -235,14 +248,15 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                 variable
             )
 
-            assert not (node.getParent().isStatementDelVariable())
+            assert not node.getParent().isStatementDelVariable()
 
             # Need to catch functions with "exec" not allowed.
             if python_version < 300 and \
                provider.isExpressionFunctionBody() and \
                variable.isReference() and \
                  (not variable.isModuleVariableReference() or \
-                  not variable.isFromGlobalStatement() ):
+                  not variable.isFromGlobalStatement() ) and \
+               not provider.getCodeName().startswith("listcontr_"):
 
                 parent_provider = provider.getParentVariableProvider()
 
@@ -276,7 +290,7 @@ contains a nested function with free variables""" % parent_provider.getName(),
     if python_version >= 300:
         def onLeaveNode(self, node):
             if node.isExpressionFunctionBody() and node.isClassClosureTaker():
-                if python_version < 340:
+                if python_version < 340 or True: # TODO: Temporarily reverted:
                     node.getVariableForReference(
                         variable_name = "__class__"
                     )
@@ -336,8 +350,8 @@ def completeVariableClosures(tree):
         )
 
     for visitor in visitors:
-        visitTree( tree, visitor )
+        visitTree(tree, visitor)
 
         if tree.isPythonModule():
             for function in tree.getFunctions():
-                visitTree( function, visitor )
+                visitTree(function, visitor)

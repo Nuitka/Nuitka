@@ -19,22 +19,26 @@
 
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .ContainerMakingNodes import ExpressionKeyValuePair
+from .NodeBases import ExpressionChildrenHavingBase
+from .NodeMakingHelpers import makeConstantReplacementNode
 
-from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
-
+from nuitka.Utils import python_version
 
 class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_DICT"
 
-    named_children = ( "pos_arg", "pairs" )
+    named_children = (
+        "pos_arg",
+        "pairs"
+    )
 
     def __init__(self, pos_arg, pairs, source_ref):
-        assert type( pos_arg ) not in ( tuple, list ), source_ref
-        assert type( pairs ) in ( tuple, list ), source_ref
+        assert type(pos_arg) not in (tuple, list), source_ref
+        assert type(pairs) in (tuple, list), source_ref
 
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -42,7 +46,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 "pos_arg" : pos_arg,
                 "pairs"   : tuple(
                     ExpressionKeyValuePair(
-                        ExpressionConstantRef( key, source_ref ),
+                        ExpressionConstantRef(key, source_ref),
                         value,
                         value.getSourceReference()
                     )
@@ -53,8 +57,8 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getPositionalArgument = ExpressionChildrenHavingBase.childGetter( "pos_arg" )
-    getNamedArgumentPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
+    getPositionalArgument = ExpressionChildrenHavingBase.childGetter("pos_arg")
+    getNamedArgumentPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
     def hasOnlyConstantArguments(self):
         pos_arg = self.getPositionalArgument()
@@ -77,7 +81,26 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             pos_arg = self.getPositionalArgument()
 
             if pos_arg is not None:
-                pos_args = ( pos_arg, )
+                pos_args = (
+                    pos_arg,
+                )
+            elif python_version >= 340:
+                # Doing this here, because calling dict built-in apparently
+                # mutates existing dictionaries in Python 3.4
+                result = {}
+
+                for pair in reversed(self.getNamedArgumentPairs()):
+                    arg_name = pair.getKey().getCompileTimeConstant()
+                    arg_value = pair.getValue().getCompileTimeConstant()
+
+                    result[arg_name] = arg_value
+
+                new_node = makeConstantReplacementNode(
+                    constant = result,
+                    node     = self
+                )
+
+                return new_node, "new_expression", "Replace dict call with constant arguments."
             else:
                 pos_args = None
 
@@ -86,7 +109,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             return getComputationResult(
                 node         = self,
                 computation = lambda : builtin_dict_spec.simulateCall(
-                    ( pos_args, self.getNamedArgumentPairs() )
+                    (pos_args, self.getNamedArgumentPairs())
                 ),
                 description = "Replace dict call with constant arguments."
             )

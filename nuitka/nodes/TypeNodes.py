@@ -24,12 +24,12 @@ will then know it's limited after the fact.
 
 """
 
+from nuitka.Builtins import builtin_names
+
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
-
-from nuitka.Builtins import builtin_names
 
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
@@ -108,7 +108,10 @@ class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
 class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
-    named_children = ( "instance", "cls" )
+    named_children = (
+        "instance",
+        "cls"
+    )
 
     def __init__(self, instance, cls, source_ref):
         ExpressionChildrenHavingBase.__init__(

@@ -27,12 +27,16 @@ that should be unified at some point.
 
 from .NodeBases import StatementChildrenHavingBase
 
+
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class StatementAssignmentVariable(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
-    named_children = ( "source", "variable_ref" )
+    named_children = (
+        "source",
+        "variable_ref"
+    )
 
     def __init__(self, variable_ref, source, source_ref):
         assert variable_ref is not None, source_ref
@@ -49,30 +53,52 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.inplace_suspect = None
+
+    def getDetail(self):
+        variable_ref = self.getTargetVariableRef()
+        variable = variable_ref.getVariable()
+
+        if variable is not None:
+            return "to variable %s" % variable
+        else:
+            return "to variable %s" % self.getTargetVariableRef()
+
     getTargetVariableRef = StatementChildrenHavingBase.childGetter(
         "variable_ref"
     )
-    getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
+    getAssignSource = StatementChildrenHavingBase.childGetter(
+        "source"
+    )
+
+    def markAsInplaceSuspect(self):
+        self.inplace_suspect = True
+
+    def isInplaceSuspect(self):
+        return self.inplace_suspect
 
     def mayRaiseException(self, exception_type):
-        return self.getAssignSource().mayRaiseException( exception_type )
+        return self.getAssignSource().mayRaiseException(exception_type)
 
     def computeStatement(self, constraint_collection):
         # Assignment source may re-compute here:
-        constraint_collection.onExpression( self.getAssignSource() )
+        constraint_collection.onExpression(self.getAssignSource())
 
         constraint_collection.onVariableSet(
             assign_node = self,
         )
 
         # TODO: Remove this, it's old.
-        return constraint_collection._onStatementAssignmentVariable( self )
+        return constraint_collection._onStatementAssignmentVariable(self)
 
 
 class StatementAssignmentAttribute(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
-    named_children = ( "source", "expression" )
+    named_children = (
+        "source",
+        "expression"
+    )
 
     def __init__(self, expression, attribute_name, source, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -87,7 +113,9 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
         self.attribute_name = attribute_name
 
     def getDetails(self):
-        return { "attribute" : self.attribute_name }
+        return {
+            "attribute" : self.attribute_name
+        }
 
     def getDetail(self):
         return "to attribute %s" % self.attribute_name
@@ -98,16 +126,16 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     def setAttributeName(self, attribute_name):
         self.attribute_name = attribute_name
 
-    getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
-    getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
+    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
+    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getAssignSource() )
+        constraint_collection.onExpression(self.getAssignSource())
         source = self.getAssignSource()
 
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
-        if source.willRaiseException( BaseException ):
+        if source.willRaiseException(BaseException):
             from .NodeMakingHelpers import \
                 makeStatementExpressionOnlyReplacementNode
 
@@ -117,12 +145,12 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Attribute assignment raises exception in assigned value, removed assignment"""
+Attribute assignment raises exception in assigned value, removed assignment."""
 
-        constraint_collection.onExpression( self.getLookupSource() )
+        constraint_collection.onExpression(self.getLookupSource())
         lookup_source = self.getLookupSource()
 
-        if lookup_source.willRaiseException( BaseException ):
+        if lookup_source.willRaiseException(BaseException):
             from .NodeMakingHelpers import \
                 makeStatementOnlyNodesFromExpressions
 
@@ -134,7 +162,7 @@ Attribute assignment raises exception in assigned value, removed assignment"""
             )
 
             return result, "new_raise", """\
-Attribute assignment raises exception in attribute source, removed assignment"""
+Attribute assignment raises exception in source, removed assignment."""
 
         return self, None, None
 
@@ -142,7 +170,11 @@ Attribute assignment raises exception in attribute source, removed assignment"""
 class StatementAssignmentSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
 
-    named_children = ( "source", "expression", "subscript" )
+    named_children = (
+        "source",
+        "expression",
+        "subscript"
+    )
 
     def __init__(self, expression, subscript, source, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -155,17 +187,19 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getSubscribed = StatementChildrenHavingBase.childGetter( "expression" )
-    getSubscript = StatementChildrenHavingBase.childGetter( "subscript" )
-    getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
+    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
+    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
+    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getAssignSource() )
+        constraint_collection.onExpression(
+            expression = self.getAssignSource()
+        )
         source = self.getAssignSource()
 
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
-        if source.willRaiseException( BaseException ):
+        if source.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
@@ -174,12 +208,12 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Subscript assignment raises exception in assigned value, removed assignment"""
+Subscript assignment raises exception in assigned value, removed assignment."""
 
-        constraint_collection.onExpression( self.getSubscribed() )
+        constraint_collection.onExpression(self.getSubscribed())
         subscribed = self.getSubscribed()
 
-        if subscribed.willRaiseException( BaseException ):
+        if subscribed.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -190,9 +224,11 @@ Subscript assignment raises exception in assigned value, removed assignment"""
             )
 
             return result, "new_raise", """\
-Subscript assignment raises exception in subscribed value, removed assignment"""
+Subscript assignment raises exception in subscribed, removed assignment."""
 
-        constraint_collection.onExpression( self.getSubscript() )
+        constraint_collection.onExpression(
+            self.getSubscript()
+        )
         subscript = self.getSubscript()
 
         if subscript.willRaiseException( BaseException ):
@@ -216,7 +252,12 @@ assignment."""
 class StatementAssignmentSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SLICE"
 
-    named_children = ( "source", "expression", "lower", "upper" )
+    named_children = (
+        "source",
+        "expression",
+        "lower",
+        "upper"
+    )
 
     def __init__(self, expression, lower, upper, source, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -230,18 +271,18 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
-    getLower = StatementChildrenHavingBase.childGetter( "lower" )
-    getUpper = StatementChildrenHavingBase.childGetter( "upper" )
-    getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
+    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
+    getLower = StatementChildrenHavingBase.childGetter("lower")
+    getUpper = StatementChildrenHavingBase.childGetter("upper")
+    getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getAssignSource() )
+        constraint_collection.onExpression(self.getAssignSource())
         source = self.getAssignSource()
 
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
-        if source.willRaiseException( BaseException ):
+        if source.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
@@ -250,12 +291,12 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Slice assignment raises exception in assigned value, removed assignment"""
+Slice assignment raises exception in assigned value, removed assignment."""
 
-        constraint_collection.onExpression( self.getLookupSource() )
+        constraint_collection.onExpression(self.getLookupSource())
         lookup_source = self.getLookupSource()
 
-        if lookup_source.willRaiseException( BaseException ):
+        if lookup_source.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -266,12 +307,12 @@ Slice assignment raises exception in assigned value, removed assignment"""
             )
 
             return result, "new_raise", """\
-Slice assignment raises exception in sliced value, removed assignment"""
+Slice assignment raises exception in sliced value, removed assignment."""
 
         constraint_collection.onExpression( self.getLower(), allow_none = True )
         lower = self.getLower()
 
-        if lower is not None and lower.willRaiseException( BaseException ):
+        if lower is not None and lower.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -289,7 +330,7 @@ assignment."""
         constraint_collection.onExpression( self.getUpper(), allow_none = True )
         upper = self.getUpper()
 
-        if upper is not None and upper.willRaiseException( BaseException ):
+        if upper is not None and upper.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -311,7 +352,9 @@ assignment."""
 class StatementDelVariable(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_VARIABLE"
 
-    named_children = ( "variable_ref", )
+    named_children = (
+        "variable_ref",
+    )
 
     def __init__(self, variable_ref, tolerant, source_ref):
         assert variable_ref is not None
@@ -338,7 +381,9 @@ class StatementDelVariable(StatementChildrenHavingBase):
             return "to variable %s" % self.getTargetVariableRef()
 
     def getDetails(self):
-        return { "tolerant" : self.tolerant }
+        return {
+            "tolerant" : self.tolerant
+        }
 
     # TODO: Value propagation needs to make a difference based on this.
     def isTolerant(self):
@@ -347,10 +392,11 @@ class StatementDelVariable(StatementChildrenHavingBase):
     getTargetVariableRef = StatementChildrenHavingBase.childGetter(
         "variable_ref"
     )
+
     def computeStatement(self, constraint_collection):
         variable = self.getTargetVariableRef().getVariable()
 
-        trace = constraint_collection.getVariableCurrentTrace( variable )
+        trace = constraint_collection.getVariableCurrentTrace(variable)
 
         # Optimize away tolerant "del" that is not needed.
         if trace.isUninitTrace():
@@ -360,7 +406,6 @@ class StatementDelVariable(StatementChildrenHavingBase):
                     "new_statements",
                     "Removed tolerate del without effect."
                 )
-
 
         constraint_collection.onVariableDel(
             target_node = self.getTargetVariableRef()
@@ -375,13 +420,21 @@ class StatementDelVariable(StatementChildrenHavingBase):
         if self.tolerant:
             return False
         else:
+            variable = self.getTargetVariableRef().getVariable()
+
+            # Temp variables won't raise.
+            if variable.isTempVariableReference():
+                return False
+
             return True
 
 
 class StatementDelAttribute(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
-    named_children = ( "expression", )
+    named_children = (
+        "expression",
+    )
 
     def __init__(self, expression, attribute_name, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -406,13 +459,13 @@ class StatementDelAttribute(StatementChildrenHavingBase):
     def setAttributeName(self, attribute_name):
         self.attribute_name = attribute_name
 
-    getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
+    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getLookupSource() )
+        constraint_collection.onExpression(self.getLookupSource())
         lookup_source = self.getLookupSource()
 
-        if lookup_source.willRaiseException( BaseException ):
+        if lookup_source.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             return makeStatementExpressionOnlyReplacementNode(
@@ -426,7 +479,10 @@ class StatementDelAttribute(StatementChildrenHavingBase):
 class StatementDelSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SUBSCRIPT"
 
-    named_children = ( "expression", "subscript" )
+    named_children = (
+        "expression",
+        "subscript"
+    )
 
     def __init__(self, expression, subscript, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -438,14 +494,14 @@ class StatementDelSubscript(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getSubscribed = StatementChildrenHavingBase.childGetter( "expression" )
-    getSubscript = StatementChildrenHavingBase.childGetter( "subscript" )
+    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
+    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getSubscribed() )
+        constraint_collection.onExpression(self.getSubscribed())
         subscribed = self.getSubscribed()
 
-        if subscribed.willRaiseException( BaseException ):
+        if subscribed.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
@@ -456,10 +512,10 @@ class StatementDelSubscript(StatementChildrenHavingBase):
             return result, "new_raise", """\
 Subscript del raises exception in subscribed value, removed del"""
 
-        constraint_collection.onExpression( self.getSubscript() )
+        constraint_collection.onExpression(self.getSubscript())
         subscript = self.getSubscript()
 
-        if subscript.willRaiseException( BaseException ):
+        if subscript.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -478,7 +534,11 @@ Subscript del raises exception in subscribt value, removed del"""
 class StatementDelSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SLICE"
 
-    named_children = ( "expression", "lower", "upper" )
+    named_children = (
+        "expression",
+        "lower",
+        "upper"
+    )
 
     def __init__(self, expression, lower, upper, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -491,15 +551,15 @@ class StatementDelSlice(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
-    getLower = StatementChildrenHavingBase.childGetter( "lower" )
-    getUpper = StatementChildrenHavingBase.childGetter( "upper" )
+    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
+    getLower = StatementChildrenHavingBase.childGetter("lower")
+    getUpper = StatementChildrenHavingBase.childGetter("upper")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getLookupSource() )
+        constraint_collection.onExpression(self.getLookupSource())
         lookup_source = self.getLookupSource()
 
-        if lookup_source.willRaiseException( BaseException ):
+        if lookup_source.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
@@ -511,10 +571,10 @@ class StatementDelSlice(StatementChildrenHavingBase):
 Slice del raises exception in sliced value, removed del"""
 
 
-        constraint_collection.onExpression( self.getLower(), allow_none = True )
+        constraint_collection.onExpression(self.getLower(), allow_none = True)
         lower = self.getLower()
 
-        if lower is not None and lower.willRaiseException( BaseException ):
+        if lower is not None and lower.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -527,10 +587,10 @@ Slice del raises exception in sliced value, removed del"""
             return result, "new_raise", """
 Slice del raises exception in lower slice boundary value, removed del"""
 
-        constraint_collection.onExpression( self.getUpper(), allow_none = True )
+        constraint_collection.onExpression(self.getUpper(), allow_none = True)
         upper = self.getUpper()
 
-        if upper is not None and upper.willRaiseException( BaseException ):
+        if upper is not None and upper.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(

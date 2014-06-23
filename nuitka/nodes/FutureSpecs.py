@@ -71,19 +71,19 @@ class FutureSpec:
     def asFlags(self):
         result = []
 
-        if self.future_division:
+        if self.future_division and Utils.python_version < 300:
             result.append("CO_FUTURE_DIVISION")
 
         if self.unicode_literals:
             result.append("CO_FUTURE_UNICODE_LITERALS")
 
-        if self.absolute_import:
+        if self.absolute_import and Utils.python_version < 300:
             result.append("CO_FUTURE_ABSOLUTE_IMPORT")
 
-        if self.future_print:
+        if self.future_print and Utils.python_version < 300:
             result.append("CO_FUTURE_PRINT_FUNCTION")
 
         if self.barry_bdfl and Utils.python_version >= 300:
             result.append("CO_FUTURE_BARRY_AS_BDFL")
 
-        return result
+        return tuple(result)

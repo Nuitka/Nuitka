@@ -31,13 +31,14 @@ are in another context.
 
 """
 
-from nuitka import Options, Utils, Importing
+from logging import warning
+
+from nuitka import Importing, Options, Utils
 
 from .FinalizeBase import FinalizationVisitorBase
 
-from logging import warning
 
-def isWhileListedImport(node):
+def isWhiteListedImport(node):
     module = node.getParentModule()
 
     return Importing.isStandardLibraryPath(module.getFilename())
@@ -57,22 +58,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
                 provider.markAsLocalsDict()
 
         if node.isStatementBreakLoop():
-            search = node.getParent()
-
-            # Search up to the containing loop.
-            while not search.isStatementLoop():
-                last_search = search
-                search = search.getParent()
-
-                if search.isStatementTryFinally() and last_search == search.getBlockTry():
-                    search.markAsExceptionBreak()
-                    node.markAsExceptionDriven()
-
-            if node.isExceptionDriven():
-                search.markAsExceptionBreak()
-
-        if node.isStatementContinueLoop():
-            search = node.getParent()
+            search = node
 
             # Search up to the containing loop.
             while not search.isStatementLoop():
@@ -81,34 +67,40 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
                 if search.isStatementTryFinally() and \
                    last_search == search.getBlockTry():
-                    search.markAsExceptionContinue()
-                    node.markAsExceptionDriven()
+                    search.markAsNeedsBreakHandling()
 
-            if node.isExceptionDriven():
-                search.markAsExceptionContinue()
+        if node.isStatementContinueLoop():
+            search = node
 
-        if node.isExpressionYield() or node.isExpressionYieldFrom():
-            search = node.getParent()
-
-            while not search.isExpressionFunctionBody():
+            # Search up to the containing loop.
+            while not search.isStatementLoop():
                 last_search = search
                 search = search.getParent()
 
-                if Utils.python_version >= 300 and \
-                   search.isStatementTryFinally() and \
+                if search.isStatementTryFinally() and \
                    last_search == search.getBlockTry():
-                    node.markAsExceptionPreserving()
-                    break
+                    search.markAsNeedsContinueHandling()
 
-                if search.isStatementExceptHandler():
-                    node.markAsExceptionPreserving()
-                    break
+        if Utils.python_version >= 300:
+            if node.isExpressionYield() or node.isExpressionYieldFrom():
+                search = node.getParent()
+
+                while not search.isExpressionFunctionBody():
+                    last_search = search
+                    search = search.getParent()
+
+                    if search.isStatementTryFinally() and \
+                       last_search == search.getBlockTry():
+                        node.markAsExceptionPreserving()
+                        break
+
+                    if search.isStatementTryExcept() and \
+                       search.getExceptionHandling() is last_search:
+                        node.markAsExceptionPreserving()
+                        break
 
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
-            search = node.getParent()
-
-            exception_driven = False
-            last_found = None
+            search = node
 
             # Search up to the containing function, and check for a try/finally
             # containing the "return" statement.
@@ -116,39 +108,20 @@ class FinalizeMarkups(FinalizationVisitorBase):
                 last_search = search
                 search = search.getParent()
 
-                if search.isStatementTryFinally() and \
-                   last_search == search.getBlockTry():
-                    search.markAsExceptionReturnValueCatch()
+                if search.isStatementTryFinally():
+                    if last_search == search.getBlockTry():
+                        search.markAsNeedsReturnHandling(1)
 
-                    exception_driven = True
+                        provider = search.getParentVariableProvider()
+                        if provider.isGenerator():
+                            provider.markAsNeedsGeneratorReturnHandling(2)
 
-                    if last_found is not None:
-                        last_found.markAsExceptionReturnValueReraise()
+                    if last_search == search.getBlockFinal():
+                        if search.needsReturnHandling():
+                            search.markAsNeedsReturnHandling(2)
 
-                    last_found = search
-
-            if exception_driven:
-                search.markAsExceptionReturnValue()
-
-            node.setExceptionDriven( exception_driven )
-
-        if node.isStatementRaiseException() and node.isReraiseException():
-            search = node.getParent()
-
-            # Check if it's in a try/except block.
-            while not search.isParentVariableProvider():
-                if search.isStatementsSequence():
-                    if search.getParent().isStatementExceptHandler():
-                        node.markAsReraiseLocal()
-                        break
-
-                    if search.getParent().isStatementTryFinally() and \
-                       Utils.python_version >= 300:
-                        node.markAsReraiseFinally()
-
-                search = search.getParent()
-
-            search = node.getParent()
+            if search.isGenerator():
+                search.markAsNeedsGeneratorReturnHandling(1)
 
         if node.isStatementDelVariable():
             variable = node.getTargetVariableRef().getVariable()
@@ -159,28 +132,20 @@ class FinalizeMarkups(FinalizationVisitorBase):
             variable.setHasDelIndicator()
 
         if node.isStatementTryExcept():
-            provider = node.getParentVariableProvider()
-            provider.markAsTryExceptContaining()
-
-            if not node.isStatementTryExceptOptimized():
+            if node.public_exc:
                 parent_frame = node.getParentStatementsFrame()
+                assert parent_frame, node
+
                 parent_frame.markAsFrameExceptionPreserving()
 
         if node.isStatementTryFinally():
-            provider = node.getParentVariableProvider()
-            provider.markAsTryFinallyContaining()
-
-            if Utils.python_version >= 300:
+            if Utils.python_version >= 300 and node.public_exc:
                 parent_frame = node.getParentStatementsFrame()
                 parent_frame.markAsFrameExceptionPreserving()
 
-        if node.isStatementRaiseException():
-            provider = node.getParentVariableProvider()
-            provider.markAsRaiseContaining()
-
         if node.isExpressionBuiltinImport() and \
            not Options.getShallFollowExtra() and \
-           not isWhileListedImport(node):
+           not isWhiteListedImport(node):
             warning( """Unresolved '__import__' call at '%s' may require use \
 of '--recurse-directory'.""" % (
                     node.getSourceReference().getAsString()
@@ -196,7 +161,23 @@ of '--recurse-directory'.""" % (
               markAsDirectlyCalled()
 
         if node.isExpressionFunctionRef():
-            parent_module = node.getFunctionBody().getParentModule()
+            function_body = node.getFunctionBody()
+            parent_module = function_body.getParentModule()
 
-            if node.getParentModule() is not parent_module:
-                node.getFunctionBody().markAsCrossModuleUsed()
+            node_module = node.getParentModule()
+            if node_module is not parent_module:
+                function_body.markAsCrossModuleUsed()
+
+                node_module.addCrossUsedFunction(function_body)
+
+        if node.isStatementAssignmentVariable():
+            target_var = node.getTargetVariableRef().getVariable()
+            assign_source = node.getAssignSource()
+
+            if assign_source.isExpressionOperationBinary():
+                left_arg = assign_source.getLeft()
+
+                if left_arg.isExpressionVariableRef():
+                    if assign_source.getLeft().getVariable() is target_var:
+                        assign_source.markAsInplaceSuspect()
+                        node.markAsInplaceSuspect()

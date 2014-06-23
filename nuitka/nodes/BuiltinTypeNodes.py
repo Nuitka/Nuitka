@@ -21,16 +21,16 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
+from nuitka.optimizations import BuiltinOptimization
+from nuitka.Utils import python_version
+
 from .NodeBases import (
-    ExpressionSpecBasedComputationMixin,
-    ExpressionBuiltinSingleArgBase,
     ChildrenHavingMixin,
+    ExpressionBuiltinSingleArgBase,
+    ExpressionSpecBasedComputationMixin,
     NodeBase
 )
 
-from nuitka.optimizations import BuiltinOptimization
-
-from nuitka.Utils import python_version
 
 class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
     pass
@@ -91,12 +91,13 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
         return ExpressionBuiltinTypeBase.computeExpression( self, constraint_collection )
 
 
-class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
-                                    ExpressionSpecBasedComputationMixin ):
-    named_children = ( "value", "base" )
+class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
+                                   ExpressionSpecBasedComputationMixin):
+    named_children = ("value", "base")
 
+    # Note: Version specific, may be allowed or not.
     try:
-        int( base = 2 )
+        int(base = 2)
     except TypeError:
         base_only_value = False
     else:
@@ -121,8 +122,8 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
             }
         )
 
-    getValue = ChildrenHavingMixin.childGetter( "value" )
-    getBase = ChildrenHavingMixin.childGetter( "base" )
+    getValue = ChildrenHavingMixin.childGetter("value")
+    getBase = ChildrenHavingMixin.childGetter("base")
 
     def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
@@ -139,24 +140,25 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
 
                     return getComputationResult(
                         node        = self,
-                        computation = lambda : int( base = 2 ),
-                        description = "int builtin call with only base argument"
+                        computation = lambda : self.builtin(base = 2),
+                        description = """\
+%s builtin call with only base argument""" % self.builtin.__name__
                     )
 
             given_values = ()
         elif base is None:
-            given_values = ( value, )
+            given_values = (value,)
         else:
-            given_values = ( value, base )
+            given_values = (value, base)
 
-        return self.computeBuiltinSpec( given_values )
+        return self.computeBuiltinSpec(given_values)
 
 
 class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
     kind = "EXPRESSION_BUILTIN_INT"
 
     builtin_spec = BuiltinOptimization.builtin_int_spec
-
+    builtin = int
 
 class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
                                     ExpressionSpecBasedComputationMixin ):
@@ -226,7 +228,7 @@ if python_version < 300:
         kind = "EXPRESSION_BUILTIN_LONG"
 
         builtin_spec = BuiltinOptimization.builtin_long_spec
-
+        builtin = long
 
     class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_UNICODE"

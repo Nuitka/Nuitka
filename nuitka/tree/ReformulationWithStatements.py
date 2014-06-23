@@ -15,48 +15,52 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of with statements.
+
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
 
 from nuitka import Utils
-
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
 )
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeLookup,
+    ExpressionSpecialAttributeLookup
+)
+from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
-    ExpressionCaughtExceptionValueRef,
     ExpressionCaughtExceptionTypeRef,
+    ExpressionCaughtExceptionValueRef,
     StatementRaiseException
-)
-from nuitka.nodes.CallNodes import (
-    ExpressionCallNoKeywords,
-    ExpressionCallEmpty
-)
-from nuitka.nodes.AttributeNodes import (
-    ExpressionSpecialAttributeLookup,
-    ExpressionAttributeLookup
 )
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
 )
-from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.TryNodes import StatementTryFinally
-
-from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-
-from .ReformulationAssignmentStatements import buildAssignmentStatements
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
+)
 
 from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeStatementsSequence,
+    buildNode,
     buildStatementsNode,
-    buildNode
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement
 )
+from .ReformulationAssignmentStatements import buildAssignmentStatements
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+
 
 def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     with_source = buildNode( provider, context_expr, source_ref )
@@ -111,7 +115,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         # First assign the with context to a temporary variable.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_source_variable.makeReference( provider ),
+                variable   = tmp_source_variable.makeReference(provider),
                 source_ref = source_ref
             ),
             source       = with_source,
@@ -126,7 +130,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
             ),
             source       = attribute_lookup_class(
                 expression     = ExpressionTempVariableRef(
-                    variable   = tmp_source_variable.makeReference( provider ),
+                    variable   = tmp_source_variable.makeReference(provider),
                     source_ref = source_ref
                 ),
                 attribute_name = "__exit__",
@@ -156,7 +160,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_indicator_variable.makeReference( provider ),
+                variable   = tmp_indicator_variable.makeReference(provider),
                 source_ref = source_ref
             ),
             source       = ExpressionConstantRef(
@@ -170,109 +174,144 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     source_ref = source_ref.atInternal()
 
     statements += [
-        StatementTryFinally(
-            tried      = makeStatementsSequenceFromStatement(
-                statement = makeTryExceptSingleHandlerNode(
-                    tried          = with_body,
-                    exception_name = "BaseException",
-                    handler_body   = StatementsSequence(
-                        statements = (
-                            # Prevents final block from calling __exit__ as
-                            # well.
-                            StatementAssignmentVariable(
-                                variable_ref = ExpressionTargetTempVariableRef(
-                                    variable   = tmp_indicator_variable.makeReference( provider ),
-                                    source_ref = source_ref
-                                ),
-                                source       = ExpressionConstantRef(
-                                    constant   = False,
-                                    source_ref = source_ref
-                                ),
-                                source_ref   = source_ref
-                            ),
-                            StatementConditional(
-                                condition  = ExpressionCallNoKeywords(
-                                    called          = ExpressionTempVariableRef(
-                                        variable   = tmp_exit_variable.makeReference( provider ),
-                                        source_ref = source_ref
-                                    ),
-                                    args = ExpressionMakeTuple(
-                                        elements   = (
-                                            ExpressionCaughtExceptionTypeRef(
-                                                source_ref = source_ref
-                                            ),
-                                            ExpressionCaughtExceptionValueRef(
-                                                source_ref = source_ref
-                                            ),
-                                            ExpressionCaughtExceptionTracebackRef(
-                                                source_ref = source_ref
-                                            ),
-                                        ),
-                                        source_ref = source_ref
-                                    ),
-                                    source_ref      = source_ref
-                                ),
-                                no_branch  = makeStatementsSequenceFromStatement(
-                                    statement = StatementRaiseException(
-                                        exception_type  = None,
-                                        exception_value = None,
-                                        exception_trace = None,
-                                        exception_cause = None,
-                                        source_ref      = source_ref
-                                    )
-                                ),
-                                yes_branch = None,
+        makeTryFinallyStatement(
+            tried      = makeTryExceptSingleHandlerNode(
+                tried          = with_body,
+                exception_name = "BaseException",
+                handler_body   = StatementsSequence(
+                    statements = (
+                        # Prevents final block from calling __exit__ as
+                        # well.
+                        StatementAssignmentVariable(
+                            variable_ref = ExpressionTargetTempVariableRef(
+                                variable   = tmp_indicator_variable.\
+                                  makeReference(provider),
                                 source_ref = source_ref
                             ),
-                        ),
-                        source_ref     = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
-            ),
-            final      = makeStatementsSequenceFromStatement(
-                statement = StatementConditional(
-                    condition      = ExpressionComparisonIs(
-                        left       = ExpressionTempVariableRef(
-                            variable   = tmp_indicator_variable.makeReference(
-                                provider
+                            source       = ExpressionConstantRef(
+                                constant   = False,
+                                source_ref = source_ref
                             ),
+                            source_ref   = source_ref
+                        ),
+                        StatementConditional(
+                            condition  = ExpressionCallNoKeywords(
+                                called          = ExpressionTempVariableRef(
+                                    variable   = tmp_exit_variable.\
+                                      makeReference(provider),
+                                    source_ref = source_ref
+                                ),
+                                args = ExpressionMakeTuple(
+                                    elements   = (
+                                        ExpressionCaughtExceptionTypeRef(
+                                            source_ref = source_ref
+                                        ),
+                                        ExpressionCaughtExceptionValueRef(
+                                            source_ref = source_ref
+                                        ),
+                                        ExpressionCaughtExceptionTracebackRef(
+                                            source_ref = source_ref
+                                        ),
+                                    ),
+                                    source_ref = source_ref
+                                ),
+                                source_ref      = source_ref
+                            ),
+                            no_branch  = makeStatementsSequenceFromStatement(
+                                statement = StatementRaiseException(
+                                    exception_type  = None,
+                                    exception_value = None,
+                                    exception_trace = None,
+                                    exception_cause = None,
+                                    source_ref      = source_ref
+                                )
+                            ),
+                            yes_branch = None,
                             source_ref = source_ref
                         ),
-                        right      = ExpressionConstantRef(
-                            constant    = True,
-                            source_ref = source_ref
+                    ),
+                    source_ref     = source_ref
+                ),
+                public_exc = Utils.python_version >= 270,
+                source_ref = source_ref
+            ),
+            final      = StatementConditional(
+                condition      = ExpressionComparisonIs(
+                    left       = ExpressionTempVariableRef(
+                        variable   = tmp_indicator_variable.makeReference(
+                            provider
                         ),
                         source_ref = source_ref
                     ),
-                    yes_branch = makeStatementsSequenceFromStatement(
-                        statement = StatementExpressionOnly(
-                            expression = ExpressionCallNoKeywords(
-                                called     = ExpressionTempVariableRef(
-                                    variable   = tmp_exit_variable.makeReference( provider ),
-                                    source_ref = source_ref
-                                ),
-                                args       = ExpressionConstantRef(
-                                    constant   = ( None, None, None ),
-                                    source_ref = source_ref
-                                ),
+                    right      = ExpressionConstantRef(
+                        constant    = True,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_branch = makeStatementsSequenceFromStatement(
+                    statement = StatementExpressionOnly(
+                        expression = ExpressionCallNoKeywords(
+                            called     = ExpressionTempVariableRef(
+                                variable   = tmp_exit_variable.\
+                                  makeReference(provider),
                                 source_ref = source_ref
                             ),
-                            source_ref     = source_ref
-                        )
-                    ),
-                    no_branch  = None,
-                    source_ref = source_ref
-                )
+                            args       = ExpressionConstantRef(
+                                constant   = (None, None, None),
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                        source_ref     = source_ref
+                    )
+                ),
+                no_branch  = None,
+                source_ref = source_ref
             ),
             source_ref = source_ref
         )
     ]
 
-    return StatementsSequence(
-        statements = statements,
-        source_ref = source_ref
+    return makeTryFinallyStatement(
+        tried = statements,
+        final = (
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_source_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_enter_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_exit_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_indicator_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+        ),
+        source_ref  = source_ref
     )
+
 
 def buildWithNode(provider, node, source_ref):
     # "with" statements are re-formulated as described in the developer
@@ -281,21 +320,24 @@ def buildWithNode(provider, node, source_ref):
 
     # Before Python3.3, multiple context managers are not visible in the parse
     # tree, now we need to handle it ourselves.
-    if hasattr( node, "items" ):
-        context_exprs = [ item.context_expr for item in node.items ]
-        assign_targets = [ item.optional_vars for item in node.items ]
+    if hasattr(node, "items"):
+        context_exprs = [item.context_expr for item in node.items]
+        assign_targets = [item.optional_vars for item in node.items]
     else:
         # Make it a list for before Python3.3
-        context_exprs = [ node.context_expr ]
-        assign_targets = [ node.optional_vars ]
+        context_exprs = [node.context_expr]
+        assign_targets = [node.optional_vars]
 
 
     # The body for the first context manager is the other things.
-    body = buildStatementsNode( provider, node.body, source_ref )
+    body = buildStatementsNode(provider, node.body, source_ref)
 
-    assert len( context_exprs ) > 0 and len( context_exprs ) == len( assign_targets )
+    assert len(context_exprs) > 0 and len(context_exprs) == len(assign_targets)
 
-    for context_expr, assign_target in zip( reversed( context_exprs ), reversed( assign_targets ) ):
+    context_exprs.reverse()
+    assign_targets.reverse()
+
+    for context_expr, assign_target in zip(context_exprs, assign_targets):
         body = _buildWithNode(
             provider      = provider,
             body          = body,

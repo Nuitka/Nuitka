@@ -15,24 +15,21 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Code Templates for printing. """
+""" Emission.
 
-template_print_statement = """\
-{
-    PyObject *target_file = %(target_file)s;
+Code generation is driven via "emit", which is to receive lines of code and
+this is to collect them, providing the emit implementation. Sometimes nested
+use of these will occur.
 
-    if ( target_file == Py_None )
-    {
-        target_file = GET_STDOUT();
-        Py_INCREF( target_file );
-    }
+"""
 
-    PyObjectTemporary file_reference( target_file );
+class SourceCodeCollector:
+    def __init__(self):
+        self.codes = []
 
-%(print_elements_code)s}"""
+    def __call__(self, code):
+        self.emit(code)
 
-template_print_value = """\
-PRINT_ITEM_TO( %(target_file)s, %(print_value)s );"""
-
-template_print_newline = """\
-PRINT_NEW_LINE_TO( %(target_file)s );"""
+    def emit(self,code):
+        for line in code.split("\n"):
+            self.codes.append(line)

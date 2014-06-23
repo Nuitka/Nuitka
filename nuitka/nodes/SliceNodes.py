@@ -17,8 +17,8 @@
 #
 """ Slice nodes.
 
-Slices are important when working with lists. Tracking them can allow to achieve more
-compact code, or predict results at compile time.
+Slices are important when working with lists. Tracking them can allow to
+achieve more compact code, or predict results at compile time.
 
 There will be a method "computeExpressionSlice" to aid predicting them.
 """
@@ -52,7 +52,7 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("expression")
 
     getLower = ExpressionChildrenHavingBase.childGetter("lower")
     setLower = ExpressionChildrenHavingBase.childSetter("lower")
@@ -71,29 +71,33 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
         )
 
     def isKnownToBeIterable(self, count):
-        # TODO: Should ask SlicetRegistry
+        # TODO: Should ask SliceRegistry
         return None
 
 
 class ExpressionSliceObject(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SLICE_OBJECT"
 
-    named_children = ( "lower", "upper", "step" )
+    named_children = (
+        "lower",
+        "upper",
+        "step"
+    )
 
     def __init__(self, lower, upper, step, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "upper"      : upper,
-                "lower"      : lower,
-                "step"       : step
+                "upper" : upper,
+                "lower" : lower,
+                "step"  : step
             },
             source_ref = source_ref
         )
 
-    getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
-    getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
-    getStep  = ExpressionChildrenHavingBase.childGetter( "step" )
+    getLower = ExpressionChildrenHavingBase.childGetter("lower")
+    getUpper = ExpressionChildrenHavingBase.childGetter("upper")
+    getStep  = ExpressionChildrenHavingBase.childGetter("step")
 
     def computeExpression(self, constraint_collection):
         # TODO: Not much to do, potentially simplify to slice instead?

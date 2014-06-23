@@ -23,12 +23,12 @@ answer quite a few questions at compile time.
 
 """
 
-from .NodeBases import (
-    ExpressionBuiltinSingleArgBase,
-    ExpressionBuiltinNoArgBase
-)
-
 from nuitka.optimizations import BuiltinOptimization
+
+from .NodeBases import (
+    ExpressionBuiltinNoArgBase,
+    ExpressionBuiltinSingleArgBase
+)
 
 
 class ExpressionBuiltinOrd0(ExpressionBuiltinNoArgBase):

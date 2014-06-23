@@ -15,6 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Common test infrastructure functions. To be used by test runners. """
 
 from __future__ import print_function
 
@@ -27,6 +28,7 @@ def my_print(*args, **kwargs):
 
     sys.stdout.flush()
 
+
 def check_output(*popenargs, **kwargs):
     if 'stdout' in kwargs:
         raise ValueError('stdout argument not allowed, it will be overridden.')
@@ -38,14 +40,17 @@ def check_output(*popenargs, **kwargs):
     )
     output, _unused_err = process.communicate()
     retcode = process.poll()
+
     if retcode:
         cmd = kwargs.get("args")
         if cmd is None:
             cmd = popenargs[0]
-        raise subprocess.CalledProcessError( retcode, cmd, output=output )
+        raise subprocess.CalledProcessError(retcode, cmd, output=output)
+
     return output
 
-def setup(needs_io_encoding = False):
+
+def setup(needs_io_encoding = False, silent = False):
     # Go its own directory, to have it easy with path knowledge.
     os.chdir(
         os.path.dirname(
@@ -55,6 +60,16 @@ def setup(needs_io_encoding = False):
 
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
+
+    # Allow providing 33, 27, and expand that to python2.7
+    if len(os.environ["PYTHON"]) == 2 and \
+       os.environ["PYTHON"].isdigit() and \
+       os.name != "nt":
+
+        os.environ["PYTHON"] = "python%s.%s" % (
+            os.environ["PYTHON"][0],
+            os.environ["PYTHON"][1]
+        )
 
     if needs_io_encoding and "PYTHONIOENCODING" not in os.environ:
         os.environ["PYTHONIOENCODING"] = "utf-8"
@@ -78,10 +93,14 @@ print(("x86_64" if "AMD64" in sys.version else "x86") if os.name=="nt" else os.u
 
     if sys.version.startswith("3"):
         python_arch = python_arch.decode()
+        python_version = python_version.decode()
 
-    my_print("Using concrete python", python_version, "on", python_arch)
+    os.environ["PYTHON_VERSION"] = python_version
 
-    assert type(python_version) is bytes
+    if not silent:
+        my_print("Using concrete python", python_version, "on", python_arch)
+
+    assert type(python_version) is str
     assert type(python_arch) is str
 
     return python_version
@@ -101,13 +120,13 @@ def getTempDir():
                 )
             ) + "-",
             dir    = tempfile.gettempdir() if
-                         not os.path.exists( "/var/tmp" ) else
+                         not os.path.exists("/var/tmp") else
                     "/var/tmp"
         )
 
         def removeTempDir():
             try:
-                os.rmdir(tmp_dir)
+                shutil.rmtree(tmp_dir)
             except OSError:
                 pass
 
@@ -115,11 +134,12 @@ def getTempDir():
 
     return tmp_dir
 
+
 def convertUsing2to3( path ):
     filename = os.path.basename( path )
 
-    new_path = os.path.join( getTempDir(), filename )
-    shutil.copy( path, new_path )
+    new_path = os.path.join(getTempDir(), filename)
+    shutil.copy(path, new_path)
 
     # On Windows, we cannot rely on 2to3 to be in the path.
     if os.name == "nt":
@@ -131,7 +151,9 @@ def convertUsing2to3( path ):
             )
         ]
     else:
-        command = [ "2to3" ]
+        command = [
+            "2to3"
+        ]
 
     command += [
         "-w",
@@ -142,35 +164,37 @@ def convertUsing2to3( path ):
 
     check_output(
         command,
-        stderr = open( os.devnull, "w" ),
+        stderr = open(os.devnull, "w")
     )
 
     return new_path
 
+
 def decideFilenameVersionSkip(filename):
     assert type(filename) is str
-    assert type(python_version) is bytes
+    assert type(python_version) is str
 
     # Skip runner scripts by default.
     if filename.startswith("run_"):
         return False
 
     # Skip tests that require Python 2.7 at least.
-    if filename.endswith("27.py") and python_version.startswith(b"2.6"):
+    if filename.endswith("27.py") and python_version.startswith("2.6"):
         return False
 
-    if filename.endswith("_2.py") and python_version.startswith(b"3"):
+    if filename.endswith("_2.py") and python_version.startswith("3"):
         return False
 
     # Skip tests that require Python 3.2 at least.
-    if filename.endswith("32.py") and not python_version.startswith(b"3"):
+    if filename.endswith("32.py") and not python_version.startswith("3"):
         return False
 
     # Skip tests that require Python 3.3 at least.
-    if filename.endswith("33.py") and not python_version.startswith(b"3.3"):
+    if filename.endswith("33.py") and not python_version.startswith("3.3"):
         return False
 
     return True
+
 
 def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
     # Apply 2to3 conversion if necessary.
@@ -255,12 +279,22 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
     result = []
 
     if os.name == "posix":
-        args = (
-            "strace",
-            "-e", "file",
-            "-s4096", # Some paths are truncated otherwise.
-            path
-        )
+        if sys.platform == "darwin":
+            args = (
+                "sudo",
+                "dtruss",
+                "-f",
+                "-t",
+                "open",
+                path
+            )
+        else:
+            args = (
+                "strace",
+                "-e", "file",
+                "-s4096", # Some paths are truncated otherwise.
+                path
+            )
 
         process = subprocess.Popen(
             args   = args,
@@ -284,6 +318,9 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
             if b"ENOENT" in line:
                 continue
 
+            if line.startswith(b"stat(") and b"S_IFDIR" in line:
+                continue
+
             # Allow stats on the python binary, and stuff pointing to the
             # standard library, just not uses of it. It will search there
             # for stuff.
@@ -295,7 +332,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
                 if filename in (b"/usr", b"/usr/bin"):
                     continue
 
-                if filename == b"/usr/bin/python" + python_version[:3]:
+                if filename == b"/usr/bin/python" + python_version[:3].encode("utf8"):
                     continue
 
                 if filename in (b"/usr/bin/python", b"/usr/bin/python2",
@@ -305,7 +342,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
             result.extend(
                 os.path.abspath(match)
                 for match in
-                re.findall(b'"(.*?)"', line)
+                re.findall(b'"(.*?)(?:\\\\0)?"', line)
             )
 
         if sys.version.startswith("3"):

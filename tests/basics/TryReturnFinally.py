@@ -16,18 +16,29 @@
 #     limitations under the License.
 #
 
+# In this test we show that return in try/finally executes the finally part
+# just fine.
+
+from __future__ import print_function
+
+
+def eight():
+    return 8
+
+def nine():
+    return 9
 
 def returnInTried():
     try:
-        return 8
+        return eight()
     finally:
-        print "returnInTried",
+        print("returnInTried", end = " ")
 
 def returnInFinally():
     try:
-        print "returnInFinally tried",
+        print("returnInFinally tried", end = " ")
     finally:
-        return 9
+        return nine()
 
-print returnInTried()
-print returnInFinally()
+print(returnInTried())
+print(returnInFinally())

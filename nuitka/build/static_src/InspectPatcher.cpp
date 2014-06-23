@@ -87,26 +87,20 @@ static void patchInspectModule( void )
     // fail with it being unable to load it.
     if ( Py_NoSiteFlag == 0 )
     {
-        try
+        PyObject *site_module = IMPORT_MODULE( const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0 );
+
+        if ( site_module == NULL )
         {
-            IMPORT_MODULE( const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0 );
-        }
-        catch( PythonException & )
-        {
-            PyErr_Clear();
             // Ignore ImportError, site is not a must.
+            PyErr_Clear();
         }
     }
 #endif
 
-    try
-    {
-        module_inspect = IMPORT_MODULE( const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0 );
-    }
-    catch( PythonException &e )
-    {
-        e.toPython();
+    module_inspect = IMPORT_MODULE( const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0 );
 
+    if ( module_inspect == NULL )
+    {
         PyErr_PrintEx( 0 );
         Py_Exit( 1 );
     }
@@ -157,14 +151,14 @@ static PyMethodDef _method_def_builtin_isinstance_replacement =
     NULL
 };
 
-extern PyModuleObject *module_builtin;
+extern PyModuleObject *builtin_module;
 
 void patchBuiltinModule()
 {
-    assertObject( (PyObject *)module_builtin );
+    assertObject( (PyObject *)builtin_module );
 
-    // Patch "inspect.isfunction" unless it is already patched.
-    PyObject *old_isinstance = PyObject_GetAttrString( (PyObject *)module_builtin, "isinstance" );
+    // Patch "inspect.isinstance" unless it is already patched.
+    PyObject *old_isinstance = PyObject_GetAttrString( (PyObject *)builtin_module, "isinstance" );
     assertObject( old_isinstance );
 
     // TODO: Find safe criterion, these was a C method before
@@ -173,7 +167,7 @@ void patchBuiltinModule()
         PyObject *builtin_isinstance_replacement = PyCFunction_New( &_method_def_builtin_isinstance_replacement, NULL );
         assertObject( builtin_isinstance_replacement );
 
-        PyObject_SetAttrString( (PyObject *)module_builtin, "isinstance", builtin_isinstance_replacement );
+        PyObject_SetAttrString( (PyObject *)builtin_module, "isinstance", builtin_isinstance_replacement );
     }
 
     Py_DECREF( old_isinstance );

@@ -21,7 +21,8 @@ Inspired/copied from by http://diotavelli.net/PyQtWiki/Python%20syntax%20highlig
 """
 
 from PyQt4.QtCore import QRegExp
-from PyQt4.QtGui import QColor, QTextCharFormat, QFont, QSyntaxHighlighter
+from PyQt4.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
+
 
 def createTextFormat(color, style=''):
     """Return a QTextCharFormat with the given attributes.

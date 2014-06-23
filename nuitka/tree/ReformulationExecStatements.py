@@ -22,86 +22,150 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.ExecEvalNodes import StatementExec
-
-from nuitka.nodes.ConditionalNodes import ExpressionConditional
-from nuitka.nodes.KeeperNodes import (
-    ExpressionAssignmentTempKeeper,
-    ExpressionTempKeeperRef
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
 )
+from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinAnonymousRef,
+    ExpressionBuiltinExceptionRef
+)
+from nuitka.nodes.CallNodes import ExpressionCallEmpty
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditional,
+    StatementConditional
+)
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.ExecEvalNodes import StatementExec
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
-    ExpressionBuiltinLocals,
+    ExpressionBuiltinLocals
 )
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.TryNodes import StatementTryFinally
+from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
+)
 
 from .Helpers import (
     buildNode,
-    getKind
+    getKind,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement
 )
 
 
-def wrapEvalGlobalsAndLocals( provider, globals_node, locals_node, exec_mode,
-                              source_ref ):
+def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
+                             temp_scope, source_ref):
     """ Wrap the locals and globals arguments for eval and exec.
 
         For eval, this is called from the outside, and when the node tree
         already exists.
     """
 
-    if globals_node is not None:
-        global_keeper_variable = provider.allocateTempKeeperVariable()
-        tmp_global_assign = ExpressionAssignmentTempKeeper(
-            variable   = global_keeper_variable.makeReference( provider ),
-            source     = globals_node,
+    globals_keeper_variable = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "globals"
+    )
+
+    locals_keeper_variable = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "locals"
+    )
+
+    if locals_node is None:
+        locals_node = ExpressionConstantRef(
+            constant   = None,
             source_ref = source_ref
         )
 
-        globals_wrap = ExpressionConditional(
-            condition      = ExpressionComparisonIs(
-                left       = tmp_global_assign,
-                right      = ExpressionConstantRef(
-                    constant   = None,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            ),
-            no_expression  = ExpressionTempKeeperRef(
-                variable   = global_keeper_variable.makeReference(
+    if globals_node is None:
+        globals_node = ExpressionConstantRef(
+            constant   = None,
+            source_ref = source_ref
+        )
+
+    post_statements = [
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = globals_keeper_variable.makeReference(
                     provider
                 ),
                 source_ref = source_ref
             ),
-            yes_expression = ExpressionBuiltinGlobals(
+            tolerant     = False,
+            source_ref   = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = locals_keeper_variable.makeReference(
+                    provider
+                ),
                 source_ref = source_ref
             ),
-            source_ref     = source_ref
+            tolerant     = False,
+            source_ref   = source_ref
         )
-    else:
-        globals_wrap = ExpressionBuiltinGlobals(
-            source_ref = source_ref
-        )
+    ]
 
-    if locals_node is not None:
-        local_keeper_variable = provider.allocateTempKeeperVariable()
-        tmp_local_assign = ExpressionAssignmentTempKeeper(
-            variable   = local_keeper_variable.makeReference( provider ),
-            source     = locals_node,
-            source_ref = source_ref
-        )
-
-        if exec_mode:
-            locals_fallback = ExpressionBuiltinLocals(
+    # The locals default is dependant on exec_mode, globals or locals.
+    locals_default = ExpressionConditional(
+        condition = ExpressionComparisonIs(
+            left       = ExpressionTempVariableRef(
+                variable   = globals_keeper_variable.makeReference(
+                    provider
+                ),
                 source_ref = source_ref
-            )
-        else:
-            locals_fallback = ExpressionConditional(
+            ),
+            right      = ExpressionConstantRef(
+                constant   = None,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        no_expression  = ExpressionTempVariableRef(
+            variable   = globals_keeper_variable.makeReference(
+                provider
+            ),
+            source_ref = source_ref
+        ),
+        yes_expression = ExpressionBuiltinLocals(
+            source_ref = source_ref
+        ),
+        source_ref     = source_ref
+    )
+
+    pre_statements = [
+        # First assign globals and locals temporary the values given.
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = globals_keeper_variable.makeReference(
+                    provider
+                ),
+                source_ref = source_ref
+            ),
+            source       = globals_node,
+            source_ref   = source_ref,
+        ),
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = locals_keeper_variable.makeReference(
+                    provider
+                ),
+                source_ref = source_ref
+            ),
+            source       = locals_node,
+            source_ref   = source_ref,
+        ),
+        StatementConditional(
             condition      = ExpressionComparisonIs(
-                left       = ExpressionTempKeeperRef(
-                    variable   = global_keeper_variable.makeReference(
+                left       = ExpressionTempVariableRef(
+                    variable   = locals_keeper_variable.makeReference(
                         provider
                     ),
                     source_ref = source_ref
@@ -112,50 +176,70 @@ def wrapEvalGlobalsAndLocals( provider, globals_node, locals_node, exec_mode,
                 ),
                 source_ref = source_ref
             ),
-            no_expression  = ExpressionTempKeeperRef(
-                variable   = global_keeper_variable.makeReference(
-                    provider
-                ),
-                source_ref = source_ref
+            yes_branch     = makeStatementsSequenceFromStatement(
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = locals_keeper_variable.makeReference(
+                            provider
+                        ),
+                        source_ref = source_ref
+                    ),
+                    source       = locals_default,
+                    source_ref   = source_ref,
+                )
             ),
-            yes_expression = ExpressionBuiltinLocals(
-                source_ref = source_ref
-            ),
+            no_branch      = None,
             source_ref     = source_ref
-        )
-
-        locals_wrap = ExpressionConditional(
-            condition = ExpressionComparisonIs(
-                left       = tmp_local_assign,
+        ),
+        StatementConditional(
+            condition      = ExpressionComparisonIs(
+                left       = ExpressionTempVariableRef(
+                    variable   = globals_keeper_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
                 right      = ExpressionConstantRef(
                     constant   = None,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
             ),
-            no_expression  = ExpressionTempKeeperRef(
-                variable   = local_keeper_variable.makeReference(
-                    provider
-                ),
-                source_ref = source_ref
+            yes_branch     = makeStatementsSequenceFromStatement(
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = globals_keeper_variable.makeReference(
+                            provider
+                        ),
+                        source_ref = source_ref
+                    ),
+                    source       = ExpressionBuiltinGlobals(
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref,
+                )
             ),
-            yes_expression = locals_fallback,
+            no_branch      = None,
             source_ref     = source_ref
         )
-    else:
-        if globals_node is None:
-            locals_wrap = ExpressionBuiltinLocals(
-                source_ref = source_ref
-            )
-        else:
-            locals_wrap = ExpressionTempKeeperRef(
-                variable   = global_keeper_variable.makeReference(
-                    provider
-                ),
-                source_ref = source_ref
-            )
+    ]
 
-    return globals_wrap, locals_wrap
+    return (
+        ExpressionTempVariableRef(
+            variable   = globals_keeper_variable.makeReference(
+                provider
+            ),
+            source_ref = source_ref
+        ),
+        ExpressionTempVariableRef(
+            variable   = locals_keeper_variable.makeReference(
+                provider
+            ),
+            source_ref = source_ref
+        ),
+        makeStatementsSequence(pre_statements, False, source_ref),
+        makeStatementsSequence(post_statements, False, source_ref)
+    )
 
 def buildExecNode(provider, node, source_ref):
     # "exec" statements, should only occur with Python2.
@@ -168,7 +252,7 @@ def buildExecNode(provider, node, source_ref):
 
     # Handle exec(a,b,c) to be same as exec a, b, c
     if exec_locals is None and exec_globals is None and \
-       getKind( body ) == "Tuple":
+       getKind(body) == "Tuple":
         parts = body.elts
         body  = parts[0]
 
@@ -184,7 +268,8 @@ def buildExecNode(provider, node, source_ref):
                     source_ref     = source_ref
                 ),
                 exception_value = ExpressionConstantRef(
-                    constant   = "exec: arg 1 must be a string, file, or code object",
+                    constant   = """\
+exec: arg 1 must be a string, file, or code object""",
                     source_ref = source_ref
                 ),
                 exception_trace = None,
@@ -198,20 +283,121 @@ def buildExecNode(provider, node, source_ref):
         if orig_globals is None:
             provider.markAsUnqualifiedExecContaining( source_ref )
 
-    globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
+    temp_scope = provider.allocateTempScope("exec")
+
+    globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
         provider     = provider,
-        globals_node = buildNode( provider, exec_globals, source_ref, True ),
-        locals_node  = buildNode( provider, exec_locals, source_ref, True ),
-        exec_mode    = True,
+        globals_node = buildNode(provider, exec_globals, source_ref, True),
+        locals_node  = buildNode(provider, exec_locals, source_ref, True),
+        temp_scope   = temp_scope,
         source_ref   = source_ref
     )
 
-    return StatementExec(
-        source_code = buildNode( provider, body, source_ref ),
-        globals_arg = globals_wrap,
-        locals_arg  = locals_wrap,
-        source_ref  = source_ref
+    source_code = buildNode(provider, body, source_ref)
+
+    source_variable = provider.allocateTempVariable(
+        temp_scope = temp_scope,
+        name       = "source"
+    )
+
+    # Source needs some special treatment for eval, if it's a string, it
+    # must be stripped.
+    file_fixup = [
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = source_variable.makeReference(
+                    provider
+                ),
+                source_ref = source_ref
+            ),
+            source = ExpressionCallEmpty(
+                called = ExpressionAttributeLookup(
+                    expression     = ExpressionTempVariableRef(
+                        variable   = source_variable.makeReference(
+                            provider
+                        ),
+                        source_ref = source_ref
+                    ),
+                    attribute_name = "read",
+                    source_ref     = source_ref
+                ),
+                source_ref   = source_ref
+            ),
+            source_ref = source_ref
+        )
+    ]
+
+    statements = (
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = source_variable.makeReference(
+                    provider
+                ),
+                source_ref = source_ref
+            ),
+            source       = source_code,
+            source_ref   = source_ref,
+        ),
+        StatementConditional(
+            condition = ExpressionBuiltinIsinstance(
+                cls = ExpressionBuiltinAnonymousRef(
+                    builtin_name = "file",
+                    source_ref   = source_ref,
+                ),
+                instance = ExpressionTempVariableRef(
+                    variable   = source_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = StatementsSequence(
+                statements = file_fixup,
+                source_ref = source_ref
+            ),
+            no_branch  = None,
+            source_ref = source_ref
+        ),
+        StatementExec(
+            source_code = ExpressionTempVariableRef(
+                variable   = source_variable.makeReference(
+                    provider
+                ),
+                source_ref = source_ref
+            ),
+            globals_arg = globals_ref,
+            locals_arg  = locals_ref,
+            source_ref  = source_ref
+        )
+    )
+
+    tried.setChild(
+        "statements",
+        tried.getStatements() + statements
+    )
+
+    final.setStatements(
+        final.getStatements() + (
+            StatementDelVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = source_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
+                tolerant     = True,
+                source_ref   = source_ref
+            ),
+        )
+    )
+
+    return StatementTryFinally(
+        tried      = tried,
+        final      = final,
+        public_exc = False,
+        source_ref = source_ref
     )
 
 # This is here, to make sure it can register, pylint: disable=W0611
-import nuitka.optimizations.OptimizeBuiltinCalls
+import nuitka.optimizations.OptimizeBuiltinCalls # isort:skip

@@ -360,6 +360,31 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
     return INCREASE_REFCOUNT( Py_None );
 }
 
+#if PYTHON_VERSION >= 340
+static PyObject *_path_unfreezer_repr_module( PyObject *self, PyObject *args, PyObject *kwds )
+{
+    PyObject *module;
+    PyObject *unused;
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args,
+        kwds,
+        "O|O:module_repr",
+        _kwlist,
+        &module,
+        &unused
+    );
+
+    if (unlikely( res == 0 ))
+    {
+        return NULL;
+    }
+
+    return PyUnicode_FromFormat("<module '%s' from '%s'>", PyModule_GetName( module ), PyModule_GetFilename( module ));
+
+}
+#endif
+
 
 static PyMethodDef _method_def_loader_find_module =
 {
@@ -376,6 +401,16 @@ static PyMethodDef _method_def_loader_load_module =
     METH_VARARGS | METH_KEYWORDS,
     NULL
 };
+
+#if PYTHON_VERSION >= 340
+static PyMethodDef _method_def_loader_repr_module =
+{
+    "module_repr",
+    (PyCFunction)_path_unfreezer_repr_module,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
+#endif
 
 void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_loader_entries )
 {
@@ -408,6 +443,15 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     );
     assertObject( loader_load_module );
     PyDict_SetItemString( method_dict, "load_module", loader_load_module );
+
+#if PYTHON_VERSION >= 340
+    PyObject *loader_repr_module = PyCFunction_New(
+        &_method_def_loader_repr_module,
+        NULL
+    );
+    assertObject( loader_repr_module );
+    PyDict_SetItemString( method_dict, "module_repr", loader_repr_module );
+#endif
 
     // Build the actual class.
     metapath_based_loader = PyObject_CallFunctionObjArgs(

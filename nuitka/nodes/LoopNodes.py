@@ -22,11 +22,9 @@ statements for it. These reformulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
-from .NodeBases import (
-    StatementChildrenHavingBase,
-    NodeBase
-)
 from nuitka.tree.Extractions import getVariablesWritten
+
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 class StatementLoop(StatementChildrenHavingBase):
@@ -45,29 +43,42 @@ class StatementLoop(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-        self.break_exception = False
-        self.continue_exception = False
+        # For code generation, so it knows wether to produce the exit target or
+        # not.
+        self.has_break = False
 
     getLoopBody = StatementChildrenHavingBase.childGetter("frame")
 
-    def markAsExceptionContinue(self):
-        self.continue_exception = True
+    def mayReturn(self):
+        loop_body = self.getLoopBody()
 
-    def markAsExceptionBreak(self):
-        self.break_exception = True
+        if loop_body is not None and loop_body.mayReturn():
+            return True
 
-    def needsExceptionContinue(self):
-        return self.continue_exception
+        return False
 
-    def needsExceptionBreak(self):
-        return self.break_exception
+    def mayBreak(self):
+        # The loop itself may never break another loop.
+        return False
+
+    def mayContinue(self):
+        # The loop itself may never continue another loop.
+        return False
+
+    def isStatementAborting(self):
+        loop_body = self.getLoopBody()
+
+        if loop_body is not None:
+            return not loop_body.mayBreak()
+        else:
+            return True
 
     def computeStatement(self, constraint_collection):
         loop_body = self.getLoopBody()
 
         if loop_body is not None:
             # Look ahead. what will be written.
-            variable_writes = getVariablesWritten( loop_body )
+            variable_writes = getVariablesWritten(loop_body)
 
             # Mark all variables as unknown that are written in the loop body,
             # so it destroys the assumptions for loop turn around.
@@ -82,7 +93,7 @@ class StatementLoop(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not loop_body:
-                loop_body.replaceWith( result )
+                loop_body.replaceWith(result)
                 loop_body = result
 
         # Consider trailing "continue" statements, these have no effect, so we
@@ -95,11 +106,11 @@ class StatementLoop(StatementChildrenHavingBase):
 
             last_statement = statements[-1]
             if last_statement.isStatementContinueLoop():
-                loop_body.removeStatement( last_statement )
+                loop_body.removeStatement(last_statement)
                 statements = loop_body.getStatements()
 
                 if not statements:
-                    loop_body.replaceWith( None )
+                    loop_body.replaceWith(None)
                     loop_body = None
 
                 constraint_collection.signalChange(
@@ -137,22 +148,20 @@ class StatementContinueLoop(NodeBase):
     def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
-        self.exception_driven = False
-
     def isStatementAborting(self):
         return True
-
-    def markAsExceptionDriven(self):
-        self.exception_driven = True
-
-    def isExceptionDriven(self):
-        return self.exception_driven
 
     def computeStatement(self, constraint_collection):
         # This statement being aborting, will already tell everything. TODO: The
         # fine difference that this jumps to loop start for sure, should be
         # represented somehow one day.
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+    def mayContinue(self):
+        return True
 
 
 class StatementBreakLoop(NodeBase):
@@ -161,16 +170,14 @@ class StatementBreakLoop(NodeBase):
     def __init__(self, source_ref):
         NodeBase.__init__( self, source_ref = source_ref )
 
-        self.exception_driven = False
-
     def isStatementAborting(self):
         return True
 
-    def markAsExceptionDriven(self):
-        self.exception_driven = True
+    def mayRaiseException(self, exception_type):
+        return False
 
-    def isExceptionDriven(self):
-        return self.exception_driven
+    def mayBreak(self):
+        return True
 
     def computeStatement(self, constraint_collection):
         # This statement being aborting, will already tell everything. TODO: The

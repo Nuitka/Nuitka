@@ -1,3 +1,4 @@
+#!/bin/bash
 #     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -15,28 +16,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" List related templates.
 
-"""
-
-template_make_list_function = """\
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LIST%(argument_count)d( %(argument_decl)s )
-{
-    PyObject *result = PyList_New( %(argument_count)d );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-%(add_elements_code)s
-
-    assert( Py_REFCNT( result ) == 1 );
-
-    return result;
-}
-"""
-
-template_add_list_element_code = """\
-    assertObject( %(list_value)s );
-    PyList_SET_ITEM( result, %(list_index)d, %(list_value)s );"""
+for filename in $(find nuitka -name \*.py -a \! -path *inline_copy*; find bin -name \*.py; echo bin/nuitka);
+do
+    echo isort -ot -m3 $filename
+done

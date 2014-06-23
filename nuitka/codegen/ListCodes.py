@@ -20,58 +20,36 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from . import CodeTemplates
+from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
 
-make_lists_used = set( range( 0, 1 ) )
 
-def addMakeListUse(value):
-    assert type( value ) is int
+def getListOperationAppendCode(to_name, list_name, value_name, emit, context):
+    res_name = context.getIntResName()
 
-    make_lists_used.add( value )
-
-def getListCreationCode(context, order_relevance, element_identifiers):
-    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
-
-    args_length = len( element_identifiers )
-    addMakeListUse( args_length )
-
-    return getOrderRelevanceEnforcedArgsCode(
-        helper          = "MAKE_LIST%d" % args_length,
-        export_ref      = 1,
-        ref_count       = 1,
-        tmp_scope       = "make_list",
-        order_relevance = order_relevance,
-        args            = element_identifiers,
-        context         = context
+    emit(
+        "%s = PyList_Append( %s, %s );" % (
+            res_name,
+            list_name,
+            value_name
+        )
     )
 
-def getMakeListsCode():
-    make_lists_codes = []
+    getReleaseCodes(
+        release_names = (list_name, value_name),
+        emit          = emit,
+        context       = context
+    )
 
-    for arg_count in sorted( make_lists_used ):
-        add_elements_code = []
+    getErrorExitBoolCode(
+        condition = "%s == -1" % res_name,
+        emit      = emit,
+        context   = context
+    )
 
-        for arg_index in range( arg_count ):
-            add_elements_code.append(
-                CodeTemplates.template_add_list_element_code % {
-                    "list_index" : arg_index,
-                    "list_value" : "element%d" % arg_index
-                }
-            )
-
-        make_lists_codes.append(
-            CodeTemplates.template_make_list_function % {
-                "argument_count"    : arg_count,
-                "argument_decl"     : ", ".join(
-                    "PyObject *element%d" % arg_index
-                    for arg_index in
-                    range( arg_count )
-                ),
-                "add_elements_code" : "\n".join( add_elements_code ),
-            }
+    # Only assign if necessary.
+    if context.isUsed(to_name):
+        emit(
+            "%s = Py_None;" % to_name
         )
-
-    return CodeTemplates.template_header_guard % {
-        "header_guard_name" : "__NUITKA_LISTS_H__",
-        "header_body"       : "\n".join( make_lists_codes )
-    }
+    else:
+        context.forgetTempName(to_name)

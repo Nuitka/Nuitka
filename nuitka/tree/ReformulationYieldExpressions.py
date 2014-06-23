@@ -15,14 +15,20 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of yield and yield from expressions.
 
-from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
+
+from nuitka import SyntaxErrors, Utils
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
-
-from nuitka import Utils, SyntaxErrors
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
 
 from .Helpers import buildNode
+
 
 def _markAsGenerator(provider, node, source_ref):
     if provider.isPythonModule():
@@ -52,6 +58,7 @@ def buildYieldNode(provider, node, source_ref):
             ),
             source_ref = source_ref
         )
+
 
 def buildYieldFromNode(provider, node, source_ref):
     assert Utils.python_version >= 330

@@ -19,10 +19,7 @@
 
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase
-)
+from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 
 class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
@@ -55,7 +52,10 @@ class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
 class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SET_OPERATION_ADD"
 
-    named_children = ( "set", "value" )
+    named_children = (
+        "set",
+        "value"
+    )
 
     def __init__(self, sete, value, source_ref):
         assert sete is not None
@@ -70,8 +70,12 @@ class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getSet = ExpressionChildrenHavingBase.childGetter( "set" )
-    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
+    getSet = ExpressionChildrenHavingBase.childGetter(
+        "set"
+    )
+    getValue = ExpressionChildrenHavingBase.childGetter(
+        "value"
+    )
 
     def computeExpression(self, constraint_collection):
         constraint_collection.removeKnowledge( self.getSet() )

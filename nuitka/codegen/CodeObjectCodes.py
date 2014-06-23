@@ -22,82 +22,16 @@ Right now only the creation is done here. But more should be added later on.
 
 from nuitka.Utils import python_version
 
-from .ConstantCodes import getConstantHandle, getConstantCode
-from .Identifiers import Identifier
-
-import hashlib
-
-from nuitka.__past__ import iterItems
-
-# Code objects needed made unique by a key.
-code_objects = {}
-
-# False alarms about "hashlib.md5" due to its strange way of defining what is
-# exported, pylint won't understand it. pylint: disable=E1101
-if python_version < 300:
-    def _calcHash(key):
-        hash_value = hashlib.md5(
-            "%s%s%d%s%d%d%s%s%s%s" % key
-        )
-
-        return hash_value.hexdigest()
-else:
-    def _calcHash(key):
-        hash_value = hashlib.md5(
-            ("%s%s%d%s%d%d%s%s%s%s" % key).encode("utf-8")
-        )
-
-        return hash_value.hexdigest()
-
-def _getCodeObjects():
-    return sorted(iterItems(code_objects))
-
-# Sad but true, code objects have these many details that actually are fed from
-# all different source, pylint: disable=R0913
-def getCodeObjectHandle( context, filename, code_name, line_number, var_names,
-                         arg_count, kw_only_count, is_generator, is_optimized,
-                         has_starlist, has_stardict ):
-    var_names = tuple(var_names)
-
-    assert type(has_starlist) is bool
-    assert type(has_stardict) is bool
-
-    key = (
-        filename,
-        code_name,
-        line_number,
-        var_names,
-        arg_count,
-        kw_only_count,
-        is_generator,
-        is_optimized,
-        has_starlist,
-        has_stardict
-    )
-
-    if key not in code_objects:
-        code_objects[ key ] = Identifier(
-            "codeobj_%s" % _calcHash(key),
-            0
-        )
-
-        getConstantHandle(context, filename)
-        getConstantHandle(context, code_name)
-        getConstantHandle(context, var_names)
-
-    return code_objects[key]
+from .ConstantCodes import getConstantCode
 
 
-def getCodeObjectsDeclCode(for_header):
+def getCodeObjectsDeclCode(context):
     # There are many cases for constants of different types.
     # pylint: disable=R0912
     statements = []
 
-    for _code_object_key, code_identifier in _getCodeObjects():
-        declaration = "PyCodeObject *%s;" % code_identifier.getCode()
-
-        if for_header:
-            declaration = "extern " + declaration
+    for _code_object_key, code_identifier in context.getCodeObjects():
+        declaration = "static PyCodeObject *%s;" % code_identifier
 
         statements.append(declaration)
 
@@ -106,10 +40,11 @@ def getCodeObjectsDeclCode(for_header):
 def getCodeObjectsInitCode(context):
     statements = []
 
-    for code_object_key, code_identifier in _getCodeObjects():
+    for code_object_key, code_identifier in context.getCodeObjects():
         co_flags = []
 
-        if code_object_key[2] != 0:
+        if code_object_key[2] != 0 and \
+           (code_object_key[7] or python_version < 340):
             co_flags.append("CO_NEWLOCALS")
 
         if code_object_key[6]:
@@ -124,9 +59,14 @@ def getCodeObjectsInitCode(context):
         if code_object_key[9]:
             co_flags.append("CO_VARKEYWORDS")
 
+        if not code_object_key[10]:
+            co_flags.append("CO_NOFREE")
+
+        co_flags.extend(code_object_key[11])
+
         if python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
-                code_identifier.getCode(),
+                code_identifier,
                 getConstantCode(
                     constant = code_object_key[0],
                     context  = context
@@ -145,7 +85,7 @@ def getCodeObjectsInitCode(context):
             )
         else:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
-                code_identifier.getCode(),
+                code_identifier,
                 getConstantCode(
                     constant = code_object_key[0],
                     context  = context

@@ -23,16 +23,13 @@ result of it can be predicted still, and these are interesting for warnings.
 
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    ExpressionBuiltinNoArgBase
-)
+import math
 
 from nuitka.optimizations import BuiltinOptimization
-
 from nuitka.Utils import python_version
 
-import math
+from .NodeBases import ExpressionBuiltinNoArgBase, ExpressionChildrenHavingBase
+
 
 class ExpressionBuiltinRange0(ExpressionBuiltinNoArgBase):
     kind = "EXPRESSION_BUILTIN_RANGE0"
@@ -132,7 +129,9 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
 class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
     kind = "EXPRESSION_BUILTIN_RANGE1"
 
-    named_children = ( "low", )
+    named_children = (
+        "low",
+    )
 
     def __init__(self, low, source_ref):
         assert low is not None
@@ -140,7 +139,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
         ExpressionBuiltinRangeBase.__init__(
             self,
             values     = {
-                "low"  : low,
+                "low" : low,
             },
             source_ref = source_ref
         )

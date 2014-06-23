@@ -15,32 +15,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Code templates for local and module level (global) uses of exec/eval.
 
-"""
 
-exec_template = """\
-PyObjectTemporary globals( %(globals_identifier)s );
-PyObjectTemporary locals( %(locals_identifier)s );
+def getGotoCode(label, emit):
+    assert label is not None
 
-PyObjectTemporary code( COMPILE_CODE( %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) );
+    emit(
+        "goto %s;" % label
+    )
 
-PyObject *result = EVAL_CODE( code.asObject0(), globals.asObject0(), locals.asObject0() );
-Py_DECREF( result );"""
+def getLabelCode(label, emit):
+    assert label is not None
 
-exec_copy_back_template = """
-PyObject *locals_source = NULL;
-
-if ( locals.asObject0() == locals_dict.asObject0() )
-{
-    locals_source = locals.asObject0();
-}
-else if ( globals.asObject0() == locals_dict.asObject0() )
-{
-    locals_source = globals.asObject0();
-}
-
-if ( locals_source != NULL )
-{
-%(store_locals_code)s
-}"""
+    emit(
+        "%s:;" % label
+    )

@@ -17,8 +17,7 @@
 #
 """ Return node
 
-This one exits functions. The only other exit is the default exit of functions with 'None'
-value, if no return is done.
+This one exits functions. The only other exit is the default exit of functions with 'None' value, if no return is done.
 """
 
 from .NodeBases import StatementChildrenHavingBase
@@ -40,21 +39,15 @@ class StatementReturn(StatementChildrenHavingBase):
 
         self.exception_driven = None
 
-    getExpression = StatementChildrenHavingBase.childGetter( "expression" )
+    getExpression = StatementChildrenHavingBase.childGetter(
+        "expression"
+    )
 
     def isStatementAborting(self):
         return True
 
     def mayRaiseException(self, exception_type):
-        return self.getExpression().mayRaiseException( exception_type )
-
-    def setExceptionDriven(self, value):
-        self.exception_driven = value
-
-    def isExceptionDriven(self):
-        assert self.exception_driven is not None
-
-        return self.exception_driven
+        return self.getExpression().mayRaiseException(exception_type)
 
     def computeStatement(self, constraint_collection):
         constraint_collection.onExpression( self.getExpression() )
@@ -68,7 +61,8 @@ class StatementReturn(StatementChildrenHavingBase):
                 node       = self
             )
 
-            return result, "new_raise", "Return statement raises in returned expression, removed return"
+            return result, "new_raise", """\
+Return statement raises in returned expression, removed return."""
 
         return self, None, None
 

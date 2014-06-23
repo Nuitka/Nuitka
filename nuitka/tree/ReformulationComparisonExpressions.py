@@ -15,23 +15,30 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of comparison chain expressions.
 
-from nuitka.nodes.KeeperNodes import (
-    ExpressionAssignmentTempKeeper,
-    ExpressionTempKeeperRef
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
+
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
 )
 
+from .Helpers import buildNode, getKind, makeTryFinallyExpression
 from .ReformulationBooleanExpressions import buildAndNode
 
-from .Helpers import (
-    buildNode,
-    getKind
-)
 
 def buildComparisonNode(provider, node, source_ref):
     from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
 
-    assert len( node.comparators ) == len( node.ops )
+    assert len(node.comparators) == len(node.ops)
 
     # Comparisons are re-formulated as described in the developer manual. When
     # having multiple compators, things require assignment expressions and
@@ -39,26 +46,30 @@ def buildComparisonNode(provider, node, source_ref):
     # code.
 
     # The operands are split out
-    left = buildNode( provider, node.left, source_ref )
+    left = buildNode(provider, node.left, source_ref)
     rights = [
-        buildNode( provider, comparator, source_ref )
+        buildNode(provider, comparator, source_ref)
         for comparator in
         node.comparators
     ]
 
     # Only the first comparison has as left operands as the real thing, the
     # others must reference the previous comparison right one temp variable ref.
-    result = []
+    values = []
 
     # For PyLint to like it, this will hold the previous one, normally.
     keeper_variable = None
 
-    for comparator, right in zip( node.ops, rights ):
-        if result:
+    temp_scope = None
+
+    final = []
+
+    for comparator, right in zip(node.ops, rights):
+        if values:
             # Now we know it's not the only one, so we change the "left" to be a
             # reference to the previously saved right side.
-            left = ExpressionTempKeeperRef(
-                variable   = keeper_variable.makeReference( provider ),
+            left = ExpressionTempVariableRef(
+                variable   = keeper_variable.makeReference(provider),
                 source_ref = source_ref
             )
 
@@ -69,17 +80,50 @@ def buildComparisonNode(provider, node, source_ref):
             # "right" so it can be referenced by the next part that will
             # come. We do it by assining it to a temp variable to be shared with
             # the next part.
-            keeper_variable = provider.allocateTempKeeperVariable()
+            if temp_scope is None:
+                temp_scope = provider.allocateTempScope(
+                    name = "comparison"
+                )
 
-            right = ExpressionAssignmentTempKeeper(
-                variable   = keeper_variable.makeReference( provider ),
-                source     = right,
-                source_ref = source_ref
+            keeper_variable = provider.allocateTempVariable(
+                temp_scope = temp_scope,
+                name       = "value_%d" % (rights.index(right)+2),
             )
 
-        comparator = getKind( comparator )
+            tried = StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source       = right,
+                source_ref   = source_ref,
+            )
 
-        result.append(
+            # TODO: The delete must be placed later.
+            final.append(
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = keeper_variable.makeReference(provider),
+                        source_ref = source_ref
+                    ),
+                    tolerant     = True,
+                    source_ref   = source_ref,
+                )
+            )
+
+            right = makeTryFinallyExpression(
+                tried       = tried,
+                final       = None,
+                expression  = ExpressionTempVariableRef(
+                    variable   = keeper_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source_ref  = source_ref
+            )
+
+        comparator = getKind(comparator)
+
+        values.append(
             makeComparisonNode(
                 left       = left,
                 right      = right,
@@ -90,8 +134,18 @@ def buildComparisonNode(provider, node, source_ref):
 
     assert keeper_variable is None
 
-    return buildAndNode(
+    result = buildAndNode(
         provider   = provider,
-        values     = result,
+        values     = values,
         source_ref = source_ref
     )
+
+    if final:
+        return makeTryFinallyExpression(
+            tried      = None,
+            expression = result,
+            final      = final,
+            source_ref = source_ref
+        )
+    else:
+        return result

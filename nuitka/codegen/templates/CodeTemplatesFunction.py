@@ -64,7 +64,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
         %(code_identifier)s,
         %(defaults)s,
 #if PYTHON_VERSION >= 300
-        %(kwdefaults)s,
+        %(kw_defaults)s,
         %(annotations)s,
 #endif
         %(module_identifier)s,
@@ -90,7 +90,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
         %(code_identifier)s,
         %(defaults)s,
 #if PYTHON_VERSION >= 300
-        %(kwdefaults)s,
+        %(kw_defaults)s,
         %(annotations)s,
 #endif
         %(module_identifier)s,
@@ -101,7 +101,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 }
 """
 
-function_body_template = """\
+template_function_body = """\
 static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 {
 %(context_access_function_impl)s
@@ -111,7 +111,31 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 
     // Actual function code.
 %(function_body)s
+
+%(function_exit)s
 }
+"""
+
+template_function_exception_exit = """\
+    // Return statement must be present.
+    assert(false);
+function_exception_exit:
+%(function_cleanup)s\
+    assert( exception_type );
+    PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+    return NULL;
+"""
+
+template_function_noexception_exit = """\
+    // Return statement must be present.
+    assert(false);
+    return NULL;
+"""
+
+template_function_return_exit = """\
+function_return_exit:
+%(function_cleanup)s\
+    return tmp_return_value;
 """
 
 function_direct_body_template = """\
@@ -124,103 +148,16 @@ function_direct_body_template = """\
 
     // Actual function code.
 %(function_body)s
+
+%(function_exit)s
 }
 """
 
 
 function_dict_setup = """\
 // Locals dictionary setup.
-PyObjectTemporary locals_dict( PyDict_New() );
+PyObject *locals_dict = PyDict_New();
 """
-
-frame_guard_full_template = """\
-static PyFrameObject *frame_%(frame_identifier)s = NULL;
-
-if ( isFrameUnusable( frame_%(frame_identifier)s ) )
-{
-    if ( frame_%(frame_identifier)s )
-    {
-#if _DEBUG_REFRAME
-        puts( "reframe for %(frame_identifier)s" );
-#endif
-        Py_DECREF( frame_%(frame_identifier)s );
-    }
-
-    frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
-}
-
-%(frame_class_name)s frame_guard( frame_%(frame_identifier)s );
-try
-{
-    assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
-%(codes)s
-}
-catch ( PythonException &_exception )
-{
-    if ( !_exception.hasTraceback() )
-    {
-        _exception.setTraceback( %(tb_making)s );
-    }
-    else
-    {
-        _exception.addTraceback( frame_guard.getFrame0() );
-    }
-%(frame_locals)s
-    if ( frame_guard.getFrame0() == frame_%(frame_identifier)s )
-    {
-       Py_DECREF( frame_%(frame_identifier)s );
-       frame_%(frame_identifier)s = NULL;
-    }
-%(return_code)s
-}
-"""
-
-frame_guard_python_return = """
-    _exception.toPython();
-    return NULL;"""
-
-frame_guard_cpp_return = """
-    throw;"""
-
-frame_guard_listcontr_template = """\
-FrameGuardVeryLight frame_guard;
-
-%(codes)s"""
-
-frame_guard_once_template = """\
-PyFrameObject *frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
-
-%(frame_class_name)s frame_guard( frame_%(frame_identifier)s );
-try
-{
-    assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
-%(codes)s
-}
-catch ( PythonException &_exception )
-{
-    if ( !_exception.hasTraceback() )
-    {
-        _exception.setTraceback( %(tb_making)s );
-    }
-    else
-    {
-        _exception.addTraceback( frame_guard.getFrame0() );
-    }
-
-#if 0
-// TODO: Recognize the need for it
-    Py_XDECREF( frame_guard.getFrame0()->f_locals );
-    frame_guard.getFrame0()->f_locals = %(frame_locals)s;
-#endif
-
-    // Return the error.
-    _exception.toPython();
-%(return_code)s
-}"""
-
-template_frame_locals_update = """\
-Py_XDECREF( frame_guard.getFrame0()->f_locals );
-frame_guard.getFrame0()->f_locals = %(locals_identifier)s;"""
 
 # Bad to read, but the context declaration should be on one line.
 # pylint: disable=C0301

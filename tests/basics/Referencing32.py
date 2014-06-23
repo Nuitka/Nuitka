@@ -18,6 +18,10 @@
 
 import sys, gc
 
+if not hasattr(sys, "gettotalrefcount"):
+    print("Warning, using non-debug Python makes this test ineffective.")
+    sys.gettotalrefcount = lambda : 0
+
 def simpleFunction1():
     def abc(*, exc=IOError):
         pass
@@ -45,6 +49,15 @@ def simpleFunction3():
     nonlocal_writer()
 
     assert a == 9, a
+
+def simpleFunction4():
+    x = 2
+
+    def local_func(a: int, b: x*x):
+        pass
+
+    local_func(x, x)
+
 
 m1 = {}
 m2 = {}
@@ -125,6 +138,7 @@ def checkReferenceCount(checked_function, max_rounds = 10):
 
    gc.collect()
 
-checkReferenceCount( simpleFunction1 )
-checkReferenceCount( simpleFunction2 )
-checkReferenceCount( simpleFunction3 )
+checkReferenceCount(simpleFunction1)
+checkReferenceCount(simpleFunction2)
+checkReferenceCount(simpleFunction3)
+checkReferenceCount(simpleFunction4)

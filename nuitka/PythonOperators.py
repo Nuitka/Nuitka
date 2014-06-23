@@ -22,9 +22,9 @@ of operations allowed.
 
 """
 
-from .Utils import python_version
-
 import operator
+
+from .Utils import python_version
 
 if python_version >= 300:
     operator.div = operator.truediv
@@ -92,5 +92,24 @@ comparison_inversions = {
     "NotIn" : "In"
 }
 
-all_comparison_functions = dict( rich_comparison_functions)
-all_comparison_functions.update( other_comparison_functions )
+all_comparison_functions = dict(rich_comparison_functions)
+all_comparison_functions.update(other_comparison_functions)
+
+def matchException(left, right):
+    if python_version >= 300:
+        if type(right) is tuple:
+            for element in right:
+                if not isinstance(BaseException,element):
+                    raise TypeError("catching classes that do not inherit from BaseException is not allowed")
+        elif not isinstance(BaseException,right):
+            raise TypeError("catching classes that do not inherit from BaseException is not allowed")
+
+    # This doesn't yet work, make it error exit. and silence PyLint for now.
+    # pylint: disable=W0212
+    import os
+    os._exit(16)
+
+    assert False, left
+
+
+all_comparison_functions["exception_match"]=matchException

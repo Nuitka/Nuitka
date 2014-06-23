@@ -15,41 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Module for node class mixins that indicate runtime determined facts about a node.
+""" Module for node class mixins that indicate runtime determined node facts.
 
-These come into play after finalization only. All of the these attributes (and we could
-use properties instead) are determined once or from a default and then used like this.
+These come into play after finalization only. All of the these attributes (and
+we could use properties instead) are determined once or from a default and then
+used like this.
 
 """
-
-
-class MarkContainsTryExceptIndicator:
-    """ Mixin for indication that a module, class or function contains a try/except.
-
-    """
-
-    def __init__(self):
-        self.try_except_containing = False
-        self.try_finally_containing = False
-        self.raise_containing = False
-
-    def markAsTryExceptContaining(self):
-        self.try_except_containing = True
-
-    def isTryExceptContaining(self):
-        return self.try_except_containing
-
-    def markAsTryFinallyContaining(self):
-        self.try_finally_containing = True
-
-    def isTryFinallyContaining(self):
-        return self.try_finally_containing
-
-    def markAsRaiseContaining(self):
-        self.raise_containing = True
-
-    def isRaiseContaining(self):
-        return self.raise_containing
 
 
 class MarkLocalsDictIndicator:
@@ -71,12 +43,25 @@ class MarkGeneratorIndicator:
     def __init__(self):
         self.is_generator = False
 
+        self.needs_generator_return_exit = False
+
     def markAsGenerator(self):
         self.is_generator = True
 
     def isGenerator(self):
         return self.is_generator
 
+    def markAsNeedsGeneratorReturnHandling(self, value):
+        self.needs_generator_return_exit = max(
+            self.needs_generator_return_exit,
+            value
+        )
+
+    def needsGeneratorReturnHandling(self):
+        return self.needs_generator_return_exit == 2
+
+    def needsGeneratorReturnExit(self):
+        return bool(self.needs_generator_return_exit)
 
 class MarkUnoptimizedFunctionIndicator:
     """ Mixin for indication that a function contains an exec or star import.

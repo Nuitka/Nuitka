@@ -18,50 +18,13 @@
 #ifndef __NUITKA_HELPER_SEQUENCES_H__
 #define __NUITKA_HELPER_SEQUENCES_H__
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_LIST( PyObject *seq_obj )
-{
-    PyObject *result = PySequence_List( seq_obj );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
-{
-    PyObject *result = PySequence_Tuple( seq_obj );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_SET( PyObject *seq_obj )
-{
-    PyObject *result = PySet_New( seq_obj );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
-
 NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *element, PyObject *sequence )
 {
     int result = PySequence_Contains( sequence, element );
 
     if (unlikely( result == -1 ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return BOOL_FROM( result == 1 );
@@ -73,7 +36,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS_NOT( PyObject *element, 
 
     if (unlikely( result == -1 ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return BOOL_FROM( result == 0 );
@@ -85,7 +48,7 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_BOOL( PyObject *element, PyOb
 
     if (unlikely( result == -1 ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return result == 1;
@@ -97,13 +60,13 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *element, 
 
     if (unlikely( result == -1 ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return result == 0;
 }
 
-NUITKA_MAY_BE_UNUSED static void SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_t index, PyObject *value )
+NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_t index, PyObject *value )
 {
     assertObject( sequence );
     assertObject( value );
@@ -120,7 +83,7 @@ NUITKA_MAY_BE_UNUSED static void SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_
 
                 if ( length < 0 )
                 {
-                    throw PythonException();
+                    return false;
                 }
 
                 index += length;
@@ -131,8 +94,10 @@ NUITKA_MAY_BE_UNUSED static void SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_
 
         if (unlikely( res == -1 ))
         {
-            throw PythonException();
+            return false;
         }
+
+        return true;
     }
     else
     {
@@ -142,7 +107,7 @@ NUITKA_MAY_BE_UNUSED static void SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_
             Py_TYPE( sequence )->tp_name
         );
 
-        throw PythonException();
+        return false;
     }
 }
 

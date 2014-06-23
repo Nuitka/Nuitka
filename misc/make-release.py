@@ -51,6 +51,16 @@ parser.add_option(
 Check the created Debian package in a Debian Sid pbuilder. Default %default."""
 )
 
+parser.add_option(
+    "--no-branch-check",
+    action  = "store_true",
+    dest    = "no_branch_check",
+    default = False,
+    help    = """\
+Do not check the git branch. Default %default."""
+)
+
+
 options, positional_args = parser.parse_args()
 
 assert not positional_args, positional_args
@@ -70,9 +80,9 @@ def checkAtHome():
 
             git_dir = line[ 8:]
 
-    git_description_filename = os.path.join( git_dir, "description" )
+    git_description_filename = os.path.join(git_dir, "description")
 
-    assert open( git_description_filename ).read().strip() == "Nuitka Staging"
+    assert open(git_description_filename).read().strip() == "Nuitka Staging"
 
 checkAtHome()
 
@@ -84,18 +94,16 @@ branch_name = subprocess.check_output(
     "git name-rev --name-only HEAD".split()
 ).strip()
 
-assert branch_name in (
+assert options.no_branch_check or branch_name in (
     b"master",
     b"develop",
     b"release/" + nuitka_version,
     b"hotfix/" + nuitka_version
 ), branch_name
 
-def checkChangeLog( message ):
-    for line in open( "debian/changelog" ):
-        print line,
-
-        if line.startswith( " --" ):
+def checkDebianChangeLog(message):
+    for line in open("debian/changelog"):
+        if line.startswith(" --"):
             return False
 
         if message in line:
@@ -103,28 +111,39 @@ def checkChangeLog( message ):
     else:
         assert False, message # No new messages.
 
-if branch_name.startswith( "release" ) or \
-   branch_name == "master" or \
-   branch_name.startswith( "hotfix/" ):
-    if nuitka_version.count( "." ) == 2:
-        assert checkChangeLog( "New upstream release." )
-    else:
-        assert checkChangeLog( "New upstream hotfix release." )
-else:
-    assert checkChangeLog( "New upstream pre-release." )
+def checkNuitkaChangelog():
+    first_line = open("Changelog.rst").readline()
 
-shutil.rmtree( "dist", ignore_errors = True )
-shutil.rmtree( "build", ignore_errors = True )
+    if "(Draft)" in first_line:
+        return "draft"
+    else:
+        return "final"
+
+if branch_name.startswith("release") or \
+   branch_name == "master" or \
+   branch_name.startswith("hotfix/"):
+    if nuitka_version.count(".") == 2:
+        assert checkDebianChangeLog("New upstream release.")
+    else:
+        assert checkDebianChangeLog("New upstream hotfix release.")
+
+    assert checkNuitkaChangelog() == "final", checkNuitkaChangelog()
+else:
+    assert checkDebianChangeLog("New upstream pre-release.")
+    assert checkNuitkaChangelog() == "draft", checkNuitkaChangelog()
+
+shutil.rmtree("dist", ignore_errors = True)
+shutil.rmtree("build", ignore_errors = True)
 
 assert 0 == os.system( "python setup.py sdist --formats=bztar,gztar,zip" )
 
-os.chdir( "dist" )
+os.chdir("dist")
 
 # Clean the stage for the debian package. The name "deb_dist" is what "py2dsc"
 # uses for its output later on.
 
-if os.path.exists( "deb_dist" ):
-    shutil.rmtree( "deb_dist" )
+if os.path.exists("deb_dist"):
+    shutil.rmtree("deb_dist")
 
 # Provide a re-packed tar.gz for the Debian package as input.
 

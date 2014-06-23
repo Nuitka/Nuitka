@@ -181,24 +181,9 @@ int main( int argc, char *argv[] )
 }
 """
 
-module_header_template = """\
-
-#include <nuitka/helpers.hpp>
-
-MOD_INIT_DECL( %(module_identifier)s );
-
-extern PyObject *module_%(module_identifier)s;
-extern PyDictObject *moduledict_%(module_identifier)s;
-
-// Declarations from this module to other modules if any.
-%(extra_declarations)s
-"""
-
 module_body_template = """
 #include "nuitka/prelude.hpp"
 
-#include "__modules.hpp"
-#include "__constants.hpp"
 #include "__helpers.hpp"
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
@@ -210,80 +195,20 @@ module_body_template = """
 PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
-NUITKA_MAY_BE_UNUSED static PyObject *GET_MODULE_VALUE0( PyObject *var_name )
+// The module constants used
+%(constant_decl_codes)s
+
+static void _initModuleConstants(void)
 {
-    // For module variable values, need to lookup in module dictionary or in
-    // built-in dictionary.
-
-    PyObject *result = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)var_name );
-
-    if (likely( result != NULL ))
-    {
-        assertObject( result );
-
-        return result;
-    }
-
-    result = GET_STRING_DICT_VALUE( dict_builtin, (Nuitka_StringObject *)var_name );
-
-    if (likely( result != NULL ))
-    {
-        assertObject( result );
-
-        return result;
-    }
-
-    PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString(var_name ));
-    throw PythonException();
+%(constant_init_codes)s
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *GET_MODULE_VALUE1( PyObject *var_name )
+// The module code objects.
+%(module_code_objects_decl)s
+
+static void _initModuleCodeObjects(void)
 {
-    return INCREASE_REFCOUNT( GET_MODULE_VALUE0( var_name ) );
-}
-
-NUITKA_MAY_BE_UNUSED void static DEL_MODULE_VALUE( PyObject *var_name, bool tolerant )
-{
-    int status = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, var_name );
-
-    if (unlikely( status == -1 && tolerant == false ))
-    {
-        PyErr_Format(
-            PyExc_NameError,
-            "global name '%%s' is not defined",
-            Nuitka_String_AsString( var_name )
-        );
-
-        throw PythonException();
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *GET_LOCALS_OR_MODULE_VALUE0( PyObject *locals_dict, PyObject *var_name )
-{
-    PyObject *result = PyDict_GetItem( locals_dict, var_name );
-
-    if ( result != NULL )
-    {
-        return result;
-    }
-    else
-    {
-        return GET_MODULE_VALUE0( var_name );
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *GET_LOCALS_OR_MODULE_VALUE1( PyObject *locals_dict, PyObject *var_name )
-{
-    PyObject *result = PyDict_GetItem( locals_dict, var_name );
-
-    if ( result != NULL )
-    {
-        return INCREASE_REFCOUNT( result );
-    }
-    else
-    {
-        return GET_MODULE_VALUE1( var_name );
-    }
+%(module_code_objects_init)s
 }
 
 // The module function declarations.
@@ -291,6 +216,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_LOCALS_OR_MODULE_VALUE1( PyObject *loc
 
 // The module function definitions.
 %(module_functions_code)s
+
 
 #if PYTHON_VERSION >= 300
 static struct PyModuleDef mdef_%(module_identifier)s =
@@ -315,6 +241,7 @@ static struct PyModuleDef mdef_%(module_identifier)s =
 
 // Table for lookup to find "frozen" modules or DLLs, i.e. the ones included in
 // or along this binary.
+%(metapath_module_decls)s
 static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
 {
 %(metapath_loader_inittab)s
@@ -371,6 +298,9 @@ MOD_INIT_DECL( %(module_identifier)s )
     registerMetaPathBasedUnfreezer( meta_path_loader_entries );
 #endif
 
+    _initModuleConstants();
+    _initModuleCodeObjects();
+
     // puts( "in init%(module_identifier)s" );
 
     // Create the module object first. There are no methods initially, all are
@@ -415,15 +345,11 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     if ( PyDict_GetItem( module_dict, const_str_plain___builtins__ ) == NULL )
     {
-        PyObject *value = ( PyObject *)module_builtin;
+        PyObject *value = (PyObject *)builtin_module;
 
-#ifdef _NUITKA_EXE
-        if ( module_%(module_identifier)s != module___main__ )
-        {
-#endif
-            value = PyModule_GetDict( value );
-#ifdef _NUITKA_EXE
-        }
+        // Check if main module, not a dict then.
+#if !defined(_NUITKA_EXE) || !%(is_main_module)s
+        value = PyModule_GetDict( value );
 #endif
 
 #ifndef __NUITKA_NO_ASSERT__
@@ -445,12 +371,21 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Temp variables if any
 %(temps_decl)s
 
-    // Module code
+    // Module code.
 %(module_code)s
 
-   return MOD_RETURN_VALUE( module_%(module_identifier)s );
-}
+    return MOD_RETURN_VALUE( module_%(module_identifier)s );
+%(module_exit)s
 """
+
+template_module_exception_exit = """\
+module_exception_exit:
+    PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+    return MOD_RETURN_VALUE( NULL );
+}"""
+
+template_module_noexception_exit = """\
+}"""
 
 template_helper_impl_decl = """\
 // This file contains helper functions that are automatically created from
@@ -479,6 +414,8 @@ extern const unsigned char* constant_bin;
 #else
 extern "C" const unsigned char constant_bin[];
 #endif
+
+#define stream_data constant_bin
 
 // These modules should be loaded as bytecode. They must e.g. be loadable
 // during "Py_Initialize" already, or for irrelevance, they are only included

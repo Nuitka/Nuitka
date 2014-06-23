@@ -20,14 +20,14 @@
 """
 
 template_call_cpython_function_fast_impl = """\
-NUITKA_MAY_BE_UNUSED static PyObject *_fast_function_args( PyObject *func, PyObject **args, int count )
+NUITKA_MAY_BE_UNUSED static PyObject *fast_python_call( PyObject *func, PyObject **args, int count )
 {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE( func );
     PyObject *globals = PyFunction_GET_GLOBALS( func );
-    PyObject *argdefs = PyFunction_GET_DEFAULTS(func);
+    PyObject *argdefs = PyFunction_GET_DEFAULTS( func );
 
 #if PYTHON_VERSION >= 300
-    PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS(func);
+    PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS( func );
 
     if ( kwdefs == NULL && argdefs == NULL && co->co_argcount == count &&
         co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
@@ -43,7 +43,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_fast_function_args( PyObject *func, PyObj
 
         if (unlikely( frame == NULL ))
         {
-            throw PythonException();
+            return NULL;
         };
 
         for ( int i = 0; i < count; i++ )
@@ -59,11 +59,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *_fast_function_args( PyObject *func, PyObj
         Py_DECREF( frame );
         --tstate->recursion_depth;
 
-        if ( result == NULL )
-        {
-            throw PythonException();
-        }
-
         return result;
     }
 
@@ -72,7 +67,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_fast_function_args( PyObject *func, PyObj
 
     if ( argdefs != NULL )
     {
-        defaults = &PyTuple_GET_ITEM(argdefs, 0);
+        defaults = &PyTuple_GET_ITEM( argdefs, 0 );
         nd = int( Py_SIZE( argdefs ) );
     }
 
@@ -96,14 +91,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *_fast_function_args( PyObject *func, PyObj
         PyFunction_GET_CLOSURE( func )
     );
 
-    if ( result == 0 )
-    {
-        throw PythonException();
-    }
-
     return result;
-}
-"""
+}"""
 
 template_call_function_with_args_decl = """\
 extern PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s );"""
@@ -127,7 +116,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
     {
         if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
         {
-            throw PythonException();
+            return NULL;
         }
 
         Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
@@ -155,11 +144,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
 
         Py_LeaveRecursiveCall();
 
-        if ( result == NULL )
-        {
-            throw PythonException();
-        }
-
         return result;
     }
     else if ( Nuitka_Method_Check( called ) )
@@ -171,7 +155,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
         {
             if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
             {
-                throw PythonException();
+                return NULL;
             }
 
             PyObject *args[] = {
@@ -201,11 +185,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
 
             Py_LeaveRecursiveCall();
 
-            if ( result == NULL )
-            {
-                throw PythonException();
-            }
-
             return result;
         }
     }
@@ -213,17 +192,24 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
     {
         PyObject *args[] = { %(args_list)s };
 
-        return _fast_function_args(
+        return fast_python_call(
             called,
             args,
             sizeof( args ) / sizeof( PyObject * )
         );
     }
 
-    return CALL_FUNCTION(
+    PyObject *args[] = { %(args_list)s };
+    PyObject *pos_args = MAKE_TUPLE( args, sizeof( args ) / sizeof( PyObject * ) );
+
+    PyObject *result = CALL_FUNCTION(
         called,
-        PyObjectTemporary( MAKE_TUPLE%(args_count)d( %(args_list)s ) ).asObject0(),
+        pos_args,
         NULL
     );
+
+    Py_DECREF( pos_args );
+
+    return result;
 }
 """

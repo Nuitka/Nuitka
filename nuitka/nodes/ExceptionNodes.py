@@ -21,10 +21,11 @@
 
 from .NodeBases import (
     ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase,
     ExpressionMixin,
-    NodeBase
+    NodeBase,
+    StatementChildrenHavingBase
 )
+
 
 class StatementRaiseException(StatementChildrenHavingBase):
     kind = "STATEMENT_RAISE_EXCEPTION"
@@ -55,7 +56,6 @@ class StatementRaiseException(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-        self.reraise_local = False
         self.reraise_finally = False
 
     getExceptionType = StatementChildrenHavingBase.childGetter(
@@ -71,24 +71,11 @@ class StatementRaiseException(StatementChildrenHavingBase):
         "exception_cause"
     )
 
-    def isReraiseException(self):
+    def isStatementReraiseException(self):
         return self.getExceptionType() is None
 
-    def isReraiseExceptionLocal(self):
-        assert self.isReraiseException()
-
-        return self.reraise_local
-
-    def isReraiseExceptionFinally(self):
-        assert self.isReraiseException()
-
-        return self.reraise_finally
-
-    def markAsReraiseLocal(self):
-        self.reraise_local = True
-
-    def markAsReraiseFinally(self):
-        self.reraise_finally = True
+    # TODO: Rename this
+    isReraiseException = isStatementReraiseException
 
     def isStatementAborting(self):
         return True
@@ -238,8 +225,6 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         return self, None, None
 
     def computeExpressionDrop(self, statement, constraint_collection):
-        from .ExceptionNodes import StatementRaiseExceptionImplicit
-
         result = StatementRaiseExceptionImplicit(
             exception_type  = self.getExceptionType(),
             exception_value = self.getExceptionValue(),

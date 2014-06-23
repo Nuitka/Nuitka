@@ -22,42 +22,37 @@ the Python C/API, to compile it to either an executable or an extension module.
 
 """
 
-from .tree import (
-    Recursion,
-    Building
-)
+import os
+import shutil
+import subprocess
+import sys
+from logging import info, warning
 
 from . import (
-    ModuleRegistry,
-    SyntaxErrors,
     Importing,
+    ModuleRegistry,
+    Options,
+    SyntaxErrors,
     Tracing,
     TreeXML,
-    Options,
     Utils
 )
-
 from .build import SconsInterface
-
 from .codegen import CodeGeneration, ConstantCodes
-
-from .optimizations import Optimization
 from .finalizations import Finalization
-
-from nuitka.freezer.Standalone import (
-    detectEarlyImports,
-    detectLateImports,
-    detectUsedDLLs
-)
-from nuitka.freezer.BytecodeModuleFreezer import (
+from .freezer.BytecodeModuleFreezer import (
+    addFrozenModule,
     generateBytecodeFrozenCode,
-    getFrozenModuleCount,
-    addFrozenModule
+    getFrozenModuleCount
 )
+from .freezer.Standalone import (
+    copyUsedDLLs,
+    detectEarlyImports,
+    detectLateImports
+)
+from .optimizations import Optimization
+from .tree import Building, Recursion
 
-import sys, os, subprocess, shutil
-
-from logging import warning, info
 
 def createNodeTree(filename):
     """ Create a node tree.
@@ -106,19 +101,6 @@ def createNodeTree(filename):
 
     return main_module
 
-def dumpTree(tree):
-    Tracing.printLine( "Analysis -> Tree Result" )
-
-    Tracing.printSeparator()
-    Tracing.printSeparator()
-    Tracing.printSeparator()
-
-    tree.dump()
-
-    Tracing.printSeparator()
-    Tracing.printSeparator()
-    Tracing.printSeparator()
-
 def dumpTreeXML(tree):
     xml_root = tree.asXml()
     TreeXML.dump(xml_root)
@@ -157,13 +139,13 @@ def getResultBasepath(main_module):
         return Utils.joinpath(
             getStandaloneDirectoryPath( main_module ),
             Utils.basename(
-                getTreeFilenameWithSuffix( main_module, "" )
+                getTreeFilenameWithSuffix(main_module, "")
             )
         )
     else:
         return Options.getOutputPath(
             path = Utils.basename(
-                getTreeFilenameWithSuffix( main_module, "" )
+                getTreeFilenameWithSuffix(main_module, "")
             )
         )
 
@@ -188,7 +170,7 @@ def cleanSourceDirectory(source_dir):
                                             ".manifest"):
                 Utils.deleteFile(path, True)
     else:
-        Utils.makePath( source_dir )
+        Utils.makePath(source_dir)
 
     static_source_dir = Utils.joinpath(
         source_dir,
@@ -243,10 +225,7 @@ def pickSourceFilenames(source_dir, modules):
 
         base_filename += hash_suffix
 
-        cpp_filename = base_filename + ".cpp"
-        hpp_filename = base_filename + ".hpp"
-
-        module_filenames[module] = (cpp_filename, hpp_filename)
+        module_filenames[module] = base_filename + ".cpp"
 
     return module_filenames
 
@@ -293,39 +272,51 @@ def makeSourceDirectory(main_module):
         modules    = modules
     )
 
-    module_hpps = []
+    # First pass, generate code and use constants doing so, but prepare the
+    # final code generation only, because constants code will be added at the
+    # end only.
+    prepared_modules = {}
 
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
-            cpp_filename, hpp_filename = module_filenames[module]
+            cpp_filename = module_filenames[module]
 
-            source_code, header_code, module_context = \
-              CodeGeneration.generateModuleCode(
-                  global_context = global_context,
-                  module         = module,
-                  module_name    = module.getFullName(),
-                  other_modules  = other_modules
-                                     if module is main_module else
-                                   ()
+            prepared_modules[cpp_filename] = CodeGeneration.prepareModuleCode(
+                global_context = global_context,
+                module         = module,
+                module_name    = module.getFullName(),
+                other_modules  = other_modules
+                                   if module is main_module else
+                                 ()
+            )
+
+            # Main code constants need to be allocated already too.
+            if module is main_module and not Options.shallMakeModule():
+                prepared_modules[cpp_filename][1].getConstantCode(0)
+
+
+    for module in sorted(modules, key = lambda x : x.getFullName()):
+        if module.isPythonModule():
+            cpp_filename = module_filenames[module]
+
+            template_values, module_context = prepared_modules[cpp_filename]
+
+            source_code = CodeGeneration.generateModuleCode(
+                module_context  = module_context,
+                template_values = template_values
             )
 
             # The main of an executable module gets a bit different code.
             if module is main_module and not Options.shallMakeModule():
                 source_code = CodeGeneration.generateMainCode(
-                    context = module_context,
-                    codes   = source_code
+                    main_module = main_module,
+                    context     = module_context,
+                    codes       = source_code
                 )
-
-            module_hpps.append( hpp_filename )
 
             writeSourceCode(
                 filename     = cpp_filename,
                 source_code  = source_code
-            )
-
-            writeSourceCode(
-                filename     = hpp_filename,
-                source_code  = header_code
             )
 
             if Options.isShowInclusion():
@@ -353,17 +344,10 @@ def makeSourceDirectory(main_module):
             )
 
             standalone_entry_points.append(
-                (target_filename,module.getPackage())
+                (target_filename, module.getPackage())
             )
         else:
             assert False, module
-
-    writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__constants.hpp" ),
-        source_code = CodeGeneration.generateConstantsDeclarationCode(
-            context = global_context
-        )
-    )
 
     writeSourceCode(
         filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
@@ -384,16 +368,6 @@ def makeSourceDirectory(main_module):
         source_code = helper_impl_code
     )
 
-    module_hpp_include = [
-        '#include "%s"\n' % Utils.basename( module_hpp )
-        for module_hpp in
-        module_hpps
-    ]
-
-    writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__modules.hpp" ),
-        source_code = "".join( module_hpp_include )
-    )
 
 def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
@@ -615,11 +589,11 @@ def main():
         representation of the internal node tree after optimization, etc.
     """
 
-    # Main has to fullfil many options, leading to many branches
-    # pylint: disable=R0912
+    # Main has to fullfil many options, leading to many branches and statements
+    # to deal with them.  pylint: disable=R0912,R0915
 
     positional_args = Options.getPositionalArgs()
-    assert len( positional_args ) > 0
+    assert len(positional_args) > 0
 
     filename = Options.getPositionalArgs()[0]
 
@@ -642,8 +616,6 @@ def main():
                 )
 
                 if Utils.isFile(origin_prefix_filename):
-                    global data_files
-
                     data_files.append(
                         (filename, "orig-prefix.txt")
                     )
@@ -676,10 +648,9 @@ def main():
             SyntaxErrors.formatOutput(e)
         )
 
-    if Options.shallDumpBuiltTree():
-        dumpTree(main_module)
-    elif Options.shallDumpBuiltTreeXML():
-        dumpTreeXML(main_module)
+    if Options.shallDumpBuiltTreeXML():
+        for module in ModuleRegistry.getDoneModules():
+            dumpTreeXML(module)
     elif Options.shallDisplayBuiltTree():
         displayTree(main_module)
     else:
@@ -708,19 +679,14 @@ def main():
             if Utils.getOS() == "NetBSD":
                 warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
 
-            for early_dll in detectUsedDLLs(standalone_entry_points):
-                shutil.copy(
-                    early_dll,
-                    Utils.joinpath(
-                        getStandaloneDirectoryPath(main_module),
-                        Utils.basename(early_dll)
-                    )
-                )
+            copyUsedDLLs(
+                dist_dir                = getStandaloneDirectoryPath(
+                    main_module
+                ),
+                binary_filename         = binary_filename,
+                standalone_entry_points = standalone_entry_points
+            )
 
-                if Options.isShowInclusion():
-                    info("Included used shared library '%s'.", early_dll)
-
-        if Options.isStandaloneMode():
             for source_filename, target_filename in data_files:
                 shutil.copy2(
                     source_filename,

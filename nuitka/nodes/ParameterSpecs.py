@@ -39,7 +39,8 @@ class TooManyArguments(Exception):
         return self.real_exception
 
 
-from nuitka import Variables, Utils
+from nuitka import Utils, Variables
+
 
 class ParameterSpecTuple:
     def __init__(self, normal_args, nest_count = 1):
@@ -137,7 +138,7 @@ class ParameterSpecTuple:
         return self.normal_variables
 
     def getParameterNames(self):
-        return Variables.getNames( self.getVariables() )
+        return Variables.getNames(self.getVariables())
 
 
 class ParameterSpec(ParameterSpecTuple):

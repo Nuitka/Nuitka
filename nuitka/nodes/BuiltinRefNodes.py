@@ -25,20 +25,18 @@ to variables only ever read.
 """
 
 
-from .NodeBases import NodeBase, CompileTimeConstantExpressionMixin
-
-from .ConstantRefNodes import ExpressionConstantRef
-
-from nuitka.optimizations import BuiltinOptimization
-
 from nuitka.Builtins import (
+    builtin_anon_names,
     builtin_exception_names,
     builtin_exception_values,
-    builtin_anon_names,
     builtin_names
 )
-
+from nuitka.optimizations import BuiltinOptimization
 from nuitka.Utils import python_version
+
+from .ConstantRefNodes import ExpressionConstantRef
+from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
+
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     def __init__(self, builtin_name, source_ref):
@@ -110,7 +108,7 @@ Builtin constant %s resolved""" % self.builtin_name
 
         if new_node.isExpressionBuiltinLocals() or \
            new_node.isExpressionBuiltinEval():
-            constraint_collection.assumeUnclearLocals()
+            constraint_collection.assumeUnclearLocals(self.source_ref)
 
         return new_node, tags, message
 
@@ -122,10 +120,11 @@ Builtin constant %s resolved""" % self.builtin_name
         return None
 
     def mayProvideReference(self):
-        # Dedicated code returns which returns from builtin module dictionary, but isn't
-        # available for Python3 yet.
+        # Dedicated code returns which returns from builtin module dictionary,
+        # but isn't available for Python3 yet.
 
         return python_version >= 300
+
 
 
 class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
@@ -160,8 +159,8 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
         return True
 
     def mayProvideReference(self):
-        # No reference provided from this, there are just a global identifiers, or
-        # accesses to them.
+        # No reference provided from this, there are just a global identifiers,
+        # or accesses to them.
 
         return False
 
@@ -196,6 +195,9 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         # Virtual method, pylint: disable=R0201
         return True
 
+    def mayRaiseException(self, exception_type):
+        return False
+
     def mayProvideReference(self):
         # No reference provided from this, it's just a global identifier.
 
@@ -221,7 +223,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
                 return call_node, None, None
 
         def createBuiltinMakeException(args, source_ref):
-            from nuitka.nodes.ExceptionNodes import ExpressionBuiltinMakeException
+            from .ExceptionNodes import ExpressionBuiltinMakeException
 
             return ExpressionBuiltinMakeException(
                 exception_name = exception_name,

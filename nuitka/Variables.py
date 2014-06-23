@@ -23,12 +23,13 @@ module variable references.
 
 """
 
-from nuitka import Utils
+from . import Utils
+
 
 class Variable:
     def __init__(self, owner, variable_name):
-        assert type( variable_name ) is str, variable_name
-        assert type( owner ) not in ( tuple, list ), owner
+        assert type(variable_name) is str, variable_name
+        assert type(owner ) not in (tuple, list), owner
 
         self.variable_name = variable_name
         self.owner = owner
@@ -44,10 +45,6 @@ class Variable:
         return self.variable_name
 
     def getOwner(self):
-        return self.owner
-
-    # TODO: Seems obsolete now
-    def getRealOwner(self):
         return self.owner
 
     def addReference(self, reference):
@@ -114,9 +111,6 @@ class Variable:
         return False
 
     def isTempVariable(self):
-        return False
-
-    def isTempKeeperVariable(self):
         return False
 
     # pylint: enable=R0201
@@ -214,7 +208,7 @@ class VariableReferenceBase(Variable):
         if self.reference_class is None:
             self.reference_class = variable.reference_class
 
-        variable.addReference( self )
+        variable.addReference(self)
         self.variable = variable
 
         del self.read_only_indicator
@@ -547,6 +541,9 @@ class TempVariableClosureReference(VariableReferenceBase):
 class TempVariableReference(VariableReferenceBase):
     reference_class = TempVariableClosureReference
 
+    def getCodeName(self):
+        return "tmp_%s" % self.getName()
+
     def isTempVariableReference(self):
         # Virtual method, pylint: disable=R0201
         return True
@@ -579,14 +576,6 @@ class TempVariable(Variable):
             variable_name = variable_name
         )
 
-        # For code generation.
-        self.late_declaration = False
-        self.late_declared = False
-
-        self.needs_free = None
-
-        self.delete_statement = None
-
     def __repr__(self):
         return "<TempVariable '%s' of '%s'>" % (
             self.getName(),
@@ -597,27 +586,11 @@ class TempVariable(Variable):
         # Virtual method, pylint: disable=R0201
         return True
 
-    def getNeedsFree(self):
-        return self.needs_free
-
-    def setNeedsFree(self, needs_free):
-        self.needs_free = needs_free
-
     def getDeclarationTypeCode(self, in_context):
-        assert self.needs_free is not None, self
-
         if self.isShared( True ):
             return "PyObjectSharedTempVariable"
-        elif self.needs_free:
-            if self.late_declaration:
-                if self.getHasDelIndicator():
-                    return "PyObjectTemporaryWithDel"
-                else:
-                    return "PyObjectTemporary"
-            else:
-                return "PyObjectTempVariable"
         else:
-            return "PyObject *"
+            return "PyObjectTempVariable"
 
     def getCodeName(self):
         return "tmp_%s" % self.getName()
@@ -626,50 +599,28 @@ class TempVariable(Variable):
         # Virtual method, pylint: disable=R0201
         return "NULL"
 
-    def markAsNeedsLateDeclaration(self):
-        self.late_declaration = True
 
-    def needsLateDeclaration(self):
-        return self.late_declaration
-
-    def markAsDeclared(self):
-        self.late_declared = True
-
-    def markAsDeleteScope(self, delete_statement):
-        self.delete_statement = delete_statement
-
-    def getDeleteScope(self):
-        return self.delete_statement
-
-    def isDeclared(self):
-        return self.late_declared
-
-
-class TempKeeperVariable(TempVariable):
-    def __init__(self, owner, variable_name):
-        TempVariable.__init__(
-            self,
-            owner         = owner,
-            variable_name = variable_name
-        )
-
-        self.write_only = False
-
-    def __repr__(self):
-        return "<TempKeeperVariable '%s' of '%s'>" % (
-            self.getName(),
-            self.getOwner()
-        )
-
-    def isTempKeeperVariable(self):
-        return True
-
-    def isWriteOnly(self):
-        return self.write_only
-
-    def setWriteOnly(self):
-        self.write_only = True
+    def makeReference(self, owner):
+        # Search for existing references to be re-used before making a new one.
+        for reference in self.references:
+            if reference.getOwner() is owner:
+                return reference
+        else:
+            if owner is self.owner:
+                return TempVariableReference(
+                    owner    = owner,
+                    variable = self
+                )
+            else:
+                return TempVariableClosureReference(
+                    owner    = owner,
+                    variable = self
+                )
 
 
 def getNames(variables):
-    return [ variable.getName() for variable in variables ]
+    return [
+        variable.getName()
+        for variable in
+        variables
+    ]

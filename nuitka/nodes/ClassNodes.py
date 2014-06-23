@@ -23,6 +23,7 @@ The classes are are at the core of the language and have their complexities.
 
 from .NodeBases import ExpressionChildrenHavingBase
 
+
 class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 

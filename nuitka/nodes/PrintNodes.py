@@ -17,99 +17,96 @@
 #
 """ Print nodes.
 
-Right now there is only the print statement, but in principle, there should also be the
-print function here. These perform output, which can be combined if possible, and could be
-detected to fail, which would be perfect.
+Right now there is only the print statement, but in principle, there should
+also be the print function here. These perform output, which can be combined
+if possible, and could be detected to fail, which would be perfect.
 
-Predicting the behavior of 'print' is not trivial at all, due to many special cases.
+Predicting the behavior of 'print' is not trivial at all, due to many special
+cases.
 """
 
 from .NodeBases import StatementChildrenHavingBase
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    makeStatementExpressionOnlyReplacementNode,
+    makeStatementsSequenceReplacementNode,
+    wrapStatementWithSideEffects
+)
 
-# Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
-class StatementPrint(StatementChildrenHavingBase):
-    kind = "STATEMENT_PRINT"
+class StatementPrintValue(StatementChildrenHavingBase):
+    kind = "STATEMENT_PRINT_VALUE"
 
-    named_children = ( "dest", "values" )
+    named_children = (
+        "dest",
+        "value"
+    )
 
-    def __init__(self, dest, values, newline, source_ref):
-        assert values or newline
-
+    def __init__(self, dest, value, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
-                "values" : tuple( values ),
-                "dest"   : dest
+                "value" : value,
+                "dest"  : dest
             },
             source_ref = source_ref
         )
 
-        self.newline = newline
+    getDestination = StatementChildrenHavingBase.childGetter(
+        "dest"
+    )
 
-    def isNewlinePrint(self):
-        return self.newline
-
-    def removeNewlinePrint(self):
-        self.newline = False
-
-    getDestination = StatementChildrenHavingBase.childGetter( "dest" )
-    getValues = StatementChildrenHavingBase.childGetter( "values" )
-    setValues = StatementChildrenHavingBase.childSetter( "values" )
+    getValue = StatementChildrenHavingBase.childGetter(
+        "value"
+    )
+    setValue = StatementChildrenHavingBase.childSetter(
+        "value"
+    )
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getDestination(), allow_none = True )
+        constraint_collection.onExpression(
+            expression = self.getDestination(),
+            allow_none = True
+        )
         dest = self.getDestination()
 
-        if dest is not None and dest.willRaiseException( BaseException ):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
-
+        if dest is not None and dest.willRaiseException(BaseException):
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = dest,
                 node       = self
             )
 
             return result, "new_raise", """\
-Known exception raise in print statement destination converted to explicit raise."""
+Known exception raise in print statement destination converted to explicit \
+raise."""
 
-        for count, value in enumerate( self.getValues() ):
-            constraint_collection.onExpression( value )
-            value = self.getValues()[ count ]
+        constraint_collection.onExpression(
+            expression = self.getValue()
+        )
+        value = self.getValue()
 
-            if value.willRaiseException( BaseException ):
-                # Trim to values up to this from this statement.
-                values = self.getValues()
-                values = list( values )[ : values.index( value ) ]
-
-                from .NodeMakingHelpers import (
-                    makeStatementExpressionOnlyReplacementNode,
-                    makeStatementsSequenceReplacementNode
-                )
-
-                if values:
-                    result = makeStatementsSequenceReplacementNode(
-                        statements = (
-                            StatementPrint(
-                                dest       = self.getDestination(),
-                                values     = values,
-                                newline    = False,
-                                source_ref = self.source_ref
-                            ),
-                            makeStatementExpressionOnlyReplacementNode(
-                                expression = value,
-                                node       = self
-                            )
-                        ),
-                        node       = self
-                    )
-                else:
-                    result = makeStatementExpressionOnlyReplacementNode(
+        if value.willRaiseException(BaseException):
+            if dest is not None:
+                result = wrapStatementWithSideEffects(
+                    new_node = makeStatementExpressionOnlyReplacementNode(
                         expression = value,
                         node       = self
-                    )
+                    ),
+                    old_node = dest
+                )
+            else:
+                result = makeStatementExpressionOnlyReplacementNode(
+                    expression = value,
+                    node       = self
+                )
 
-                return result, "new_raise", """\
-Known exception raise in print statement arguments converted to explicit raise."""
+            return result, "new_raise", """\
+Known exception raise in print statement arguments converted to explicit \
+raise."""
+
+        return self, None, None
+
+        # TODO: Restore this
 
         printeds = self.getValues()
 
@@ -125,7 +122,8 @@ Known exception raise in print statement arguments converted to explicit raise."
                 while True:
                     candidate = printeds[ stop_count ]
 
-                    if candidate.isExpressionConstantRef() and candidate.isStringConstant():
+                    if candidate.isExpressionConstantRef() and \
+                       candidate.isStringConstant():
                         if not new_value.endswith( "\t" ):
                             new_value += " "
 
@@ -140,14 +138,14 @@ Known exception raise in print statement arguments converted to explicit raise."
                         break
 
                 if stop_count != count + 1:
-                    from .NodeMakingHelpers import makeConstantReplacementNode
-
                     new_node = makeConstantReplacementNode(
                         constant = new_value,
                         node     = printeds[ count ]
                     )
 
-                    new_printeds = printeds[ : count ] + ( new_node, ) + printeds[ stop_count: ]
+                    new_printeds = printeds[ : count ] + \
+                                   ( new_node, ) + \
+                                   printeds[ stop_count: ]
 
                     self.setValues( new_printeds )
 
@@ -164,11 +162,6 @@ Known exception raise in print statement arguments converted to explicit raise."
 
             if values:
                 if values[0].isExpressionSideEffects():
-                    from .NodeMakingHelpers import (
-                        makeStatementExpressionOnlyReplacementNode,
-                        makeStatementsSequenceReplacementNode
-                    )
-
                     statements = [
                         makeStatementExpressionOnlyReplacementNode(
                             side_effect,
@@ -191,5 +184,46 @@ Known exception raise in print statement arguments converted to explicit raise."
 
                     return result, "new_statements", """\
 Side effects first printed item promoted to statements."""
+
+        return self, None, None
+
+
+class StatementPrintNewline(StatementChildrenHavingBase):
+    kind = "STATEMENT_PRINT_NEWLINE"
+
+    named_children = (
+        "dest",
+    )
+
+    def __init__(self, dest, source_ref):
+        StatementChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "dest" : dest
+            },
+            source_ref = source_ref
+        )
+
+    getDestination = StatementChildrenHavingBase.childGetter(
+        "dest"
+    )
+
+    def computeStatement(self, constraint_collection):
+        # TODO: Reactivate below optimizations for prints.
+        constraint_collection.onExpression(
+            expression = self.getDestination(),
+            allow_none = True
+        )
+        dest = self.getDestination()
+
+        if dest is not None and dest.willRaiseException(BaseException):
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = dest,
+                node       = self
+            )
+
+            return result, "new_raise", """\
+Known exception raise in print statement destination converted to explicit \
+raise."""
 
         return self, None, None

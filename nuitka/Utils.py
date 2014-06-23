@@ -22,7 +22,10 @@ memory usage, etc. that fit nowhere else and don't deserve their own names.
 
 """
 
-import sys, os, subprocess
+import os
+import subprocess
+import sys
+
 
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
@@ -49,56 +52,94 @@ def getArchitecture():
     else:
         return os.uname()[4]
 
+
 def relpath(path):
-    return os.path.relpath( path )
+    try:
+        return os.path.relpath(path)
+    except ValueError:
+        # On Windows, paths on different devices prevent it to work. Use that
+        # full path then.
+        if getOS() == "Windows":
+            return os.path.abspath(path)
+        raise
+
 
 def abspath(path):
-    return os.path.abspath( path )
+    return os.path.abspath(path)
+
 
 def joinpath(*parts):
     return os.path.join( *parts )
 
+
 def splitpath(path):
-    return tuple( element for element in os.path.split( path ) if element )
+    return tuple(
+        element
+        for element in
+        os.path.split(path)
+        if element
+    )
+
 
 def basename(path):
-    return os.path.basename( path )
+    return os.path.basename(path)
+
 
 def dirname(path):
-    return os.path.dirname( path )
+    return os.path.dirname(path)
+
 
 def normpath(path):
-    return os.path.normpath( path )
+    return os.path.normpath(path)
+
 
 def normcase(path):
-    return os.path.normcase( path )
+    return os.path.normcase(path)
+
 
 def getExtension(path):
-    return os.path.splitext( path )[1]
+    return os.path.splitext(path)[1]
+
 
 def isFile(path):
-    return os.path.isfile( path )
+    return os.path.isfile(path)
+
 
 def isDir(path):
-    return os.path.isdir( path )
+    return os.path.isdir(path)
+
+
+def isLink(path):
+    return os.path.islink(path)
+
+
+def readLink(path):
+    return os.readlink(path)
+
 
 def listDir(path):
     """ Give a sorted path, basename pairs of a directory."""
 
     return sorted(
         [
-            ( joinpath( path, filename ), filename )
+            (
+                joinpath(path, filename),
+                filename
+            )
             for filename in
-            os.listdir( path )
+            os.listdir(path)
         ]
     )
 
+
 def deleteFile(path, must_exist):
-    if must_exist or isFile( path ):
-        os.unlink( path )
+    if must_exist or isFile(path):
+        os.unlink(path)
+
 
 def makePath(path):
     os.makedirs( path )
+
 
 def getCoreCount():
     cpu_count = 0
@@ -120,6 +161,7 @@ def getCoreCount():
 
     return cpu_count
 
+
 def callExec(args):
     """ Do exec in a portable way preserving exit code.
 
@@ -130,11 +172,14 @@ def callExec(args):
     # On Windows os.execl does not work properly
     if getOS() != "Windows":
         # The star arguments is the API of execl, pylint: disable=W0142
-        os.execl( *args )
+        os.execl(*args)
     else:
-        args = list( args )
+        args = list(args)
         del args[1]
-        sys.exit( subprocess.call( args ) )
+        sys.exit(
+            subprocess.call(args)
+        )
+
 
 def encodeNonAscii(var_name):
     """ Encode variable name that is potentially not ASCII to ASCII only.
@@ -145,19 +190,30 @@ def encodeNonAscii(var_name):
     if python_version < 300:
         return var_name
     else:
-        var_name = var_name.encode( "ascii", "xmlcharrefreplace" )
-        var_name = var_name.decode( "ascii" )
+        var_name = var_name.encode("ascii", "xmlcharrefreplace")
+        var_name = var_name.decode("ascii")
 
         # TODO: Is this truly safe of collisions, I think it is not. It might be
         # necessary to use something that is not allowed otherwise.
-        return var_name.replace( "&#", "$$" ).replace( ";", "" )
+        return var_name.replace("&#", "$$").replace(";", "")
 
-if python_version >= 300:
-    get_input = input
-    from urllib.request import urlretrieve
-else:
-    get_input = raw_input
-    from urllib import urlretrieve
+
+def isExecutableCommand(command):
+    path = os.environ["PATH"]
+
+    suffixes = (".exe",) if os.name == "nt" else ("",)
+    path_sep = ";" if os.name == "nt" else ":"
+
+    for part in path.split(path_sep):
+        if not part:
+            continue
+
+        for suffix in suffixes:
+            if isFile(joinpath(part, command + suffix)):
+                return True
+
+    return False
+
 
 def getOwnProcessMemoryUsage():
     """ Memory usage of own process in bytes.
@@ -165,11 +221,12 @@ def getOwnProcessMemoryUsage():
     """
 
     if os.name == "nt":
-
         # adapted from http://code.activestate.com/recipes/578513
         import ctypes
         from ctypes import wintypes
 
+        # Lets allow this to match Windows API it reflects,
+        # pylint: disable=C0103
         class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
             _fields_ = [
                 ('cb', wintypes.DWORD),
@@ -209,6 +266,7 @@ def getOwnProcessMemoryUsage():
 
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
 
+
 def getHumanReadableProcessMemoryUsage(value = None):
     if value is None:
         value = getOwnProcessMemoryUsage()
@@ -230,6 +288,7 @@ def getHumanReadableProcessMemoryUsage(value = None):
         )
     else:
         return "%d bytes" % value
+
 
 class MemoryWatch:
     def __init__(self):

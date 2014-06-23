@@ -18,14 +18,15 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.1.6
+Nuitka V0.5.2
 Copyright (C) 2014 Kay Hayen."""
 
+import logging
+import re
+import sys
+from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
+
 from . import Utils
-
-from optparse import OptionParser, OptionGroup, SUPPRESS_HELP
-
-import sys, logging
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -191,19 +192,11 @@ dump_group = OptionGroup(
 )
 
 dump_group.add_option(
-    "--dump-xml",
+    "--dump-xml", "--xml",
     action  = "store_true",
     dest    = "dump_xml",
     default = False,
     help    = """Dump the final result of optimization as XML, then exit."""
-)
-
-dump_group.add_option(
-    "--dump-tree",
-    action  = "store_true",
-    dest    = "dump_tree",
-    default = False,
-    help    = """Dump the final result of optimization as text, then exit."""
 )
 
 dump_group.add_option(
@@ -217,18 +210,34 @@ Display the final result of optimization in a GUI, then exit."""
 
 parser.add_option_group( dump_group )
 
+def getSupportedPythonVersions():
+    return ("2.6", "2.7", "3.2", "3.3")
+
+def getSupportedPythonVersionStr():
+    supported_python_versions = getSupportedPythonVersions()
+
+    supported_python_versions_str = repr(supported_python_versions)[1:-1]
+    supported_python_versions_str = re.sub(
+        r"(.*),(.*)$",
+        r"\1, or\2",
+        supported_python_versions_str
+    )
+
+    return supported_python_versions_str
+
 parser.add_option(
     "--python-version",
     action  = "store",
     dest    = "python_version",
-    choices = ( "2.6", "2.7", "3.2", "3.3" ),
+    choices = getSupportedPythonVersions(),
     default = None,
-    help    = """Major version of Python to be used, one of '2.6', '2.7',
-'3.2', or '3.3'."""
+    help    = """Major version of Python to be used, one of %s.""" % (
+       getSupportedPythonVersionStr()
+    )
 )
 
 parser.add_option(
-    "--python-debug",
+    "--python-debug", "--python-dbg",
     action  = "store_true",
     dest    = "python_debug",
     default = None,
@@ -534,9 +543,6 @@ def shallTraceExecution():
 
 def shallExecuteImmediately():
     return options.immediate_execution
-
-def shallDumpBuiltTree():
-    return options.dump_tree
 
 def shallDumpBuiltTreeXML():
     return options.dump_xml

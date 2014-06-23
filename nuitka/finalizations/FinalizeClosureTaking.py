@@ -26,6 +26,7 @@ having it spoiled with these transitive only references.
 
 from .FinalizeBase import FinalizationVisitorBase
 
+
 class FinalizeClosureTaking(FinalizationVisitorBase):
     def onEnterNode(self, node):
         assert node.isExpressionFunctionBody(), node
@@ -46,7 +47,7 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
                         if current_variable.getReferenced() is referenced:
                             break
                     else:
-                        current.addClosureVariable( referenced )
+                        current.addClosureVariable(referenced)
 
                 # Detect loops in the provider relationship
                 assert current.getParentVariableProvider() is not current

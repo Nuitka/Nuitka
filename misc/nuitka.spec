@@ -2,7 +2,7 @@
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 
 Name:           nuitka
-Version:        0.5.1.6
+Version:        0.5.2
 Release:        5%{?dist}
 Summary:        Python compiler with full language support and CPython compatibility
 Group:          Development/Languages/Python
@@ -16,6 +16,7 @@ BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  gcc-c++
 BuildRequires:  strace
+BuildRequires:  chrpath
 Requires:       python-devel
 Requires:       gcc-c++
 Requires:       strace
@@ -53,7 +54,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%doc README.txt Changelog.rst
+%doc README.rst Changelog.rst
 %{_bindir}/nuitka
 %{_bindir}/nuitka-run
 %{_bindir}/nuitka3
@@ -62,7 +63,7 @@ rm -rf %{buildroot}
 %{python_sitearch}/*
 
 %changelog
-* Sat Sep 08 2013 Kay Hayen <kay.hayen@gmail.com 0.4.6
+* Sun Sep 08 2013 Kay Hayen <kay.hayen@gmail.com 0.4.6
 - changed description to match what we use for Debian
 
 * Fri Mar 15 2013 Kay Hayen <kay.hayen@gmail.com 0.4.2

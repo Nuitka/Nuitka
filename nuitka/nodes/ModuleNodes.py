@@ -21,21 +21,14 @@ The top of the tree. Packages are also modules. Modules are what hold a program
 together and cross-module optimizations are the most difficult to tackle.
 """
 
-from .NodeBases import (
-    ClosureGiverNodeBase,
-    ChildrenHavingMixin,
-    NodeBase
-)
-
-from .IndicatorMixins import MarkContainsTryExceptIndicator
-from nuitka.SourceCodeReferences import SourceCodeReference
-from nuitka.nodes.FutureSpecs import FutureSpec
-
-from nuitka import Variables, Importing, Utils
-
-from nuitka.oset import OrderedSet
-
 import re
+
+from nuitka import Importing, Utils, Variables
+from nuitka.oset import OrderedSet
+from nuitka.SourceCodeReferences import SourceCodeReference
+
+from .FutureSpecs import FutureSpec
+from .NodeBases import ChildrenHavingMixin, ClosureGiverNodeBase, NodeBase
 
 
 class PythonModuleMixin:
@@ -70,7 +63,6 @@ class PythonModuleMixin:
     def attemptRecursion(self):
         # Make sure the package is recursed to.
         from nuitka.tree import Recursion
-        from nuitka import Importing
 
         # Return the list of newly added modules.
         result = []
@@ -119,7 +111,7 @@ def checkModuleBody(value):
     return value
 
 class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
-                   ClosureGiverNodeBase, MarkContainsTryExceptIndicator):
+                   ClosureGiverNodeBase):
     """ Module
 
         The module is the only possible root of a tree. When there are many
@@ -149,8 +141,6 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
             values = {},
         )
 
-        MarkContainsTryExceptIndicator.__init__( self )
-
         PythonModuleMixin.__init__(
             self,
             name         = name,
@@ -163,6 +153,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         self.functions = OrderedSet()
 
         self.active_functions = OrderedSet()
+        self.cross_used_functions = OrderedSet()
 
         # SSA trace based information about the module.
         self.collection = None
@@ -265,13 +256,29 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def getUsedFunctions(self):
         return self.active_functions
 
+    def addCrossUsedFunction(self, function_body):
+        if function_body not in self.cross_used_functions:
+            self.cross_used_functions.add(function_body)
+
+    def getCrossUsedFunctions(self):
+        return self.cross_used_functions
+
     def getOutputFilename(self):
         main_filename = self.getFilename()
 
         if main_filename.endswith(".py"):
-            return main_filename[:-3]
+            result = main_filename[:-3]
         else:
-            return main_filename
+            result = main_filename
+
+        # There are some characters that somehow are passed to shell, by
+        # Scons or unknown, so lets avoid them for now.
+        return result.replace(")","").replace("(","")
+
+    # TODO: Can't really use locals for modules, this should probably be made
+    # sure to not be used.
+    def getLocalsMode(self):
+        return "copy"
 
 
 class SingleCreationMixin:
@@ -365,6 +372,9 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
         )
 
         assert Utils.basename(source_ref.getFilename()) != "<frozen>"
+
+        # That is too likely a bug.
+        assert name != "__main__"
 
     def getDetails(self):
         return {

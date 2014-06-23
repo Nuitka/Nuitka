@@ -21,7 +21,8 @@ This contains the code to create string literals for C++ to represent the given
 values and little more.
 """
 
-from nuitka.__past__ import unicode # pylint: disable=W0622
+from nuitka.__past__ import unicode  # pylint: disable=W0622
+
 
 def _encodeString(value):
     """ Encode a string, so that it gives a C++ string literal.

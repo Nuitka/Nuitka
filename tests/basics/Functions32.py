@@ -19,83 +19,85 @@
 def kwonlysimple(*, a):
     return a
 
-print( "Most simple case", kwonlysimple( a = 3 ) )
+print( "Keyword only function case: ", kwonlysimple( a = 3 ) )
 
 def kwonlysimpledefaulted(*, a = 5):
     return a
 
-print( "Default simple case", kwonlysimpledefaulted() )
+print( "Keyword only function, using default value: ", kwonlysimpledefaulted() )
 
 
 def default1():
-    print( "Called", default1 )
+    print("Called", default1)
     return 1
 
 def default2():
-    print( "Called", default2 )
+    print("Called", default2)
 
     return 2
 
 def default3():
-    print( "Called", default3 )
+    print("Called", default3)
     return 3
 
 def default4():
-    print( "Called", default4 )
+    print("Called", default4)
 
     return 4
 
 def annotation1():
-    print ( "Called", annotation1 )
+    print("Called", annotation1)
 
     return "a1"
 
 def annotation2():
-    print ( "Called", annotation2 )
+    print("Called", annotation2)
 
     return "a2"
 
 def annotation3():
-    print ( "Called", annotation3 )
+    print("Called", annotation3)
 
     return "a3"
 
 def annotation4():
-    print ( "Called", annotation4 )
+    print("Called", annotation4)
 
     return "a4"
 
 def annotation5():
-    print ( "Called", annotation5 )
+    print("Called", annotation5)
 
     return "a5"
 
 def annotation6():
-    print ( "Called", annotation6 )
+    print("Called", annotation6)
 
     return "a6"
 
 def annotation7():
-    print ( "Called", annotation7 )
+    print("Called", annotation7)
 
     return "a7"
 
 def annotation8():
-    print ( "Called", annotation8 )
+    print("Called", annotation8)
 
     return "a8"
 
 def annotation9():
-    print ( "Called", annotation9 )
+    print("Called", annotation9)
 
     return "a9"
+
+print("Defining function with annotations, and defaults as functions for everything:")
 
 def kwonlyfunc(x: annotation1(), y: annotation2() = default1(), z: annotation3() = default2(), *, a: annotation4(), b: annotation5() = default3(), c: annotation6() = default4(), d: annotation7(), **kw: annotation8()) -> annotation9():
     print( x, y, z, a, b, c, d )
 
-print( kwonlyfunc.__kwdefaults__ )
+print("__kwdefaults__", kwonlyfunc.__kwdefaults__)
 
-print( "Keyword only function" )
+print("Keyword only function")
 kwonlyfunc( 7, a = 8, d = 12 )
 
 print( "Annotations come out as", sorted( kwonlyfunc.__annotations__ ) )
@@ -126,7 +128,7 @@ def deeplyNestedNonLocalWrite():
 
 print( "Deeply nested non local writing function", deeplyNestedNonLocalWrite() )
 
-def deletingClosureVariables():
+def deletingClosureVariable():
     try:
         x = 1
 
@@ -140,4 +142,4 @@ def deletingClosureVariables():
     except Exception as e:
         return e
 
-print( "Using deleted non-local vaiables", deletingClosureVariables() )
+print( "Using deleted non-local variable", deletingClosureVariable() )

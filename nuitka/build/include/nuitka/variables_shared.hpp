@@ -21,11 +21,10 @@
 class PyObjectSharedStorage
 {
 public:
-    explicit PyObjectSharedStorage( PyObject *var_name, PyObject *object )
+    explicit PyObjectSharedStorage( PyObject *object )
     {
         assert( object == NULL || Py_REFCNT( object ) > 0 );
 
-        this->var_name   = var_name;
         this->object     = object;
         this->ref_count  = 1;
     }
@@ -33,56 +32,8 @@ public:
     ~PyObjectSharedStorage()
     {
         Py_XDECREF( this->object );
-
     }
 
-    void assign0( PyObject *object )
-    {
-        assertObject( object );
-
-        PyObject *old_object = this->object;
-
-        this->object = INCREASE_REFCOUNT( object );
-
-        // Free old value if any available and owned.
-        Py_XDECREF( old_object );
-    }
-
-    void assign1( PyObject *object )
-    {
-        assertObject( object );
-
-        PyObject *old_object = this->object;
-
-        this->object = object;
-
-        // Free old value if any available and owned.
-        Py_XDECREF( old_object );
-    }
-
-#if PYTHON_VERSION >= 300
-    void del( bool tolerant )
-    {
-        if ( this->object )
-        {
-            Py_DECREF( this->object );
-        }
-        else if ( !tolerant )
-        {
-            PyErr_Format( PyExc_NameError, "free variable '%s' referenced before assignment in enclosing scope", Nuitka_String_AsString( this->var_name ) );
-            throw PythonException();
-        }
-
-        this->object = NULL;
-    }
-#endif
-
-    inline PyObject *getVarName() const
-    {
-        return this->var_name;
-    }
-
-    PyObject *var_name;
     PyObject *object;
     int ref_count;
 
@@ -95,13 +46,14 @@ private:
 class PyObjectSharedLocalVariable
 {
 public:
-    explicit PyObjectSharedLocalVariable( PyObject *var_name, PyObject *object = NULL )
+    explicit PyObjectSharedLocalVariable( PyObject *object )
     {
-        this->storage = new PyObjectSharedStorage( var_name, object );
+        this->storage = new PyObjectSharedStorage( object );
     }
 
-    explicit PyObjectSharedLocalVariable() {
-        this->storage = NULL;
+    explicit PyObjectSharedLocalVariable()
+    {
+        this->storage = new PyObjectSharedStorage( NULL );
     };
 
     ~PyObjectSharedLocalVariable()
@@ -118,17 +70,9 @@ public:
         }
     }
 
-    void setVariableNameAndValue( PyObject *var_name, PyObject *object )
+    void setVariableValue( PyObject *object )
     {
-        this->setVariableName( var_name  );
-        this->assign1( object );
-    }
-
-    void setVariableName( PyObject *var_name )
-    {
-        assert( this->storage == NULL );
-
-        this->storage = new PyObjectSharedStorage( var_name, NULL );
+        this->storage->object = object;
     }
 
     void shareWith( const PyObjectSharedLocalVariable &other )
@@ -140,111 +84,10 @@ public:
         this->storage->ref_count += 1;
     }
 
-    void assign0( PyObject *object ) const
-    {
-        this->storage->assign0( object );
-    }
-
-    void assign1( PyObject *object ) const
-    {
-        this->storage->assign1( object );
-    }
-
-#if PYTHON_VERSION >= 300
-    void del( bool tolerant ) const
-    {
-        this->storage->del( tolerant );
-    }
-#endif
-
-    PyObject *asObject0() const
-    {
-        assert( this->storage );
-
-        if ( this->storage->object == NULL )
-        {
-            PyErr_Format(
-                PyExc_UnboundLocalError,
-                "free variable '%s' referenced before assignment in enclosing scope",
-                Nuitka_String_AsString( this->storage->getVarName() )
-            );
-
-            throw PythonException();
-        }
-
-        if ( Py_REFCNT( this->storage->object ) == 0 )
-        {
-            PyErr_Format(
-                PyExc_UnboundLocalError,
-                "free variable '%s' referenced after its finalization in enclosing scope",
-                Nuitka_String_AsString( this->storage->getVarName() )
-            );
-
-            throw PythonException();
-        }
-
-        return this->storage->object;
-    }
-
-    PyObject *asObject1() const
-    {
-        return INCREASE_REFCOUNT( this->asObject0() );
-    }
-
     bool isInitialized() const
     {
         return this->storage->object != NULL;
     }
-
-    PyObject *getVariableName() const
-    {
-        return this->storage->var_name;
-    }
-
-    PyObject *updateLocalsDict( PyObject *locals_dict ) const
-    {
-        if ( this->isInitialized() )
-        {
-#if PYTHON_VERSION < 300
-            int status = PyDict_SetItem(
-#else
-            int status = PyObject_SetItem(
-#endif
-                locals_dict,
-                this->getVariableName(),
-                this->asObject0()
-            );
-
-            if (unlikely( status == -1 ))
-            {
-                throw PythonException();
-            }
-        }
-
-        return locals_dict;
-    }
-
-    PyObject *updateLocalsDir( PyObject *locals_list ) const
-    {
-        assert( PyList_Check( locals_list ) );
-
-        if ( this->isInitialized() )
-        {
-            int status = PyList_Append(
-                locals_list,
-                this->getVariableName()
-            );
-
-            if (unlikely( status == -1 ))
-            {
-                throw PythonException();
-            }
-        }
-
-        return locals_list;
-    }
-
-protected:
 
     PyObjectSharedStorage *storage;
 
@@ -262,34 +105,6 @@ public:
         this->storage = NULL;
     }
 
-    PyObject *asObject0() const
-    {
-        assert( this->storage );
-
-        if ( this->storage->object == NULL )
-        {
-            PyErr_Format(
-                PyExc_NameError,
-                "free variable '%s' referenced before assignment in enclosing scope",
-                Nuitka_String_AsString( this->storage->getVarName() )
-            );
-
-            throw PythonException();
-        }
-
-        if ( Py_REFCNT( this->storage->object ) == 0 )
-        {
-            PyErr_Format(
-                PyExc_UnboundLocalError,
-                "free variable '%s' referenced after its finalization in enclosing scope",
-                Nuitka_String_AsString( this->storage->getVarName() )
-            );
-
-            throw PythonException();
-        }
-
-        return this->storage->object;
-    }
 
 protected:
 
@@ -310,37 +125,6 @@ public:
     ~PyObjectSharedTempStorage()
     {
         Py_XDECREF( this->object );
-    }
-
-    void assign0( PyObject *object )
-    {
-        assertObject( object );
-
-        PyObject *old_object = this->object;
-
-        this->object = INCREASE_REFCOUNT( object );
-
-        // Free old value.
-        Py_XDECREF( old_object );
-    }
-
-    void assign1( PyObject *object )
-    {
-        assertObject( object );
-
-        PyObject *old_object = this->object;
-
-        this->object = object;
-
-        // Free old value.
-        Py_XDECREF( old_object );
-    }
-
-    void del( bool tolerant )
-    {
-        // TODO: Tolerance, what would it mean here.
-        Py_XDECREF( this->object );
-        this->object = NULL;
     }
 
     PyObject *object;
@@ -388,85 +172,12 @@ public:
         this->storage->ref_count += 1;
     }
 
-    void assign0( PyObject *object ) const
-    {
-        this->storage->assign0( object );
-    }
-
-    void assign1( PyObject *object ) const
-    {
-        this->storage->assign1( object );
-    }
-
-    void del( bool tolerant ) const
-    {
-        this->storage->del( tolerant );
-    }
-
-    PyObject *asObject0() const
-    {
-        assert( this->storage );
-        assertObject( this->storage->object );
-
-        return this->storage->object;
-    }
-
-    PyObject *asObject1() const
-    {
-        return INCREASE_REFCOUNT( this->asObject0() );
-    }
-
     bool isInitialized() const
     {
         return this->storage->object != NULL;
     }
 
-#if PYTHON_VERSION >= 340
-    PyObject *updateLocalsDict( PyObject *var_name, PyObject *locals_dict ) const
-    {
-        if ( this->isInitialized() )
-        {
-#if PYTHON_VERSION < 300
-            int status = PyDict_SetItem(
-#else
-            int status = PyObject_SetItem(
-#endif
-                locals_dict,
-                var_name,
-                this->asObject0()
-            );
-
-            if (unlikely( status == -1 ))
-            {
-                throw PythonException();
-            }
-        }
-
-        return locals_dict;
-    }
-
-    PyObject *updateLocalsDir( PyObject *var_name, PyObject *locals_list ) const
-    {
-        assert( PyList_Check( locals_list ) );
-
-        if ( this->isInitialized() )
-        {
-            int status = PyList_Append(
-                locals_list,
-                var_name
-            );
-
-            if (unlikely( status == -1 ))
-            {
-                throw PythonException();
-            }
-        }
-
-        return locals_list;
-    }
-#endif
-
-protected:
+public:
 
     PyObjectSharedTempStorage *storage;
 

@@ -15,23 +15,31 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of call expressions.
 
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
+
 from nuitka.nodes.CallNodes import ExpressionCall
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCreation,
     ExpressionFunctionCall,
+    ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
+
 from .Helpers import (
-    makeSequenceCreationOrConstant,
-    makeDictCreationOrConstant,
+    buildNode,
     buildNodeList,
-    buildNode
+    makeDictCreationOrConstant,
+    makeSequenceCreationOrConstant
 )
 
+
 def buildCallNode(provider, node, source_ref):
-    positional_args = buildNodeList( provider, node.args, source_ref )
+    positional_args = buildNodeList(provider, node.args, source_ref)
 
     # Only the values of keyword pairs have a real source ref, and those only
     # really matter, so that makes sense.
@@ -47,14 +55,14 @@ def buildCallNode(provider, node, source_ref):
             )
         )
         values.append(
-            buildNode( provider, keyword.value, source_ref )
+            buildNode(provider, keyword.value, source_ref)
         )
 
-    list_star_arg = buildNode( provider, node.starargs, source_ref, True )
-    dict_star_arg = buildNode( provider, node.kwargs, source_ref, True )
+    list_star_arg = buildNode(provider, node.starargs, source_ref, True)
+    dict_star_arg = buildNode(provider, node.kwargs, source_ref, True)
 
     return _makeCallNode(
-        called          = buildNode( provider, node.func, source_ref ),
+        called          = buildNode(provider, node.func, source_ref),
         positional_args = positional_args,
         keys            = keys,
         values          = values,
@@ -63,8 +71,9 @@ def buildCallNode(provider, node, source_ref):
         source_ref      = source_ref,
     )
 
-def _makeCallNode( called, positional_args, keys, values, list_star_arg,
-                   dict_star_arg, source_ref ):
+
+def _makeCallNode(called, positional_args, keys, values, list_star_arg,
+                  dict_star_arg, source_ref):
     # Many variables, but only to cover the many complex call cases.
     # pylint: disable=R0914
 
@@ -89,8 +98,8 @@ def _makeCallNode( called, positional_args, keys, values, list_star_arg,
         # re-formulation of complex calls according to developer manual.
 
         key = (
-            len( positional_args ) > 0,
-            len( keys ) > 0,
+            len(positional_args) > 0,
+            len(keys) > 0,
             list_star_arg is not None,
             dict_star_arg is not None
         )

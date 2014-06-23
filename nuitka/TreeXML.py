@@ -21,7 +21,7 @@ Means to create XML elements from Nuitka tree nodes and to convert the
 XML tree to ASCII or output it.
 """
 
-from nuitka import Tracing, Utils
+from . import Tracing, Utils
 
 try:
     import lxml.etree
@@ -29,12 +29,12 @@ except ImportError:
     lxml = None
 
 def toString(xml):
-    return lxml.etree.tostring( xml, pretty_print = True )
+    return lxml.etree.tostring(xml, pretty_print = True)
 
-def dump(xml ):
-    value = toString( xml ).rstrip()
+def dump(xml):
+    value = toString(xml).rstrip()
 
     if Utils.python_version >= 300:
-        value = value.decode( "utf-8" )
+        value = value.decode("utf-8")
 
-    Tracing.printLine( value )
+    Tracing.printLine(value)

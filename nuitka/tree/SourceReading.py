@@ -21,9 +21,10 @@ This is tremendously more complex than one might think, due to encoding issues
 and version differences of Python.
 """
 
-from nuitka import Utils, SyntaxErrors, SourceCodeReferences
-
 import re
+
+from nuitka import SourceCodeReferences, SyntaxErrors, Utils
+
 
 def _readSourceCodeFromFilename3(source_filename):
     with open(source_filename, "rb") as source_file:
@@ -107,7 +108,7 @@ def _readSourceCodeFromFilename2(source_filename):
         # Try and detect SyntaxError from missing or wrong encodings.
         if type(source_code) is not unicode and encoding == "ascii":
             try:
-                source_code = source_code.decode(encoding)
+                _source_code = source_code.decode(encoding)
             except UnicodeDecodeError as e:
                 lines = source_code.split("\n")
                 so_far = 0

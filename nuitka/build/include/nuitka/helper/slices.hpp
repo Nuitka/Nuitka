@@ -49,6 +49,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, PyObject *
         if ( lower != Py_None )
         {
             ilow = CONVERT_TO_INDEX( lower );
+
+            if ( ilow == -1 && ERROR_OCCURED() )
+            {
+                return NULL;
+            }
         }
 
         Py_ssize_t ihigh = PY_SSIZE_T_MAX;
@@ -56,13 +61,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, PyObject *
         if ( upper != Py_None )
         {
             ihigh = CONVERT_TO_INDEX( upper );
+
+            if ( ihigh == -1 && ERROR_OCCURED() )
+            {
+                return NULL;
+            }
         }
 
         PyObject *result = PySequence_GetSlice( source, ilow, ihigh );
 
         if (unlikely( result == NULL ))
         {
-            throw PythonException();
+            return NULL;
         }
 
         return result;
@@ -73,7 +83,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, PyObject *
 
         if (unlikely( slice == NULL ))
         {
-            throw PythonException();
+            return NULL;
         }
 
         PyObject *result = PyObject_GetItem( source, slice );
@@ -81,7 +91,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, PyObject *
 
         if (unlikely( result == NULL ))
         {
-            throw PythonException();
+            return NULL;
         }
 
         return result;
@@ -96,13 +106,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INDEX_SLICE( PyObject *source, Py_s
 
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *value, PyObject *target, PyObject *lower, PyObject *upper )
+NUITKA_MAY_BE_UNUSED static bool SET_SLICE(PyObject *target, PyObject *lower, PyObject *upper, PyObject *value)
 {
     assertObject( target );
     assertObject( lower );
@@ -118,6 +128,11 @@ NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *value, PyObject *target, P
         if ( lower != Py_None )
         {
             lower_int = CONVERT_TO_INDEX( lower );
+
+            if ( lower_int == -1 && ERROR_OCCURED() )
+            {
+                return false;
+            }
         }
 
         Py_ssize_t upper_int = PY_SSIZE_T_MAX;
@@ -125,13 +140,18 @@ NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *value, PyObject *target, P
         if ( upper != Py_None )
         {
             upper_int = CONVERT_TO_INDEX( upper );
+
+            if ( upper_int == -1 && ERROR_OCCURED() )
+            {
+                return false;
+            }
         }
 
         int status = PySequence_SetSlice( target, lower_int, upper_int, value );
 
         if (unlikely( status == -1 ))
         {
-            throw PythonException();
+            return false;
         }
     }
     else
@@ -140,7 +160,7 @@ NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *value, PyObject *target, P
 
         if (unlikely( slice == NULL ))
         {
-            throw PythonException();
+            return false;
         }
 
         int status = PyObject_SetItem( target, slice, value );
@@ -148,12 +168,14 @@ NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *value, PyObject *target, P
 
         if (unlikely( status == -1 ))
         {
-            throw PythonException();
+            return false;
         }
     }
+
+    return true;
 }
 
-NUITKA_MAY_BE_UNUSED static void SET_INDEX_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value )
+NUITKA_MAY_BE_UNUSED static bool SET_INDEX_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value )
 {
     assertObject( target );
     assertObject( value );
@@ -162,11 +184,13 @@ NUITKA_MAY_BE_UNUSED static void SET_INDEX_SLICE( PyObject *target, Py_ssize_t l
 
     if (unlikely( status == -1 ))
     {
-        throw PythonException();
+        return false;
     }
+
+    return true;
 }
 
-NUITKA_MAY_BE_UNUSED static void DEL_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper )
+NUITKA_MAY_BE_UNUSED static bool DEL_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper )
 {
     assertObject( target );
 
@@ -176,19 +200,26 @@ NUITKA_MAY_BE_UNUSED static void DEL_SLICE( PyObject *target, Py_ssize_t lower, 
 
         if (unlikely( status == -1 ))
         {
-            throw PythonException();
+            return false;
         }
     }
     else
     {
-        PyObjectTemporary lower_obj( PyInt_FromSsize_t( lower ) );
-        PyObjectTemporary upper_obj( PyInt_FromSsize_t( upper ) );
+        PyObject *lower_obj = PyInt_FromSsize_t( lower );
+        PyObject *upper_obj = PyInt_FromSsize_t( upper );
 
-        PyObject *slice = PySlice_New( lower_obj.asObject0(), upper_obj.asObject0(), NULL );
+        PyObject *slice = PySlice_New(
+            lower_obj,
+            upper_obj,
+            NULL
+        );
+
+        Py_DECREF( lower_obj );
+        Py_DECREF( upper_obj );
 
         if (unlikely( slice == NULL ))
         {
-            throw PythonException();
+            return false;
         }
 
         int status = PyObject_DelItem( target, slice );
@@ -197,27 +228,24 @@ NUITKA_MAY_BE_UNUSED static void DEL_SLICE( PyObject *target, Py_ssize_t lower, 
 
         if (unlikely( status == -1 ))
         {
-            throw PythonException();
+            return false;
         }
     }
+
+    return true;
 }
 
 #endif
 
+
+// Note: Cannot fail
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *stop, PyObject *step )
 {
     assertObject( start );
     assertObject( stop );
     assertObject( step );
 
-    PyObject *result = PySlice_New( start, stop, step );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
+    return PySlice_New( start, stop, step );
 }
 
 #endif

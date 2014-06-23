@@ -29,7 +29,7 @@ def someFunctionWritingLocals():
 
     try:
         z
-    except Exception, e:
+    except Exception as e:
         print "Accessing z writing to locals gives Exception", e
 
     return r, y
@@ -46,7 +46,7 @@ def someFunctionWritingLocalsContainingExec():
 
     try:
         z
-    except Exception, e:
+    except Exception as e:
         print "Accessing z writing to locals in exec function gives Exception", e
 
     return r, y
@@ -60,28 +60,28 @@ print someFunctionWritingLocals()
 print someFunctionWritingLocalsContainingExec()
 
 def displayDict(d):
-    d = dict(d)
     if "__loader__" in d:
-        d[ "__loader__" ] = "<loader removed>"
+        d = dict(d)
+        d["__loader__"] = "<loader removed>"
 
-    return repr( d )
+    return repr(d)
 
 print "Vars on module level", displayDict( vars() )
 
 module_locals = locals()
 
-# Patch away __file__ path in a hard to detect way. This will make sure, repeated calls to
-# locals really get the same dictionary.
+# Patch away "__file__" path in a hard to detect way. This will make sure,
+# repeated calls to locals really get the same dictionary.
 import os
-module_locals[ "__file__" ] = os.path.basename( module_locals[ "__file__" ] )
+module_locals["__file__"] = os.path.basename(module_locals[ "__file__" ])
 del module_locals
 
-print "Use of locals on the module level", displayDict( locals() )
+print "Use of locals on the module level", displayDict(locals())
 
 def someFunctionUsingGlobals():
     g = globals()
 
-    g[ "hallo" ] = "du"
+    g["hallo"] = "du"
 
     global hallo
     print "hallo", hallo
@@ -152,10 +152,20 @@ print "Bools from constants", bool( "3.3" ), bool( x = 9.1 ), bool(0), bool()
 print "Found during optimization", bool( float( "3.3" ) ), bool( x = float( 0.0 ) )
 
 print "Ints from constants", int( "3" ), int( x = "9" ), int( "f", 16 ), int( x = "e", base = 16 ), int( "0101", base = 2 ), int(0), int()
-print "Found during optimization", int( int( "3" ) ), int( x = int( 0.0 ) )
+print "Found ints during optimization", int( int( "3" ) ), int( x = int( 0.0 ) )
+
+print "Longs from constants", long("3"), long(x = "9"), long("f", 16), long(x = "e", base = 16), long("0101", base = 2), long(0), long()
+print "Found longs during optimization", long(long( "3" )), long(x = long( 0.0))
 
 try:
-    print "Int with only base", int( base = 2 ),
+    print "Int with only base", int(base = 2),
+except Exception as e:
+    print "Caused", repr(e)
+else:
+    print "Worked"
+
+try:
+    print "Long with only base", long(base = 2),
 except Exception as e:
     print "Caused", repr(e)
 else:
@@ -174,12 +184,12 @@ print "Found during optimization", bin( int( "3" ) )
 
 try:
     int( 1,2,3 )
-except Exception, e:
+except Exception as e:
     print "Too many args gave", repr(e)
 
 try:
     int( y = 1 )
-except Exception, e:
+except Exception as e:
     print "Wrong arg", repr(e)
 
 f = 3
@@ -188,34 +198,40 @@ print "Unoptimized call of int", int( "0" * f, base = 16 )
 d = { "x" : "12", "base" : 8 }
 print "Dict call of int", int( **d )
 
+
+base = 16
+value = u"20"
+
+print "Unoptimized calls of int with unicode args", int(value, base), int(value)
+
 try:
     print chr()
-except Exception, e:
+except Exception as e:
     print "Disallowed without args", repr(e)
 
 try:
     print ord()
-except Exception, e:
+except Exception as e:
     print "Disallowed without args", repr(e)
 
 try:
     print ord( s = 1 )
-except Exception, e:
+except Exception as e:
     print "Disallowed keyword args", repr(e)
 
 try:
     print ord( 1, 2 )
-except Exception, e:
+except Exception as e:
     print "Too many plain args", repr(e)
 
 try:
     print ord( 1, s = 2 )
-except Exception, e:
+except Exception as e:
     print "Too many args, some keywords", repr(e)
 
 try:
     print str( "1", offer = 2 )
-except Exception, e:
+except Exception as e:
     print "Too many args, some keywords", repr(e)
 
 # TODO: This is calls, not really builtins.
@@ -233,12 +249,12 @@ print "Instance check recognises", isinstance( a, int )
 
 try:
     print "Instance check with too many arguments", isinstance( a, long, int )
-except Exception, e:
+except Exception as e:
     print "Too many args", repr(e)
 
 try:
     print "Instance check with too many arguments", isinstance( a )
-except Exception, e:
+except Exception as e:
     print "Too few args", repr(e)
 
 def usingIterToCheckIterable(a):
@@ -295,3 +311,8 @@ try:
     next(z)
 except TypeError as e:
     print "caught", repr(e)
+
+try:
+    open()
+except TypeError as e:
+    print "Open without arguments gives", repr(e)

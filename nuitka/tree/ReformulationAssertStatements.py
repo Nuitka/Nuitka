@@ -22,17 +22,15 @@ source code comments with developer manual sections.
 
 """
 from nuitka import Utils
-
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
-from nuitka.nodes.ExceptionNodes import (
-    ExpressionBuiltinMakeException,
-    StatementRaiseException
-)
-from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
+from nuitka.nodes.StatementNodes import StatementsSequence
 
 from .Helpers import buildNode
+
 
 def buildAssertNode(provider, node, source_ref):
     # Build assert statements. These are re-formulated as described in the
@@ -48,40 +46,29 @@ def buildAssertNode(provider, node, source_ref):
     # Therefore assert statements are really just conditional statements with a
     # static raise contained.
     #
-    # Starting with CPython2.7, it is, which means the creation of the exception
-    # object is no more delayed:
-    # if not x:
-    #     raise AssertionError( y )
 
-    if Utils.python_version < 270 or node.msg is None:
-        raise_statement = StatementRaiseException(
-            exception_type  = ExpressionBuiltinExceptionRef(
-                exception_name = "AssertionError",
-                source_ref     = source_ref
-                ),
-            exception_value = buildNode( provider, node.msg, source_ref, True ),
-            exception_trace = None,
-            exception_cause = None,
-            source_ref      = source_ref
+    exception_value = buildNode(provider, node.msg, source_ref, True)
+
+    if exception_value is not None and Utils.python_version > 272:
+        exception_value = ExpressionMakeTuple(
+            elements   = (exception_value,),
+            source_ref = source_ref
         )
-    else:
-        raise_statement = StatementRaiseException(
-            exception_type  =  ExpressionBuiltinMakeException(
-                exception_name = "AssertionError",
-                args           = (
-                    buildNode( provider, node.msg, source_ref, True ),
-                ),
-                source_ref     = source_ref
-            ),
-            exception_value = None,
-            exception_trace = None,
-            exception_cause = None,
-            source_ref      = source_ref
-        )
+
+    raise_statement = StatementRaiseException(
+        exception_type  = ExpressionBuiltinExceptionRef(
+            exception_name = "AssertionError",
+            source_ref     = source_ref
+        ),
+        exception_value = exception_value,
+        exception_trace = None,
+        exception_cause = None,
+        source_ref      = source_ref
+    )
 
     return StatementConditional(
         condition  = ExpressionOperationNOT(
-            operand    = buildNode( provider, node.test, source_ref ),
+            operand    = buildNode(provider, node.test, source_ref),
             source_ref = source_ref
         ),
         yes_branch = StatementsSequence(

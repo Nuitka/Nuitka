@@ -76,23 +76,31 @@ def getRole( node, role ):
     else:
         return None
 
+def getSourceRef(node):
+    return "%s:%s" % (
+        filename,
+        node.attrib["line"]
+    )
 
 def checkSequence(statements):
     for statement in statements:
         kind = getKind(statement)
 
         # Printing is fine.
-        if kind == "Print":
-            print_args = getRole( statement, "values" )
+        if kind == "PrintValue":
+            print_arg, = getRole(statement, "value")
 
-            if len( print_args ) != 1:
-                sys.exit( "Error, print with more than one argument." )
+            if getKind(print_arg) != "ConstantRef":
+                sys.exit(
+                    "%s: Error, print of non-constant %s." % (
+                        getSourceRef(statement),
+                        getKind(print_arg)
+                    )
+                )
 
-            print_arg = print_args[0]
+            continue
 
-            if getKind( print_arg ) != "ConstantRef":
-                sys.exit( "Error, print of non-constant %s." % getKind( print_arg ) )
-
+        if kind == "PrintNewline":
             continue
 
         # Printing in Python3 is a function call whose return value is ignored.
@@ -112,11 +120,11 @@ def checkSequence(statements):
             continue
 
         if kind == "AssignmentVariable":
-            assign_source = getRole( statement, "source" )[0]
+            assign_source, = getRole( statement, "source" )
 
-            source_kind = getKind( assign_source )
+            source_kind = getKind(assign_source)
 
-            if source_kind not in( "ConstantRef", "ImportModuleHard" ):
+            if source_kind not in("ConstantRef", "ImportModuleHard"):
                 sys.exit( "Error, assignment from of non-constant %s." % source_kind )
             continue
 
@@ -125,27 +133,27 @@ def checkSequence(statements):
         sys.exit("Error, non-print statement of unknown kind '%s'." % kind)
 
 
-for filename in sorted( os.listdir( "." ) ):
-    if not filename.endswith( ".py" ) or filename.startswith( "run_" ):
+for filename in sorted(os.listdir( ".")):
+    if not filename.endswith(".py" ) or filename.startswith("run_"):
         continue
 
     # Skip tests that require Python 2.7 at least.
-    if filename.endswith( "27.py" ) and python_version.startswith( b"2.6" ):
+    if filename.endswith("27.py") and python_version.startswith("2.6"):
         continue
 
     path = filename
 
-    if not active and start_at in ( filename, path ):
+    if not active and start_at in (filename, path):
         active = True
 
 
-    extra_flags = [ "expect_success" ]
+    extra_flags = ["expect_success"]
 
     if active:
         # Apply 2to3 conversion if necessary.
         assert type( python_version ) is bytes
 
-        if python_version.startswith( b"3" ):
+        if python_version.startswith("3"):
             path = convertUsing2to3( path )
 
         my_print( "Consider", path, end = " " )
@@ -172,9 +180,9 @@ for filename in sorted( os.listdir( "." ) ):
 
         checkSequence( module_statements )
 
-        if python_version.startswith( b"3" ):
+        if python_version.startswith("3"):
             os.unlink( path )
 
-        my_print( "OK." )
+        my_print("OK.")
     else:
-        my_print( "Skipping", filename )
+        my_print("Skipping", filename)

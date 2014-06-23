@@ -27,11 +27,11 @@ needed except for technical reasons.
 """
 
 
-from nuitka.codegen import ConstantCodes, CodeTemplates
-from nuitka.codegen.Indentation import indented
-from nuitka import Options
-
 from logging import info
+
+from nuitka import Options
+from nuitka.codegen import CodeTemplates, ConstantCodes
+from nuitka.codegen.Indentation import indented
 
 frozen_modules = []
 

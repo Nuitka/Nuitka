@@ -27,18 +27,18 @@ deeper that what it normally could. The import expression node can recurse. An
 compile time constant.
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase,
-    ExpressionMixin,
-    NodeBase
-)
-
-from .ConstantRefNodes import ExpressionConstantRef
+from logging import warning
 
 from nuitka import Importing, Utils
 
-from logging import warning
+from .ConstantRefNodes import ExpressionConstantRef
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    ExpressionMixin,
+    NodeBase,
+    StatementChildrenHavingBase
+)
+
 
 class ExpressionImportModule(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_IMPORT_MODULE"
@@ -242,6 +242,46 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         return self, None, None
 
 
+class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
+    """ Hard code import, e.g. of "sys" module as done in Python mechanics.
+
+    """
+    kind = "EXPRESSION_IMPORT_MODULE_HARD"
+    def __init__(self, module_name, import_name, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.module_name = module_name
+        self.import_name = import_name
+
+    def getModuleName(self):
+        return self.module_name
+
+    def getImportName(self):
+        return self.import_name
+
+    def computeExpression(self, constraint_collection):
+        # TODO: May return a module reference of some sort in the future with
+        # embedded modules.
+        return self, None, None
+
+    def mayHaveSideEffects(self):
+        assert False, (self.module_name, self.import_name)
+
+        if self.module_name == "sys" and self.import_name == "stdout":
+            return False
+        else:
+            return True
+
+    def mayRaiseException(self, exception_type):
+        return True
+
+    def mayProvideReference(self):
+        return False
+
+
 class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
@@ -253,7 +293,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 source_ref):
         if fromlist is None:
             fromlist = ExpressionConstantRef(
-                constant   = [],
+                constant   = (),
                 source_ref = source_ref
             )
 
@@ -342,7 +382,9 @@ class StatementImportStar(StatementChildrenHavingBase):
 class ExpressionImportName(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_IMPORT_NAME"
 
-    named_children = ( "module", )
+    named_children = (
+        "module",
+    )
 
     def __init__(self, module, import_name, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -355,6 +397,8 @@ class ExpressionImportName(ExpressionChildrenHavingBase):
 
         self.import_name = import_name
 
+        assert module is not None
+
     def getImportName(self):
         return self.import_name
 
@@ -362,9 +406,12 @@ class ExpressionImportName(ExpressionChildrenHavingBase):
         return { "import_name" : self.getImportName() }
 
     def getDetail(self):
-        return "import %s from %s" % ( self.getImportName(), self.getModule() )
+        return "import %s from %s" % (
+            self.getImportName(),
+            self.getModule().getModuleName()
+        )
 
-    getModule = ExpressionChildrenHavingBase.childGetter( "module" )
+    getModule = ExpressionChildrenHavingBase.childGetter("module")
 
     def computeExpression(self, constraint_collection):
         # TODO: May return a module or module variable reference of some sort in

@@ -16,15 +16,21 @@
 #     limitations under the License.
 #
 
-print u"gfcrk"
-print repr( u"g\xfcrk" )
+print(u"gfcrk")
+print(repr(u"g\xfcrk"))
 
-print r"""\x00"""
+print(r"""\x00""")
 
-print "\ttest\n"
+print("\ttest\n")
 
-print """
+print("""
 something
 with
 new
-lines"""
+lines""")
+
+# TODO: Python3 has a problem here, hard to find, disabled for now.
+if False:
+    encoding = "utf-16-be"
+    print("[\uDC80]".encode(encoding))
+    print("[\\udc80]")

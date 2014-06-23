@@ -19,20 +19,19 @@
 
 """
 
+import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
-from nuitka import Utils
-
-import sys
+from . import Utils
 
 
 def _getBuiltinExceptionNames():
     def isExceptionName(builtin_name):
-        if builtin_name.endswith( "Error" ) or \
-           builtin_name.endswith( "Exception" ):
+        if builtin_name.endswith("Error") or \
+           builtin_name.endswith("Exception"):
             return True
-        elif builtin_name in ( "StopIteration", "GeneratorExit", "SystemExit",
-                               "NotImplemented", "KeyboardInterrupt" ):
+        elif builtin_name in ("StopIteration", "GeneratorExit", "SystemExit",
+                              "NotImplemented", "KeyboardInterrupt"):
             return True
         else:
             return False
@@ -42,28 +41,28 @@ def _getBuiltinExceptionNames():
         import exceptions
 
         names = [
-            str( name ) for name in dir( exceptions )
-            if isExceptionName( name )
+            str(name) for name in dir(exceptions)
+            if isExceptionName(name)
         ]
 
         values = {}
 
         for key in names:
-            values[ key ] = getattr( exceptions, key )
+            values[key] = getattr(exceptions, key)
 
-        for key in dir( sys.modules[ "__builtin__" ] ):
-            name = str( key )
+        for key in dir(sys.modules["__builtin__"]):
+            name = str(key)
 
-            if isExceptionName( name ):
-                names.append( key )
-                values[ name ] = getattr( sys.modules[ "__builtin__" ], key )
+            if isExceptionName(name):
+                names.append(key)
+                values[name] = getattr(sys.modules["__builtin__"], key)
 
     except ImportError:
         exceptions = {}
 
-        for key, value in  sys.modules[ "builtins" ].__dict__.items():
-            if isExceptionName( key ):
-                exceptions[ key ] = value
+        for key, value in  sys.modules["builtins"].__dict__.items():
+            if isExceptionName(key):
+                exceptions[key] = value
 
         names = [
             key for key, value in exceptions.items()
@@ -72,7 +71,7 @@ def _getBuiltinExceptionNames():
         values = {}
 
         for key, value in exceptions.items():
-            values[ key ] = value
+            values[key] = value
 
     return names, values
 
@@ -89,26 +88,26 @@ assert "NotImplemented" in builtin_exception_names
 
 def _getBuiltinNames():
     names = [
-        str( x )
+        str(x)
         for x in __builtins__.keys()
     ]
 
     for builtin_exception_name in builtin_exception_names:
         if builtin_exception_name in names:
-            names.remove( builtin_exception_name )
+            names.remove(builtin_exception_name)
 
-    names.remove( "__doc__" )
-    names.remove( "__name__" )
-    names.remove( "__package__" )
+    names.remove("__doc__")
+    names.remove("__name__")
+    names.remove("__package__")
 
     warnings = []
 
     for builtin_name in names:
-        if builtin_name.endswith( "Warning" ):
-            warnings.append( builtin_name )
+        if builtin_name.endswith("Warning"):
+            warnings.append(builtin_name)
 
     for builtin_name in warnings:
-        names.remove( builtin_name )
+        names.remove(builtin_name)
 
     return names, warnings
 
@@ -123,18 +122,24 @@ assert "sys" not in builtin_names
 builtin_all_names = builtin_names + builtin_exception_names + builtin_warnings
 
 def _getAnonBuiltins():
-    anon_names = {
-        # Strangely not Python3 types module
-        "NoneType"                   : type( None ),
-        "ellipsis"                   : type( Ellipsis ), # see above
-        "NotImplementedType"         : type( NotImplemented ),
-        "function"                   : FunctionType,
-        "builtin_function_or_method" : BuiltinFunctionType,
-        # Can't really have it any better way.
-        "compiled_function"          : BuiltinFunctionType,
-        "generator"                  : GeneratorType,
-        "compiled_generator"         : GeneratorType, # see above
-    }
+    # False positive for "__code__" attribute of function,
+    # pylint: disable=E1101
+
+    with open(sys.executable) as any_file:
+        anon_names = {
+            # Strangely not Python3 types module
+            "NoneType"                   : type(None),
+            "ellipsis"                   : type(Ellipsis), # see above
+            "NotImplementedType"         : type(NotImplemented),
+            "function"                   : FunctionType,
+            "builtin_function_or_method" : BuiltinFunctionType,
+            # Can't really have it any better way.
+            "compiled_function"          : BuiltinFunctionType,
+            "generator"                  : GeneratorType,
+            "compiled_generator"         : GeneratorType, # see above
+            "code"                       : type(_getAnonBuiltins.__code__),
+            "file"                       : type(any_file)
+        }
 
     anon_codes = {
         "NoneType"                   : "Py_TYPE( Py_None )",
@@ -144,6 +149,8 @@ def _getAnonBuiltins():
         "builtin_function_or_method" : "&PyCFunction_Type",
         "compiled_function"          : "&Nuitka_Function_Type",
         "compiled_generator"         : "&Nuitka_Generator_Type",
+        "code"                       : "&PyCode_Type",
+        "file"                       : "&PyFile_Type"
     }
 
     if Utils.python_version < 300:
@@ -157,10 +164,10 @@ def _getAnonBuiltins():
         anon_names[ "classobj" ] = type(Temp)
         anon_codes[ "classobj" ] = "&PyClass_Type"
 
-        anon_names[ "instance" ] = type( Temp() )
+        anon_names[ "instance" ] = type(Temp())
         anon_codes[ "instance" ] = "&PyInstance_Type"
 
-        anon_names[ "instancemethod" ] = type( Temp().method )
+        anon_names[ "instancemethod" ] = type(Temp().method)
         anon_codes[ "instancemethod" ] = "&PyMethod_Type"
 
     return anon_names, anon_codes

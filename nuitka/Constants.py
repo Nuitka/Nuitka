@@ -22,14 +22,11 @@ This contains tools to compare, classify and test constants.
 
 import math
 
-# pylint: disable=W0622
-from .__past__ import long, unicode, iterItems
-# pylint: enable=W0622
-
+from .__past__ import iterItems, long, unicode  # pylint: disable=W0622
 from .Builtins import builtin_anon_names
 from .Utils import python_version
 
-NoneType = type( None )
+NoneType = type(None)
 
 def compareConstants(a, b):
     # Many many cases to deal with, pylint: disable=R0911,R0912
@@ -123,31 +120,32 @@ def isConstant(constant):
     # Too many cases and all return, that is how we do it here,
     # pylint: disable=R0911,R0912
 
-    constant_type = type( constant )
+    constant_type = type(constant)
 
     if constant_type is dict:
-        for key, value in iterItems( constant ):
-            if not isConstant( key ):
+        for key, value in iterItems(constant):
+            if not isConstant(key):
                 return False
-            if not isConstant( value ):
+            if not isConstant(value):
                 return False
         else:
             return True
-    elif constant_type in ( tuple, list ):
+    elif constant_type in (tuple, list):
         for element_value in constant:
-            if not isConstant( element_value ):
+            if not isConstant(element_value):
                 return False
         else:
             return True
-    elif constant_type in ( str, unicode, complex, int, long, bool, float,
-                            NoneType, range, bytes, set ):
+    elif constant_type in (str, unicode, complex, int, long, bool, float,
+                           NoneType, range, bytes, set):
         return True
-    elif constant in ( Ellipsis, NoneType ):
+    elif constant in (Ellipsis, NoneType):
         return True
     elif constant_type is type:
         return constant in constant_builtin_types
     else:
         return False
+
 
 def isMutable(constant):
     """ Is a constant mutable
@@ -176,18 +174,22 @@ def isMutable(constant):
     else:
         assert False, constant_type
 
+
 def isIterableConstant(constant):
     return type( constant ) in (
         str, unicode, list, tuple, set, frozenset, dict, range, bytes
     )
+
 
 def getConstantIterationLength(constant):
     assert isIterableConstant( constant )
 
     return len( constant )
 
+
 def isNumberConstant(constant):
     return type(constant) in ( int, long, float, bool )
+
 
 def isIndexConstant(constant):
     return type(constant) in ( int, long, bool )
@@ -212,3 +214,28 @@ def createConstantDict(keys, values, lazy_order):
         constant_value[ key ] = value
 
     return constant_value
+
+
+def getConstantWeight(constant):
+    # Too many cases and all return, that is how we do it here,
+    # pylint: disable=R0911,R0912
+
+    constant_type = type(constant)
+
+    if constant_type is dict:
+        result = 0
+
+        for key, value in iterItems(constant):
+            result += getConstantWeight(key)
+            result += getConstantWeight(value)
+
+        return result
+    elif constant_type in (tuple, list, set, frozenset):
+        result = 0
+
+        for element_value in constant:
+            result += getConstantWeight(element_value)
+
+        return result
+    else:
+        return 1

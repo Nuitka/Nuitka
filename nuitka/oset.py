@@ -19,11 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# Note: Kay Hayen did some changes for Nuitka keeping this license. These changes are
-# not improvements, use the original source instead.
+# Note: Kay Hayen did some changes for Nuitka keeping this license. These
+# changes are not improvements, use the original source instead, not this
+# file.
 
-""" This module is only an abstraction of OrderedSet as present in 2.7 and 3.1 but not in
-2.6.
+""" This module is only an abstraction of OrderedSet as present in 2.7 and 3.1
+but not in 2.6.
 
 It was originally downloaded from http://code.activestate.com/recipes/576694/
 """

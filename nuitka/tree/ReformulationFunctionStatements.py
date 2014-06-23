@@ -15,33 +15,40 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of function statements.
 
-from nuitka import Utils, SyntaxErrors
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
 
-from nuitka.nodes.ParameterSpecs import ParameterSpec
+"""
 
-from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka import SyntaxErrors, Utils
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCreation,
     ExpressionFunctionBody,
+    ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 
 from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeDictCreationOrConstant,
+    buildNode,
+    buildNodeList,
     buildStatementsNode,
     extractDocFromBody,
-    buildNodeList,
-    buildNode,
-    getKind
+    getKind,
+    makeDictCreationOrConstant,
+    makeStatementsSequenceFromStatement,
+    popIndicatorVariable,
+    pushIndicatorVariable
 )
+
 
 def buildFunctionNode(provider, node, source_ref):
     assert getKind( node ) == "FunctionDef"
@@ -64,7 +71,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     decorators = buildNodeList(
         provider   = provider,
-        nodes      = reversed( node.decorator_list ),
+        nodes      = reversed(node.decorator_list),
         source_ref = source_ref
     )
 
@@ -78,12 +85,16 @@ def buildFunctionNode(provider, node, source_ref):
         provider, node, function_body, source_ref
     )
 
+    pushIndicatorVariable(Ellipsis)
+
     function_statements_body = buildStatementsNode(
         provider   = function_body,
         nodes      = function_statements,
         frame      = True,
         source_ref = source_ref
     )
+
+    popIndicatorVariable()
 
     if function_body.isExpressionFunctionBody() and function_body.isGenerator():
         # TODO: raise generator exit?
@@ -112,9 +123,11 @@ def buildFunctionNode(provider, node, source_ref):
             )
         )
 
-    function_body.setBody( function_statements_body )
+    function_body.setBody(
+        function_statements_body
+    )
 
-    annotations = buildParameterAnnotations( provider, node, source_ref )
+    annotations = buildParameterAnnotations(provider, node, source_ref)
 
     decorated_body = ExpressionFunctionCreation(
         function_ref = ExpressionFunctionRef(
@@ -159,6 +172,7 @@ def buildFunctionNode(provider, node, source_ref):
         source       = decorated_body,
         source_ref   = source_ref
     )
+
 
 def buildParameterKwDefaults(provider, node, function_body, source_ref):
     # Build keyword only arguments default values. We are hiding here, that it
@@ -233,10 +247,10 @@ def buildParameterAnnotations(provider, node, source_ref):
             assert False, getKind( arg )
 
     for arg in node.args.args:
-        extractArg( arg )
+        extractArg(arg)
 
     for arg in node.args.kwonlyargs:
-        extractArg( arg )
+        extractArg(arg)
 
     if Utils.python_version < 340:
         if node.args.varargannotation is not None:

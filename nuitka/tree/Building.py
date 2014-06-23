@@ -33,141 +33,121 @@ The output of this module is a node tree, which contains only relatively low
 level operations. A property of the output module is also an overlaid tree
 of provider structure that indicates variable provision.
 
+Classes are handled in a separate module. They are re-formulated into functions
+producing dictionaries used to call the metaclass with.
+
+Try/except/else statements are handled in a separate module. They are
+re-formulated into using a temporary variable to track if the else branch
+should execute.
+
+Try/finally statements are handled in a separate module. They are re-formulated
+to use a nested try/finally for (un)publishing the exception for Python3.
+
+With statements are handled in a separate module. They are re-formulated into
+special attribute lookups for "__enter__" and "__exit__", calls of them,
+catching and passing in exceptions raised.
+
 """
 
-# pylint: disable=W0622
-from nuitka.__past__ import long, unicode
-# pylint: enable=W0622
+
+import ast
+import sys
 
 from nuitka import (
+    Importing,
+    Options,
     SourceCodeReferences,
     SyntaxErrors,
-    Importing,
     Tracing,
-    Options,
     Utils
 )
-
-from nuitka.nodes.FutureSpecs import FutureSpec
-
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetVariableRef,
-    ExpressionVariableRef
+from nuitka.__past__ import long, unicode  # pylint: disable=W0622
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditional,
+    StatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.SliceNodes import (
-    ExpressionSliceLookup,
-    ExpressionSliceObject
-)
-from nuitka.nodes.StatementNodes import (
-    StatementExpressionOnly,
-    StatementsSequence
-)
+from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
     ExpressionImportName,
-    StatementImportStar,
+    StatementImportStar
+)
+from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
+from nuitka.nodes.ModuleNodes import (
+    PythonMainModule,
+    PythonModule,
+    PythonPackage,
+    PythonShlibModule
 )
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationUnary
 )
-from nuitka.nodes.LoopNodes import (
-    StatementContinueLoop,
-    StatementBreakLoop,
-)
-from nuitka.nodes.ConditionalNodes import (
-    ExpressionConditional,
-    StatementConditional
-)
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.ModuleNodes import (
-    PythonShlibModule,
-    PythonMainModule,
-    PythonPackage,
-    PythonModule
+from nuitka.nodes.SliceNodes import ExpressionSliceLookup, ExpressionSliceObject
+from nuitka.nodes.StatementNodes import (
+    StatementExpressionOnly,
+    StatementsSequence
 )
-from nuitka.nodes.TryNodes import StatementTryFinally
-
-from .VariableClosure import completeVariableClosures
-
-# Classes are handled in a separate file. They are re-formulated into functions
-# producing dictionaries used to call the metaclass with.
-from .ReformulationClasses import buildClassNode
-
-# Try/except/else statements are handled in a separate file. They are
-# re-formulated into using a temporary variable to track if the else branch
-# should execute.
-from .ReformulationTryExceptStatements import buildTryExceptionNode
-
-# With statements are handled in a separate file. They are re-formulated into
-# special attribute lookups for "__enter__" and "__exit__", calls of them,
-# catching and passing in exceptions raised.
-from .ReformulationWithStatements import buildWithNode
-
-from .ReformulationAssignmentStatements import (
-    buildInplaceAssignNode,
-    buildExtSliceNode,
-    buildAssignNode,
-    buildDeleteNode
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetVariableRef,
+    ExpressionVariableRef
 )
 
-from .ReformulationLoopStatements import (
-    buildWhileLoopNode,
-    buildForLoopNode
+from .Helpers import (
+    applyLaterWrappers,
+    buildNode,
+    buildNodeList,
+    buildStatementsNode,
+    extractDocFromBody,
+    getBuildContext,
+    getKind,
+    makeDictCreationOrConstant,
+    makeModuleFrame,
+    makeSequenceCreationOrConstant,
+    makeStatementsSequenceOrStatement,
+    mergeStatements,
+    setBuildDispatchers
 )
-
+from .ImportCache import addImportedModule
 from .ReformulationAssertStatements import buildAssertNode
-
-from .ReformulationPrintStatements import buildPrintNode
-
-from .ReformulationFunctionStatements import buildFunctionNode
-
-from .ReformulationLambdaExpressions import buildLambdaNode
-
+from .ReformulationAssignmentStatements import (
+    buildAssignNode,
+    buildDeleteNode,
+    buildExtSliceNode,
+    buildInplaceAssignNode
+)
 from .ReformulationBooleanExpressions import buildBoolOpNode
-
+from .ReformulationCallExpressions import buildCallNode
+from .ReformulationClasses import buildClassNode
 from .ReformulationComparisonExpressions import buildComparisonNode
-
 from .ReformulationContractionExpressions import (
+    buildDictContractionNode,
     buildGeneratorExpressionNode,
     buildListContractionNode,
-    buildDictContractionNode,
     buildSetContractionNode
 )
-
-from .ReformulationCallExpressions import buildCallNode
-
 from .ReformulationExecStatements import buildExecNode
-
-from .ReformulationYieldExpressions import buildYieldNode, buildYieldFromNode
-
+from .ReformulationFunctionStatements import buildFunctionNode
+from .ReformulationLambdaExpressions import buildLambdaNode
+from .ReformulationLoopStatements import buildForLoopNode, buildWhileLoopNode
 from .ReformulationNamespacePackages import createNamespacePackage
-
-# Some helpers.
-from .Helpers import (
-    makeStatementsSequenceOrStatement,
-    makeSequenceCreationOrConstant,
-    makeDictCreationOrConstant,
-    buildStatementsNode,
-    setBuildDispatchers,
-    extractDocFromBody,
-    makeModuleFrame,
-    mergeStatements,
-    buildNodeList,
-    buildNode,
-    getKind
+from .ReformulationPrintStatements import buildPrintNode
+from .ReformulationTryExceptStatements import buildTryExceptionNode
+from .ReformulationTryFinallyStatements import (
+    buildTryFinallyNode,
+    makeTryFinallyIndicator
 )
-
+from .ReformulationWithStatements import buildWithNode
+from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
 from .SourceReading import readSourceCodeFromFilename
+from .VariableClosure import completeVariableClosures
 
-from .ImportCache import addImportedModule
-
-import ast, sys
 
 def buildVariableReferenceNode(provider, node, source_ref):
     # Python3 is influenced by the mere use of a variable name. So we need to
@@ -191,16 +171,16 @@ def buildNamedConstantNode(node, source_ref):
 
 def buildSequenceCreationNode(provider, node, source_ref):
     return makeSequenceCreationOrConstant(
-        sequence_kind = getKind( node ).upper(),
-        elements      = buildNodeList( provider, node.elts, source_ref ),
+        sequence_kind = getKind(node).upper(),
+        elements      = buildNodeList(provider, node.elts, source_ref),
         source_ref    = source_ref
     )
 
 
 def buildDictionaryNode(provider, node, source_ref):
     return makeDictCreationOrConstant(
-        keys       = buildNodeList( provider, node.keys, source_ref ),
-        values     = buildNodeList( provider, node.values, source_ref ),
+        keys       = buildNodeList(provider, node.keys, source_ref),
+        values     = buildNodeList(provider, node.values, source_ref),
         lazy_order = False,
         source_ref = source_ref
     )
@@ -225,29 +205,41 @@ def buildConditionNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
-def buildTryFinallyNode(provider, node, source_ref):
-    # Try/finally node statements.
 
-    return StatementTryFinally(
-        tried      = buildStatementsNode(
+def _buildTryFinallyNode(provider, node, source_ref):
+    # Try/finally node statements of old style.
+
+    return buildTryFinallyNode(
+        provider    = provider,
+        build_tried = lambda : buildStatementsNode(
             provider   = provider,
             nodes      = node.body,
             source_ref = source_ref
         ),
-        final      = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.finalbody,
-            source_ref = source_ref
-        ),
-        source_ref = source_ref
+        node        = node,
+        source_ref  = source_ref
     )
+
 
 def buildTryNode(provider, node, source_ref):
     # Note: This variant is used for Python3.3 or higher only, older stuff uses
     # the above ones, this one merges try/except with try/finally in the
     # "ast". We split it up again, as it's logically separated of course.
-    return StatementTryFinally(
-        tried      = StatementsSequence(
+
+    # Shortcut missing try/finally.
+    if not node.handlers:
+        return _buildTryFinallyNode(provider, node, source_ref)
+
+    if not node.finalbody:
+        return buildTryExceptionNode(
+            provider   = provider,
+            node       = node,
+            source_ref = source_ref
+        )
+
+    return buildTryFinallyNode(
+        provider    = provider,
+        build_tried = lambda : StatementsSequence(
             statements = mergeStatements(
                 (
                     buildTryExceptionNode(
@@ -259,13 +251,10 @@ def buildTryNode(provider, node, source_ref):
             ),
             source_ref = source_ref
         ),
-        final      = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.finalbody,
-            source_ref = source_ref
-        ),
-        source_ref = source_ref
+        node        = node,
+        source_ref  = source_ref
     )
+
 
 def buildRaiseNode(provider, node, source_ref):
     # Raise statements. Under Python2 they may have type, value and traceback
@@ -479,7 +468,7 @@ from __future__ imports must occur at the beginning of the file""",
 
         # Remember it for checks to be applied once module is complete.
         node.source_ref = source_ref
-        _future_import_nodes.append( node )
+        _future_import_nodes.append(node)
 
     target_names = []
     import_names = []
@@ -488,7 +477,7 @@ from __future__ imports must occur at the beginning of the file""",
         object_name, local_name = import_desc.name, import_desc.asname
 
         if object_name == "*":
-            target_names.append( None )
+            target_names.append(None)
         else:
             target_names.append(
                 local_name
@@ -496,12 +485,12 @@ from __future__ imports must occur at the beginning of the file""",
                 object_name
             )
 
-        import_names.append( object_name )
+        import_names.append(object_name)
 
     if None in target_names:
         # More than "*" is a syntax error in Python, need not care about this at
         # all, it's only allowed value for import list in  this case.
-        assert target_names == [ None ]
+        assert target_names == [None]
 
         # Python3 made this a syntax error unfortunately.
         if not provider.isPythonModule() and Utils.python_version >= 300:
@@ -516,7 +505,7 @@ from __future__ imports must occur at the beginning of the file""",
         return StatementImportStar(
             module_import = ExpressionImportModule(
                 module_name = module_name,
-                import_list = ( "*", ),
+                import_list = ("*",),
                 level       = level,
                 source_ref  = source_ref
             ),
@@ -535,7 +524,7 @@ from __future__ imports must occur at the beginning of the file""",
                     source     = ExpressionImportName(
                         module      = ExpressionImportModule(
                             module_name = module_name,
-                            import_list = import_names,
+                            import_list = tuple(import_names),
                             level       = level,
                             source_ref  = source_ref
                         ),
@@ -576,7 +565,12 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                               if Utils.python_version < 300 else
                             "parameter"
                         ),
-                        source_ref = provider.getSourceReference()
+                        source_ref = (
+                            source_ref
+                              if not Options.isFullCompat() or \
+                                 Utils.python_version >= 340 else
+                            provider.getSourceReference()
+                        )
                     )
         except AttributeError:
             pass
@@ -631,24 +625,30 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
                 reason       = "name '%s' is parameter and nonlocal" % (
                     variable_name
                 ),
-                source_ref   = None if Options.isFullCompat() else source_ref,
-                display_file = not Options.isFullCompat(),
-                display_line = not Options.isFullCompat()
+                source_ref   = None
+                                 if Options.isFullCompat() and \
+                                 Utils.python_version < 340 else
+                               source_ref,
+                display_file = not Options.isFullCompat() or \
+                               Utils.python_version >= 340,
+                display_line = not Options.isFullCompat() or \
+                               Utils.python_version >= 340
             )
 
-    provider.addNonlocalsDeclaration( node.names, source_ref )
+    provider.addNonlocalsDeclaration(node.names, source_ref)
 
     return None
 
 
 def buildStringNode(node, source_ref):
-    assert type( node.s ) in ( str, unicode )
+    assert type(node.s) in (str, unicode)
 
     return ExpressionConstantRef(
         constant      = node.s,
         source_ref    = source_ref,
         user_provided = True
     )
+
 
 def buildNumberNode(node, source_ref):
     assert type( node.n ) in ( int, long, float, complex ), type( node.n )
@@ -659,12 +659,14 @@ def buildNumberNode(node, source_ref):
         user_provided = True
     )
 
+
 def buildBytesNode(node, source_ref):
     return ExpressionConstantRef(
         constant      = node.s,
         source_ref    = source_ref,
         user_provided = True
     )
+
 
 def buildEllipsisNode(source_ref):
     return ExpressionConstantRef(
@@ -673,12 +675,56 @@ def buildEllipsisNode(source_ref):
         user_provided = True
     )
 
+
+def buildStatementContinueLoop(provider, node, source_ref):
+    if getBuildContext() == "finally":
+        if not Options.isFullCompat() or Utils.python_version >= 300:
+            col_offset = node.col_offset - 9
+        else:
+            col_offset = None
+
+        if Utils.python_version >= 300 and Options.isFullCompat():
+            source_line = ""
+        else:
+            source_line = None
+
+        SyntaxErrors.raiseSyntaxError(
+            "'continue' not supported inside 'finally' clause",
+            source_ref,
+            col_offset  = col_offset,
+            source_line = source_line
+        )
+
+
+    return makeTryFinallyIndicator(
+        provider     = provider,
+        statement    = StatementContinueLoop(
+            source_ref = source_ref
+        ),
+        is_loop_exit = True
+    )
+
+
+def buildStatementBreakLoop(provider, node, source_ref):
+    # A bit unusual, we need the provider, but not the node,
+    # pylint: disable=W0613
+
+    return makeTryFinallyIndicator(
+        provider     = provider,
+        statement    = StatementBreakLoop(
+            source_ref = source_ref
+        ),
+        is_loop_exit = True
+    )
+
+
 def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
         expression     = buildNode( provider, node.value, source_ref ),
         attribute_name = node.attr,
         source_ref     = source_ref
     )
+
 
 def buildReturnNode(provider, node, source_ref):
     if not provider.isExpressionFunctionBody() or \
@@ -693,20 +739,24 @@ def buildReturnNode(provider, node, source_ref):
             )
         )
 
-    if node.value is not None:
-        return StatementReturn(
-            expression = buildNode( provider, node.value, source_ref ),
-            source_ref = source_ref
+    expression = buildNode(provider, node.value, source_ref, allow_none = True)
+
+    if expression is None:
+        expression = ExpressionConstantRef(
+            constant      = None,
+            source_ref    = source_ref,
+            user_provided = True
         )
-    else:
-        return StatementReturn(
-            expression = ExpressionConstantRef(
-                constant      = None,
-                source_ref    = source_ref,
-                user_provided = True
-            ),
+
+
+    return makeTryFinallyIndicator(
+        provider    = provider,
+        statement   = StatementReturn(
+            expression = expression,
             source_ref = source_ref
-        )
+        ),
+        is_loop_exit = False
+    )
 
 
 def buildExprOnlyNode(provider, node, source_ref):
@@ -732,30 +782,32 @@ def buildUnaryOpNode(provider, node, source_ref):
 
 
 def buildBinaryOpNode(provider, node, source_ref):
-    operator = getKind( node.op )
+    operator = getKind(node.op)
 
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
     return ExpressionOperationBinary(
         operator   = operator,
-        left       = buildNode( provider, node.left, source_ref ),
-        right      = buildNode( provider, node.right, source_ref ),
+        left       = buildNode(provider, node.left, source_ref),
+        right      = buildNode(provider, node.right, source_ref),
         source_ref = source_ref
     )
+
 
 def buildReprNode(provider, node, source_ref):
     return ExpressionOperationUnary(
         operator   = "Repr",
-        operand    = buildNode( provider, node.value, source_ref ),
+        operand    = buildNode(provider, node.value, source_ref),
         source_ref = source_ref
     )
 
+
 def buildConditionalExpressionNode(provider, node, source_ref):
     return ExpressionConditional(
-        condition      = buildNode( provider, node.test, source_ref ),
-        yes_expression = buildNode( provider, node.body, source_ref ),
-        no_expression  = buildNode( provider, node.orelse, source_ref ),
+        condition      = buildNode(provider, node.test, source_ref),
+        yes_expression = buildNode(provider, node.body, source_ref),
+        no_expression  = buildNode(provider, node.orelse, source_ref),
         source_ref     = source_ref
     )
 
@@ -781,7 +833,7 @@ setBuildDispatchers(
         "Global"       : handleGlobalDeclarationNode,
         "Nonlocal"     : handleNonlocalDeclarationNode,
         "TryExcept"    : buildTryExceptionNode,
-        "TryFinally"   : buildTryFinallyNode,
+        "TryFinally"   : _buildTryFinallyNode,
         "Try"          : buildTryNode,
         "Raise"        : buildRaiseNode,
         "ImportFrom"   : buildImportFromNode,
@@ -804,6 +856,8 @@ setBuildDispatchers(
         "Repr"         : buildReprNode,
         "AugAssign"    : buildInplaceAssignNode,
         "IfExp"        : buildConditionalExpressionNode,
+        "Continue"     : buildStatementContinueLoop,
+        "Break"        : buildStatementBreakLoop,
     },
     path_args2 = {
         "NameConstant" : buildNamedConstantNode,
@@ -814,29 +868,29 @@ setBuildDispatchers(
     },
     path_args1 = {
         "Ellipsis"     : buildEllipsisNode,
-        "Continue"     : StatementContinueLoop,
-        "Break"        : StatementBreakLoop,
     }
 )
 
-def buildParseTree( provider, source_code, source_ref, is_module,
-                    is_main ):
+def buildParseTree(provider, source_code, source_ref, is_module, is_main):
+    # There are a bunch of branches here, mostly to deal with version
+    # differences for module default variables. pylint: disable=R0912
+
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
-    if not source_code.endswith( "\n" ):
+    if not source_code.endswith("\n"):
         source_code = source_code + "\n"
 
-    body = ast.parse( source_code, source_ref.getFilename() )
-    assert getKind( body ) == "Module"
+    body = ast.parse(source_code, source_ref.getFilename())
+    assert getKind(body) == "Module"
 
     line_offset = source_ref.getLineNumber() - 1
 
     if line_offset > 0:
-        for created_node in ast.walk( body ):
-            if hasattr( created_node, "lineno" ):
+        for created_node in ast.walk(body):
+            if hasattr(created_node, "lineno"):
                 created_node.lineno += line_offset
 
-    body, doc = extractDocFromBody( body )
+    body, doc = extractDocFromBody(body)
 
     result = buildStatementsNode(
         provider   = provider,
@@ -847,7 +901,7 @@ def buildParseTree( provider, source_code, source_ref, is_module,
     # Check if a __future__ imports really were at the beginning of the file.
     for node in body:
         if node in _future_import_nodes:
-            _future_import_nodes.remove( node )
+            _future_import_nodes.remove(node)
         else:
             if _future_import_nodes:
                 SyntaxErrors.raiseSyntaxError(
@@ -921,7 +975,7 @@ from __future__ imports must occur at the beginning of the file""",
                     ),
                     source       = ExpressionConstantRef(
                         constant      = [
-                            Utils.dirname( source_ref.getFilename() )
+                            Utils.dirname(source_ref.getFilename())
                         ],
                         source_ref    = internal_source_ref,
                         user_provided = True
@@ -966,7 +1020,10 @@ from __future__ imports must occur at the beginning of the file""",
             )
         )
 
-    if Utils.python_version >= 330 and not provider.isMainModule():
+    needs__initializing__ = not provider.isMainModule() and \
+      (Utils.python_version >= 330 and Utils.python_version < 340)
+
+    if needs__initializing__:
         # Set initialzing at the beginning to True
         statements.append(
             StatementAssignmentVariable(
@@ -985,9 +1042,11 @@ from __future__ imports must occur at the beginning of the file""",
 
     # Now the module body if there is any at all.
     if result is not None:
-        statements.extend( result.getStatements() )
+        statements.extend(
+            result.getStatements()
+        )
 
-    if Utils.python_version >= 330 and not provider.isMainModule():
+    if needs__initializing__:
         # Set initialzing at the beginning to True
         statements.append(
             StatementAssignmentVariable(
@@ -1005,31 +1064,37 @@ from __future__ imports must occur at the beginning of the file""",
         )
 
 
+
     if is_module:
-        return makeModuleFrame(
-            module = provider,
+        result = makeModuleFrame(
+            module     = provider,
             statements = statements,
             source_ref = source_ref
         )
+
+        applyLaterWrappers()
+
+        return result
     else:
         assert False
+
 
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
 
-    assert package is None or type( package ) is str
+    assert package is None or type(package) is str
 
-    if is_main and Utils.isDir( filename ):
-        source_filename = Utils.joinpath( filename, "__main__.py" )
+    if is_main and Utils.isDir(filename):
+        source_filename = Utils.joinpath(filename, "__main__.py")
 
-        if not Utils.isFile( source_filename ):
+        if not Utils.isFile(source_filename):
             sys.stderr.write(
                 "%s: can't find '__main__' module in '%s'\n" % (
-                    Utils.basename( sys.argv[0] ),
+                    Utils.basename(sys.argv[0]),
                     filename
                 )
             )
-            sys.exit( 2 )
+            sys.exit(2)
 
         filename = source_filename
 
@@ -1037,7 +1102,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     else:
         main_added = False
 
-    if Utils.isFile( filename ):
+    if Utils.isFile(filename):
         source_filename = filename
 
         source_ref = SourceCodeReferences.fromFilename(
@@ -1048,9 +1113,9 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         if is_main:
             module_name = "__main__"
         else:
-            module_name = Utils.basename( filename )
+            module_name = Utils.basename(filename)
 
-            if module_name.endswith( ".py" ):
+            if module_name.endswith(".py"):
                 module_name = module_name[:-3]
 
             if is_shlib:
@@ -1063,7 +1128,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                     )
                 )
 
-                sys.exit( 2 )
+                sys.exit(2)
 
         if is_shlib:
             result = PythonShlibModule(
@@ -1123,6 +1188,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
 
     return result, source_ref, source_filename
 
+
 def createModuleTree(module, source_ref, source_filename, is_main):
     if Options.isShowProgress():
         memory_watch = Utils.MemoryWatch()
@@ -1137,7 +1203,9 @@ def createModuleTree(module, source_ref, source_filename, is_main):
         is_main     = is_main
     )
 
-    module.setBody( module_body )
+    module.setBody(
+        module_body
+    )
 
     completeVariableClosures( module )
 

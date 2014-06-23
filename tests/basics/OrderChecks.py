@@ -461,6 +461,107 @@ def raiseOrderCheck():
     except Exception as e:
         print "caught", repr(e)
 
+def callOrderCheck():
+    print("Checking order of nested call arguments:")
+
+    class A:
+        def __del__(self):
+            print "Doing del A()"
+    def check(obj):
+        print "Outer function"
+    def p(obj):
+        print "Inner function"
+
+    check(p(A()))
+
+def boolOrderCheck():
+    print("Checking order of or/and arguments:")
+
+    class A(int):
+        def __init__(self, value):
+            self.value = value
+        def __del__(self):
+            print("Doing del of %s" % self)
+        def __bool__(self):
+            print("Test of %s" % self)
+            return self.value != 0
+        __nonzero__ = __bool__
+        def __str__(self):
+            return "<%s %r>" % (self.__class__.__name__, self.value)
+    class B(A):
+        pass
+    class C(A):
+        pass
+
+    print("Two arguments, A or B:")
+    for a in range(2):
+        for b in range(2):
+            print("Case %d or %d" % (a,b))
+            r = A(a) or B(b)
+            print(r)
+            del r
+
+    # TODO: The order of deletion does not exactly match, which we accept for
+    # now.
+    if True:
+        print("Three arguments, A or B or C:")
+        for a in range(2):
+            for b in range(2):
+                for c in range(2):
+                    print("Case %d or %d or %d" % (a,b,c))
+                    r = A(a) or B(b) or C(c)
+                    print(r)
+                    del r
+
+    print("Two arguments, A and B:")
+    for a in range(2):
+        for b in range(2):
+            print("Case %d and %d" % (a,b))
+            r = A(a) and B(b)
+            print(r)
+            del r
+
+    # See above
+    if True:
+        print("Three arguments, A and B and C:")
+        for a in range(2):
+            for b in range(2):
+                for c in range(2):
+                    print("Case %d and %d and %d" % (a,b,c))
+                    r = A(a) and B(b) and C(c)
+                    print(r)
+                    del r
+
+
+def comparisonChainOrderCheck():
+    print("Checking order of comparison chains:")
+
+    class A(int):
+        def __init__(self, value):
+            self.value = value
+        def __del__(self):
+            print("Doing del of %s" % self)
+        def __le__(self, other):
+            print("Test of %s <= %s" % (self, other))
+            return self.value <= other.value
+        def __str__(self):
+            return "<%s %r>" % (self.__class__.__name__, self.value)
+    class B(A):
+        pass
+    class C(A):
+        pass
+
+    # See above, not really doing it right.
+    if False:
+        print("Three arguments, A <= B <= C:")
+        for a in range(3):
+            for b in range(3):
+                for c in range(3):
+                    print("Case %d <= %d <= %d" % (a,b,c))
+                    r = A(a) <= B(b) <= C(c)
+                    print(r)
+                    del r
+
 
 dictOrderCheck()
 listOrderCheck()
@@ -487,3 +588,6 @@ nextOrderCheck()
 longOrderCheck()
 intOrderCheck()
 raiseOrderCheck()
+callOrderCheck()
+boolOrderCheck()
+comparisonChainOrderCheck()

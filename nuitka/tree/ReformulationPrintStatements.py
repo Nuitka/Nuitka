@@ -15,20 +15,39 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of print statements.
 
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
 
+"""
+
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
-from nuitka.nodes.PrintNodes import StatementPrint
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ImportNodes import ExpressionImportModuleHard
+from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
+)
 
 from .Helpers import (
+    buildNode,
     buildNodeList,
-    buildNode
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement
 )
+
 
 def buildPrintNode(provider, node, source_ref):
     # "print" statements, should only occur with Python2.
-
-    values = buildNodeList( provider, node.values, source_ref )
 
     def wrapValue(value):
         if value.isExpressionConstantRef():
@@ -39,21 +58,136 @@ def buildPrintNode(provider, node, source_ref):
                 source_ref = value.getSourceReference()
             )
 
+    if node.dest is not None:
+        temp_scope = provider.allocateTempScope( "print" )
 
+        tmp_target_variable = provider.allocateTempVariable(
+            temp_scope = temp_scope,
+            name       = "target"
+        )
+
+        target_default_statement = StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_target_variable.makeReference(provider),
+                source_ref = source_ref
+            ),
+            source       = ExpressionImportModuleHard(
+                module_name = "sys",
+                import_name = "stdout",
+                source_ref  = source_ref
+            ),
+            source_ref   = source_ref
+        )
+
+        statements = [
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_target_variable.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source       = buildNode(
+                    provider   = provider,
+                    node       = node.dest,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref
+            ),
+            StatementConditional(
+                condition  = ExpressionComparisonIs(
+                    left       = ExpressionTempVariableRef(
+                        variable   = tmp_target_variable.makeReference(
+                            provider
+                        ),
+                        source_ref = source_ref
+                    ),
+                    right      = ExpressionConstantRef(
+                        constant   = None,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_branch = makeStatementsSequenceFromStatement(
+                    statement = target_default_statement
+                ),
+                no_branch  = None,
+                source_ref = source_ref
+            )
+        ]
+
+    values = buildNodeList(
+        provider   = provider,
+        nodes      = node.values,
+        source_ref = source_ref
+    )
     values = [
-        wrapValue( value )
+        wrapValue(value)
         for value in
         values
     ]
 
-    return StatementPrint(
-        newline    = node.nl,
-        dest       = buildNode(
-            provider   = provider,
-            node       = node.dest,
-            source_ref = source_ref,
-            allow_none = True
-        ),
-        values     = values,
+    if node.dest is not None:
+        print_statements = [
+            StatementPrintValue(
+                dest       = ExpressionTempVariableRef(
+                    variable   = tmp_target_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
+                value      = value,
+                source_ref = source_ref
+            )
+            for value in values
+        ]
+
+        if node.nl:
+            print_statements.append(
+                StatementPrintNewline(
+                    dest       = ExpressionTempVariableRef(
+                        variable   = tmp_target_variable.makeReference(
+                            provider
+                        ),
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                )
+            )
+
+        statements.append(
+            makeTryFinallyStatement(
+                tried      = print_statements,
+                final      = StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_target_variable.makeReference(
+                            provider
+                        ),
+                        source_ref = source_ref
+                    ),
+                    tolerant     = False,
+                    source_ref   = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
+    else:
+        statements = [
+            StatementPrintValue(
+                dest       = None,
+                value      = value,
+                source_ref = source_ref
+            )
+            for value in values
+        ]
+
+        if node.nl:
+            statements.append(
+                StatementPrintNewline(
+                    dest       = None,
+                    source_ref = source_ref
+                )
+            )
+
+    return StatementsSequence(
+        statements = statements,
         source_ref = source_ref
     )

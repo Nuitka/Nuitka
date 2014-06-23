@@ -24,6 +24,7 @@ loop.
 
 from .Operations import VisitorNoopMixin, visitTree
 
+
 class VariableWriteExtractor(VisitorNoopMixin):
     """ Extract variables written to.
 
@@ -32,8 +33,7 @@ class VariableWriteExtractor(VisitorNoopMixin):
         self.written_to = set()
 
     def onEnterNode(self, node):
-        if node.isExpressionTargetVariableRef() or \
-           node.isExpressionAssignmentTempKeeper():
+        if node.isExpressionTargetVariableRef():
             key = node.getVariable(), node.getVariableVersion()
 
             self.written_to.add( key )

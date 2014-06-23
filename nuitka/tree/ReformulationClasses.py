@@ -15,77 +15,72 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Reformulation of classes
+""" Reformulation of class statements.
 
 Consult the developmer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
 
 """
 
+from nuitka import Utils
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeLookup,
+    ExpressionBuiltinHasattr
+)
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
+from nuitka.nodes.CallNodes import ExpressionCall, ExpressionCallNoKeywords
+from nuitka.nodes.ClassNodes import ExpressionSelectMetaclass
+from nuitka.nodes.ComparisonNodes import ExpressionComparison
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditional,
+    StatementConditional
+)
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerOperationNodes import (
+    ExpressionDictOperationGet,
+    StatementDictOperationRemove
+)
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionBody,
+    ExpressionFunctionCall,
+    ExpressionFunctionCreation,
+    ExpressionFunctionRef
+)
+from nuitka.nodes.GlobalsLocalsNodes import (
+    ExpressionBuiltinLocals,
+    StatementSetLocals
+)
+from nuitka.nodes.ParameterSpecs import ParameterSpec
+from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
-from nuitka.nodes.ComparisonNodes import ExpressionComparison
-
-from nuitka.nodes.CallNodes import (
-    ExpressionCallNoKeywords,
-    ExpressionCall
-)
-from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
-from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
-    ExpressionBuiltinHasattr
-)
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCreation,
-    ExpressionFunctionBody,
-    ExpressionFunctionCall,
-    ExpressionFunctionRef
-)
-from nuitka.nodes.ClassNodes import ExpressionSelectMetaclass
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.ContainerOperationNodes import (
-    StatementDictOperationRemove,
-    ExpressionDictOperationGet
-)
-from nuitka.nodes.StatementNodes import StatementsSequence
-
-from nuitka.nodes.ConditionalNodes import (
-    ExpressionConditional,
-    StatementConditional
-)
-from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable
-)
-
-from nuitka.nodes.GlobalsLocalsNodes import (
-    ExpressionBuiltinLocals,
-    StatementSetLocals
-)
-
-from nuitka.nodes.ParameterSpecs import ParameterSpec
 
 from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeSequenceCreationOrConstant,
-    makeDictCreationOrConstant,
-    makeStatementsSequence,
+    buildNode,
+    buildNodeList,
     buildStatementsNode,
     extractDocFromBody,
-    buildNodeList,
-    buildNode,
-    getKind
+    getKind,
+    makeDictCreationOrConstant,
+    makeSequenceCreationOrConstant,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
+    popIndicatorVariable,
+    pushIndicatorVariable
 )
-
-from nuitka import Utils
 
 # TODO: Once we start to modify these, we should make sure, the copy is not
 # shared.
@@ -160,7 +155,7 @@ def _buildClassNode3(provider, node, source_ref):
     statements = [
         StatementSetLocals(
             new_locals = ExpressionTempVariableRef(
-                variable   = tmp_prepared.makeReference( provider ),
+                variable   = tmp_prepared.makeReference(provider),
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -175,7 +170,7 @@ def _buildClassNode3(provider, node, source_ref):
                 source_ref    = source_ref,
                 user_provided = True
             ),
-            source_ref   = source_ref.atInternal()
+            source_ref   = source_ref
         )
     ]
 
@@ -214,7 +209,7 @@ def _buildClassNode3(provider, node, source_ref):
             )
         )
 
-    if Utils.python_version >= 340:
+    if Utils.python_version >= 340 and False: # TODO: Temporarily reverted:
         tmp_class = class_creation_function.allocateTempVariable(
             temp_scope = None,
             name       = "__class__"
@@ -317,7 +312,9 @@ def _buildClassNode3(provider, node, source_ref):
         decorated_body = ExpressionCallNoKeywords(
             called     = decorator,
             args       = ExpressionMakeTuple(
-                elements   = ( decorated_body, ),
+                elements   = (
+                    decorated_body,
+                ),
                 source_ref = source_ref
             ),
             source_ref = decorator.getSourceReference()
@@ -354,7 +351,7 @@ def _buildClassNode3(provider, node, source_ref):
                     node.keywords
                 ],
                 values = [
-                    buildNode( provider, keyword.value, source_ref )
+                    buildNode(provider, keyword.value, source_ref)
                     for keyword in
                     node.keywords
                 ],
@@ -401,7 +398,7 @@ def _buildClassNode3(provider, node, source_ref):
                     ),
                     no_expression  = ExpressionConditional(
                         condition      = ExpressionTempVariableRef(
-                            variable   = tmp_bases.makeReference( provider ),
+                            variable   = tmp_bases.makeReference(provider),
                             source_ref = source_ref
                         ),
                         no_expression  = ExpressionBuiltinRef(
@@ -430,7 +427,7 @@ def _buildClassNode3(provider, node, source_ref):
                     source_ref     = source_ref
                 ),
                 bases     = ExpressionTempVariableRef(
-                    variable   = tmp_bases.makeReference( provider ),
+                    variable   = tmp_bases.makeReference(provider),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -546,12 +543,15 @@ def _buildClassNode3(provider, node, source_ref):
             source     = decorated_body,
             source_ref = source_ref
         ),
+    )
+
+    final = (
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_bases.makeReference( provider ),
+                variable   = tmp_bases.makeReference(provider),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
             source_ref = source_ref
         ),
         StatementDelVariable(
@@ -559,7 +559,7 @@ def _buildClassNode3(provider, node, source_ref):
                 variable   = tmp_class_decl_dict.makeReference(provider),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
             source_ref = source_ref
         ),
         StatementDelVariable(
@@ -567,24 +567,24 @@ def _buildClassNode3(provider, node, source_ref):
                 variable   = tmp_metaclass.makeReference(provider),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
             source_ref = source_ref
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_prepared.makeReference( provider ),
+                variable   = tmp_prepared.makeReference(provider),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
             source_ref = source_ref
         )
     )
 
-    return StatementsSequence(
-        statements = statements,
+    return makeTryFinallyStatement(
+        tried      = statements,
+        final      = final,
         source_ref = source_ref
     )
-
 
 
 def _buildClassNode2(provider, node, source_ref):
@@ -788,30 +788,6 @@ def _buildClassNode2(provider, node, source_ref):
             ),
             source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_bases.makeReference( provider ),
-                source_ref = source_ref
-            ),
-            tolerant   = False,
-            source_ref = source_ref
-        ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_class_dict.makeReference(provider),
-                source_ref = source_ref
-            ),
-            tolerant   = False,
-            source_ref = source_ref
-        ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_metaclass.makeReference(provider),
-                source_ref = source_ref
-            ),
-            tolerant   = False,
-            source_ref = source_ref
-        )
     ]
 
     for decorator in buildNodeList(
@@ -858,21 +834,47 @@ def _buildClassNode2(provider, node, source_ref):
         )
     )
 
-    statements.append(
+    final = (
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_class.makeReference(provider),
                 source_ref = source_ref
             ),
-            tolerant   = False,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_bases.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_class_dict.makeReference(provider),
+                source_ref = source_ref
+            ),
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementDelVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_metaclass.makeReference(provider),
+                source_ref = source_ref
+            ),
+            tolerant   = True,
             source_ref = source_ref
         )
     )
 
-    return StatementsSequence(
-        statements = statements,
+    return makeTryFinallyStatement(
+        tried      = statements,
+        final      = final,
         source_ref = source_ref
     )
+
 
 def buildClassNode(provider, node, source_ref):
     assert getKind( node ) == "ClassDef"
@@ -880,7 +882,12 @@ def buildClassNode(provider, node, source_ref):
     # Python2 and Python3 are similar, but fundamentally different, so handle
     # them in dedicated code.
 
-    if Utils.python_version >= 300:
-        return _buildClassNode3( provider, node, source_ref )
-    else:
-        return _buildClassNode2( provider, node, source_ref )
+    pushIndicatorVariable(Ellipsis)
+
+    try:
+        if Utils.python_version >= 300:
+            return _buildClassNode3(provider, node, source_ref)
+        else:
+            return _buildClassNode2(provider, node, source_ref)
+    finally:
+        popIndicatorVariable()

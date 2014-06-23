@@ -22,12 +22,14 @@ the platforms.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 from logging import debug, info
-import marshal
 
-from nuitka import Utils, Options
+import marshal
+from nuitka import Options, Utils
+from nuitka.__past__ import raw_input, urlretrieve  # pylint: disable=W0622
 from nuitka.codegen.ConstantCodes import needsPickleInit
 
 
@@ -36,8 +38,6 @@ def getDependsExePath():
         depends_url = "http://dependencywalker.com/depends22_x86.zip"
     else:
         depends_url = "http://dependencywalker.com/depends22_x64.zip"
-
-    import urllib
 
     if "APPDATA" not in os.environ:
         sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
@@ -58,14 +58,14 @@ to analyse the dependencies of Python extension modules. Is it OK to download
 and put it in APPDATA (no installer needed, cached, one time question)."""
         )
 
-        reply = Utils.get_input("Proceed and download? [Yes]/No ")
+        reply = raw_input("Proceed and download? [Yes]/No ")
 
         if reply.lower() in ("no", "n"):
             sys.exit("Nuitka does not work in --standalone on Windows without.")
 
-        info("Downloading", depends_url)
+        info("Downloading '%s'" % depends_url)
 
-        Utils.urlretrieve(
+        urlretrieve(
             depends_url,
             nuitka_depends_zip
         )
@@ -84,11 +84,25 @@ and put it in APPDATA (no installer needed, cached, one time question)."""
     )
 
     if not Utils.isFile(depends_exe):
-        info("Extracting", depends_exe)
+        info("Extracting to '%s'" % depends_exe)
 
         import zipfile
-        depends_zip = zipfile.ZipFile(nuitka_depends_zip)
-        depends_zip.extractall(nuitka_depends_dir)
+
+        try:
+            depends_zip = zipfile.ZipFile(nuitka_depends_zip)
+            depends_zip.extractall(nuitka_depends_dir)
+        except Exception: # Catching anything zip throws, pylint:disable=W0703
+            info("Problem with the downloaded zip file, deleting it.")
+
+            Utils.deleteFile(depends_exe, must_exist = False)
+            Utils.deleteFile(nuitka_depends_zip, must_exist = True)
+
+            sys.exit(
+                "Error, need '%s' as extracted from '%s'." % (
+                    depends_exe,
+                    depends_url
+                )
+            )
 
     assert Utils.isFile(depends_exe)
 
@@ -141,17 +155,27 @@ def _detectedPrecompiledFile(filename, module_name, result, is_late):
 
 
 def _detectedSourceFile(filename, module_name, result, is_late):
+    if module_name in module_names:
+        return
+
+    if module_name == "collections.abc":
+        _detectedSourceFile(
+            filename    = filename,
+            module_name = "_collections_abc",
+            result      = result,
+            is_late     = is_late
+        )
+
     source_code = open(filename,"rb").read()
 
     if Utils.python_version >= 300:
         source_code = source_code.decode("utf-8")
         filename = filename.decode("utf-8")
 
-    if module_name in module_names:
-        return
 
     if module_name == "site":
-        source_code = "__file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<xxxfrozen>';%s" % (
+        source_code = """\
+__file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
             os.path.sep,
             os.path.basename(filename),
             source_code
@@ -178,9 +202,13 @@ def _detectedSourceFile(filename, module_name, result, is_late):
     module_names.add(module_name)
 
 
-def _detectedShlibFile(filename, module_name, result):
+def _detectedShlibFile(filename, module_name):
     if Utils.python_version >= 300:
         filename = filename.decode("utf-8")
+
+    # That is not a shared library, but looks like one.
+    if module_name == "__main__":
+        return
 
     parts = module_name.split(".")
     if len(parts) == 1:
@@ -277,8 +305,7 @@ def _detectImports(command, is_late):
                 elif not filename.endswith(b"<frozen>"):
                     _detectedShlibFile(
                         filename     = filename,
-                        module_name  = module_name,
-                        result       = result
+                        module_name  = module_name
                     )
             elif origin == b"dynamically":
                 # Shared library in early load, happens on RPM based systems and
@@ -286,9 +313,8 @@ def _detectImports(command, is_late):
                 filename = parts[1][len(b"dynamically loaded from "):]
 
                 _detectedShlibFile(
-                    filename     = filename,
-                    module_name  = module_name,
-                    result       = result
+                    filename    = filename,
+                    module_name = module_name
                 )
 
     return result
@@ -375,7 +401,7 @@ def detectEarlyImports():
                       '        pass\n'
     else:
         # TODO: Should recursively include all of encodings module.
-        import_code = "import encodings.utf_8;import encodings.ascii;"
+        import_code = "import encodings.utf_8;import encodings.ascii;import encodings.idna"
 
         if Utils.getOS() == "Windows":
             import_code += "import encodings.mbcs;import encodings.cp437;"
@@ -548,6 +574,37 @@ def detectBinaryDLLs(binary_filename, package_name):
             result.add(dll_filename)
 
         os.unlink(binary_filename + ".depends")
+    elif Utils.getOS() == "Darwin":
+        # print "Darwin", binary_filename
+        process = subprocess.Popen(
+            args   = [
+                "otool",
+                "-L",
+                binary_filename
+            ],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE
+        )
+
+        stdout, _stderr = process.communicate()
+        sysstops = [b"/usr/lib/", b"/System/Library/Frameworks/"]
+        for line in stdout.split(b"\n"):
+            if not line:
+                continue
+
+            if line.startswith(b"\t"):
+                filename = line.split(b" (")[0].strip()
+                stop = False
+                for w in sysstops:
+                    if filename.startswith(w):
+                        stop = True
+                        break
+                if not stop:
+                    if Utils.python_version >= 300:
+                        filename = filename.decode("utf-8")
+
+                    # print "adding", filename
+                    result.add(filename)
     else:
         # Support your platform above.
         assert False, Utils.getOS()
@@ -567,3 +624,116 @@ def detectUsedDLLs(standalone_entry_points):
         )
 
     return result
+
+
+def fixupBinaryDLLPaths(binary_filename, dll_map):
+    """ For MacOS, the binary needs to be told to use relative DLL paths """
+
+    command = [
+        "install_name_tool"
+    ]
+
+    for original_path, dist_path in dll_map:
+        command += [
+            "-change",
+            original_path,
+            "@executable_path/" + dist_path,
+        ]
+
+    command.append(binary_filename)
+
+    process = subprocess.Popen(
+        args   = command,
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE,
+    )
+    _stdout, stderr = process.communicate()
+
+    # Don't let errors here go unnoticed.
+    assert process.returncode == 0, stderr
+
+
+def removeSharedLibraryRPATH(filename):
+    process = subprocess.Popen(
+        ["readelf", "-d", filename],
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE,
+        shell  = False
+    )
+
+    stdout, _stderr = process.communicate()
+    retcode = process.poll()
+
+    assert retcode == 0, filename
+
+    for line in stdout.split(b"\n"):
+        if b"RPATH" in line:
+            if Options.isShowInclusion():
+                info("Removing RPATH from '%s'.", filename)
+
+            if not Utils.isExecutableCommand("chrpath"):
+                sys.exit(
+                    """\
+Error, needs chrpath on your system, due to RPATH settings in used shared
+libraries."""
+                )
+
+            process = subprocess.Popen(
+                ["chrpath", "-d", filename],
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+                shell  = False
+            )
+            process.communicate()
+            retcode = process.poll()
+
+            assert retcode == 0, filename
+
+
+def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
+    dll_map = []
+
+    for early_dll in detectUsedDLLs(standalone_entry_points):
+        target_path = Utils.joinpath(
+            dist_dir,
+            Utils.basename(early_dll)
+        )
+
+        # Check that if a DLL has the name name, if it's identical,
+        # happens at least for OSC and Fedora 20.
+        if Utils.isFile(target_path):
+            import filecmp
+
+            if filecmp.cmp(early_dll, target_path):
+                continue
+            else:
+                sys.exit("Error, conflicting DLLs.")
+
+        shutil.copy(
+            early_dll,
+            target_path
+        )
+
+        dll_map.append(
+            (early_dll, Utils.basename(early_dll))
+        )
+
+        if Options.isShowInclusion():
+            info("Included used shared library '%s'.", early_dll)
+
+    if Utils.getOS() == "Darwin":
+        # For MacOS, the binary needs to be changed to reflect the DLL
+        # location in the dist folder.
+        fixupBinaryDLLPaths(binary_filename, dll_map)
+
+    if Utils.getOS() == "Linux":
+        # For Linux, the rpath of libraries may be an issue.
+        for _original_path, early_dll in dll_map:
+            removeSharedLibraryRPATH(
+                Utils.joinpath(dist_dir, early_dll)
+            )
+
+        for standalone_entry_point in standalone_entry_points[1:]:
+            removeSharedLibraryRPATH(
+                standalone_entry_point[0]
+            )

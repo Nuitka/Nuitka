@@ -22,14 +22,14 @@ it is really necessary.
 
 """
 
-# pylint: disable=W0622
-from nuitka.__past__ import long, unicode
-# pylint: enable=W0622
 
-
+import hashlib
+import math
+import re
 from logging import warning
 
-import hashlib, re, math
+from nuitka.__past__ import long, unicode  # pylint: disable=W0622
+
 
 # False alarms about "hashlib.md5" due to its strange way of defining what is
 # exported, pylint won't understand it. pylint: disable=E1101
@@ -173,6 +173,8 @@ def _namifyString(string):
         return "space"
     elif string == ".":
         return "dot"
+    elif string == "\n":
+        return "newline"
     elif type( string ) is str and \
          _re_str_needs_no_digest.match( string ) and \
          "\n" not in string:
@@ -198,10 +200,11 @@ def _isAscii(string):
 
 def _digest(value):
     if str is not unicode:
-        return hashlib.md5( value ).hexdigest()
+        return hashlib.md5(value).hexdigest()
     else:
-        if type( value ) is bytes:
-            return hashlib.md5( value ).hexdigest()
+        if type(value) is bytes:
+            return hashlib.md5(value).hexdigest()
         else:
-            # Do the hash not in UTF-8 as that won't allow "surrogates".
-            return hashlib.md5( value.encode( "utf-16" ) ).hexdigest()
+            return hashlib.md5(
+                value.encode("utf-8", errors="backslashreplace")
+            ).hexdigest()

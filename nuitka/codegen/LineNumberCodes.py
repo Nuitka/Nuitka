@@ -26,27 +26,41 @@ source_ref_stack = [ None ]
 def resetLineNumber():
     source_ref_stack[-1] = None
 
+
 def pushLineNumberBranch():
     source_ref_stack.append( source_ref_stack[-1] )
+
 
 def popLineNumberBranch():
     del source_ref_stack[-1]
 
+
 def mergeLineNumberBranches():
     source_ref_stack[-1] = None
 
-def _getLineNumberCode(line_number):
-    return "frame_guard.setLineNumber( %d )" % line_number
 
-def getLineNumberCode(source_ref):
+def getSetLineNumberCodeRaw(line_number, emit, context):
+    emit(
+        "%s->f_lineno = %s;" % (
+            context.getFrameHandle(),
+            line_number
+        )
+    )
+
+def getSetLineNumberCode(source_ref, emit, context):
     if source_ref.shallSetCurrentLine():
         line_number = source_ref.getLineNumber()
 
         if line_number != source_ref_stack[-1]:
             source_ref_stack[-1] = line_number
 
-            return _getLineNumberCode( line_number )
-        else:
-            return ""
-    else:
-        return ""
+            getSetLineNumberCodeRaw(line_number, emit, context)
+
+
+def getLineNumberCode(to_name, emit, context):
+    emit(
+        "%s = %s->f_lineno;"  % (
+            to_name,
+            context.getFrameHandle()
+        )
+    )

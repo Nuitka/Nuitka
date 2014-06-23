@@ -23,9 +23,8 @@ and for freezing of bytecode.
 """
 
 class StreamData:
-    def __init__(self, identifier):
+    def __init__(self):
         self.stream_data = bytes()
-        self.identifier = identifier
 
     def getStreamDataCode(self, value, fixed_size = False):
         offset = self.stream_data.find(value)
@@ -34,13 +33,9 @@ class StreamData:
             self.stream_data += value
 
         if fixed_size:
-            return "&%s[ %d ]" % (
-                self.identifier,
-                offset
-            )
+            return "&constant_bin[ %d ]" % offset
         else:
-            return "&%s[ %d ], %d" % (
-                self.identifier,
+            return "&constant_bin[ %d ], %d" % (
                 offset,
                 len(value)
             )

@@ -72,8 +72,8 @@ for filename in sorted(os.listdir(".")):
     if filename == "PySideUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith(b"2.6") or \
-           python_version.startswith(b"3.2"):
+        if python_version.startswith("2.6") or \
+           python_version.startswith("3.2"):
             my_print("Skipping", filename, "not relevant.")
             continue
 
@@ -90,8 +90,8 @@ for filename in sorted(os.listdir(".")):
     if filename == "PyQtUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith(b"2.6") or \
-           python_version.startswith(b"3.2"):
+        if python_version.startswith("2.6") or \
+           python_version.startswith("3.2"):
             my_print("Skipping", filename, "not relevant.")
             continue
 
@@ -108,8 +108,8 @@ for filename in sorted(os.listdir(".")):
     if filename == "GtkUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
-        if python_version.startswith(b"2.6") or \
-           python_version.startswith(b"3.2"):
+        if python_version.startswith("2.6") or \
+           python_version.startswith("3.2"):
             my_print("Skipping", filename, "not relevant.")
             continue
 
@@ -173,6 +173,9 @@ for filename in sorted(os.listdir(".")):
             if loaded_filename.startswith("/dev/"):
                 continue
 
+            if loaded_filename.startswith("/tmp/"):
+                continue
+
             if loaded_filename.startswith("/usr/lib/locale/"):
                 continue
 
@@ -202,14 +205,31 @@ for filename in sorted(os.listdir(".")):
                loaded_filename.startswith("/lib64/libpthread."):
                 continue
 
+            if loaded_filename.startswith("/lib/libgcc_s.") or \
+               loaded_filename.startswith("/lib64/libgcc_s."):
+                continue
+
             # Loaded by C library potentially for DNS lookups.
             if os.path.basename(loaded_filename).startswith("libnss_") or \
                os.path.basename(loaded_filename).startswith("libnsl"):
                 continue
 
+            # Loaded by dtruss on MacOS X.
+            if loaded_filename.startswith("/usr/lib/dtrace/"):
+                continue
+
+            # Loaded by cowbuilder and pbuilder on Debian
+            if os.path.basename(loaded_filename) == ".ilist":
+                continue
+            if "cowdancer" in loaded_filename:
+                continue
+            if "eatmydata" in loaded_filename:
+                continue
+
             if loaded_filename.startswith("/home/") or \
                loaded_filename.startswith("/data/") or \
-               loaded_filename in ("/home", "/data"):
+               loaded_filename.startswith("/root/") or \
+               loaded_filename in ("/home", "/data", "/root"):
                 continue
 
             if os.path.basename(loaded_filename) == "gconv-modules.cache":
@@ -239,6 +259,12 @@ for filename in sorted(os.listdir(".")):
                   "/dist-packages/gobject":
                 continue
 
+            if loaded_filename == "/usr/bin/python3.2mu":
+                continue
+
+            # Accessing SE-Linux is OK.
+            if loaded_filename in ("/sys/fs/selinux", "/selinux"):
+                continue
 
             loaded_basename = os.path.basename(loaded_filename).upper()
             # Windows baseline DLLs

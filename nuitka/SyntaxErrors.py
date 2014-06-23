@@ -22,8 +22,8 @@ raise it for the given source code reference.
 """
 
 def formatOutput(e):
-    if len( e.args ) > 1:
-        reason, ( filename, lineno, colno, message ) = e.args
+    if len(e.args) > 1:
+        reason, (filename, lineno, colno, message) = e.args
 
         if message is None and colno is not None:
             colno = None
@@ -36,7 +36,7 @@ def formatOutput(e):
         message = None
 
     if colno is not None:
-        colno = colno - len( message ) + len( message.lstrip() )
+        colno = colno - len(message) + len(message.lstrip())
 
         return """\
   File "%s", line %d
@@ -80,7 +80,6 @@ def formatOutput(e):
 
 def raiseSyntaxError(reason, source_ref, col_offset = None, display_file = True,
                      display_line = True, source_line = None):
-
     # TODO: This could could "linecache" module maybe.
     def readSource():
         source = open(source_ref.getFilename(), 'rU').readlines()

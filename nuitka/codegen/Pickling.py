@@ -20,11 +20,11 @@
 It should be simple, but it is not yet. Not all the pickle modules are well behaved.
 """
 
-from nuitka import Constants, Utils
+import pickletools
+from logging import warning
 
-# pylint: disable=W0622
-from ..__past__ import unicode
-# pylint: enable=W0622
+from nuitka import Constants, Utils
+from nuitka.__past__ import unicode  # pylint: disable=W0622
 
 # Work around for CPython 3.x removal of cpickle.
 try:
@@ -33,9 +33,7 @@ except ImportError:
     # False alarm, no double import at all, pylint: disable=W0404
     import pickle as cpickle
 
-import pickletools
 
-from logging import warning
 
 if Utils.python_version >= 300:
     # Python3: The protocol 3 adds support for bytes type.

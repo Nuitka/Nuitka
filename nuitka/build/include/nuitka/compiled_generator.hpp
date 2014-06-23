@@ -88,6 +88,99 @@ static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
     return ((Nuitka_GeneratorObject *)object)->m_name;
 }
 
+
+static inline PyObject *YIELD( Nuitka_GeneratorObject *generator, PyObject *value )
+{
+    assertObject( value );
+
+    generator->m_yielded = value;
+
+    // Return to the calling context.
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+    // Check for thrown exception.
+    if (unlikely( generator->m_exception_type ))
+    {
+        PyErr_Restore(
+            generator->m_exception_type,
+            generator->m_exception_value,
+            (PyObject *)generator->m_exception_tb
+        );
+
+        generator->m_exception_type = NULL;
+        generator->m_exception_value = NULL;
+        generator->m_exception_tb = NULL;
+
+        return NULL;
+    }
+
+    assertObject( generator->m_yielded );
+    return generator->m_yielded;
+}
+
+#if PYTHON_VERSION >= 300
+static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
+{
+    assertObject( value );
+
+    generator->m_yielded = value;
+
+    // When yielding from an exception handler in Python3, the exception
+    // preserved to the frame is restore, while the current one is put there.
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    PyObject *saved_exception_type = thread_state->exc_type;
+    PyObject *saved_exception_value = thread_state->exc_value;
+    PyObject *saved_exception_traceback = thread_state->exc_traceback;
+
+    thread_state->exc_type = thread_state->frame->f_exc_type;
+    thread_state->exc_value = thread_state->frame->f_exc_value;
+    thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
+
+    thread_state->frame->f_exc_type = saved_exception_type;
+    thread_state->frame->f_exc_value = saved_exception_value;
+    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+
+    // Return to the calling context.
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+    // When returning from yield, the exception of the frame is preserved, and
+    // the one that enters should be there.
+    thread_state = PyThreadState_GET();
+
+    saved_exception_type = thread_state->exc_type;
+    saved_exception_value = thread_state->exc_value;
+    saved_exception_traceback = thread_state->exc_traceback;
+
+    thread_state->exc_type = thread_state->frame->f_exc_type;
+    thread_state->exc_value = thread_state->frame->f_exc_value;
+    thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
+
+    thread_state->frame->f_exc_type = saved_exception_type;
+    thread_state->frame->f_exc_value = saved_exception_value;
+    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+
+    // Check for thrown exception.
+    if (unlikely( generator->m_exception_type ))
+    {
+        PyErr_Restore(
+            generator->m_exception_type,
+            generator->m_exception_value,
+            (PyObject *)generator->m_exception_tb
+        );
+
+        generator->m_exception_type = NULL;
+        generator->m_exception_value = NULL;
+        generator->m_exception_tb = NULL;
+
+        return NULL;
+    }
+
+    return generator->m_yielded;
+}
+#endif
+
+#if PYTHON_VERSION >= 330
 static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
 {
     assertObject( generator->m_exception_type );
@@ -105,86 +198,8 @@ static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
     generator->m_exception_type = NULL;
     generator->m_exception_value = NULL;
     generator->m_exception_tb = NULL;
-
-    throw PythonException();
 }
 
-static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
-{
-    if ( generator->m_exception_type )
-    {
-        RAISE_GENERATOR_EXCEPTION( generator );
-    }
-}
-
-static inline PyObject *YIELD( Nuitka_GeneratorObject *generator, PyObject *value )
-{
-    assertObject( value );
-
-    generator->m_yielded = value;
-
-    // Return to the calling context.
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-
-    CHECK_EXCEPTION( generator );
-
-    return generator->m_yielded;
-}
-
-static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
-{
-    assertObject( value );
-
-    generator->m_yielded = value;
-
-#if PYTHON_VERSION >= 300
-    // When yielding from an exception handler in Python3, the exception
-    // preserved to the frame is restore, while the current one is put there.
-    PyThreadState *thread_state = PyThreadState_GET();
-
-    PyObject *saved_exception_type = thread_state->exc_type;
-    PyObject *saved_exception_value = thread_state->exc_value;
-    PyObject *saved_exception_traceback = thread_state->exc_traceback;
-
-    thread_state->exc_type = thread_state->frame->f_exc_type;
-    thread_state->exc_value = thread_state->frame->f_exc_value;
-    thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
-
-    thread_state->frame->f_exc_type = saved_exception_type;
-    thread_state->frame->f_exc_value = saved_exception_value;
-    thread_state->frame->f_exc_traceback = saved_exception_traceback;
-
-#endif
-
-    // Return to the calling context.
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-
-    // When yielding, the exception preserved to the frame is restore, while the
-    // current one is put there.
-#if PYTHON_VERSION >= 300
-    // When returning from yield, the exception of the frame is preserved, and
-    // the one that enters should be there.
-    thread_state = PyThreadState_GET();
-
-    saved_exception_type = thread_state->exc_type;
-    saved_exception_value = thread_state->exc_value;
-    saved_exception_traceback = thread_state->exc_traceback;
-
-    thread_state->exc_type = thread_state->frame->f_exc_type;
-    thread_state->exc_value = thread_state->frame->f_exc_value;
-    thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
-
-    thread_state->frame->f_exc_type = saved_exception_type;
-    thread_state->frame->f_exc_value = saved_exception_value;
-    thread_state->frame->f_exc_traceback = saved_exception_traceback;
-#endif
-
-    CHECK_EXCEPTION( generator );
-
-    return generator->m_yielded;
-}
-
-#if PYTHON_VERSION >= 330
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
 
@@ -218,13 +233,14 @@ static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject 
 
                     if (unlikely( close_value == NULL ))
                     {
-                        throw PythonException();
+                        return NULL;
                     }
 
                     Py_DECREF( close_value );
                 }
 
                 RAISE_GENERATOR_EXCEPTION( generator );
+                return NULL;
             }
 
             PyObject *throw_method = PyObject_GetAttrString( value, (char *)"throw" );
@@ -238,11 +254,10 @@ static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject 
                 {
                     if ( PyErr_ExceptionMatches( PyExc_StopIteration ) )
                     {
-
                         return ERROR_GET_STOP_ITERATION_VALUE();
                     }
 
-                    throw PythonException();
+                    return NULL;
                 }
 
 
@@ -255,10 +270,11 @@ static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject 
                 PyErr_Clear();
 
                 RAISE_GENERATOR_EXCEPTION( generator );
+                return NULL;
             }
             else
             {
-                throw PythonException();
+                return NULL;
             }
 
         }
@@ -278,7 +294,10 @@ static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject 
         // Check the sub-generator result
         if ( retval == NULL )
         {
-            assert( ERROR_OCCURED() );
+            if ( !ERROR_OCCURED() )
+            {
+                return INCREASE_REFCOUNT( Py_None ) ;
+            }
 
             // The sub-generator has given an exception. In case of
             // StopIteration, we need to check the value, as it is going to be
@@ -289,7 +308,7 @@ static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject 
                 return ERROR_GET_STOP_ITERATION_VALUE();
             }
 
-            throw PythonException();
+            return NULL;
         }
         else
         {

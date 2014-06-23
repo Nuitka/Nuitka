@@ -15,37 +15,42 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Dict related templates.
 
-"""
 
-template_make_dict_function = """\
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_DICT%(pair_count)d( %(argument_decl)s )
-{
-    PyObject *result = _PyDict_NewPresized( %(pair_count)d );
+from .ErrorCodes import getErrorExitBoolCode
 
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
 
-%(add_elements_code)s
+def getMaxIndexCode(to_name, emit):
+    emit(
+        "%s = PY_SSIZE_T_MAX;" % to_name
+    )
 
-    assert( Py_REFCNT( result ) == 1 );
 
-    return result;
-}
-"""
+def getMinIndexCode(to_name, emit):
+    emit(
+        "%s = 0;" % to_name
+    )
 
-template_add_dict_element_code = """\
-    assertObject( %(dict_key)s );
-    assertObject( %(dict_value)s );
 
-    {
-        int status = PyDict_SetItem( result, %(dict_key)s, %(dict_value)s );
+def getIndexCode(to_name, value_name, emit, context):
+    emit(
+        "%s = CONVERT_TO_INDEX( %s );" % (
+            to_name,
+            value_name,
+        )
+    )
 
-        if (unlikely( status == -1 ))
-        {
-            throw PythonException();
-        }
-    }"""
+    getErrorExitBoolCode(
+        condition = "%s == -1 && ERROR_OCCURED()" % to_name,
+        emit      = emit,
+        context   = context
+    )
+
+
+def getIndexValueCode(to_name, value, emit):
+    emit(
+        "%s = %d;" % (
+            to_name,
+            value
+        )
+    )

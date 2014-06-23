@@ -15,37 +15,42 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of loop statements.
 
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
-)
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
 
-from nuitka.nodes.BuiltinIteratorNodes import (
-    ExpressionBuiltinNext1,
-    ExpressionBuiltinIter1
-)
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.LoopNodes import (
-    StatementBreakLoop,
-    StatementLoop
-)
-from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.TryNodes import StatementTryFinally
+"""
+
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
 )
-
-from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeStatementsSequence,
-    buildStatementsNode,
-    buildNode
+from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionBuiltinIter1,
+    ExpressionBuiltinNext1
+)
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef
 )
 
+from .Helpers import (
+    buildNode,
+    buildStatementsNode,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
+    popBuildContext,
+    popIndicatorVariable,
+    pushBuildContext,
+    pushIndicatorVariable
+)
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
@@ -56,9 +61,9 @@ def buildForLoopNode(provider, node, source_ref):
     # taken if a for loop exits normally, i.e. because of iterator
     # exhaustion. We do this by introducing an indicator variable.
 
-    source = buildNode( provider, node.iter, source_ref )
+    source = buildNode(provider, node.iter, source_ref)
 
-    temp_scope = provider.allocateTempScope( "for_loop" )
+    temp_scope = provider.allocateTempScope("for_loop")
 
     tmp_iter_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
@@ -77,7 +82,7 @@ def buildForLoopNode(provider, node, source_ref):
     )
 
     if else_block is not None:
-        tmp_break_indicator_variable = provider.allocateTempVariable(
+        tmp_break_indicator = provider.allocateTempVariable(
             temp_scope = temp_scope,
             name       = "break_indicator"
         )
@@ -85,7 +90,7 @@ def buildForLoopNode(provider, node, source_ref):
         statements = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator_variable.makeReference(
+                    variable   = tmp_break_indicator.makeReference(
                         provider
                     ),
                     source_ref = source_ref
@@ -136,6 +141,7 @@ def buildForLoopNode(provider, node, source_ref):
             ),
             exception_name = "StopIteration",
             handler_body   = handler_body,
+            public_exc     = False,
             source_ref     = source_ref
         ),
         buildAssignmentStatements(
@@ -151,6 +157,8 @@ def buildForLoopNode(provider, node, source_ref):
         )
     )
 
+    pushBuildContext("loop_body")
+    pushIndicatorVariable(None)
     statements += (
         buildStatementsNode(
             provider   = provider,
@@ -158,6 +166,8 @@ def buildForLoopNode(provider, node, source_ref):
             source_ref = source_ref
         ),
     )
+    popIndicatorVariable()
+    popBuildContext()
 
     loop_body = makeStatementsSequence(
         statements = statements,
@@ -165,29 +175,10 @@ def buildForLoopNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    if else_block is not None:
-        statements = [
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator_variable.makeReference(
-                        provider
-                    ),
-                    source_ref = source_ref
-                ),
-                source       = ExpressionConstantRef(
-                    constant = False,
-                    source_ref = source_ref
-                ),
-                source_ref   = source_ref
-            )
-        ]
-    else:
-        statements = []
-
-    cleanup_statements = (
+    cleanup_statements = [
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_value_variable.makeReference( provider ),
+                variable   = tmp_value_variable.makeReference(provider),
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -195,13 +186,32 @@ def buildForLoopNode(provider, node, source_ref):
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable.makeReference( provider ),
+                variable   = tmp_iter_variable.makeReference(provider),
                 source_ref = source_ref
             ),
-            tolerant     = False,
+            tolerant     = True,
             source_ref   = source_ref.atInternal()
         )
-    )
+    ]
+
+    if else_block is not None:
+        statements = [
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_break_indicator.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = False,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref
+            )
+        ]
+    else:
+        statements = []
 
     statements += [
         # First create the iterator and store it.
@@ -218,12 +228,10 @@ def buildForLoopNode(provider, node, source_ref):
             ),
             source_ref   = source_ref
         ),
-        StatementTryFinally(
-            tried = makeStatementsSequenceFromStatement(
-                statement = StatementLoop(
-                    body       = loop_body,
-                    source_ref = source_ref
-                )
+        makeTryFinallyStatement(
+            tried = StatementLoop(
+                body       = loop_body,
+                source_ref = source_ref
             ),
             final = StatementsSequence(
                 statements = cleanup_statements,
@@ -238,7 +246,9 @@ def buildForLoopNode(provider, node, source_ref):
             StatementConditional(
                 condition  = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
-                        variable   = tmp_break_indicator_variable.makeReference( provider ),
+                        variable   = tmp_break_indicator.makeReference(
+                            provider
+                        ),
                         source_ref = source_ref
                     ),
                     right      = ExpressionConstantRef(
@@ -253,10 +263,28 @@ def buildForLoopNode(provider, node, source_ref):
             )
         ]
 
+        statements = (
+            makeTryFinallyStatement(
+                tried = statements,
+                final = StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_break_indicator.makeReference(
+                            provider
+                        ),
+                        source_ref = source_ref
+                    ),
+                    tolerant     = False,
+                    source_ref   = source_ref.atInternal()
+                ),
+                source_ref = source_ref
+            ),
+        )
+
     return StatementsSequence(
         statements = statements,
         source_ref = source_ref
     )
+
 
 def buildWhileLoopNode(provider, node, source_ref):
     # The while loop is re-formulated according to developer manual. The
@@ -270,11 +298,10 @@ def buildWhileLoopNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
-
     if else_block is not None:
         temp_scope = provider.allocateTempScope( "while_loop" )
 
-        tmp_break_indicator_variable = provider.allocateTempVariable(
+        tmp_break_indicator = provider.allocateTempVariable(
             temp_scope = temp_scope,
             name       = "break_indicator"
         )
@@ -282,7 +309,7 @@ def buildWhileLoopNode(provider, node, source_ref):
         statements = (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator_variable.makeReference(
+                    variable   = tmp_break_indicator.makeReference(
                         provider
                     ),
                     source_ref = source_ref
@@ -304,12 +331,22 @@ def buildWhileLoopNode(provider, node, source_ref):
             ),
         )
 
+    pushBuildContext("loop_body")
+    pushIndicatorVariable(None)
+    loop_statements = buildStatementsNode(
+        provider   = provider,
+        nodes      = node.body,
+        source_ref = source_ref
+    )
+    popIndicatorVariable()
+    popBuildContext()
+
     # The loop body contains a conditional statement at the start that breaks
     # the loop if it fails.
     loop_body = makeStatementsSequence(
         statements = (
             StatementConditional(
-                condition = buildNode( provider, node.test, source_ref ),
+                condition = buildNode(provider, node.test, source_ref),
                 no_branch = StatementsSequence(
                     statements = statements,
                     source_ref = source_ref
@@ -317,11 +354,7 @@ def buildWhileLoopNode(provider, node, source_ref):
                 yes_branch = None,
                 source_ref = source_ref
             ),
-            buildStatementsNode(
-                provider   = provider,
-                nodes      = node.body,
-                source_ref = source_ref
-            )
+            loop_statements
         ),
         allow_none = True,
         source_ref = source_ref
@@ -338,7 +371,7 @@ def buildWhileLoopNode(provider, node, source_ref):
         statements = (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator_variable.makeReference(
+                    variable   = tmp_break_indicator.makeReference(
                         provider
                     ),
                     source_ref = source_ref
@@ -353,7 +386,7 @@ def buildWhileLoopNode(provider, node, source_ref):
             StatementConditional(
                 condition  = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
-                        variable   = tmp_break_indicator_variable.makeReference(
+                        variable   = tmp_break_indicator.makeReference(
                             provider
                         ),
                         source_ref = source_ref
@@ -368,6 +401,23 @@ def buildWhileLoopNode(provider, node, source_ref):
                 no_branch  = None,
                 source_ref = source_ref
             )
+        )
+
+        statements = (
+            makeTryFinallyStatement(
+                tried = statements,
+                final = StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_break_indicator.makeReference(
+                            provider
+                        ),
+                        source_ref = source_ref
+                    ),
+                    tolerant     = False,
+                    source_ref   = source_ref.atInternal()
+                ),
+                source_ref = source_ref
+            ),
         )
 
         return StatementsSequence(

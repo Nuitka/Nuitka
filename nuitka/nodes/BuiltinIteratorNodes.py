@@ -24,13 +24,13 @@ The length of things is an important optimization issue for these to be
 good.
 """
 
+from nuitka.optimizations import BuiltinOptimization
+
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase,
     StatementChildrenHavingBase
 )
-
-from nuitka.optimizations import BuiltinOptimization
 
 
 class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
@@ -42,7 +42,10 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
         return self.getValue().getIterationLength()
 
     def computeExpression(self, constraint_collection):
-        from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithNodeSideEffects
+        from .NodeMakingHelpers import (
+            makeConstantReplacementNode,
+            wrapExpressionWithNodeSideEffects
+        )
 
         new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.\
           computeExpression(
@@ -131,9 +134,15 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         pass
 
 
-
 class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_NEXT1"
+
+    def __init__(self, value, source_ref):
+        ExpressionBuiltinSingleArgBase.__init__(
+            self,
+            value      = value,
+            source_ref = source_ref
+        )
 
     def getDetails(self):
         return {
@@ -184,7 +193,9 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
 class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
-    named_children = ( "iterator", )
+    named_children = (
+        "iterator",
+    )
 
     def __init__(self, iterator, count, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -212,18 +223,21 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
         iterator = self.getIterator()
 
         if iterator.willRaiseException( BaseException ):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import \
+              makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = iterator,
                 node       = self
             )
 
-            return result, "new_raise", "Explicit raise already raises implicitely building exception type"
+            return result, "new_raise", """\
+Explicit raise already raises implicitely building exception type."""
 
         # Remove the check if it can be decided at compile time.
         if iterator.isKnownToBeIterableAtMax( 0 ):
-            return None, "new_statements", "Determined iteration end check to be always true."
+            return None, "new_statements", """\
+Determined iteration end check to be always true."""
 
         return self, None, None
 
@@ -231,7 +245,10 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
 class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
-    named_children = ( "callable", "sentinel", )
+    named_children = (
+        "callable",
+        "sentinel",
+    )
 
     # Need to accept 'callable' keyword argument, that is just the API of iter,
     # pylint: disable=W0622
@@ -250,7 +267,8 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     getSentinel = ExpressionChildrenHavingBase.childGetter( "sentinel" )
 
     def computeExpression(self, constraint_collection):
-        # TODO: The "callable" should be investigated here, pylint: disable=W0613
+        # TODO: The "callable" should be investigated here,
+        # pylint: disable=W0613
 
         return self, None, None
 
@@ -273,8 +291,8 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getIterator = ExpressionChildrenHavingBase.childGetter( "iterator" )
-    getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
+    getIterator = ExpressionChildrenHavingBase.childGetter("iterator")
+    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, constraint_collection):
         # TODO: The "iterator" should be investigated here, pylint: disable=W0613

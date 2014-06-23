@@ -25,6 +25,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 filename = sys.argv[1]
 args     = sys.argv[2:]
@@ -48,6 +49,7 @@ python_debug       = hasArg("python_debug")
 module_mode        = hasArg("module_mode")
 two_step_execution = hasArg("two_step_execution")
 binary_python_path = hasArg("binary_python_path")
+keep_python_path   = hasArg("keep_python_path")
 trace_command      = hasArg("trace_command")
 remove_output      = hasArg("remove_output")
 standalone_mode    = hasArg("standalone")
@@ -64,10 +66,12 @@ if "PYTHONHASHSEED" not in os.environ:
 if "PYTHON" not in os.environ:
     os.environ["PYTHON"] = sys.executable
 
-if python_debug and os.path.exists(os.path.join("/usr/bin/",
-                                   os.environ["PYTHON"] + "-dbg")):
-    os.environ["PYTHON"] += "-dbg"
+if python_debug:
+    if os.path.exists(os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")):
+        os.environ["PYTHON"] += "-dbg"
 
+if os.environ["PYTHON"].endswith("-dbg"):
+    python_debug = True
 
 print(
     """\
@@ -104,7 +108,7 @@ else:
     ]
 
 if no_site:
-    cpython_cmd.insert(1,"-S")
+    cpython_cmd.insert(1, "-S")
 
 if "NUITKA" in os.environ:
     nuitka_call = [os.environ["NUITKA"]]
@@ -123,18 +127,19 @@ if remove_output:
     extra_options += " --remove-output"
 
 if binary_python_path:
-    extra_options += " --keep-pythonpath"
-
     if os.name == "nt":
         python_path_sep = ";"
     else:
         python_path_sep = ":"
 
-    python_path = os.environ.get("PYTHONPATH","")
+    python_path = os.environ.get("PYTHONPATH", "")
     os.environ["PYTHONPATH"] = python_path_sep.join(
-        python_path.split(python_path_sep)+\
+        python_path.split(python_path_sep) + \
         [os.path.dirname(os.path.abspath(filename))]
     )
+
+if keep_python_path or binary_python_path:
+    extra_options += " --keep-pythonpath"
 
 if not two_step_execution:
     if module_mode:
@@ -148,7 +153,7 @@ if not two_step_execution:
           ["--execute", filename]
 
     if no_site:
-        nuitka_cmd.insert(len(nuitka_cmd)-1,"--python-flag=-S")
+        nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")
 
 else:
     if module_mode:
@@ -162,7 +167,7 @@ else:
           [filename]
 
     if no_site:
-        nuitka_cmd1.insert(len(nuitka_cmd1)-1,"--python-flag=-S")
+        nuitka_cmd1.insert(len(nuitka_cmd1) - 1, "--python-flag=-S")
 
 
 dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_options)
@@ -184,12 +189,15 @@ else:
     if filename.endswith(".py"):
         exe_filename = exe_filename[:-3]
 
+    exe_filename = exe_filename.replace(")", "").replace("(", "")
     exe_filename += ".exe"
 
     nuitka_cmd2 = [
         os.path.join(output_dir, exe_filename)
     ]
 
+if trace_command:
+    print("CPython command:", *cpython_cmd)
 
 process = subprocess.Popen(
     args   = cpython_cmd,
@@ -257,7 +265,7 @@ else:
         stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
     else:
         if trace_command:
-             print("Nuitka command 2:", nuitka_cmd2)
+            print("Nuitka command 2:", nuitka_cmd2)
 
         process = subprocess.Popen(
             args   = nuitka_cmd2,
@@ -276,12 +284,16 @@ if not silent_mode:
     if stderr_nuitka:
         print(stderr_nuitka)
 
-ran_re                       = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
+ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+")
 compiled_function_re         = re.compile(r"\<compiled function")
 compiled_frame_re            = re.compile(r"\<compiled_frame")
-compiled_genexpr_re          = re.compile(r"\<compiled generator object \<(.*?)\>")
-compiled_generator_re        = re.compile(r"\<compiled generator object (.*?) at")
+compiled_genexpr_re          = re.compile(
+    r"\<compiled generator object \<(.*?)\>"
+)
+compiled_generator_re        = re.compile(
+    r"\<compiled generator object (.*?) at"
+)
 unbound_method_re            = re.compile(r"bound compiled_method ")
 compiled_type_re             = re.compile(r"type 'compiled_")
 compiled_generator_object_re = re.compile(r"'compiled_generator' object")
@@ -312,6 +324,13 @@ def makeDiffable(output):
 
         if line.endswith("\r"):
             line = line[:-1]
+
+        if line.startswith("REFCOUNTS"):
+            first_value = line[line.find("[")+1:line.find(",")]
+            last_value = line[line.rfind(" ")+1:line.rfind("]")]
+            line = line.\
+              replace(first_value, "xxxxx").\
+              replace(last_value, "xxxxx")
 
         if line.startswith("[") and line.endswith("refs]"):
             continue
@@ -348,7 +367,7 @@ def makeDiffable(output):
             "must be a sequence, not function"
         )
 
-        line = ran_re.sub(r"\1x.xxxs", line)
+        line = ran_tests_re.sub(r"\1x.xxxs", line)
 
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
@@ -381,7 +400,7 @@ def compareOutput(kind, out_cpython, out_nuitka):
         makeDiffable(out_cpython),
         makeDiffable(out_nuitka),
         "{program} ({detail})".format(
-            program = os.environ[ "PYTHON" ],
+            program = os.environ["PYTHON"],
             detail  = kind
         ),
         "{program} ({detail})".format(
@@ -443,7 +462,17 @@ if remove_output:
                 # likely because --execute spawns a subprocess that might still
                 # be doing the cleanup work.
                 os.rename(nuitka_cmd2[0], nuitka_cmd2[0]+".away")
-                os.unlink(nuitka_cmd2[0]+".away")
+                for i in range(10):
+                    try:
+                        os.unlink(nuitka_cmd2[0]+".away")
+                    except OSError:
+                        time.sleep(2)
+                        continue
+                    else:
+                        break
+
+                assert not os.path.exists(nuitka_cmd2[0]+".away")
+
             else:
                 os.unlink(nuitka_cmd2[0])
     else:

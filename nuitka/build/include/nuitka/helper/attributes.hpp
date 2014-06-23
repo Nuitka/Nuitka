@@ -82,7 +82,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
             if (unlikely( result == NULL ))
             {
-                throw PythonException();
+                return NULL;
             }
 
             assertObject( result );
@@ -94,15 +94,24 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
             return INCREASE_REFCOUNT( result );
         }
     }
-
-    THROW_IF_ERROR_OCCURED_NOT( PyExc_AttributeError );
+    else if ( ERROR_OCCURED() )
+    {
+        if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+        {
+            PyErr_Clear();
+        }
+        else
+        {
+            return NULL;
+        }
+    }
 
     // Finally allow a __getattr__ to handle it or else it's an error.
     if (unlikely( source_instance->in_class->cl_getattr == NULL ))
     {
         PyErr_Format( PyExc_AttributeError, "%s instance has no attribute '%s'", PyString_AS_STRING( source_instance->in_class->cl_name ), PyString_AS_STRING( attr_name ) );
 
-        throw PythonException();
+        return NULL;
     }
     else
     {
@@ -124,9 +133,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
     if ( PyInstance_Check( source ) )
     {
         PyObject *result = LOOKUP_INSTANCE( source, attr_name );
-
-        assertObject( result );
-
         return result;
     }
     else
@@ -137,31 +143,17 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
         if ( type->tp_getattro != NULL )
         {
             PyObject *result = (*type->tp_getattro)( source, attr_name );
-
-            if (unlikely( result == NULL ))
-            {
-                throw PythonException();
-            }
-
-            assertObject( result );
             return result;
         }
         else if ( type->tp_getattr != NULL )
         {
             PyObject *result = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attr_name ) );
-
-            if (unlikely( result == NULL ))
-            {
-                throw PythonException();
-            }
-
-            assertObject( result );
             return result;
         }
         else
         {
             PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name, Nuitka_String_AsString_Unchecked( attr_name ) );
-            throw PythonException();
+            return NULL;
         }
     }
 }
@@ -188,7 +180,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *sour
 
             if (unlikely( result == NULL ))
             {
-                throw PythonException();
+                return NULL;
             }
 
             assertObject( result );
@@ -200,7 +192,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *sour
 
             if (unlikely( result == NULL ))
             {
-                throw PythonException();
+                return NULL;
             }
 
             assertObject( result );
@@ -209,7 +201,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *sour
         else
         {
             PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '__dict__'", type->tp_name );
-            throw PythonException();
+            return NULL;
         }
     }
 }
@@ -236,7 +228,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *sou
 
             if (unlikely( result == NULL ))
             {
-                throw PythonException();
+                return NULL;
             }
 
             assertObject( result );
@@ -248,7 +240,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *sou
 
             if (unlikely( result == NULL ))
             {
-                throw PythonException();
+                return NULL;
             }
 
             assertObject( result );
@@ -257,13 +249,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *sou
         else
         {
             PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '__class__'", type->tp_name );
-            throw PythonException();
+            return NULL;
         }
     }
 }
 
 
-NUITKA_MAY_BE_UNUSED static bool HAS_ATTRIBUTE( PyObject *source, PyObject *attr_name )
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_HASATTR( PyObject *source, PyObject *attr_name )
 {
     assertObject( source );
     assertObject( attr_name );
@@ -272,16 +264,16 @@ NUITKA_MAY_BE_UNUSED static bool HAS_ATTRIBUTE( PyObject *source, PyObject *attr
 
     if (unlikely( res == -1 ))
     {
-        throw PythonException();
+        return NULL;
     }
 
-    return res == 1;
+    return BOOL_FROM(res == 1);
 }
 
 #if PYTHON_VERSION < 300
 extern PyObject *CALL_FUNCTION_WITH_ARGS3( PyObject *called, PyObject *arg1, PyObject *arg2, PyObject *arg3 );
 
-static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value )
+static bool SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value )
 {
     assertObject( target );
     assertObject( attr_name );
@@ -305,7 +297,14 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
             target, attr_name, value
         );
 
+        if (unlikely( result == NULL ))
+        {
+            return false;
+        }
+
         Py_DECREF( result );
+
+        return true;
     }
     else
     {
@@ -317,13 +316,15 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 
         if (unlikely( status == -1 ))
         {
-            throw PythonException();
+            return false;
         }
+
+        return true;
     }
 }
 #endif
 
-NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *value, PyObject *target, PyObject *attr_name )
+NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *value )
 {
     assertObject( target );
     assertObject( attr_name );
@@ -332,7 +333,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *value, PyObject *targe
 #if PYTHON_VERSION < 300
     if ( PyInstance_Check( target ) )
     {
-        SET_INSTANCE( target, attr_name, value );
+        return SET_INSTANCE( target, attr_name, value );
     }
     else
 #endif
@@ -345,7 +346,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *value, PyObject *targe
 
             if (unlikely( status == -1 ))
             {
-                throw PythonException();
+                return false;
             }
         }
         else if ( type->tp_setattr != NULL )
@@ -354,7 +355,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *value, PyObject *targe
 
             if (unlikely( status == -1 ))
             {
-                throw PythonException();
+                return false;
             }
         }
         else if ( type->tp_getattr == NULL && type->tp_getattro == NULL )
@@ -366,7 +367,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *value, PyObject *targe
                 Nuitka_String_AsString_Unchecked( attr_name )
             );
 
-            throw PythonException();
+            return false;
         }
         else
         {
@@ -377,12 +378,14 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *value, PyObject *targe
                 Nuitka_String_AsString_Unchecked( attr_name )
             );
 
-            throw PythonException();
+            return false;
         }
     }
+
+    return true;
 }
 
-NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_DICT_SLOT( PyObject *value, PyObject *target )
+NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE_DICT_SLOT( PyObject *target, PyObject *value )
 {
     assertObject( target );
     assertObject( value );
@@ -395,7 +398,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_DICT_SLOT( PyObject *value, PyObj
         if (unlikely( !PyDict_Check( value ) ))
         {
             PyErr_SetString( PyExc_TypeError, "__dict__ must be set to a dictionary" );
-            throw PythonException();
+            return false;
         }
 
         PyObject *old = target_instance->in_dict;
@@ -413,7 +416,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_DICT_SLOT( PyObject *value, PyObj
 
             if (unlikely( status == -1 ))
             {
-                throw PythonException();
+                return false;
             }
         }
         else if ( type->tp_setattr != NULL )
@@ -422,7 +425,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_DICT_SLOT( PyObject *value, PyObj
 
             if (unlikely( status == -1 ))
             {
-                throw PythonException();
+                return false;
             }
         }
         else if ( type->tp_getattr == NULL && type->tp_getattro == NULL )
@@ -433,7 +436,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_DICT_SLOT( PyObject *value, PyObj
                 type->tp_name
             );
 
-            throw PythonException();
+            return false;
         }
         else
         {
@@ -443,12 +446,14 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_DICT_SLOT( PyObject *value, PyObj
                 type->tp_name
             );
 
-            throw PythonException();
+            return false;
         }
     }
+
+    return true;
 }
 
-NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_CLASS_SLOT( PyObject *value, PyObject *target )
+NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE_CLASS_SLOT( PyObject *target, PyObject *value )
 {
     assertObject( target );
     assertObject( value );
@@ -461,7 +466,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_CLASS_SLOT( PyObject *value, PyOb
         if (unlikely( !PyClass_Check( value ) ))
         {
             PyErr_SetString( PyExc_TypeError, "__class__ must be set to a class" );
-            throw PythonException();
+            return false;
         }
 
         PyObject *old = (PyObject *)( target_instance->in_class );
@@ -479,7 +484,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_CLASS_SLOT( PyObject *value, PyOb
 
             if (unlikely( status == -1 ))
             {
-                throw PythonException();
+                return false;
             }
         }
         else if ( type->tp_setattr != NULL )
@@ -488,7 +493,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_CLASS_SLOT( PyObject *value, PyOb
 
             if (unlikely( status == -1 ))
             {
-                throw PythonException();
+                return false;
             }
         }
         else if ( type->tp_getattr == NULL && type->tp_getattro == NULL )
@@ -499,7 +504,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_CLASS_SLOT( PyObject *value, PyOb
                 type->tp_name
             );
 
-            throw PythonException();
+            return false;
         }
         else
         {
@@ -509,23 +514,11 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE_CLASS_SLOT( PyObject *value, PyOb
                 type->tp_name
             );
 
-            throw PythonException();
+            return false;
         }
     }
-}
 
-
-NUITKA_MAY_BE_UNUSED static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
-{
-    assertObject( target );
-    assertObject( attr_name );
-
-    int status = PyObject_DelAttr( target, attr_name );
-
-    if (unlikely( status == -1 ))
-    {
-        throw PythonException();
-    }
+    return true;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject *attr_name )
@@ -537,8 +530,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
     }
 #endif
 
-    // TODO: There is heavy optimization in CPython to avoid it. Potentially that's worth
-    // it to imitate that.
+    // TODO: There is heavy optimization in CPython to avoid it. Potentially
+    // that's worth it to imitate that.
 
     PyObject *result = _PyType_Lookup( Py_TYPE( source ), attr_name );
 
@@ -556,15 +549,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
 
             if (unlikely( func_result == NULL ))
             {
-                throw PythonException();
+                return NULL;
             }
 
+            assertObject( func_result );
             return func_result;
         }
     }
 
     PyErr_SetObject( PyExc_AttributeError, attr_name );
-    throw PythonException();
+    return NULL;
 }
 
 // Necessary to abstract the with statement lookup difference between

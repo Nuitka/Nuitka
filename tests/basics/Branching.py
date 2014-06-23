@@ -149,17 +149,17 @@ def dontOptimizeSideEffects():
     print "Lets see, if conditional expression in known true values are correctly handled",
 
     def returnTrue():
-        print "'returnTrue' should be called",
+        print "function 'returnTrue' was called as expected",
 
         return True
 
     def returnFalse():
-        print "'returnFalse' should not be called",
+        print "function 'returnFalse' should not have beeen called",
         return False
 
     if ( returnTrue() or returnFalse(), ):
-        print "Taken branch as expected"
+        print "Taken branch as expected."
     else:
-        print "Bad2"
+        print "Bad branch taken."
 
 dontOptimizeSideEffects()

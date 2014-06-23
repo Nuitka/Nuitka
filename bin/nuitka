@@ -89,8 +89,6 @@ if intended_version is None:
 # If it's a different version, we find it by guessing it, otherwise we use the
 # one previously used.
 if current_version != intended_version:
-    assert intended_version in ("2.6", "2.7", "3.2", "3.3", "3.4")
-
     if Utils.getOS() == "Windows":
         python_binary = r"C:\Python%s\python.exe" % \
           intended_version.replace( ".", "" )
@@ -106,12 +104,13 @@ python_flags = Options.getPythonFlags()
 if sys.flags.no_site == 0 and "no_site" in python_flags:
     needs_reexec = True
 
-# The hash randomization totally destroys the created source code created,
+# The hash randomization totally changes the created source code created,
 # changing it every single time Nuitka is run. This kills any attempt at
 # caching it, and comparing generated source code. While the created binary
-# actually should use it, we don't want to. So lets disable it.
-if os.environ.get( "PYTHONHASHSEED", "-1" ) != "0":
-    os.environ[ "PYTHONHASHSEED" ] = "0"
+# actually may still use it, during compilation we don't want to. So lets
+# disable it.
+if os.environ.get("PYTHONHASHSEED", "-1") != "0":
+    os.environ["PYTHONHASHSEED"] = "0"
     needs_reexec = True
 
 # In case we need to re-execute.
@@ -132,6 +131,16 @@ if needs_reexec:
 
     Utils.callExec(args)
 
+# Inform the user about potential issues.
+if current_version not in Options.getSupportedPythonVersions():
+
+    # Do not disturb run of automatic tests, detected from the presence of
+    # that environment variable.
+    if "PYTHON" not in os.environ:
+        logging.warning(
+            "The version '%s' is not currently supported. Expect problems.",
+            current_version
+        )
 
 # Now the main program.
 from nuitka import MainControl  # isort:skip

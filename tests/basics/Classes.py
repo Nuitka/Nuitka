@@ -19,9 +19,9 @@ class SimpleClass:
     """ The class documentation."""
 
 
-    # TODO: Doesn't work with Python3, because we don't yet make our own dict visible.
-    # print locals()
-    print str( locals() ).replace( "'__locals__': {...}, ", "" )
+    # TODO: Doesn't work with Python3, because we don't yet make our own dict
+    # visible.  print locals()
+    print "Class locals, while building", str(locals()).replace("'__locals__': {...}, ", "")
 
     class_var = 1
 

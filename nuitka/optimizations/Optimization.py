@@ -31,7 +31,6 @@ from nuitka.Tracing import printLine
 from .ConstraintCollections import ConstraintCollectionModule
 from .Tags import TagSet
 
-
 _progress = Options.isShowProgress()
 
 def _attemptRecursion(module):
@@ -63,7 +62,7 @@ def signalChange(tags, source_ref, message):
     tag_set.onSignal(tags)
 
 
-def _optimizeModulePass(module, tag_set):
+def _optimizeModulePass(module):
     module.collection = ConstraintCollectionModule(
         signal_change = signalChange,
         module        = module
@@ -92,6 +91,7 @@ def _optimizeModulePass(module, tag_set):
 
             variable.setReadOnlyIndicator(new_value)
 
+
 def optimizePythonModule(module):
     if _progress:
         printLine(
@@ -100,6 +100,8 @@ def optimizePythonModule(module):
             )
         )
 
+    # The tag set is global, so it can react to changes without context.
+    # pylint: disable=W0603
     global tag_set
     tag_set = TagSet()
 
@@ -112,8 +114,7 @@ def optimizePythonModule(module):
         tag_set.clear()
 
         _optimizeModulePass(
-            module  = module,
-            tag_set = tag_set
+            module = module
         )
 
         if not tag_set:
@@ -138,6 +139,8 @@ def optimizeShlibModule(module):
     # Pick up parent package if any.
     _attemptRecursion(module)
 
+    # The tag set is global, so it can react to changes without context.
+    # pylint: disable=W0603
     global tag_set
     tag_set = TagSet()
 

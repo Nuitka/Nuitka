@@ -25,9 +25,9 @@ and then later active again, via another import, and in this case, we should
 not start anew.
 """
 
-from nuitka import Utils
-
 from logging import warning
+
+from nuitka import Utils
 
 imported_modules = {}
 imported_by_name = {}

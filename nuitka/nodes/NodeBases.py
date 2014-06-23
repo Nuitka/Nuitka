@@ -22,69 +22,61 @@ These classes provide the generic base classes available for nodes.
 """
 
 
+from nuitka import Options, Tracing, TreeXML, Variables
+from nuitka.__past__ import iterItems
 from nuitka.odict import OrderedDict
 from nuitka.oset import OrderedSet
-
-from nuitka import (
-    Variables,
-    Tracing,
-    TreeXML,
-    Options
-)
-
-from nuitka.__past__ import iterItems
 
 lxml = TreeXML.lxml
 
 class NodeCheckMetaClass(type):
     kinds = set()
 
-    def __new__(mcs, name, bases, dictionary):
-        assert len( bases ) == len( set( bases ) )
+    def __new__(cls, name, bases, dictionary):
+        assert len(bases) == len(set(bases))
 
-        # Uncomment this for debug view of class tags.
-        # print name, dictionary[ "tags" ]
+        return type.__new__(cls, name, bases, dictionary)
 
-        return type.__new__( mcs, name, bases, dictionary )
+    def __init__(cls, name, bases, dictionary):
+        if not name.endswith("Base"):
+            assert ("kind" in dictionary), name
+            kind = dictionary["kind"]
 
-    def __init__(mcs, name, bases, dictionary):
-        if not name.endswith( "Base" ):
-            assert ( "kind" in dictionary ), name
-            kind = dictionary[ "kind" ]
-
-            assert type( kind ) is str, name
+            assert type(kind) is str, name
             assert kind not in NodeCheckMetaClass.kinds, name
 
-            NodeCheckMetaClass.kinds.add( kind )
+            NodeCheckMetaClass.kinds.add(kind)
 
             def convert(value):
-                if value in ( "AND", "OR", "NOT" ):
+                if value in ("AND", "OR", "NOT"):
                     return value
                 else:
                     return value.title()
 
             kind_to_name_part = "".join(
-                [ convert( x ) for x in kind.split( "_" ) ]
+                [convert(x) for x in kind.split("_")]
             )
-            assert name.endswith( kind_to_name_part ), ( name, kind_to_name_part )
+            assert name.endswith(kind_to_name_part), \
+              (name, kind_to_name_part)
 
-            # Automatically add checker methods for everything to the common base class
+            # Automatically add checker methods for everything to the common
+            # base class
             checker_method = "is" + kind_to_name_part
 
             def checkKind(self):
                 return self.kind == kind
 
-            if not hasattr( NodeBase, checker_method ):
+            if not hasattr(NodeBase, checker_method):
                 setattr( NodeBase, checker_method, checkKind )
 
-        type.__init__( mcs, name, bases, dictionary )
+        type.__init__(cls, name, bases, dictionary)
 
 # For every node type, there is a test, and then some more members,
 # pylint: disable=R0904
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
 # used and doesn't require making a choice.
-NodeMetaClassBase = NodeCheckMetaClass( "NodeMetaClassBase", (object, ), {} )
+NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object, ), {})
 
 class NodeBase(NodeMetaClassBase):
     kind = None
@@ -93,6 +85,8 @@ class NodeBase(NodeMetaClassBase):
     value_friend_maker = None
 
     def __init__(self, source_ref):
+        # The base class has no __init__ worth calling, pylint: disable=W0231
+
         assert source_ref is not None
         assert source_ref.line is not None
 
@@ -106,11 +100,11 @@ class NodeBase(NodeMetaClassBase):
 
     def __repr__(self):
         # This is to avoid crashes, because of bugs in detail.
-        # pylint: disable=W0702
+        # pylint: disable=W0703
         try:
             detail = self.getDetail()
-        except:
-            detail = "detail raises exception"
+        except Exception as e:
+            detail = "detail raises exception %s" % e
 
         if not detail:
             return "<Node %s>" % self.getDescription()
@@ -284,6 +278,10 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionOperationBool2(self):
         return self.kind.startswith( "EXPRESSION_BOOL_" )
 
+    def isStatementReraiseException(self):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
     def isExpressionMakeSequence(self):
         # Virtual method, pylint: disable=R0201,W0613
         return False
@@ -358,6 +356,20 @@ class NodeBase(NodeMetaClassBase):
 
         return True
 
+    def mayReturn(self):
+        return "_RETURN" in self.kind
+
+    def mayBreak(self):
+        return False
+
+    def mayContinue(self):
+        return False
+
+    def needsFrame(self):
+        """ Unless we are tolder otherwise, this depends on exception raise. """
+
+        return self.mayRaiseException(BaseException)
+
     def willRaiseException(self, exception_type):
         """ Unless we are told otherwise, nothing may raise anything. """
         # Virtual method, pylint: disable=R0201,W0613
@@ -366,7 +378,8 @@ class NodeBase(NodeMetaClassBase):
 
 
     def needsLineNumber(self):
-        return self.mayRaiseException( BaseException )
+        return self.mayRaiseException(BaseException)
+
 
     def isIndexable(self):
         """ Unless we are told otherwise, it's not indexable. """
@@ -396,8 +409,6 @@ class NodeBase(NodeMetaClassBase):
 class CodeNodeBase(NodeBase):
     def __init__(self, name, code_prefix, source_ref):
         assert name is not None
-        assert " " not in name, name
-        assert "<" not in name, name
 
         NodeBase.__init__( self, source_ref = source_ref )
 
@@ -615,23 +626,21 @@ class ChildrenHavingMixin:
                             )
                         )
 
-                    break
+                    return key
             elif isinstance(value, NodeBase):
                 if old_node is value:
                     self.setChild(key, new_node)
 
-                    break
+                    return key
             else:
                 assert False, ( key, value, value.__class__ )
-        else:
-            raise AssertionError(
-                "Didn't find child",
-                old_node,
-                "in",
-                self
-            )
 
-        return key
+        raise AssertionError(
+            "Didn't find child",
+            old_node,
+            "in",
+            self
+        )
 
     def makeCloneAt(self, source_ref):
         values = {}
@@ -640,9 +649,9 @@ class ChildrenHavingMixin:
             assert type( value ) is not list, key
 
             if value is None:
-                values[ key ] = None
-            elif type( value ) is tuple:
-                values[ key ] = tuple(
+                values[key] = None
+            elif type(value) is tuple:
+                values[key] = tuple(
                     v.makeCloneAt(
                         source_ref = v.getSourceReference()
                     )
@@ -654,15 +663,17 @@ class ChildrenHavingMixin:
                     value.getSourceReference()
                 )
 
-        values.update( self.getDetails() )
+        values.update(
+            self.getDetails()
+        )
 
         try:
             return self.__class__(
                 source_ref = source_ref,
                 **values
             )
-        except TypeError as e:
-            print( "Problem cloning", self.__class__ )
+        except TypeError:
+            print("Problem cloning", self.__class__)
 
             raise
 
@@ -702,38 +713,20 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
         return None
 
-    def registerProvidedVariables(self, variables):
+    def registerProvidedVariables(self, *variables):
         for variable in variables:
-            self.registerProvidedVariable( variable )
+            self.registerProvidedVariable(variable)
 
     def registerProvidedVariable(self, variable):
         assert variable is not None
 
-        self.providing[ variable.getName() ] = variable
+        self.providing[variable.getName()] = variable
 
     def getProvidedVariables(self):
         return self.providing.values()
 
-    def allocateTempKeeperVariable(self):
-        name = "keeper_%d" % len( self.keeper_variables )
-
-        result = Variables.TempKeeperVariable(
-            owner         = self,
-            variable_name = name
-        )
-
-        self.keeper_variables.add( result )
-
-        return result
-
-    def getTempKeeperVariables(self):
-        return self.keeper_variables
-
-    def removeTempKeeperVariable(self, variable):
-        self.keeper_variables.discard( variable )
-
     def allocateTempScope(self, name, allow_closure = False):
-        self.temp_scopes[ name ] = self.temp_scopes.get( name, 0 ) + 1
+        self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1
 
         # TODO: Instead of using overly long code name, could just visit parents
         # and make sure to allocate the scope at the top.
@@ -741,15 +734,23 @@ class ClosureGiverNodeBase(CodeNodeBase):
             return "%s_%s_%d" % (
                 self.getCodeName(),
                 name,
-                self.temp_scopes[ name ]
+                self.temp_scopes[name]
             )
         else:
-            return "%s_%d" % ( name, self.temp_scopes[ name ] )
+            return "%s_%d" % (
+                name,
+                self.temp_scopes[name]
+            )
 
     def allocateTempVariable(self, temp_scope, name):
         if temp_scope is not None:
-            full_name = "%s__%s" % ( temp_scope, name )
+            full_name = "%s__%s" % (
+                temp_scope,
+                name
+            )
         else:
+            assert name != "result"
+
             full_name = name
 
         del name
@@ -761,7 +762,7 @@ class ClosureGiverNodeBase(CodeNodeBase):
             variable_name = full_name
         )
 
-        self.temp_variables[ full_name ] = result
+        self.temp_variables[full_name] = result
 
         return result
 
@@ -793,7 +794,7 @@ class ParameterHavingNodeBase(ClosureGiverNodeBase):
         self.parameters.setOwner( self )
 
         self.registerProvidedVariables(
-            variables = self.parameters.getVariables()
+            *self.parameters.getVariables()
         )
 
     def getParameters(self):
@@ -831,12 +832,16 @@ class ClosureTakerMixin:
                 variable_name = variable_name
             )
 
-        return self.addClosureVariable( result )
+        return self.addClosureVariable(result)
+
+    def addClosureVariables(self, *variables):
+        for variable in variables:
+            self.addClosureVariable(variable)
 
     def addClosureVariable(self, variable):
-        variable = variable.makeReference( self )
+        variable = variable.makeReference(self)
 
-        self.taken.add( variable )
+        self.taken.add(variable)
 
         return variable
 
@@ -1038,6 +1043,7 @@ class ExpressionMixin:
         pass
 
 
+
 class CompileTimeConstantExpressionMixin(ExpressionMixin):
     def __init__(self):
         self.computed_attribute = False
@@ -1222,7 +1228,7 @@ class ExpressionBuiltinNoArgBase(NodeBase, ExpressionMixin):
 
 
 class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
-                                    ExpressionSpecBasedComputationMixin ):
+                                     ExpressionSpecBasedComputationMixin):
     named_children = (
         "value",
     )
@@ -1236,7 +1242,9 @@ class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
             source_ref = source_ref
         )
 
-    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
+    getValue = ExpressionChildrenHavingBase.childGetter(
+        "value"
+    )
 
     def computeExpression(self, constraint_collection):
         value = self.getValue()

@@ -129,6 +129,12 @@ static int Nuitka_Frame_set_exc_value( PyFrameObject *frame, PyObject *exception
 
     return 0;
 }
+
+static PyObject *Nuitka_Frame_get_restricted( PyFrameObject *frame, void *closure )
+{
+    return INCREASE_REFCOUNT( Py_False );
+}
+
 #endif
 
 static PyObject *Nuitka_Frame_getlocals( PyFrameObject *frame, void *closure )
@@ -155,17 +161,12 @@ static int Nuitka_Frame_settrace( PyFrameObject *frame, PyObject* v, void *closu
     return -1;
 }
 
-static PyObject *Nuitka_Frame_get_restricted( PyFrameObject *frame, void *closure )
-{
-    return INCREASE_REFCOUNT( Py_False );
-}
-
 static PyGetSetDef Nuitka_Frame_getsetlist[] = {
     { (char *)"f_locals", (getter)Nuitka_Frame_getlocals, NULL, NULL },
     { (char *)"f_lineno", (getter)Nuitka_Frame_getlineno, NULL, NULL },
     { (char *)"f_trace", (getter)Nuitka_Frame_gettrace, (setter)Nuitka_Frame_settrace, NULL },
-    { (char *)"f_restricted", (getter)Nuitka_Frame_get_restricted, NULL, NULL },
 #if PYTHON_VERSION < 300
+    { (char *)"f_restricted", (getter)Nuitka_Frame_get_restricted, NULL, NULL },
     { (char *)"f_exc_traceback", (getter)Nuitka_Frame_get_exc_traceback, (setter)Nuitka_Frame_set_exc_traceback, NULL },
     { (char *)"f_exc_type", (getter)Nuitka_Frame_get_exc_type, (setter)Nuitka_Frame_set_exc_type, NULL },
     { (char *)"f_exc_value", (getter)Nuitka_Frame_get_exc_value, (setter)Nuitka_Frame_set_exc_value, NULL },
@@ -269,6 +270,26 @@ static void Nuitka_Frame_tp_clear( PyFrameObject *frame )
     }
 }
 
+#if PYTHON_VERSION >= 340
+static PyObject *Nuitka_Frame_clear( PyFrameObject *frame )
+{
+    if ( frame->f_executing )
+    {
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "cannot clear an executing frame"
+        );
+
+        return NULL;
+    }
+
+    Nuitka_Frame_tp_clear( frame );
+
+    Py_RETURN_NONE;
+}
+
+#endif
+
 static PyObject *Nuitka_Frame_sizeof( PyFrameObject *frame )
 {
     Py_ssize_t slots =
@@ -282,6 +303,9 @@ static PyObject *Nuitka_Frame_sizeof( PyFrameObject *frame )
 
 static PyMethodDef Nuitka_Frame_methods[] =
 {
+#if PYTHON_VERSION >= 340
+    { "clear",      (PyCFunction)Nuitka_Frame_clear,   METH_NOARGS, "F.clear(): clear most references held by the frame" },
+#endif
     { "__sizeof__", (PyCFunction)Nuitka_Frame_sizeof,  METH_NOARGS, "F.__sizeof__() -> size of F in memory, in bytes" },
     { NULL, NULL }
 };
@@ -353,7 +377,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     PyFrameObject *frame = &result->m_frame;
@@ -370,7 +394,10 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 
     frame->f_locals = NULL;
     frame->f_trace = INCREASE_REFCOUNT( Py_None );
-    frame->f_exc_type = frame->f_exc_value = frame->f_exc_traceback = NULL;
+
+    frame->f_exc_type = NULL;
+    frame->f_exc_value = NULL;
+    frame->f_exc_traceback = NULL;
 
     frame->f_stacktop = frame->f_valuestack;
     frame->f_builtins = INCREASE_REFCOUNT( (PyObject *)dict_builtin );
@@ -383,28 +410,39 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     {
         frame->f_locals = NULL;
     }
-    else if ( likely( (code->co_flags & CO_NEWLOCALS ) ) )
+    else if (likely( code->co_firstlineno != 0 ))
     {
         frame->f_locals = PyDict_New();
 
         if (unlikely( frame->f_locals == NULL ))
         {
             Py_DECREF( result );
-            throw PythonException();
+
+            return NULL;
         }
 
-        PyDict_SetItem( frame->f_locals, const_str_plain___module__, MODULE_NAME( module ) );
+        PyDict_SetItem(
+            frame->f_locals,
+            const_str_plain___module__,
+            MODULE_NAME( module )
+        );
     }
     else
     {
         frame->f_locals = INCREASE_REFCOUNT( globals );
     }
 
+#if PYTHON_VERSION < 340
     frame->f_tstate = PyThreadState_GET();
+#endif
 
     frame->f_lasti = -1;
     frame->f_lineno = code->co_firstlineno;
     frame->f_iblock = 0;
+
+#if PYTHON_VERSION >= 340
+    frame->f_gen = NULL;
+#endif
 
     Nuitka_GC_Track( result );
     return (PyFrameObject *)result;
@@ -458,13 +496,13 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
 
     if (unlikely( result == NULL ))
     {
-        throw PythonException();
+        return NULL;
     }
 
     return result;
 }
 
-static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
+static PyFrameObject *duplicateFrame( PyFrameObject *old_frame, PyObject *locals )
 {
     PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
 
@@ -483,22 +521,19 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
     // Copy attributes.
     new_frame->f_globals = INCREASE_REFCOUNT( old_frame->f_globals );
 
-    // TODO: Detach is called for module frames, where it is totally not necessary, as
-    // these cannot be reused. Remove the need for this code.
-    if ( old_frame->f_globals == old_frame->f_locals )
-    {
-        new_frame->f_locals = INCREASE_REFCOUNT( old_frame->f_globals );
-    }
-    else
-    {
-        new_frame->f_locals = NULL;
-    }
+    new_frame->f_locals = locals;
 
     new_frame->f_builtins = INCREASE_REFCOUNT( old_frame->f_builtins );
 
+#if 0
     new_frame->f_exc_type = INCREASE_REFCOUNT_X( old_frame->f_exc_type );
     new_frame->f_exc_value = INCREASE_REFCOUNT_X( old_frame->f_exc_value );
     new_frame->f_exc_traceback = INCREASE_REFCOUNT_X( old_frame->f_exc_traceback );
+#else
+    new_frame->f_exc_type = NULL;
+    new_frame->f_exc_value = NULL;
+    new_frame->f_exc_traceback = NULL;
+#endif
 
     assert( old_frame->f_valuestack == old_frame->f_localsplus );
     new_frame->f_valuestack = new_frame->f_localsplus;
@@ -506,28 +541,32 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
     assert( old_frame->f_stacktop == old_frame->f_valuestack );
     new_frame->f_stacktop = new_frame->f_valuestack;
 
+#if PYTHON_VERSION < 340
     new_frame->f_tstate = old_frame->f_tstate;
+#endif
+
     new_frame->f_lasti = -1;
     new_frame->f_lineno = old_frame->f_lineno;
 
     assert( old_frame->f_iblock == 0 );
     new_frame->f_iblock = 0;
 
+#if PYTHON_VERSION >= 340
+    new_frame->f_gen = NULL;
+#endif
+
     Nuitka_GC_Track( new_frame );
 
     return new_frame;
 }
 
-PyFrameObject *detachCurrentFrame()
+void detachFrame( PyTracebackObject *traceback, PyObject *locals )
 {
-    PyFrameObject *old_frame = PyThreadState_GET()->frame;
-
     // Duplicate it.
-    PyFrameObject *new_frame = duplicateFrame( old_frame );
+    PyFrameObject *old_frame = traceback->tb_frame;
+    PyFrameObject *new_frame = duplicateFrame( old_frame, locals );
 
-    // The given frame can be put on top now.
-    PyThreadState_GET()->frame = new_frame;
+    // The new frame replaces it.
+    traceback->tb_frame = new_frame;
     Py_DECREF( old_frame );
-
-    return new_frame;
 }

@@ -21,11 +21,12 @@ No short-circuit involved, boolean 'not' is an unary operation like '-' is,
 no real difference.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+import math
 
 from nuitka import PythonOperators
 
-import math
+from .NodeBases import ExpressionChildrenHavingBase
+
 
 class ExpressionOperationBase(ExpressionChildrenHavingBase):
     def __init__(self, operator, simulator, values, source_ref):
@@ -75,6 +76,14 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
+        self.inplace_suspect = False
+
+    def markAsInplaceSuspect(self):
+        self.inplace_suspect = True
+
+    def isInplaceSuspect(self):
+        return self.inplace_suspect
+
     def computeExpression(self, constraint_collection):
         operator = self.getOperator()
         operands = self.getOperands()
@@ -121,7 +130,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                         # otherwise, we will have to do it at runtime.
 
                         if left_value != 0 and right_value != 0:
-                            if math.log10( abs( left_value ) ) + math.log10( abs( right_value ) ) > 20:
+                            if math.log10(abs(left_value)) + math.log10(abs(right_value)) > 20:
                                 return self, None, None
 
             elif operator == "Mult" and left.isNumberConstant():
@@ -202,6 +211,9 @@ class ExpressionOperationUnary(ExpressionOperationBase):
     def getOperands(self):
         return ( self.getOperand(), )
 
+    def isExpressionOperationUnary(self):
+        return True
+
 
 class ExpressionOperationNOT(ExpressionOperationUnary):
     kind = "EXPRESSION_OPERATION_NOT"
@@ -278,6 +290,9 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
             right      = right,
             source_ref = source_ref
         )
+
+    def isExpressionOperationBinary(self):
+        return True
 
     def computeExpression(self, constraint_collection):
         # TODO: Inplace operation requires extra care to avoid corruption of

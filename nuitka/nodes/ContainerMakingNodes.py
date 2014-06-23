@@ -20,12 +20,13 @@
 """
 
 
+from nuitka import Constants
+
 from .NodeBases import (
     ExpressionChildrenHavingBase,
     SideEffectsFromChildrenMixin
 )
 
-from nuitka import Constants
 
 class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
                                 ExpressionChildrenHavingBase):
@@ -202,7 +203,10 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
                             ExpressionChildrenHavingBase):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
-    named_children = ( "key", "value" )
+    named_children = (
+        "key",
+        "value"
+    )
 
     def __init__(self, key, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -243,31 +247,35 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
                          ExpressionChildrenHavingBase):
     kind = "EXPRESSION_MAKE_DICT"
 
-    named_children = ( "pairs", )
+    named_children = (
+        "pairs",
+    )
 
     def __init__(self, pairs, lazy_order, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "pairs" : tuple( pairs ),
+                "pairs" : tuple(pairs),
             },
             source_ref = source_ref
         )
 
         self.lazy_order = lazy_order
 
-    getPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
+    getPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
     def computeExpression(self, constraint_collection):
         # Children can tell all we need to know, pylint: disable=W0613
         pairs = self.getPairs()
 
-        for count, pair in enumerate( pairs ):
-            if pair.willRaiseException( BaseException ):
+        for count, pair in enumerate(pairs):
+            if pair.willRaiseException(BaseException):
                 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
+                # Later elements have no side effects after the element that
+                # raised the exception.
                 result = wrapExpressionWithSideEffects(
-                    side_effects = pairs[ : count ],
+                    side_effects = pairs[:count],
                     new_node     = pair,
                     old_node     = self
                 )

@@ -24,87 +24,146 @@ able to execute them without creating the argument dictionary at all.
 """
 
 from . import CodeTemplates
+from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
+from .ExceptionCodes import getExceptionIdentifier
 
-from .Identifiers import Identifier
 
-def getCallCodeNoArgs(called_identifier):
-    return Identifier(
-        "CALL_FUNCTION_NO_ARGS( %(function)s )" % {
-            "function" : called_identifier.getCodeTemporaryRef(),
-        },
-        1
+def getCallCodeNoArgs(to_name, called_name, emit, context):
+    emit(
+        "%s = CALL_FUNCTION_NO_ARGS( %s );" % (
+            to_name,
+            called_name
+        )
     )
+
+    getReleaseCode(
+        release_name = called_name,
+        emit         = emit,
+        context      = context
+    )
+
+    getErrorExitCode(
+        check_name      = to_name,
+        quick_exception = None,
+        emit            = emit,
+        context         = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+
 
 # Outside helper code relies on some quick call to be present.
 quick_calls_used = set( [ 1, 2, 3 ] )
 
-def getCallCodePosArgsQuick(context, order_relevance, called_identifier,
-                            arguments ):
+def getCallCodePosArgsQuick(to_name, called_name, arg_names, emit, context):
 
-    arg_size = len( arguments )
-    quick_calls_used.add( arg_size )
+    arg_size = len(arg_names)
+    quick_calls_used.add(arg_size)
 
-    from .TupleCodes import addMakeTupleUse
-    addMakeTupleUse( arg_size )
+    # For 0 arguments, NOARGS is supposed to be used.
+    assert arg_size > 0
 
-    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
-
-    return getOrderRelevanceEnforcedArgsCode(
-        helper          = "CALL_FUNCTION_WITH_ARGS%d" % arg_size,
-        export_ref      = 0,
-        ref_count       = 1,
-        tmp_scope       = "call",
-        order_relevance = order_relevance,
-        args            = [ called_identifier ] + arguments,
-        context         = context
+    emit(
+        "%s = CALL_FUNCTION_WITH_ARGS%d( %s, %s );" % (
+            to_name,
+            arg_size,
+            called_name,
+            ", ".join(arg_names)
+        )
     )
 
-
-def getCallCodePosArgs(context, order_relevance, called_identifier,
-                       argument_tuple ):
-    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
-
-    return getOrderRelevanceEnforcedArgsCode(
-        helper          = "CALL_FUNCTION_WITH_POSARGS",
-        export_ref      = 0,
-        ref_count       = 1,
-        tmp_scope       = "call",
-        order_relevance = order_relevance,
-        args            = ( called_identifier, argument_tuple ),
-        context         = context
+    getReleaseCodes(
+        release_names = [called_name] + arg_names,
+        emit          = emit,
+        context       = context
     )
 
-def getCallCodeKeywordArgs(context, order_relevance, called_identifier,
-                           argument_dictionary):
-    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
-
-    return getOrderRelevanceEnforcedArgsCode(
-        helper          = "CALL_FUNCTION_WITH_KEYARGS",
-        export_ref      = 0,
-        ref_count       = 1,
-        tmp_scope       = "call",
-        order_relevance = order_relevance,
-        args            = ( called_identifier, argument_dictionary ),
-        context         = context
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
     )
 
-def getCallCodePosKeywordArgs(context, order_relevance, called_identifier,
-                              argument_tuple, argument_dictionary):
-    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
+    context.addCleanupTempName(to_name)
 
-    return getOrderRelevanceEnforcedArgsCode(
-        helper          = "CALL_FUNCTION",
-        export_ref      = 0,
-        ref_count       = 1,
-        tmp_scope       = "call",
-        order_relevance = order_relevance,
-        args            = (
-            called_identifier,
-            argument_tuple,
-            argument_dictionary
-        ),
-        context         = context
+
+def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
+
+    emit(
+        "%s = CALL_FUNCTION_WITH_POSARGS( %s, %s );" % (
+            to_name,
+            called_name,
+            args_name
+        )
     )
+
+    getReleaseCodes(
+        release_names = (called_name, args_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+
+def getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
+
+    emit(
+        "%s = CALL_FUNCTION_WITH_KEYARGS( %s, %s );" % (
+            to_name,
+            called_name,
+            call_kw_name
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (called_name, call_kw_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+
+def getCallCodePosKeywordArgs(to_name, called_name, call_args_name,
+                              call_kw_name, emit, context):
+
+    emit(
+        "%s = CALL_FUNCTION( %s, %s, %s );" % (
+            to_name,
+            called_name,
+            call_args_name,
+            call_kw_name
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (called_name, call_args_name, call_kw_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)
+
 
 def getCallsDecls():
     result = []
@@ -158,3 +217,23 @@ def getCallsCode():
         )
 
     return "\n".join(result)
+
+
+def getMakeBuiltinExceptionCode(to_name, exception_type, arg_names, emit,
+                                context):
+    if arg_names:
+        getCallCodePosArgsQuick(
+            to_name     = to_name,
+            called_name = getExceptionIdentifier(exception_type),
+            arg_names   = arg_names,
+            emit        = emit,
+            context     = context
+        )
+
+    else:
+        getCallCodeNoArgs(
+            to_name     = to_name,
+            called_name = getExceptionIdentifier(exception_type),
+            emit        = emit,
+            context     = context
+        )

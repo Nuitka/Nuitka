@@ -18,15 +18,16 @@
 """ Optimizations of builtins to builtin calls.
 
 """
+import math
+import sys
+
 from nuitka.nodes.ParameterSpecs import (
     ParameterSpec,
     TooManyArguments,
     matchCall
 )
-
 from nuitka.Utils import python_version
 
-import sys, math
 
 class BuiltinParameterSpec(ParameterSpec):
     def __init__( self, name, arg_names, default_count, list_star_arg = None,
@@ -61,10 +62,10 @@ class BuiltinParameterSpec(ParameterSpec):
         # fatal, pylint: disable=W0142,W0703
 
         try:
-            given_normal_args = given_values[ : len( self.normal_args ) ]
+            given_normal_args = given_values[:len(self.normal_args)]
 
             if self.list_star_arg:
-                given_list_star_args = given_values[ len( self.normal_args ) ]
+                given_list_star_args = given_values[len( self.normal_args )]
             else:
                 given_list_star_args = None
 
@@ -84,13 +85,13 @@ class BuiltinParameterSpec(ParameterSpec):
 
             if given_dict_star_args:
                 for given_dict_star_arg in reversed(given_dict_star_args):
-                    arg_name = given_dict_star_arg.getKey()
-                    arg_value = given_dict_star_arg.getValue()
+                    arg_name = given_dict_star_arg.getKey().getCompileTimeConstant()
+                    arg_value = given_dict_star_arg.getValue().getCompileTimeConstant()
 
-                    arg_dict[ arg_name.getCompileTimeConstant() ] = arg_value.getCompileTimeConstant()
+                    arg_dict[arg_name] = arg_value
 
         except Exception as e:
-            sys.exit( "Fatal problem: %r" % e )
+            sys.exit("Fatal problem: %r" % e)
 
         if given_list_star_args:
             return self.builtin(
@@ -98,7 +99,7 @@ class BuiltinParameterSpec(ParameterSpec):
                 **arg_dict
             )
         else:
-            return self.builtin( **arg_dict )
+            return self.builtin(**arg_dict)
 
 
 class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
@@ -214,7 +215,7 @@ builtin_list_spec = BuiltinParameterSpec( "list", ( "sequence", ), 1 )
 builtin_set_spec = BuiltinParameterSpecNoKeywords( "set", ( "iterable", ), 1 )
 
 builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "locals", "fromlist", "level" ), 4 )
-builtin_open_spec = BuiltinParameterSpec( "open", ( "name", "mode", "buffering" ), 2 )
+builtin_open_spec = BuiltinParameterSpec( "open", ( "name", "mode", "buffering" ), 3 )
 builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 0 )
 builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 0 )
 builtin_bin_spec = BuiltinParameterSpecNoKeywords( "bin", ( "number", ), 0 )
@@ -228,11 +229,15 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 1 )
 builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
 builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
 builtin_eval_spec = BuiltinParameterSpecNoKeywords( "eval", ( "source", "globals", "locals" ), 2 )
+if python_version < 300:
+    builtin_compile_spec = BuiltinParameterSpec("compile", ( "source", "filename", "mode", "flags", "dont_inherit" ), 2)
+else:
+    builtin_compile_spec = BuiltinParameterSpec("compile", ( "source", "filename", "mode", "flags", "dont_inherit", "optimize" ), 3)
 if python_version >= 300:
     builtin_exec_spec = BuiltinParameterSpecNoKeywords( "exec", ( "source", "globals", "locals" ), 2 )
 
-# Note: Iter in fact names its first argument if the default applies "collection", but it
-# won't matter much, fixed up in a wrapper.
+# Note: Iter in fact names its first argument if the default applies
+# "collection", fixed up in a wrapper.
 builtin_iter_spec = BuiltinParameterSpecNoKeywords( "iter", ( "callable", "sentinel" ), 1 )
 builtin_next_spec = BuiltinParameterSpecNoKeywords( "next", ( "iterator", "default" ), 1 )
 
@@ -315,11 +320,10 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
 builtin_range_spec = BuiltinRangeSpec("range", ( "start", "stop", "step" ), 2)
 
 
-def extractBuiltinArgs( node, builtin_spec, builtin_class,
-                        empty_special_class = None ):
+def extractBuiltinArgs(node, builtin_spec, builtin_class,
+                       empty_special_class = None):
     try:
         kw = node.getCallKw()
-
 
         # TODO: Could check for too many / too few, even if they are unknown, we
         # might raise that error, but that need not be optimized immediately.
@@ -370,13 +374,13 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class,
     args_list = []
 
     for argument_name in builtin_spec.getArgumentNames():
-        args_list.append( args_dict[ argument_name ] )
+        args_list.append(args_dict[argument_name])
 
     if builtin_spec.getStarListArgumentName() is not None:
-        args_list.append( args_dict[ builtin_spec.getStarListArgumentName() ] )
+        args_list.append(args_dict[builtin_spec.getStarListArgumentName()])
 
     if builtin_spec.getStarDictArgumentName() is not None:
-        args_list.append( args_dict[ builtin_spec.getStarDictArgumentName() ] )
+        args_list.append(args_dict[builtin_spec.getStarDictArgumentName()])
 
     # Using list reference for passing the arguments without names,
     # pylint: disable=W0142

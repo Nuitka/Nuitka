@@ -20,62 +20,127 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from . import CodeTemplates
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 
-make_dicts_used = set( range( 0, 3 ) )
 
-def addMakeDictUse(args_length):
-    assert type( args_length ) is int
-
-    make_dicts_used.add( args_length )
-
-def getDictionaryCreationCode(context, order_relevance, args_identifiers):
-    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
-
-    assert len( args_identifiers ) % 2 == 0
-
-    args_length = len( args_identifiers ) // 2
-    addMakeDictUse( args_length )
-
-    return getOrderRelevanceEnforcedArgsCode(
-        helper          = "MAKE_DICT%d" % args_length,
-        export_ref      = 0,
-        ref_count       = 1,
-        tmp_scope       = "make_dict",
-        order_relevance = order_relevance,
-        args            = args_identifiers,
-        context         = context
+def getDictOperationGetCode(to_name, dict_name, key_name, emit, context):
+    emit(
+        "%s = DICT_GET_ITEM( %s, %s );" % (
+            to_name,
+            dict_name,
+            key_name
+        )
     )
 
-def getMakeDictsCode():
-    make_dicts_codes = []
+    getReleaseCodes(
+        release_names = (dict_name, key_name),
+        emit          = emit,
+        context       = context
+    )
 
-    for arg_count in sorted( make_dicts_used ):
-        add_elements_code = []
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
 
-        for arg_index in range( arg_count ):
-            add_elements_code.append(
-                CodeTemplates.template_add_dict_element_code % {
-                    "dict_key"   : "key%d" % ( arg_index + 1 ),
-                    "dict_value" : "value%d" % ( arg_index + 1 )
-                }
+    context.addCleanupTempName(to_name)
+
+
+def getBuiltinDict2Code(to_name, seq_name, dict_name, emit, context):
+    # Both not available must have been optimized way.
+    assert seq_name is not None or dict_name is not None
+
+    if seq_name is not None:
+        emit(
+            "%s = TO_DICT( %s, %s );" % (
+                to_name,
+                seq_name,
+                "NULL" if dict_name is None else dict_name
             )
-
-        make_dicts_codes.append(
-            CodeTemplates.template_make_dict_function % {
-                "pair_count"        : arg_count,
-                "argument_decl"     : ", ".join(
-                    "PyObject *value%(index)d, PyObject *key%(index)d" % {
-                        "index" : (arg_index+1)
-                    }
-                    for arg_index in
-                    range( arg_count )
-                ),
-                "add_elements_code" : "\n".join( add_elements_code ),
-            }
         )
 
-    return CodeTemplates.template_header_guard % {
-        "header_guard_name" : "__NUITKA_DICTS_H__",
-        "header_body"       : "\n".join( make_dicts_codes )
-    }
+        getReleaseCodes(
+            release_names = (seq_name, dict_name),
+            emit          = emit,
+            context       = context
+        )
+
+        getErrorExitCode(
+            check_name = to_name,
+            emit       = emit,
+            context    = context
+        )
+
+        context.addCleanupTempName(to_name)
+    else:
+        # TODO: This could be avoided entirely, but it's only an alias, so we
+        # leave it to the C++ compiler for now.
+        emit(
+            "%s = %s;" % (
+                to_name,
+                dict_name
+            )
+        )
+
+        if context.needsCleanup(dict_name):
+            context.addCleanupTempName(to_name)
+            context.removeCleanupTempName(dict_name)
+
+
+def getDictOperationRemoveCode(dict_name, key_name, emit, context):
+    res_name = context.getBoolResName()
+
+    emit(
+        "%s = DICT_REMOVE_ITEM( %s, %s );" % (
+            res_name,
+            dict_name,
+            key_name
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (dict_name, key_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitBoolCode(
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
+    )
+
+
+def getDictOperationSetCode(to_name, dict_name, key_name, value_name, emit,
+                            context):
+    res_name = context.getIntResName()
+
+    emit(
+        "%s = PyDict_SetItem( %s, %s, %s );" % (
+            res_name,
+            dict_name,
+            key_name,
+            value_name
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (dict_name, key_name, value_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitBoolCode(
+        condition = "%s == -1" % res_name,
+        emit      = emit,
+        context   = context
+    )
+
+    # Only assign if necessary.
+    if context.isUsed(to_name):
+        emit(
+            "%s = Py_None;" % to_name
+        )
+    else:
+        context.forgetTempName(to_name)

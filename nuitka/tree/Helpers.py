@@ -20,36 +20,36 @@
 
 """
 
-from nuitka.nodes.StatementNodes import (
-    StatementsSequence,
-    StatementsFrame
-)
+import ast
+from logging import warning
 
-from nuitka.nodes.NodeBases import NodeBase
+from nuitka import Constants, Tracing
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionKeyValuePair,
-    ExpressionMakeTuple,
-    ExpressionMakeList,
     ExpressionMakeDict,
-    ExpressionMakeSet
+    ExpressionMakeList,
+    ExpressionMakeSet,
+    ExpressionMakeTuple
 )
+from nuitka.nodes.NodeBases import NodeBase
+from nuitka.nodes.StatementNodes import (
+    StatementGeneratorEntry,
+    StatementsFrame,
+    StatementsSequence
+)
+from nuitka.nodes.TryNodes import ExpressionTryFinally, StatementTryFinally
 
-from nuitka import Tracing, Constants
-
-from logging import warning
-
-import ast
 
 def dump(node):
-    Tracing.printLine( ast.dump( node ) )
+    Tracing.printLine(ast.dump(node))
 
 def getKind(node):
     return node.__class__.__name__.split(".")[-1]
 
 def extractDocFromBody(node):
     # Work around ast.get_docstring breakage.
-    if len( node.body ) > 0 and getKind( node.body[0] ) == "Expr" and getKind( node.body[0].value ) == "Str":
+    if len(node.body) > 0 and getKind(node.body[0]) == "Expr" and getKind(node.body[0].value) == "Str":
         return node.body[1:], node.body[0].value.s
     else:
         return node.body, None
@@ -73,26 +73,26 @@ def buildNode(provider, node, source_ref, allow_none = False):
         return None
 
     try:
-        kind = getKind( node )
+        kind = getKind(node)
 
-        if hasattr( node, "lineno" ):
-            source_ref = source_ref.atLineNumber( node.lineno )
+        if hasattr(node, "lineno"):
+            source_ref = source_ref.atLineNumber(node.lineno)
         else:
             source_ref = source_ref
 
         if kind in build_nodes_args3:
-            result = build_nodes_args3[ kind ](
+            result = build_nodes_args3[kind](
                 provider   = provider,
                 node       = node,
                 source_ref = source_ref
             )
         elif kind in build_nodes_args2:
-            result = build_nodes_args2[ kind ](
+            result = build_nodes_args2[kind](
                 node       = node,
                 source_ref = source_ref
             )
         elif kind in build_nodes_args1:
-            result = build_nodes_args1[ kind ](
+            result = build_nodes_args1[kind](
                 source_ref = source_ref
             )
         elif kind == "Pass":
@@ -179,11 +179,19 @@ def buildStatementsNode(provider, nodes, source_ref, frame = False):
             has_starlist  = parameters.getStarListArgumentName() is not None
             has_stardict  = parameters.getStarDictArgumentName() is not None
 
+            if provider.isGenerator():
+                statements.insert(
+                    0,
+                    StatementGeneratorEntry(
+                        source_ref = source_ref
+                    )
+                )
+
             return StatementsFrame(
                 statements    = statements,
                 guard_mode    = guard_mode,
                 var_names     = arg_names,
-                arg_count     = len( arg_names ),
+                arg_count     = len(arg_names),
                 kw_only_count = kw_only_count,
                 code_name     = code_name,
                 has_starlist  = has_starlist,
@@ -203,12 +211,14 @@ def buildStatementsNode(provider, nodes, source_ref, frame = False):
         )
 
 
-def mergeStatements(statements):
+def mergeStatements(statements, allow_none = False):
     """ Helper function that merges nested statement sequences. """
     merged_statements = []
 
     for statement in statements:
-        if statement.isStatement() or statement.isStatementsFrame():
+        if statement is None and allow_none:
+            pass
+        elif statement.isStatement() or statement.isStatementsFrame():
             merged_statements.append(statement)
         elif statement.isStatementsSequence():
             merged_statements.extend(mergeStatements(statement.getStatements()))
@@ -234,6 +244,7 @@ def makeStatementsSequenceOrStatement(statements, source_ref):
     else:
         return statements[0]
 
+
 def makeStatementsSequence(statements, allow_none, source_ref):
     if allow_none:
         statements = tuple(
@@ -251,6 +262,7 @@ def makeStatementsSequence(statements, allow_none, source_ref):
     else:
         return None
 
+
 def makeStatementsSequenceFromStatement(statement):
     return StatementsSequence(
         statements = mergeStatements(
@@ -258,6 +270,7 @@ def makeStatementsSequenceFromStatement(statement):
         ),
         source_ref = statement.getSourceReference()
     )
+
 
 def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # Sequence creation. Tries to avoid creations with only constant
@@ -354,3 +367,125 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
             lazy_order = lazy_order,
             source_ref = source_ref
         )
+
+
+def makeTryFinallyStatement(tried, final, source_ref):
+    if type(tried) in (tuple, list):
+        tried = StatementsSequence(
+            statements = tried,
+            source_ref = source_ref
+        )
+    if type(final) in (tuple, list):
+        final = StatementsSequence(
+            statements = final,
+            source_ref = source_ref
+        )
+
+    if tried is not None and not tried.isStatementsSequence():
+        tried = makeStatementsSequenceFromStatement(tried)
+    if final is not None and not final.isStatementsSequence():
+        final = makeStatementsSequenceFromStatement(final)
+
+    return StatementTryFinally(
+        tried      = tried,
+        final      = final,
+        public_exc = False,
+        source_ref = source_ref
+    )
+
+
+def makeTryFinallyExpression(expression, tried, final, source_ref):
+    if type(tried) in (tuple, list):
+        tried = StatementsSequence(
+            statements = tried,
+            source_ref = source_ref
+        )
+    if type(final) in (tuple, list):
+        final = StatementsSequence(
+            statements = final,
+            source_ref = source_ref
+        )
+
+    if tried is not None and not tried.isStatementsSequence():
+        tried = makeStatementsSequenceFromStatement(tried)
+    if final is not None and not final.isStatementsSequence():
+        final = makeStatementsSequenceFromStatement(final)
+
+    return ExpressionTryFinally(
+        expression = expression,
+        tried      = tried,
+        final      = final,
+        source_ref = source_ref
+    )
+
+build_contexts = [None]
+
+def pushBuildContext(value):
+    build_contexts.append(value)
+
+def popBuildContext():
+    del build_contexts[-1]
+
+def getBuildContext():
+    return build_contexts[-1]
+
+indicator_variables = [Ellipsis]
+
+def getIndicatorVariables():
+    return indicator_variables
+
+def popIndicatorVariable():
+    result = indicator_variables[-1]
+    del indicator_variables[-1]
+    return result
+
+def pushIndicatorVariable(indicator_variable):
+    indicator_variables.append(indicator_variable)
+
+
+later = []
+
+def wrapTryFinallyLater(node, final):
+    later.append(
+        (node, final)
+    )
+
+def applyLaterWrappers():
+    for node, final in later:
+        parent = node.getParent()
+
+        # Skip over nodes, that current have a difficulty with being wrapped
+        # TODO: This must not be necessary, and is a broken thing then, if one
+        # node, must have a child of specific kind.
+        while parent.isExpressionKeyValuePair():
+            parent = parent.getParent()
+
+        if parent.isExpression():
+            # Replacement wrapper node, with no expression initially, to not
+            # reparent already.
+            new_node = makeTryFinallyExpression(
+                expression = None, # see below
+                tried      = None,
+                final      = final,
+                source_ref = final.getSourceReference()
+            )
+            parent.replaceWith(new_node)
+            new_node.setExpression(parent)
+
+            assert parent.parent.isExpressionTryFinally()
+        elif parent.isStatement():
+            # Replacement wrapper node, with no tried initially, to not
+            # reparent already.
+            new_node = makeTryFinallyStatement(
+                tried      = None, # see below
+                final      = final,
+                source_ref = final.getSourceReference()
+            )
+            parent.replaceWith(new_node)
+            new_node.setBlockTry(
+                makeStatementsSequenceFromStatement(parent)
+            )
+        else:
+            assert False, parent
+
+    del later[:]

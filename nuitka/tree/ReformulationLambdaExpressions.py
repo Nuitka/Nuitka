@@ -15,43 +15,48 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of lambda expressions.
+
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
+
+"""
 
 from nuitka import Utils
-
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionBody,
+    ExpressionFunctionCreation,
+    ExpressionFunctionRef
+)
+from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.StatementNodes import StatementExpressionOnly, StatementsFrame
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCreation,
-    ExpressionFunctionBody,
-    ExpressionFunctionRef
-)
-from nuitka.nodes.StatementNodes import (
-    StatementExpressionOnly,
-    StatementsSequence,
-    StatementsFrame
-)
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
-from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.YieldNodes import ExpressionYield
-from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 
+from .Helpers import (
+    buildNode,
+    buildNodeList,
+    getKind,
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
+    mergeStatements
+)
 from .ReformulationFunctionStatements import (
     buildParameterAnnotations,
     buildParameterKwDefaults,
     buildParameterSpec
 )
 
-from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    mergeStatements,
-    buildNodeList,
-    buildNode,
-    getKind
-)
 
 def buildLambdaNode(provider, node, source_ref):
     assert getKind( node ) == "Lambda"
@@ -130,9 +135,18 @@ def buildLambdaNode(provider, node, source_ref):
                     source_ref = source_ref
                 )
             )
-
-            body = StatementsSequence(
-                statements = statements,
+            body = makeTryFinallyStatement(
+                tried      = statements,
+                final      = StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable = tmp_return_value.makeReference(
+                            function_body
+                        ),
+                        source_ref = source_ref,
+                    ),
+                    tolerant   = True,
+                    source_ref = source_ref
+                ),
                 source_ref = source_ref
             )
         else:

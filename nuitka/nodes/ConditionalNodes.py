@@ -24,13 +24,18 @@ expressed via nesting of conditional statements.
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
+
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 
 class ExpressionConditional(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CONDITIONAL"
 
-    named_children = ( "condition", "expression_yes", "expression_no" )
+    named_children = (
+        "condition",
+        "expression_yes",
+        "expression_no"
+    )
 
     def __init__(self, condition, yes_expression, no_expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -55,6 +60,7 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
     getExpressionNo = ExpressionChildrenHavingBase.childGetter(
         "expression_no"
     )
+
     getCondition = ExpressionChildrenHavingBase.childGetter(
         "condition"
     )
@@ -180,7 +186,11 @@ Conditional expression raises in condition."""
 class StatementConditional(StatementChildrenHavingBase):
     kind = "STATEMENT_CONDITIONAL"
 
-    named_children = ( "condition", "yes_branch", "no_branch" )
+    named_children = (
+        "condition",
+        "yes_branch",
+        "no_branch"
+    )
 
     def __init__(self, condition, yes_branch, no_branch, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -215,6 +225,49 @@ class StatementConditional(StatementChildrenHavingBase):
         else:
             return False
 
+    def mayRaiseException(self, exception_type):
+        condition = self.getCondition()
+
+        if condition.mayRaiseException(exception_type):
+            return True
+
+        yes_branch = self.getBranchYes()
+
+        # Handle branches that became empty behind our back
+        if yes_branch is not None and \
+           yes_branch.mayRaiseException(exception_type):
+            return True
+
+        no_branch = self.getBranchNo()
+
+        # Handle branches that became empty behind our back
+        if no_branch is not None and \
+           no_branch.mayRaiseException(exception_type):
+            return True
+
+        return False
+
+    def needsFrame(self):
+        condition = self.getCondition()
+
+        if condition.mayRaiseException(BaseException):
+            return True
+
+        yes_branch = self.getBranchYes()
+
+        # Handle branches that became empty behind our back
+        if yes_branch is not None and \
+           yes_branch.needsFrame():
+            return True
+
+        no_branch = self.getBranchNo()
+
+        # Handle branches that became empty behind our back
+        if no_branch is not None and \
+           no_branch.needsFrame():
+            return True
+
+        return False
 
     def computeStatement(self, constraint_collection):
         # This is rather complex stuff, pylint: disable=R0912
@@ -363,3 +416,43 @@ Empty 'yes' branch for condition was replaced with inverted condition check."""
 Condition for branch was predicted to be always %s.""" % choice
 
         return self, None, None
+
+    def mayReturn(self):
+        yes_branch = self.getBranchYes()
+
+        if yes_branch is not None and yes_branch.mayReturn():
+            return True
+
+        no_branch = self.getBranchNo()
+
+        if no_branch is not None and no_branch.mayReturn():
+            return True
+
+        return False
+
+    def mayBreak(self):
+        yes_branch = self.getBranchYes()
+
+        if yes_branch is not None and yes_branch.mayBreak():
+            return True
+
+        no_branch = self.getBranchNo()
+
+        if no_branch is not None and no_branch.mayBreak():
+            return True
+
+        return False
+
+
+    def mayContinue(self):
+        yes_branch = self.getBranchYes()
+
+        if yes_branch is not None and yes_branch.mayContinue():
+            return True
+
+        no_branch = self.getBranchNo()
+
+        if no_branch is not None and no_branch.mayContinue():
+            return True
+
+        return False

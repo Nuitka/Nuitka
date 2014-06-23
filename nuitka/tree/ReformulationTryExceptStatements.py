@@ -15,60 +15,73 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reformulation of try/except statements.
 
-from nuitka import Utils, SyntaxErrors, Options
+Consult the developmer manual for information. TODO: Add ability to sync
+source code comments with developer manual sections.
 
+"""
+
+from nuitka import Options, SyntaxErrors, Utils
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
+from nuitka.nodes.ComparisonNodes import (
+    ExpressionComparisonExceptionMatch,
+    ExpressionComparisonIs
+)
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ExceptionNodes import (
+    ExpressionCaughtExceptionTypeRef,
+    ExpressionCaughtExceptionValueRef,
+    StatementRaiseException
+)
+from nuitka.nodes.StatementNodes import (
+    StatementPreserveFrameException,
+    StatementPublishException,
+    StatementRestoreFrameException,
+    StatementsSequence
+)
+from nuitka.nodes.TryNodes import StatementTryExcept
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.ExceptionNodes import ExpressionCaughtExceptionValueRef
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.TryNodes import (
-    StatementExceptHandler,
-    StatementTryExcept
-)
 
+from .Helpers import (
+    buildNode,
+    buildStatementsNode,
+    makeStatementsSequence,
+    makeTryFinallyStatement,
+    mergeStatements
+)
 from .ReformulationAssignmentStatements import (
-    buildDeleteStatementFromDecoded,
     buildAssignmentStatements,
+    buildDeleteStatementFromDecoded,
     decodeAssignTarget
 )
 
 
-from .Helpers import (
-    makeStatementsSequence,
-    buildStatementsNode,
-    buildNode
-)
-
-
-def makeTryExceptNoRaise(provider, temp_scope, tried, handlers, no_raise,
-                         source_ref):
+def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
+                         public_exc, source_ref):
     # This helper executes the core re-formulation of "no_raise" blocks, which
     # are the "else" blocks of "try"/"except" statements. In order to limit the
     # execution, we use an indicator variable instead, which will signal that
     # the tried block executed up to the end. And then we make the else block be
     # a conditional statement checking that.
 
-    # This is a separate function, so it can be re-used in other
-    # re-formulations, e.g. with statements.
-
     assert no_raise is not None
-    assert len(handlers) > 0
 
     tmp_handler_indicator_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
         name       = "unhandled_indicator"
     )
 
-    for handler in handlers:
-        statements = (
+    statements = mergeStatements(
+        (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_handler_indicator_variable.makeReference(
@@ -82,34 +95,21 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handlers, no_raise,
                 ),
                 source_ref   = no_raise.getSourceReference().atInternal()
             ),
-            handler.getExceptionBranch()
-        )
-
-        handler.setExceptionBranch(
-            makeStatementsSequence(
-                statements = statements,
-                allow_none = True,
-                source_ref = source_ref
-            )
-        )
-
-    statements = (
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_handler_indicator_variable.makeReference(
-                    provider
-                ),
-                source_ref = source_ref.atInternal()
-            ),
-            source     = ExpressionConstantRef(
-                constant   = True,
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
+            handling
         ),
+        allow_none = True
+    )
+
+    handling = StatementsSequence(
+        statements = statements,
+        source_ref = source_ref
+    )
+
+    tried = (
         StatementTryExcept(
             tried      = tried,
-            handlers   = handlers,
+            handling   = handling,
+            public_exc = public_exc,
             source_ref = source_ref
         ),
         StatementConditional(
@@ -132,28 +132,109 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handlers, no_raise,
         )
     )
 
+    final = StatementDelVariable(
+        variable_ref = ExpressionTargetTempVariableRef(
+            variable   = tmp_handler_indicator_variable.makeReference(
+                provider
+            ),
+            source_ref = source_ref.atInternal()
+        ),
+        tolerant   = False,
+        source_ref = source_ref.atInternal()
+    ),
+
     return StatementsSequence(
-        statements = statements,
+        statements = (
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_handler_indicator_variable.makeReference(
+                        provider
+                    ),
+                    source_ref = source_ref.atInternal()
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = True,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            ),
+            makeTryFinallyStatement(
+                tried      = tried,
+                final      = final,
+                source_ref = source_ref
+            )
+        ),
         source_ref = source_ref
     )
 
 
-def makeTryExceptSingleHandlerNode(tried, exception_name, handler_body,
-                                   source_ref):
-    return StatementTryExcept(
-        tried      = tried,
-        handlers   = (
-            StatementExceptHandler(
-                exception_types = (
-                    ExpressionBuiltinExceptionRef(
-                        exception_name = exception_name,
-                        source_ref     = source_ref
-                    ),
-                ),
-                body            = handler_body,
+def makeReraiseExceptionStatement(source_ref):
+    return StatementsSequence(
+        statements = (
+            StatementRaiseException(
+                exception_type  = None,
+                exception_value = None,
+                exception_trace = None,
+                exception_cause = None,
                 source_ref      = source_ref
             ),
         ),
+        source_ref  = source_ref
+    )
+
+
+def makeTryExceptSingleHandlerNode(tried, exception_name, handler_body,
+                                   public_exc, source_ref):
+    if public_exc:
+        statements = [
+            StatementPreserveFrameException(
+                source_ref = source_ref.atInternal()
+            ),
+            StatementPublishException(
+                source_ref = source_ref.atInternal()
+            )
+        ]
+    else:
+        statements = []
+
+    statements.append(
+        StatementConditional(
+            condition = ExpressionComparisonExceptionMatch(
+                left      = ExpressionCaughtExceptionTypeRef(
+                    source_ref  = source_ref
+                ),
+                right     = ExpressionBuiltinExceptionRef(
+                    exception_name = exception_name,
+                    source_ref     = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = handler_body,
+            no_branch  = makeReraiseExceptionStatement(
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+    )
+
+    if Utils.python_version >= 300 and public_exc:
+        statements = [
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = StatementRestoreFrameException(
+                    source_ref = source_ref.atInternal()
+                ),
+                source_ref = source_ref.atInternal()
+            )
+        ]
+
+    return StatementTryExcept(
+        tried      = tried,
+        handling   = StatementsSequence(
+            statements = statements,
+            source_ref = source_ref
+        ),
+        public_exc = public_exc,
         source_ref = source_ref
     )
 
@@ -167,6 +248,12 @@ def buildTryExceptionNode(provider, node, source_ref):
     # Many variables, due to the re-formulation that is going on here, which
     # just has the complexity, pylint: disable=R0914
 
+    tried = buildStatementsNode(
+        provider   = provider,
+        nodes      = node.body,
+        source_ref = source_ref
+    )
+
     handlers = []
 
     for handler in node.handlers:
@@ -176,44 +263,65 @@ def buildTryExceptionNode(provider, node, source_ref):
             handler.body
         )
 
-        statements = [
-            buildAssignmentStatements(
-                provider   = provider,
-                node       = exception_assign,
-                allow_none = True,
-                source     = ExpressionCaughtExceptionValueRef(
+        if exception_assign is None:
+            statements = [
+                buildStatementsNode(
+                    provider   = provider,
+                    nodes      = exception_block,
+                    source_ref = source_ref
+                )
+            ]
+        elif Utils.python_version < 300:
+            statements = [
+                buildAssignmentStatements(
+                    provider   = provider,
+                    node       = exception_assign,
+                    source     = ExpressionCaughtExceptionValueRef(
+                        source_ref = source_ref.atInternal()
+                    ),
                     source_ref = source_ref.atInternal()
                 ),
-                source_ref = source_ref.atInternal()
-            ),
-            buildStatementsNode(
-                provider   = provider,
-                nodes      = exception_block,
-                source_ref = source_ref
-            )
-        ]
-
-        if Utils.python_version >= 300:
+                buildStatementsNode(
+                    provider   = provider,
+                    nodes      = exception_block,
+                    source_ref = source_ref
+                )
+            ]
+        else:
             target_info = decodeAssignTarget(
                 provider   = provider,
                 node       = exception_assign,
                 source_ref = source_ref,
-                allow_none = True
             )
 
-            if target_info is not None:
-                kind, detail = target_info
+            kind, detail = target_info
 
-                assert kind == "Name", kind
-                kind = "Name_Exception"
+            assert kind == "Name", kind
+            kind = "Name_Exception"
 
-                statements.append(
-                    buildDeleteStatementFromDecoded(
+            statements = [
+                buildAssignmentStatements(
+                    provider   = provider,
+                    node       = exception_assign,
+                    source     = ExpressionCaughtExceptionValueRef(
+                        source_ref = source_ref.atInternal()
+                    ),
+                    source_ref = source_ref.atInternal()
+                ),
+                makeTryFinallyStatement(
+                    tried      = buildStatementsNode(
+                        provider   = provider,
+                        nodes      = exception_block,
+                        source_ref = source_ref
+                    ),
+                    final      = buildDeleteStatementFromDecoded(
                         kind       = kind,
                         detail     = detail,
                         source_ref = source_ref
-                    )
+                    ),
+                    source_ref = source_ref
                 )
+            ]
 
         handler_body = makeStatementsSequence(
             statements = statements,
@@ -230,8 +338,6 @@ def buildTryExceptionNode(provider, node, source_ref):
 
         # The exception types should be a tuple, so as to be most general.
         if exception_types is None:
-            exception_types = ()
-
             if handler is not node.handlers[-1]:
                 SyntaxErrors.raiseSyntaxError(
                     reason    = "default 'except:' must be last",
@@ -241,24 +347,84 @@ def buildTryExceptionNode(provider, node, source_ref):
                         handler.lineno
                     )
                 )
-        elif exception_types.isExpressionMakeSequence():
-            exception_types = exception_types.getElements()
-        else:
-            exception_types = (exception_types,)
 
         handlers.append(
-            StatementExceptHandler(
-                exception_types = exception_types,
-                body            = handler_body,
-                source_ref      = source_ref
+            (
+                exception_types,
+                handler_body,
             )
         )
 
-    tried = buildStatementsNode(
-        provider   = provider,
-        nodes      = node.body,
-        source_ref = source_ref
+    # Reraise by default
+    exception_handling = makeReraiseExceptionStatement(
+        source_ref  = source_ref
     )
+
+    for exception_type, handler in reversed(handlers):
+        if exception_type is None:
+            # A default handler was given, so use that indead.
+            exception_handling = handler
+        else:
+            exception_handling = StatementsSequence(
+                statements = (
+                    StatementConditional(
+                        condition = ExpressionComparisonExceptionMatch(
+                            left       = ExpressionCaughtExceptionTypeRef(
+                                source_ref  = exception_type.source_ref
+                            ),
+                            right      = exception_type,
+                            source_ref = exception_type.source_ref
+                        ),
+                        yes_branch = handler,
+                        no_branch  = exception_handling,
+                        source_ref = exception_type.source_ref
+                    ),
+                ),
+                source_ref = exception_type.source_ref
+            )
+
+    prelude = (
+        StatementPreserveFrameException(
+            source_ref = source_ref.atInternal()
+        ),
+        StatementPublishException(
+            source_ref = source_ref.atInternal()
+        )
+    )
+
+    if exception_handling is None:
+        # For Python3, we need not publish at all, if all we do is to revert
+        # that immediately. For Python2, the publish may release previously
+        # published exception, which has side effects potentially.
+        if Utils.python_version < 300:
+            exception_handling = StatementsSequence(
+                statements = prelude,
+                source_ref = source_ref.atInternal()
+            )
+
+            public_exc = True
+        else:
+            public_exc = False
+    else:
+        public_exc = True
+
+        if Utils.python_version < 300:
+            exception_handling.setStatements(
+                prelude + exception_handling.getStatements()
+            )
+        else:
+            exception_handling = StatementsSequence(
+                statements = prelude + (
+                    makeTryFinallyStatement(
+                        tried = exception_handling,
+                        final = StatementRestoreFrameException(
+                            source_ref = source_ref.atInternal()
+                        ),
+                        source_ref = source_ref
+                    ),
+                ),
+                source_ref = source_ref.atInternal()
+            )
 
     no_raise = buildStatementsNode(
         provider   = provider,
@@ -268,16 +434,18 @@ def buildTryExceptionNode(provider, node, source_ref):
 
     if no_raise is None:
         return StatementTryExcept(
-            handlers   = handlers,
             tried      = tried,
+            handling   = exception_handling,
+            public_exc = public_exc,
             source_ref = source_ref
         )
     else:
         return makeTryExceptNoRaise(
             provider   = provider,
             temp_scope = provider.allocateTempScope("try_except"),
-            handlers   = handlers,
+            handling   = exception_handling,
             tried      = tried,
+            public_exc = public_exc,
             no_raise   = no_raise,
             source_ref = source_ref
         )

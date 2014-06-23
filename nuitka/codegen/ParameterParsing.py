@@ -19,16 +19,16 @@
 
 """
 
-from . import CodeTemplates
+from nuitka.Utils import python_version
 
+from . import CodeTemplates
 from .ConstantCodes import getConstantCode
-from .Identifiers import Identifier
 from .Indentation import indented
 
-from nuitka.Utils import python_version
 
 def getParameterEntryPointIdentifier(function_identifier):
     return "fparse_" + function_identifier
+
 
 def getQuickEntryPointIdentifier(function_identifier, parameters):
     if parameters.hasNestedParameterVariables() or \
@@ -37,8 +37,10 @@ def getQuickEntryPointIdentifier(function_identifier, parameters):
     else:
         return "dparse_" + function_identifier
 
+
 def getDirectFunctionEntryPointIdentifier(function_identifier):
     return "impl_" + function_identifier
+
 
 def _getParameterParsingCode(context, parameters, function_name):
     # There is really no way this could be any less complex.
@@ -111,18 +113,18 @@ def _getParameterParsingCode(context, parameters, function_name):
 
             quick_path_code += assign_quick % {
                 "parameter_name_object"    : parameter_name_object,
-                "parameter_assign_from_kw" : indented( parameter_assign_from_kw )
+                "parameter_assign_from_kw" : indented(parameter_assign_from_kw)
             }
 
             slow_path_code += assign_slow % {
                 "parameter_name_object"    : parameter_name_object,
-                "parameter_assign_from_kw" : indented( parameter_assign_from_kw )
+                "parameter_assign_from_kw" : indented(parameter_assign_from_kw)
             }
 
         parameter_parsing_code += CodeTemplates.argparse_template_assign_from_dict_parameters % {
             "function_name"         : function_name,
-            "parameter_quick_path"  : indented( quick_path_code, 2 ),
-            "parameter_slow_path"   : indented( slow_path_code, 2 )
+            "parameter_quick_path"  : indented(quick_path_code, 2),
+            "parameter_slow_path"   : indented(slow_path_code, 2)
         }
 
     if parameters.isEmpty():
@@ -179,10 +181,7 @@ def _getParameterParsingCode(context, parameters, function_name):
 
         for count, variable in enumerate( variables ):
             if variable.isNestedParameterVariable():
-                assign_source = Identifier(
-                    "_python_par_%s" % variable.getName(),
-                    0
-                )
+                assign_source = "_python_par_%s" % variable.getName()
 
                 unpack_code = ""
 
@@ -196,7 +195,7 @@ def _getParameterParsingCode(context, parameters, function_name):
                     }
 
                 result += CodeTemplates.parse_argument_template_nested_argument_unpack % {
-                    "unpack_source_identifier" : assign_source.getCode(),
+                    "unpack_source_identifier" : assign_source,
                     "parameter_name" : variable.getName(),
                     "unpack_code"    : unpack_code
                 }

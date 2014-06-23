@@ -20,6 +20,6 @@
 
 extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level );
 
-extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module );
+extern bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module );
 
 #endif

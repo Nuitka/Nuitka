@@ -32,6 +32,7 @@
 #if PYTHON_VERSION < 300
 #define initproc python_initproc
 #define initfunc python_initfunc
+#define initstate system_initstate
 #endif
 
 // Include the Python C/API header files
@@ -39,10 +40,12 @@
 #include "methodobject.h"
 #include "frameobject.h"
 #include "pydebug.h"
+#include "marshal.h"
 
 #if PYTHON_VERSION < 300
 #undef initproc
 #undef initfunc
+#undef initstate
 #endif
 
 // Include the C header files most often used.

@@ -15,8 +15,9 @@ Overview
 
 Nuitka is the Python compiler. It is a good replacement for the Python
 interpreter and compiles **every** construct that CPython 2.6, 2.7, 3.2 and 3.3
-offer. It translates the Python into a C++ program that then uses "libpython" to
-execute in the same way as CPython does, in a very compatible way.
+offer. You can use all library or and all extension modules freely. It
+translates the Python into a C level program that then uses "libpython" to
+execute in the same way as CPython does, in a very, very compatible way.
 
 This document is the recommended first read if you are interested in using
 Nuitka, understand its use cases, check what you can expect, license,
@@ -54,12 +55,14 @@ Requirements
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits),
 
   Others may work as well. The portability is expected to be generally good, but
-  the Scons usage may have to be adapted.
+  the e.g. Scons usage may have to be adapted.
 
 - Architectures: x86, x86_64 (amd64), and arm.
 
-  Other architectures may also work, these are just the only ones
-  tested. Feedback is welcome.
+  Other architectures may also work, as Nuitka is generally not using much
+  hardware specifics. These are just the ones tested and known good. Feedback is
+  welcome. Generally the architectures that Debian supports should be considered
+  good.
 
 Command Line
 ------------
@@ -82,9 +85,9 @@ default. It tries to compile and directly execute a Python script:
 
     nuitka-run --help
 
-These option that is different is ``--execute``, and passing on arguments after
-the first non-option to the created binary, so it is somewhat more similar to
-what plain ``python`` will do.
+These option that is different is ``--run``, and passing on arguments after the
+first non-option to the created binary, so it is somewhat more similar to what
+plain ``python`` will do.
 
 License
 -------
@@ -118,9 +121,10 @@ that is the main program, do it like this:
    The is more fine grained control than ``--recurse-all`` available. Consider
    the output of ``nuitka --help``.
 
-In case you have a plugin directory, i.e. one which is not found by recursing
-after normal import statements (recommended way), you can always require that a
-given directory shall also be included in the executable:
+In case you have a plugin directory, i.e. one which cannot be found by recursing
+after normal import statements via the ``PYTHONPATH`` (which would be
+recommended way), you can always require that a given directory shall also be
+included in the executable:
 
 .. code-block:: bash
 
@@ -736,7 +740,7 @@ This document is written in REST. That is an ASCII format which is readable as
 ASCII, but used to generate PDF or HTML documents.
 
 You will find the current source under:
-http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.txt
+http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
 
 And the current PDF under:
 http://nuitka.net/doc/README.pdf

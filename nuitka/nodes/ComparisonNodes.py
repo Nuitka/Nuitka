@@ -19,16 +19,20 @@
 
 """
 
+from nuitka import PythonOperators
+
 from .NodeBases import ExpressionChildrenHavingBase
 
-from nuitka import PythonOperators
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class ExpressionComparison(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_COMPARISON"
 
-    named_children = ( "left", "right" )
+    named_children = (
+        "left",
+        "right"
+    )
 
     def __init__(self, left, right, comparator, source_ref):
         assert left.isExpression()
@@ -48,7 +52,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
 
         self.comparator = comparator
 
-        if comparator in ( "Is", "IsNot" ):
+        if comparator in ("Is", "IsNot"):
             assert self.__class__ is not ExpressionComparison
 
     def getOperands(self):
@@ -134,6 +138,10 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
     def isExpressionComparison(self):
         # Virtual method, pylint: disable=R0201
         return True
+
+    def mayRaiseException(self, exception_type):
+        return self.getLeft().mayRaiseException(exception_type) or \
+               self.getRight().mayRaiseException(exception_type)
 
     def computeExpression(self, constraint_collection):
         left, right = self.getOperands()
@@ -229,3 +237,25 @@ class ExpressionComparisonIsNOT(ExpressionComparisonIsIsNotBase):
             comparator = "IsNot",
             source_ref = source_ref
     )
+
+
+class ExpressionComparisonExceptionMatch(ExpressionComparison):
+    kind = "EXPRESSION_COMPARISON_EXCEPTION_MATCH"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparison.__init__(
+            self,
+            left       = left,
+            right      = right,
+            comparator = "exception_match",
+            source_ref = source_ref
+        )
+
+    def isExpressionComparison(self):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def getSimulator(self):
+        assert False
+
+        return PythonOperators.all_comparison_functions[self.comparator]

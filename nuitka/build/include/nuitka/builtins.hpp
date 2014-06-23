@@ -20,7 +20,7 @@
 
 #include "__helpers.hpp"
 
-extern PyModuleObject *module_builtin;
+extern PyModuleObject *builtin_module;
 extern PyDictObject *dict_builtin;
 
 #include "nuitka/calling.hpp"
@@ -67,66 +67,6 @@ public:
         assertObject( new_value );
 
         this->value = new_value;
-    }
-
-    PyObject *call()
-    {
-        return CALL_FUNCTION_NO_ARGS(
-            this->asObject0()
-        );
-    }
-
-
-    PyObject *call1( PyObject *arg )
-    {
-        return CALL_FUNCTION_WITH_ARGS1(
-            this->asObject0(),
-            arg
-        );
-    }
-
-    PyObject *call2( PyObject *arg1, PyObject *arg2 )
-    {
-        return CALL_FUNCTION_WITH_ARGS2(
-            this->asObject0(),
-            arg1,
-            arg2
-        );
-    }
-
-    PyObject *call3( PyObject *arg1, PyObject *arg2, PyObject *arg3 )
-    {
-        return CALL_FUNCTION_WITH_ARGS3(
-            this->asObject0(),
-            arg1,
-            arg2,
-            arg3
-        );
-    }
-
-    PyObject *call_args( PyObject *args )
-    {
-        return CALL_FUNCTION_WITH_POSARGS(
-            this->asObject0(),
-            PyObjectTemporary( args ).asObject0()
-        );
-    }
-
-    PyObject *call_kw( PyObject *kw )
-    {
-        return CALL_FUNCTION_WITH_KEYARGS(
-            this->asObject0(),
-            kw
-        );
-    }
-
-    PyObject *call_args_kw( PyObject *args, PyObject *kw )
-    {
-        return CALL_FUNCTION(
-            this->asObject0(),
-            args,
-            kw
-        );
     }
 
 

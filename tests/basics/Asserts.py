@@ -52,3 +52,15 @@ try:
     print "No exception."
 except Exception, e:
     print "Raised", type(e), e
+
+try:
+    print "Assertion with tuple argument.",
+    assert False, (3,)
+except AssertionError as e:
+    print str(e),
+
+try:
+    print "Assertion with plain argument.",
+    assert False, 3
+except AssertionError as e:
+    print str(e),

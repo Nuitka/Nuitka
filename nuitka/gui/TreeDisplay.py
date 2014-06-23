@@ -21,11 +21,12 @@ Useful to getting an idea of what the internal representation of Nuitka is about
 code.
 """
 
-from nuitka import SourceCodeReferences, Utils
+import sys
 
 from PyQt4 import QtCore, QtGui, uic
 
-import sys
+from nuitka import SourceCodeReferences, Utils
+
 
 # The API requires a signature, sometimes we don't use it, pylint: disable=R0201
 # Also using private stuff from classes, probably ok, pylint: disable=W0212
@@ -47,6 +48,14 @@ class NodeTreeModelItem:
                 for child in
                 self.node.getVisitableNodes()
             ]
+
+        if self.node.isPythonModule():
+            self.children.extend(
+                NodeTreeModelItem( child, self )
+                for child in
+                self.node.getFunctions()
+            )
+
 
         return self.children
 

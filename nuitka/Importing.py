@@ -37,11 +37,12 @@ module like it's done in "isStandardLibraryPath" of this module.
 
 from __future__ import print_function
 
-from . import Options, Utils
-
-import sys, os, imp
-
+import imp
+import os
+import sys
 from logging import warning
+
+from . import Options, Utils
 
 _debug_module_finding = False
 
@@ -181,31 +182,31 @@ def _findModuleInPath(module_name, package_name):
     # pylint: disable=R0912
 
     if _debug_module_finding:
-        print( "_findModuleInPath: Enter", module_name, "in", package_name )
+        print("_findModuleInPath: Enter", module_name, "in", package_name)
 
     assert main_path is not None
-    extra_paths = [ os.getcwd(), main_path  ]
+    extra_paths = [os.getcwd(), main_path]
 
     if package_name is not None:
         # Work around imp.find_module bug on at least Windows. Won't handle
         # module name empty in find_module. And thinking of it, how could it
         # anyway.
         if module_name == "":
-            module_name = package_name.split( "." )[ -1 ]
-            package_name = ".".join( package_name.split( "." )[:-1] )
+            module_name = package_name.split(".")[-1]
+            package_name = ".".join(package_name.split(".")[:-1])
 
         def getPackageDirname(element):
-            return Utils.joinpath( element, *package_name.split( "." ) )
+            return Utils.joinpath(element,*package_name.split("."))
 
         ext_path = [
-            getPackageDirname( element )
+            getPackageDirname(element)
             for element in
             extra_paths + sys.path
-            if isPackageDir( getPackageDirname( element ) )
+            if isPackageDir(getPackageDirname(element))
         ]
 
         if _debug_module_finding:
-            print( "_findModuleInPath: Package, using extended path", ext_path )
+            print("_findModuleInPath: Package, using extended path", ext_path)
 
         try:
             module_filename = _impFindModuleWrapper(
@@ -214,8 +215,11 @@ def _findModuleInPath(module_name, package_name):
             )
 
             if _debug_module_finding:
-                print( "_findModuleInPath: imp.find_module worked",
-                       module_filename, package_name )
+                print(
+                    "_findModuleInPath: imp.find_module worked",
+                    module_filename,
+                    package_name
+                )
 
             return module_filename, package_name
         except ImportError:
@@ -233,7 +237,7 @@ def _findModuleInPath(module_name, package_name):
     ext_path = extra_paths + sys.path
 
     if _debug_module_finding:
-        print( "_findModuleInPath: Non-package, using extended path", ext_path )
+        print("_findModuleInPath: Non-package, using extended path", ext_path)
 
     try:
         module_filename = _impFindModuleWrapper(
@@ -250,13 +254,14 @@ def _findModuleInPath(module_name, package_name):
         return None, None
 
     if _debug_module_finding:
-        print( "_findModuleInPath: imp.find_module gave", module_filename )
+        print("_findModuleInPath: imp.find_module gave", module_filename)
 
     return module_filename, None
 
+
 def _findModule(module_name, parent_package):
     if _debug_module_finding:
-        print( "_findModule: Enter", module_name, "in", parent_package )
+        print("_findModule: Enter", module_name, "in", parent_package)
 
     # The os.path is strangely hacked into the os module, dispatching per
     # platform, we either cannot look into it, or we require that we resolve it
@@ -264,9 +269,9 @@ def _findModule(module_name, parent_package):
     if module_name == "os.path" and parent_package is None:
         parent_package = "os"
 
-        module_name = Utils.basename( os.path.__file__ )
-        if module_name.endswith( ".pyc" ):
-            module_name = module_name[ : -4 ]
+        module_name = Utils.basename(os.path.__file__)
+        if module_name.endswith(".pyc"):
+            module_name = module_name[:-4]
 
     assert module_name != "" or parent_package is not None
 
@@ -275,8 +280,8 @@ def _findModule(module_name, parent_package):
         return None, None
 
     if "." in module_name:
-        package_part = module_name[ : module_name.rfind( "." ) ]
-        module_name = module_name[ module_name.rfind( "." ) + 1 : ]
+        package_part = module_name[ : module_name.rfind(".") ]
+        module_name = module_name[ module_name.rfind(".") + 1 : ]
 
         # Relative import
         if parent_package is not None:
@@ -423,6 +428,11 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "comtypes.server.inprocserver", "_tkinter", "_scproxy", "EasyDialogs",
         "SOCKS", "rourl2path", "_winapi", "win32api", "win32con", "_gestalt",
         "java.lang", "vms_lib", "ic", "readline", "termios", "_sysconfigdata",
+        "al", "AL", "sunaudiodev", "SUNAUDIODEV", "Audio_mac",
+        "test.test_MimeWriter", "dos", "win32pipe", "Carbon", "Carbon.Files",
+        "sgi", "ctypes.macholib.dyld", "bsddb3", "_pybsddb", "_xmlrpclib",
+        "netbios", "win32wnet", "email.Parser", "elementree.cElementTree",
+        "elementree.ElementTree", "_gbdm",
     )
 
     # TODO: Turn this into a warning that encourages reporting.
@@ -432,10 +442,62 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
     return module_name in white_list
 
+
+def getStandardLibraryPaths():
+
+    # Using the function object to cache its result, avoiding global variable
+    # usage.
+    if not hasattr(getStandardLibraryPaths, "result"):
+        os_filename = os.__file__
+        if os_filename.endswith(".pyc"):
+            os_filename = os_filename[:-1]
+
+        os_path = Utils.normcase(Utils.dirname(os_filename))
+
+        stdlib_paths = set([os_path])
+
+        # Happens for virtualenv situation, some modules will come from the link
+        # this points to.
+        if Utils.isLink(os_filename):
+            os_filename = Utils.readLink(os_filename)
+            stdlib_paths.add(Utils.normcase(Utils.dirname(os_filename)))
+
+        # Another possibility is "orig-prefix.txt" file near the os.py, which
+        # points to the original install.
+        orig_prefix_filename = Utils.joinpath(os_path, "orig-prefix.txt")
+
+        if Utils.isFile(orig_prefix_filename):
+            stdlib_paths.add(
+                Utils.normcase(
+                    Utils.joinpath(
+                        open(orig_prefix_filename).read(),
+                        "lib"
+                    )
+                )
+            )
+
+        # And yet another possibility, for MacOS Homebrew created virtualenv
+        # at least is a link ".Python", which points to the original install.
+        python_link_filename = Utils.joinpath(os_path, "..", ".Python")
+        if Utils.isLink(python_link_filename):
+            stdlib_paths.add(
+                Utils.normcase(
+                    Utils.joinpath(
+                        Utils.readLink(python_link_filename),
+                        "lib"
+                    )
+                )
+            )
+
+        getStandardLibraryPaths.result = stdlib_paths
+
+    return getStandardLibraryPaths.result
+
+
 def isStandardLibraryPath(path):
     path = Utils.normcase(path)
 
-    # In virtual-env, the "site.py" lives in a place that suggests it is not in
+    # In virtualenv, the "site.py" lives in a place that suggests it is not in
     # standard library, although it is.
     if os.path.basename(path) == "site.py":
         return True
@@ -444,21 +506,8 @@ def isStandardLibraryPath(path):
     if "dist-packages" in path or "site-packages" in path:
         return False
 
-    os_filename = os.__file__
-    if os_filename.endswith(".pyc"):
-        os_filename = os_filename[:-1]
 
-    os_path = Utils.normcase(Utils.dirname(os_filename))
-
-    candidates = [os_path]
-
-    # Happens for virtual-env situation, some modules will come from the link
-    # this points to.
-    if os.path.islink(os_filename):
-        os_filename = os.readlink(os_filename)
-        candidates.append(Utils.normcase(Utils.dirname(os_filename)))
-
-    for candidate in candidates:
+    for candidate in getStandardLibraryPaths():
         if path.startswith(candidate):
             return True
     else:
