@@ -255,8 +255,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                provider.isExpressionFunctionBody() and \
                variable.isReference() and \
                  (not variable.isModuleVariableReference() or \
-                  not variable.isFromGlobalStatement() ) and \
-               not provider.getCodeName().startswith("listcontr_"):
+                  not variable.isFromGlobalStatement() ):
 
                 parent_provider = provider.getParentVariableProvider()
 

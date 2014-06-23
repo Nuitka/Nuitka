@@ -65,8 +65,10 @@ from .Helpers import (
     buildNodeList,
     getKind,
     makeStatementsSequenceFromStatement,
+    makeTryFinallyExpression,
     makeTryFinallyStatement,
-    mergeStatements
+    mergeStatements,
+    wrapTryFinallyLater
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationBooleanExpressions import buildAndNode
@@ -85,6 +87,98 @@ make_contraction_parameters = ParameterSpec(
 
 def buildListContractionNode(provider, node, source_ref):
     # List contractions are dealt with by general code.
+
+    if Utils.python_version < 300:
+        temp_scope = provider.allocateTempScope("listcontr")
+
+        outer_iter_var = provider.allocateTempVariable(
+            temp_scope = temp_scope,
+            name       = "listcontr_iter"
+        )
+
+        outer_iter_ref = ExpressionTempVariableRef(
+            variable      = outer_iter_var.makeReference(provider),
+            source_ref    = source_ref
+        )
+
+        container_tmp   = provider.allocateTempVariable(
+            temp_scope = temp_scope,
+            name       = "listcontr_result"
+        )
+
+        statements, del_statements = _buildContractionBodyNode(
+            provider        = provider,
+            node            = node,
+            emit_class      = ExpressionListOperationAppend,
+            start_value     = ExpressionConstantRef(
+                constant   = [],
+                source_ref = source_ref
+            ),
+            outer_iter_ref  = outer_iter_ref,
+            container_tmp   = container_tmp,
+            temp_scope      = temp_scope,
+            assign_provider = True,
+            source_ref      = source_ref,
+            function_body   = provider
+        )
+
+        statements.insert(
+            0,
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = outer_iter_var.makeReference(provider),
+                    source_ref = source_ref
+                ),
+                source       = ExpressionBuiltinIter1(
+                    value      = buildNode(
+                        provider   = provider,
+                        node       = node.generators[0].iter,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                source_ref  = source_ref
+            )
+        )
+
+        result = makeTryFinallyExpression(
+            expression = ExpressionTempVariableRef(
+                variable   = container_tmp.makeReference(provider),
+                source_ref = source_ref
+            ),
+            tried      = statements,
+            final      = del_statements,
+            source_ref = source_ref
+        )
+
+        final = StatementsSequence(
+            statements = (
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = container_tmp.makeReference(provider),
+                        source_ref = source_ref
+                    ),
+                    tolerant     = True,
+                    source_ref   = source_ref
+                ),
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = outer_iter_var.makeReference(provider),
+                        source_ref = source_ref
+                    ),
+                    tolerant     = True,
+                    source_ref   = source_ref
+                ),
+            ),
+            source_ref = source_ref
+        )
+
+        wrapTryFinallyLater(
+            node  = result,
+            final = final
+        )
+
+        return result
 
     return _buildContractionNode(
         provider        = provider,
@@ -151,33 +245,12 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         source_ref      = source_ref
     )
 
-def _buildContractionNode(provider, node, name, emit_class, start_value,
-                          assign_provider, source_ref):
-    # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the developer manual. They use a lot of temporary names,
-    # nested blocks, etc. and so a lot of variable names. There is no good way
-    # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=R0912,R0914
 
-    # Note: The assign_provider is only to cover Python2 list contractions,
-    # assigning one of the loop variables to the outside scope.
-
-    assert provider.isParentVariableProvider(), provider
-
-    function_body = ExpressionFunctionBody(
-        provider   = provider,
-        name       = name,
-        doc        = None,
-        parameters = make_contraction_parameters,
-        source_ref = source_ref
-    )
+def _buildContractionBodyNode(provider, node, emit_class, start_value,
+                              container_tmp, outer_iter_ref, temp_scope,
+                              assign_provider, source_ref, function_body):
 
     if start_value is not None:
-        container_tmp = function_body.allocateTempVariable(
-            temp_scope = None,
-            name       = "contraction_result"
-        )
-
         statements = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
@@ -189,7 +262,10 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             )
         ]
 
-        tmp_variables = [container_tmp]
+        if assign_provider:
+            tmp_variables = []
+        else:
+            tmp_variables = [container_tmp]
     else:
         statements = []
         tmp_variables = []
@@ -249,7 +325,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
     for count, qual in enumerate(reversed( node.generators)):
         tmp_value_variable = function_body.allocateTempVariable(
-            temp_scope = None,
+            temp_scope = temp_scope,
             name       = "iter_value_%d" % count
         )
 
@@ -260,10 +336,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         # inside the function.
         if qual is node.generators[0]:
             def makeIteratorRef():
-                return ExpressionVariableRef(
-                    variable_name = "__iterator",
-                    source_ref    = source_ref
-                )
+                return outer_iter_ref.makeCloneAt(source_ref)
 
             tmp_iter_variable = None
 
@@ -280,7 +353,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             )
 
             tmp_iter_variable = function_body.allocateTempVariable(
-                temp_scope = None,
+                temp_scope = temp_scope,
                 name       = "contraction_iter_%d" % count
             )
 
@@ -306,7 +379,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                     ),
                     source_ref = source_ref
                 )
-
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
@@ -413,19 +485,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         )
 
     statements.append(current_body)
-
-    if start_value is not None:
-        statements.append(
-            StatementReturn(
-                expression = ExpressionTempVariableRef(
-                    variable   = container_tmp.makeReference(function_body),
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            )
-        )
-
-
     statements = mergeStatements(statements)
 
     if emit_class is ExpressionYield:
@@ -446,6 +505,67 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                 ),
                 tolerant   = True,
                 source_ref = source_ref.atInternal()
+            )
+        )
+
+    return statements, del_statements
+
+
+def _buildContractionNode(provider, node, name, emit_class, start_value,
+                          assign_provider, source_ref):
+    # The contraction nodes are reformulated to function bodies, with loops as
+    # described in the developer manual. They use a lot of temporary names,
+    # nested blocks, etc. and so a lot of variable names. There is no good way
+    # around that, and we deal with many cases, due to having generator
+    # expressions sharing this code, pylint: disable=R0912,R0914
+
+    # Note: The assign_provider is only to cover Python2 list contractions,
+    # assigning one of the loop variables to the outside scope.
+
+    assert provider.isParentVariableProvider(), provider
+
+    function_body = ExpressionFunctionBody(
+        provider   = provider,
+        name       = name,
+        doc        = None,
+        parameters = make_contraction_parameters,
+        source_ref = source_ref
+    )
+
+    if start_value is not None:
+        container_tmp = function_body.allocateTempVariable(
+            temp_scope = None,
+            name       = "contraction_result"
+        )
+    else:
+        container_tmp = None
+
+    outer_iter_ref = ExpressionVariableRef(
+        variable_name = "__iterator",
+        source_ref    = source_ref
+    )
+
+    statements, del_statements = _buildContractionBodyNode(
+        function_body   = function_body,
+        assign_provider = assign_provider,
+        provider        = provider,
+        node            = node,
+        emit_class      = emit_class,
+        outer_iter_ref  = outer_iter_ref,
+        temp_scope      = None,
+        start_value     = start_value,
+        container_tmp   = container_tmp,
+        source_ref      = source_ref,
+    )
+
+    if start_value is not None:
+        statements.append(
+            StatementReturn(
+                expression = ExpressionTempVariableRef(
+                    variable   = container_tmp.makeReference(function_body),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
             )
         )
 

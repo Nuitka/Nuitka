@@ -133,14 +133,6 @@ class Variable:
                   not owner.isGenerator() and not owner.needsCreation():
                 owner = owner.getParentVariableProvider()
 
-            # List contractions in Python2 do not really own their variables.
-            # TODO: They ought to not be variable providers/takers at all.
-            # TODO: This code seems unnecessary now due to "needsCreation" not
-            # being true.
-            if Utils.python_version < 300:
-                while owner != top_owner and owner.code_prefix == "listcontr":
-                    owner = owner.getParentVariableProvider()
-
             # This defines being shared. Owned by one, and references that are
             # owned by another node.
             if owner != top_owner:

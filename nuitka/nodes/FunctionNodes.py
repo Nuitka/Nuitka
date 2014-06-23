@@ -73,6 +73,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             self.is_lambda = False
 
         if name == "<listcontraction>":
+            assert Utils.python_version >= 300
+
             code_prefix = "listcontr"
             name = ""
 
