@@ -189,6 +189,8 @@ nuitka = options.nuitka
 
 if os.path.exists(nuitka):
     nuitka = os.path.abspath(nuitka)
+elif nuitka:
+    sys.exit("Error, nuitka binary not found.")
 
 if nuitka:
 
