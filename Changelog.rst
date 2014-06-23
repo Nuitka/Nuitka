@@ -1,5 +1,5 @@
-Nuitka Release 0.5.2 (Draft)
-============================
+Nuitka Release 0.5.2
+====================
 
 This is a major release, with huge changes to code generation that improve
 performance in a significant way. It is a the result of a long development

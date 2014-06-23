@@ -1,8 +1,11 @@
-nuitka (0.5.2~pre9+ds-1) UNRELEASED; urgency=medium
+nuitka (0.5.2+ds-1) unstable; urgency=medium
 
-  * New upstream pre-release.
+  * New upstream release.
+  * Permit building using cowbuilder, eatmydata (Closes: #749518)
+  * Do not require gcc in build-depends
+    (Closes: #747984) (Closes: #748005) (Closes: #751325)
 
- -- Kay Hayen <kay.hayen@gmail.com>  Tue, 17 Jun 2014 06:48:11 +0200
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 23 Jun 2014 08:17:57 +0200
 
 nuitka (0.5.1.1+ds-1) unstable; urgency=medium
 
