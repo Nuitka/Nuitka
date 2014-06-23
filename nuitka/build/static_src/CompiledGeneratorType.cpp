@@ -203,6 +203,50 @@ static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyOb
     return INCREASE_REFCOUNT( Py_None );
 }
 
+#if PYTHON_VERSION >= 340
+static void Nuitka_Generator_tp_del( Nuitka_GeneratorObject *generator )
+{
+    if ( generator->m_status != status_Running )
+    {
+        return;
+    }
+
+    // Revive temporarily.
+    assert( Py_REFCNT( generator ) == 0 );
+    Py_REFCNT( generator ) = 1;
+
+    PyObject *error_type, *error_value, *error_traceback;
+    PyErr_Fetch( &error_type, &error_value, &error_traceback );
+
+    PyObject *result = Nuitka_Generator_close( generator, NULL );
+
+    if (unlikely( result == NULL ))
+    {
+        PyErr_WriteUnraisable( (PyObject *)generator );
+    }
+    else
+    {
+        Py_DECREF( result );
+    }
+
+    /* Restore the saved exception. */
+    PyErr_Restore( error_type, error_value, error_traceback );
+
+    assert( Py_REFCNT( generator ) > 0 );
+    Py_REFCNT( generator ) -= 1;
+
+    Py_ssize_t refcnt = Py_REFCNT( generator );
+
+    if (unlikely( refcnt != 0 ))
+    {
+        _Py_NewReference( (PyObject *)generator );
+        Py_REFCNT( generator ) = refcnt;
+
+        _Py_DEC_REFTOTAL;
+    }
+}
+#endif
+
 static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
 {
     assert( Py_REFCNT( generator ) == 0 );
@@ -429,7 +473,11 @@ PyTypeObject Nuitka_Generator_Type =
     PyObject_GenericGetAttr,                         // tp_getattro
     0,                                               // tp_setattro
     0,                                               // tp_as_buffer
+#if PYTHON_VERSION < 340
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+#else
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE,
+#endif
                                                      // tp_flags
     0,                                               // tp_doc
     (traverseproc)Nuitka_Generator_tp_traverse,      // tp_traverse
@@ -456,7 +504,11 @@ PyTypeObject Nuitka_Generator_Type =
     0,                                               // tp_cache
     0,                                               // tp_subclasses
     0,                                               // tp_weaklist
+#if PYTHON_VERSION < 340
     0                                                // tp_del
+#else
+    (destructor)Nuitka_Generator_tp_del
+#endif
 };
 
 PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, void *context, releaser cleanup )
