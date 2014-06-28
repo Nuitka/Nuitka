@@ -3191,8 +3191,8 @@ etc.
   variable traces the reference objects created.
 
   The idea of references started out with closure references and has expanded
-  from there. It's now used to decide that a variable is shared. You can ask it,
-  and because it knows its references, it can tell.
+  from there. It's now used to decide that a variable is shared. You can ask a
+  variable about it, and because it knows all its references, it can tell.
 
   The thing is, this is not updated, so should a closure variable reference go
   away, it's still shared, as the reference remains. The thing with replaced and
@@ -3201,7 +3201,7 @@ etc.
 
   That makes the detection of "shared" unreliable and with false positives, that
   so far do not harm much. There is an issue with Python3 not compiling with
-  debug mode that might be a cause of it.
+  debug mode that is a cause of it.
 
   Anyway, the problem is increased by the scope of code in use in each
   optimization pass is only ever increasing, but starts out small. That a
@@ -3213,20 +3213,6 @@ etc.
   should be reset at the start, and the built up and judged at the end.
 
   The task to maintain this would be near ModuleRegistry.
-
-* Outline functions
-
-  The list contractions of Python2, and potentially other contractions or
-  in-lined functions too, in case they don't need any closure from it, could be
-  considered part of the surrounding function.
-
-  These would have function bodies, with proper return, and generate code as a
-  function would, but with the closure and local variables shared from arguments
-  in what is considered a direct call.
-
-  The outline functions would not be considered closure takers, nor closure
-  givers. They should be visited when they are used, almost like a statement
-  sequences, and returns would define their value.
 
 * Statement Sequences with only a frame contained should be optimized
 
