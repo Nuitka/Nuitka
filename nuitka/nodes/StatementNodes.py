@@ -281,9 +281,6 @@ class StatementsFrame(StatementsSequence):
 
         return result
 
-    def needsLineNumber(self):
-        return False
-
     def getGuardMode(self):
         return self.guard_mode
 

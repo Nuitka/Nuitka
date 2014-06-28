@@ -80,9 +80,6 @@ class StatementRaiseException(StatementChildrenHavingBase):
     def isStatementAborting(self):
         return True
 
-    def needsLineNumber(self):
-        return not self.isReraiseException()
-
     def isImplicit(self):
         return False
 

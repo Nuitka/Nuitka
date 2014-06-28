@@ -16,6 +16,7 @@
 #     limitations under the License.
 #
 
+from .LineNumberCodes import getLineNumberUpdateCode
 from .PythonAPICodes import getReferenceExportCode
 
 
@@ -47,6 +48,10 @@ def getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
     )
 
     emit(
+        getLineNumberUpdateCode(context)
+    )
+
+    emit(
         """\
 RAISE_EXCEPTION_WITH_CAUSE( &exception_type, &exception_value, &exception_tb, \
 %s );""" % getReferenceExportCode(raise_cause_name, context)
@@ -71,6 +76,10 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
         "exception_type = %s;" % (
             getReferenceExportCode(raise_type_name, context)
         )
+    )
+
+    emit(
+        getLineNumberUpdateCode(context)
     )
 
     emit(
@@ -99,6 +108,11 @@ def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
             getReferenceExportCode(raise_value_name, context)
         )
     )
+
+    emit(
+        getLineNumberUpdateCode(context)
+    )
+
     emit(
         "RAISE_EXCEPTION_%s( &exception_type, &exception_value, &exception_tb );" % (
             ("IMPLICIT" if implicit else "WITH_VALUE")
@@ -133,6 +147,10 @@ def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
         "exception_tb = (PyTracebackObject *)%s;" % (
             getReferenceExportCode(raise_tb_name, context)
         )
+    )
+
+    emit(
+        getLineNumberUpdateCode(context)
     )
 
     emit(

@@ -130,15 +130,6 @@ from .IteratorCodes import (
     getUnpackNextCode
 )
 from .LabelCodes import getGotoCode, getLabelCode
-from .LineNumberCodes import (
-    getLineNumberCode,
-    getSetLineNumberCode,
-    getSetLineNumberCodeRaw,
-    mergeLineNumberBranches,
-    popLineNumberBranch,
-    pushLineNumberBranch,
-    resetLineNumber
-)
 from .ListCodes import getListOperationAppendCode
 from .MainCodes import getMainCode
 from .ModuleCodes import (

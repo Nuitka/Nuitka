@@ -63,6 +63,8 @@ if args:
 if "PYTHONHASHSEED" not in os.environ:
     os.environ["PYTHONHASHSEED"] = "0"
 
+os.environ["PYTHONWARNINGS"] = "ignore"
+
 if "PYTHON" not in os.environ:
     os.environ["PYTHON"] = sys.executable
 

@@ -23,7 +23,7 @@
 import ast
 from logging import warning
 
-from nuitka import Constants, Tracing
+from nuitka import Constants, Options, Tracing
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionKeyValuePair,
@@ -291,6 +291,9 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
 
     sequence_kind = sequence_kind.upper()
 
+    if Options.isFullCompat() and elements:
+        source_ref = elements[-1].getSourceReference()
+
     # Note: This would happen in optimization instead, but lets just do it
     # immediately to save some time.
     if constant:
@@ -347,6 +350,9 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
             break
     else:
         constant = True
+
+    if Options.isFullCompat() and values:
+        source_ref = values[-1].getSourceReference()
 
     # Note: This would happen in optimization instead, but lets just do it
     # immediately to save some time.

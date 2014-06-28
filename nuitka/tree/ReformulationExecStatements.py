@@ -230,12 +230,17 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                 provider
             ),
             source_ref = source_ref
+              if globals_node is None else
+            globals_node.getSourceReference()
+
         ),
         ExpressionTempVariableRef(
             variable   = locals_keeper_variable.makeReference(
                 provider
             ),
             source_ref = source_ref
+              if locals_node is None else
+            locals_node.getSourceReference()
         ),
         makeStatementsSequence(pre_statements, False, source_ref),
         makeStatementsSequence(post_statements, False, source_ref)

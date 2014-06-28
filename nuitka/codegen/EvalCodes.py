@@ -20,7 +20,7 @@
 from nuitka.Utils import python_version
 
 from .ConstantCodes import getConstantCode
-from .ErrorCodes import getErrorExitCode, getReleaseCodes, getReleaseCode
+from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 from .GlobalsLocalsCodes import getStoreLocalsCode
 
 

@@ -136,11 +136,6 @@ Removed loop immediately broken."""
 
         return self, None, None
 
-    def needsLineNumber(self):
-        # The loop itself cannot fail, the first statement will set the line
-        # number if necessary.
-        return False
-
 
 class StatementContinueLoop(NodeBase):
     kind = "STATEMENT_CONTINUE_LOOP"

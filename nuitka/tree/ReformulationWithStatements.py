@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Utils
+from nuitka import Options, Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
@@ -104,6 +104,13 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         source_ref = source_ref
     )
 
+    if Options.isFullCompat() and with_body is not None:
+        with_exit_source_ref = with_body.getStatements()[-1].\
+          getSourceReference()
+    else:
+        with_exit_source_ref = source_ref
+
+
     # The "__enter__" and "__exit__" were normal attribute lookups under
     # CPython2.6, but that changed with CPython2.7.
     if Utils.python_version < 270:
@@ -125,7 +132,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         # variables.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_exit_variable.makeReference( provider ),
+                variable   = tmp_exit_variable.makeReference(provider),
                 source_ref = source_ref
             ),
             source       = attribute_lookup_class(
@@ -261,7 +268,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                                 constant   = (None, None, None),
                                 source_ref = source_ref
                             ),
-                            source_ref = source_ref
+                            source_ref = with_exit_source_ref
                         ),
                         source_ref     = source_ref
                     )
