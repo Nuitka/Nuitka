@@ -37,10 +37,9 @@ def getIntegerSubscriptLookupCode(to_name, target_name, subscript_name,
     )
 
     getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        check_name = to_name,
+        emit       = emit,
+        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -62,12 +61,10 @@ def getSubscriptLookupCode(to_name, subscript_name, subscribed_name, emit,
     )
 
     getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        check_name = to_name,
+        emit       = emit,
+        context    = context
     )
-
 
     context.addCleanupTempName(to_name)
 
@@ -96,10 +93,9 @@ def getIntegerSubscriptAssignmentCode(subscribed_name, subscript_name,
     )
 
     getErrorExitBoolCode(
-        condition       = "%s == false" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
     )
 
 def getSubscriptAssignmentCode(target_name, subscript_name, value_name,
@@ -122,10 +118,9 @@ def getSubscriptAssignmentCode(target_name, subscript_name, value_name,
     )
 
     getErrorExitBoolCode(
-        condition       = "%s == false" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
     )
 
 
@@ -147,8 +142,7 @@ def getSubscriptDelCode(target_name, subscript_name, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition       = "%s == false" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
     )

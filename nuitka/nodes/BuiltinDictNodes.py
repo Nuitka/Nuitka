@@ -20,13 +20,13 @@
 """
 
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
+from nuitka.Utils import python_version
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .ContainerMakingNodes import ExpressionKeyValuePair
 from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
 
-from nuitka.Utils import python_version
 
 class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_DICT"

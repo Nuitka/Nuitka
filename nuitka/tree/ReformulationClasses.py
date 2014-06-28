@@ -306,7 +306,7 @@ def _buildClassNode3(provider, node, source_ref):
 
     for decorator in buildNodeList(
             provider,
-            reversed( node.decorator_list ),
+            reversed(node.decorator_list),
             source_ref
         ):
         decorated_body = ExpressionCallNoKeywords(

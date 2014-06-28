@@ -256,10 +256,10 @@ def buildExecNode(provider, node, source_ref):
         parts = body.elts
         body  = parts[0]
 
-        if len( parts ) > 1:
+        if len(parts) > 1:
             exec_globals = parts[1]
 
-            if len( parts ) > 2:
+            if len(parts) > 2:
                 exec_locals = parts[2]
         else:
             return StatementRaiseException(
@@ -281,7 +281,7 @@ exec: arg 1 must be a string, file, or code object""",
         provider.markAsExecContaining()
 
         if orig_globals is None:
-            provider.markAsUnqualifiedExecContaining( source_ref )
+            provider.markAsUnqualifiedExecContaining(source_ref)
 
     temp_scope = provider.allocateTempScope("exec")
 

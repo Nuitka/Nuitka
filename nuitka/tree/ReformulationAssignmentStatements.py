@@ -104,8 +104,8 @@ def buildExtSliceNode(provider, node, source_ref):
     )
 
 
-def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
-                                          source_ref ):
+def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
+                                         source_ref):
     # This is using many variable names on purpose, so as to give names to the
     # unpacked detail values, pylint: disable=R0914
 
@@ -146,7 +146,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
             source_ref = source_ref
         )
     elif kind == "Tuple":
-        temp_scope = provider.allocateTempScope( "tuple_unpack" )
+        temp_scope = provider.allocateTempScope("tuple_unpack")
 
         source_iter_var = provider.allocateTempVariable(
             temp_scope = temp_scope,
@@ -156,7 +156,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source,
         statements = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_iter_var.makeReference( provider ),
+                    variable   = source_iter_var.makeReference(provider),
                     source_ref = source_ref
                 ),
                 source = ExpressionBuiltinIter1(

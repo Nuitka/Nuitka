@@ -387,11 +387,11 @@ def detectEarlyImports():
                 if '__pycache__' in dirs:
                     dirs.remove('__pycache__')
 
-            for dir in dirs:
+            for dirname in dirs:
                 if import_path == '':
-                    stdlib_modules.append(dir)
+                    stdlib_modules.append(dirname)
                 else:
-                    stdlib_modules.append(import_path + '.' + dir)
+                    stdlib_modules.append(import_path + '.' + dirname)
 
         import_code = 'imports = ' + repr(sorted(stdlib_modules)) + '\n'\
                       'for imp in imports:\n' \

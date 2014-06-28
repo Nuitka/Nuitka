@@ -170,10 +170,10 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
             )
 
         if list_star_arg is not None:
-            helper_args.append( list_star_arg )
+            helper_args.append(list_star_arg)
 
         if dict_star_arg is not None:
-            helper_args.append( dict_star_arg )
+            helper_args.append(dict_star_arg)
 
         return ExpressionFunctionCall(
             function   = ExpressionFunctionCreation(

@@ -119,10 +119,9 @@ def getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,
     )
 
     getErrorExitBoolCode(
-        condition       = "%s == -1" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == -1" % res_name,
+        emit      = emit,
+        context   = context
     )
 
 

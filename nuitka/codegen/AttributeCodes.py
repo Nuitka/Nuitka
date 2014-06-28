@@ -47,10 +47,9 @@ def getSpecialAttributeLookupCode(to_name, source_name, attr_name, emit,
     )
 
     getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        check_name = to_name,
+        emit       = emit,
+        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -90,10 +89,9 @@ def getAttributeLookupCode(to_name, source_name, attribute_name, emit, context):
     )
 
     getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        check_name = to_name,
+        emit       = emit,
+        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -117,10 +115,9 @@ def getAttributeCheckBoolCode(source_name, attr_name, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition       = "%s == -1" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == -1" % res_name,
+        emit      = emit,
+        context   = context
     )
 
     getBranchingCode("%s == 1" % res_name, emit, context)
@@ -140,10 +137,9 @@ def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit,
     )
 
     getErrorExitBoolCode(
-        condition       = "%s == false" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
     )
 
     getReleaseCodes(
@@ -168,10 +164,9 @@ def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition       = "%s == false" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
     )
 
     getReleaseCodes(
@@ -195,10 +190,9 @@ def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition       = "%s == false" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
     )
 
     getReleaseCodes(

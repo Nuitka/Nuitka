@@ -34,10 +34,9 @@ def getCAPIObjectCode(to_name, capi, arg_names, ref_count, emit, context):
     )
 
     getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        check_name = to_name,
+        emit       = emit,
+        context    = context
     )
 
     getReleaseCodes(
@@ -72,10 +71,9 @@ def getCAPIIntCode(res_name, capi, args, emit, context):
         )
 
     getErrorExitBoolCode(
-        condition       = "%s == -1" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == -1" % res_name,
+        emit      = emit,
+        context   = context
     )
 
 def getReferenceExportCode(base_name, context):

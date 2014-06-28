@@ -231,10 +231,7 @@ def _generateDictionaryCreationCode(to_name, pairs, emit, context):
 
     context.addCleanupTempName(to_name)
 
-    dict_key_names = []
-    dict_value_names = []
-
-    # Strange as it is, CPython evalutes the key/value pairs strictly in order,
+    # Strange as it is, CPython evaluates the key/value pairs strictly in order,
     # but for each pair, the value first.
     for pair in pairs:
         dict_key_name = context.allocateTempName("dict_key")

@@ -261,7 +261,7 @@ class CodeObjectsMixin:
 
 
     # False alarms about "hashlib.md5" due to its strange way of defining what
-    # is exported, pylint won't understand it. pylint: disable=E1101
+    # is exported, PyLint won't understand it. pylint: disable=E1101
     if python_version < 300:
         def _calcHash(self, key):
             hash_value = hashlib.md5(

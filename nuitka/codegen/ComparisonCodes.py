@@ -48,10 +48,9 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
         )
 
         getErrorExitCode(
-            check_name      = to_name,
-            quick_exception = None,
-            emit            = emit,
-            context         = context
+            check_name  = to_name,
+            emit        = emit,
+            context     = context
         )
 
         getReleaseCode(
@@ -142,10 +141,9 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, emit,
         )
 
         getErrorExitBoolCode(
-            condition       = "%s == -1" % operator_res_name,
-            quick_exception = None,
-            emit            = emit,
-            context         = context
+            condition = "%s == -1" % operator_res_name,
+            emit      = emit,
+            context   = context
         )
 
         condition = "%s == %d" % (
@@ -213,10 +211,9 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, emit,
         )
 
         getErrorExitBoolCode(
-            condition       = "%s == -1" % operator_res_name,
-            quick_exception = None,
-            emit            = emit,
-            context         = context
+            condition = "%s == -1" % operator_res_name,
+            emit      = emit,
+            context   = context
         )
 
         condition = "%s == 1" % (
@@ -295,10 +292,9 @@ def getBuiltinIsinstanceBoolCode(inst_name, cls_name, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition       = "%s == -1" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == -1" % res_name,
+        emit      = emit,
+        context   = context
     )
 
     getBranchingCode("%s == 1" % res_name, emit, context)

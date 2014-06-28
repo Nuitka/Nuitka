@@ -43,10 +43,9 @@ def getCallCodeNoArgs(to_name, called_name, emit, context):
     )
 
     getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        check_name  = to_name,
+        emit        = emit,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)

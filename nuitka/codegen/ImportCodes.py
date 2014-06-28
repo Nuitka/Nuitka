@@ -54,10 +54,9 @@ def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
     )
 
     getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        check_name  = to_name,
+        emit        = emit,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)

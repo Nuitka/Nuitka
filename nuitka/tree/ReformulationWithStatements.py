@@ -90,7 +90,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
             node       = assign_target,
             allow_none = True,
             source     = ExpressionTempVariableRef(
-                variable   = tmp_enter_variable.makeReference( provider ),
+                variable   = tmp_enter_variable.makeReference(provider),
                 source_ref = source_ref
             ),
             source_ref = source_ref

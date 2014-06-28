@@ -44,8 +44,10 @@ from nuitka.nodes.TryNodes import ExpressionTryFinally, StatementTryFinally
 def dump(node):
     Tracing.printLine(ast.dump(node))
 
+
 def getKind(node):
     return node.__class__.__name__.split(".")[-1]
+
 
 def extractDocFromBody(node):
     # Work around ast.get_docstring breakage.
@@ -53,6 +55,7 @@ def extractDocFromBody(node):
         return node.body[1:], node.body[0].value.s
     else:
         return node.body, None
+
 
 build_nodes_args3 = None
 build_nodes_args2 = None
@@ -67,6 +70,7 @@ def setBuildDispatchers(path_args3, path_args2, path_args1):
     build_nodes_args3 = path_args3
     build_nodes_args2 = path_args2
     build_nodes_args1 = path_args1
+
 
 def buildNode(provider, node, source_ref, allow_none = False):
     if node is None and allow_none:
@@ -112,24 +116,26 @@ def buildNode(provider, node, source_ref, allow_none = False):
         warning( "Problem at '%s' with %s." % ( source_ref, ast.dump( node ) ) )
         raise
 
+
 def buildNodeList(provider, nodes, source_ref, allow_none = False):
     if nodes is not None:
         result = []
 
         for node in nodes:
             if hasattr( node, "lineno" ):
-                node_source_ref = source_ref.atLineNumber( node.lineno )
+                node_source_ref = source_ref.atLineNumber(node.lineno)
             else:
                 node_source_ref = source_ref
 
-            entry = buildNode( provider, node, node_source_ref, allow_none )
+            entry = buildNode(provider, node, node_source_ref, allow_none)
 
             if entry is not None:
-                result.append( entry )
+                result.append(entry)
 
         return result
     else:
         return []
+
 
 def makeModuleFrame(module, statements, source_ref):
     assert module.isPythonModule()
@@ -331,7 +337,7 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     # mutable.
 
     assert len( keys ) == len( values )
-    for key, value in zip( keys, values ):
+    for key, value in zip(keys, values):
         if not key.isExpressionConstantRef():
             constant = False
             break
@@ -351,8 +357,16 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
         return ExpressionConstantRef(
             constant      = Constants.createConstantDict(
                 lazy_order = not lazy_order,
-                keys       = [ key.getConstant() for key in keys ],
-                values     = [ value.getConstant() for value in values ]
+                keys       = [
+                    key.getConstant()
+                    for key in
+                    keys
+                ],
+                values     = [
+                    value.getConstant()
+                    for value in
+                    values
+                ]
             ),
             source_ref    = source_ref,
             user_provided = True
@@ -360,9 +374,13 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     else:
         return ExpressionMakeDict(
             pairs      = [
-                ExpressionKeyValuePair( key, value, key.getSourceReference() )
+                ExpressionKeyValuePair(
+                    key        = key,
+                    value      = value,
+                    source_ref = key.getSourceReference()
+                )
                 for key, value in
-                zip( keys, values )
+                zip(keys, values)
             ],
             lazy_order = lazy_order,
             source_ref = source_ref

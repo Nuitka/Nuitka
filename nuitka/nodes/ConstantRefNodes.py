@@ -70,7 +70,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         # assert type( constant ) is not str or len( constant ) < 30000
 
     def __repr__(self):
-        return "<Node %s value %s at %s %s>" % ( self.kind, self.constant, self.source_ref, self.user_provided )
+        return "<Node %s value %s at %s %s>" % ( self.kind, self.constant, self.source_ref.getAsString(), self.user_provided )
 
     def makeCloneAt(self, source_ref):
         return self.__class__(self.constant, source_ref)
