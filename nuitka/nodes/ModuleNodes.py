@@ -393,10 +393,16 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
         full_name = self.getFullName()
 
         if full_name == "PyQt4.QtCore":
-            return (
-                ("atexit", None),
-                ("sip", None)
-            )
+            if Utils.python_version < 300:
+                return (
+                    ("atexit", None),
+                    ("sip", None),
+                )
+            else:
+                return (
+                    ("sip", None),
+                )
+
         elif full_name == "lxml.etree":
             return (
                 ("gzip", None),
