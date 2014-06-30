@@ -39,8 +39,11 @@ else:
 
 parts = [
     filename[:-4].\
+        replace("-py2.6","").\
         replace("-py2.7","").\
+        replace("-py3.2","").\
         replace("-py3.3","").\
+        replace("-py3.4","").\
         replace("Nuitka32","Nuitka").\
         replace("Nuitka64","Nuitka"),
     "py" + sys.version[:3].replace(".",""),
