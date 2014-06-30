@@ -19,6 +19,7 @@
 
 #include "nuitka/prelude.hpp"
 
+// TODO: Make stack size rational.
 #define STACK_SIZE (1024*1024)
 
 // Keep one stack around to avoid the overhead of repeated malloc/free in
@@ -32,7 +33,7 @@ void initFiber( Fiber *to )
     to->start_stack = NULL;
 }
 
-void prepareFiber( Fiber *to, void *code, unsigned long arg )
+void prepareFiber( Fiber *to, void *code, intptr_t arg )
 {
     int res = getcontext( &to->f_context );
     assert( res == 0 );

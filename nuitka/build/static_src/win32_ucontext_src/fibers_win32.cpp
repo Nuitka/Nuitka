@@ -19,6 +19,7 @@
 
 #include "nuitka/prelude.hpp"
 
+// TODO: Make stack size rational.
 #define STACK_SIZE (1024*1024)
 
 void initFiber( Fiber *to )
@@ -30,7 +31,7 @@ void initFiber( Fiber *to )
     to->fiber = NULL;
 }
 
-void prepareFiber( Fiber *to, void *code, unsigned long arg )
+void prepareFiber( Fiber *to, void *code, intptr_t arg )
 {
     assert( to );
     assert( code );

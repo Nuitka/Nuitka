@@ -70,9 +70,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
         {
             generator->m_status = status_Running;
 
-            // Prepare the generator context to run. TODO: Make stack size
-            // rational.
-            prepareFiber( &generator->m_yielder_context, generator->m_code, (unsigned long)generator );
+            // Prepare the generator context to run.
+            prepareFiber( &generator->m_yielder_context, generator->m_code, (intptr_t)generator );
         }
 
         generator->m_yielded = value;
