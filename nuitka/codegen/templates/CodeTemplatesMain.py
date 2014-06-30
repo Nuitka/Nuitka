@@ -112,6 +112,10 @@ int main( int argc, char *argv[] )
     // Set the command line parameters for run time usage.
     setCommandLineParameters( argc, argv, false );
 
+#ifdef _NUITKA_STANDALONE
+    restoreStandaloneEnvironment();
+#endif
+
     // Initialize the constant values used.
     _initBuiltinModule();
     _initConstants();

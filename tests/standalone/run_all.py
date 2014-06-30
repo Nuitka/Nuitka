@@ -123,6 +123,12 @@ for filename in sorted(os.listdir(".")):
         # For the warnings.
         extra_flags.append( "ignore_stderr" )
 
+    if filename == "PythonExecuting.py":
+        my_print(
+            "Skipping", filename, "no CPython to fork is known on Windows."
+        )
+        continue
+
     if filename not in ("PySideUsing.py", "PyQtUsing.py", "GtkUsing.py"):
         extra_flags += [
             "no_site"
