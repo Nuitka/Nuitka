@@ -16,6 +16,7 @@
 #     limitations under the License.
 #
 
+from __future__ import print_function
 
 def testAssert1():
     assert False
@@ -33,34 +34,34 @@ def testAssert3():
     return 1
 
 try:
-    print "Function that will assert."
+    print("Function that will assert.")
     testAssert1()
-    print "No exception."
-except Exception, e:
-    print "Raised", type(e), e
+    print("No exception.")
+except Exception as e:
+    print("Raised", type(e), e)
 
 try:
-    print "Function that will not assert."
+    print("Function that will not assert.")
     testAssert2()
-    print "No exception."
-except Exception, e:
-    print "Raised", type(e), e
+    print("No exception.")
+except Exception as e:
+    print("Raised", type(e), e)
 
 try:
-    print "Function that will assert with argument."
+    print("Function that will assert with argument.")
     testAssert3()
-    print "No exception."
-except Exception, e:
-    print "Raised", type(e), e
+    print("No exception.")
+except Exception as e:
+    print("Raised", type(e), e)
 
 try:
-    print "Assertion with tuple argument.",
+    print("Assertion with tuple argument.", end = "")
     assert False, (3,)
 except AssertionError as e:
-    print str(e),
+    print(str(e))
 
 try:
-    print "Assertion with plain argument.",
+    print("Assertion with plain argument.", end = "")
     assert False, 3
 except AssertionError as e:
-    print str(e),
+    print(str(e))
