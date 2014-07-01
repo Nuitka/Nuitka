@@ -25,7 +25,7 @@ import os
 import shutil
 import subprocess
 import sys
-from logging import debug, info
+from logging import debug, info, warning
 
 import marshal
 from nuitka import Options, Utils
@@ -262,7 +262,11 @@ def _detectImports(command, is_late):
         _stdout, stderr = process.communicate()
 
     # Don't let errors here go unnoticed.
-    assert process.returncode == 0, stderr
+    if process.returncode != 0:
+        warning("There is a problem with detecting imports, CPython said:")
+        for line in stderr.split(b"\n"):
+            print(line)
+        sys.exit("Error, please report the issue with above output.")
 
     result = []
 
@@ -359,6 +363,8 @@ def detectEarlyImports():
 
         for root, dirs, filenames in os.walk(stdlib_dir):
             import_path = root[len(stdlib_dir):].strip('/\\')
+            import_path = import_path.replace("\\", ".").replace("/",".")
+
             if import_path == '':
                 if 'site-packages' in dirs:
                     dirs.remove('site-packages')
@@ -374,6 +380,12 @@ def detectEarlyImports():
             if import_path in ('tkinter', 'importlib'):
                 if 'test' in dirs:
                     dirs.remove('test')
+
+            if Utils.python_version >= 340 and Utils.getOS() == "Windows":
+                if import_path == "multiprocessing":
+                    filenames.remove("popen_fork.py")
+                    filenames.remove("popen_forkserver.py")
+                    filenames.remove("popen_spawn_posix.py")
 
             for filename in filenames:
                 if filename.endswith('.py') and filename not in ignore_modules:
