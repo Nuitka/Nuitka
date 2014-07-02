@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.3pre1
+Nuitka V0.5.3pre2
 Copyright (C) 2014 Kay Hayen."""
 
 import logging
