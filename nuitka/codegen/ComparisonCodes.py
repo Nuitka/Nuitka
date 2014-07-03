@@ -121,6 +121,32 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
             emit          = emit,
             context       = context
         )
+    elif comparator == "exception_match":
+        operator_res_name = context.allocateTempName(
+            "cmp_exception_match",
+            "int"
+        )
+
+        emit(
+             "%s = EXCEPTION_MATCH_BOOL( %s, %s );" % (
+                operator_res_name,
+                left_name,
+                right_name
+            )
+        )
+
+        getErrorExitBoolCode(
+            condition = "%s == -1" % operator_res_name,
+            emit      = emit,
+            context   = context
+        )
+
+        emit(
+            "%s = BOOL_FROM( %s != 0 );" % (
+                to_name,
+                operator_res_name
+            )
+        )
     else:
         assert False, comparator
 
