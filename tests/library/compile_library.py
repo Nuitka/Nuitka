@@ -51,6 +51,21 @@ try:
 except ImportError:
     extra_path = os_path
 
+try:
+    import matplotlib
+
+    extra_path2 = os.path.normcase(
+        os.path.dirname(
+            os.path.dirname(
+                matplotlib.__file__
+            )
+        )
+    )
+
+    print("Using extra2 library path", extra_path2)
+except ImportError:
+    extra_path2 = os_path
+
 os_path = os.path.normpath(os_path)
 extra_path = os.path.normpath(extra_path)
 
@@ -129,9 +144,10 @@ def compilePath(path):
                 )
             )
 
-
-
 compilePath(os_path)
 
 if os_path != extra_path:
     compilePath(extra_path)
+
+if os_path != extra_path2:
+    compilePath(extra_path2)
