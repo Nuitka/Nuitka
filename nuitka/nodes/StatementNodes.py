@@ -402,6 +402,12 @@ class StatementsFrame(StatementsSequence):
                     node       = self
                 )
             else:
+                constraint_collection.signalChange(
+                    "new_statements",
+                    self.getSourceReference(),
+                    "Removed useless frame"
+                )
+
                 return makeStatementsSequenceReplacementNode(
                     statements = outside_pre + outside_post,
                     node       = self

@@ -2404,7 +2404,9 @@ def generateExpressionCode(to_name, expression, emit, context,
         Tracing.printError(
             "Problem with %r at %s" % (
                 expression,
-                "" if expression is None else expression.getSourceReference()
+                ""
+                  if expression is None else
+                expression.getSourceReference().getAsString()
             )
         )
         raise
@@ -4256,7 +4258,7 @@ def generateStatementCode(statement, emit, context):
         Tracing.printError(
             "Problem with %r at %s" % (
                 statement,
-                statement.getSourceReference()
+                statement.getSourceReference().getAsString()
             )
         )
         raise
