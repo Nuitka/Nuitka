@@ -321,7 +321,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
         if node.isStatementDelVariable():
             variable = node.getTargetVariableRef().getVariable()
 
-            if variable.isShared():
+            if variable.isSharedLogically():
                 SyntaxErrors.raiseSyntaxError(
                     reason       = """\
 can not delete variable '%s' referenced in nested scope""" % (

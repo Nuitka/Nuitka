@@ -667,7 +667,7 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
             # print variable
 
-            if variable.isLocalVariable() and not variable.isShared():
+            if variable.isLocalVariable() and not variable.isSharedLogically():
                 if variable_trace.isAssignTrace():
                     assign_node = variable_trace.getAssignNode()
 

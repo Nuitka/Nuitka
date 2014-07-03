@@ -50,9 +50,6 @@ class Variable:
     def addReference(self, reference):
         self.references.append( reference )
 
-    def getReferences(self):
-        return self.references
-
     def getReferenced(self):
         # Abstract method, pylint: disable=R0201,W0613
         return None
@@ -141,13 +138,23 @@ class Variable:
             return False
 
 
-    def isShared(self, technical = False):
+    def isSharedLogically(self):
         variable = self
 
         while variable.isClosureReference():
             variable = variable.getReferenced()
 
-        return self._checkShared( variable, technical )
+        return self._checkShared(variable, False)
+
+
+    def isSharedTechnically(self):
+        variable = self
+
+        while variable.isClosureReference():
+            variable = variable.getReferenced()
+
+        return self._checkShared(variable, True)
+
 
     reference_class = None
 
@@ -267,7 +274,7 @@ class ClosureVariableReference(VariableReferenceBase):
                 assert False, self
 
     def getDeclarationTypeCode(self, in_context):
-        if self.getReferenced().isShared( True ):
+        if self.getReferenced().isSharedTechnically():
             if in_context:
                 return "PyObjectClosureVariable"
             else:
@@ -355,7 +362,7 @@ class LocalVariable(Variable):
         return "var_" + Utils.encodeNonAscii( self.getName() )
 
     def getDeclarationTypeCode(self, in_context):
-        if self.isShared( True ):
+        if self.isSharedTechnically():
             return "PyObjectSharedLocalVariable"
         else:
             return "PyObjectLocalVariable"
@@ -437,7 +444,7 @@ class ParameterVariable(LocalVariable):
         return "par_" + Utils.encodeNonAscii( self.getName() )
 
     def getDeclarationTypeCode(self, in_context):
-        if self.isShared( True ):
+        if self.isSharedTechnically():
             return "PyObjectSharedLocalVariable"
         elif self.getHasDelIndicator():
             return "PyObjectLocalParameterVariableWithDel"
@@ -500,9 +507,6 @@ class ModuleVariable(Variable):
 
     def getModuleName(self):
         return self.module.getFullName()
-
-    def _checkShared(self, variable, technical):
-        assert False, variable
 
 
 class TempVariableClosureReference(VariableReferenceBase):
@@ -579,7 +583,7 @@ class TempVariable(Variable):
         return True
 
     def getDeclarationTypeCode(self, in_context):
-        if self.isShared( True ):
+        if self.isSharedTechnically():
             return "PyObjectSharedTempVariable"
         else:
             return "PyObjectTempVariable"

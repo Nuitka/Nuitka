@@ -227,7 +227,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     def removeVariable(self, variable):
         assert variable.getOwner() is self
         assert variable in self.providing.values(), ( self.providing, variable )
-        assert not variable.getReferences()
 
         del self.providing[ variable.getName() ]
 

@@ -598,7 +598,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         )
 
     for closure_variable in closure_variables:
-        assert closure_variable.isShared()
+        assert closure_variable.isSharedLogically()
 
         context_decl.append(
             getLocalVariableInitCode(

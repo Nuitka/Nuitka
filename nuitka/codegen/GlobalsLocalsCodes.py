@@ -86,12 +86,12 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
     )
 
     if variable.isLocalVariable():
-        if variable.isShared(True):
+        if variable.isSharedTechnically():
             access_code += ".storage->object"
         else:
             access_code += ".object"
     else:
-        if variable.getReferenced().isShared(True):
+        if variable.getReferenced().isSharedTechnically():
             access_code += ".storage->object"
         else:
             access_code += ".object"
