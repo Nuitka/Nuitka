@@ -377,7 +377,7 @@ def detectEarlyImports():
                 if 'turtledemo' in dirs:
                     dirs.remove('turtledemo')
 
-            if import_path in ('tkinter', 'importlib'):
+            if import_path in ('tkinter', 'importlib', 'ctypes'):
                 if 'test' in dirs:
                     dirs.remove('test')
 
