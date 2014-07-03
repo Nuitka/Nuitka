@@ -134,6 +134,10 @@ class StatementTryFinally(StatementChildrenHavingBase,
         return self.getBlockTry().mayContinue() or \
                self.getBlockFinal().mayContinue()
 
+    def needsFrame(self):
+        return self.getBlockTry().needsFrame() or \
+               self.getBlockFinal().needsFrame()
+
     def needsExceptionPublish(self):
         return self.public_exc
 
