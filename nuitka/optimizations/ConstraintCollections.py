@@ -24,7 +24,7 @@ This is about collecting these constraints and to manage them.
 """
 
 # Python3 compatibility.
-from logging import debug, warning
+from logging import debug
 
 from nuitka import Options, Tracing
 from nuitka.__past__ import iterItems

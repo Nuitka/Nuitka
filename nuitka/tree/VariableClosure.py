@@ -128,7 +128,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         )
         # Attribute access of names of class functions should be mangled, if
         # they start with "__", but do not end in "__" as well.
-        elif node.isExpressionAttributeLookup() or node.isStatementAssignmentAttribute() or \
+        elif node.isExpressionAttributeLookup() or \
+             node.isStatementAssignmentAttribute() or \
              node.isStatementDelAttribute():
             attribute_name = node.getAttributeName()
 

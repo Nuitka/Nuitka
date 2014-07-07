@@ -28,7 +28,7 @@ import sys
 from logging import debug, info, warning
 
 import marshal
-from nuitka import Options, Utils
+from nuitka import Options, Tracing, Utils
 from nuitka.__past__ import raw_input, urlretrieve  # pylint: disable=W0622
 from nuitka.codegen.ConstantCodes import needsPickleInit
 
@@ -52,7 +52,7 @@ def getDependsExePath():
     )
 
     if not Utils.isFile(nuitka_depends_zip):
-        print("""\
+        Tracing.printLine("""\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
 to analyse the dependencies of Python extension modules. Is it OK to download
 and put it in APPDATA (no installer needed, cached, one time question)."""
@@ -265,7 +265,7 @@ def _detectImports(command, is_late):
     if process.returncode != 0:
         warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
-            print(line)
+            Tracing.printLine(line)
         sys.exit("Error, please report the issue with above output.")
 
     result = []

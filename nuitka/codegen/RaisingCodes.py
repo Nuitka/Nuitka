@@ -15,6 +15,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Code generation for implicit and explict exception raises.
+
+Exceptions from other operations are consider ErrorCodes domain.
+
+"""
 
 from .LineNumberCodes import getLineNumberUpdateCode
 from .PythonAPICodes import getReferenceExportCode
@@ -28,7 +33,8 @@ def getReRaiseExceptionCode(emit, context):
             "RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
         )
         emit(
-            "if (exception_tb && exception_tb->tb_frame == %(frame_identifier)s) %(frame_identifier)s->f_lineno = exception_tb->tb_lineno;" % {
+            """\
+if (exception_tb && exception_tb->tb_frame == %(frame_identifier)s) %(frame_identifier)s->f_lineno = exception_tb->tb_lineno;""" % {
                 "frame_identifier" : context.getFrameHandle()
             }
         )
