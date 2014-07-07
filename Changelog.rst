@@ -27,6 +27,13 @@ New Optimization
 Bug Fixes
 ---------
 
+- Corrected an issue for frames being optimized away where in fact they are
+  still necessary. `Issue#140 <http://bugs.nuitka.net/issue140>`__. Fixed in
+  0.5.2.1 already.
+
+- Fixed handling of exception tests as side effects. These could be remainders
+  of optimization, but didn't have code generation. Fixed in 0.5.2.1 already.
+
 - Previously Nuitka only ever used the statement line as the line number for all
   the expression, even if it spawned multiple lines. Usually nothing important,
   and often even more correct, but sometimes not. Now the line number is most
@@ -45,6 +52,9 @@ New Tests
 
 - For our testing approach, the improved line number handling means we can undo
   lots of changes that are no more necessary.
+
+- The compile library test has been extended to cover a third potential location
+  where modules may live, covering the ``matplotlib`` module as a result.
 
 Cleanups
 --------
@@ -69,6 +79,10 @@ Organizational
 - Providing own Debian/Ubuntu repositories for all relevant distributions.
 
 - Windows MSI files for Python 3.4 were added.
+
+- Hosting of the web site was moved to metal server with more RAM and
+  performance.
+
 
 Summary
 -------
