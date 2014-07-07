@@ -1,5 +1,5 @@
-Nuitka Release 0.5.3 (Draft)
-============================
+Nuitka Release 0.5.3
+====================
 
 This release is mostly a follow up, resolving points that have become possible
 to resolve after completing the C-ish evolution of Nuitka. So this is more of a
