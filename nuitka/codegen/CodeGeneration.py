@@ -29,7 +29,7 @@ language syntax.
 from nuitka import Constants, Options, PythonOperators, Tracing, Utils
 from nuitka.__past__ import iterItems
 
-from . import Contexts, Emission, Generator
+from . import Contexts, Emission, Generator, LineNumberCodes
 
 
 def generateTupleCreationCode(to_name, elements, emit, context):
@@ -231,10 +231,7 @@ def _generateDictionaryCreationCode(to_name, pairs, emit, context):
 
     context.addCleanupTempName(to_name)
 
-    dict_key_names = []
-    dict_value_names = []
-
-    # Strange as it is, CPython evalutes the key/value pairs strictly in order,
+    # Strange as it is, CPython evaluates the key/value pairs strictly in order,
     # but for each pair, the value first.
     for pair in pairs:
         dict_key_name = context.allocateTempName("dict_key")
@@ -326,6 +323,7 @@ def generateConditionCode(condition, emit, context, inverted = False,
             context.setTrueBranchTarget(false_target)
             context.setFalseBranchTarget(true_target)
 
+        old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
         Generator.getComparisonExpressionBoolCode(
             comparator      = comparator,
             left_name       = left_name,
@@ -333,6 +331,7 @@ def generateConditionCode(condition, emit, context, inverted = False,
             emit            = emit,
             context         = context
         )
+        context.setCurrentSourceCodeReference(old_source_ref)
 
         if inverted:
             context.setTrueBranchTarget(true_target)
@@ -413,12 +412,20 @@ def generateConditionCode(condition, emit, context, inverted = False,
             context    = context
         )
 
+        old_source_ref = context.setCurrentSourceCodeReference(
+            condition.getAttribute().getSourceReference()
+               if Options.isFullCompat() else
+            condition.getSourceReference()
+        )
+
         Generator.getAttributeCheckBoolCode(
             source_name = source_name,
             attr_name   = attr_name,
             emit        = emit,
             context     = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
     elif condition.isExpressionBuiltinIsinstance():
         assert not inverted
 
@@ -438,14 +445,17 @@ def generateConditionCode(condition, emit, context, inverted = False,
             context    = context
         )
 
+        old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
+
         Generator.getBuiltinIsinstanceBoolCode(
             inst_name = inst_name,
             cls_name  = cls_name,
             emit      = emit,
             context   = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
     else:
-        # TODO: Temp keeper assigments
         condition_name = context.allocateTempName("cond_value")
         truth_name = context.allocateTempName("cond_truth", "int")
 
@@ -469,11 +479,15 @@ def generateConditionCode(condition, emit, context, inverted = False,
                 emit       = emit
             )
 
+        old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
+
         Generator.getErrorExitBoolCode(
             condition = "%s == -1" % truth_name,
             emit      = emit,
             context   = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
 
         Generator.getReleaseCode(
             release_name = condition_name,
@@ -978,6 +992,11 @@ def generateCallCode(to_name, call_node, emit, context):
 
             assert call_arg_names
 
+            if Options.isFullCompat():
+                context.setCurrentSourceCodeReference(
+                    call_args.getElements()[-1].getSourceReference()
+                )
+
             Generator.getCallCodePosArgsQuick(
                 to_name     = to_name,
                 called_name = called_name,
@@ -1028,6 +1047,9 @@ def generateCallCode(to_name, call_node, emit, context):
                 context    = context
             )
 
+            if Options.isFullCompat():
+                context.setCurrentSourceCodeReference(call_args.getSourceReference())
+
             Generator.getCallCodePosArgs(
                 to_name     = to_name,
                 called_name = called_name,
@@ -1046,6 +1068,11 @@ def generateCallCode(to_name, call_node, emit, context):
                 emit       = emit,
                 context    = context
             )
+
+            if Options.isFullCompat():
+                context.setCurrentSourceCodeReference(
+                    call_kw.getSourceReference()
+                )
 
             Generator.getCallCodeKeywordArgs(
                 to_name        = to_name,
@@ -1072,6 +1099,11 @@ def generateCallCode(to_name, call_node, emit, context):
                 emit       = emit,
                 context    = context
             )
+
+            if Options.isFullCompat():
+                context.setCurrentSourceCodeReference(
+                    call_kw.getSourceReference()
+                )
 
             Generator.getCallCodePosKeywordArgs(
                 to_name        = to_name,
@@ -1107,7 +1139,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
     assert not hasattr(expression, "code_generated"), expression
     expression.code_generated = True
 
-    context.setSourceReference(expression.getSourceReference())
+    old_source_ref = context.setCurrentSourceCodeReference(expression.getSourceReference())
 
     def makeExpressionCode(to_name, expression, allow_none = False):
         if allow_none and expression is None:
@@ -2333,7 +2365,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
     else:
         assert False, expression
 
-    context.setSourceReference(None)
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def generateExpressionsCode(names, expressions, emit, context):
@@ -2372,14 +2404,18 @@ def generateExpressionCode(to_name, expression, emit, context,
         Tracing.printError(
             "Problem with %r at %s" % (
                 expression,
-                "" if expression is None else expression.getSourceReference()
+                ""
+                  if expression is None else
+                expression.getSourceReference().getAsString()
             )
         )
         raise
 
 
-def generateAssignmentAttributeCode(lookup_source, attribute_name,
-                                    value, emit, context):
+def generateAssignmentAttributeCode(statement, emit, context):
+    lookup_source  = statement.getLookupSource()
+    attribute_name = statement.getAttributeName()
+    value          = statement.getAssignSource()
 
     value_name = context.allocateTempName("assattr_name")
     generateExpressionCode(
@@ -2395,6 +2431,12 @@ def generateAssignmentAttributeCode(lookup_source, attribute_name,
         expression = lookup_source,
         emit       = emit,
         context    = context
+    )
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        value.getSourceReference()
+           if Options.isFullCompat() else
+        statement.getSourceReference()
     )
 
     if attribute_name == "__dict__":
@@ -2423,9 +2465,14 @@ def generateAssignmentAttributeCode(lookup_source, attribute_name,
             context        = context
         )
 
+    context.setCurrentSourceCodeReference(old_source_ref)
 
-def generateAssignmentSubscriptCode(subscribed, subscript, value, emit,
-                                    context):
+
+def generateAssignmentSubscriptCode(statement, emit, context):
+    subscribed      = statement.getSubscribed()
+    subscript       = statement.getSubscript()
+    value           = statement.getAssignSource()
+
     integer_subscript = False
     if subscript.isExpressionConstantRef():
         constant = subscript.getConstant()
@@ -2463,6 +2510,12 @@ def generateAssignmentSubscriptCode(subscribed, subscript, value, emit,
         context    = context
     )
 
+    old_source_ref = context.setCurrentSourceCodeReference(
+        value.getSourceReference()
+           if Options.isFullCompat() else
+        statement.getSourceReference()
+    )
+
     if integer_subscript:
         Generator.getIntegerSubscriptAssignmentCode(
             subscribed_name = subscribed_name,
@@ -2480,10 +2533,15 @@ def generateAssignmentSubscriptCode(subscribed, subscript, value, emit,
             emit            = emit,
             context         = context
         )
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 
-def generateAssignmentSliceCode(lookup_source, lower, upper, value,
-                                emit, context):
+def generateAssignmentSliceCode(statement, emit, context):
+    lookup_source = statement.getLookupSource()
+    lower         = statement.getLower()
+    upper         = statement.getUpper()
+    value         = statement.getAssignSource()
+
     value_name = context.allocateTempName("sliceass_value")
 
     generateExpressionCode(
@@ -2511,7 +2569,13 @@ def generateAssignmentSliceCode(lookup_source, lower, upper, value,
             context = context
         )
 
-        return Generator.getSliceAssignmentIndexesCode(
+        old_source_ref = context.setCurrentSourceCodeReference(
+            value.getSourceReference()
+               if Options.isFullCompat() else
+            statement.getSourceReference()
+        )
+
+        Generator.getSliceAssignmentIndexesCode(
             target_name = target_name,
             lower_name  = lower_name,
             upper_name  = upper_name,
@@ -2519,6 +2583,8 @@ def generateAssignmentSliceCode(lookup_source, lower, upper, value,
             emit        = emit,
             context     = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
     else:
         target_name, lower_name, upper_name = generateExpressionsCode(
             names       = (
@@ -2534,6 +2600,12 @@ def generateAssignmentSliceCode(lookup_source, lower, upper, value,
         )
 
         if _slicing_available:
+            old_source_ref = context.setCurrentSourceCodeReference(
+                value.getSourceReference()
+                   if Options.isFullCompat() else
+                statement.getSourceReference()
+            )
+
             Generator.getSliceAssignmentCode(
                 target_name = target_name,
                 upper_name  = upper_name,
@@ -2542,8 +2614,16 @@ def generateAssignmentSliceCode(lookup_source, lower, upper, value,
                 emit        = emit,
                 context     = context
             )
+
+            context.setCurrentSourceCodeReference(old_source_ref)
         else:
             subscript_name = context.allocateTempName("sliceass_subscript")
+
+            old_source_ref = context.setCurrentSourceCodeReference(
+                value.getSourceReference()
+                   if Options.isFullCompat() else
+                statement.getSourceReference()
+            )
 
             # TODO: The decision should be done during optimization, so
             # _slicing_available should play no role at all.
@@ -2564,13 +2644,37 @@ def generateAssignmentSliceCode(lookup_source, lower, upper, value,
                 context        = context
             )
 
+            context.setCurrentSourceCodeReference(old_source_ref)
 
-def generateDelSubscriptCode(subscribed, subscript, emit, context):
+
+def generateVariableDelCode(statement, emit, context):
+    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
+
+    Generator.getVariableDelCode(
+        variable = statement.getTargetVariableRef().getVariable(),
+        tolerant = statement.isTolerant(),
+        emit     = emit,
+        context  = context
+    )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
+
+
+def generateDelSubscriptCode(statement, emit, context):
+    subscribed = statement.getSubscribed()
+    subscript  = statement.getSubscript()
+
     target_name, subscript_name = generateExpressionsCode(
         expressions = (subscribed, subscript),
         names       = ("delsubscr_target", "delsubscr_subscript"),
         emit        = emit,
         context     = context
+    )
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        subscript.getSourceReference()
+           if Options.isFullCompat() else
+        statement.getSourceReference()
     )
 
     Generator.getSubscriptDelCode(
@@ -2580,9 +2684,14 @@ def generateDelSubscriptCode(subscribed, subscript, emit, context):
         context        = context
     )
 
+    context.setCurrentSourceCodeReference(old_source_ref)
 
-def generateDelSliceCode(target, lower, upper, emit, context):
-    if decideSlicing( lower, upper ):
+def generateDelSliceCode(statement, emit, context):
+    target  = statement.getLookupSource()
+    lower   = statement.getLower()
+    upper   = statement.getUpper()
+
+    if decideSlicing(lower, upper):
         target_name = context.allocateTempName("slicedel_target")
 
         generateExpressionCode(
@@ -2600,6 +2709,12 @@ def generateDelSliceCode(target, lower, upper, emit, context):
             context = context
         )
 
+        old_source_ref = context.setCurrentSourceCodeReference(
+            (upper or lower or statement).getSourceReference()
+               if Options.isFullCompat() else
+            statement.getSourceReference()
+        )
+
         Generator.getSliceDelCode(
             target_name = target_name,
             lower_name  = lower_name,
@@ -2607,6 +2722,8 @@ def generateDelSliceCode(target, lower, upper, emit, context):
             emit        = emit,
             context     = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
     else:
         subscript_name = context.allocateTempName("sliceass_subscript")
 
@@ -2621,6 +2738,12 @@ def generateDelSliceCode(target, lower, upper, emit, context):
             ),
             emit        = emit,
             context     = context
+        )
+
+        old_source_ref = context.setCurrentSourceCodeReference(
+            (upper or lower or target).getSourceReference()
+               if Options.isFullCompat() else
+            statement.getSourceReference()
         )
 
         Generator.getSliceObjectCode(
@@ -2639,6 +2762,9 @@ def generateDelSliceCode(target, lower, upper, emit, context):
             context        = context
         )
 
+        context.setCurrentSourceCodeReference(old_source_ref)
+
+
 def generateDelAttributeCode(statement, emit, context):
     target_name = context.allocateTempName("attrdel_target")
 
@@ -2647,6 +2773,12 @@ def generateDelAttributeCode(statement, emit, context):
         expression = statement.getLookupSource(),
         emit       = emit,
         context    = context
+    )
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        statement.getLookupSource().getSourceReference()
+           if Options.isFullCompat() else
+        statement.getSourceReference()
     )
 
     Generator.getAttributeDelCode(
@@ -2659,6 +2791,7 @@ def generateDelAttributeCode(statement, emit, context):
         context        = context
     )
 
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 def _generateEvalCode(to_name, node, emit, context):
     source_name = context.allocateTempName("eval_source")
@@ -2725,33 +2858,37 @@ def generateExecfileCode(to_name, execfile_node, emit, context):
         context = context
     )
 
-def generateExecCode(exec_def, emit, context):
+def generateExecCode(statement, emit, context):
+    source_arg = statement.getSourceCode()
+    globals_arg = statement.getGlobals()
+    locals_arg = statement.getLocals()
+
     source_name = context.allocateTempName("eval_source")
     globals_name = context.allocateTempName("eval_globals")
     locals_name = context.allocateTempName("eval_locals")
 
     generateExpressionCode(
         to_name    = source_name,
-        expression = exec_def.getSourceCode(),
+        expression = source_arg,
         emit       = emit,
         context    = context
     )
 
     generateExpressionCode(
         to_name    = globals_name,
-        expression = exec_def.getGlobals(),
+        expression = globals_arg,
         emit       = emit,
         context    = context
     )
 
     generateExpressionCode(
         to_name    = locals_name,
-        expression = exec_def.getLocals(),
+        expression = locals_arg,
         emit       = emit,
         context    = context
     )
 
-    source_ref = exec_def.getSourceReference()
+    source_ref = statement.getSourceReference()
 
     # Filename with origin in improved mode.
     if Options.isFullCompat():
@@ -2765,9 +2902,16 @@ def generateExecCode(exec_def, emit, context):
             context  = context
         )
 
-    provider = exec_def.getParentVariableProvider()
+    provider = statement.getParentVariableProvider()
     store_back = provider.isExpressionFunctionBody() and \
                  provider.isUnqualifiedExec()
+
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        locals_arg.getSourceReference()
+          if Options.isFullCompat() else
+        statement.getSourceReference()
+    )
 
     Generator.getExecCode(
         source_name   = source_name,
@@ -2779,6 +2923,8 @@ def generateExecCode(exec_def, emit, context):
         emit          = emit,
         context       = context,
     )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def generateTryNextExceptStopIterationCode(statement, emit, context):
@@ -2845,6 +2991,12 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
 
     tmp_name2 = context.allocateTempName("assign_source")
 
+    old_source_ref = context.setCurrentSourceCodeReference(
+        assign_source.getSourceReference()
+          if Options.isFullCompat() else
+        statement.getSourceReference()
+    )
+
     Generator.getBuiltinLoopBreakNextCode(
         to_name = tmp_name2,
         value   = tmp_name,
@@ -2858,6 +3010,9 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
         emit     = emit,
         context  = context
     )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
+
 
     if context.needsCleanup(tmp_name2):
         context.removeCleanupTempName(tmp_name2)
@@ -2891,8 +3046,6 @@ def generateTryExceptCode(statement, emit, context):
         emit               = emit,
         context            = context,
     )
-
-    Generator.pushLineNumberBranch()
 
     Generator.getGotoCode(context.getExceptionNotOccured(), emit)
     Generator.getLabelCode(context.getExceptionEscape(),emit)
@@ -2932,8 +3085,6 @@ Py_XDECREF( exception_tb );
     Generator.getLabelCode(no_exception,emit)
 
     context.setExceptionPublished(old_published)
-
-    Generator.popLineNumberBranch()
 
 _temp_whitelist = [()]
 
@@ -3119,9 +3270,9 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     old_continue_target = context.getLoopContinueTarget()
 
     if final_block is not None:
-        if Utils.python_version < 300 and final_block.needsLineNumber():
+        if Utils.python_version < 300 and context.getFrameHandle() is not None:
             tried_lineno_name = context.allocateTempName("tried_lineno", "int")
-            Generator.getLineNumberCode(tried_lineno_name, emit, context)
+            LineNumberCodes.getLineNumberCode(tried_lineno_name, emit, context)
 
         if final_block_may_raise:
             old_escape = context.getExceptionEscape()
@@ -3145,8 +3296,12 @@ def generateTryFinallyCode(to_name, statement, emit, context):
             context            = context
         )
 
-        if Utils.python_version < 300 and final_block.needsLineNumber():
-            Generator.getSetLineNumberCodeRaw(tried_lineno_name, emit, context)
+        if Utils.python_version < 300 and context.getFrameHandle() is not None:
+            LineNumberCodes.getSetLineNumberCodeRaw(
+                to_name = tried_lineno_name,
+                emit    = emit,
+                context = context
+            )
     else:
         # Final block is only optional for try/finally expressions. For
         # statements, they should be optimized way.
@@ -3346,12 +3501,16 @@ def generateRaiseCode(statement, emit, context):
             context     = context
         )
 
+        old_source_ref = context.setCurrentSourceCodeReference(exception_cause.getSourceReference())
+
         Generator.getRaiseExceptionWithCauseCode(
             raise_type_name  = raise_type_name,
             raise_cause_name = raise_cause_name,
             emit             = emit,
             context          = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
     elif exception_type is None:
         assert exception_cause is None
         assert exception_value is None
@@ -3371,11 +3530,15 @@ def generateRaiseCode(statement, emit, context):
             context     = context
         )
 
+        old_source_ref = context.setCurrentSourceCodeReference(exception_type.getSourceReference())
+
         Generator.getRaiseExceptionWithTypeCode(
             raise_type_name = raise_type_name,
             emit            = emit,
             context         = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
     elif exception_tb is None:
         raise_type_name  = context.allocateTempName("raise_type")
 
@@ -3395,6 +3558,8 @@ def generateRaiseCode(statement, emit, context):
             context     = context
         )
 
+        old_source_ref = context.setCurrentSourceCodeReference(exception_value.getSourceReference())
+
         Generator.getRaiseExceptionWithValueCode(
             raise_type_name  = raise_type_name,
             raise_value_name = raise_value_name,
@@ -3402,6 +3567,8 @@ def generateRaiseCode(statement, emit, context):
             emit             = emit,
             context          = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
     else:
         raise_type_name  = context.allocateTempName("raise_type")
 
@@ -3430,6 +3597,8 @@ def generateRaiseCode(statement, emit, context):
             context     = context
         )
 
+        old_source_ref = context.setCurrentSourceCodeReference(exception_tb.getSourceReference())
+
         Generator.getRaiseExceptionWithTracebackCode(
             raise_type_name  = raise_type_name,
             raise_value_name = raise_value_name,
@@ -3437,6 +3606,8 @@ def generateRaiseCode(statement, emit, context):
             emit             = emit,
             context          = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def generateUnpackCheckCode(statement, emit, context):
@@ -3455,6 +3626,7 @@ def generateUnpackCheckCode(statement, emit, context):
         emit          = emit,
         context       = context,
     )
+
 
 def generateImportModuleCode(to_name, expression, emit, context):
     provider = expression.getParentVariableProvider()
@@ -3480,6 +3652,8 @@ def generateImportModuleCode(to_name, expression, emit, context):
             context  = context
         )
 
+    old_source_ref = context.setCurrentSourceCodeReference(expression.getSourceReference())
+
     Generator.getBuiltinImportCode(
         to_name          = to_name,
         module_name      = Generator.getConstantCode(
@@ -3499,6 +3673,9 @@ def generateImportModuleCode(to_name, expression, emit, context):
         emit             = emit,
         context          = context
     )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
+
 
 def generateBuiltinImportCode(to_name, expression, emit, context):
     module_name, globals_name, locals_name, import_list_name, level_name = \
@@ -3569,11 +3746,15 @@ def generateImportStarCode(statement, emit, context):
         context    = context
     )
 
+    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
+
     Generator.getImportFromStarCode(
         module_name = module_name,
         emit        = emit,
         context     = context
     )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def generateBranchCode(statement, emit, context):
@@ -3598,26 +3779,21 @@ def generateBranchCode(statement, emit, context):
 
     Generator.getLabelCode(true_target, emit)
 
-    Generator.pushLineNumberBranch()
     _generateStatementSequenceCode(
         statement_sequence = statement.getBranchYes(),
         emit               = emit,
         context            = context
     )
-    Generator.popLineNumberBranch()
 
     if statement.getBranchNo() is not None:
         Generator.getGotoCode(end_target, emit)
         Generator.getLabelCode(false_target, emit)
 
-        Generator.pushLineNumberBranch()
         _generateStatementSequenceCode(
             statement_sequence = statement.getBranchNo(),
             emit               = emit,
             context            = context
         )
-        Generator.popLineNumberBranch()
-        Generator.mergeLineNumberBranches()
 
         Generator.getLabelCode(end_target, emit)
     else:
@@ -3632,10 +3808,6 @@ def generateLoopCode(statement, emit, context):
         loop_end_label = None
 
     Generator.getLabelCode(loop_start_label, emit)
-
-    # The loop is re-entrant, therefore force setting the line number at start
-    # again, even if the same as before.
-    Generator.resetLineNumber()
 
     old_loop_break = context.getLoopBreakTarget()
     old_loop_continue = context.getLoopContinueTarget()
@@ -3653,17 +3825,21 @@ def generateLoopCode(statement, emit, context):
     context.setLoopBreakTarget(old_loop_break)
     context.setLoopContinueTarget(old_loop_continue)
 
+    # Note: We are using the wrong line here, but it's an exception, it's unclear what line it would be anyway.
+    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
+
     Generator.getErrorExitBoolCode(
         condition = "CONSIDER_THREADING() == false",
         emit      = emit,
         context   = context
     )
 
+    context.setCurrentSourceCodeReference(old_source_ref)
+
     Generator.getGotoCode(loop_start_label, emit)
 
     if loop_end_label is not None:
         Generator.getLabelCode(loop_end_label, emit)
-
 
 
 def generateReturnCode(statement, emit, context):
@@ -3767,7 +3943,10 @@ def generateStatementOnlyCode(value, emit, context):
     )
 
 
-def generatePrintValueCode(destination, value, emit, context):
+def generatePrintValueCode(statement, emit, context):
+    destination = statement.getDestination()
+    value       = statement.getValue()
+
     if destination is not None:
         tmp_name_dest = context.allocateTempName("print_dest", unique = True)
 
@@ -3789,17 +3968,21 @@ def generatePrintValueCode(destination, value, emit, context):
         context    = context
     )
 
+    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
+
     Generator.getPrintValueCode(
         dest_name  = tmp_name_dest,
         value_name = tmp_name_printed,
         emit       = emit,
         context    = context
     )
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 
-def generatePrintNewlineCode(destination, emit, context):
+def generatePrintNewlineCode(statement, emit, context):
+    destination = statement.getDestination()
+
     if destination is not None:
-
         tmp_name_dest = context.allocateTempName("print_dest", unique = True)
 
         generateExpressionCode(
@@ -3811,11 +3994,13 @@ def generatePrintNewlineCode(destination, emit, context):
     else:
         tmp_name_dest = None
 
+    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
     Generator.getPrintNewlineCode(
         dest_name  = tmp_name_dest,
         emit       = emit,
         context    = context
     )
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def _generateStatementCode(statement, emit, context):
@@ -3834,50 +4019,39 @@ def _generateStatementCode(statement, emit, context):
         )
     elif statement.isStatementAssignmentAttribute():
         generateAssignmentAttributeCode(
-            lookup_source  = statement.getLookupSource(),
-            attribute_name = statement.getAttributeName(),
-            value          = statement.getAssignSource(),
-            emit           = emit,
-            context        = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementAssignmentSubscript():
         generateAssignmentSubscriptCode(
-            subscribed      = statement.getSubscribed(),
-            subscript       = statement.getSubscript(),
-            value           = statement.getAssignSource(),
-            emit            = emit,
-            context         = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementAssignmentSlice():
         generateAssignmentSliceCode(
-            lookup_source  = statement.getLookupSource(),
-            lower          = statement.getLower(),
-            upper          = statement.getUpper(),
-            value          = statement.getAssignSource(),
-            emit           = emit,
-            context        = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementDelVariable():
-        Generator.getVariableDelCode(
-            variable = statement.getTargetVariableRef().getVariable(),
-            tolerant = statement.isTolerant(),
-            emit     = emit,
-            context  = context
+        generateVariableDelCode(
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementDelSubscript():
         generateDelSubscriptCode(
-            subscribed = statement.getSubscribed(),
-            subscript  = statement.getSubscript(),
-            emit       = emit,
-            context    = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementDelSlice():
         generateDelSliceCode(
-            target  = statement.getLookupSource(),
-            lower   = statement.getLower(),
-            upper   = statement.getUpper(),
-            emit    = emit,
-            context = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementDelAttribute():
         generateDelAttributeCode(
@@ -3924,16 +4098,15 @@ def _generateStatementCode(statement, emit, context):
         )
     elif statement.isStatementPrintValue():
         generatePrintValueCode(
-            destination = statement.getDestination(),
-            value       = statement.getValue(),
-            emit        = emit,
-            context     = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementPrintNewline():
         generatePrintNewlineCode(
-            destination = statement.getDestination(),
-            emit        = emit,
-            context     = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementImportStar():
         generateImportStarCode(
@@ -3971,9 +4144,9 @@ def _generateStatementCode(statement, emit, context):
         )
     elif statement.isStatementExec():
         generateExecCode(
-            exec_def = statement,
-            emit     = emit,
-            context  = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementDictOperationRemove():
         dict_name = context.allocateTempName("remove_dict", unique = True)
@@ -3992,12 +4165,20 @@ def _generateStatementCode(statement, emit, context):
             context    = context
         )
 
+        old_source_ref = context.setCurrentSourceCodeReference(
+            statement.getKey().getSourceReference()
+               if Options.isFullCompat() else
+            statement.getSourceReference()
+        )
+
         Generator.getDictOperationRemoveCode(
             dict_name = dict_name,
             key_name  = key_name,
             emit      = emit,
             context   = context
         )
+
+        old_source_ref = context.setCurrentSourceCodeReference(old_source_ref)
     elif statement.isStatementSetLocals():
         new_locals_name = context.allocateTempName("set_locals", unique = True)
 
@@ -4077,7 +4258,7 @@ def generateStatementCode(statement, emit, context):
         Tracing.printError(
             "Problem with %r at %s" % (
                 statement,
-                statement.getSourceReference()
+                statement.getSourceReference().getAsString()
             )
         )
         raise
@@ -4119,13 +4300,6 @@ def _generateStatementSequenceCode(statement_sequence, emit, context,
 
             emit(code)
         else:
-            if statement.needsLineNumber():
-                Generator.getSetLineNumberCode(
-                    source_ref = source_ref,
-                    emit       = emit,
-                    context    = context
-                )
-
             generateStatementCode(
                 statement = statement,
                 emit      = emit,
@@ -4145,11 +4319,17 @@ def generateStatementSequenceCode(statement_sequence, context,
 
     # Frame context or normal statement context.
     if statement_sequence.isStatementsFrame():
+        provider = statement_sequence.getParentVariableProvider()
         guard_mode = statement_sequence.getGuardMode()
 
         parent_exception_exit = statement_context.getExceptionEscape()
 
         if guard_mode != "pass_through":
+            if provider.isExpressionFunctionBody():
+                statement_context.setFrameHandle("frame_function")
+            else:
+                statement_context.setFrameHandle("frame_module")
+
             statement_context.setExceptionEscape(
                 statement_context.allocateLabel("frame_exception_exit")
             )
@@ -4182,8 +4362,6 @@ def generateStatementSequenceCode(statement_sequence, context,
       statement_context.getCleanupTempnames()
 
     if statement_sequence.isStatementsFrame():
-        provider = statement_sequence.getParentVariableProvider()
-
         if statement_sequence.mayRaiseException(BaseException) or \
            guard_mode == "generator":
             frame_exception_exit = statement_context.getExceptionEscape()

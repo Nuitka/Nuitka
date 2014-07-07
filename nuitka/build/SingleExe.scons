@@ -125,10 +125,12 @@ icon_path = ARGUMENTS.get("icon_path", None)
 def createEnvironment( compiler_tools ):
     args = {}
 
+    # If we are on Windows, and MinGW is not enforced, lets see if we can
+    # find "cl.exe", and if we do, disable automatic scan.
     if os.name == "nt" and \
        not mingw_mode and \
-       getExecutablePath( "cl", initial = True ) is not None:
-        args[ "MSVC_USE_SCRIPT" ] = False
+       getExecutablePath("cl", initial = True) is not None:
+        args["MSVC_USE_SCRIPT"] = False
 
     return Environment(
         # We want the outside environment to be passed through.
@@ -145,8 +147,6 @@ def createEnvironment( compiler_tools ):
         # to pick up MSVC.
         TARGET_ARCH = target_arch,
 
-        # If we are on Windows, and MinGW is not enforced, lets see if we can
-        # find "cl.exe", and if we do, disable automatic scan.
         **args
     )
 
@@ -408,7 +408,7 @@ b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
 b) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
 """ % sys.exec_prefix )
     else:
-        sys.exit( "Error, cannot locate suitable C++ compiler." )
+        sys.exit("Error, cannot locate suitable C++ compiler.")
 
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
@@ -810,6 +810,9 @@ if optimize_mode:
             CCFLAGS = ["/Ox"]
         )
 
+# MinGW for 64 bits needs this due to CPython bugs.
+if os.name == "nt" and target_arch == "x86_64" and gcc_mode:
+    env.Append(CPPDEFINES = ["MS_WIN64"])
 
 # Set load libpython from binary directory default
 if standalone_mode and gcc_mode and sys.platform != "darwin":
@@ -998,13 +1001,13 @@ if win_target:
         if icon_path:
             rc_content.append(
                 '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"' % (
-                    icon_path.replace( "\\", "/" )
+                    icon_path.replace("\\", "/")
                 )
             )
 
             rc_file_dependencies.append(icon_path)
 
-    rc_filename = os.path.join( source_dir, "resources.rc" )
+    rc_filename = os.path.join(source_dir, "resources.rc")
 
     rc_file = open(rc_filename, "w")
 

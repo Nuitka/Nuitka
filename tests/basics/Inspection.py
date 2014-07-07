@@ -21,7 +21,7 @@ from __future__ import print_function
 import inspect, types, sys
 
 def compiledFunction(a, b):
-   pass
+    pass
 
 assert inspect.isfunction( compiledFunction ) is True
 assert isinstance( compiledFunction, types.FunctionType )
@@ -57,7 +57,7 @@ print("Compiled class:", inspect.formatargspec(*inspect.getargspec(CompiledClass
 
 
 def compiledGenerator():
-   yield 1
+    yield 1
 
 assert inspect.isfunction( compiledGenerator ) is True
 assert inspect.isgeneratorfunction( compiledGenerator ) is True
@@ -75,14 +75,12 @@ assert inspect.isgenerator(compiledGenerator()) is True
 
 def someFunction(a):
     assert inspect.isframe(sys._getframe())
-    print("Running frame getframeinfo()", inspect.getframeinfo(sys._getframe()))
+    # print("Running frame getframeinfo()", inspect.getframeinfo(sys._getframe()))
 
     # TODO: The locals of the frame are not updated.
     # print("Running frame arg values", inspect.getargvalues(sys._getframe()))
 
 someFunction(2)
-
-import sys
 
 class C:
     print("Class frame", sys._getframe().f_code)

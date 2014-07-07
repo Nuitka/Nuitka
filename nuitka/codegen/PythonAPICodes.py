@@ -15,6 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Code generation for standard CPython/API calls.
+
+This is generic stuff.
+"""
 
 from .ErrorCodes import (
     getErrorExitBoolCode,
@@ -33,13 +37,6 @@ def getCAPIObjectCode(to_name, capi, arg_names, ref_count, emit, context):
         )
     )
 
-    getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
-    )
-
     getReleaseCodes(
         release_names = (
             arg_name
@@ -51,8 +48,15 @@ def getCAPIObjectCode(to_name, capi, arg_names, ref_count, emit, context):
         context       = context
     )
 
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
     if ref_count:
         context.addCleanupTempName(to_name)
+
 
 def getCAPIIntCode(res_name, capi, args, emit, context):
     emit(
@@ -72,11 +76,11 @@ def getCAPIIntCode(res_name, capi, args, emit, context):
         )
 
     getErrorExitBoolCode(
-        condition       = "%s == -1" % res_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        condition = "%s == -1" % res_name,
+        emit      = emit,
+        context   = context
     )
+
 
 def getReferenceExportCode(base_name, context):
     if context.needsCleanup(base_name):

@@ -68,7 +68,7 @@ void initFiber( Fiber *to )
     to->start_stack = NULL;
 }
 
-void prepareFiber( Fiber *to, void *code, unsigned long arg )
+void prepareFiber( Fiber *to, void *code, intptr_t arg )
 {
     int res = getcontext( &to->f_context );
     assert( res == 0 );

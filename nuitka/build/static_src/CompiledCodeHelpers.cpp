@@ -2205,6 +2205,9 @@ void setEarlyFrozenModulesFileAttribute( void )
 }
 #endif
 
+static char *orignal_home;
+static char *orignal_path;
+
 void prepareStandaloneEnvironment()
 {
     // Tell the CPython library to use our precompiled modules as frozen
@@ -2243,8 +2246,8 @@ void prepareStandaloneEnvironment()
 #endif
 
     // get orignal value
-    char *orignal_home = getenv( "PYTHONHOME" );
-    char *orignal_path = getenv( "PYTHONPATH" );
+    orignal_home = getenv( "PYTHONHOME" );
+    orignal_path = getenv( "PYTHONPATH" );
     size_t orignal_home_size = ( orignal_home ) ? strlen( orignal_home ) : 0;
     size_t orignal_path_size = ( orignal_path ) ? strlen( orignal_path ) : 0;
 
@@ -2294,6 +2297,36 @@ void prepareStandaloneEnvironment()
     free( insert_path );
 #endif
 }
+
+void restoreStandaloneEnvironment()
+{
+#if defined( _WIN32 )
+    SetEnvironmentVariable( "PYTHONHOME", orignal_home );
+#else
+    if (orignal_home == NULL)
+    {
+        unsetenv( "PYTHONHOME" );
+    }
+    else
+    {
+        setenv( "PYTHONHOME", orignal_home, 1 );
+    }
+#endif
+
+#if defined( _WIN32 )
+    SetEnvironmentVariable( "PYTHONHOME", orignal_path );
+#else
+    if ( orignal_path == NULL )
+    {
+        unsetenv( "PYTHONHOME" );
+    }
+    else
+    {
+        setenv( "PYTHONHOME", orignal_path, 1 );
+    }
+#endif
+}
+
 #endif
 
 #ifdef _NUITKA_EXE

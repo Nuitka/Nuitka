@@ -128,7 +128,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         )
         # Attribute access of names of class functions should be mangled, if
         # they start with "__", but do not end in "__" as well.
-        elif node.isExpressionAttributeLookup() or node.isStatementAssignmentAttribute() or \
+        elif node.isExpressionAttributeLookup() or \
+             node.isStatementAssignmentAttribute() or \
              node.isStatementDelAttribute():
             attribute_name = node.getAttributeName()
 
@@ -255,8 +256,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                provider.isExpressionFunctionBody() and \
                variable.isReference() and \
                  (not variable.isModuleVariableReference() or \
-                  not variable.isFromGlobalStatement() ) and \
-               not provider.getCodeName().startswith("listcontr_"):
+                  not variable.isFromGlobalStatement() ):
 
                 parent_provider = provider.getParentVariableProvider()
 
@@ -322,7 +322,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
         if node.isStatementDelVariable():
             variable = node.getTargetVariableRef().getVariable()
 
-            if variable.isShared():
+            if variable.isSharedLogically():
                 SyntaxErrors.raiseSyntaxError(
                     reason       = """\
 can not delete variable '%s' referenced in nested scope""" % (

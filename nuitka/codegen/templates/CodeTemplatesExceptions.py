@@ -45,6 +45,8 @@ if ( %(condition)s )
         PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
     }
 %(release_temps)s
+
+%(line_number_code)s
     goto %(exception_exit)s;
 }"""
 
@@ -55,6 +57,8 @@ if ( %(condition)s )
 
     PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
 %(release_temps)s
+
+%(line_number_code)s
     goto %(exception_exit)s;
 }"""
 
@@ -64,6 +68,7 @@ if ( %(condition)s )
 %(release_temps)s
 %(set_exception)s
 
+%(line_number_code)s
     goto %(exception_exit)s;
 }
 """

@@ -86,12 +86,12 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
     )
 
     if variable.isLocalVariable():
-        if variable.isShared(True):
+        if variable.isSharedTechnically():
             access_code += ".storage->object"
         else:
             access_code += ".object"
     else:
-        if variable.getReferenced().isShared(True):
+        if variable.getReferenced().isSharedTechnically():
             access_code += ".storage->object"
         else:
             access_code += ".object"
@@ -225,15 +225,15 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
             )
 
             getErrorExitBoolCode(
-                condition = "%s == NULL && !PyErr_ExceptionMatches( PyExc_KeyError )" % value_name,
-                quick_exception = None,
+                condition = """\
+%s == NULL && !PyErr_ExceptionMatches( PyExc_KeyError )""" % value_name,
                 emit      = emit,
                 context   = context
             )
 
-            emit( "PyErr_Clear();" )
-            emit( "if (%s != NULL)" % value_name )
-            emit( "{" )
+            emit("PyErr_Clear();")
+            emit("if (%s != NULL)" % value_name)
+            emit("{")
 
             context.addCleanupTempName(value_name)
             getVariableAssignmentCode(
@@ -243,4 +243,4 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
                 context    = context
             )
 
-            emit( "}" )
+            emit("}")

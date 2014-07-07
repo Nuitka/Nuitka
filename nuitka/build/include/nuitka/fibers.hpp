@@ -38,7 +38,7 @@ extern "C" void initFiber( Fiber *to );
 
 extern "C" void swapFiber( Fiber *to, Fiber *from );
 
-extern "C" void prepareFiber( Fiber *to, void *code, unsigned long arg );
+extern "C" void prepareFiber( Fiber *to, void *code, intptr_t arg );
 
 extern "C" void releaseFiber( Fiber *to );
 

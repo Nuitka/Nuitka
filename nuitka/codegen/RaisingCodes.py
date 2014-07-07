@@ -15,7 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Code generation for implicit and explict exception raises.
 
+Exceptions from other operations are consider ErrorCodes domain.
+
+"""
+
+from .LineNumberCodes import getLineNumberUpdateCode
 from .PythonAPICodes import getReferenceExportCode
 
 
@@ -27,7 +33,8 @@ def getReRaiseExceptionCode(emit, context):
             "RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
         )
         emit(
-            "if (exception_tb && exception_tb->tb_frame == %(frame_identifier)s) %(frame_identifier)s->f_lineno = exception_tb->tb_lineno;" % {
+            """\
+if (exception_tb && exception_tb->tb_frame == %(frame_identifier)s) %(frame_identifier)s->f_lineno = exception_tb->tb_lineno;""" % {
                 "frame_identifier" : context.getFrameHandle()
             }
         )
@@ -44,6 +51,10 @@ def getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
         "exception_type = %s;" % (
             getReferenceExportCode(raise_type_name, context)
         )
+    )
+
+    emit(
+        getLineNumberUpdateCode(context)
     )
 
     emit(
@@ -74,6 +85,10 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
     )
 
     emit(
+        getLineNumberUpdateCode(context)
+    )
+
+    emit(
         "RAISE_EXCEPTION_WITH_TYPE( &exception_type, &exception_value, &exception_tb);"
     )
 
@@ -99,6 +114,11 @@ def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
             getReferenceExportCode(raise_value_name, context)
         )
     )
+
+    emit(
+        getLineNumberUpdateCode(context)
+    )
+
     emit(
         "RAISE_EXCEPTION_%s( &exception_type, &exception_value, &exception_tb );" % (
             ("IMPLICIT" if implicit else "WITH_VALUE")
@@ -133,6 +153,10 @@ def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
         "exception_tb = (PyTracebackObject *)%s;" % (
             getReferenceExportCode(raise_tb_name, context)
         )
+    )
+
+    emit(
+        getLineNumberUpdateCode(context)
     )
 
     emit(

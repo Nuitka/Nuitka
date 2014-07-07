@@ -88,7 +88,7 @@ def getLocalVariableInitCode(context, variable, init_from = None,
         if variable.isTempVariable():
             assert init_from is None
 
-            if variable.isShared(True):
+            if variable.isSharedTechnically():
                 result += "( NULL )"
         else:
             if init_from is not None:
@@ -124,7 +124,7 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name):
         if ref_count:
             context.removeCleanupTempName(tmp_name)
     elif variable.isLocalVariable():
-        if variable.isShared(True):
+        if variable.isSharedTechnically():
             if ref_count:
                 template = CodeTemplates.template_write_shared_unclear_ref0
             else:
@@ -145,7 +145,7 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name):
         if ref_count:
             context.removeCleanupTempName(tmp_name)
     elif variable.isClosureReference() or variable.isTempVariableReference():
-        if variable.getReferenced().isShared(True):
+        if variable.getReferenced().isSharedTechnically():
             if ref_count:
                 template = CodeTemplates.template_write_shared_unclear_ref0
             else:
@@ -233,7 +233,7 @@ def getVariableAccessCode(to_name, variable, emit, context):
 
         return
     elif variable.isLocalVariable():
-        if variable.isShared(True):
+        if variable.isSharedTechnically():
             if variable.isParameterVariable() and \
                not variable.getHasDelIndicator():
                 template = CodeTemplates.template_read_shared_unclear
@@ -276,7 +276,7 @@ def getVariableAccessCode(to_name, variable, emit, context):
 
         return
     elif variable.isClosureReference() or variable.isTempVariableReference():
-        if variable.getReferenced().isShared(True):
+        if variable.getReferenced().isSharedTechnically():
             template = CodeTemplates.template_read_shared_unclear
             needs_check = True
 
@@ -394,7 +394,7 @@ def getVariableDelCode(tolerant, variable, emit, context):
             )
     elif variable.isLocalVariable():
         if tolerant:
-            if variable.isShared(True):
+            if variable.isSharedTechnically():
                 template = CodeTemplates.template_del_shared_tolerant
             else:
                 template = CodeTemplates.template_del_local_tolerant
@@ -410,7 +410,7 @@ def getVariableDelCode(tolerant, variable, emit, context):
         else:
             res_name = context.getBoolResName()
 
-            if variable.isShared(True):
+            if variable.isSharedTechnically():
                 template = CodeTemplates.template_del_shared_intolerant
             else:
                 template = CodeTemplates.template_del_local_intolerant
@@ -440,7 +440,7 @@ def getVariableDelCode(tolerant, variable, emit, context):
         if tolerant:
             # Temp variables use similar classes, can use same templates.
 
-            if variable.getReferenced().isShared(True):
+            if variable.getReferenced().isSharedTechnically():
                 template = CodeTemplates.template_del_shared_tolerant
             else:
                 template = CodeTemplates.template_del_local_tolerant
@@ -456,7 +456,7 @@ def getVariableDelCode(tolerant, variable, emit, context):
         else:
             res_name = context.getBoolResName()
 
-            if variable.isShared(True):
+            if variable.isSharedTechnically():
                 template = CodeTemplates.template_del_shared_intolerant
             else:
                 template = CodeTemplates.template_del_local_intolerant
@@ -476,7 +476,7 @@ def getVariableDelCode(tolerant, variable, emit, context):
             )
     elif variable.isClosureReference():
         if tolerant:
-            if variable.isShared(True):
+            if variable.isSharedTechnically():
                 template = CodeTemplates.template_del_shared_tolerant
             else:
                 template = CodeTemplates.template_del_local_tolerant
@@ -492,7 +492,7 @@ def getVariableDelCode(tolerant, variable, emit, context):
         else:
             res_name = context.getBoolResName()
 
-            if variable.isShared(True):
+            if variable.isSharedTechnically():
                 template = CodeTemplates.template_del_shared_intolerant
             else:
                 template = CodeTemplates.template_del_local_intolerant

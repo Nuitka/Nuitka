@@ -261,7 +261,7 @@ class CodeObjectsMixin:
 
 
     # False alarms about "hashlib.md5" due to its strange way of defining what
-    # is exported, pylint won't understand it. pylint: disable=E1101
+    # is exported, PyLint won't understand it. pylint: disable=E1101
     if python_version < 300:
         def _calcHash(self, key):
             hash_value = hashlib.md5(
@@ -293,12 +293,6 @@ class PythonContextBase:
         self.temp_counts[ tmp_scope ] = result
         return result
 
-    def setSourceReference(self, source_ref):
-        self.source_ref = source_ref
-
-    def getSourceReference(self):
-        return self.source_ref
-
 
 class PythonChildContextBase(PythonContextBase):
     def __init__(self, parent):
@@ -320,12 +314,6 @@ class PythonChildContextBase(PythonContextBase):
 
     def addDeclaration(self, key, code):
         self.parent.addDeclaration( key, code )
-
-    def setSourceReference(self, source_ref):
-        self.parent.setSourceReference(source_ref)
-
-    def getSourceReference(self):
-        return self.parent.getSourceReference()
 
 
 def _getConstantDefaultPopulation():
@@ -521,6 +509,8 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
 
         self.constants = set()
 
+        self.frame_handle = None
+
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
@@ -531,7 +521,10 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
         return False
 
     def getFrameHandle(self):
-        return "frame_module"
+        return self.frame_handle
+
+    def setFrameHandle(self, frame_handle):
+        self.frame_handle = frame_handle
 
     def getName(self):
         return self.name
@@ -621,7 +614,7 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin):
 
         self.return_release_mode = False
 
-        self.frame_handle = "frame_function"
+        self.frame_handle = None
 
     def __repr__(self):
         return "<PythonFunctionContext for %s '%s'>" % (
@@ -694,6 +687,9 @@ class PythonStatementCContext(PythonChildContextBase):
         )
 
         self.cleanup_names = []
+
+        self.current_source_ref = None
+        self.last_source_ref = None
 
     def isPythonModule(self):
         return self.parent.isPythonModule()
@@ -841,3 +837,20 @@ class PythonStatementCContext(PythonChildContextBase):
 
     def getCodeObjectHandle(self, **kw):
         return self.parent.getCodeObjectHandle(**kw)
+
+    def getCurrentSourceCodeReference(self):
+        return self.current_source_ref
+
+    def setCurrentSourceCodeReference(self, value):
+        result = self.current_source_ref
+        self.current_source_ref = value
+
+        if value is not None:
+            self.last_source_ref = result
+
+        return result
+
+    def getLastSourceCodeReference(self):
+        result = self.last_source_ref
+        # self.last_source_ref = None
+        return result

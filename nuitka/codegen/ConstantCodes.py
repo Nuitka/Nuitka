@@ -133,8 +133,19 @@ def _getConstantInitValueCode(context, constant_value, constant_type):
         )
 
 
-def isMarshalConstant(constant_value):
+def decideMarshal(constant_value):
+    if False and type(constant_value) is unicode:
+        return True
+
+    # Do it for sufficiently large constants, typically tuples of 20 elements,
+    # or dicts of more than 10.
     if getConstantWeight(constant_value) < 20:
+        return False
+
+    return True
+
+def isMarshalConstant(constant_value):
+    if not decideMarshal(constant_value):
         return False
 
     marshal_value = marshal.dumps(constant_value)
@@ -144,9 +155,7 @@ def isMarshalConstant(constant_value):
 
 
 def attemptToMarshal(constant_identifier, constant_value, emit):
-    # Only do it for sufficiently large constants, typically tuples of 20
-    # elements, or dicts of more than 10.
-    if getConstantWeight(constant_value) < 20:
+    if not decideMarshal(constant_value):
         return False
 
     marshal_value = marshal.dumps(constant_value)
@@ -251,8 +260,11 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
             return
 
     if constant_type is unicode:
+        if attemptToMarshal(constant_identifier, constant_value, emit):
+            return
+
         try:
-            encoded = constant_value.encode( "utf-8" )
+            encoded = constant_value.encode("utf-8")
 
             if str is not unicode:
                 emit(

@@ -22,6 +22,7 @@ together and cross-module optimizations are the most difficult to tackle.
 """
 
 import re
+import sys
 
 from nuitka import Importing, Utils, Variables
 from nuitka.oset import OrderedSet
@@ -392,10 +393,16 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
         full_name = self.getFullName()
 
         if full_name == "PyQt4.QtCore":
-            return (
-                ("atexit", None),
-                ("sip", None)
-            )
+            if Utils.python_version < 300:
+                return (
+                    ("atexit", None),
+                    ("sip", None),
+                )
+            else:
+                return (
+                    ("sip", None),
+                )
+
         elif full_name == "lxml.etree":
             return (
                 ("gzip", None),
@@ -422,7 +429,14 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                 warn           = True
             )
 
-            if Utils.isDir(module_filename):
+            if module_filename is None:
+                sys.exit(
+                    "Error, implicit module '%s' expected by '%s' not found" % (
+                        module_name,
+                        self.getFullName()
+                    )
+                )
+            elif Utils.isDir(module_filename):
                 module_kind = "py"
             elif module_filename.endswith(".py"):
                 module_kind = "py"

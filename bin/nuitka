@@ -129,6 +129,9 @@ if needs_reexec:
     # Same arguments as before.
     args += sys.argv
 
+    if current_version == intended_version:
+        os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
+
     Utils.callExec(args)
 
 # Inform the user about potential issues.
@@ -141,6 +144,12 @@ if current_version not in Options.getSupportedPythonVersions():
             "The version '%s' is not currently supported. Expect problems.",
             current_version
         )
+
+if "NUITKA_PYTHONPATH" in os.environ:
+    # Restore the PYTHONPATH gained from the site module, that we chose not
+    # to have imported. pylint: disable=W0123
+    sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
+    del os.environ["NUITKA_PYTHONPATH"]
 
 # Now the main program.
 from nuitka import MainControl  # isort:skip

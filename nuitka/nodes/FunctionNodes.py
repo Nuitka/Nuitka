@@ -73,6 +73,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             self.is_lambda = False
 
         if name == "<listcontraction>":
+            assert Utils.python_version >= 300
+
             code_prefix = "listcontr"
             name = ""
 
@@ -225,7 +227,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     def removeVariable(self, variable):
         assert variable.getOwner() is self
         assert variable in self.providing.values(), ( self.providing, variable )
-        assert not variable.getReferences()
 
         del self.providing[ variable.getName() ]
 

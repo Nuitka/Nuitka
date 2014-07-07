@@ -26,9 +26,12 @@ able to execute them without creating the argument dictionary at all.
 from . import CodeTemplates
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 from .ExceptionCodes import getExceptionIdentifier
+from .LineNumberCodes import emitLineNumberUpdateCode
 
 
 def getCallCodeNoArgs(to_name, called_name, emit, context):
+    emitLineNumberUpdateCode(context, emit)
+
     emit(
         "%s = CALL_FUNCTION_NO_ARGS( %s );" % (
             to_name,
@@ -43,10 +46,9 @@ def getCallCodeNoArgs(to_name, called_name, emit, context):
     )
 
     getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        check_name  = to_name,
+        emit        = emit,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -63,6 +65,8 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, emit, context):
 
     # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
+
+    emitLineNumberUpdateCode(context, emit)
 
     emit(
         "%s = CALL_FUNCTION_WITH_ARGS%d( %s, %s );" % (
@@ -89,6 +93,7 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, emit, context):
 
 
 def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
+    emitLineNumberUpdateCode(context, emit)
 
     emit(
         "%s = CALL_FUNCTION_WITH_POSARGS( %s, %s );" % (
@@ -114,6 +119,7 @@ def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
 
 
 def getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
+    emitLineNumberUpdateCode(context, emit)
 
     emit(
         "%s = CALL_FUNCTION_WITH_KEYARGS( %s, %s );" % (
@@ -140,6 +146,7 @@ def getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
 
 def getCallCodePosKeywordArgs(to_name, called_name, call_args_name,
                               call_kw_name, emit, context):
+    emitLineNumberUpdateCode(context, emit)
 
     emit(
         "%s = CALL_FUNCTION( %s, %s, %s );" % (

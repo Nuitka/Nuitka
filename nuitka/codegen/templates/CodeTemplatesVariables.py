@@ -15,6 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Templates for the variable handling.
+
+"""
 
 template_write_local_unclear_ref0 = """\
 if (%(identifier)s.object == NULL)

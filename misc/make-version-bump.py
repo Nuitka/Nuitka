@@ -129,12 +129,3 @@ else:
         os.system( 'debchange --newversion=%s ""'  % debian_version )
 
     os.system( 'debchange -r ""' )
-
-spec_lines = [ line for line in open( "misc/nuitka.spec" ) ]
-
-with open( "misc/nuitka.spec", "w" ) as spec_file:
-    for line in spec_lines:
-        if line.startswith( "Version:" ):
-            line = "Version:        %s\n" % new_version
-
-        spec_file.write( line )

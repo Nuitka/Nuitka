@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -15,30 +16,32 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Outputs to the user.
-
-Printing with intends or plain, mostly a compensation for the print strangeness.
-
-We want to avoid "from __future__ import print_function" in every file out
-there, which makes adding another debug print rather tedious. This should
-cover all calls/uses of "print" we have to do, and the make it easy to simply
-to "print for_debug" without much hassle (braces).
-
-"""
 
 from __future__ import print_function
 
-import sys
+import os, sys, shutil, subprocess
 
+nuitka_version = subprocess.check_output(
+    "./bin/nuitka --version", shell = True
+).strip()
+branch_name = subprocess.check_output(
+    "git name-rev --name-only HEAD".split()
+).strip()
 
-def printIndented(level, *what):
-    print("    " * level, *what)
+assert branch_name == "master", branch_name
+assert "pre" not in nuitka_version
 
-def printSeparator(level = 0):
-    print("    " * level, "*" * 10)
+assert 0 == os.system("misc/make-doc.py")
+assert 0 == os.system("python setup.py sdist upload")
 
-def printLine(*what):
-    print(*what)
+# A delay might be necessary before making the check.
 
-def printError(message):
-    print(message, file=sys.stderr)
+import xmlrpclib
+
+pypi = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
+pypi_versions = pypi.package_releases("Nuitka")
+
+assert len(pypi_versions) == 1, pypi_versions
+assert nuitka_version == pypi_versions[0], nuitka_version
+
+print("Uploaded OK:", pypi_versions[0])

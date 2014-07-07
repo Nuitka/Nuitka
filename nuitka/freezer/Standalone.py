@@ -25,10 +25,10 @@ import os
 import shutil
 import subprocess
 import sys
-from logging import debug, info
+from logging import debug, info, warning
 
 import marshal
-from nuitka import Options, Utils
+from nuitka import Options, Tracing, Utils
 from nuitka.__past__ import raw_input, urlretrieve  # pylint: disable=W0622
 from nuitka.codegen.ConstantCodes import needsPickleInit
 
@@ -52,7 +52,7 @@ def getDependsExePath():
     )
 
     if not Utils.isFile(nuitka_depends_zip):
-        print("""\
+        Tracing.printLine("""\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
 to analyse the dependencies of Python extension modules. Is it OK to download
 and put it in APPDATA (no installer needed, cached, one time question)."""
@@ -262,7 +262,11 @@ def _detectImports(command, is_late):
         _stdout, stderr = process.communicate()
 
     # Don't let errors here go unnoticed.
-    assert process.returncode == 0, stderr
+    if process.returncode != 0:
+        warning("There is a problem with detecting imports, CPython said:")
+        for line in stderr.split(b"\n"):
+            Tracing.printLine(line)
+        sys.exit("Error, please report the issue with above output.")
 
     result = []
 
@@ -359,6 +363,8 @@ def detectEarlyImports():
 
         for root, dirs, filenames in os.walk(stdlib_dir):
             import_path = root[len(stdlib_dir):].strip('/\\')
+            import_path = import_path.replace("\\", ".").replace("/",".")
+
             if import_path == '':
                 if 'site-packages' in dirs:
                     dirs.remove('site-packages')
@@ -371,9 +377,15 @@ def detectEarlyImports():
                 if 'turtledemo' in dirs:
                     dirs.remove('turtledemo')
 
-            if import_path in ('tkinter', 'importlib'):
+            if import_path in ('tkinter', 'importlib', 'ctypes'):
                 if 'test' in dirs:
                     dirs.remove('test')
+
+            if Utils.python_version >= 340 and Utils.getOS() == "Windows":
+                if import_path == "multiprocessing":
+                    filenames.remove("popen_fork.py")
+                    filenames.remove("popen_forkserver.py")
+                    filenames.remove("popen_spawn_posix.py")
 
             for filename in filenames:
                 if filename.endswith('.py') and filename not in ignore_modules:
@@ -387,11 +399,11 @@ def detectEarlyImports():
                 if '__pycache__' in dirs:
                     dirs.remove('__pycache__')
 
-            for dir in dirs:
+            for dirname in dirs:
                 if import_path == '':
-                    stdlib_modules.append(dir)
+                    stdlib_modules.append(dirname)
                 else:
-                    stdlib_modules.append(import_path + '.' + dir)
+                    stdlib_modules.append(import_path + '.' + dirname)
 
         import_code = 'imports = ' + repr(sorted(stdlib_modules)) + '\n'\
                       'for imp in imports:\n' \

@@ -24,9 +24,9 @@ This is about collecting these constraints and to manage them.
 """
 
 # Python3 compatibility.
-from logging import debug, warning
+from logging import debug
 
-from nuitka import Options
+from nuitka import Options, Tracing
 from nuitka.__past__ import iterItems
 from nuitka.nodes.AssignNodes import StatementDelVariable
 from nuitka.nodes.NodeMakingHelpers import (
@@ -530,9 +530,9 @@ Side effects of assignments promoted to statements."""
 
             return new_statement
         except Exception:
-            warning(
-                "Problem with statement at %s:",
-                statement.getSourceReference()
+            Tracing.printError(
+                "Problem with statement at %s:" %
+                statement.getSourceReference().getAsString()
             )
             raise
 
@@ -667,7 +667,7 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
             # print variable
 
-            if variable.isLocalVariable() and not variable.isShared():
+            if variable.isLocalVariable() and not variable.isSharedLogically():
                 if variable_trace.isAssignTrace():
                     assign_node = variable_trace.getAssignNode()
 

@@ -93,15 +93,6 @@ class StatementTryFinally(StatementChildrenHavingBase,
         "final"
     )
 
-    def needsLineNumber(self):
-        """ The try/finally needs no line number itself.
-
-            The statements that are executing, might need it and trigger it
-            then.
-        """
-
-        return False
-
     def isStatementAborting(self):
         # In try/finally there are two chances to raise or return a value, so we
         # need to "or" the both branches. One of them will do.
@@ -264,15 +255,6 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
     setExpression = ExpressionChildrenHavingBase.childSetter(
         "expression"
     )
-
-    def needsLineNumber(self):
-        """ The try/finally needs no line number itself.
-
-            The statements that are executing, might need it and trigger it
-            then.
-        """
-
-        return False
 
     def needsReturnHandling(self):
         return False
@@ -458,15 +440,6 @@ class StatementTryExcept(StatementChildrenHavingBase):
     getExceptionHandling = StatementChildrenHavingBase.childGetter(
         "handling"
     )
-
-    def needsLineNumber(self):
-        """ The try/except needs no line number itself.
-
-            The statements that are executing, might need it and trigger it
-            then.
-        """
-
-        return False
 
     def isStatementAborting(self):
         tried_block = self.getBlockTry()

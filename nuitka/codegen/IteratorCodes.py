@@ -28,6 +28,7 @@ from .ErrorCodes import (
 )
 from .Indentation import indented
 from .LabelCodes import getGotoCode
+from .LineNumberCodes import getLineNumberUpdateCode
 
 
 def getBuiltinNext1Code(to_name, value, emit, context):
@@ -91,11 +92,15 @@ if (%s == NULL)
     {
 %s
         PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+%s
         goto %s;
     }
 }
 """ % (
             indented(getErrorExitReleaseCode(context), 2),
+            indented(
+                getLineNumberUpdateCode(context)
+            ),
             context.getExceptionEscape()
         )
     )

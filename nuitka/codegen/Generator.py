@@ -130,15 +130,6 @@ from .IteratorCodes import (
     getUnpackNextCode
 )
 from .LabelCodes import getGotoCode, getLabelCode
-from .LineNumberCodes import (
-    getLineNumberCode,
-    getSetLineNumberCode,
-    getSetLineNumberCodeRaw,
-    mergeLineNumberBranches,
-    popLineNumberBranch,
-    pushLineNumberBranch,
-    resetLineNumber
-)
 from .ListCodes import getListOperationAppendCode
 from .MainCodes import getMainCode
 from .ModuleCodes import (
@@ -237,10 +228,9 @@ def getOperationCode(to_name, operator, arg_names, emit, context):
         )
 
     getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = None,
-        emit            = emit,
-        context         = context
+        check_name = to_name,
+        emit       = emit,
+        context    = context
     )
 
     if ref_count:
@@ -411,7 +401,6 @@ def getBuiltinInt2Code(to_name, base_name, value_name, emit, context):
 
     getErrorExitCode(
         check_name = to_name,
-        quick_exception = None,
         emit       = emit,
         context    = context
     )

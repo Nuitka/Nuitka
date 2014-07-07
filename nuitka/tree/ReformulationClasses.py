@@ -57,7 +57,6 @@ from nuitka.nodes.GlobalsLocalsNodes import (
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableRefNodes import (
@@ -306,7 +305,7 @@ def _buildClassNode3(provider, node, source_ref):
 
     for decorator in buildNodeList(
             provider,
-            reversed( node.decorator_list ),
+            reversed(node.decorator_list),
             source_ref
         ):
         decorated_body = ExpressionCallNoKeywords(

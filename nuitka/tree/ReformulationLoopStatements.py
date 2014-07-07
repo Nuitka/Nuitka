@@ -107,7 +107,7 @@ def buildForLoopNode(provider, node, source_ref):
 
     statements.append(
         StatementBreakLoop(
-            source_ref = source_ref.atInternal()
+            source_ref = source_ref
         )
     )
 
@@ -182,7 +182,7 @@ def buildForLoopNode(provider, node, source_ref):
                 source_ref = source_ref
             ),
             tolerant     = True,
-            source_ref   = source_ref.atInternal()
+            source_ref   = source_ref
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
@@ -190,7 +190,7 @@ def buildForLoopNode(provider, node, source_ref):
                 source_ref = source_ref
             ),
             tolerant     = True,
-            source_ref   = source_ref.atInternal()
+            source_ref   = source_ref
         )
     ]
 
@@ -235,9 +235,9 @@ def buildForLoopNode(provider, node, source_ref):
             ),
             final = StatementsSequence(
                 statements = cleanup_statements,
-                source_ref = source_ref.atInternal()
+                source_ref = source_ref
             ),
-            source_ref = source_ref.atInternal()
+            source_ref = source_ref
         )
     ]
 
@@ -274,7 +274,7 @@ def buildForLoopNode(provider, node, source_ref):
                         source_ref = source_ref
                     ),
                     tolerant     = False,
-                    source_ref   = source_ref.atInternal()
+                    source_ref   = source_ref
                 ),
                 source_ref = source_ref
             ),
@@ -414,7 +414,7 @@ def buildWhileLoopNode(provider, node, source_ref):
                         source_ref = source_ref
                     ),
                     tolerant     = False,
-                    source_ref   = source_ref.atInternal()
+                    source_ref   = source_ref
                 ),
                 source_ref = source_ref
             ),

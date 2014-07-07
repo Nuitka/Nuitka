@@ -23,11 +23,15 @@ temporaries from context is automatic.
 
 Also formatting errors is done here, avoiding PyErr_Format as much as
 possible.
+
+And releasing of values, as this is what the error case commonly does.
+
 """
 
 from . import CodeTemplates
 from .ExceptionCodes import getExceptionIdentifier
 from .Indentation import indented
+from .LineNumberCodes import getLineNumberUpdateCode
 
 
 def getErrorExitReleaseCode(context):
@@ -36,6 +40,8 @@ def getErrorExitReleaseCode(context):
         for tmp_name in
         context.getCleanupTempnames()
     )
+
+
 
 def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
     assert not condition.endswith(";")
@@ -46,11 +52,14 @@ def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
         emit(
             indented(
                 CodeTemplates.template_error_catch_quick_exception % {
-                    "condition"       : condition,
-                    "exception_exit"  : context.getExceptionEscape(),
-                    "quick_exception" : getExceptionIdentifier(quick_exception),
-                    "release_temps"   : indented(
+                    "condition"        : condition,
+                    "exception_exit"   : context.getExceptionEscape(),
+                    "quick_exception"  : getExceptionIdentifier(quick_exception),
+                    "release_temps"    : indented(
                         getErrorExitReleaseCode(context)
+                    ),
+                    "line_number_code" : indented(
+                        getLineNumberUpdateCode(context)
                     )
                 },
                 0
@@ -60,10 +69,13 @@ def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
         emit(
             indented(
                 CodeTemplates.template_error_catch_exception % {
-                    "condition"       : condition,
-                    "exception_exit"  : context.getExceptionEscape(),
-                    "release_temps"   : indented(
+                    "condition"        : condition,
+                    "exception_exit"   : context.getExceptionEscape(),
+                    "release_temps"    : indented(
                         getErrorExitReleaseCode(context)
+                    ),
+                    "line_number_code" : indented(
+                        getLineNumberUpdateCode(context)
                     )
                 },
                 0
@@ -78,6 +90,7 @@ def getErrorExitCode(check_name, emit, context, quick_exception = None):
         emit            = emit,
         context         = context
     )
+
 
 def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     assert not condition.endswith(";")
@@ -103,11 +116,14 @@ exception_tb = NULL;""" % (
     emit(
         indented(
             CodeTemplates.template_error_format_string_exception % {
-                "condition"       : condition,
-                "exception_exit"  : context.getExceptionEscape(),
-                "set_exception"   : indented(set_exception),
-                "release_temps"   : indented(
+                "condition"        : condition,
+                "exception_exit"   : context.getExceptionEscape(),
+                "set_exception"    : indented(set_exception),
+                "release_temps"    : indented(
                     getErrorExitReleaseCode(context)
+                ),
+                "line_number_code" : indented(
+                    getLineNumberUpdateCode(context)
                 )
             },
             0
@@ -131,6 +147,7 @@ def getReleaseCode(release_name, emit, context):
     if context.needsCleanup(release_name):
         emit("Py_DECREF( %s );" % release_name)
         context.removeCleanupTempName(release_name)
+
 
 def getReleaseCodes(release_names, emit, context):
     for release_name in release_names:

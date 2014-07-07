@@ -281,9 +281,6 @@ class StatementsFrame(StatementsSequence):
 
         return result
 
-    def needsLineNumber(self):
-        return False
-
     def getGuardMode(self):
         return self.guard_mode
 
@@ -405,6 +402,12 @@ class StatementsFrame(StatementsSequence):
                     node       = self
                 )
             else:
+                constraint_collection.signalChange(
+                    "new_statements",
+                    self.getSourceReference(),
+                    "Removed useless frame"
+                )
+
                 return makeStatementsSequenceReplacementNode(
                     statements = outside_pre + outside_post,
                     node       = self
