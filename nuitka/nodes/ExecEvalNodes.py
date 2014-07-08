@@ -243,26 +243,9 @@ Exec statement raises implicitely when determining locals argument."""
 
         str_value = self.getSourceCode().getStrValue()
 
-        # TODO: This is not yet completely working
         if False and str_value is not None:
-            from nuitka.tree.Building import (
-                buildParseTree,
-                completeVariableClosures
-            )
-
-            exec_body = buildParseTree(
-                provider    = self.getParentVariableProvider(),
-                source_code = str_value.getConstant(),
-                source_ref  = str_value.getSourceReference().getExecReference(
-                    value = True
-                ),
-                is_module   = False,
-                is_main     = False
-            )
-
-            # Need to re-visit things.
-            self.replaceWith( exec_body )
-            completeVariableClosures( self.getParentModule() )
+            # TODO: This needs to be re-done.
+            exec_body = None
 
             return (
                 exec_body,

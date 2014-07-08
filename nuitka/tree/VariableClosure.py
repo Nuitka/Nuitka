@@ -48,7 +48,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         so that "variable = variable" takes first "variable" as a closure and
         then adds a new local "variable" to override it from there on. For the
         not early closure case of a function, this will not be done and only
-        assigments shall add local variables, and references will be ignored
+        assignments shall add local variables, and references will be ignored
         until phase 2.
     """
 
@@ -65,18 +65,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 variable = provider.getVariableForAssignment(
                     variable_name = variable_name
                 )
-
-                # Inside an exec, we need to ignore global declarations that are
-                # not ours, so we replace it with ours, unless it came from an
-                # 'global' declaration inside the exec
-                if node.source_ref.isExecReference() and \
-                   not provider.isPythonModule():
-                    if variable.isModuleVariableReference() and \
-                       not variable.isFromExecStatement():
-                        variable = provider.providing[variable_name] = \
-                          provider.createProvidedVariable(
-                            variable_name = variable_name
-                        )
 
                 node.setVariable(variable)
         elif node.isExpressionVariableRef():

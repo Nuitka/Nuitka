@@ -86,8 +86,7 @@ elif options.mode == "hotfix":
     new_version = ".".join( parts )
 
 else:
-    # TODO: Not now
-    assert False
+    sys.exit("Error, unknown mode '%s'." % options.mode)
 
 # Above code should succeed set this variable
 assert new_version

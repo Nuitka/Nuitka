@@ -210,7 +210,7 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
         return self.variable_version
 
     def setVariable(self, variable):
-        ExpressionVariableRef.setVariable( self, variable )
+        ExpressionVariableRef.setVariable(self, variable)
 
         self.variable_version = variable.allocateTargetNumber()
         assert self.variable_version is not None

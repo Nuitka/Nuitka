@@ -29,7 +29,7 @@ from . import Utils
 class Variable:
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
-        assert type(owner ) not in (tuple, list), owner
+        assert type(owner) not in (tuple, list), owner
 
         self.variable_name = variable_name
         self.owner = owner
@@ -48,7 +48,7 @@ class Variable:
         return self.owner
 
     def addReference(self, reference):
-        self.references.append( reference )
+        self.references.append(reference)
 
     def getReferenced(self):
         # Abstract method, pylint: disable=R0201,W0613
@@ -75,9 +75,6 @@ class Variable:
 
     # pylint: disable=R0201
     def isLocalVariable(self):
-        return False
-
-    def isClassVariable(self):
         return False
 
     def isMaybeLocalVariable(self):

@@ -53,9 +53,6 @@ from .Helpers import (
 def buildFunctionNode(provider, node, source_ref):
     assert getKind( node ) == "FunctionDef"
 
-    # Remove "exec" flag if any.
-    source_ref = source_ref.getExecReference( False )
-
     function_statements, function_doc = extractDocFromBody( node )
 
     function_body = ExpressionFunctionBody(
