@@ -32,6 +32,7 @@ from . import (
     Importing,
     ModuleRegistry,
     Options,
+    PythonVersions,
     SyntaxErrors,
     Tracing,
     TreeXML,
@@ -456,6 +457,7 @@ def writeSourceCode(filename, source_code):
         with open(filename, "w") as output_file:
             output_file.write(source_code)
 
+
 def writeBinaryData(filename, binary_data):
     # Prevent accidental overwriting. When this happens the collision detection
     # or something else has failed.
@@ -627,22 +629,30 @@ def main():
         )
     except (SyntaxError, IndentationError) as e:
         if Options.isFullCompat() and \
-           e.args[0].startswith("unknown encoding:"):
-            if Utils.python_version >= 333 or \
-               (
-                   Utils.python_version >= 276 and \
-                   Utils.python_version < 300
-               ) or \
-               "2.7.5+" in sys.version or \
-               "3.3.2+" in sys.version: # Debian backports have "+" versions
-                complaint = "no-exist"
+           (e.args[0].startswith("unknown encoding:") or \
+            e.args[0].startswith("encoding problem:")):
+            if PythonVersions.doShowUnknownEncodingName():
+                complaint = e.args[0].split(":",2)[1]
             else:
-                complaint = "with BOM"
+                complaint = " with BOM"
+
+            # The ast.parse gives another error than newer CPython gives on
+            # reading the file.
+            if PythonVersions.doForceShowEncodingProblem():
+                prefix = "encoding problem"
+            else:
+                prefix = e.args[0].split(":")[0]
 
             e.args = (
-                "encoding problem: %s" % complaint,
+                "%s:%s" % (
+                    prefix,
+                    complaint,
+                ),
                 (e.args[1][0], 1, None, None)
             )
+
+            if hasattr(e, "msg"):
+                e.msg = e.args[0]
 
         sys.exit(
             SyntaxErrors.formatOutput(e)

@@ -1,4 +1,4 @@
-# coding: no-exist
+# coding: no-existing
 #     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The

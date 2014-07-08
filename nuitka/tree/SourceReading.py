@@ -49,8 +49,17 @@ def _readSourceCodeFromFilename3(source_filename):
                 import codecs
                 codecs.lookup(encoding)
             except LookupError:
+                if Utils.python_version >= 341 or \
+                   (Utils.python_version >= 335 and \
+                    Utils.python_version < 340) or \
+                   (Utils.python_version >= 323 and \
+                    Utils.python_version < 330):
+                    reason = "encoding problem: %s" % encoding
+                else:
+                    reason = "unknown encoding: %s" % encoding
+
                 SyntaxErrors.raiseSyntaxError(
-                    reason       = "unknown encoding: %s" % encoding,
+                    reason       = reason,
                     source_ref   = SourceCodeReferences.fromFilename(
                         source_filename,
                         None
@@ -78,7 +87,7 @@ def _detectEncoding2(source_filename):
     # Detect the encoding.
     encoding = "ascii"
 
-    with open( source_filename, "rb" ) as source_file:
+    with open(source_filename, "rb") as source_file:
         line1 = source_file.readline()
 
         if line1.startswith(b'\xef\xbb\xbf'):
