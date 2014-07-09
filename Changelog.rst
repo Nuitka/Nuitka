@@ -1,6 +1,17 @@
 Nuitka Release 0.5.4 (Draft)
 ============================
 
+This release is aiming at preparatory changes to enable optimization based
+on SSA analysis.
+
+Organizational
+--------------
+
+- Added RPM package and repository for RHEL 7 as well.
+
+Summary
+-------
+
 This release is not yet complete.
 
 Nuitka Release 0.5.3
