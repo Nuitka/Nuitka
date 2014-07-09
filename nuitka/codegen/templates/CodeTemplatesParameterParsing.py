@@ -223,8 +223,8 @@ else
 
         Nuitka_GC_Track( split_copy );
 
-        int size = mp->ma_keys->dk_size;
-        for ( int i = 0; i < size; i++ )
+        Py_ssize_t size = mp->ma_keys->dk_size;
+        for ( Py_ssize_t i = 0; i < size; i++ )
         {
             PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[ i ];
 
@@ -245,8 +245,8 @@ else
 
         PyDictObject *mp = (PyDictObject *)kw;
 
-        int size = mp->ma_keys->dk_size;
-        for ( int i = 0; i < size; i++ )
+        Py_ssize_t size = mp->ma_keys->dk_size;
+        for ( Py_ssize_t i = 0; i < size; i++ )
         {
             PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
 
