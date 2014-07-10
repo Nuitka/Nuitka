@@ -66,10 +66,10 @@ def doForceShowEncodingProblem():
     if not isFullCompat():
         return True
 
-    if isAtLeastSubVersion(277):
+    if isAtLeastSubVersion(272):
         return True
 
-    if isAtLeastSubVersion(268):
+    if isAtLeastSubVersion(266):
         return True
 
     return False
