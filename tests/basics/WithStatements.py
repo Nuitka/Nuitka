@@ -164,3 +164,19 @@ except Exception as e:
 
 if sys.version_info >= (3,):
     assert sys.exc_info() == (None, None, None)
+
+class CatchingContextManager(object):
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return True
+
+print("Suppressing exception from context manager body:")
+with CatchingContextManager():
+    raise ZeroDivisionError
+
+if sys.version_info >= (3,):
+    assert sys.exc_info() == (None, None, None)
+print("OK")
