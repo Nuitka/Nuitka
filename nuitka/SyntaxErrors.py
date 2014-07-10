@@ -35,6 +35,11 @@ def formatOutput(e):
         colno = None
         message = None
 
+    # On CPython3.4 at least, this attribute appears to override reason for
+    # SyntaxErrors at least.
+    if hasattr(e, "msg"):
+        reason = e.msg
+
     if colno is not None:
         colno = colno - len(message) + len(message.lstrip())
 

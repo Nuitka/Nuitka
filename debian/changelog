@@ -4,11 +4,13 @@ nuitka (0.5.4~pre1+ds-1) UNRELEASED; urgency=medium
 
  -- Kay Hayen <kay.hayen@gmail.com>  Mon, 07 Jul 2014 21:33:29 +0200
 
-nuitka (0.5.3+ds-1) unstable; urgency=medium
+nuitka (0.5.3.1+ds-1) unstable; urgency=medium
 
   * New upstream release.
+  * Original version didn't build for unstable due to error message
+    changes, this release adapts to.
 
- -- Kay Hayen <kay.hayen@gmail.com>  Mon, 07 Jul 2014 21:29:58 +0200
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 10 Jul 2014 08:58:25 +0200
 
 nuitka (0.5.2+ds-1) unstable; urgency=medium
 
