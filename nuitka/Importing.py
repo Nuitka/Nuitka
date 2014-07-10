@@ -276,7 +276,7 @@ def _findModule(module_name, parent_package):
     assert module_name != "" or parent_package is not None
 
     # Built-in module names must not be searched any further.
-    if module_name in sys.builtin_module_names:
+    if module_name in sys.builtin_module_names and parent_package is None:
         return None, None
 
     if "." in module_name:
