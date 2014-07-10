@@ -63,9 +63,9 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
 
 def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
-    with_source = buildNode( provider, context_expr, source_ref )
+    with_source = buildNode(provider, context_expr, source_ref)
 
-    temp_scope = provider.allocateTempScope( "with" )
+    temp_scope = provider.allocateTempScope("with")
 
     tmp_source_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
