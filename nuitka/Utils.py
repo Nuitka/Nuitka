@@ -27,6 +27,7 @@ import subprocess
 import sys
 
 
+# TODO: Duplicated with PythonVersions, but too much work to relocate fully.
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
 
