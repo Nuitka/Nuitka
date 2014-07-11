@@ -68,6 +68,11 @@ os.environ["PYTHONWARNINGS"] = "ignore"
 if "PYTHON" not in os.environ:
     os.environ["PYTHON"] = sys.executable
 
+extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
+
+if "--python-debug" in extra_options:
+    python_debug = True
+
 if python_debug:
     if os.path.exists(os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")):
         os.environ["PYTHON"] += "-dbg"
@@ -119,8 +124,6 @@ else:
         os.environ["PYTHON"],
         os.path.abspath(os.path.join(os.path.dirname(__file__), "nuitka"))
     ]
-
-extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
 
 if python_debug:
     extra_options += " --python-debug"
