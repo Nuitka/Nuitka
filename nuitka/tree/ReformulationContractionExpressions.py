@@ -74,16 +74,6 @@ from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationBooleanExpressions import buildAndNode
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
-make_contraction_parameters = ParameterSpec(
-    name          = "contraction",
-    normal_args   = ("__iterator",),
-    list_star_arg = None,
-    dict_star_arg = None,
-    default_count = 0,
-    kw_only_args  = ()
-)
-
-
 
 def buildListContractionNode(provider, node, source_ref):
     # List contractions are dealt with by general code.
@@ -528,7 +518,14 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         provider   = provider,
         name       = name,
         doc        = None,
-        parameters = make_contraction_parameters,
+        parameters = ParameterSpec(
+            name          = "contraction",
+            normal_args   = ("__iterator",),
+            list_star_arg = None,
+            dict_star_arg = None,
+            default_count = 0,
+            kw_only_args  = ()
+        ),
         source_ref = source_ref
     )
 

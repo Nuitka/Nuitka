@@ -794,7 +794,7 @@ def super_extractor(node):
                 )
 
                 type = ExpressionTempVariableRef(
-                    variable      = class_var.makeReference( parent_provider ).makeReference(provider),
+                    variable      = class_var.makeReference(parent_provider).makeReference(provider),
                     source_ref    = source_ref
                 )
 

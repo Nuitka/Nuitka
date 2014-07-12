@@ -80,8 +80,6 @@ def getLocalVariableInitCode(context, variable, init_from = None,
     if not result.endswith( "*" ):
         result += " "
 
-    store_name = variable.getMangledName()
-
     result += variable.getCodeName()
 
     if not in_context:

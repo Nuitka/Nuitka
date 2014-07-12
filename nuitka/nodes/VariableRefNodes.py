@@ -154,7 +154,7 @@ Replaced read-only module attribute '__package__' with constant value."""
         return self, None, None
 
     def onContentEscapes(self, constraint_collection):
-        constraint_collection.onVariableContentEscapes( self.variable )
+        constraint_collection.onVariableContentEscapes(self.variable)
 
     def isKnownToBeIterable(self, count):
         return None

@@ -85,7 +85,10 @@ Removed type taking for unused result."""
 class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SUPER"
 
-    named_children = ( "type", "object" )
+    named_children = (
+        "type",
+        "object"
+    )
 
     def __init__(self, super_type, super_object, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -97,8 +100,8 @@ class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
             },
             source_ref = source_ref )
 
-    getType = ExpressionChildrenHavingBase.childGetter( "type" )
-    getObject = ExpressionChildrenHavingBase.childGetter( "object" )
+    getType = ExpressionChildrenHavingBase.childGetter("type")
+    getObject = ExpressionChildrenHavingBase.childGetter("object")
 
     def computeExpression(self, constraint_collection):
         # TODO: Quite some cases should be possible to predict.

@@ -48,11 +48,11 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
                              MarkLocalsDictIndicator,
                              MarkUnoptimizedFunctionIndicator):
     # We really want these many ancestors, as per design, we add properties via
-    # base class mixins a lot, pylint: disable=R0901
+    # base class mix-ins a lot, pylint: disable=R0901
 
     kind = "EXPRESSION_FUNCTION_BODY"
 
-    named_children = ( "body", )
+    named_children = ("body",)
 
     def __init__(self, provider, name, doc, parameters, source_ref,
                  is_class = False):
@@ -491,8 +491,8 @@ def convertNoneConstantOrEmptyDictToNone(node):
         return node
 
 
-class ExpressionFunctionCreation( SideEffectsFromChildrenMixin,
-                                  ExpressionChildrenHavingBase ):
+class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
+                                 ExpressionChildrenHavingBase):
     kind = "EXPRESSION_FUNCTION_CREATION"
 
     # Note: The order of evaluation for these is a bit unexpected, but
@@ -582,11 +582,12 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
         owning_module = function_body.getParentModule()
 
         from nuitka.ModuleRegistry import addUsedModule
-        addUsedModule( owning_module )
+        addUsedModule(owning_module)
 
-        owning_module.addUsedFunction( function_body )
+        owning_module.addUsedFunction(function_body)
 
-        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionFunction
+        from nuitka.optimizations.ConstraintCollections import \
+            ConstraintCollectionFunction
 
         collection = ConstraintCollectionFunction(
             parent        = constraint_collection,
@@ -631,7 +632,7 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         values = self.getArgumentValues()
 
         for count, value in enumerate( values ):
-            if value.willRaiseException( BaseException ):
+            if value.willRaiseException(BaseException):
                 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
                 result = wrapExpressionWithSideEffects(
@@ -644,5 +645,5 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
         return self, None, None
 
-    getFunction = ExpressionChildrenHavingBase.childGetter( "function" )
-    getArgumentValues = ExpressionChildrenHavingBase.childGetter( "values" )
+    getFunction = ExpressionChildrenHavingBase.childGetter("function")
+    getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")

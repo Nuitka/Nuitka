@@ -145,21 +145,21 @@ class CollectionTracingMixin:
     def getVariableCurrentTrace(self, variable):
         return self.getVariableTrace(
             variable = variable,
-            version  = self.getCurrentVariableVersion( variable )
+            version  = self.getCurrentVariableVersion(variable)
         )
 
     def markCurrentVariableTrace(self, variable, version):
         assert not variable.isModuleVariable() or variable.isReference(), \
            variable
 
-        self.variable_actives[ variable ] = version
+        self.variable_actives[variable] = version
 
     def getCurrentVariableVersion(self, variable):
-        assert variable in self.variable_actives, ( variable, self )
-        return self.variable_actives[ variable ]
+        assert variable in self.variable_actives, (variable, self)
+        return self.variable_actives[variable]
 
     def getActiveVariables(self):
-        return tuple( self.variable_actives.keys() )
+        return tuple(self.variable_actives.keys())
 
     def markActiveVariableAsUnknown(self, variable):
         current = self.getVariableCurrentTrace(
@@ -178,11 +178,11 @@ class CollectionTracingMixin:
                 )
             )
 
-            self.markCurrentVariableTrace( variable, version )
+            self.markCurrentVariableTrace(variable, version)
 
     def markActiveVariablesAsUnknown(self):
         for variable in self.getActiveVariables():
-            self.markActiveVariableAsUnknown( variable )
+            self.markActiveVariableAsUnknown(variable)
 
 
 class CollectionStartpointMixin:
@@ -200,17 +200,17 @@ class CollectionStartpointMixin:
         self.unclear_locals = False
 
     def getVariableTrace(self, variable, version):
-        return self.variable_traces[ ( variable, version ) ]
+        return self.variable_traces[( variable, version )]
 
     def getVariableTraces(self, variable):
         result = []
 
-        for key, variable_trace in iterItems( self.variable_traces ):
+        for key, variable_trace in iterItems(self.variable_traces):
             candidate = key[0]
             candidate = candidate.getReferenced()
 
             if variable is candidate:
-                result.append( variable_trace )
+                result.append(variable_trace)
 
         return result
 
@@ -722,7 +722,7 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
     def __init__(self, signal_change, module):
         assert module.isPythonModule()
 
-        CollectionStartpointMixin.__init__( self )
+        CollectionStartpointMixin.__init__(self)
 
         ConstraintCollectionBase.__init__(
             self,
@@ -730,11 +730,11 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
             signal_change = signal_change
         )
 
-        VariableUsageTrackingMixin.__init__( self )
+        VariableUsageTrackingMixin.__init__(self)
 
         self.module = module
 
-        self.setupVariableTraces( module )
+        self.setupVariableTraces(module)
 
         module_body = module.getBody()
 
@@ -748,7 +748,7 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
 
         self.setIndications()
 
-        self.makeVariableTraceOptimizations( module )
+        self.makeVariableTraceOptimizations(module)
 
     def onModuleVariableAssigned(self, variable, assign_source):
         while variable.isModuleVariableReference():

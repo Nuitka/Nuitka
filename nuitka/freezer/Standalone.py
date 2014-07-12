@@ -718,7 +718,7 @@ def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
             dll_name
         )
 
-        # Check that if a DLL has the name name, if it's identical,
+        # Check that if a DLL has the same name, if it's identical,
         # happens at least for OSC and Fedora 20.
         if Utils.isFile(target_path):
             import filecmp

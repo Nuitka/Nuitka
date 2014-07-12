@@ -582,8 +582,8 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         # Re-use already taken global variables, in order to avoid creating yet
         # another instance, esp. as the markups could then potentially not be
         # shared.
-        if provider.hasTakenVariable( variable_name ):
-            closure_variable = provider.getTakenVariable( variable_name )
+        if provider.hasTakenVariable(variable_name):
+            closure_variable = provider.getTakenVariable(variable_name)
 
             if not closure_variable.isModuleVariableReference():
                 closure_variable = None

@@ -29,6 +29,9 @@ flexible.
 
 """
 
+from nuitka import Utils, Variables
+
+
 class TooManyArguments(Exception):
     def __init__(self, real_exception):
         Exception.__init__( self )
@@ -37,9 +40,6 @@ class TooManyArguments(Exception):
 
     def getRealException(self):
         return self.real_exception
-
-
-from nuitka import Utils, Variables
 
 
 class ParameterSpecTuple:

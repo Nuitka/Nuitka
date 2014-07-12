@@ -764,19 +764,20 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
     def getTempVariable(self, temp_scope, name):
         if temp_scope is not None:
-            full_name = "%s__%s" % ( temp_scope, name )
+            full_name = "%s__%s" % (temp_scope, name)
         else:
             full_name = name
 
-        return self.temp_variables[ full_name ]
+        return self.temp_variables[full_name]
 
     def getTempVariables(self):
-        return tuple( self.temp_variables.values() )
+        return tuple(self.temp_variables.values())
 
     def removeTempVariable(self, variable):
-        del self.temp_variables[ variable.getName() ]
+        del self.temp_variables[variable.getName()]
 
 
+# TODO: There is long since only one node type that uses it, move to FunctionNodes
 class ParameterHavingNodeBase(ClosureGiverNodeBase):
     def __init__(self, name, code_prefix, parameters, source_ref):
         ClosureGiverNodeBase.__init__(

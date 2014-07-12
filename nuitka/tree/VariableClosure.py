@@ -290,9 +290,9 @@ contains a nested function with free variables""" % parent_provider.getName(),
                         name       = "__class__"
                     )
 
-                    variable = variable.makeReference( parent_provider )
+                    variable = variable.makeReference(parent_provider)
 
-                    node.addClosureVariable( variable )
+                    node.addClosureVariable(variable)
 
 
 class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
