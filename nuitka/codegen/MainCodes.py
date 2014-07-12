@@ -26,7 +26,7 @@ frame object data (filename, etc).
 
 import sys
 
-from nuitka import Options, Utils
+from nuitka import Options
 
 from . import CodeTemplates
 from .ConstantCodes import getModuleConstantCode
@@ -56,10 +56,7 @@ def getMainCode(main_module, codes, context):
 
     main_code        = CodeTemplates.main_program % {
         "sys_executable"       : getModuleConstantCode(
-            constant = "python.exe"
-                         if Utils.getOS() == "Windows" and \
-                            Options.isStandaloneMode() else
-                       sys.executable,
+            constant = sys.executable,
             context  = context
         ),
         "python_sysflag_debug" : sys.flags.debug,
