@@ -58,18 +58,4 @@ def doShowUnknownEncodingName():
     if  "2.7.5+" in sys.version or "3.3.2+" in sys.version:
         return True
 
-
-    return False
-
-def doForceShowEncodingProblem():
-    # Best to show newest message.
-    if not isFullCompat():
-        return True
-
-    if isAtLeastSubVersion(272):
-        return True
-
-    if isAtLeastSubVersion(266):
-        return True
-
     return False
