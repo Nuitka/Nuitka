@@ -17,8 +17,9 @@
 #
 """ Pack and copy files for standalone mode.
 
-This is in heavy flux now, cannot be expected to work or make sense on all
-the platforms.
+This is still under heavy evolution, but expected to work for
+MacOS, Windows, and Linux. Patches for other platforms are
+very welcome.
 """
 
 import os
@@ -54,7 +55,7 @@ def getDependsExePath():
     if not Utils.isFile(nuitka_depends_zip):
         Tracing.printLine("""\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
-to analyse the dependencies of Python extension modules. Is it OK to download
+to analyze the dependencies of Python extension modules. Is it OK to download
 and put it in APPDATA (no installer needed, cached, one time question)."""
         )
 
@@ -706,9 +707,11 @@ def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
     dll_map = []
 
     for early_dll in detectUsedDLLs(standalone_entry_points):
+        dll_name = Utils.basename(early_dll)
+
         target_path = Utils.joinpath(
             dist_dir,
-            Utils.basename(early_dll)
+            dll_name
         )
 
         # Check that if a DLL has the name name, if it's identical,
@@ -719,7 +722,7 @@ def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
             if filecmp.cmp(early_dll, target_path):
                 continue
             else:
-                sys.exit("Error, conflicting DLLs.")
+                sys.exit("Error, conflicting DLLs for '%s'." % dll_name)
 
         shutil.copy(
             early_dll,
@@ -727,7 +730,7 @@ def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
         )
 
         dll_map.append(
-            (early_dll, Utils.basename(early_dll))
+            (early_dll, dll_name)
         )
 
         if Options.isShowInclusion():

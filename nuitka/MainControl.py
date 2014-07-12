@@ -636,18 +636,8 @@ def main():
             else:
                 complaint = " with BOM"
 
-            # The ast.parse gives another error than newer CPython gives on
-            # reading the file.
-            if PythonVersions.doForceShowEncodingProblem():
-                prefix = "encoding problem"
-            else:
-                prefix = e.args[0].split(":")[0]
-
             e.args = (
-                "%s:%s" % (
-                    prefix,
-                    complaint,
-                ),
+                "encoding problem:%s" % complaint,
                 (e.args[1][0], 1, None, None)
             )
 
