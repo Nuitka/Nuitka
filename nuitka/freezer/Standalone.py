@@ -382,6 +382,10 @@ def detectEarlyImports():
                 if 'test' in dirs:
                     dirs.remove('test')
 
+            if import_path == "lib2to3":
+                if 'tests' in dirs:
+                    dirs.remove('tests')
+
             if Utils.python_version >= 340 and Utils.getOS() == "Windows":
                 if import_path == "multiprocessing":
                     filenames.remove("popen_fork.py")
