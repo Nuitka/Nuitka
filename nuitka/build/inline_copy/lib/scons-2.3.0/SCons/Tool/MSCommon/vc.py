@@ -449,7 +449,8 @@ def msvc_setup_env(env):
         debug('MSVC_USE_SCRIPT set to False')
         warn_msg = "MSVC_USE_SCRIPT set to False, assuming environment " \
                    "set correctly."
-        SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
+        # Nuitka: We use this on purpose.
+        # SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
         return None
 
     for k, v in d.items():
