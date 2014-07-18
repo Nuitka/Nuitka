@@ -237,25 +237,25 @@ for filename in sorted(os.listdir(".")):
 
             # PySide accesses its directory.
             if loaded_filename == "/usr/lib/python" + \
-               python_version[:3].decode() + \
+               python_version[:3] + \
                   "/dist-packages/PySide":
                 continue
 
             # GTK accesses package directories only.
             if loaded_filename == "/usr/lib/python" + \
-               python_version[:3].decode() + \
+               python_version[:3] + \
                   "/dist-packages/gtk-2.0/gtk":
                 continue
             if loaded_filename == "/usr/lib/python" + \
-               python_version[:3].decode() + \
+               python_version[:3] + \
                   "/dist-packages/glib":
                 continue
             if loaded_filename == "/usr/lib/python" + \
-               python_version[:3].decode() + \
+               python_version[:3] + \
                   "/dist-packages/gtk-2.0/gio":
                 continue
             if loaded_filename == "/usr/lib/python" + \
-               python_version[:3].decode() + \
+               python_version[:3] + \
                   "/dist-packages/gobject":
                 continue
 
