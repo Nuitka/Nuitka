@@ -387,10 +387,6 @@ if os.name != "nt" and env["CXX"] is None:
 The g++ compiler '%s' (version %s) doesn't have the sufficient \
 version (>= 4.4).""" % ( orig_cxx, orig_cxx_version ) )
 
-if show_scons_mode:
-    print "Scons compiler: Using",
-    print getExecutablePath( env[ "CXX" ], initial = False )
-
 if env["CXX"] is None or \
    getExecutablePath( env[ "CXX" ], initial = False ) is None:
     if os.name == "nt":
@@ -409,6 +405,10 @@ b) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
 """ % sys.exec_prefix )
     else:
         sys.exit("Error, cannot locate suitable C++ compiler.")
+
+if show_scons_mode:
+    print "Scons compiler: Using",
+    print getExecutablePath( env[ "CXX" ], initial = False )
 
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
