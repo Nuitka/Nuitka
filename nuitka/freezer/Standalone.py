@@ -588,7 +588,9 @@ def detectBinaryDLLs(binary_filename, package_name):
                 "WEBSOCKET.DLL", "WEVTAPI.DLL", "WINMMBASE.DLL", "WMICLNT.DLL"):
                 continue
 
-            result.add(dll_filename)
+            result.add(
+                Utils.normcase(Utils.abspath(dll_filename))
+            )
 
         os.unlink(binary_filename + ".depends")
     elif Utils.getOS() == "Darwin":
