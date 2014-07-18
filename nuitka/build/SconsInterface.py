@@ -122,7 +122,7 @@ def runScons(options, quiet):
         # Also, for MinGW we can avoid the user having to add the path if he
         # used the default path or installed it on the same drive by appending
         # to the PATH variable before executing scons.
-        os.environ["PATH"] += r";\MinGW\bin;C:\MinGW\bin"
+        # os.environ["PATH"] += r";\MinGW\bin;C:\MinGW\bin"
 
     scons_command = getSconsBinaryCall()
 

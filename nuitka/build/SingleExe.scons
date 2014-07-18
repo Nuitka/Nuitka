@@ -129,7 +129,9 @@ def createEnvironment( compiler_tools ):
     # find "cl.exe", and if we do, disable automatic scan.
     if os.name == "nt" and \
        not mingw_mode and \
-       getExecutablePath("cl", initial = True) is not None:
+       (getExecutablePath("cl", initial = True) is not None or \
+        getExecutablePath("gcc", initial = True) is not None):
+
         args["MSVC_USE_SCRIPT"] = False
 
     return Environment(
@@ -401,7 +403,7 @@ b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
    Command Prompt' or "vcvarsall.bat". That will add Visual Studio to the
    PATH.
 
-b) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
+c) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
 """ % sys.exec_prefix )
     else:
         sys.exit("Error, cannot locate suitable C++ compiler.")
@@ -412,11 +414,12 @@ if show_scons_mode:
 
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
+mingw_mode = win_target and gcc_mode
 
 if os.name == "nt" and msvc_mode:
     setupSpawn( env )
 
-if os.name == "nt" and gcc_mode and target_arch == "x86_64":
+if False and os.name == "nt" and gcc_mode and target_arch == "x86_64":
     sys.exit( """\
 Error, MinGW does not support 64 bit Python. Use MSVC or 32 bit Python instead.""" )
 
@@ -712,7 +715,90 @@ not satisfied!""" % (
 env.Append( CPPPATH  = [ python_header_path ] )
 
 if win_target:
-    env.Append(LIBPATH = [os.path.join(python_prefix, "libs")])
+    # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
+    win_lib_path = os.path.join(python_prefix, "libs")
+
+    if os.name == "nt" and target_arch == "x86_64" and gcc_mode:
+        new_win_lib_path = os.path.join(source_dir, "libs")
+        if not os.path.exists(new_win_lib_path):
+            os.makedirs(new_win_lib_path)
+
+        import commands, shutil
+        command = r"gendef - %s\SysWOW64\python%s.dll" % (
+                os.environ["WINDIR"],
+                python_version.replace(".", "")
+            )
+
+        defs_filename = os.path.join(
+            new_win_lib_path,
+            "python%s.defs" % python_version.replace(".", "")
+        )
+        defs_file = open(
+            defs_filename,
+            "w"
+        )
+
+        startupinfo = subprocess.STARTUPINFO()
+
+        # CPython2.6 compatibility
+        try:
+            from subprocess import STARTF_USESHOWWINDOW
+        except ImportError:
+            from _subprocess import STARTF_USESHOWWINDOW
+
+        startupinfo.dwFlags |= STARTF_USESHOWWINDOW
+
+        proc = subprocess.Popen(
+            command,
+            stdin       = subprocess.PIPE,
+            stdout      = defs_file,
+            stderr      = subprocess.PIPE,
+            startupinfo = startupinfo,
+            shell       = False
+        )
+
+        data, err = proc.communicate()
+        rv = proc.wait()
+
+        assert rv == 0
+
+        defs_file.close()
+        defs_file = open(
+            defs_filename,
+            "r"
+        )
+        defs = defs_file.read()
+        defs_file.close()
+        defs_file = open(
+            defs_filename,
+            "w"
+        )
+        defs_file.write(defs.replace("Py_InitModule4", "Py_InitModule4_64"))
+        defs_file.close()
+
+        shutil.copy(
+            r"%s\SysWOW64\python%s.dll" % (
+                os.environ["WINDIR"],
+                python_version.replace(".", "")
+            ),
+            new_win_lib_path
+        )
+
+        lib_filename = os.path.join(
+            new_win_lib_path,
+            "libpython%s.a" % python_version.replace(".", "")
+        )
+
+        assert 0 == os.system(
+            "dlltool -d %s -l %s" % (
+                defs_filename,
+                lib_filename
+            )
+        )
+
+        win_lib_path = new_win_lib_path
+
+    env.Append(LIBPATH = [win_lib_path])
     env.Append(LIBS = ["python" + python_version.replace(".", "")])
 else:
     # Debian and Ubuntu distinguish the system libraries like this.
