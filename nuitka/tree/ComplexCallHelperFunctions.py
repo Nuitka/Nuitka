@@ -78,6 +78,7 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Utils import python_version
+from nuitka.VariableRegistry import addVariableUsage
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
@@ -88,14 +89,16 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 source_ref = fromFilename("internal", FutureSpec()).atInternal()
 
 
-# Cache result. TODO: no more as special as it used to be, maybe can be found in
-# stdlib.
+# Cache result.
 def once_decorator(func):
     func.cached_value = None
 
     def replacement():
         if func.cached_value is None:
             func.cached_value = func()
+
+        for variable in func.cached_value.getVariables():
+            addVariableUsage(variable, func.cached_value)
 
         return func.cached_value
 

@@ -147,6 +147,46 @@ def optimizeShlibModule(module):
     module.considerImplicitImports(signal_change = signalChange)
 
 
+def optimizeVariables(module):
+    for function_body in module.getUsedFunctions():
+        constraint_collection = function_body.constraint_collection
+        if constraint_collection.unclear_locals:
+            continue
+
+        for closure_variable in function_body.getClosureVariables():
+            # print "VAR", closure_variable
+
+            variable_traces = constraint_collection.getVariableTraces(
+                variable = closure_variable
+            )
+
+            empty = True
+            for variable_trace in variable_traces:
+                if variable_trace.isAssignTrace():
+                    empty = False
+                    break
+                elif variable_trace.getDefiniteUsages():
+                    # Checking definite is enough, the merges, we shall see
+                    # them as well.
+                    empty = False
+                    break
+                elif variable_trace.isEscaped():
+                    # If the value is escape, we still need to keep it for that
+                    # escape opportunity. This is only while that is not seen
+                    # as a definite usage.
+                    empty = False
+                    break
+                elif variable_trace.getReleases():
+                    # Python3 only, but a "del" statement may occur and needs
+                    # to prevent.
+                    assert Utils.python_version >= 300
+                    empty = False
+                    break
+
+            if empty:
+                function_body.removeVariable(closure_variable)
+
+
 def optimize():
     while True:
         finished = True
@@ -176,6 +216,10 @@ after that. Memory usage {memory}:""".format(
 
                 if changed:
                     finished = False
+
+        for current_module in ModuleRegistry.getDoneModules():
+            if not current_module.isPythonShlibModule():
+                optimizeVariables(current_module)
 
         if finished:
             break

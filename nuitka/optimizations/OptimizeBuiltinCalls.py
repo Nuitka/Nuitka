@@ -783,8 +783,13 @@ def super_extractor(node):
                     )
                 )
 
+                # If we already have this as a local variable, then use that
+                # instead.
                 if not type.getVariable().isClosureReference():
                     type = None
+                else:
+                    from nuitka.VariableRegistry import addVariableUsage
+                    addVariableUsage(type.getVariable(), provider)
             else:
                 parent_provider = provider.getParentVariableProvider()
 
@@ -798,6 +803,8 @@ def super_extractor(node):
                     source_ref    = source_ref
                 )
 
+                from nuitka.VariableRegistry import addVariableUsage
+                addVariableUsage(type.getVariable(), provider)
 
             from nuitka.nodes.NodeMakingHelpers import \
                 makeRaiseExceptionReplacementExpression

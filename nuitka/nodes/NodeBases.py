@@ -26,6 +26,7 @@ from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.odict import OrderedDict
 from nuitka.oset import OrderedSet
+from nuitka.VariableRegistry import addVariableUsage
 
 lxml = TreeXML.lxml
 
@@ -759,6 +760,8 @@ class ClosureGiverNodeBase(CodeNodeBase):
         )
 
         self.temp_variables[full_name] = result
+
+        addVariableUsage(result, self)
 
         return result
 

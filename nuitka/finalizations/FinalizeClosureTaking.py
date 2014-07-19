@@ -34,7 +34,10 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
         # print node, node.provider
 
         for variable in node.getClosureVariables():
-            referenced = variable.getReferenced()
+
+            referenced = variable
+            while referenced.isClosureReference():
+                referenced = referenced.getReferenced()
             referenced_owner = referenced.getOwner()
 
             assert not referenced.isModuleVariable()

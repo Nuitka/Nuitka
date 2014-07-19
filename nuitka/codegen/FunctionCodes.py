@@ -353,6 +353,7 @@ def getFunctionDirectDecl( function_identifier, closure_variables,
 
     return result
 
+
 def getFunctionContextDefinitionCode(function_identifier, closure_variables,
                                      context):
     context_decl = []
@@ -375,6 +376,7 @@ def getFunctionContextDefinitionCode(function_identifier, closure_variables,
         "context_decl"        : indented(context_decl),
         "context_free"        : indented(context_free),
     }
+
 
 def getFunctionCode(context, function_name, function_identifier, parameters,
                     closure_variables, user_variables, temp_variables,
@@ -598,8 +600,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         )
 
     for closure_variable in closure_variables:
-        assert closure_variable.isSharedLogically()
-
         context_decl.append(
             getLocalVariableInitCode(
                 context    = context,

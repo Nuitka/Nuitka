@@ -33,6 +33,7 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode
 )
+from nuitka.VariableRegistry import isSharedLogically
 
 from .VariableTraces import (
     VariableAssignTrace,
@@ -207,7 +208,6 @@ class CollectionStartpointMixin:
 
         for key, variable_trace in iterItems(self.variable_traces):
             candidate = key[0]
-            candidate = candidate.getReferenced()
 
             if variable is candidate:
                 result.append(variable_trace)
@@ -628,6 +628,7 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
         VariableUsageTrackingMixin.__init__(self)
 
         self.function_body = function_body
+        function_body.constraint_collection = self
 
         statements_sequence = function_body.getBody()
 
@@ -667,7 +668,7 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
             # print variable
 
-            if variable.isLocalVariable() and not variable.isSharedLogically():
+            if variable.isLocalVariable() and not isSharedLogically(variable):
                 if variable_trace.isAssignTrace():
                     assign_node = variable_trace.getAssignNode()
 
