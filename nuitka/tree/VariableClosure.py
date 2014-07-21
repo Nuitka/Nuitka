@@ -263,24 +263,15 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
             if parent_provider.isExpressionFunctionBody() and \
                parent_provider.isUnqualifiedExec():
-                lines = open(
-                    node.source_ref.getFilename(),
-                    "rU"
-                ).readlines()
-
-                exec_line_number = parent_provider.getExecSourceRef().\
-                                     getLineNumber()
-
-                raise SyntaxError(
-                    """\
+                SyntaxErrors.raiseSyntaxError(
+                    reason       = """\
 unqualified exec is not allowed in function '%s' it \
 contains a nested function with free variables""" % parent_provider.getName(),
-                    (
-                        node.source_ref.getFilename(),
-                        exec_line_number,
-                        None,
-                        lines[exec_line_number - 1]
-                    )
+                    source_ref   = parent_provider.getExecSourceRef(),
+                    col_offset   = None,
+                    display_file = True,
+                    display_line = True,
+                    source_line  = None
                 )
 
 
