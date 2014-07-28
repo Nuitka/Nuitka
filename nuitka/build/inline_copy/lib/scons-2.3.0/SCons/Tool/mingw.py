@@ -42,10 +42,14 @@ import SCons.Defaults
 import SCons.Tool
 import SCons.Util
 
-# This is what we search for to find mingw:
-key_program = 'mingw32-gcc'
 
 def find(env):
+    # Nuitka: Check for MinGW64 or MinGW32.
+    if env["TARGET_ARCH"] == "x86_64":
+        key_program = 'x86_64-w64-mingw32-g++'
+    else:
+        key_program = "mingw32-g++"
+
     # First search in the SCons path
     path=env.WhereIs(key_program)
     if (path):
