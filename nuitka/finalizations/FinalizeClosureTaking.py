@@ -47,6 +47,9 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
             while current is not referenced_owner:
                 if current.isExpressionFunctionBody():
                     for current_variable in current.getClosureVariables():
+                        while current_variable.getReferenced().isClosureReference():
+                            current_variable = current_variable.getReferenced()
+
                         if current_variable.getReferenced() is referenced:
                             break
                     else:

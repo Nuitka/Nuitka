@@ -84,6 +84,7 @@ def _getFunctionCreationArgs(defaults_name, kw_defaults_name,
 
 def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
                          annotations_name, closure_variables):
+
     function_creation_arg_spec = _getFunctionCreationArgs(
         defaults_name     = defaults_name,
         kw_defaults_name  = kw_defaults_name,
@@ -331,8 +332,8 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
 
 
-def getFunctionDirectDecl( function_identifier, closure_variables,
-                           parameter_variables, file_scope ):
+def getFunctionDirectDecl(function_identifier, closure_variables,
+                          parameter_variables, file_scope):
 
     parameter_objects_decl = [
         "PyObject *_python_par_" + variable.getName()
