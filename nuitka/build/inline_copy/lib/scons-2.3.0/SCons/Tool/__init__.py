@@ -724,7 +724,6 @@ def tool_list(platform, env):
         cxx_compilers = ['aixc++', 'g++', 'c++']
         assemblers = ['as', 'gas']
         fortran_compilers = ['f95', 'f90', 'aixf77', 'g77', 'fortran']
-        ars = ['ar']
     elif str(platform) == 'darwin':
         "prefer GNU tools on Mac OS X, except for some linkers and IBM tools"
         linkers = ['applelink', 'gnulink']
@@ -739,7 +738,6 @@ def tool_list(platform, env):
         c_compilers = ['gcc', 'msvc', 'intelc', 'icc', 'cc']
         cxx_compilers = ['g++', 'msvc', 'intelc', 'icc', 'c++']
         assemblers = ['gas', 'nasm', 'masm']
-        fortran_compilers = ['gfortran', 'g77', 'ifort', 'ifl', 'f95', 'f90', 'f77']
         ars = ['ar', 'mslib']
 
     c_compiler = FindTool(c_compilers, env) or c_compilers[0]
@@ -752,7 +750,6 @@ def tool_list(platform, env):
         cxx_compiler = None
         linker = None
         assembler = None
-        fortran_compiler = None
         ar = None
     else:
         # Don't use g++ if the C compiler has built-in C++ support:
@@ -762,35 +759,11 @@ def tool_list(platform, env):
             cxx_compiler = FindTool(cxx_compilers, env) or cxx_compilers[0]
         linker = FindTool(linkers, env) or linkers[0]
         assembler = FindTool(assemblers, env) or assemblers[0]
-        fortran_compiler = FindTool(fortran_compilers, env) or fortran_compilers[0]
         ar = FindTool(ars, env) or ars[0]
 
-    other_tools = FindAllTools(other_plat_tools + [
-                               'dmd',
-                               #TODO: merge 'install' into 'filesystem' and
-                               # make 'filesystem' the default
-                               'filesystem',
-                               'm4',
-                               'wix', #'midl', 'msvs',
-                               # Parser generators
-                               'lex', 'yacc',
-                               # Foreign function interface
-                               'rpcgen', 'swig',
-                               # Java
-                               'jar', 'javac', 'javah', 'rmic',
-                               # TeX
-                               'dvipdf', 'dvips', 'gs',
-                               'tex', 'latex', 'pdflatex', 'pdftex',
-                               # Archivers
-                               'tar', 'zip', 'rpm',
-                               # SourceCode factories
-                               'BitKeeper', 'CVS', 'Perforce',
-                               'RCS', 'SCCS', # 'Subversion',
-                               ], env)
 
-    tools = ([linker, c_compiler, cxx_compiler,
-              fortran_compiler, assembler, ar]
-             + other_tools)
+    tools = [linker, c_compiler, cxx_compiler,
+              assembler, ar]
 
     return [x for x in tools if x]
 
