@@ -122,6 +122,8 @@ target_arch = ARGUMENTS["target_arch"]
 # Icon for executable (windows-only)
 icon_path = ARGUMENTS.get("icon_path", None)
 
+# Forced MSVC version (windows-only)
+msvc_version = ARGUMENTS.get("msvc_version", None)
 
 def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
@@ -186,6 +188,8 @@ def createEnvironment( compiler_tools ):
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
         TARGET_ARCH = target_arch,
+
+        MSVC_VERSION = msvc_version,
 
         **args
     )
@@ -320,7 +324,8 @@ def getGccVersion():
     import SCons
 
     pipe = SCons.Action._subproc(
-        env, [ env[ "CXX" ], '--version' ],
+        env,
+        [env["CXX" ], '--version'],
         stdin  = 'devnull',
         stderr = 'devnull',
         stdout = subprocess.PIPE
@@ -328,7 +333,7 @@ def getGccVersion():
 
     line = pipe.stdout.readline()
 
-    match = re.search( r'[0-9]+(\.[0-9]+){2}', line )
+    match = re.search(r'[0-9]+(\.[0-9]+){2}', line)
 
     if match:
         return match.group(0)
@@ -359,33 +364,33 @@ def getClangVersion():
     else:
         return None
 
-# Some versions of Scons have unset or None, make it empty string.
-if env.get( "CXX", None ) is None:
-    env[ "CXX" ] = None
+# Some versions of Scons have unset or None, make it explicit.
+if env.get("CXX", None) is None:
+    env["CXX"] = None
 
-orig_cxx = env[ "CXX" ]
-orig_cxx_version = env.get( "CXXVERSION", None )
+orig_cxx = env["CXX"]
+orig_cxx_version = env.get("CXXVERSION", None)
 
 # Remove "g++" as the compiler, in case it's not really existing or not high
 # enough version.
-if "g++" in ( env[ "CXX" ] or "" ):
+if "g++" in (env["CXX"] or ""):
     gpp_version = getGccVersion()
 
-    if gpp_version is None or int( getGccVersion().replace( ".", "" ) ) < 440:
-        env[ "CXX" ] = None
+    if gpp_version is None or int(gpp_version.replace(".", "")) < 440:
+        env["CXX"] = None
 
 # Detect compiler to be used from supported ones, if there is no usable g++
 # link.
 if os.name != "nt" and env["CXX"] is None:
-    for candidate in ( "g++-4.8", "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4",
-                       "clang" ):
-        if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
-            env[ "CXX" ] = candidate
-            env[ "CC" ] = candidate.replace( "++", "cc" )
+    for candidate in ("g++-4.9", "g++-4.8", "g++-4.7", "g++-4.6", "g++-4.5",
+                      "g++-4.4", "clang"):
+        if os.path.exists(os.path.join("/usr/bin", candidate)):
+            env["CXX"] = candidate
+            env["CC"] = candidate.replace("++", "cc")
 
             if "clang" not in candidate:
                 # Update CXXVERSION in env, after we changed it.
-                env[ "CXXVERSION" ] = getGccVersion()
+                env["CXXVERSION"] = getGccVersion()
 
             break
     else:
@@ -394,7 +399,7 @@ The g++ compiler '%s' (version %s) doesn't have the sufficient \
 version (>= 4.4).""" % ( orig_cxx, orig_cxx_version ) )
 
 if env["CXX"] is None or \
-   getExecutablePath( env[ "CXX" ], initial = False ) is None:
+   getExecutablePath(env[ "CXX" ], initial = False) is None:
     if os.name == "nt":
         sys.exit( """\
 Error, cannot locate suitable C++ compiler. You have the following options:
@@ -412,13 +417,20 @@ c) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
     else:
         sys.exit("Error, cannot locate suitable C++ compiler.")
 
-if show_scons_mode:
-    print "Scons compiler: Using",
-    print getExecutablePath(env["CXX"], initial = False)
-
 gcc_mode = "g++" in env["CXX"] or "clang" in env["CXX"]
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
+
+if show_scons_mode:
+    print "Scons compiler: Using",
+    print getExecutablePath(env["CXX"], initial = False),
+
+    if os.name == "nt" and msvc_mode:
+        import SCons
+        import SCons.Tool.MSCommon.vc
+        print "(MSVC %s)" % SCons.Tool.MSCommon.vc.get_default_version(env)
+
+    print
 
 if os.name == "nt" and msvc_mode:
     setupSpawn(env)
@@ -426,18 +438,18 @@ if os.name == "nt" and msvc_mode:
 env["BUILD_DIR"] = source_dir
 
 # Store the file signatures database with the rest of the source files
-sconsign_dir = os.path.abspath( os.path.join( source_dir, '.sconsign' ) )
+sconsign_dir = os.path.abspath(os.path.join(source_dir, '.sconsign'))
 
-if not os.path.exists( sconsign_dir ):
-    os.makedirs( sconsign_dir )
+if not os.path.exists(sconsign_dir):
+    os.makedirs(sconsign_dir)
 
-env.SConsignFile( sconsign_dir )
+env.SConsignFile(sconsign_dir)
 
 # Support for clang.
-if "clang" in env[ "CXX" ]:
-    env.Append( CCFLAGS = [ "-w" ] )
-    env.Append( CPPDEFINES = [ "_XOPEN_SOURCE" ] )
-    env.Append( LINKFLAGS = [ "-lstdc++" ])
+if "clang" in env["CXX"]:
+    env.Append(CCFLAGS = ["-w"])
+    env.Append(CPPDEFINES = ["_XOPEN_SOURCE"])
+    env.Append(LINKFLAGS = ["-lstdc++" ])
 
     # Don't export anything by default, this should create smaller executables.
     env.Append(
@@ -448,13 +460,13 @@ if "clang" in env[ "CXX" ]:
     )
 
     if debug_mode and not clang_mode:
-        env.Append( CCFLAGS = [ "-Wunused-but-set-variable" ] )
+        env.Append(CCFLAGS = ["-Wunused-but-set-variable"])
 
     clang_version = getClangVersion()
-    clang_version = int( clang_version.replace( ".", "" ) + "0" )
+    clang_version = int(clang_version.replace(".", "") + "0")
 
 # Support for g++.
-if "g++" in env[ "CXX" ]:
+if "g++" in env["CXX"]:
     # Don't export anything by default, this should create smaller executables.
     if not win_target:
         env.Append( CCFLAGS = [
@@ -466,24 +478,27 @@ if "g++" in env[ "CXX" ]:
             ]
         )
 
-    env[ "CXXVERSION" ] = getGccVersion()
+    if "CXXVERSION" not in env:
+        env["CXXVERSION"] = getGccVersion()
 
     # Version dependent options.
-    gpp_version = int( env[ "CXXVERSION" ].replace( ".", "" ) )
+    gpp_version = int(env["CXXVERSION"].replace(".", ""))
 
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
     # allows all compiler to exist next to each other and where g++ might not be
     # good enough, but g++-4.5 would be.
     if gpp_version < 440:
-        sys.exit( """\
+        sys.exit(
+            """\
 The g++ compiler %s (version %s) doesn't have the sufficient \
-version (>= 4.4).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
+version (>= 4.4).""" % (env["CXX"], env["CXXVERSION"])
+        )
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
     # care.
     if gpp_version < 450:
-        env.Append( CCFLAGS = [ "-fno-strict-aliasing" ] )
+        env.Append(CCFLAGS = ["-fno-strict-aliasing"])
 
     # For LTO mode, the version requirement is even higher, so try that too.
     if lto_mode and gpp_version < 460:
@@ -503,8 +518,8 @@ version for lto mode (>= 4.6).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
     # code. This may be because it needs -O3 option to be effective.
 
     if gpp_version >= 460 and lto_mode:
-        env.Append( CCFLAGS = [ "-flto" ] )
-        env.Append( LINKFLAGS = [ "-flto=%d" % GetOption( "num_jobs" ) ] )
+        env.Append(CCFLAGS = ["-flto"])
+        env.Append(LINKFLAGS = ["-flto=%d" % GetOption("num_jobs")])
 
         # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=noreturn" ] )
         # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=pure" ] )
@@ -512,27 +527,28 @@ version for lto mode (>= 4.6).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
         # env.Append( CCFLAGS = [ "-Wnoexcept" ] )
 
         if debug_mode:
-            env.Append( LINKFLAGS = [ "-O2" ] )
+            env.Append(LINKFLAGS = [ "-O2" ])
 
         if optimize_mode:
-            env.Append( LINKFLAGS = [
-                "-O3",
-                "-fpartial-inlining",
-                "-freorder-functions",
-            ]
-        )
+            env.Append(
+                LINKFLAGS = [
+                    "-O3",
+                    "-fpartial-inlining",
+                    "-freorder-functions",
+                ]
+            )
 
     # Give a warning if LTO mode was specified, but won't be used.
     if lto_mode and gpp_version < 460:
         print >> sys.stderr, "Warning, LTO mode specified, but not available."
 
     # The var-tracking does not scale, disable it. Should we really need it, we
-    # can enable it.
-    env.Append( CCFLAGS = [ "-fno-var-tracking" ] )
+    # can enable it. TODO: Does this cause a performance loss?
+    env.Append(CCFLAGS = ["-fno-var-tracking"])
 
 if msvc_mode:
-    env.Append( CCFLAGS = [ "/EHsc", "/J", "/Gd" ] )
-    env.Append( LINKFLAGS = [ "/INCREMENTAL:NO" ] )
+    env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
+    env.Append(LINKFLAGS = ["/INCREMENTAL:NO"])
 
 if debug_mode:
 
@@ -875,7 +891,7 @@ if debug_mode or unstriped_mode:
             )
     elif msvc_mode:
         env.Append(
-            CCFLAGS = ["/Zi"]
+            CCFLAGS = ["/Zi", "/FS"]
         )
         env.Append(
             LINKFLAGS = ["/DEBUG"]
@@ -934,7 +950,8 @@ def getLinkerArch():
 constants_bin_filename = os.path.join(source_dir,"__constants.bin")
 
 if win_target and not module_mode:
-    # On Windows constants are accesses as a resource, see below
+    # On Windows constants are accesses as a resource, except in shared
+    # libraries, where that option is not available.
     constants_generated_filename = None
 elif gcc_mode and getLinkerArch() is not None:
     env.Append(
@@ -1174,13 +1191,13 @@ if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
 
 if show_scons_mode:
-    print "scons: Told to run compilation on %d CPUs." % GetOption( 'num_jobs' )
+    print "scons: Told to run compilation on %d CPUs." % GetOption('num_jobs')
 
 # Cached, when done, by the fastest possible algorithm and right inside the
 # build directory. Makes no sense of course, if that is removed later on by
 # Nuitka.
 if cache_mode:
     CacheDir(os.path.join(source_dir, "cache"))
-    Decider("MD5")
+    Decider("MD5-timestamp")
 
 Default(target)
