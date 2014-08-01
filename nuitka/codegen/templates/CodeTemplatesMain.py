@@ -44,6 +44,9 @@ global_copyright = """\
 template_metapath_loader_compiled_module_entry = """\
 { (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_MODULE },"""
 
+template_metapath_loader_compiled_package_entry = """\
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_PACKAGE },"""
+
 template_metapath_loader_shlib_module_entry = """\
 { (char *)"%(module_name)s", NULL, NUITKA_SHLIB_MODULE },"""
 

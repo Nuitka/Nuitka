@@ -4522,7 +4522,8 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
         metapath_loader_inittab.append(
             Generator.getModuleMetapathLoaderEntryCode(
                 module_name = other_module.getFullName(),
-                is_shlib    = other_module.isPythonShlibModule()
+                is_shlib    = other_module.isPythonShlibModule(),
+                is_package  = other_module.isPythonPackage()
             )
         )
 

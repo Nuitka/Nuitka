@@ -360,6 +360,48 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
     return INCREASE_REFCOUNT( Py_None );
 }
 
+static PyObject *_path_unfreezer_is_package( PyObject *self, PyObject *args, PyObject *kwds )
+{
+	PyObject *module_name;
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args,
+        kwds,
+        "O:is_package",
+        _kwlist,
+        &module_name
+    );
+
+    if (unlikely( res == 0 ))
+    {
+        return NULL;
+    }
+
+    struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
+
+    assert( module_name );
+    assert( Nuitka_String_Check( module_name ) );
+
+    char *name = Nuitka_String_AsString( module_name );
+
+    while ( current->name != NULL )
+    {
+        if ( strcmp( name, current->name ) == 0 )
+        {
+            if ( Py_VerboseFlag )
+            {
+                PySys_WriteStderr( "import %s # claimed responsibility\n", name );
+            }
+            return INCREASE_REFCOUNT( metapath_based_loader );
+        }
+
+        current++;
+    }
+
+    PyObject *result = BOOL_FROM( current->flags & NUITKA_COMPILED_PACKAGE );
+    return INCREASE_REFCOUNT( result );
+}
+
 #if PYTHON_VERSION >= 340
 static PyObject *_path_unfreezer_repr_module( PyObject *self, PyObject *args, PyObject *kwds )
 {
@@ -398,6 +440,14 @@ static PyMethodDef _method_def_loader_load_module =
 {
     "load_module",
     (PyCFunction)_path_unfreezer_load_module,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
+
+static PyMethodDef _method_def_loader_is_package =
+{
+    "is_package",
+    (PyCFunction)_path_unfreezer_is_package,
     METH_VARARGS | METH_KEYWORDS,
     NULL
 };
@@ -443,6 +493,14 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     );
     assertObject( loader_load_module );
     PyDict_SetItemString( method_dict, "load_module", loader_load_module );
+
+    PyObject *loader_is_package = PyCFunction_New(
+        &_method_def_loader_is_package,
+        NULL
+    );
+    assertObject( loader_is_package );
+    PyDict_SetItemString( method_dict, "is_package", loader_is_package );
+
 
 #if PYTHON_VERSION >= 340
     PyObject *loader_repr_module = PyCFunction_New(
