@@ -223,15 +223,6 @@ inline void NORMALIZE_EXCEPTION( PyObject **exception_type, PyObject **exception
     PyErr_NormalizeException( exception_type, exception_value, (PyObject **)exception_tb );
 }
 
-class PythonException
-{
-public:
-    PythonException()
-    {
-    }
-};
-
-
 NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL( PyObject *exception_value, PyObject *exception_checked )
 {
 #if PYTHON_VERSION >= 300

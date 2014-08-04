@@ -545,6 +545,12 @@ def eval_extractor(node):
             source_ref   = source_ref
         )
 
+        # The wrapping should not relocate to the "source_ref".
+        assert globals is None or \
+               globals_ref.getSourceReference() == globals.getSourceReference()
+        assert locals is None or \
+               locals_ref.getSourceReference() == locals.getSourceReference()
+
         source_variable = provider.allocateTempVariable(
             temp_scope = temp_scope,
             name       = "source"
