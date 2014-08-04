@@ -507,6 +507,8 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame, PyObject *locals
     PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
 
     // Allow only to detach only our tracing frames.
+    assert( Py_TYPE( old_frame ) == &Nuitka_Frame_Type );
+
     assert( old_frame->f_trace == Py_None );
     new_frame->f_trace = INCREASE_REFCOUNT( Py_None );
 
