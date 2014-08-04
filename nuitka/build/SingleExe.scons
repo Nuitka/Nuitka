@@ -619,6 +619,14 @@ if debug_mode:
             ]
         )
 
+        # Disable warnings, that CPython headers already show.
+        if python_version >= "3.4":
+            env.Append(
+                CCFLAGS = [
+                    "/wd4512", "/wd4510", "/wd4610"
+                ]
+            )
+
 
     # As for sequence points, we are abusing it, so we have to allow it.
     if "g++" in env["CXX"]:
