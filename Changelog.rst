@@ -2,17 +2,81 @@ Nuitka Release 0.5.4 (Draft)
 ============================
 
 This release is aiming at preparatory changes to enable optimization based
-on SSA analysis.
+on SSA analysis, introducing a variable registry, so that variables no longer
+trace their references themselves.
+
+Otherwise, MinGW64 support has been added, and lots of bug fixes were made to
+improve the compatibility.
+
+New Optimization
+----------------
+
+- Using new variable registry, now properly detecting actual need for sharing
+  variables. Optimization may discover that it is unnecessary to share a
+  variable, and then it no longer is. This also allows ``--debug`` without it
+  reporting unused variable warnings on Python3.
+
+- Scons startup has been accelerated, removing scans for unused tools, and
+  avoiding making more than one gcc version check.
+
+Bug Fixes
+---------
+
+- Compatibility: In case of unknown encodings, Nuitka was not giving the name
+  of the problematic encoding in the error message. Fixed in 0.5.3.3 already.
+
+- Submodules with the same name as built-in modules were wrongly shadowed.
+  Fixed in 0.5.3.2 already.
+
+- Python3: Added implementations of ``is_package`` to the meta path based
+  loader.
+
+- Python3.4: Added ``find_spec`` implementation to the meta path based loader
+  for increased compatiblity.
+
+- Python3: Corrections for ``--debug`` to work with Python3 and MSVC compiler
+  more often.
+
+- Fixed crash with ``--show-scons`` when no compiler was found. Fixed in 0.5.3.5
+  already.
+
+- Standalone: Need to blacklist ``lib2to3`` from standard libary as well. Fixed
+  in 0.5.3.4 already.
+
+- Python3: Adapted to changes in ``SyntaxError`` on newer Python releases, there
+  is now a ``msg`` that can override ``reason``.
+
+- Standalone Windows: Preserve ``sys.executable`` as it might be used to fork
+  binaries.
 
 Organizational
 --------------
 
+- Added support for MinGW64. Currently needs to be run with ``PATH`` environment
+  properly set up.
+
 - Added RPM package and repository for RHEL 7 as well.
+
+- The output of ``--show-scons`` now includes the used compiler, including the
+  MSVC version.
+
+Cleanups
+--------
+
+- Made technical and logical sharing decisions separate functions and implement
+  them in a dedicated variable registry.
+
+- The Scons file has seen a major cleanup.
 
 Summary
 -------
 
-This release is not yet complete.
+This release is mostly a maintenance release. The Scons integrations has been
+heavily visited, as has been Python3 compatibility, and results from the now
+possible debug test runs.
+
+Standalone should be even more practical now, and MinGW64 is an option for those
+cases, where MSVC is too slow.
 
 Nuitka Release 0.5.3
 ====================
