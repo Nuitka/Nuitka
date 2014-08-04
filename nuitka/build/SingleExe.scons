@@ -257,6 +257,12 @@ def setupSpawn(env):
         cmdline = cmd + " " + newargs
         startupinfo = subprocess.STARTUPINFO()
 
+        # Remove useless quoted include directories to windres, which does not
+        # handle them properly in its command line parsing, while they are not
+        # used at all.
+        if cmd == "windres":
+            cmdline = re.sub('--include-dir ".*?"', "", cmdline)
+
         # CPython2.6 compatibility
         try:
             from subprocess import STARTF_USESHOWWINDOW
@@ -319,6 +325,9 @@ def setupSpawn(env):
             if not show_scons_mode:
                 print cmdline
             print data,
+
+        if err:
+            print err,
 
         return rv
 
@@ -447,7 +456,7 @@ if show_scons_mode:
 
     print
 
-if os.name == "nt" and msvc_mode:
+if os.name == "nt":
     setupSpawn(env)
 
 env["BUILD_DIR"] = source_dir
@@ -1108,7 +1117,7 @@ if win_target:
 
         rc_file_dependencies.append(constants_bin_filename)
 
-        if python_version < "3.3" and msvc_mode:
+        if python_version < "3.3":
             manifest_filename = os.path.join(
                 source_dir,
                 "resources.manifest"
@@ -1123,17 +1132,56 @@ if win_target:
 
             assert os.path.exists(python_exe), python_exe
 
-            result = subprocess.call(
-                (
-                    env["MT"],
-                    "-inputresource:%s;#1" % python_exe,
-                    "-out:%s" % manifest_filename
-                ),
-                stdout = subprocess.PIPE
-            )
+            if msvc_mode:
+                result = subprocess.call(
+                    (
+                        env["MT"],
+                        "-inputresource:%s;#1" % python_exe,
+                        "-out:%s" % manifest_filename
+                    ),
+                    stdout = subprocess.PIPE
+                )
 
-            if result != 0:
-                sys.exit("Error, call to 'mt.exe' failed.")
+                if result != 0:
+                    sys.exit("Error, call to 'mt.exe' to extract manifest failed.")
+            else:
+                result = subprocess.call(
+                    (
+                        env["RC"],
+                        "--input", python_exe,
+                        "--output", manifest_filename,
+                        "--output-format", "rc"
+                    ),
+                    stdout = subprocess.PIPE
+                )
+
+                if result != 0:
+                    sys.exit("Error, call to 'windres.exe' to extract manifest failed.")
+
+                # Need to reduce to what we use, and remove the quoting of the
+                # actual manifest. We created a full "rc" file, but that we do
+                # not have use for.
+                manifest_file = open(manifest_filename, "r")
+                inside = False
+                contents = []
+                for line in manifest_file:
+                    if "RT_MANIFEST" in line:
+                        inside = True
+                        continue
+
+                    if not inside:
+                        continue
+
+                    line = line.replace(r"\r\n", "\r\n")
+                    line = line.replace('""', '"')
+
+                    contents.append(
+                        line[line.find('"')+1:line.rfind('"')]
+                    )
+
+                manifest_file = open(manifest_filename, "w")
+                manifest_file.write("".join(contents[1:-1]))
+                manifest_file.close()
 
             rc_content.append(
                 "1 RT_MANIFEST resources.manifest"
