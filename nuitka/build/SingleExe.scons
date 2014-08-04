@@ -628,6 +628,7 @@ if debug_mode:
             )
 
 
+
     # As for sequence points, we are abusing it, so we have to allow it.
     if "g++" in env["CXX"]:
         env.Append(
@@ -935,8 +936,15 @@ if debug_mode or unstriped_mode:
             )
     elif msvc_mode:
         env.Append(
-            CCFLAGS = ["/Zi", "/FS"]
+            CCFLAGS = ["/Zi"]
         )
+
+        # Higher MSVC versions need this for parallel compilation
+        if job_count > 1 and getMsvcVersion() >= 11:
+            env.Append(
+                CCFLAGS = ["/FS"]
+            )
+
         env.Append(
             LINKFLAGS = ["/DEBUG"]
         )
