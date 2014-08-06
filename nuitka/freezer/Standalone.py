@@ -418,7 +418,7 @@ def detectEarlyImports():
                       '        pass\n'
     else:
         # TODO: Should recursively include all of encodings module.
-        import_code = "import encodings.utf_8;import encodings.ascii;import encodings.idna"
+        import_code = "import encodings.utf_8;import encodings.ascii;import encodings.idna;"
 
         if Utils.getOS() == "Windows":
             import_code += "import encodings.mbcs;import encodings.cp437;"
