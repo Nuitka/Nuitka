@@ -116,7 +116,7 @@ def runScons(options, quiet):
         os.environ["SCONS_LIB_DIR"] = Utils.joinpath(
             getSconsInlinePath(),
             "lib",
-            "scons-2.3.0"
+            "scons-2.3.2"
         )
 
     scons_command = getSconsBinaryCall()
