@@ -455,13 +455,22 @@ def runScons(main_module, quiet):
     if Options.isMingw():
         options["mingw_mode"] = "true"
 
+    if Options.getMsvcVersion():
+        msvc_version = Options.getMsvcVersion()
+
+        msvc_version = msvc_version.replace("exp", "Exp")
+        if "." not in msvc_version:
+            msvc_version += ".0"
+
+        options["msvc_version"] = msvc_version
+
     if Options.isClang():
         options["clang_mode"] = "true"
 
     if Options.getIconPath():
         options["icon_path"] = Options.getIconPath()
 
-    return SconsInterface.runScons( options, quiet ), options
+    return SconsInterface.runScons(options, quiet), options
 
 
 def writeSourceCode(filename, source_code):
