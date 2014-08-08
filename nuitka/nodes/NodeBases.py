@@ -1045,8 +1045,12 @@ class ExpressionMixin:
 
 
 class CompileTimeConstantExpressionMixin(ExpressionMixin):
+    # TODO: Do this for all computations, do this in the base class of all
+    # nodes.
+    computed_attribute = False
+
     def __init__(self):
-        self.computed_attribute = False
+        pass
 
     def isCompileTimeConstant(self):
         """ Has a value that we can use at compile time.
@@ -1056,7 +1060,6 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
             be executed against it.
         """
         # Virtual method, pylint: disable=R0201
-
         return True
 
     def mayHaveSideEffects(self):
@@ -1072,7 +1075,7 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
             node        = not_node,
             computation = lambda : not self.getCompileTimeConstant(),
             description = """\
-Compile time constant negation truth value precomputed."""
+Compile time constant negation truth value pre-computed."""
         )
 
 
@@ -1084,12 +1087,15 @@ Compile time constant negation truth value precomputed."""
 
         from .NodeMakingHelpers import getComputationResult, isCompileTimeConstantValue
 
-        if not hasattr( value, attribute_name ) or isCompileTimeConstantValue( getattr( value, attribute_name ) ):
+        # If it raises, or the attribute itself is a compile time constant,
+        # then do execute it.
+        if not hasattr(value, attribute_name) or \
+           isCompileTimeConstantValue(getattr(value, attribute_name)):
 
             return getComputationResult(
                 node        = lookup_node,
-                computation = lambda : getattr( value, attribute_name ),
-                description = "Attribute lookup to %s precomputed." % (
+                computation = lambda : getattr(value, attribute_name),
+                description = "Attribute lookup to '%s' pre-computed." % (
                     attribute_name
                 )
             )
@@ -1097,7 +1103,6 @@ Compile time constant negation truth value precomputed."""
         self.computed_attribute = True
 
         return lookup_node, None, None
-
 
     def computeExpressionSubscript(self, lookup_node, subscript, constraint_collection):
         from .NodeMakingHelpers import getComputationResult

@@ -54,9 +54,9 @@ class SourceCodeReference:
         return result
 
     def atLineNumber(self, line):
-        assert int( line ) == line
+        assert int(line) == line
 
-        return self.clone( line )
+        return self.clone(line)
 
     def getLineNumber(self):
         return self.line
@@ -77,18 +77,18 @@ class SourceCodeReference:
         if other is None:
             return -1
 
-        assert isinstance( other, SourceCodeReference ), other
+        assert isinstance(other, SourceCodeReference), other
 
-        result = cmp( self.filename, other.filename)
+        result = cmp(self.filename, other.filename)
 
         if result == 0:
-            result = cmp( self.line, other.line )
+            result = cmp(self.line, other.line)
 
         return result
 
     def atInternal(self):
         if self.set_line:
-            result = self.clone( self.line )
+            result = self.clone(self.line)
             result.set_line = False
 
             return result
