@@ -189,6 +189,17 @@ def cleanSourceDirectory(source_dir):
             if Utils.getExtension(path) in (".o", ".os", ".obj"):
                 Utils.deleteFile(path, True)
 
+    win32_source_dir = Utils.joinpath(
+        static_source_dir,
+        "win32_ucontext_src"
+    )
+
+    if Utils.getOS() == "Windows":
+        Utils.deleteFile(
+            Utils.joinpath(win32_source_dir, "fibers_win32.obj"),
+            False
+        )
+
 
 def pickSourceFilenames(source_dir, modules):
     collision_filenames = set()

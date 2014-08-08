@@ -1288,7 +1288,7 @@ if show_scons_mode:
 # build directory. Makes no sense of course, if that is removed later on by
 # Nuitka.
 if cache_mode:
-    CacheDir(os.path.join(source_dir, "cache"))
+    CacheDir(os.path.join(source_dir, "cache-" + target_arch))
     Decider("MD5-timestamp")
 
 Default(target)
