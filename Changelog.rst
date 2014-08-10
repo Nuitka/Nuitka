@@ -49,16 +49,36 @@ Bug Fixes
 - Standalone Windows: Preserve ``sys.executable`` as it might be used to fork
   binaries.
 
+- Windows: The caching of Scons was not arch specific, and files could be
+  used again, even if changing the arch from ```x86`` to ``x86_64`` or
+  back.
+
+- Windows: On 32 bit Python it can happen that with large number of generators
+  running concurrently (>1500), one cannot be started anymore. Raising an
+  ``MemoryError`` now.
+
 Organizational
 --------------
 
 - Added support for MinGW64. Currently needs to be run with ``PATH`` environment
   properly set up.
 
-- Added RPM package and repository for RHEL 7 as well.
+- Updated internal version of Scons to 2.3.2, which breaks support for VS 2008,
+  but adds support for VS 2013 and VS 2012. The VS 2013 is now the recommended
+  compiler.
+
+- Added RPM package and repository for RHEL 7.
 
 - The output of ``--show-scons`` now includes the used compiler, including the
   MSVC version.
+
+- Added option ``--msvc`` to select the MSVC compiler version to use, which
+  overrides automatic selection of the latest.
+
+- Added option ``-python-flag=no_warnings`` to disable user and deprecation
+  warnings at run time.
+
+- Repository for Ubuntu Raring was removed, no more supported by Ubuntu.
 
 Cleanups
 --------
@@ -72,11 +92,12 @@ Summary
 -------
 
 This release is mostly a maintenance release. The Scons integrations has been
-heavily visited, as has been Python3 compatibility, and results from the now
-possible debug test runs.
+heavily visited, as has been Python3 and esp. Python3.4 compatibility, and
+results from the now possible debug test runs.
 
 Standalone should be even more practical now, and MinGW64 is an option for those
 cases, where MSVC is too slow.
+
 
 Nuitka Release 0.5.3
 ====================
