@@ -80,7 +80,8 @@ def getMainCode(main_module, codes, context):
         "python_sysflag_bytes_warning" : sys.flags.bytes_warning,
         "python_sysflag_hash_randomization" : ( sys.flags.hash_randomization
             if (hasattr(sys.flags, "hash_randomization") and "no_randomization" not in python_flags) else 0 ),
-        "code_identifier"      : code_identifier
+        "python_no_warnings" : "no_warnings" in python_flags,
+        "code_identifier"  : code_identifier
     }
 
     return codes + main_code

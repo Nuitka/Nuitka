@@ -107,7 +107,7 @@ if two_step_execution:
 
 if module_mode:
     cpython_cmd = [
-        os.environ[ "PYTHON" ],
+        os.environ["PYTHON"],
         "-W", "ignore",
         "-c", "import sys; sys.path.append(%s); import %s" % (
             repr(os.path.dirname(filename)),
@@ -116,7 +116,7 @@ if module_mode:
     ]
 else:
     cpython_cmd = [
-        os.environ[ "PYTHON" ],
+        os.environ["PYTHON"],
         "-W", "ignore",
         filename
     ]
@@ -156,13 +156,13 @@ if keep_python_path or binary_python_path:
 if not two_step_execution:
     if module_mode:
         nuitka_cmd = nuitka_call + extra_options.split() + \
-          ["--module", "--execute", filename]
+          ["--execute", "--python-flag=no_warnings", "--module", filename]
     elif standalone_mode:
         nuitka_cmd = nuitka_call + extra_options.split() + \
-          ["--standalone", "--execute", filename]
+          ["--execute", "--python-flag=no_warnings", "--standalone", filename]
     else:
         nuitka_cmd = nuitka_call + extra_options.split() + \
-          ["--execute", filename]
+          ["--execute", "--python-flag=no_warnings", filename]
 
     if no_site:
         nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")
@@ -170,13 +170,13 @@ if not two_step_execution:
 else:
     if module_mode:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
-          ["--module", os.path.abspath(filename)]
+          ["--python-flag=no_warnings", "--module", os.path.abspath(filename)]
     elif standalone_mode:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
-          ["--standalone", filename]
+          ["--python-flag=no_warnings", "--standalone", filename]
     else:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
-          [filename]
+          ["--python-flag=no_warnings", filename]
 
     if no_site:
         nuitka_cmd1.insert(len(nuitka_cmd1) - 1, "--python-flag=-S")

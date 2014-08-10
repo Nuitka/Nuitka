@@ -423,6 +423,12 @@ def _getConstantDefaultPopulation():
                 "long",
             )
 
+    # Disabling warnings at startup
+    if "no_warnings" in Options.getPythonFlags():
+        result += (
+            "ignore",
+        )
+
     return result
 
 
