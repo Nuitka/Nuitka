@@ -319,6 +319,8 @@ def setupSpawn(env):
                 for line in
                 data.split( "\r\n" )
                 if "   Creating library" not in line
+                # On localized compilers, the message to ignore is not as clear.
+                if not (module_mode and ".exp" in line)
             )
 
         if data.rstrip():

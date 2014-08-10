@@ -56,7 +56,8 @@ def getSconsBinaryCall():
 
 def _getPython2ExePathWindows():
     # Shortcuts for the default installation directories, to avoid going to
-    # registry at all.
+    # registry at all unless necessary. Any Python2 will do for Scons, so it
+    # can be avoided.
 
     if os.path.isfile(r"c:\Python27\python.exe"):
         return r"c:\Python27\python.exe"
