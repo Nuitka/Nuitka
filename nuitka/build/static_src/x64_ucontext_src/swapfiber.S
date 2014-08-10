@@ -34,8 +34,8 @@
 #define oFPREGS 224
 #define oFPREGSMEM 424
 
-.globl swapFiber
-swapFiber:
+.globl _swapFiber
+_swapFiber:
 
     // Save the preserved used for passing args and the return address.
     movq %rbx, oRBX(%rdi)
