@@ -30,11 +30,16 @@ from logging import debug, info, warning
 
 import marshal
 from nuitka import Options, Tracing, Utils
-from nuitka.__past__ import raw_input, urlretrieve  # pylint: disable=W0622
+from nuitka.__past__ import raw_input, urlretrieve, iterItems # pylint: disable=W0622
 from nuitka.codegen.ConstantCodes import needsPickleInit
 
 
 def getDependsExePath():
+    """ Return the path of depends.exe (for Windows).
+
+        Will prompt the user to download if not already cached in AppData
+        directory for Nuitka.
+    """
     if Utils.getArchitecture() == "x86":
         depends_url = "http://dependencywalker.com/depends22_x86.zip"
     else:
@@ -43,7 +48,7 @@ def getDependsExePath():
     if "APPDATA" not in os.environ:
         sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
 
-    nuitka_app_dir = os.path.join(os.environ["APPDATA"],"nuitka")
+    nuitka_app_dir = os.path.join(os.environ["APPDATA"], "nuitka")
     if not Utils.isDir(nuitka_app_dir):
         os.makedirs(nuitka_app_dir)
 
@@ -239,6 +244,7 @@ def _detectedShlibFile(filename, module_name):
 
     module_names.add(module_name)
 
+
 def _detectImports(command, is_late):
     # print(command)
 
@@ -323,6 +329,7 @@ def _detectImports(command, is_late):
                 )
 
     return result
+
 
 def detectLateImports():
     command = ""
@@ -435,6 +442,11 @@ def detectEarlyImports():
     return result
 
 def detectBinaryDLLs(binary_filename, package_name):
+    """ Detect the DLLs used by a binary.
+
+        Using ldd (Linux), depends.exe (Windows), or otool (MacOS) the list
+        of used DLLs is retrieved.
+    """
     result = set()
 
     if Utils.getOS() in ("Linux", "NetBSD"):
@@ -475,6 +487,8 @@ def detectBinaryDLLs(binary_filename, package_name):
     elif Utils.getOS() == "Windows":
         depends_exe = getDependsExePath()
 
+        # Put the PYTHONPATH into the system PATH, DLLs frequently live in
+        # the package directories.
         env = os.environ.copy()
         path = env.get("PATH","").split(";")
 
@@ -525,7 +539,7 @@ def detectBinaryDLLs(binary_filename, package_name):
             dll_filename = line[line.find("]")+2:-1]
             assert Utils.isFile(dll_filename), dll_filename
 
-            # The executable itself is of course excempted.
+            # The executable itself is of course exempted.
             if Utils.normcase(dll_filename) == \
                 Utils.normcase(Utils.abspath(binary_filename)):
                 continue
@@ -533,7 +547,8 @@ def detectBinaryDLLs(binary_filename, package_name):
             dll_name = Utils.basename(dll_filename).upper()
 
             # Win API can be assumed.
-            if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
+            if dll_name.startswith("API-MS-WIN-") or \
+               dll_name.startswith("EXT-MS-WIN-"):
                 continue
 
             if dll_name in ("SHELL32.DLL", "USER32.DLL", "KERNEL32.DLL",
@@ -632,15 +647,19 @@ def detectBinaryDLLs(binary_filename, package_name):
 
 
 def detectUsedDLLs(standalone_entry_points):
-    result = set()
+    result = {}
 
     for binary_filename, package_name in standalone_entry_points:
-        result.update(
-            detectBinaryDLLs(
-                binary_filename = binary_filename,
-                package_name    = package_name
-            )
+        used_dlls = detectBinaryDLLs(
+            binary_filename = binary_filename,
+            package_name    = package_name
         )
+
+        for dll_filename in used_dlls:
+            if dll_filename not in result:
+                result[dll_filename] = []
+
+            result[dll_filename].append(binary_filename)
 
     return result
 
@@ -688,13 +707,13 @@ def removeSharedLibraryRPATH(filename):
     for line in stdout.split(b"\n"):
         if b"RPATH" in line:
             if Options.isShowInclusion():
-                info("Removing RPATH from '%s'.", filename)
+                info("Removing 'RPATH' setting from '%s'.", filename)
 
             if not Utils.isExecutableCommand("chrpath"):
                 sys.exit(
                     """\
-Error, needs chrpath on your system, due to RPATH settings in used shared
-libraries."""
+Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
+libraries that need to be removed."""
                 )
 
             process = subprocess.Popen(
@@ -712,35 +731,70 @@ libraries."""
 def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
     dll_map = []
 
-    for early_dll in detectUsedDLLs(standalone_entry_points):
-        dll_name = Utils.basename(early_dll)
+    used_dlls = detectUsedDLLs(standalone_entry_points)
+
+    for dll_filename1, sources1 in iterItems(used_dlls):
+        for dll_filename2, sources2 in iterItems(used_dlls):
+            if dll_filename1 == dll_filename2:
+                continue
+
+            # Colliding basenames are an issue to us.
+            if Utils.basename(dll_filename1) != Utils.basename(dll_filename2):
+                continue
+
+            dll_name = Utils.basename(dll_filename1)
+
+            if Options.isShowInclusion():
+                info(
+                     """Colliding DLL names for %s, checking identity of \
+'%s' <-> '%s'.""" % (
+                        dll_name,
+                        dll_filename1,
+                        dll_filename2,
+                    )
+                )
+
+                # Check that if a DLL has the same name, if it's identical,
+                # happens at least for OSC and Fedora 20.
+                import filecmp
+                if filecmp.cmp(dll_filename1, dll_filename2):
+                    continue
+
+                sys.exit(
+                    """Error, conflicting DLLs for '%s' \
+(%s used by %s different from %s used by %s).""" % (
+                        dll_name,
+                        dll_filename1,
+                        ", ".join(sources1),
+                        dll_filename2,
+                        ", ".join(sources2)
+                    )
+                )
+
+    for dll_filename, sources in iterItems(used_dlls):
+        dll_name = Utils.basename(dll_filename)
 
         target_path = Utils.joinpath(
             dist_dir,
             dll_name
         )
 
-        # Check that if a DLL has the same name, if it's identical,
-        # happens at least for OSC and Fedora 20.
-        if Utils.isFile(target_path):
-            import filecmp
-
-            if filecmp.cmp(early_dll, target_path):
-                continue
-            else:
-                sys.exit("Error, conflicting DLLs for '%s'." % dll_name)
-
         shutil.copy(
-            early_dll,
+            dll_filename,
             target_path
         )
 
         dll_map.append(
-            (early_dll, dll_name)
+            (dll_filename, dll_name)
         )
 
         if Options.isShowInclusion():
-            info("Included used shared library '%s'.", early_dll)
+            info(
+                 "Included used shared library '%s' (used by %s)." % (
+                    dll_filename,
+                    ", ".join(sources)
+                 )
+            )
 
     if Utils.getOS() == "Darwin":
         # For MacOS, the binary needs to be changed to reflect the DLL
@@ -749,9 +803,9 @@ def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
 
     if Utils.getOS() == "Linux":
         # For Linux, the rpath of libraries may be an issue.
-        for _original_path, early_dll in dll_map:
+        for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(
-                Utils.joinpath(dist_dir, early_dll)
+                Utils.joinpath(dist_dir, dll_filename)
             )
 
         for standalone_entry_point in standalone_entry_points[1:]:
