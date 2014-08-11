@@ -34,24 +34,6 @@ When given, use this as the source for the Debian package instead. Default \
 )
 
 parser.add_option(
-    "--no-pbuilder-update",
-    action  = "store_false",
-    dest    = "update_pbuilder",
-    default = True,
-    help    = """\
-Update the pbuilder chroot before building. Default %default."""
-)
-
-parser.add_option(
-    "--no-check-debian-sid",
-    action  = "store_false",
-    dest    = "debian_sid",
-    default = True,
-    help    = """\
-Check the created Debian package in a Debian Sid pbuilder. Default %default."""
-)
-
-parser.add_option(
     "--no-branch-check",
     action  = "store_true",
     dest    = "no_branch_check",
@@ -217,10 +199,10 @@ for line in subprocess.check_output( "licensecheck -r .", shell = True ).\
     assert b"UNKNOWN" not in line, line
 
 # Build the debian package, but disable the running of tests, will be done later
-# in the pbuilder test steps.
+# in the pbuilders.
 assert 0 == os.system( "debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck" )
 
-os.chdir( "../../.." )
+os.chdir("../../..")
 
 checkAtHome()
 
@@ -232,42 +214,21 @@ assert 0 == os.system(
     "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes"
 )
 
-os.system( "cp dist/deb_dist/*.deb dist/" )
+os.system("cp dist/deb_dist/*.deb dist/")
 
-# Build inside the pbuilder chroot, which should be an updated sid. The update
-# is not done here.
-
-basetgz_list = []
-
-if options.debian_sid:
-    basetgz_list.append( "jessie.tgz" )
-
-for basetgz in basetgz_list:
-    if options.update_pbuilder:
-        command = """\
-sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s""" % basetgz
-
-        assert 0 == os.system( command ), basetgz
-
-    command = """\
-sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s \
---hookdir debian/pbuilder-hookdir dist/deb_dist/*.dsc""" % basetgz
-
-    assert 0 == os.system( command ), basetgz
-
-for filename in os.listdir( "dist/deb_dist" ):
-    if os.path.isdir( "dist/deb_dist/" + filename ):
-        shutil.rmtree( "dist/deb_dist/" + filename )
+for filename in os.listdir("dist/deb_dist"):
+    if os.path.isdir("dist/deb_dist/" + filename):
+        shutil.rmtree("dist/deb_dist/" + filename)
 
 # Sign the result files. The Debian binary package was copied here.
 for filename in os.listdir( "dist" ):
     if os.path.isfile( "dist/" + filename ):
-        assert 0 == os.system( "chmod 644 dist/" + filename )
+        assert 0 == os.system("chmod 644 dist/" + filename)
         assert 0 == os.system(
             "gpg --local-user 2912B99C --detach-sign dist/" + filename
         )
 
 # Cleanup the build directory, not needed.
-shutil.rmtree( "build", ignore_errors = True )
+shutil.rmtree("build", ignore_errors = True)
 
-print( "Finished." )
+print("Finished.")
