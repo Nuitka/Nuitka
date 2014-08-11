@@ -71,6 +71,23 @@ Requirements
   be good. Feedback is welcome. Generally the architectures that Debian supports
   should be considered good.
 
+.. [#] Support for this C++03 language standard is practically a given on any
+       C++ compiler you encounter. Nuitka used to have higher requirements in
+       the past, but it changed.
+
+.. [#] Download MinGW from http://www.mingw.org/category/wiki/download but
+       beware that 32 bits Python must be used with it, and that it may not
+       work for very large programs. Use MinGW64 and 64 bits Python if you
+       have the choice.
+
+.. [#] Download MinGW64 from here and choose the "win32" and "seh" variant
+       for best results.
+
+.. [#] Download for free from
+       http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
+       the Express edition will do.
+
+
 Command Line
 ------------
 
@@ -755,18 +772,3 @@ http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
 
 And the current PDF under:
 http://nuitka.net/doc/README.pdf
-
-.. [#]: Support for this C++03 language standard is practically a given on any
-        C++ compiler you encounter. Nuitka used to have higher requirements in
-        the past, but it changed.
-
-.. [#]: Download MinGW from http://www.mingw.org/category/wiki/download but
-        beware that 32 bits Python must be used with it, and that it may not
-        work for very large programs. Use MinGW64 and 64 bits Python if you
-        have the choice.
-
-.. [#]: Download MinGW64 from here and choose the "win32" and "seh" variant
-        for best results.
-
-.. [#]: Download for free from http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-        the Express edition will do.
