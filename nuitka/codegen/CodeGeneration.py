@@ -1022,6 +1022,11 @@ def generateCallCode(to_name, call_node, emit, context):
 
                 call_arg_names.append(call_arg_name)
 
+            if Options.isFullCompat():
+                context.setCurrentSourceCodeReference(
+                    call_args.getSourceReference()
+                )
+
             if call_arg_names:
                 Generator.getCallCodePosArgsQuick(
                     to_name     = to_name,
