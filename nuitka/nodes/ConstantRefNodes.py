@@ -38,20 +38,24 @@ from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
 class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
     kind = "EXPRESSION_CONSTANT_REF"
 
-    def __init__(self, constant, source_ref, user_provided = False):
-        NodeBase.__init__( self, source_ref = source_ref )
-        CompileTimeConstantExpressionMixin.__init__( self )
+    user_provided = False
 
-        assert isConstant( constant ), constant
+    def __init__(self, constant, source_ref, user_provided = False):
+        NodeBase.__init__(self, source_ref = source_ref)
+        CompileTimeConstantExpressionMixin.__init__(self)
+
+        assert isConstant(constant), constant
 
         self.constant = constant
-        self.user_provided = user_provided
+
+        if user_provided:
+            self.user_provided = user_provided
 
         if not user_provided and isDebug():
             try:
-                size = len( constant )
+                size = len(constant)
 
-                if type( constant ) in ( str, unicode ):
+                if type(constant) in (str, unicode):
                     max_size = 1000
                 else:
                     max_size = 256
@@ -59,7 +63,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
                 if size > max_size:
                     warning(
                         "Too large constant (%s %d) encountered at %s.",
-                        type( constant ),
+                        type(constant),
                         size,
                         source_ref.getAsString()
                     )
@@ -116,23 +120,23 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
     getConstant = getCompileTimeConstant
 
     def isMutable(self):
-        return isMutable( self.constant )
+        return isMutable(self.constant)
 
     def isNumberConstant(self):
-        return isNumberConstant( self.constant )
+        return isNumberConstant(self.constant)
 
     def isIndexConstant(self):
-        return isIndexConstant( self.constant )
+        return isIndexConstant(self.constant)
 
     def isStringConstant(self):
-        return type( self.constant ) is str
+        return type(self.constant) is str
 
     def isIndexable(self):
         return self.constant is None or self.isNumberConstant()
 
     def isKnownToBeIterable(self, count):
         if isIterableConstant( self.constant ):
-            return count is None or getConstantIterationLength( self.constant ) == count
+            return count is None or getConstantIterationLength(self.constant) == count
         else:
             return False
 
@@ -145,7 +149,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         return self.isKnownToBeIterable( None )
 
     def getIterationValue(self, count):
-        assert count < len( self.constant )
+        assert count < len(self.constant)
 
         return ExpressionConstantRef( self.constant[ count ], self.source_ref )
 
@@ -162,7 +166,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         )
 
     def isMapping(self):
-        return type( self.constant ) is dict
+        return type(self.constant) is dict
 
     def isMappingWithConstantStringKeys(self):
         assert self.isMapping()
@@ -257,12 +261,13 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         return isIterableConstant( self.constant )
 
     def getStrValue(self):
-        if type( self.constant ) is str:
+        if type(self.constant) is str:
             return self
         else:
             return ExpressionConstantRef(
-                constant   = str( self.constant ),
-                source_ref = self.getSourceReference()
+                constant      = str(self.constant),
+                user_provided = self.user_provided,
+                source_ref    = self.getSourceReference(),
             )
 
     def computeExpressionIter1(self, iter_node, constraint_collection):

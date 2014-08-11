@@ -23,13 +23,12 @@ the future flags in use there.
 
 class SourceCodeReference:
     @classmethod
-    def fromFilenameAndLine(cls, filename, line, future_spec, inside_exec):
+    def fromFilenameAndLine(cls, filename, line, future_spec):
         result = cls()
 
         result.filename = filename
         result.line = line
         result.future_spec = future_spec
-        result.inside_exec = inside_exec
 
         return result
 
@@ -37,7 +36,6 @@ class SourceCodeReference:
         self.line = None
         self.filename = None
         self.future_spec = None
-        self.inside_exec = False
 
         self.set_line = True
 
@@ -48,8 +46,7 @@ class SourceCodeReference:
         result = SourceCodeReference.fromFilenameAndLine(
             filename    = self.filename,
             line        = line,
-            future_spec = self.future_spec,
-            inside_exec = self.inside_exec
+            future_spec = self.future_spec
         )
 
         result.set_line = self.set_line
@@ -57,9 +54,9 @@ class SourceCodeReference:
         return result
 
     def atLineNumber(self, line):
-        assert int( line ) == line
+        assert int(line) == line
 
-        return self.clone( line )
+        return self.clone(line)
 
     def getLineNumber(self):
         return self.line
@@ -73,20 +70,6 @@ class SourceCodeReference:
     def getAsString(self):
         return "%s:%s" % ( self.filename, self.line )
 
-    def getExecReference(self, value):
-        if self.inside_exec != value:
-            return self.__class__.fromFilenameAndLine(
-                filename    = self.filename,
-                line        = self.line,
-                future_spec = self.future_spec.clone(),
-                inside_exec = value
-            )
-        else:
-            return self
-
-    def isExecReference(self):
-        return self.inside_exec
-
     def shallSetCurrentLine(self):
         return self.set_line
 
@@ -94,18 +77,18 @@ class SourceCodeReference:
         if other is None:
             return -1
 
-        assert isinstance( other, SourceCodeReference ), other
+        assert isinstance(other, SourceCodeReference), other
 
-        result = cmp( self.filename, other.filename)
+        result = cmp(self.filename, other.filename)
 
         if result == 0:
-            result = cmp( self.line, other.line )
+            result = cmp(self.line, other.line)
 
         return result
 
     def atInternal(self):
         if self.set_line:
-            result = self.clone( self.line )
+            result = self.clone(self.line)
             result.set_line = False
 
             return result
@@ -118,5 +101,4 @@ def fromFilename(filename, future_spec):
         filename    = filename,
         line        = 1,
         future_spec = future_spec,
-        inside_exec = False
     )

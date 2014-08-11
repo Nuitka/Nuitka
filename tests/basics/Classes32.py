@@ -17,58 +17,58 @@
 #
 
 def a():
-   x = 1
-   class A:
-      print( x )
+    x = 1
+    class A:
+        print(x)
 
-   print( "Called", a )
+    print("Called", a)
 
-   return A
+    return A
 
 def b():
-   class B:
-      pass
+    class B:
+        pass
 
-   print( "Called", b )
+    print("Called", b)
 
-   return B
+    return B
 
 from collections import OrderedDict
 
 def m():
-   class M(type):
-      # @classmethod
-      def __new__(metacls, class_name, bases, attrs, **over):
-         print( "Metaclass M.__new__ metacls", metacls, "name", class_name, "bases", bases, "dict", attrs, "extra class defs", over )
+    class M(type):
+        # @classmethod
+        def __new__(cls, class_name, bases, attrs, **over):
+            print("Metaclass M.__new__ cls", cls, "name", class_name, "bases", bases, "dict", attrs, "extra class defs", over)
 
-         return type.__new__( metacls, class_name, bases, attrs )
+            return type.__new__(cls, class_name, bases, attrs)
 
-      def __init__(self, name, bases, attrs, **over):
-         print( "Metaclass M.__init__", name, bases, attrs, over )
-         super().__init__( name, bases, attrs )
+        def __init__(self, name, bases, attrs, **over):
+            print("Metaclass M.__init__", name, bases, attrs, over)
+            super().__init__(name, bases, attrs)
 
-      # TODO: Removing this
-      # @classmethod
-      def __prepare__(name, bases, **over):
-         print( "Metaclass M.__prepare__", name, bases, over )
-         return OrderedDict()
+        # TODO: Removing this
+        # @classmethod
+        def __prepare__(name, bases, **over):
+            print("Metaclass M.__prepare__", name, bases, over)
+            return OrderedDict()
 
-   print( "Called", m )
+    print("Called", m)
 
-   return M
+    return M
 
 def d():
-   print( "Called", d )
+    print( "Called", d )
 
-   return 1
+    return 1
 
 def e():
-   print( "Called", e )
+    print( "Called", e )
 
-   return 2
+    return 2
 
 
 class C1(a(), b(), other = d(), metaclass = m(), yet_other = e()):
-   pass
+    pass
 
-print( type( C1.__dict__ ) )
+print(type(C1.__dict__))

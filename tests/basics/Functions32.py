@@ -19,12 +19,12 @@
 def kwonlysimple(*, a):
     return a
 
-print( "Keyword only function case: ", kwonlysimple( a = 3 ) )
+print("Keyword only function case: ", kwonlysimple(a = 3))
 
 def kwonlysimpledefaulted(*, a = 5):
     return a
 
-print( "Keyword only function, using default value: ", kwonlysimpledefaulted() )
+print("Keyword only function, using default value: ", kwonlysimpledefaulted())
 
 
 def default1():
@@ -93,24 +93,24 @@ def annotation9():
 print("Defining function with annotations, and defaults as functions for everything:")
 
 def kwonlyfunc(x: annotation1(), y: annotation2() = default1(), z: annotation3() = default2(), *, a: annotation4(), b: annotation5() = default3(), c: annotation6() = default4(), d: annotation7(), **kw: annotation8()) -> annotation9():
-    print( x, y, z, a, b, c, d )
+    print(x, y, z, a, b, c, d)
 
 print("__kwdefaults__", kwonlyfunc.__kwdefaults__)
 
 print("Keyword only function")
 kwonlyfunc( 7, a = 8, d = 12 )
 
-print( "Annotations come out as", sorted( kwonlyfunc.__annotations__ ) )
+print("Annotations come out as", sorted( kwonlyfunc.__annotations__ ))
 kwonlyfunc.__annotations__ = {}
-print( "After updating to None it is", kwonlyfunc.__annotations__ )
+print("After updating to None it is", kwonlyfunc.__annotations__)
 
 kwonlyfunc.__annotations__ = { "k" : 9 }
-print( "After updating to None it is", kwonlyfunc.__annotations__ )
+print("After updating to None it is", kwonlyfunc.__annotations__)
 
 def kwonlystarfunc(*, a, b, **d):
     return a, b, d
 
-print( "kwonlystarfunc", kwonlystarfunc( a = 8, b = 12, k = 9, j = 7 ) )
+print("kwonlystarfunc", kwonlystarfunc(a = 8, b = 12, k = 9, j = 7))
 
 def deeplyNestedNonLocalWrite():
     x = 0
@@ -126,7 +126,7 @@ def deeplyNestedNonLocalWrite():
         return g()
     return f(), x
 
-print( "Deeply nested non local writing function", deeplyNestedNonLocalWrite() )
+print("Deeply nested non local writing function", deeplyNestedNonLocalWrite())
 
 def deletingClosureVariable():
     try:
@@ -142,4 +142,4 @@ def deletingClosureVariable():
     except Exception as e:
         return e
 
-print( "Using deleted non-local variable", deletingClosureVariable() )
+print("Using deleted non-local variable", deletingClosureVariable())

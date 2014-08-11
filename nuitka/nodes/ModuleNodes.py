@@ -326,8 +326,7 @@ class PythonInternalModule(PythonModule, SingleCreationMixin):
             source_ref   = SourceCodeReference.fromFilenameAndLine(
                 filename    = "internal",
                 line        = 0,
-                future_spec = FutureSpec(),
-                inside_exec = False
+                future_spec = FutureSpec()
             )
         )
 

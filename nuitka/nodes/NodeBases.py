@@ -26,6 +26,7 @@ from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.odict import OrderedDict
 from nuitka.oset import OrderedSet
+from nuitka.VariableRegistry import addVariableUsage
 
 lxml = TreeXML.lxml
 
@@ -760,23 +761,26 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
         self.temp_variables[full_name] = result
 
+        addVariableUsage(result, self)
+
         return result
 
     def getTempVariable(self, temp_scope, name):
         if temp_scope is not None:
-            full_name = "%s__%s" % ( temp_scope, name )
+            full_name = "%s__%s" % (temp_scope, name)
         else:
             full_name = name
 
-        return self.temp_variables[ full_name ]
+        return self.temp_variables[full_name]
 
     def getTempVariables(self):
-        return tuple( self.temp_variables.values() )
+        return tuple(self.temp_variables.values())
 
     def removeTempVariable(self, variable):
-        del self.temp_variables[ variable.getName() ]
+        del self.temp_variables[variable.getName()]
 
 
+# TODO: There is long since only one node type that uses it, move to FunctionNodes
 class ParameterHavingNodeBase(ClosureGiverNodeBase):
     def __init__(self, name, code_prefix, parameters, source_ref):
         ClosureGiverNodeBase.__init__(
@@ -1041,8 +1045,12 @@ class ExpressionMixin:
 
 
 class CompileTimeConstantExpressionMixin(ExpressionMixin):
+    # TODO: Do this for all computations, do this in the base class of all
+    # nodes.
+    computed_attribute = False
+
     def __init__(self):
-        self.computed_attribute = False
+        pass
 
     def isCompileTimeConstant(self):
         """ Has a value that we can use at compile time.
@@ -1052,7 +1060,6 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
             be executed against it.
         """
         # Virtual method, pylint: disable=R0201
-
         return True
 
     def mayHaveSideEffects(self):
@@ -1068,7 +1075,7 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
             node        = not_node,
             computation = lambda : not self.getCompileTimeConstant(),
             description = """\
-Compile time constant negation truth value precomputed."""
+Compile time constant negation truth value pre-computed."""
         )
 
 
@@ -1080,12 +1087,15 @@ Compile time constant negation truth value precomputed."""
 
         from .NodeMakingHelpers import getComputationResult, isCompileTimeConstantValue
 
-        if not hasattr( value, attribute_name ) or isCompileTimeConstantValue( getattr( value, attribute_name ) ):
+        # If it raises, or the attribute itself is a compile time constant,
+        # then do execute it.
+        if not hasattr(value, attribute_name) or \
+           isCompileTimeConstantValue(getattr(value, attribute_name)):
 
             return getComputationResult(
                 node        = lookup_node,
-                computation = lambda : getattr( value, attribute_name ),
-                description = "Attribute lookup to %s precomputed." % (
+                computation = lambda : getattr(value, attribute_name),
+                description = "Attribute lookup to '%s' pre-computed." % (
                     attribute_name
                 )
             )
@@ -1093,7 +1103,6 @@ Compile time constant negation truth value precomputed."""
         self.computed_attribute = True
 
         return lookup_node, None, None
-
 
     def computeExpressionSubscript(self, lookup_node, subscript, constraint_collection):
         from .NodeMakingHelpers import getComputationResult

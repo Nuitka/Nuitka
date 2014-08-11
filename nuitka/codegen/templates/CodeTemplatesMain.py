@@ -44,6 +44,9 @@ global_copyright = """\
 template_metapath_loader_compiled_module_entry = """\
 { (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_MODULE },"""
 
+template_metapath_loader_compiled_package_entry = """\
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_PACKAGE },"""
+
 template_metapath_loader_shlib_module_entry = """\
 { (char *)"%(module_name)s", NULL, NUITKA_SHLIB_MODULE },"""
 
@@ -53,6 +56,11 @@ main_program = """\
 // calls the initialization code of the __main__ module.
 
 #include "structseq.h"
+
+#if %(python_no_warnings)d
+extern PyObject *const_str_plain_ignore;
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmdLine, int nCmdShow )
 {
@@ -165,6 +173,30 @@ int main( int argc, char *argv[] )
 
 #ifdef _NUITKA_STANDALONE
     setEarlyFrozenModulesFileAttribute();
+#endif
+
+    // Disable Python warnings if requested to.
+#if %(python_no_warnings)d
+    // Should be same as:
+    //   warnings.simplefilter("ignore", UserWarning)
+    //   warnings.simplefilter("ignore", DeprecationWarning)
+    // There is no C-API to control warnings. We don't care if it actually
+    // works, i.e. return code of "simplefilter" function is not checked.
+    {
+        PyObject *warnings = PyImport_ImportModule( "warnings" );
+        if ( warnings != NULL )
+        {
+            PyObject *simplefilter = PyObject_GetAttrString( warnings, "simplefilter" );
+
+            if ( simplefilter != NULL )
+            {
+                PyObject *result1 = PyObject_CallFunctionObjArgs( simplefilter, const_str_plain_ignore, PyExc_UserWarning, NULL );
+                Py_XDECREF( result1 );
+                PyObject *result2 = PyObject_CallFunctionObjArgs( simplefilter, const_str_plain_ignore, PyExc_DeprecationWarning, NULL );
+                Py_XDECREF( result2 );
+            }
+        }
+    }
 #endif
 
     // Execute the "__main__" module init function.

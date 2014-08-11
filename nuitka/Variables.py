@@ -29,7 +29,7 @@ from . import Utils
 class Variable:
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
-        assert type(owner ) not in (tuple, list), owner
+        assert type(owner) not in (tuple, list), owner
 
         self.variable_name = variable_name
         self.owner = owner
@@ -48,7 +48,7 @@ class Variable:
         return self.owner
 
     def addReference(self, reference):
-        self.references.append( reference )
+        self.references.append(reference)
 
     def getReferenced(self):
         # Abstract method, pylint: disable=R0201,W0613
@@ -75,9 +75,6 @@ class Variable:
 
     # pylint: disable=R0201
     def isLocalVariable(self):
-        return False
-
-    def isClassVariable(self):
         return False
 
     def isMaybeLocalVariable(self):
@@ -112,11 +109,11 @@ class Variable:
 
     # pylint: enable=R0201
 
-    def _checkShared(self, variable, technical):
+    def _checkShared(self, variable):
         for reference in variable.references:
             # print( "Checking", reference, "of", variable )
 
-            if self._checkShared( reference, technical ):
+            if self._checkShared(reference):
                 return True
 
             top_owner = reference.getReferenced().getOwner()
@@ -124,10 +121,10 @@ class Variable:
 
             # The generators and functions that are not created, get things
             # passed, and do not need the variable to share.
-            while technical and \
-                  owner != top_owner and \
+            while owner != top_owner and \
                   owner.isExpressionFunctionBody() and \
-                  not owner.isGenerator() and not owner.needsCreation():
+                  not owner.isGenerator() and \
+                  not owner.needsCreation():
                 owner = owner.getParentVariableProvider()
 
             # This defines being shared. Owned by one, and references that are
@@ -138,23 +135,9 @@ class Variable:
             return False
 
 
-    def isSharedLogically(self):
-        variable = self
-
-        while variable.isClosureReference():
-            variable = variable.getReferenced()
-
-        return self._checkShared(variable, False)
-
-
     def isSharedTechnically(self):
-        variable = self
-
-        while variable.isClosureReference():
-            variable = variable.getReferenced()
-
-        return self._checkShared(variable, True)
-
+        from nuitka.VariableRegistry import isSharedTechnically
+        return isSharedTechnically(self)
 
     reference_class = None
 

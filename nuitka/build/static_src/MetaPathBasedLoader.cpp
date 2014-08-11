@@ -259,6 +259,23 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 #endif
 
 
+static struct Nuitka_MetaPathBasedLoaderEntry *find_entry( char const *name )
+{
+    struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
+
+    while ( current->name != NULL )
+    {
+        if ( strcmp( name, current->name ) == 0 )
+        {
+            return current;
+        }
+
+        current++;
+    }
+
+    return NULL;
+}
+
 static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, PyObject *kwds )
 {
     PyObject *module_name;
@@ -283,81 +300,110 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 
     char *name = Nuitka_String_AsString( module_name );
 
-    struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = find_entry( name );
 
-    while ( current->name != NULL )
+    if ( entry != NULL )
     {
-        if ( strcmp( name, current->name ) == 0 )
+        if ( Py_VerboseFlag )
         {
-            if ( Py_VerboseFlag )
-            {
-                PySys_WriteStderr( "Loading %s\n", name );
-            }
+            PySys_WriteStderr( "Loading %s\n", name );
+        }
 
 #ifdef _NUITKA_STANDALONE
-            if ( ( current->flags & NUITKA_SHLIB_MODULE ) != 0 )
+        if ( ( entry->flags & NUITKA_SHLIB_MODULE ) != 0 )
+        {
+            char filename[4096];
+
+            strcpy( filename, getBinaryDirectory() );
+            char *d = filename;
+            d += strlen( filename );
+            assert(*d == 0);
+            *d++ = SEP;
+
+            char *s = entry->name;
+
+            while( *s )
             {
-                char filename[4096];
-
-                strcpy( filename, getBinaryDirectory() );
-                char *d = filename;
-                d += strlen( filename );
-                assert(*d == 0);
-                *d++ = SEP;
-
-                char *s = current->name;
-
-                while( *s )
+                if ( *s == '.' )
                 {
-                    if ( *s == '.' )
-                    {
-                        *d++ = SEP;
-                        s++;
-                    }
-                    else
-                    {
-                        *d++ = *s++;
-                    }
+                    *d++ = SEP;
+                    s++;
                 }
-                *d = 0;
+                else
+                {
+                    *d++ = *s++;
+                }
+            }
+            *d = 0;
 
 #ifdef _WIN32
-                strcat( filename, ".pyd" );
+            strcat( filename, ".pyd" );
 #else
-                strcat( filename, ".so" );
+            strcat( filename, ".so" );
 #endif
 
-                callIntoShlibModule(
-                    current->name,
-                    filename
-                );
-            }
-            else
+            callIntoShlibModule(
+                entry->name,
+                filename
+            );
+        }
+        else
 #endif
-            {
-                assert( ( current->flags & NUITKA_SHLIB_MODULE ) == 0 );
-                current->python_initfunc();
-            }
+        {
+            assert( ( entry->flags & NUITKA_SHLIB_MODULE ) == 0 );
+            entry->python_initfunc();
+        }
 
-            if (unlikely( ERROR_OCCURED() ))
-            {
-                return NULL;
-            }
+        if (unlikely( ERROR_OCCURED() ))
+        {
+            return NULL;
+        }
 
-            if ( Py_VerboseFlag )
-            {
-                PySys_WriteStderr( "Loaded %s\n", name );
-            }
+        if ( Py_VerboseFlag )
+        {
+            PySys_WriteStderr( "Loaded %s\n", name );
+        }
 
-            return LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
-       }
-
-       current++;
-    }
-
-    assert( false );
+        return LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
+   }
 
     return INCREASE_REFCOUNT( Py_None );
+}
+
+static PyObject *_path_unfreezer_is_package( PyObject *self, PyObject *args, PyObject *kwds )
+{
+    PyObject *module_name;
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args,
+        kwds,
+        "O:is_package",
+        _kwlist,
+        &module_name
+    );
+
+    if (unlikely( res == 0 ))
+    {
+        return NULL;
+    }
+
+    assert( module_name );
+    assert( Nuitka_String_Check( module_name ) );
+
+    char *name = Nuitka_String_AsString( module_name );
+
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = find_entry( name );
+
+    if ( entry )
+    {
+        PyObject *result = BOOL_FROM( ( entry->flags & NUITKA_COMPILED_PACKAGE ) != 0 );
+        return INCREASE_REFCOUNT( result );
+    }
+    else
+    {
+        // TODO: Maybe needs to be an exception.
+        return INCREASE_REFCOUNT( Py_None );
+    }
 }
 
 #if PYTHON_VERSION >= 340
@@ -383,6 +429,71 @@ static PyObject *_path_unfreezer_repr_module( PyObject *self, PyObject *args, Py
     return PyUnicode_FromFormat("<module '%s' from '%s'>", PyModule_GetName( module ), PyModule_GetFilename( module ));
 
 }
+
+static char *_kwlist2[] = {
+    (char *)"fullname",
+    (char *)"is_package",
+    (char *)"path",
+    NULL
+};
+
+static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyObject *kwds )
+{
+    PyObject *module_name;
+    PyObject *unused1;
+    PyObject *unused2;
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args,
+        kwds,
+        "OO|O:find_spec",
+        _kwlist2,
+        &module_name,
+        &unused1,
+        &unused2
+    );
+
+    if (unlikely( res == 0 ))
+    {
+        return NULL;
+    }
+
+    assert( module_name );
+    assert( Nuitka_String_Check( module_name ) );
+
+    char *name = Nuitka_String_AsString( module_name );
+
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = find_entry( name );
+    if ( entry == NULL ) return INCREASE_REFCOUNT( Py_None );
+
+    PyObject *importlib = PyImport_ImportModule("importlib._bootstrap");
+
+    if (unlikely( importlib == NULL))
+    {
+        return NULL;
+    }
+
+    PyObject *module_spec_class = PyObject_GetAttrString( importlib, "ModuleSpec");
+
+    if (unlikely( module_spec_class == NULL ))
+    {
+        Py_DECREF( importlib );
+        return NULL;
+    }
+
+    PyObject *result = PyObject_CallFunctionObjArgs( module_spec_class, module_name, metapath_based_loader, NULL );
+
+    if (unlikely( result == NULL ))
+    {
+        Py_DECREF( importlib );
+        Py_DECREF( module_spec_class );
+
+        return NULL;
+    }
+
+    return result;
+}
+
 #endif
 
 
@@ -402,11 +513,27 @@ static PyMethodDef _method_def_loader_load_module =
     NULL
 };
 
+static PyMethodDef _method_def_loader_is_package =
+{
+    "is_package",
+    (PyCFunction)_path_unfreezer_is_package,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
+
 #if PYTHON_VERSION >= 340
 static PyMethodDef _method_def_loader_repr_module =
 {
     "module_repr",
     (PyCFunction)_path_unfreezer_repr_module,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
+
+static PyMethodDef _method_def_loader_find_spec =
+{
+    "module_repr",
+    (PyCFunction)_path_unfreezer_find_spec,
     METH_VARARGS | METH_KEYWORDS,
     NULL
 };
@@ -444,6 +571,14 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     assertObject( loader_load_module );
     PyDict_SetItemString( method_dict, "load_module", loader_load_module );
 
+    PyObject *loader_is_package = PyCFunction_New(
+        &_method_def_loader_is_package,
+        NULL
+    );
+    assertObject( loader_is_package );
+    PyDict_SetItemString( method_dict, "is_package", loader_is_package );
+
+
 #if PYTHON_VERSION >= 340
     PyObject *loader_repr_module = PyCFunction_New(
         &_method_def_loader_repr_module,
@@ -451,6 +586,13 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     );
     assertObject( loader_repr_module );
     PyDict_SetItemString( method_dict, "module_repr", loader_repr_module );
+
+    PyObject *loader_find_spec = PyCFunction_New(
+        &_method_def_loader_find_spec,
+        NULL
+    );
+    assertObject( loader_find_spec );
+    PyDict_SetItemString( method_dict, "find_spec", loader_find_spec );
 #endif
 
     // Build the actual class.

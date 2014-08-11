@@ -68,6 +68,11 @@ os.environ["PYTHONWARNINGS"] = "ignore"
 if "PYTHON" not in os.environ:
     os.environ["PYTHON"] = sys.executable
 
+extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
+
+if "--python-debug" in extra_options:
+    python_debug = True
+
 if python_debug:
     if os.path.exists(os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")):
         os.environ["PYTHON"] += "-dbg"
@@ -75,7 +80,14 @@ if python_debug:
 if os.environ["PYTHON"].endswith("-dbg"):
     python_debug = True
 
-print(
+# Make sure we flush after every print, the "-u" option does more than that
+# and this is easy enough.
+def my_print(*args, **kwargs):
+    print(*args, **kwargs)
+
+    sys.stdout.flush()
+
+my_print(
     """\
 Comparing output of '{filename}' using '{python}' with flags {args} ...""".
 format(
@@ -86,16 +98,16 @@ format(
 )
 
 if not silent_mode:
-    print("*" * 80)
-    print("CPython:")
-    print("*" * 80)
+    my_print("*" * 80)
+    my_print("CPython:")
+    my_print("*" * 80)
 
 if two_step_execution:
     filename = os.path.abspath(filename)
 
 if module_mode:
     cpython_cmd = [
-        os.environ[ "PYTHON" ],
+        os.environ["PYTHON"],
         "-W", "ignore",
         "-c", "import sys; sys.path.append(%s); import %s" % (
             repr(os.path.dirname(filename)),
@@ -104,7 +116,7 @@ if module_mode:
     ]
 else:
     cpython_cmd = [
-        os.environ[ "PYTHON" ],
+        os.environ["PYTHON"],
         "-W", "ignore",
         filename
     ]
@@ -119,8 +131,6 @@ else:
         os.environ["PYTHON"],
         os.path.abspath(os.path.join(os.path.dirname(__file__), "nuitka"))
     ]
-
-extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
 
 if python_debug:
     extra_options += " --python-debug"
@@ -146,13 +156,13 @@ if keep_python_path or binary_python_path:
 if not two_step_execution:
     if module_mode:
         nuitka_cmd = nuitka_call + extra_options.split() + \
-          ["--module", "--execute", filename]
+          ["--execute", "--python-flag=no_warnings", "--module", filename]
     elif standalone_mode:
         nuitka_cmd = nuitka_call + extra_options.split() + \
-          ["--standalone", "--execute", filename]
+          ["--execute", "--python-flag=no_warnings", "--standalone", filename]
     else:
         nuitka_cmd = nuitka_call + extra_options.split() + \
-          ["--execute", filename]
+          ["--execute", "--python-flag=no_warnings", filename]
 
     if no_site:
         nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")
@@ -160,13 +170,13 @@ if not two_step_execution:
 else:
     if module_mode:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
-          ["--module", os.path.abspath(filename)]
+          ["--python-flag=no_warnings", "--module", os.path.abspath(filename)]
     elif standalone_mode:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
-          ["--standalone", filename]
+          ["--python-flag=no_warnings", "--standalone", filename]
     else:
         nuitka_cmd1 = nuitka_call + extra_options.split() + \
-          [filename]
+          ["--python-flag=no_warnings", filename]
 
     if no_site:
         nuitka_cmd1.insert(len(nuitka_cmd1) - 1, "--python-flag=-S")
@@ -199,7 +209,7 @@ else:
     ]
 
 if trace_command:
-    print("CPython command:", *cpython_cmd)
+    my_print("CPython command:", *cpython_cmd)
 
 process = subprocess.Popen(
     args   = cpython_cmd,
@@ -211,17 +221,17 @@ stdout_cpython, stderr_cpython = process.communicate()
 exit_cpython = process.returncode
 
 def displayCPython():
-    print(stdout_cpython, end=' ')
+    my_print(stdout_cpython, end=' ')
     if stderr_cpython:
-        print(stderr_cpython)
+        my_print(stderr_cpython)
 
 if not silent_mode:
     displayCPython()
 
 if not silent_mode:
-    print("*" * 80)
-    print("Nuitka:")
-    print("*" * 80)
+    my_print("*" * 80)
+    my_print("Nuitka:")
+    my_print("*" * 80)
 
 if two_step_execution:
     if output_dir:
@@ -236,11 +246,11 @@ if two_step_execution:
         os.chdir(tmp_dir)
 
     if trace_command:
-        print("Going to output directory", os.getcwd())
+        my_print("Going to output directory", os.getcwd())
 
 if not two_step_execution:
     if trace_command:
-        print("Nuitka command:", nuitka_cmd)
+        my_print("Nuitka command:", nuitka_cmd)
     process = subprocess.Popen(
         args   = nuitka_cmd,
         stdout = subprocess.PIPE,
@@ -251,7 +261,7 @@ if not two_step_execution:
     exit_nuitka = process.returncode
 else:
     if trace_command:
-        print("Nuitka command 1:", nuitka_cmd1)
+        my_print("Nuitka command 1:", nuitka_cmd1)
 
     process = subprocess.Popen(
         args   = nuitka_cmd1,
@@ -267,7 +277,7 @@ else:
         stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
     else:
         if trace_command:
-            print("Nuitka command 2:", nuitka_cmd2)
+            my_print("Nuitka command 2:", nuitka_cmd2)
 
         process = subprocess.Popen(
             args   = nuitka_cmd2,
@@ -281,10 +291,10 @@ else:
         exit_nuitka = process.returncode
 
 if not silent_mode:
-    print(stdout_nuitka, end=' ')
+    my_print(stdout_nuitka, end=' ')
 
     if stderr_nuitka:
-        print(stderr_nuitka)
+        my_print(stderr_nuitka)
 
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+")
@@ -418,7 +428,7 @@ def compareOutput(kind, out_cpython, out_nuitka):
 
     if result:
         for line in result:
-            print(line, end = "\n" if not line.startswith("---") else "")
+            my_print(line, end = "\n" if not line.startswith("---") else "")
 
         return 1
     else:
@@ -434,7 +444,7 @@ else:
 exit_code_return = exit_cpython != exit_nuitka
 
 if exit_code_return:
-    print(
+    my_print(
         """\
 Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
             exit_cpython = exit_cpython,
@@ -488,4 +498,4 @@ if remove_output:
 
 
 if not silent_mode:
-    print("OK, same outputs.")
+    my_print("OK, same outputs.")

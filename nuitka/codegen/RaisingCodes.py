@@ -89,7 +89,7 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
     )
 
     emit(
-        "RAISE_EXCEPTION_WITH_TYPE( &exception_type, &exception_value, &exception_tb);"
+        "RAISE_EXCEPTION_WITH_TYPE( &exception_type, &exception_value, &exception_tb );"
     )
 
     emit(

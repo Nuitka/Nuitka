@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.3.5
+Nuitka V0.5.4
 Copyright (C) 2014 Kay Hayen."""
 
 import logging
@@ -254,8 +254,9 @@ parser.add_option(
     help    = """\
 Python flags to use. Default uses what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
-Python executable. Currently supported "-S" (alias nosite) ,
-"static_hashes" (not use Randomization). Default empty."""
+Python executable. Currently supported: "-S" (alias nosite),
+"static_hashes" (not use Randomization), "no_warnings" (do not give
+Python runtime warnings). Default empty."""
 )
 
 codegen_group = OptionGroup(
@@ -420,6 +421,17 @@ parser.add_option(
     help    = """\
 Enforce the use of MinGW on Windows.
 Defaults to off."""
+)
+
+parser.add_option(
+    "--msvc",
+    action  = "store",
+    dest    = "msvc",
+    default = None,
+    help    = """\
+Enforce the use of specific MSVC version on Windows. Allowed values
+are e.g. 9.0, 9.0exp, specify an illegal value for a list of installed
+compilers. Defaults to the most recent version."""
 )
 
 tracing_group = OptionGroup(
@@ -661,6 +673,9 @@ def isClang():
 def isMingw():
     return options.mingw
 
+def getMsvcVersion():
+    return options.msvc
+
 def shallDisableConsoleWindow():
     return options.win_disable_console
 
@@ -692,14 +707,16 @@ def getPythonFlags():
     result = []
 
     for part in options.python_flags:
-        if part in ( "-S", "nosite", "no_site" ):
-            result.append( "no_site" )
-        elif part in ( "static_hashes", "norandomization", "no_randomization" ):
+        if part in ("-S", "nosite", "no_site"):
+            result.append("no_site")
+        elif part in ("static_hashes", "norandomization", "no_randomization"):
             result.append( "no_randomization" )
-        elif part in ( "-v", "trace_imports", "trace_import" ):
-            result.append( "trace_imports" )
+        elif part in ("-v", "trace_imports", "trace_import"):
+            result.append("trace_imports")
+        elif part in ("no_warnings", "nowarnings"):
+            result.append("no_warnings")
         else:
-            logging.warning( "Unsupported flag '%s'.", part )
+            logging.warning("Unsupported flag '%s'.", part)
 
     return result
 

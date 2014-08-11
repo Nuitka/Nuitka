@@ -42,11 +42,14 @@ def _isReadOnlyModuleVariable(variable):
 class ExpressionVariableRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_VARIABLE_REF"
 
-    def __init__(self, variable_name, source_ref):
+    def __init__(self, variable_name, source_ref, variable = None):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable_name = variable_name
-        self.variable = None
+        self.variable = variable
+
+        if variable is not None:
+            assert variable.getName() == variable_name
 
     def getDetails(self):
         if self.variable is None:
@@ -151,7 +154,7 @@ Replaced read-only module attribute '__package__' with constant value."""
         return self, None, None
 
     def onContentEscapes(self, constraint_collection):
-        constraint_collection.onVariableContentEscapes( self.variable )
+        constraint_collection.onVariableContentEscapes(self.variable)
 
     def isKnownToBeIterable(self, count):
         return None
@@ -172,10 +175,17 @@ Replaced read-only module attribute '__package__' with constant value."""
 class ExpressionTargetVariableRef(ExpressionVariableRef):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
-    def __init__(self, variable_name, source_ref):
-        ExpressionVariableRef.__init__( self, variable_name, source_ref )
+    # TODO: Remove default and correct argument order later.
+    def __init__(self, variable_name, source_ref, variable = None):
+        ExpressionVariableRef.__init__(self, variable_name, source_ref)
 
         self.variable_version = None
+
+        # TODO: Remove setVariable, once not needed anymore and inline to
+        # here.
+        if variable is not None:
+            self.setVariable(variable)
+            assert variable.getName() == variable_name
 
     def getDetails(self):
         if self.variable is None:
@@ -190,11 +200,9 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
     def makeCloneAt(self, source_ref):
         result = self.__class__(
             variable_name = self.variable_name,
-            source_ref    = source_ref
+            source_ref    = source_ref,
+            variable      = self.variable
         )
-
-        if self.variable is not None:
-            result.setVariable( self.variable )
 
         return result
 
@@ -210,7 +218,7 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
         return self.variable_version
 
     def setVariable(self, variable):
-        ExpressionVariableRef.setVariable( self, variable )
+        ExpressionVariableRef.setVariable(self, variable)
 
         self.variable_version = variable.allocateTargetNumber()
         assert self.variable_version is not None

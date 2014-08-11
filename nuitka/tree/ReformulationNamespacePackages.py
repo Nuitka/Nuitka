@@ -40,10 +40,9 @@ def createNamespacePackage(package_name, module_relpath):
     parts = package_name.split(".")
 
     source_ref = SourceCodeReference.fromFilenameAndLine(
-        module_relpath,
-        1,
-        FutureSpec(),
-        False
+        filename    = module_relpath,
+        line        = 1,
+        future_spec = FutureSpec(),
     )
     source_ref = source_ref.atInternal()
 

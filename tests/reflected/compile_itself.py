@@ -385,7 +385,7 @@ if cross_compilation:
 else:
     executePASS4()
 
-shutil.rmtree( "nuitka" )
+shutil.rmtree("nuitka")
 
 executePASS5()
 

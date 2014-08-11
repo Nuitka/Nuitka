@@ -106,6 +106,7 @@ def dumpTreeXML(tree):
     xml_root = tree.asXml()
     TreeXML.dump(xml_root)
 
+
 def displayTree(tree):
     # Import only locally so the Qt4 dependency doesn't normally come into play
     # when it's not strictly needed, pylint: disable=W0404
@@ -113,22 +114,25 @@ def displayTree(tree):
 
     TreeDisplay.displayTreeInspector(tree)
 
+
 def getTreeFilenameWithSuffix(tree, suffix):
     return tree.getOutputFilename() + suffix
+
 
 def getSourceDirectoryPath(main_module):
     assert main_module.isPythonModule()
 
     return Options.getOutputPath(
         path = Utils.basename(
-            getTreeFilenameWithSuffix( main_module, ".build" )
+            getTreeFilenameWithSuffix(main_module, ".build")
         )
     )
+
 
 def getStandaloneDirectoryPath(main_module):
     return Options.getOutputPath(
         path = Utils.basename(
-            getTreeFilenameWithSuffix( main_module, ".dist" )
+            getTreeFilenameWithSuffix(main_module, ".dist")
         )
     )
 
@@ -150,6 +154,7 @@ def getResultBasepath(main_module):
             )
         )
 
+
 def getResultFullpath(main_module):
     result = getResultBasepath(main_module)
 
@@ -162,6 +167,7 @@ def getResultFullpath(main_module):
         result += ".exe"
 
     return result
+
 
 def cleanSourceDirectory(source_dir):
     if Utils.isDir(source_dir):
@@ -182,6 +188,17 @@ def cleanSourceDirectory(source_dir):
         for path, _filename in Utils.listDir(static_source_dir):
             if Utils.getExtension(path) in (".o", ".os", ".obj"):
                 Utils.deleteFile(path, True)
+
+    win32_source_dir = Utils.joinpath(
+        static_source_dir,
+        "win32_ucontext_src"
+    )
+
+    if Utils.getOS() == "Windows":
+        Utils.deleteFile(
+            Utils.joinpath(win32_source_dir, "fibers_win32.obj"),
+            False
+        )
 
 
 def pickSourceFilenames(source_dir, modules):
@@ -229,6 +246,7 @@ def pickSourceFilenames(source_dir, modules):
         module_filenames[module] = base_filename + ".cpp"
 
     return module_filenames
+
 
 standalone_entry_points = []
 
@@ -437,13 +455,23 @@ def runScons(main_module, quiet):
     if Options.isMingw():
         options["mingw_mode"] = "true"
 
+    if Options.getMsvcVersion():
+        msvc_version = Options.getMsvcVersion()
+
+        msvc_version = msvc_version.replace("exp", "Exp")
+        if "." not in msvc_version:
+            msvc_version += ".0"
+
+        options["msvc_version"] = msvc_version
+
     if Options.isClang():
         options["clang_mode"] = "true"
 
     if Options.getIconPath():
         options["icon_path"] = Options.getIconPath()
 
-    return SconsInterface.runScons( options, quiet ), options
+    return SconsInterface.runScons(options, quiet), options
+
 
 def writeSourceCode(filename, source_code):
     # Prevent accidental overwriting. When this happens the collision detection
@@ -490,6 +518,7 @@ def callExec(args, clean_path, add_path):
     # That's the API of execl, pylint: disable=W0142
     Utils.callExec(args)
 
+
 def executeMain(binary_filename, tree, clean_path):
     main_filename = tree.getFilename()
 
@@ -510,6 +539,7 @@ def executeMain(binary_filename, tree, clean_path):
         args       = args
     )
 
+
 def executeModule(tree, clean_path):
     python_command = "__import__('%s')" % tree.getName()
 
@@ -528,6 +558,7 @@ def executeModule(tree, clean_path):
         add_path   = True,
         args       = args
     )
+
 
 def compileTree(main_module):
     source_dir = getSourceDirectoryPath(main_module)
@@ -577,6 +608,7 @@ def compileTree(main_module):
     )
 
     return result, options
+
 
 data_files = []
 

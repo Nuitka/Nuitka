@@ -84,6 +84,7 @@ def _getFunctionCreationArgs(defaults_name, kw_defaults_name,
 
 def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
                          annotations_name, closure_variables):
+
     function_creation_arg_spec = _getFunctionCreationArgs(
         defaults_name     = defaults_name,
         kw_defaults_name  = kw_defaults_name,
@@ -331,8 +332,8 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
 
 
-def getFunctionDirectDecl( function_identifier, closure_variables,
-                           parameter_variables, file_scope ):
+def getFunctionDirectDecl(function_identifier, closure_variables,
+                          parameter_variables, file_scope):
 
     parameter_objects_decl = [
         "PyObject *_python_par_" + variable.getName()
@@ -353,6 +354,7 @@ def getFunctionDirectDecl( function_identifier, closure_variables,
 
     return result
 
+
 def getFunctionContextDefinitionCode(function_identifier, closure_variables,
                                      context):
     context_decl = []
@@ -372,14 +374,15 @@ def getFunctionContextDefinitionCode(function_identifier, closure_variables,
 
     return CodeTemplates.function_context_body_template % {
         "function_identifier" : function_identifier,
-        "context_decl"        : indented( context_decl ),
-        "context_free"        : indented( context_free ),
+        "context_decl"        : indented(context_decl),
+        "context_free"        : indented(context_free),
     }
 
-def getFunctionCode( context, function_name, function_identifier, parameters,
-                     closure_variables, user_variables, temp_variables,
-                     function_codes, function_doc, file_scope,
-                     needs_exception_exit ):
+
+def getFunctionCode(context, function_name, function_identifier, parameters,
+                    closure_variables, user_variables, temp_variables,
+                    function_codes, function_doc, file_scope,
+                    needs_exception_exit):
 
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=R0912,R0914
@@ -484,7 +487,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters,
             "function_identifier" : function_identifier,
         }
     else:
-        context_access_function_impl = str( CodeTemplates.function_context_unused_template )
+        context_access_function_impl = str(CodeTemplates.function_context_unused_template)
 
     if needs_exception_exit:
         function_exit = CodeTemplates.template_function_exception_exit % {
@@ -519,9 +522,9 @@ def getFunctionCode( context, function_name, function_identifier, parameters,
         result += CodeTemplates.template_function_body % {
             "function_identifier"          : function_identifier,
             "context_access_function_impl" : context_access_function_impl,
-            "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
-            "function_locals"              : indented( function_locals ),
-            "function_body"                : indented( function_codes ),
+            "parameter_objects_decl"       : ", ".join(parameter_objects_decl),
+            "function_locals"              : indented(function_locals),
+            "function_body"                : indented(function_codes),
             "function_exit"                : function_exit
         }
 
@@ -598,8 +601,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         )
 
     for closure_variable in closure_variables:
-        assert closure_variable.isSharedLogically()
-
         context_decl.append(
             getLocalVariableInitCode(
                 context    = context,

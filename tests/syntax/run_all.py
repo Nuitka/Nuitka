@@ -57,11 +57,11 @@ for filename in sorted( os.listdir( "." ) ):
 
     # Some syntax errors are for Python3 only.
     if filename == "Importing2.py" and python_version < "3":
-        extra_flags = [ "remove_output" ]
+        extra_flags = ["remove_output" ]
     elif filename == "GeneratorReturn2.py" and python_version >= "3.3":
-        extra_flags = [ "remove_output" ]
+        extra_flags = ["remove_output"]
     else:
-        extra_flags = [ "expect_failure",  "remove_output" ]
+        extra_flags = ["expect_failure",  "remove_output"]
 
     if active:
         compareWithCPython(
@@ -71,4 +71,4 @@ for filename in sorted( os.listdir( "." ) ):
             needs_2to3  = False
         )
     else:
-        my_print( "Skipping", filename )
+        my_print("Skipping", filename)

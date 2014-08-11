@@ -61,17 +61,17 @@ void makecontext( ucontext_t *uc, void (*fn)(void), int argc, ... );
 // case of frequent instantiations in a loop.
 static void *last_stack = NULL;
 
-void initFiber( Fiber *to )
+void _initFiber( Fiber *to )
 {
     to->f_context.uc_stack.ss_sp = NULL;
     to->f_context.uc_link = NULL;
     to->start_stack = NULL;
 }
 
-void prepareFiber( Fiber *to, void *code, intptr_t arg )
+int _prepareFiber( Fiber *to, void *code, intptr_t arg )
 {
     int res = getcontext( &to->f_context );
-    assert( res == 0 );
+    if (res != 0) return 1;
 
     to->f_context.uc_stack.ss_size = STACK_SIZE;
     to->f_context.uc_stack.ss_sp = last_stack ? last_stack : malloc( STACK_SIZE );
@@ -80,9 +80,11 @@ void prepareFiber( Fiber *to, void *code, intptr_t arg )
     last_stack = NULL;
 
     makecontext( &to->f_context, (void (*)())code, 1, (unsigned long)arg );
+
+    return 0;
 }
 
-void releaseFiber( Fiber *to )
+void _releaseFiber( Fiber *to )
 {
     if ( last_stack == NULL )
     {
@@ -94,7 +96,7 @@ void releaseFiber( Fiber *to )
     }
 }
 
-void swapFiber( Fiber *to, Fiber *from )
+void _swapFiber( Fiber *to, Fiber *from )
 {
     if ( getcontext( &to->f_context ) == 0 )
     {

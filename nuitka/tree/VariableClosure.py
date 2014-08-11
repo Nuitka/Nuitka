@@ -28,6 +28,7 @@ from nuitka import SyntaxErrors
 from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
 from nuitka.Utils import python_version
+from nuitka.VariableRegistry import addVariableUsage, isSharedLogically
 
 from .Operations import VisitorNoopMixin, visitTree
 
@@ -48,9 +49,35 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         so that "variable = variable" takes first "variable" as a closure and
         then adds a new local "variable" to override it from there on. For the
         not early closure case of a function, this will not be done and only
-        assigments shall add local variables, and references will be ignored
+        assignments shall add local variables, and references will be ignored
         until phase 2.
     """
+
+    def _handleNonLocal(self, node):
+        # Take closure variables for non-local declarations.
+
+        for non_local_names, source_ref in node.getNonlocalDeclarations():
+            for non_local_name in non_local_names:
+                variable = node.getClosureVariable(
+                    variable_name = non_local_name
+                )
+
+                node.registerProvidedVariable( variable )
+
+                if variable.isModuleVariableReference():
+                    SyntaxErrors.raiseSyntaxError(
+                        "no binding for nonlocal '%s' found" % (
+                            non_local_name
+                        ),
+                        source_ref   = None
+                                         if isFullCompat() and \
+                                         python_version < 340 else
+                                       source_ref,
+                        display_file = not isFullCompat() or \
+                                       python_version >= 340,
+                        display_line = not isFullCompat() or \
+                                       python_version >= 340
+                    )
 
     def onEnterNode(self, node):
         # Mighty complex code with lots of branches and statements, but it
@@ -58,27 +85,22 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         # pylint: disable=R0912,R0915
 
         if node.isExpressionTargetVariableRef():
+            provider = node.getParentVariableProvider()
+
             if node.getVariable() is None:
                 variable_name = node.getVariableName()
-                provider = node.getParentVariableProvider()
 
                 variable = provider.getVariableForAssignment(
                     variable_name = variable_name
                 )
 
-                # Inside an exec, we need to ignore global declarations that are
-                # not ours, so we replace it with ours, unless it came from an
-                # 'global' declaration inside the exec
-                if node.source_ref.isExecReference() and \
-                   not provider.isPythonModule():
-                    if variable.isModuleVariableReference() and \
-                       not variable.isFromExecStatement():
-                        variable = provider.providing[variable_name] = \
-                          provider.createProvidedVariable(
-                            variable_name = variable_name
-                        )
-
                 node.setVariable(variable)
+
+            addVariableUsage(node.getVariable(), provider)
+        elif node.isExpressionTargetTempVariableRef():
+            provider = node.getParentVariableProvider()
+
+            addVariableUsage(node.getVariable(), provider)
         elif node.isExpressionVariableRef():
             if node.getVariable() is None:
                 provider = node.getParentVariableProvider()
@@ -99,33 +121,13 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                 assert node.getVariable().isClosureReference(), \
                   node.getVariable()
-        elif python_version >= 300 and node.isExpressionFunctionBody():
-            # Take closure variables for non-local declarations.
+        elif node.isExpressionFunctionBody():
+            if python_version >= 300:
+                self._handleNonLocal(node)
 
-            for non_local_names, source_ref in node.getNonlocalDeclarations():
-                for non_local_name in non_local_names:
-                    # print( "nonlocal reference from", node, "to name", non_local_name )
+            for variable in node.getParameters().getAllVariables():
+                addVariableUsage(variable, node)
 
-                    variable = node.getClosureVariable(
-                        variable_name = non_local_name
-                    )
-
-                    node.registerProvidedVariable( variable )
-
-                    if variable.isModuleVariableReference():
-                        SyntaxErrors.raiseSyntaxError(
-                            "no binding for nonlocal '%s' found" % (
-                                non_local_name
-                            ),
-                            source_ref   = None
-                                             if isFullCompat() and \
-                                             python_version < 340 else
-                                           source_ref,
-                            display_file = not isFullCompat() or \
-                                           python_version >= 340,
-                            display_line = not isFullCompat() or \
-                                           python_version >= 340
-                        )
         # Attribute access of names of class functions should be mangled, if
         # they start with "__", but do not end in "__" as well.
         elif node.isExpressionAttributeLookup() or \
@@ -235,55 +237,57 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
         variable set now, the others, only in this phase.
     """
 
-    def onEnterNode(self, node):
-        if node.isExpressionVariableRef() and node.getVariable() is None:
-            provider = node.getParentVariableProvider()
+    def _attachVariable(self, node, provider):
+        # print "Late reference", node.getVariableName(), "for", provider, "caused at", node, "of", node.getParent()
 
-            # print "Late reference", node.getVariableName(), "for", provider, "caused at", node, "of", node.getParent()
+        variable = provider.getVariableForReference(
+            variable_name = node.getVariableName()
+        )
 
-            variable = provider.getVariableForReference(
-                variable_name = node.getVariableName()
-            )
+        node.setVariable(
+            variable
+        )
 
-            node.setVariable(
-                variable
-            )
+        # Need to catch functions with "exec" not allowed.
+        if python_version < 300 and \
+           provider.isExpressionFunctionBody() and \
+           variable.isReference() and \
+             (not variable.isModuleVariableReference() or \
+              not variable.isFromGlobalStatement() ):
 
-            assert not node.getParent().isStatementDelVariable()
+            parent_provider = provider.getParentVariableProvider()
 
-            # Need to catch functions with "exec" not allowed.
-            if python_version < 300 and \
-               provider.isExpressionFunctionBody() and \
-               variable.isReference() and \
-                 (not variable.isModuleVariableReference() or \
-                  not variable.isFromGlobalStatement() ):
+            while parent_provider.isExpressionFunctionBody() and \
+                  parent_provider.isClassDictCreation():
+                parent_provider = parent_provider.getParentVariableProvider()
 
-                parent_provider = provider.getParentVariableProvider()
-
-                while parent_provider.isExpressionFunctionBody() and \
-                      parent_provider.isClassDictCreation():
-                    parent_provider = parent_provider.getParentVariableProvider()
-
-                if parent_provider.isExpressionFunctionBody() and \
-                   parent_provider.isUnqualifiedExec():
-                    lines = open(
-                        node.source_ref.getFilename(),
-                        "rU"
-                    ).readlines()
-
-                    exec_line_number = parent_provider.getExecSourceRef().getLineNumber()
-
-                    raise SyntaxError(
-                        """\
+            if parent_provider.isExpressionFunctionBody() and \
+               parent_provider.isUnqualifiedExec():
+                SyntaxErrors.raiseSyntaxError(
+                    reason       = """\
 unqualified exec is not allowed in function '%s' it \
 contains a nested function with free variables""" % parent_provider.getName(),
-                        (
-                            node.source_ref.getFilename(),
-                            exec_line_number,
-                            None,
-                            lines[ exec_line_number - 1 ]
-                        )
-                    )
+                    source_ref   = parent_provider.getExecSourceRef(),
+                    col_offset   = None,
+                    display_file = True,
+                    display_line = True,
+                    source_line  = None
+                )
+
+
+    def onEnterNode(self, node):
+        if node.isExpressionVariableRef():
+            provider = node.getParentVariableProvider()
+
+            if node.getVariable() is None:
+                self._attachVariable(node, provider)
+
+            addVariableUsage(node.getVariable(), provider)
+        elif node.isExpressionTempVariableRef():
+            provider = node.getParentVariableProvider()
+
+            addVariableUsage(node.getVariable(), provider)
+
 
     # For Python3, every function in a class is supposed to take "__class__" as
     # a reference, so make sure that happens.
@@ -302,9 +306,9 @@ contains a nested function with free variables""" % parent_provider.getName(),
                         name       = "__class__"
                     )
 
-                    variable = variable.makeReference( parent_provider )
+                    variable = variable.makeReference(parent_provider)
 
-                    node.addClosureVariable( variable )
+                    node.addClosureVariable(variable)
 
 
 class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
@@ -322,7 +326,8 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
         if node.isStatementDelVariable():
             variable = node.getTargetVariableRef().getVariable()
 
-            if variable.isSharedLogically():
+            if not variable.isModuleVariable() and \
+               isSharedLogically(variable):
                 SyntaxErrors.raiseSyntaxError(
                     reason       = """\
 can not delete variable '%s' referenced in nested scope""" % (

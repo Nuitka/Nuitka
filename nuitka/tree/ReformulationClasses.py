@@ -17,7 +17,7 @@
 #
 """ Reformulation of class statements.
 
-Consult the developmer manual for information. TODO: Add ability to sync
+Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
 
 """
@@ -145,11 +145,14 @@ def _buildClassNode3(provider, node, source_ref):
     )
 
     source_ref_orig = source_ref
-    source_ref = source_ref.atInternal()
 
     if body is not None:
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref
+
+    module_variable = class_creation_function.getVariableForAssignment(
+        "__module__"
+    )
 
     statements = [
         StatementSetLocals(
@@ -162,6 +165,7 @@ def _buildClassNode3(provider, node, source_ref):
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetVariableRef(
                 variable_name = "__module__",
+                variable      = module_variable,
                 source_ref    = source_ref
             ),
             source        = ExpressionConstantRef(
@@ -174,10 +178,15 @@ def _buildClassNode3(provider, node, source_ref):
     ]
 
     if class_doc is not None:
+        doc_variable = class_creation_function.getVariableForAssignment(
+            "__doc__"
+        )
+
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
                     variable_name = "__doc__",
+                    variable      = doc_variable,
                     source_ref    = source_ref
                 ),
                 source        = ExpressionConstantRef(
@@ -185,18 +194,22 @@ def _buildClassNode3(provider, node, source_ref):
                     source_ref    = source_ref,
                     user_provided = True
                 ),
-                source_ref   = source_ref.atInternal()
+                source_ref   = source_ref
             )
         )
 
     # The "__qualname__" attribute is new in Python 3.3.
     if Utils.python_version >= 330:
         qualname = class_creation_function.getFunctionQualname()
+        qualname_variable = class_creation_function.getVariableForAssignment(
+            "__qualname__"
+        )
 
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
                     variable_name = "__qualname__",
+                    variable      = qualname_variable,
                     source_ref    = source_ref
                 ),
                 source        = ExpressionConstantRef(
@@ -223,12 +236,18 @@ def _buildClassNode3(provider, node, source_ref):
             source_ref = source_ref
         )
     else:
+        class_variable = class_creation_function.getVariableForAssignment(
+            "__class__"
+        )
+
         class_target_variable_ref = ExpressionTargetVariableRef(
             variable_name = "__class__",
+            variable      = class_variable,
             source_ref    = source_ref
         )
         class_variable_ref = ExpressionVariableRef(
             variable_name = "__class__",
+            variable      = class_variable,
             source_ref    = source_ref
         )
 

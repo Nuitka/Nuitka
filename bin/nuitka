@@ -21,9 +21,9 @@
 """
 
 This is the main program of Nuitka, it checks the options and then translates
-one or more modules to a C++ source code using Python C/API in a build directory
-compiles it to either an executable or an extension module that can contain
-other modules.
+one or more modules to a C++ source code using Python C/API in a build
+directory compiles it to either an executable or an extension module that can
+contain other modules.
 
 """
 

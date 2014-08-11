@@ -139,7 +139,7 @@ def deleteFile(path, must_exist):
 
 
 def makePath(path):
-    os.makedirs( path )
+    os.makedirs(path)
 
 
 def getCoreCount():

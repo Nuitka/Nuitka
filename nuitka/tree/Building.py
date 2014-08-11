@@ -20,9 +20,9 @@
 Does all the Python parsing and puts it into a tree structure for use in later
 stages of the compilation process.
 
-At the bottom of the file, the dispatching is happening. One function deals
-with every node kind as found in the AST. The parsing is centered around the
-module "ast" output.
+In the nuitka.tree.Helpers module, the dispatching is happening. One function
+deals with every node kind as found in the AST. The parsing is centered around
+the module "ast" output.
 
 Many higher level language features and translated into lower level ones.
 
@@ -30,8 +30,8 @@ Inplace assignments, for loops, while loops, classes, complex calls, with
 statements, and even or/and etc. are all translated to simpler constructs.
 
 The output of this module is a node tree, which contains only relatively low
-level operations. A property of the output module is also an overlaid tree
-of provider structure that indicates variable provision.
+level operations. A property of the output is also an overlaid tree of provider
+structure that indicates variable provision.
 
 Classes are handled in a separate module. They are re-formulated into functions
 producing dictionaries used to call the metaclass with.
@@ -445,7 +445,7 @@ def buildImportFromNode(provider, node, source_ref):
 
     # Importing from "__future__" module may enable flags.
     if module_name == "__future__":
-        if not provider.isPythonModule() and not source_ref.isExecReference():
+        if not provider.isPythonModule():
             SyntaxErrors.raiseSyntaxError(
                 reason     = """\
 from __future__ imports must occur at the beginning of the file""",
@@ -546,34 +546,33 @@ from __future__ imports must occur at the beginning of the file""",
 
 def handleGlobalDeclarationNode(provider, node, source_ref):
 
-    if not source_ref.isExecReference():
-        # On the module level, there is nothing to do.
-        if provider.isPythonModule():
-            return None
+    # On the module level, there is nothing to do.
+    if provider.isPythonModule():
+        return None
 
-        # Need to catch the error of declaring a parameter variable as global
-        # ourselves here. The AST parsing doesn't catch it.
-        try:
-            parameters = provider.getParameters()
+    # Need to catch the error of declaring a parameter variable as global
+    # ourselves here. The AST parsing doesn't catch it.
+    try:
+        parameters = provider.getParameters()
 
-            for variable_name in node.names:
-                if variable_name in parameters.getParameterNames():
-                    SyntaxErrors.raiseSyntaxError(
-                        reason     = "name '%s' is %s and global" % (
-                            variable_name,
-                            "local"
-                              if Utils.python_version < 300 else
-                            "parameter"
-                        ),
-                        source_ref = (
-                            source_ref
-                              if not Options.isFullCompat() or \
-                                 Utils.python_version >= 340 else
-                            provider.getSourceReference()
-                        )
+        for variable_name in node.names:
+            if variable_name in parameters.getParameterNames():
+                SyntaxErrors.raiseSyntaxError(
+                    reason     = "name '%s' is %s and global" % (
+                        variable_name,
+                        "local"
+                          if Utils.python_version < 300 else
+                        "parameter"
+                    ),
+                    source_ref = (
+                        source_ref
+                          if not Options.isFullCompat() or \
+                             Utils.python_version >= 340 else
+                        provider.getSourceReference()
                     )
-        except AttributeError:
-            pass
+                )
+    except AttributeError:
+        pass
 
     module = provider.getParentModule()
 
@@ -583,8 +582,8 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         # Re-use already taken global variables, in order to avoid creating yet
         # another instance, esp. as the markups could then potentially not be
         # shared.
-        if provider.hasTakenVariable( variable_name ):
-            closure_variable = provider.getTakenVariable( variable_name )
+        if provider.hasTakenVariable(variable_name):
+            closure_variable = provider.getTakenVariable(variable_name)
 
             if not closure_variable.isModuleVariableReference():
                 closure_variable = None
@@ -602,14 +601,12 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
         closure_variable.markFromGlobalStatement()
 
-        if source_ref.isExecReference():
-            closure_variable.markFromExecStatement()
-
         provider.registerProvidedVariable(
             variable = closure_variable
         )
 
     return None
+
 
 def handleNonlocalDeclarationNode(provider, node, source_ref):
     # The source reference of the nonlocal really doesn't matter.
@@ -881,6 +878,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         source_code = source_code + "\n"
 
     body = ast.parse(source_code, source_ref.getFilename())
+
     assert getKind(body) == "Module"
 
     line_offset = source_ref.getLineNumber() - 1
@@ -1193,7 +1191,7 @@ def createModuleTree(module, source_ref, source_filename, is_main):
     if Options.isShowProgress():
         memory_watch = Utils.MemoryWatch()
 
-    source_code = readSourceCodeFromFilename( source_filename )
+    source_code = readSourceCodeFromFilename(source_filename)
 
     module_body = buildParseTree(
         provider    = module,
@@ -1207,7 +1205,7 @@ def createModuleTree(module, source_ref, source_filename, is_main):
         module_body
     )
 
-    completeVariableClosures( module )
+    completeVariableClosures(module)
 
     if Options.isShowProgress():
         memory_watch.finish()
@@ -1219,6 +1217,7 @@ def createModuleTree(module, source_ref, source_filename, is_main):
             )
         )
 
+
 def buildModuleTree(filename, package, is_top, is_main):
     module, source_ref, source_filename = decideModuleTree(
         filename = filename,
@@ -1228,7 +1227,10 @@ def buildModuleTree(filename, package, is_top, is_main):
         is_shlib = False
     )
 
-    addImportedModule( Utils.relpath( filename ), module )
+    addImportedModule(
+        module_relpath = Utils.relpath(filename),
+        imported_module = module
+    )
 
     # If there is source code associated (not the case for namespace packages of
     # Python3.3 or higher, then read it.

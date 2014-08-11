@@ -50,17 +50,23 @@ def getModuleIdentifier(module_name):
     return "".join(re.sub("[^a-zA-Z0-9_]", r ,c) for c in module_name)
 
 
-def getModuleMetapathLoaderEntryCode(module_name, is_shlib):
+def getModuleMetapathLoaderEntryCode(module_name, is_shlib, is_package):
     if is_shlib:
         assert module_name != "__main__"
+        assert not is_package
 
         return CodeTemplates.template_metapath_loader_shlib_module_entry % {
             "module_name" : module_name
         }
+    elif is_package:
+        return CodeTemplates.template_metapath_loader_compiled_package_entry % {
+            "module_name"       : module_name,
+            "module_identifier" : getModuleIdentifier(module_name),
+        }
     else:
         return CodeTemplates.template_metapath_loader_compiled_module_entry % {
             "module_name"       : module_name,
-            "module_identifier" : getModuleIdentifier( module_name ),
+            "module_identifier" : getModuleIdentifier(module_name),
         }
 
 

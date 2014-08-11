@@ -68,10 +68,16 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         if ( generator->m_status == status_Unused )
         {
-            generator->m_status = status_Running;
-
             // Prepare the generator context to run.
-            prepareFiber( &generator->m_yielder_context, generator->m_code, (intptr_t)generator );
+            int res = prepareFiber( &generator->m_yielder_context, generator->m_code, (intptr_t)generator );
+
+            if ( res != 0 )
+            {
+                PyErr_Format( PyExc_MemoryError, "generator cannot be allocated" );
+                return NULL;
+            }
+
+            generator->m_status = status_Running;
         }
 
         generator->m_yielded = value;

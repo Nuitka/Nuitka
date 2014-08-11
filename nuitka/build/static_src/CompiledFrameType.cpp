@@ -174,6 +174,24 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
     { NULL }
 };
 
+// tp_repr slot, decide how a function shall be output
+static PyObject *Nuitka_Frame_tp_repr( Nuitka_FrameObject *nuitka_frame )
+{
+#if PYTHON_VERSION < 300
+    return PyString_FromFormat(
+#else
+    return PyUnicode_FromFormat(
+#endif
+#if _DEBUG_FRAME || _DEBUG_REFRAME || _DEBUG_EXCEPTIONS
+        "<compiled_frame object for %s at %p>",
+        Nuitka_String_AsString( nuitka_frame->m_frame.f_code->co_name ),
+        nuitka_frame
+#else
+        "<compiled_frame object at %p>",
+        nuitka_frame
+#endif
+    );
+}
 
 static void Nuitka_Frame_tp_dealloc( Nuitka_FrameObject *nuitka_frame )
 {
@@ -200,11 +218,11 @@ static void Nuitka_Frame_tp_dealloc( Nuitka_FrameObject *nuitka_frame )
     Py_XDECREF( frame->f_back );
     Py_DECREF( frame->f_builtins );
     Py_DECREF( frame->f_globals );
-    Py_CLEAR( frame->f_locals );
-    Py_CLEAR( frame->f_trace );
-    Py_CLEAR( frame->f_exc_type );
-    Py_CLEAR( frame->f_exc_value );
-    Py_CLEAR( frame->f_exc_traceback );
+    Py_XDECREF( frame->f_locals );
+    Py_DECREF( frame->f_trace );
+    Py_XDECREF( frame->f_exc_type );
+    Py_XDECREF( frame->f_exc_value );
+    Py_XDECREF( frame->f_exc_traceback );
 
     PyObject_GC_Del( nuitka_frame );
 }
@@ -245,11 +263,6 @@ static void Nuitka_Frame_tp_clear( PyFrameObject *frame )
 {
     PyObject **oldtop = frame->f_stacktop;
     frame->f_stacktop = NULL;
-
-    Py_CLEAR( frame->f_exc_type );
-    Py_CLEAR( frame->f_exc_value );
-    Py_CLEAR( frame->f_exc_traceback );
-    Py_CLEAR( frame->f_trace );
 
     // locals
     Py_ssize_t slots = frame->f_code->co_nlocals + PyTuple_GET_SIZE( frame->f_code->co_cellvars ) + PyTuple_GET_SIZE( frame->f_code->co_freevars );
@@ -321,7 +334,7 @@ PyTypeObject Nuitka_Frame_Type =
     0,                                          // tp_getattr
     0,                                          // tp_setattr
     0,                                          // tp_compare
-    0,                                          // tp_repr
+    (reprfunc)Nuitka_Frame_tp_repr,             // tp_repr
     0,                                          // tp_as_number
     0,                                          // tp_as_sequence
     0,                                          // tp_as_mapping
@@ -507,6 +520,8 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame, PyObject *locals
     PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
 
     // Allow only to detach only our tracing frames.
+    assert( Py_TYPE( old_frame ) == &Nuitka_Frame_Type );
+
     assert( old_frame->f_trace == Py_None );
     new_frame->f_trace = INCREASE_REFCOUNT( Py_None );
 

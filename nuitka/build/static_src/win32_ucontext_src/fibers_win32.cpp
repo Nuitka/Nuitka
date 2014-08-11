@@ -19,39 +19,35 @@
 
 #include "nuitka/prelude.hpp"
 
-// TODO: Make stack size rational.
+// Less than 1MB is ignored on Win32 apparently.
 #define STACK_SIZE (1024*1024)
 
-void initFiber( Fiber *to )
+void _initFiber( Fiber *to )
 {
     // Need to call this at least once per thread, so we have a main FIBER.
     ConvertThreadToFiber( NULL );
-
-    assert( to );
     to->fiber = NULL;
 }
 
-void prepareFiber( Fiber *to, void *code, intptr_t arg )
+int _prepareFiber( Fiber *to, void *code, intptr_t arg )
 {
-    assert( to );
-    assert( code );
-
     to->fiber = CreateFiber( STACK_SIZE, (LPFIBER_START_ROUTINE)code, (LPVOID)arg );
+    return to->fiber != NULL ? 0 : 1;
 }
 
-void releaseFiber( Fiber *to )
+void _releaseFiber( Fiber *to )
 {
     if ( to->fiber )
     {
         DeleteFiber( to->fiber );
+        to->fiber = NULL;
     }
-    to->fiber = NULL;
 }
 
-void swapFiber( Fiber *to, Fiber *from )
+void _swapFiber( Fiber *to, Fiber *from )
 {
     to->fiber = GetCurrentFiber();
 
-    assert( from->fiber );
+    assert( from->fiber != NULL );
     SwitchToFiber( from->fiber );
 }

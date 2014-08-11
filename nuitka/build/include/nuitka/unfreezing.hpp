@@ -23,6 +23,7 @@
 
 #define NUITKA_COMPILED_MODULE 0
 #define NUITKA_SHLIB_MODULE 1
+#define NUITKA_COMPILED_PACKAGE 2
 
 struct Nuitka_MetaPathBasedLoaderEntry
 {

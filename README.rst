@@ -13,15 +13,22 @@ Nuitka User Manual
 Overview
 ========
 
-Nuitka is the Python compiler. It is a good replacement for the Python
-interpreter and compiles **every** construct that CPython 2.6, 2.7, 3.2 and 3.3
-offer. You can use all library or and all extension modules freely. It
-translates the Python into a C level program that then uses "libpython" to
-execute in the same way as CPython does, in a very, very compatible way.
-
 This document is the recommended first read if you are interested in using
 Nuitka, understand its use cases, check what you can expect, license,
 requirements, credits, etc.
+
+Nuitka is the Python compiler. It is a good replacement for the Python
+interpreter and compiles **every** construct that CPython 2.6, 2.7, 3.2, 3.3,
+and 3.4 have. It then executed uncompiled code, and compiled code together in
+an extremely compatible manner.
+
+You can use all Python library modules or and all extension modules freely. It
+translates the Python into a C level program that then uses "libpython" to
+execute in the same way as CPython does. Any optimization is aimed at avoiding
+overhead, where it's unnecessary. None is aimed at removing compatibility,
+although there is an "improved" mode, where not every bug of standard Python
+is emulated.
+
 
 Usage
 =====
@@ -29,20 +36,20 @@ Usage
 Requirements
 ------------
 
-- C++ Compiler: You need a compiler with support for C++03
+- C++ Compiler: You need a compiler with support for C++03 [#]_
 
   Currently this means, you need to use either of these compilers:
 
   * GNU g++ compiler of at least version 4.4
 
   * The clang compiler on MacOS X or FreeBSD, based on LLVM version 3.2
+    or higher.
 
-  * The MinGW compiler on Windows
+  * The MinGW [#]_ or MinGW64 [#]_ compiler on Windows
 
-  * Visual Studion 2008 or higher on Windows
+  * Visual Studion 2013 or higher on Windows [#]_
 
-- Python: Version 2.6, 2.7 or 3.2, 3.3 (support for upcoming 3.4 exists
-  partially)
+- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4
 
   You need the standard Python implementation, called CPython, to execute
   Nuitka, because it is closely tied to using it.
@@ -52,17 +59,34 @@ Requirements
      The created binaries can be made executable independent of the Python
      installation, with ``--standalone`` option.
 
-- Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits),
+- Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
 
   Others may work as well. The portability is expected to be generally good, but
   the e.g. Scons usage may have to be adapted.
 
 - Architectures: x86, x86_64 (amd64), and arm.
 
-  Other architectures may also work, as Nuitka is generally not using much
-  hardware specifics. These are just the ones tested and known good. Feedback is
-  welcome. Generally the architectures that Debian supports should be considered
-  good.
+  Other architectures may also work, out of the box, as Nuitka is generally not
+  using much   hardware specifics. These are just the ones tested and known to
+  be good. Feedback is welcome. Generally the architectures that Debian supports
+  should be considered good.
+
+.. [#] Support for this C++03 language standard is practically a given on any
+       C++ compiler you encounter. Nuitka used to have higher requirements in
+       the past, but it changed.
+
+.. [#] Download MinGW from http://www.mingw.org/category/wiki/download but
+       beware that 32 bits Python must be used with it, and that it may not
+       work for very large programs. Use MinGW64 and 64 bits Python if you
+       have the choice.
+
+.. [#] Download MinGW64 from here and choose the "win32" and "seh" variant
+       for best results.
+
+.. [#] Download for free from
+       http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
+       the Express edition will do.
+
 
 Command Line
 ------------
@@ -79,7 +103,7 @@ Nuitka has a ``--help`` option to output what it can do:
     nuitka --help
 
 The ``nuitka-run`` command is the same as ``nuitka``, but with different
-default. It tries to compile and directly execute a Python script:
+default. It tries to compile *and* directly execute a Python script:
 
 .. code-block:: bash
 
@@ -206,7 +230,8 @@ Contact me via email with your questions
 ----------------------------------------
 
 You are welcome to `contact me via email <mailto:Kay.Hayen@gmail.com>`__ with
-your questions.
+your questions. But it is increasingly true that for user questions the
+mailing list is the best place to go.
 
 Word of Warning
 ---------------
@@ -215,7 +240,8 @@ Consider using this software with caution. Your feedback and patches to Nuitka
 are very welcome.
 
 Especially report it please, if you find that anything doesn't work, because the
-project is now at the stage that this should not happen.
+project is now at the stage that this should not happen and most definitely will
+mean you encountered an unknown bug.
 
 
 Join Nuitka
@@ -242,10 +268,12 @@ The development of Nuitka occurs in git. We currently have these 2 branches:
 - `factory
   <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`__:
 
-  This branch contains potentially unfinished and incomplete work. It is very
-  frequently subject ``git rebase`` and the public staging ground, where my work
+  This branch contains unfinished and incomplete work. It is very frequently
+  subject ``git rebase`` and the public staging ground, where my work
   for develop branch lives first. It is intended for testing only and
-  recommended to base any of your own development on.
+  recommended to base any of your own development on. When updating it,
+  you very often will get merge conflicts. Simply resolve those by doing
+  ``git reset --hard origin/factory`` and switch to the latest version.
 
 .. note::
 

@@ -1022,6 +1022,11 @@ def generateCallCode(to_name, call_node, emit, context):
 
                 call_arg_names.append(call_arg_name)
 
+            if Options.isFullCompat():
+                context.setCurrentSourceCodeReference(
+                    call_args.getSourceReference()
+                )
+
             if call_arg_names:
                 Generator.getCallCodePosArgsQuick(
                     to_name     = to_name,
@@ -4522,7 +4527,8 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
         metapath_loader_inittab.append(
             Generator.getModuleMetapathLoaderEntryCode(
                 module_name = other_module.getFullName(),
-                is_shlib    = other_module.isPythonShlibModule()
+                is_shlib    = other_module.isPythonShlibModule(),
+                is_package  = other_module.isPythonPackage()
             )
         )
 

@@ -20,6 +20,7 @@
 
 #define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
+#define _DEBUG_EXCEPTIONS 0
 
 extern PyObject *const_tuple_empty;
 extern PyObject *const_str_plain___dict__;
@@ -36,6 +37,10 @@ typedef struct {
 } PyModuleObject;
 
 extern bool PRINT_ITEM_TO( PyObject *file, PyObject *object );
+extern bool PRINT_ITEM( PyObject *object );
+extern bool PRINT_NEW_LINE( void );
+extern bool PRINT_STRING( char const * );
+extern bool PRINT_NULL( void );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 

@@ -17,7 +17,7 @@
 #
 """ Reformulation of exec statements
 
-Consult the developmer manual for information. TODO: Add ability to sync
+Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
 
 """
@@ -96,7 +96,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                 variable   = globals_keeper_variable.makeReference(
                     provider
                 ),
-                source_ref = source_ref
+                source_ref = globals_node.getSourceReference()
             ),
             tolerant     = False,
             source_ref   = source_ref
@@ -106,7 +106,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                 variable   = locals_keeper_variable.makeReference(
                     provider
                 ),
-                source_ref = source_ref
+                source_ref = locals_node.getSourceReference()
             ),
             tolerant     = False,
             source_ref   = source_ref

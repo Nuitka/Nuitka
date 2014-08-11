@@ -27,16 +27,23 @@
 
 from .oset import OrderedSet
 
+# One or more root modules, i.e. entry points that must be there.
 root_modules = OrderedSet()
+
+# To be traversed modules
+active_modules = OrderedSet()
+
+# Already traversed modules
+done_modules = OrderedSet()
+
 
 def addRootModule(module):
     root_modules.add(module)
 
+
 def getRootModules():
     return root_modules
 
-active_modules = OrderedSet()
-done_modules = OrderedSet()
 
 def startTraversal():
     # Using global here, as this is really a singleton, in the form of a module,
@@ -49,11 +56,13 @@ def startTraversal():
     for active_module in active_modules:
         active_module.startTraversal()
 
+
 def addUsedModule(module):
     if module not in done_modules and module not in active_modules:
         active_modules.add(module)
 
         module.startTraversal()
+
 
 def nextModule():
     if active_modules:
@@ -64,11 +73,14 @@ def nextModule():
     else:
         return None
 
+
 def remainingCount():
     return len(active_modules)
 
+
 def getDoneModules():
     return list(done_modules)
+
 
 def getDoneUserModules():
     return [

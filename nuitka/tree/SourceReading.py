@@ -38,7 +38,7 @@ def _readSourceCodeFromFilename3(source_filename):
     if new_line is not -1:
         line = source_code[ : new_line ]
 
-        line_match = re.search( b"coding[:=]\\s*([-\\w.]+)", line )
+        line_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line)
 
         if line_match:
             encoding = line_match.group(1).decode("ascii")

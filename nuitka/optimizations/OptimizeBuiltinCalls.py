@@ -545,6 +545,12 @@ def eval_extractor(node):
             source_ref   = source_ref
         )
 
+        # The wrapping should not relocate to the "source_ref".
+        assert globals is None or \
+               globals_ref.getSourceReference() == globals.getSourceReference()
+        assert locals is None or \
+               locals_ref.getSourceReference() == locals.getSourceReference()
+
         source_variable = provider.allocateTempVariable(
             temp_scope = temp_scope,
             name       = "source"
@@ -783,8 +789,13 @@ def super_extractor(node):
                     )
                 )
 
+                # If we already have this as a local variable, then use that
+                # instead.
                 if not type.getVariable().isClosureReference():
                     type = None
+                else:
+                    from nuitka.VariableRegistry import addVariableUsage
+                    addVariableUsage(type.getVariable(), provider)
             else:
                 parent_provider = provider.getParentVariableProvider()
 
@@ -794,10 +805,12 @@ def super_extractor(node):
                 )
 
                 type = ExpressionTempVariableRef(
-                    variable      = class_var.makeReference( parent_provider ).makeReference(provider),
+                    variable      = class_var.makeReference(parent_provider).makeReference(provider),
                     source_ref    = source_ref
                 )
 
+                from nuitka.VariableRegistry import addVariableUsage
+                addVariableUsage(type.getVariable(), provider)
 
             from nuitka.nodes.NodeMakingHelpers import \
                 makeRaiseExceptionReplacementExpression

@@ -17,7 +17,7 @@
 #
 """ Reformulation of function statements.
 
-Consult the developmer manual for information. TODO: Add ability to sync
+Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
 
 """
@@ -52,9 +52,6 @@ from .Helpers import (
 
 def buildFunctionNode(provider, node, source_ref):
     assert getKind( node ) == "FunctionDef"
-
-    # Remove "exec" flag if any.
-    source_ref = source_ref.getExecReference( False )
 
     function_statements, function_doc = extractDocFromBody( node )
 

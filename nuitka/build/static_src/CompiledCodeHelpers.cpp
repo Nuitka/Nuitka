@@ -1093,6 +1093,18 @@ void PRINT_REFCOUNT( PyObject *object )
 #endif
 }
 
+bool PRINT_STRING( char const *str )
+{
+    int res = PyFile_WriteString( str, GET_STDOUT() );
+
+    return res != -1;
+}
+
+bool PRINT_NULL( void )
+{
+    return PRINT_STRING("<NULL>");
+}
+
 PyObject *GET_STDOUT()
 {
     PyObject *result = PySys_GetObject( (char *)"stdout" );
@@ -1132,6 +1144,8 @@ bool PRINT_ITEM( PyObject *object )
 
     return target != NULL && PRINT_ITEM_TO( target, object );
 }
+
+
 
 PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
 {

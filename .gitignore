@@ -12,6 +12,7 @@
 *.pyd
 *.exe
 *.build
+*.dist
 tests/reflected/nuitka/
 tests/reflected/nuitka.py
 tests/basics/BigConstants.py

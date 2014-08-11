@@ -17,7 +17,7 @@
 #
 """ Reformulation of yield and yield from expressions.
 
-Consult the developmer manual for information. TODO: Add ability to sync
+Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
 
 """

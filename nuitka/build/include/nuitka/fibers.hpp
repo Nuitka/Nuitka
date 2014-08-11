@@ -34,12 +34,47 @@ typedef struct _Fiber
 #endif
 } Fiber;
 
-extern "C" void initFiber( Fiber *to );
+extern "C" void _initFiber( Fiber *to );
+extern "C" void _swapFiber( Fiber *to, Fiber *from );
+extern "C" int _prepareFiber( Fiber *to, void *code, intptr_t arg );
+extern "C" void _releaseFiber( Fiber *to );
 
-extern "C" void swapFiber( Fiber *to, Fiber *from );
+// Have centralized assertions as wrappers in debug mode, or directly access
+// the fiber implementions of a given platform.
+#ifdef __NUITKA_NO_ASSERT__
+#define initFiber _initFiber
+#define swapFiber _swapFiber
+#define prepareFiber _prepareFiber
+#define releaseFiber _releaseFiber
+#else
+static inline void initFiber( Fiber *to )
+{
+    assert( to );
+    _initFiber( to );
+}
 
-extern "C" void prepareFiber( Fiber *to, void *code, intptr_t arg );
+static inline void swapFiber( Fiber *to, Fiber *from )
+{
+    assert( to != NULL );
+    assert( from != NULL );
 
-extern "C" void releaseFiber( Fiber *to );
+    _swapFiber( to, from );
+}
+
+static inline int prepareFiber( Fiber *to, void *code, intptr_t arg )
+{
+    assert( to != NULL );
+    assert( code != NULL );
+
+    return _prepareFiber( to, code, arg );
+}
+
+static inline void releaseFiber( Fiber *to )
+{
+    assert( to != NULL );
+
+    _releaseFiber( to );
+}
+#endif
 
 #endif
