@@ -1,9 +1,9 @@
-Nuitka Release 0.5.4 (Draft)
-============================
+Nuitka Release 0.5.4
+====================
 
 This release is aiming at preparatory changes to enable optimization based
 on SSA analysis, introducing a variable registry, so that variables no longer
-trace their references themselves.
+trace their references to themselves.
 
 Otherwise, MinGW64 support has been added, and lots of bug fixes were made to
 improve the compatibility.
