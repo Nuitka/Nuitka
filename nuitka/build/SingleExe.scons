@@ -853,7 +853,7 @@ if win_target:
 
         dll_tool = os.path.join(
             os.path.dirname(
-                getExecutablePath("gcc", initial = False)
+                getExecutablePath(env["CXX"], initial = False)
             ),
             "dlltool"
         )

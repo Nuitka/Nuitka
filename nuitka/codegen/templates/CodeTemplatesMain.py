@@ -214,6 +214,11 @@ int main( int argc, char *argv[] )
     {
         Py_Exit( 0 );
     }
+
+    // Dead code, just for the compiler to be happy. The above branches both
+    // do Py_Exit() which is not supposed to return.
+    assert(false);
+    return 0;
 }
 """
 
