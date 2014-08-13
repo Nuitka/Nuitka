@@ -42,6 +42,6 @@ pypi = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
 pypi_versions = pypi.package_releases("Nuitka")
 
 assert len(pypi_versions) == 1, pypi_versions
-assert nuitka_version == pypi_versions[0], nuitka_version
+assert nuitka_version == pypi_versions[0], (nuitka_version, pypi_versions)
 
 print("Uploaded OK:", pypi_versions[0])
