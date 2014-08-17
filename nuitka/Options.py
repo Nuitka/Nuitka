@@ -85,6 +85,69 @@ as bytecode. As a result compilation time will increase very much.
 """,
     )
 
+
+def getSupportedPythonVersions():
+    return ("2.6", "2.7", "3.2", "3.3", "3.4")
+
+def getSupportedPythonVersionStr():
+    supported_python_versions = getSupportedPythonVersions()
+
+    supported_python_versions_str = repr(supported_python_versions)[1:-1]
+    supported_python_versions_str = re.sub(
+        r"(.*),(.*)$",
+        r"\1, or\2",
+        supported_python_versions_str
+    )
+
+    return supported_python_versions_str
+
+parser.add_option(
+    "--python-version",
+    action  = "store",
+    dest    = "python_version",
+    choices = getSupportedPythonVersions(),
+    default = None,
+    help    = """\
+Major version of Python to be used, one of %s.
+Defaults to what you run Nuitka with.""" % (
+       getSupportedPythonVersionStr()
+    )
+)
+
+parser.add_option(
+    "--python-debug", "--python-dbg",
+    action  = "store_true",
+    dest    = "python_debug",
+    default = None,
+    help    = """\
+Use debug version or not. Default uses what you are using to run Nuitka, most
+likely a non-debug version."""
+)
+
+parser.add_option(
+    "--python-flag",
+    action  = "append",
+    dest    = "python_flags",
+    default = [],
+    help    = """\
+Python flags to use. Default uses what you are using to run Nuitka, this
+enforces a specific mode. These are options that also exist to standard
+Python executable. Currently supported: "-S" (alias nosite),
+"static_hashes" (not use Randomization), "no_warnings" (do not give
+Python runtime warnings). Default empty."""
+)
+
+
+parser.add_option(
+    "--warn-implicit-exceptions",
+    action  = "store_true",
+    dest    = "warn_implicit_exceptions",
+    default = False,
+    help    = """\
+Given warnings for implicit exceptions detected at compile time.""",
+)
+
+
 recurse_group = OptionGroup(
     parser,
     "Control the recursion into imported modules"
@@ -210,54 +273,6 @@ Display the final result of optimization in a GUI, then exit."""
 
 parser.add_option_group( dump_group )
 
-def getSupportedPythonVersions():
-    return ("2.6", "2.7", "3.2", "3.3")
-
-def getSupportedPythonVersionStr():
-    supported_python_versions = getSupportedPythonVersions()
-
-    supported_python_versions_str = repr(supported_python_versions)[1:-1]
-    supported_python_versions_str = re.sub(
-        r"(.*),(.*)$",
-        r"\1, or\2",
-        supported_python_versions_str
-    )
-
-    return supported_python_versions_str
-
-parser.add_option(
-    "--python-version",
-    action  = "store",
-    dest    = "python_version",
-    choices = getSupportedPythonVersions(),
-    default = None,
-    help    = """Major version of Python to be used, one of %s.""" % (
-       getSupportedPythonVersionStr()
-    )
-)
-
-parser.add_option(
-    "--python-debug", "--python-dbg",
-    action  = "store_true",
-    dest    = "python_debug",
-    default = None,
-    help    = """\
-Use debug version or not. Default uses what you are using to run Nuitka, most
-likely a non-debug version."""
-)
-
-parser.add_option(
-    "--python-flag",
-    action  = "append",
-    dest    = "python_flags",
-    default = [],
-    help    = """\
-Python flags to use. Default uses what you are using to run Nuitka, this
-enforces a specific mode. These are options that also exist to standard
-Python executable. Currently supported: "-S" (alias nosite),
-"static_hashes" (not use Randomization), "no_warnings" (do not give
-Python runtime warnings). Default empty."""
-)
 
 codegen_group = OptionGroup(
     parser,
@@ -323,15 +338,12 @@ Removes the build directory after producing the module or exe file.
 Defaults to off."""
 )
 
-parser.add_option_group( outputdir_group )
+parser.add_option_group(outputdir_group)
 
-parser.add_option(
-    "--windows-disable-console",
-    action  = "store_true",
-    dest    = "win_disable_console",
-    default = False,
-    help    = """\
-When compiling for windows, disable the console window. Defaults to off."""
+
+windows_group = OptionGroup(
+    parser,
+    "Windows specific output control:"
 )
 
 
@@ -391,29 +403,25 @@ Use features declared as 'experimental'. May have no effect if no experimental
 features are present in the code. Defaults to off."""
 )
 
-parser.add_option_group( debug_group )
+parser.add_option_group(debug_group)
 
-parser.add_option(
-    "--lto",
-    action  = "store_true",
-    dest    = "lto",
-    default = False,
-    help    = """\
-Use link time optimizations if available and usable (g++ 4.6 and higher).
-Defaults to off."""
+cpp_compiler_group = OptionGroup(
+    parser,
+    "Backend C++ compiler choice"
 )
 
-parser.add_option(
+
+cpp_compiler_group.add_option(
     "--clang",
     action  = "store_true",
     dest    = "clang",
     default = False,
     help    = """\
-Enforce the use of clang (clang 3.0 or higher).
+Enforce the use of clang (needs clang 3.2 or higher).
 Defaults to off."""
 )
 
-parser.add_option(
+cpp_compiler_group.add_option(
     "--mingw",
     action  = "store_true",
     dest    = "mingw",
@@ -423,7 +431,7 @@ Enforce the use of MinGW on Windows.
 Defaults to off."""
 )
 
-parser.add_option(
+cpp_compiler_group.add_option(
     "--msvc",
     action  = "store",
     dest    = "msvc",
@@ -433,6 +441,29 @@ Enforce the use of specific MSVC version on Windows. Allowed values
 are e.g. 9.0, 9.0exp, specify an illegal value for a list of installed
 compilers. Defaults to the most recent version."""
 )
+
+cpp_compiler_group.add_option(
+    "-j", "--jobs",
+    action  ="store",
+    dest    = "jobs",
+    metavar = "N",
+    default = Utils.getCoreCount(),
+    help    = """\
+Specify the allowed number of parallel C++ compiler jobs. Defaults to the
+system CPU count.""",
+)
+
+cpp_compiler_group.add_option(
+    "--lto",
+    action  = "store_true",
+    dest    = "lto",
+    default = False,
+    help    = """\
+Use link time optimizations if available and usable (g++ 4.6 and higher).
+Defaults to off."""
+)
+
+parser.add_option_group(cpp_compiler_group)
 
 tracing_group = OptionGroup(
     parser,
@@ -477,39 +508,28 @@ Output details of actions take, esp. in optimizations. Can become a lot.
 Defaults to off."""
 )
 
+parser.add_option_group(tracing_group)
 
-parser.add_option_group( tracing_group )
-
-parser.add_option(
-    "-j", "--jobs",
-    action  ="store",
-    dest    = "jobs",
-    metavar = "N",
-    default = Utils.getCoreCount(),
-    help    = """\
-Specify the allowed number of parallel C++ compiler jobs. Defaults to the
-system CPU count.""",
-)
-
-
-parser.add_option(
-    "--warn-implicit-exceptions",
+windows_group.add_option(
+    "--windows-disable-console",
     action  = "store_true",
-    dest    = "warn_implicit_exceptions",
+    dest    = "win_disable_console",
     default = False,
     help    = """\
-Given warnings for implicit exceptions detected at compile time.""",
+When compiling for windows, disable the console window. Defaults to off."""
 )
 
-
-parser.add_option(
-    "--icon",
+windows_group.add_option(
+    "--windows-icon", "--icon",
     action  = "store",
     dest    = "icon_path",
     metavar = "ICON_PATH",
     default = None,
     help    = """Add executable icon (windows only).""",
 )
+
+parser.add_option_group(windows_group)
+
 
 # First, isolate the first non-option arguments. TODO: Should repect "--"
 # as a terminator to options.
