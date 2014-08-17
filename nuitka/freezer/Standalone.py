@@ -30,7 +30,11 @@ from logging import debug, info, warning
 
 import marshal
 from nuitka import Options, Tracing, Utils
-from nuitka.__past__ import raw_input, urlretrieve, iterItems # pylint: disable=W0622
+from nuitka.__past__ import (  # pylint: disable=W0622
+    iterItems,
+    raw_input,
+    urlretrieve
+)
 from nuitka.codegen.ConstantCodes import needsPickleInit
 
 

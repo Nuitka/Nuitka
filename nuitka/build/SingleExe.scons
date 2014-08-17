@@ -934,7 +934,7 @@ if debug_mode or unstriped_mode:
             ASFLAGS = ["-g"]
         )
 
-        if "g++" in env[ "CXX" ]:
+        if "g++" in env["CXX"]:
             env.Append(
                 CCFLAGS = ["-feliminate-unused-debug-types"]
             )

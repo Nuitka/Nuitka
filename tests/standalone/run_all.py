@@ -42,7 +42,7 @@ from test_common import (
 
 python_version = setup(needs_io_encoding=True)
 
-search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
+search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
 
 start_at = sys.argv[2] if len(sys.argv) > 2 else None
 
