@@ -25,6 +25,7 @@ complete.
 """
 
 from nuitka import SyntaxErrors
+from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
 from nuitka.Utils import python_version
@@ -127,6 +128,35 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             for variable in node.getParameters().getAllVariables():
                 addVariableUsage(variable, node)
+
+            # Python3.4 allows for class declarations to be made global, even
+            # after they were declared, so we need to fix this up.
+            if python_version >= 340 and node.isClassDictCreation():
+                class_assign, qualname_assign = node.qualname_setup
+                class_variable = class_assign.getTargetVariableRef().getVariable()
+
+                if class_variable.isModuleVariable() and \
+                   class_variable.isFromGlobalStatement():
+                    qualname_node = qualname_assign.getAssignSource()
+
+                    qualname_node.replaceWith(
+                        makeConstantReplacementNode(
+                            constant = class_variable.getName(),
+                            node     = qualname_node
+                        )
+                    )
+
+                    node.qualname_provider = node.getParentModule()
+
+                    # TODO: Actually for nested global classes, this approach
+                    # may not work, as their qualnames will be wrong. In that
+                    # case a dedicated node for qualname references might be
+                    # needed.
+
+                del node.qualname_setup
+
+
+
 
         # Attribute access of names of class functions should be mangled, if
         # they start with "__", but do not end in "__" as well.
