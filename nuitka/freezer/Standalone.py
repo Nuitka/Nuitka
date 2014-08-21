@@ -737,13 +737,20 @@ def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
 
     used_dlls = detectUsedDLLs(standalone_entry_points)
 
-    for dll_filename1, sources1 in iterItems(used_dlls):
-        for dll_filename2, sources2 in iterItems(used_dlls):
+    for dll_filename1, sources1 in tuple(iterItems(used_dlls)):
+        for dll_filename2, sources2 in tuple(iterItems(used_dlls)):
             if dll_filename1 == dll_filename2:
                 continue
 
             # Colliding basenames are an issue to us.
             if Utils.basename(dll_filename1) != Utils.basename(dll_filename2):
+                continue
+
+            # May already have been removed earlier
+            if dll_filename1 not in used_dlls:
+                continue
+
+            if dll_filename2 not in used_dlls:
                 continue
 
             dll_name = Utils.basename(dll_filename1)
@@ -758,22 +765,23 @@ def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
                     )
                 )
 
-                # Check that if a DLL has the same name, if it's identical,
-                # happens at least for OSC and Fedora 20.
-                import filecmp
-                if filecmp.cmp(dll_filename1, dll_filename2):
-                    continue
+            # Check that if a DLL has the same name, if it's identical,
+            # happens at least for OSC and Fedora 20.
+            import filecmp
+            if filecmp.cmp(dll_filename1, dll_filename2):
+                del used_dlls[dll_filename2]
+                continue
 
-                sys.exit(
-                    """Error, conflicting DLLs for '%s' \
+            sys.exit(
+                """Error, conflicting DLLs for '%s' \
 (%s used by %s different from %s used by %s).""" % (
-                        dll_name,
-                        dll_filename1,
-                        ", ".join(sources1),
-                        dll_filename2,
-                        ", ".join(sources2)
-                    )
+                    dll_name,
+                    dll_filename1,
+                    ", ".join(sources1),
+                    dll_filename2,
+                    ", ".join(sources2)
                 )
+            )
 
     for dll_filename, sources in iterItems(used_dlls):
         dll_name = Utils.basename(dll_filename)

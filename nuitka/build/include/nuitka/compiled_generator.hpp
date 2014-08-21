@@ -95,8 +95,16 @@ static inline PyObject *YIELD( Nuitka_GeneratorObject *generator, PyObject *valu
 
     generator->m_yielded = value;
 
+#if PYTHON_VERSION >= 340
+    generator->m_frame->f_executing -= 1;
+#endif
+
     // Return to the calling context.
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+#if PYTHON_VERSION >= 340
+    generator->m_frame->f_executing += 1;
+#endif
 
     // Check for thrown exception.
     if (unlikely( generator->m_exception_type ))
@@ -141,8 +149,16 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 
+#if PYTHON_VERSION >= 340
+    generator->m_frame->f_executing -= 1;
+#endif
+
     // Return to the calling context.
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+#if PYTHON_VERSION >= 340
+    generator->m_frame->f_executing += 1;
+#endif
 
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.

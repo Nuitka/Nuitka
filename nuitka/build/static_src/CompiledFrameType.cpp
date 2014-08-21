@@ -455,6 +455,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 
 #if PYTHON_VERSION >= 340
     frame->f_gen = NULL;
+    frame->f_executing = 0;
 #endif
 
     Nuitka_GC_Track( result );
@@ -568,6 +569,7 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame, PyObject *locals
 
 #if PYTHON_VERSION >= 340
     new_frame->f_gen = NULL;
+    new_frame->f_executing = 0;
 #endif
 
     Nuitka_GC_Track( new_frame );
