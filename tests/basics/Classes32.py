@@ -16,10 +16,12 @@
 #     limitations under the License.
 #
 
+print("Call order of Python3 metaclasses:")
+
 def a():
     x = 1
     class A:
-        print(x)
+        print("Class body a.A is evaluating closure x", x)
 
     print("Called", a)
 
@@ -58,12 +60,12 @@ def m():
     return M
 
 def d():
-    print( "Called", d )
+    print("Called", d)
 
     return 1
 
 def e():
-    print( "Called", e )
+    print("Called", e)
 
     return 2
 
@@ -71,4 +73,33 @@ def e():
 class C1(a(), b(), other = d(), metaclass = m(), yet_other = e()):
     pass
 
-print(type(C1.__dict__))
+print("OK, class created", C1)
+
+print("Attribute C1.__dict__ has type", type(C1.__dict__))
+
+
+print("Function local classes can be made global and get proper __qualname__:")
+def someFunctionWithLocalClassesMadeGlobal():
+    # Affects __qualname__ only in Python3.4 or higher, not in Python3.2
+    global C
+
+    class C:
+        pass
+
+        class D:
+            pass
+
+        try:
+            print("Nested class qualname is", D.__qualname__)
+        except AttributeError:
+            # Python3.2
+            pass
+
+    try:
+        print("Local class made global qualname is", C.__qualname__)
+    except AttributeError:
+        pass
+
+someFunctionWithLocalClassesMadeGlobal()
+
+print("OK.")

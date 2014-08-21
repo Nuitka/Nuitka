@@ -185,6 +185,10 @@ for filename in sorted(os.listdir(".")):
             if loaded_filename.startswith("/usr/share/X11/locale/"):
                 continue
 
+            if loaded_filename.startswith("/lib/libc.") or \
+               loaded_filename.startswith("/lib64/libc."):
+                continue
+
             if loaded_filename.startswith("/lib/libdl.") or \
                loaded_filename.startswith("/lib64/libdl."):
                 continue

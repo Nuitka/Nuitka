@@ -49,6 +49,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
+    ExpressionFunctionQualnameRef,
     ExpressionFunctionRef
 )
 from nuitka.nodes.GlobalsLocalsNodes import (
@@ -205,6 +206,18 @@ def _buildClassNode3(provider, node, source_ref):
             "__qualname__"
         )
 
+        if Utils.python_version < 340:
+            qualname_ref = ExpressionConstantRef(
+                constant      = qualname,
+                source_ref    = source_ref,
+                user_provided = True
+            )
+        else:
+            qualname_ref = ExpressionFunctionQualnameRef(
+                function_body = class_creation_function,
+                source_ref    = source_ref,
+            )
+
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
@@ -212,14 +225,13 @@ def _buildClassNode3(provider, node, source_ref):
                     variable      = qualname_variable,
                     source_ref    = source_ref
                 ),
-                source        = ExpressionConstantRef(
-                    constant      = qualname,
-                    source_ref    = source_ref,
-                    user_provided = True
-                ),
+                source        = qualname_ref,
                 source_ref   = source_ref
             )
         )
+
+        if Utils.python_version >= 340:
+            qualname_assign = statements[-1]
 
     if Utils.python_version >= 340 and False: # TODO: Temporarily reverted:
         tmp_class = class_creation_function.allocateTempVariable(
@@ -562,6 +574,14 @@ def _buildClassNode3(provider, node, source_ref):
             source_ref = source_ref
         ),
     )
+
+    if Utils.python_version >= 340:
+        class_assign = statements[-1]
+
+        # assert False, class_creation_function
+        class_creation_function.qualname_setup = class_assign, qualname_assign
+
+
 
     final = (
         StatementDelVariable(

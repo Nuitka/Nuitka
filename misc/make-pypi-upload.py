@@ -37,6 +37,12 @@ assert 0 == os.system("python setup.py sdist upload")
 # A delay might be necessary before making the check.
 
 import xmlrpclib
+import time
+
+# Wait some time for PyPI to catch up with us. Without delay
+# the old version will still appear. Since this is running
+# in a Buildbot, we need not be optimal.
+time.sleep(360)
 
 pypi = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
 pypi_versions = pypi.package_releases("Nuitka")

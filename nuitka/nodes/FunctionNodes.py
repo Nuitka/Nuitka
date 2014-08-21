@@ -20,6 +20,12 @@
 Lambdas are functions too. The functions are at the core of the language and
 have their complexities.
 
+Creating a CPython function object is an optional thing. Some things might
+only be used to be called directly, while knowing exactly what it is. So
+the "ExpressionFunctionCreation" might be used to provide that kind of
+CPython reference, and may escape.
+
+
 """
 
 from nuitka import Utils, Variables
@@ -33,6 +39,7 @@ from .IndicatorMixins import (
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureTakerMixin,
+    CompileTimeConstantExpressionMixin,
     ExpressionChildrenHavingBase,
     ExpressionMixin,
     NodeBase,
@@ -144,6 +151,10 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
 
+        # Python3.4: Might be overridden by global statement on the class name.
+        if Utils.python_version >= 340:
+            self.qualname_provider = provider
+
     def getDetails(self):
         return {
             "name"       : self.getFunctionName(),
@@ -190,7 +201,10 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
         function_name = self.getFunctionName()
 
-        provider = self.getParentVariableProvider()
+        if Utils.python_version < 340:
+            provider = self.getParentVariableProvider()
+        else:
+            provider = self.qualname_provider
 
         if provider.isPythonModule():
             return function_name
@@ -490,9 +504,11 @@ def convertNoneConstantOrEmptyDictToNone(node):
     else:
         return node
 
+# TODO: Function direct call node ought to be here too.
 
 class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
                                  ExpressionChildrenHavingBase):
+
     kind = "EXPRESSION_FUNCTION_CREATION"
 
     # Note: The order of evaluation for these is a bit unexpected, but
@@ -626,17 +642,17 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     def computeExpression(self, constraint_collection):
         function = self.getFunction()
 
-        if function.willRaiseException( BaseException ):
+        if function.willRaiseException(BaseException):
             return function, "new_raise", "Called function is a raise"
 
         values = self.getArgumentValues()
 
-        for count, value in enumerate( values ):
+        for count, value in enumerate(values):
             if value.willRaiseException(BaseException):
                 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
                 result = wrapExpressionWithSideEffects(
-                    side_effects = [ function ] + list( values[ : count ] ),
+                    side_effects = [function] + list(values[:count]),
                     new_node     = value,
                     old_node     = self
                 )
@@ -647,3 +663,24 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
     getFunction = ExpressionChildrenHavingBase.childGetter("function")
     getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
+
+
+# Needed for Python3.3 and higher
+class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
+                                    NodeBase):
+    kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
+    def __init__(self, function_body, source_ref):
+        NodeBase.__init__(self, source_ref = source_ref)
+        CompileTimeConstantExpressionMixin.__init__(self)
+
+        self.function_body = function_body
+
+    def computeExpression(self, constraint_collection):
+        from .NodeMakingHelpers import makeConstantReplacementNode
+
+        result = makeConstantReplacementNode(
+            node = self,
+            constant = self.function_body.getFunctionQualname()
+        )
+
+        return result, "new_constant", "Delayed __qualname__ resolved."
