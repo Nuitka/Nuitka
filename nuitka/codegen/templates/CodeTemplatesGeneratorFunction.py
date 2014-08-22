@@ -136,6 +136,9 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 genfunc_yielder_template = """
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
+    assertObject( (PyObject *)generator );
+    assert( Nuitka_Generator_Check( (PyObject *)generator ) );
+
     // Make context accessible if one is used.
 %(context_access)s
 
