@@ -135,8 +135,8 @@ def getTempDir():
     return tmp_dir
 
 
-def convertUsing2to3( path ):
-    filename = os.path.basename( path )
+def convertUsing2to3(path):
+    filename = os.path.basename(path)
 
     new_path = os.path.join(getTempDir(), filename)
     shutil.copy(path, new_path)
@@ -146,7 +146,7 @@ def convertUsing2to3( path ):
         command = [
             sys.executable,
             os.path.join(
-                os.path.dirname( sys.executable ),
+                os.path.dirname(sys.executable),
                 "Tools/Scripts/2to3.py"
             )
         ]
@@ -186,11 +186,15 @@ def decideFilenameVersionSkip(filename):
         return False
 
     # Skip tests that require Python 3.2 at least.
-    if filename.endswith("32.py") and not python_version.startswith("3"):
+    if filename.endswith("32.py") and python_version < "3.2":
         return False
 
     # Skip tests that require Python 3.3 at least.
-    if filename.endswith("33.py") and not python_version.startswith("3.3"):
+    if filename.endswith("33.py") and python_version < "3.3":
+        return False
+
+    # Skip tests that require Python 3.4 at least.
+    if filename.endswith("34.py") and python_version < "3.4":
         return False
 
     return True
