@@ -69,7 +69,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
         if ( generator->m_status == status_Unused )
         {
             // Prepare the generator context to run.
-            int res = prepareFiber( &generator->m_yielder_context, generator->m_code, (intptr_t)generator );
+            int res = prepareFiber( &generator->m_yielder_context, generator->m_code, (uintptr_t)generator );
 
             if ( res != 0 )
             {

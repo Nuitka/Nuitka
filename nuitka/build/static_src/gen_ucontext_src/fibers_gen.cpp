@@ -33,10 +33,18 @@ void _initFiber( Fiber *to )
     to->start_stack = NULL;
 }
 
-int _prepareFiber( Fiber *to, void *code, intptr_t arg )
+int _prepareFiber( Fiber *to, void *code, uintptr_t arg )
 {
+    if ( sizeof(arg) < sizeof(unsigned long) )
+    {
+        return 1;
+    }
+
     int res = getcontext( &to->f_context );
-    if( res != 0 ) return res;
+    if (unlikely( res != 0 ))
+    {
+        return 1;
+    }
 
     to->f_context.uc_stack.ss_size = STACK_SIZE;
     to->f_context.uc_stack.ss_sp = last_stack ? (char *)last_stack : (char *)malloc( STACK_SIZE );
