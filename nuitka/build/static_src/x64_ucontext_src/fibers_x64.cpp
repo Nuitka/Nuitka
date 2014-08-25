@@ -42,7 +42,7 @@ int _prepareFiber( Fiber *to, void *code, uintptr_t arg )
     int res = getcontext( &to->f_context );
     if (unlikely( res != 0 ))
     {
-        return res;
+        return 1;
     }
 
     to->f_context.uc_stack.ss_size = STACK_SIZE;
@@ -57,12 +57,17 @@ int _prepareFiber( Fiber *to, void *code, uintptr_t arg )
 
 void _releaseFiber( Fiber *to )
 {
-    if ( last_stack == NULL )
+    if ( to->start_stack != NULL )
     {
-        last_stack = to->start_stack;
-    }
-    else
-    {
-        free( to->start_stack );
+        if ( last_stack == NULL )
+        {
+            last_stack = to->start_stack;
+        }
+        else
+        {
+            free( to->start_stack );
+        }
+
+        to->start_stack = NULL;
     }
 }

@@ -66,6 +66,8 @@ static inline int prepareFiber( Fiber *to, void *code, uintptr_t arg )
     assert( to != NULL );
     assert( code != NULL );
 
+    assertObject( (PyObject *)arg );
+
     return _prepareFiber( to, code, arg );
 }
 
