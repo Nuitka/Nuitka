@@ -773,12 +773,12 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
             )
 
     result += CodeTemplates.genfunc_function_maker_template % {
-        "function_name"              : function_name,
-        "function_identifier"        : function_identifier,
-        "context_making"             : indented(context_making),
-        "context_copy"               : indented(parameter_context_assign),
-        "generator_making"           : generator_making,
-        "parameter_objects_decl"     : ", ".join(parameter_objects_decl),
+        "function_name"          : function_name,
+        "function_identifier"    : function_identifier,
+        "context_making"         : indented(context_making),
+        "context_copy"           : indented(parameter_context_assign),
+        "generator_making"       : generator_making,
+        "parameter_objects_decl" : ", ".join(parameter_objects_decl),
     }
 
     if context.isForCreatedFunction():

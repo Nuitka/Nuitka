@@ -82,9 +82,6 @@ NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object, ), {})
 class NodeBase(NodeMetaClassBase):
     kind = None
 
-    # Must be overloaded by expressions.
-    value_friend_maker = None
-
     def __init__(self, source_ref):
         # The base class has no __init__ worth calling, pylint: disable=W0231
 

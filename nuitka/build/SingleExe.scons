@@ -548,7 +548,7 @@ version for lto mode (>= 4.6).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
 
         if debug_mode:
             env.Append(
-                CCFLAGS = [ "-Wunused-but-set-variable" ]
+                CCFLAGS = ["-Wunused-but-set-variable"]
             )
 
     # Use link time optimizations so that gcc can help with optimization across
@@ -940,7 +940,7 @@ if debug_mode or unstriped_mode:
             )
     elif msvc_mode:
         env.Append(
-            CCFLAGS = ["/Zi"]
+            CCFLAGS = ["/Z7"]
         )
 
         # Higher MSVC versions need this for parallel compilation
