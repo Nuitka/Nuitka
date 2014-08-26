@@ -25,10 +25,15 @@ def getLineNumberUpdateCode(context):
     if frame_handle is None:
         return ""
     else:
-        return "%s->f_lineno = %s;" % (
-            frame_handle,
-            context.getCurrentSourceCodeReference().getLineNumber()
-        )
+        source_ref = context.getCurrentSourceCodeReference()
+
+        if source_ref.shallSetCurrentLine():
+            return "%s->f_lineno = %d;" % (
+                frame_handle,
+                source_ref.getLineNumber()
+            )
+        else:
+            return ""
 
 def emitLineNumberUpdateCode(context, emit):
     code = getLineNumberUpdateCode(context)
