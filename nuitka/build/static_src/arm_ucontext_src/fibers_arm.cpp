@@ -70,11 +70,6 @@ void _initFiber( Fiber *to )
 
 int _prepareFiber( Fiber *to, void *code, uintptr_t arg )
 {
-    if ( sizeof(arg) < sizeof(unsigned long) )
-    {
-        return 1;
-    }
-
     int res = getcontext( &to->f_context );
     if (unlikely( res != 0 ))
     {

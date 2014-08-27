@@ -1272,6 +1272,10 @@ else:
         source_files + source_targets
     )
 
+# On some architectures, makecontext cannot pass pointers reliably.
+if target_arch == "x86_64" and "linux" in sys.platform:
+    env.Append(CPPDEFINES = ["_NUITKA_MAKECONTEXT_INTS"])
+
 # Avoid IO for compilation as much as possible, this should make the
 # compilation more memory hungry, but also faster.
 if gcc_mode:

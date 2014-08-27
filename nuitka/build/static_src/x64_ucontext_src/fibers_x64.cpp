@@ -34,10 +34,10 @@ void _initFiber( Fiber *to )
 
 int _prepareFiber( Fiber *to, void *code, uintptr_t arg )
 {
-    if ( sizeof(arg) < sizeof(unsigned long) )
-    {
-        return 1;
-    }
+#ifdef _NUITKA_MAKECONTEXT_INTS
+    int ar[2];
+    memcpy( &ar[0], &arg, sizeof(arg) );
+#endif
 
     int res = getcontext( &to->f_context );
     if (unlikely( res != 0 ))
@@ -51,7 +51,11 @@ int _prepareFiber( Fiber *to, void *code, uintptr_t arg )
     to->f_context.uc_link = NULL;
     last_stack = NULL;
 
+#ifdef _NUITKA_MAKECONTEXT_INTS
+    makecontext( &to->f_context, (void (*)())code, 2, ar[0], ar[1] );
+#else
     makecontext( &to->f_context, (void (*)())code, 1, (unsigned long)arg );
+#endif
     return 0;
 }
 

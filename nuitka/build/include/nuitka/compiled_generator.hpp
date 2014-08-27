@@ -73,7 +73,14 @@ typedef struct {
 
 extern PyTypeObject Nuitka_Generator_Type;
 
+// For the yielder func, we may need to follow what makecontext will support and
+// that is only a list of ints, but we will need to push a pointer through it,
+// and so it's two of them, which might be sufficient.
+#ifdef _NUITKA_MAKECONTEXT_INTS
+typedef void (*yielder_func)( int, int );
+#else
 typedef void (*yielder_func)( Nuitka_GeneratorObject * );
+#endif
 
 extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, void *context, releaser cleanup );
 extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object );
@@ -218,6 +225,11 @@ static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
 
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
+
+// For frames that are closed, to also close the generator.
+#if PYTHON_VERSION >= 340
+extern PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *args );
+#endif
 
 static inline PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 {
