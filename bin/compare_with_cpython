@@ -399,6 +399,11 @@ def makeDiffable(output):
         if "() possibly used unsafely, use mkstemp() or mkdtemp()" in line:
             continue
 
+        # This is for CentOS5, where the linker says this, and it's hard to
+        # disable
+        if "skipping incompatible /usr/lib/libpython2.6.so" in line:
+            continue
+
         result.append(line)
 
     return result
