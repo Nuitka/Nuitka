@@ -126,11 +126,11 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             values = {}
         )
 
-        MarkGeneratorIndicator.__init__( self )
+        MarkGeneratorIndicator.__init__(self)
 
-        MarkLocalsDictIndicator.__init__( self )
+        MarkLocalsDictIndicator.__init__(self)
 
-        MarkUnoptimizedFunctionIndicator.__init__( self )
+        MarkUnoptimizedFunctionIndicator.__init__(self)
 
         self.is_class = is_class
         self.doc = doc
@@ -482,7 +482,7 @@ error""" % self.getName()
         )
 
         result.setBody(
-            self.getBody().makeCloneAt( source_ref )
+            self.getBody().makeCloneAt(source_ref)
         )
 
         return result
@@ -679,8 +679,8 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
         from .NodeMakingHelpers import makeConstantReplacementNode
 
         result = makeConstantReplacementNode(
-            node = self,
+            node     = self,
             constant = self.function_body.getFunctionQualname()
         )
 
-        return result, "new_constant", "Delayed __qualname__ resolved."
+        return result, "new_constant", "Delayed __qualname__ resolution."

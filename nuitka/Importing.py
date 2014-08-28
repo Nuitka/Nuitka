@@ -58,10 +58,10 @@ def setMainScriptDirectory(main_dir):
     main_path = main_dir
 
 def isPackageDir(dirname):
-    return Utils.isDir( dirname ) and \
+    return Utils.isDir(dirname) and \
            (
                Utils.python_version >= 330 or
-               Utils.isFile( Utils.joinpath( dirname, "__init__.py" ) )
+               Utils.isFile(Utils.joinpath(dirname, "__init__.py"))
            )
 
 def findModule(source_ref, module_name, parent_package, level, warn):
@@ -69,7 +69,7 @@ def findModule(source_ref, module_name, parent_package, level, warn):
     # pylint: disable=R0912
 
     if level > 1 and parent_package is not None:
-        parent_package = ".".join( parent_package.split(".")[ : -level+1 ] )
+        parent_package = ".".join(parent_package.split(".")[:-level+1])
 
         if parent_package == "":
             parent_package = None
@@ -81,11 +81,11 @@ def findModule(source_ref, module_name, parent_package, level, warn):
                 parent_package = parent_package
             )
         except ImportError:
-            if warn and not _isWhiteListedNotExistingModule( module_name ):
+            if warn and not _isWhiteListedNotExistingModule(module_name):
                 key = module_name, parent_package, level
 
                 if key not in warned_about:
-                    warned_about.add( key )
+                    warned_about.add(key)
 
                     if level == 0:
                         level_desc = "as absolute import"
@@ -114,14 +114,14 @@ def findModule(source_ref, module_name, parent_package, level, warn):
 
 
             if "." in module_name:
-                module_package_name = module_name[ : module_name.rfind( "." ) ]
+                module_package_name = module_name[:module_name.rfind(".")]
             else:
                 module_package_name = None
 
             module_filename = None
     else:
         if "." in module_name:
-            module_package_name = module_name[ : module_name.rfind( "." ) ]
+            module_package_name = module_name[:module_name.rfind(".")]
         else:
             module_package_name = None
 

@@ -51,7 +51,7 @@ from .Helpers import (
 
 
 def buildFunctionNode(provider, node, source_ref):
-    assert getKind( node ) == "FunctionDef"
+    assert getKind(node) == "FunctionDef"
 
     function_statements, function_doc = extractDocFromBody( node )
 
@@ -208,6 +208,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
 
     return kw_defaults
 
+
 def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=R0912
 
@@ -229,19 +230,19 @@ def buildParameterAnnotations(provider, node, source_ref):
         values.append( value )
 
     def extractArg(arg):
-        if getKind( arg ) == "Name":
+        if getKind(arg) == "Name":
             assert arg.annotation is None
-        elif getKind( arg ) == "arg":
+        elif getKind(arg) == "arg":
             if arg.annotation is not None:
                 addAnnotation(
                     key   = arg.arg,
-                    value = buildNode( provider, arg.annotation, source_ref )
+                    value = buildNode(provider, arg.annotation, source_ref)
                 )
-        elif getKind( arg ) == "Tuple":
+        elif getKind(arg) == "Tuple":
             for arg in arg.elts:
-                extractArg( arg )
+                extractArg(arg)
         else:
-            assert False, getKind( arg )
+            assert False, getKind(arg)
 
     for arg in node.args.args:
         extractArg(arg)
@@ -267,15 +268,17 @@ def buildParameterAnnotations(provider, node, source_ref):
             )
     else:
         if node.args.vararg is not None:
-            extractArg( node.args.vararg )
+            extractArg(node.args.vararg)
         if node.args.kwarg is not None:
-            extractArg( node.args.kwarg )
+            extractArg(node.args.kwarg)
 
     # Return value annotation (not there for lambdas)
     if hasattr( node, "returns" ) and node.returns is not None:
         addAnnotation(
             key   = "return",
-            value = buildNode( provider, node.returns, source_ref )
+            value = buildNode(
+                provider, node.returns, source_ref
+            )
         )
 
     if keys:

@@ -225,7 +225,7 @@ def _buildClassNode3(provider, node, source_ref):
                     variable      = qualname_variable,
                     source_ref    = source_ref
                 ),
-                source        = qualname_ref,
+                source       = qualname_ref,
                 source_ref   = source_ref
             )
         )
