@@ -195,15 +195,17 @@ def _findModuleInPath(module_name, package_name):
             module_name = package_name.split(".")[-1]
             package_name = ".".join(package_name.split(".")[:-1])
 
-        def getPackageDirname(element):
-            return Utils.joinpath(element,*package_name.split("."))
+        def getPackageDirnames(element):
+            yield Utils.joinpath(element,*package_name.split(".")), False
 
-        ext_path = [
-            getPackageDirname(element)
-            for element in
-            extra_paths + sys.path
-            if isPackageDir(getPackageDirname(element))
-        ]
+            if package_name == "win32com":
+                yield Utils.joinpath(element,"win32comext"), True
+
+        ext_path = []
+        for element in extra_paths + sys.path:
+            for package_dir, force_package in getPackageDirnames(element):
+                if isPackageDir(package_dir) or force_package:
+                    ext_path.append(package_dir)
 
         if _debug_module_finding:
             print("_findModuleInPath: Package, using extended path", ext_path)
