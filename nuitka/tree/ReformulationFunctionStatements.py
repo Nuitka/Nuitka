@@ -126,7 +126,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
-    decorated_body = ExpressionFunctionCreation(
+    function_creation = ExpressionFunctionCreation(
         function_ref = ExpressionFunctionRef(
             function_body,
             source_ref = source_ref
@@ -151,24 +151,31 @@ def buildFunctionNode(provider, node, source_ref):
             ),
         )
 
+    decorated_function = function_creation
     for decorator in decorators:
-        decorated_body = ExpressionCallNoKeywords(
+        decorated_function = ExpressionCallNoKeywords(
             called     = decorator,
             args       = ExpressionMakeTuple(
-                elements    = ( decorated_body, ),
+                elements    = (decorated_function,),
                 source_ref = source_ref
             ),
             source_ref = decorator.getSourceReference()
         )
 
-    return StatementAssignmentVariable(
+
+    result = StatementAssignmentVariable(
         variable_ref = ExpressionTargetVariableRef(
             variable_name = node.name,
             source_ref    = source_ref
         ),
-        source       = decorated_body,
+        source       = decorated_function,
         source_ref   = source_ref
     )
+
+    if Utils.python_version >= 340:
+        function_body.qualname_setup = result.getTargetVariableRef()
+
+    return result
 
 
 def buildParameterKwDefaults(provider, node, function_body, source_ref):

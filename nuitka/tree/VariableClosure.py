@@ -80,6 +80,40 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                        python_version >= 340
                     )
 
+    def _handleQualnameSetup(self, node):
+        if node.qualname_setup is not None:
+            if node.isClassDictCreation():
+                class_assign, qualname_assign = node.qualname_setup
+                class_variable = class_assign.getTargetVariableRef().getVariable()
+
+                if class_variable.isModuleVariable() and \
+                   class_variable.isFromGlobalStatement():
+                    qualname_node = qualname_assign.getAssignSource()
+
+                    qualname_node.replaceWith(
+                        makeConstantReplacementNode(
+                            constant = class_variable.getName(),
+                            node     = qualname_node
+                        )
+                    )
+
+                    node.qualname_provider = node.getParentModule()
+            else:
+                function_variable_ref = node.qualname_setup
+                function_variable = function_variable_ref.getVariable()
+
+                if function_variable.isModuleVariable() and \
+                   function_variable.isFromGlobalStatement():
+                    node.qualname_provider = node.getParentModule()
+
+            # TODO: Actually for nested global classes, this approach
+            # may not work, as their qualnames will be wrong. In that
+            # case a dedicated node for qualname references might be
+            # needed.
+
+            node.qualname_setup = None
+
+
     def onEnterNode(self, node):
         # Mighty complex code with lots of branches and statements, but it
         # couldn't be less without making it more difficult.
@@ -131,30 +165,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             # Python3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
-            if python_version >= 340 and node.isClassDictCreation():
-                class_assign, qualname_assign = node.qualname_setup
-                class_variable = class_assign.getTargetVariableRef().getVariable()
-
-                if class_variable.isModuleVariable() and \
-                   class_variable.isFromGlobalStatement():
-                    qualname_node = qualname_assign.getAssignSource()
-
-                    qualname_node.replaceWith(
-                        makeConstantReplacementNode(
-                            constant = class_variable.getName(),
-                            node     = qualname_node
-                        )
-                    )
-
-                    node.qualname_provider = node.getParentModule()
-
-                    # TODO: Actually for nested global classes, this approach
-                    # may not work, as their qualnames will be wrong. In that
-                    # case a dedicated node for qualname references might be
-                    # needed.
-
-                del node.qualname_setup
-
+            if python_version >= 340:
+                self._handleQualnameSetup(node)
 
 
 

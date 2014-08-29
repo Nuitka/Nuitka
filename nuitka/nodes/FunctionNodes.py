@@ -61,6 +61,9 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
     named_children = ("body",)
 
+    if Utils.python_version >= 340:
+        qualname_setup = None
+
     def __init__(self, provider, name, doc, parameters, source_ref,
                  is_class = False):
         # Register ourselves immediately with the module.
