@@ -175,7 +175,10 @@ static PyObject *Nuitka_Generator_tp_iternext( Nuitka_GeneratorObject *generator
 }
 
 
-static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *args )
+#if PYTHON_VERSION < 340
+static
+#endif
+PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *args )
 {
     if ( generator->m_status == status_Running )
     {

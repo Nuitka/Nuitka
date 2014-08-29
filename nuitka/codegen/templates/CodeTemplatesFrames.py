@@ -184,6 +184,9 @@ PyFrameObject *%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_
 
 Py_INCREF( %(frame_identifier)s );
 generator->m_frame = %(frame_identifier)s;
+#if PYTHON_VERSION >= 340
+%(frame_identifier)s->f_gen = (PyObject *)generator;
+#endif
 
 Py_CLEAR( generator->m_frame->f_back );
 

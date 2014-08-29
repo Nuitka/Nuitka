@@ -296,6 +296,33 @@ static PyObject *Nuitka_Frame_clear( PyFrameObject *frame )
         return NULL;
     }
 
+#if PYTHON_VERSION >= 340
+    // For frames that are closed, we also need to close the generator.
+    if ( frame->f_gen != NULL )
+    {
+        Py_INCREF( frame );
+
+        Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)frame->f_gen;
+        frame->f_gen = NULL;
+
+        PyObject *close_result = Nuitka_Generator_close(
+            generator,
+            NULL
+        );
+
+        if (unlikely( close_result == NULL ))
+        {
+            PyErr_WriteUnraisable( (PyObject *)frame->f_gen );
+        }
+        else
+        {
+            Py_DECREF( close_result );
+        }
+
+        Py_DECREF( frame );
+    }
+#endif
+
     Nuitka_Frame_tp_clear( frame );
 
     Py_RETURN_NONE;
