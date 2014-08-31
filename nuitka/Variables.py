@@ -317,6 +317,23 @@ class ModuleVariableReference(VariableReferenceBase):
         return True
 
 
+def mangleName(variable_name, owner):
+    if not variable_name.startswith( "__" ) or variable_name.endswith( "__" ):
+        return variable_name
+    else:
+        # The mangling of function variable names depends on being inside a
+        # class.
+        class_container = owner.getContainingClassDictCreation()
+
+        if class_container is None:
+            return variable_name
+        else:
+            return "_%s%s" % (
+                class_container.getName().lstrip("_"),
+                variable_name
+            )
+
+
 class LocalVariable(Variable):
     reference_class = ClosureVariableReference
 
@@ -351,21 +368,7 @@ class LocalVariable(Variable):
             return "PyObjectLocalVariable"
 
     def getMangledName(self):
-        if not self.variable_name.startswith( "__" ) or \
-           self.variable_name.endswith( "__" ):
-            return self.variable_name
-        else:
-            # The mangling of function variable names depends on being inside a
-            # class. TODO: ClassVariable seems unnecessary now.
-            class_container = self.owner.getContainingClassDictCreation()
-
-            if class_container is None:
-                return self.variable_name
-            else:
-                return "_%s%s" % (
-                    class_container.getName().lstrip("_"),
-                    self.variable_name
-                )
+        return mangleName(self.variable_name, self.owner)
 
 
 class ClassVariable(LocalVariable):

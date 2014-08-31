@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import SyntaxErrors, Utils
+from nuitka import SyntaxErrors, Utils, Variables
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
@@ -223,13 +223,22 @@ def buildParameterAnnotations(provider, node, source_ref):
     if Utils.python_version < 300:
         return None
 
+
+    # Strange as it is, startin with Python 3.4, the names of parameters are
+    # mangled in annotations too.
+    if Utils.python_version < 340:
+        mangle = lambda variable_name: variable_name
+    else:
+        def mangle(variable_name):
+            return Variables.mangleName(variable_name, provider)
+
     keys = []
     values = []
 
     def addAnnotation(key, value):
         keys.append(
             ExpressionConstantRef(
-                constant      = key,
+                constant      = mangle(key),
                 source_ref    = source_ref,
                 user_provided = True
             )
