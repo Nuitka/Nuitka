@@ -77,8 +77,10 @@ public:
 
     void shareWith( const PyObjectSharedLocalVariable &other )
     {
-        assert( this->storage == NULL );
         assert( other.storage != NULL );
+        assert( this->storage != NULL );
+
+        delete this->storage;
 
         this->storage = other.storage;
         this->storage->ref_count += 1;
