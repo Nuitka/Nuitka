@@ -236,45 +236,37 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             variable in
             self.providing.values()
             if variable.isLocalVariable() and not variable.isParameterVariable()
+            if variable.getOwner() is self
         )
 
     def getVariables(self):
         return self.providing.values()
 
     def removeVariable(self, variable):
-        assert variable.getOwner() is self
         assert variable in self.providing.values(), ( self.providing, variable )
 
-        del self.providing[ variable.getName() ]
+        del self.providing[variable.getName()]
 
-        assert not variable.isParameterVariable()
-        self.taken.remove( variable )
+        assert not variable.isParameterVariable() or \
+               not variable.getOwner() is self
+
+        self.taken.remove(variable)
 
     def getVariableForAssignment(self, variable_name):
-        # print ( "ASS func", self, variable_name )
+        # print ("ASS func", self, variable_name)
 
-        if self.hasTakenVariable( variable_name ):
-            result = self.getTakenVariable( variable_name )
-
-            if self.isClassDictCreation():
-                if result.isModuleVariableReference() and \
-                   not result.isFromGlobalStatement():
-                    result = self.getProvidedVariable( variable_name )
-
-                    if result.isModuleVariableReference():
-                        del self.providing[ variable_name ]
-
-                        result = self.getProvidedVariable( variable_name )
+        if self.hasTakenVariable(variable_name):
+            result = self.getTakenVariable(variable_name)
         else:
-            result = self.getProvidedVariable( variable_name )
+            result = self.getProvidedVariable(variable_name)
 
         return result
 
     def getVariableForReference(self, variable_name):
         # print ( "REF func", self, variable_name )
 
-        if self.hasProvidedVariable( variable_name ):
-            result = self.getProvidedVariable( variable_name )
+        if self.hasProvidedVariable(variable_name):
+            result = self.getProvidedVariable(variable_name)
         else:
             # For exec containing/star import containing, get a closure variable
             # and if it is a module variable, only then make it a maybe local
@@ -290,7 +282,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
                 )
 
             # Remember that we need that closure for something.
-            self.registerProvidedVariable( result )
+            if not result.isModuleVariable():
+                self.registerProvidedVariable(result)
 
         return result
 
@@ -312,7 +305,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
                         name       = "__class__"
                     )
 
-                    return result.makeReference(self)
+                    return result
             else:
                 return self.provider.getVariableForReference(
                     variable_name
@@ -324,7 +317,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             return self.provider.getVariableForClosure(variable_name)
 
     def createProvidedVariable(self, variable_name):
-        # print( "createProvidedVariable", self, variable_name )
+        # print("createProvidedVariable", self, variable_name)
 
         if self.local_locals:
             if self.isClassDictCreation():

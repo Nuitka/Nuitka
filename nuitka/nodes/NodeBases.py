@@ -695,11 +695,11 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
     def getProvidedVariable(self, variable_name):
         if variable_name not in self.providing:
-            self.providing[ variable_name ] = self.createProvidedVariable(
+            self.providing[variable_name] = self.createProvidedVariable(
                 variable_name = variable_name
             )
 
-        return self.providing[ variable_name ]
+        return self.providing[variable_name]
 
     def createProvidedVariable(self, variable_name):
         # Virtual method, pylint: disable=R0201,W0613
@@ -829,15 +829,16 @@ class ClosureTakerMixin:
                 variable_name = variable_name
             )
 
-        return self.addClosureVariable(result)
+        if not result.isModuleVariable():
+            self.addClosureVariable(result)
+
+        return result
 
     def addClosureVariables(self, *variables):
         for variable in variables:
             self.addClosureVariable(variable)
 
     def addClosureVariable(self, variable):
-        variable = variable.makeReference(self)
-
         self.taken.add(variable)
 
         return variable
@@ -849,7 +850,7 @@ class ClosureTakerMixin:
                     take
                     for take in
                     self.taken
-                    if take.isClosureReference()
+                    if not take.isModuleVariable()
                 ],
                 key = lambda x : x.getName()
             )

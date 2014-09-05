@@ -551,7 +551,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         return None
 
     # Need to catch the error of declaring a parameter variable as global
-    # ourselves here. The AST parsing doesn't catch it.
+    # ourselves here. The AST parsing doesn't catch it, so we check here.
     try:
         parameters = provider.getParameters()
 
@@ -574,8 +574,10 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
     except AttributeError:
         pass
 
+    # The module the "global" statement refers to.
     module = provider.getParentModule()
 
+    # Can give multiple names.
     for variable_name in node.names:
         closure_variable = None
 
@@ -585,7 +587,9 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         if provider.hasTakenVariable(variable_name):
             closure_variable = provider.getTakenVariable(variable_name)
 
-            if not closure_variable.isModuleVariableReference():
+            # Only global variables count. Could have a closure reference to
+            # a location of a parent function here.
+            if not closure_variable.isModuleVariable():
                 closure_variable = None
 
         if closure_variable is None:
@@ -597,9 +601,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                 variable = module_variable
             )
 
-        assert closure_variable.isModuleVariableReference()
-
-        closure_variable.markFromGlobalStatement()
+        assert closure_variable.isModuleVariable()
 
         provider.registerProvidedVariable(
             variable = closure_variable

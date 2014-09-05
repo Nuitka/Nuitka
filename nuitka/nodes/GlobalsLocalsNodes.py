@@ -62,17 +62,14 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
 
     def computeExpression(self, constraint_collection):
         # Just inform the collection that all escaped.
-        for variable_ref in constraint_collection.getActiveVariables():
-            variable = variable_ref
-
-            while variable.isReference():
-                variable = variable.getReferenced()
+        for variable in constraint_collection.getActiveVariables():
 
             # TODO: Currently this is a bit difficult to express in a positive
-            # way.
-            if not variable.isTempVariable():
+            # way, but we want to have only local variables.
+            if not variable.isTempVariable() and \
+               not variable.isModuleVariable():
                 variable_trace = constraint_collection.getVariableCurrentTrace(
-                    variable_ref
+                    variable
                 )
 
                 variable_trace.addUsage(self)

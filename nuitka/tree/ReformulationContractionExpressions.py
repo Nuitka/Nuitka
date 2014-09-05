@@ -87,7 +87,7 @@ def buildListContractionNode(provider, node, source_ref):
         )
 
         outer_iter_ref = ExpressionTempVariableRef(
-            variable      = outer_iter_var.makeReference(provider),
+            variable      = outer_iter_var,
             source_ref    = source_ref
         )
 
@@ -116,7 +116,7 @@ def buildListContractionNode(provider, node, source_ref):
             0,
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = outer_iter_var.makeReference(provider),
+                    variable   = outer_iter_var,
                     source_ref = source_ref
                 ),
                 source       = ExpressionBuiltinIter1(
@@ -133,7 +133,7 @@ def buildListContractionNode(provider, node, source_ref):
 
         result = makeTryFinallyExpression(
             expression = ExpressionTempVariableRef(
-                variable   = container_tmp.makeReference(provider),
+                variable   = container_tmp,
                 source_ref = source_ref
             ),
             tried      = statements,
@@ -145,7 +145,7 @@ def buildListContractionNode(provider, node, source_ref):
             statements = (
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = container_tmp.makeReference(provider),
+                        variable   = container_tmp,
                         source_ref = source_ref
                     ),
                     tolerant     = True,
@@ -153,7 +153,7 @@ def buildListContractionNode(provider, node, source_ref):
                 ),
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = outer_iter_var.makeReference(provider),
+                        variable   = outer_iter_var,
                         source_ref = source_ref
                     ),
                     tolerant     = True,
@@ -244,7 +244,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         statements = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = container_tmp.makeReference(function_body),
+                    variable   = container_tmp,
                     source_ref = source_ref
                 ),
                 source     = start_value,
@@ -264,7 +264,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         if start_value is not None:
             current_body = emit_class(
                 ExpressionTempVariableRef(
-                    variable   = container_tmp.makeReference(function_body),
+                    variable   = container_tmp,
                     source_ref = source_ref
                 ),
                 buildNode(
@@ -292,7 +292,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
         current_body = emit_class(
             ExpressionTempVariableRef(
-                variable   = container_tmp.makeReference(function_body),
+                variable   = container_tmp,
                 source_ref = source_ref
             ),
             key = buildNode(
@@ -352,9 +352,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             nested_statements = [
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_iter_variable.makeReference(
-                            function_body
-                        ),
+                        variable   = tmp_iter_variable,
                         source_ref = source_ref
                     ),
                     source     = value_iterator,
@@ -364,9 +362,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
             def makeIteratorRef():
                 return ExpressionTempVariableRef(
-                    variable   = tmp_iter_variable.makeReference(
-                        function_body
-                    ),
+                    variable   = tmp_iter_variable,
                     source_ref = source_ref
                 )
 
@@ -375,9 +371,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 tried          = makeStatementsSequenceFromStatement(
                     statement = StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_value_variable.makeReference(
-                                function_body
-                            ),
+                            variable   = tmp_value_variable,
                             source_ref = source_ref
                         ),
                         source     = ExpressionBuiltinNext1(
@@ -401,9 +395,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 temp_provider = function_body,
                 node          = qual.target,
                 source        = ExpressionTempVariableRef(
-                    variable   = tmp_value_variable.makeReference(
-                        function_body
-                    ),
+                    variable   = tmp_value_variable,
                     source_ref = source_ref
                 ),
                 source_ref    = source_ref
@@ -459,9 +451,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             nested_statements.append(
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_iter_variable.makeReference(
-                            function_body
-                        ),
+                        variable   = tmp_iter_variable,
                         source_ref = source_ref
                     ),
                     tolerant   = False,
@@ -490,7 +480,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         del_statements.append(
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_variable.makeReference(function_body),
+                    variable   = tmp_variable,
                     source_ref = source_ref
                 ),
                 tolerant   = True,
@@ -559,7 +549,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         statements.append(
             StatementReturn(
                 expression = ExpressionTempVariableRef(
-                    variable   = container_tmp.makeReference(function_body),
+                    variable   = container_tmp,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref

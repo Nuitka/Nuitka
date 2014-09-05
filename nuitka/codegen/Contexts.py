@@ -47,6 +47,7 @@ class TempMixin:
         self.loop_break = None
         # Python3 frame exception stack
         self.frame_preservation_stack = []
+
         # For exception handlers visibility of caught exception
         self.exception_published = True
 
@@ -371,6 +372,7 @@ def _getConstantDefaultPopulation():
 
     if python_version >= 330:
         result += (
+            # Modules have that attribute.
             "__loader__",
         )
 
@@ -503,13 +505,14 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
     # Plent of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
-    def __init__(self, module_name, code_name, filename, is_empty,
+    def __init__(self, module, module_name, code_name, filename, is_empty,
                 global_context):
         PythonContextBase.__init__(self)
 
         TempMixin.__init__(self)
         CodeObjectsMixin.__init__(self)
 
+        self.module = module
         self.name = module_name
         self.code_name = code_name
         self.filename = filename
@@ -526,6 +529,9 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
 
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
+
+    def getOwner(self):
+        return self.module
 
     def isPythonModule(self):
         return True
@@ -638,6 +644,9 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin):
     def getFunction(self):
         return self.function
 
+    def getOwner(self):
+        return self.function
+
     def hasLocalsDict(self):
         return self.function.hasLocalsDict()
 
@@ -703,6 +712,9 @@ class PythonStatementCContext(PythonChildContextBase):
 
         self.current_source_ref = None
         self.last_source_ref = None
+
+    def getOwner(self):
+        return self.parent.getOwner()
 
     def isPythonModule(self):
         return self.parent.isPythonModule()

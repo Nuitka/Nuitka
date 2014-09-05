@@ -99,6 +99,9 @@ class VariableTraceBase:
     def isUninitTrace(self):
         return False
 
+    def isInitTrace(self):
+        return False
+
     def isUnknownTrace(self):
         return False
 
@@ -142,6 +145,44 @@ class VariableUninitTrace(VariableTraceBase):
 
         for release in self.releases:
             debug("   Release by %s", release)
+
+
+class VariableInitTrace(VariableTraceBase):
+    def __init__(self, variable, version):
+        VariableTraceBase.__init__(
+            self,
+            variable = variable,
+            version  = version
+        )
+
+    def __repr__(self):
+        return "<VariableInitTrace {variable} {version}>".format(
+            variable = self.variable,
+            version  = self.version
+        )
+
+    def dump(self):
+        debug(
+            "Trace of %s %d:",
+            self.variable,
+            self.version
+        )
+        debug("  Starts initialized")
+
+        for count, usage in enumerate(self.usages):
+            if count == self.escaped_at:
+                debug("  Escaped value")
+
+            debug("  Used at %s", usage)
+
+        for merge in self.merges:
+            debug("   Merged to %s", merge)
+
+        for release in self.releases:
+            debug("   Release by %s", release)
+
+    def isInitTrace(self):
+        return True
 
 
 class VariableUnknownTrace(VariableTraceBase):

@@ -94,7 +94,7 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         if _isReadOnlyUnterdeterminedModuleVariable(self.variable):
             constraint_collection.assumeUnclearLocals(self.source_ref)
 
-        if _isReadOnlyModuleVariable( self.variable ):
+        if _isReadOnlyModuleVariable(self.variable):
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
@@ -125,8 +125,7 @@ Module variable '%s' found to be builtin reference.""" % (
                 )
             elif self.variable_name == "__name__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().\
-                        getFullName(),
+                    constant   = self.variable.getOwner().getFullName(),
                     source_ref = self.getSourceReference()
                 )
 
@@ -135,8 +134,7 @@ Module variable '%s' found to be builtin reference.""" % (
 Replaced read-only module attribute '__name__' with constant value."""
             elif self.variable_name == "__package__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().\
-                                   getPackage(),
+                    constant   = self.variable.getOwner().getPackage(),
                     source_ref = self.getSourceReference()
                 )
 
@@ -254,13 +252,13 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         return False
 
     def computeExpression(self, constraint_collection):
-        constraint_collection.onVariableUsage( self )
+        constraint_collection.onVariableUsage(self)
 
         # Nothing to do here.
         return self, None, None
 
     def onContentEscapes(self, constraint_collection):
-        constraint_collection.onVariableContentEscapes( self.variable )
+        constraint_collection.onVariableContentEscapes(self.variable)
 
     def mayHaveSideEffects(self):
         # Can't happen

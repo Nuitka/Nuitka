@@ -125,10 +125,6 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
         if node.isStatementDelVariable():
             variable = node.getTargetVariableRef().getVariable()
-
-            while variable.isReference():
-                variable = variable.getReferenced()
-
             variable.setHasDelIndicator()
 
         if node.isStatementTryExcept():

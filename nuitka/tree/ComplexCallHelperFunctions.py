@@ -510,16 +510,12 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_key_variable.makeReference(
-                            result
-                        ),
+                        variable   = tmp_key_variable,
                         source_ref = source_ref
                     ),
                     source     = ExpressionBuiltinNext1(
                         value      = ExpressionTempVariableRef(
-                            variable   = tmp_iter_variable.makeReference(
-                                result
-                            ),
+                            variable   = tmp_iter_variable,
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
@@ -538,17 +534,17 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
         ),
         StatementAssignmentSubscript(
             expression = ExpressionTempVariableRef(
-                variable   = tmp_dict_variable.makeReference(result),
+                variable   = tmp_dict_variable,
                 source_ref = source_ref
             ),
             subscript  = ExpressionTempVariableRef(
-                variable   = tmp_key_variable.makeReference(result),
+                variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
                 expression = star_dict_variable_ref.makeCloneAt(source_ref),
                 subscript  = ExpressionTempVariableRef(
-                    variable   = tmp_key_variable.makeReference(result),
+                    variable   = tmp_key_variable,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -568,7 +564,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
         # removed once code generation is apt enough.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable.makeReference(result),
+                variable   = tmp_keys_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
@@ -582,7 +578,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_keys_variable.makeReference(result),
+                        variable   = tmp_keys_variable,
                         source_ref = source_ref
                     ),
                     source     = ExpressionCallEmpty(
@@ -607,12 +603,12 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable.makeReference(result),
+                variable   = tmp_iter_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionBuiltinIter1(
                 value      = ExpressionTempVariableRef(
-                    variable   = tmp_keys_variable.makeReference(result),
+                    variable   = tmp_keys_variable,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -621,7 +617,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_dict_variable.makeReference(result),
+                variable   = tmp_dict_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
@@ -640,7 +636,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionTempVariableRef(
-                variable   = tmp_dict_variable.makeReference( result ),
+                variable   = tmp_dict_variable,
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -674,7 +670,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     final = (
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_dict_variable.makeReference(result),
+                variable   = tmp_dict_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -682,7 +678,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable.makeReference(result),
+                variable   = tmp_iter_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -690,7 +686,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable.makeReference(result),
+                variable   = tmp_keys_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -698,7 +694,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_key_variable.makeReference(result),
+                variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -783,7 +779,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     final = [
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_dict_variable.makeReference(result),
+                variable   = tmp_dict_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -791,7 +787,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable.makeReference(result),
+                variable   = tmp_iter_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -799,7 +795,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable.makeReference(result),
+                variable   = tmp_keys_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -807,7 +803,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_key_variable.makeReference(result),
+                variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -849,9 +845,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                 source_ref = source_ref
                             ),
                             ExpressionTempVariableRef(
-                                variable   = tmp_key_variable.makeReference(
-                                    result
-                                ),
+                                variable   = tmp_key_variable,
                                 source_ref = source_ref
                             )
                         ),
@@ -873,14 +867,12 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_key_variable.makeReference(result),
+                        variable   = tmp_key_variable,
                         source_ref = source_ref
                     ),
                     source     = ExpressionBuiltinNext1(
                         value      = ExpressionTempVariableRef(
-                            variable   = tmp_iter_variable.makeReference(
-                                result
-                            ),
+                            variable   = tmp_iter_variable,
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
@@ -901,7 +893,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             condition = ExpressionComparison(
                 comparator = "In",
                 left       = ExpressionTempVariableRef(
-                    variable   = tmp_key_variable.makeReference(result),
+                    variable   = tmp_key_variable,
                     source_ref = source_ref
                 ),
                 right      = kw_variable_ref.makeCloneAt(source_ref),
@@ -916,13 +908,13 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         StatementAssignmentSubscript(
             expression = kw_variable_ref.makeCloneAt( source_ref ),
             subscript  = ExpressionTempVariableRef(
-                variable   = tmp_key_variable.makeReference( result ),
+                variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
                 expression = star_dict_variable_ref.makeCloneAt( source_ref ),
                 subscript  = ExpressionTempVariableRef(
-                    variable   = tmp_key_variable.makeReference( result ),
+                    variable   = tmp_key_variable,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -942,7 +934,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         # removed once code generation is apt enough.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable.makeReference( result ),
+                variable   = tmp_keys_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
@@ -956,7 +948,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_keys_variable.makeReference( result ),
+                        variable   = tmp_keys_variable,
                         source_ref = source_ref
                     ),
                     source     = ExpressionCallEmpty(
@@ -981,12 +973,12 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable.makeReference( result ),
+                variable   = tmp_iter_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionBuiltinIter1(
                 value      = ExpressionTempVariableRef(
-                    variable   = tmp_keys_variable.makeReference( result ),
+                    variable   = tmp_keys_variable,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -995,7 +987,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_dict_variable.makeReference(result),
+                variable   = tmp_dict_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionConstantRef(
@@ -1025,7 +1017,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     final += [
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable.makeReference(result),
+                variable   = tmp_iter_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -1033,7 +1025,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_item_variable.makeReference(result),
+                variable   = tmp_item_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -1041,7 +1033,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_key_variable.makeReference(result),
+                variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -1084,9 +1076,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                 source_ref = source_ref
                             ),
                             ExpressionTempVariableRef(
-                                variable   = tmp_key_variable.makeReference(
-                                    result
-                                ),
+                                variable   = tmp_key_variable,
                                 source_ref = source_ref
                             )
                         ),
@@ -1108,14 +1098,12 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_item_variable.makeReference( result ),
+                        variable   = tmp_item_variable,
                         source_ref = source_ref
                     ),
                     source     = ExpressionBuiltinNext1(
                         value      = ExpressionTempVariableRef(
-                            variable   = tmp_iter_variable.makeReference(
-                                result
-                            ),
+                            variable   = tmp_iter_variable,
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
@@ -1132,12 +1120,12 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_key_variable.makeReference(result),
+                variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
                 expression = ExpressionTempVariableRef(
-                    variable   = tmp_item_variable.makeReference(result),
+                    variable   = tmp_item_variable,
                     source_ref = source_ref
                 ),
                 subscript  = ExpressionConstantRef(
@@ -1153,7 +1141,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             condition = ExpressionComparison(
                 comparator = "In",
                 left       = ExpressionTempVariableRef(
-                    variable   = tmp_key_variable.makeReference(result),
+                    variable   = tmp_key_variable,
                     source_ref = source_ref
                 ),
                 right      = kw_variable_ref.makeCloneAt(source_ref),
@@ -1168,12 +1156,12 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         StatementAssignmentSubscript(
             expression = kw_variable_ref.makeCloneAt(source_ref),
             subscript  = ExpressionTempVariableRef(
-                variable   = tmp_key_variable.makeReference(result),
+                variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
                 expression = ExpressionTempVariableRef(
-                    variable   = tmp_item_variable.makeReference(result),
+                    variable   = tmp_item_variable,
                     source_ref = source_ref
                 ),
                 subscript  = ExpressionConstantRef(
@@ -1204,7 +1192,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable.makeReference(result),
+                variable   = tmp_iter_variable,
                 source_ref = source_ref
             ),
             source       = ExpressionBuiltinIter1(

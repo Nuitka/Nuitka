@@ -33,17 +33,17 @@ from .ParameterParsing import (
     getQuickEntryPointIdentifier
 )
 from .PythonAPICodes import getReferenceExportCode
-from .VariableCodes import getLocalVariableInitCode, getVariableCode
+from .VariableCodes import (
+    getVariableCodeName,
+    getLocalVariableInitCode,
+    getVariableCode
+)
 
 
 def getClosureVariableProvisionCode(context, closure_variables):
     result = []
 
     for variable in closure_variables:
-        assert variable.isClosureReference()
-
-        variable = variable.getProviderVariable()
-
         result.append(
             getVariableCode(
                 context  = context,
@@ -72,10 +72,10 @@ def _getFunctionCreationArgs(defaults_name, kw_defaults_name,
             "%s &%s" % (
                 (
                     "PyObjectSharedTempVariable"
-                       if closure_variable.isTempVariableReference() else
+                       if closure_variable.isTempVariable() else
                      "PyObjectSharedLocalVariable"
                 ),
-                closure_variable.getCodeName()
+                getVariableCodeName(variable = closure_variable, in_context = True)
             )
         )
 
@@ -155,8 +155,8 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
         for closure_variable in closure_variables:
             context_copy.append(
                 "_python_context->%s.shareWith( %s );" % (
-                    closure_variable.getCodeName(),
-                    closure_variable.getCodeName()
+                    getVariableCodeName(variable = closure_variable, in_context = True),
+                    getVariableCodeName(variable = closure_variable, in_context = True),
                 )
             )
 
@@ -343,7 +343,8 @@ def getFunctionDirectDecl(function_identifier, closure_variables,
 
     for closure_variable in closure_variables:
         parameter_objects_decl.append(
-            closure_variable.getDeclarationCode()
+            closure_variable.getDeclarationTypeCode(in_context = False) + \
+            "& " + getVariableCodeName(in_context = True, variable = closure_variable)
         )
 
     result = CodeTemplates.template_function_direct_declaration % {
@@ -366,7 +367,6 @@ def getFunctionContextDefinitionCode(function_identifier, closure_variables,
     for closure_variable in closure_variables:
         context_decl.append(
             getLocalVariableInitCode(
-                context    = context,
                 variable   = closure_variable,
                 in_context = True
             )
@@ -398,7 +398,6 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
 
     function_parameter_decl = [
         getLocalVariableInitCode(
-            context   = context,
             variable  = variable,
             init_from = "_python_par_" + variable.getName()
         )
@@ -410,8 +409,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     # User local variable initializations
     local_var_inits = [
         getLocalVariableInitCode(
-            context  = context,
-            variable = variable
+            variable = variable,
         )
         for variable in
         user_variables + tuple(
@@ -504,7 +502,8 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     if context.isForDirectCall():
         for closure_variable in closure_variables:
             parameter_objects_decl.append(
-                closure_variable.getDeclarationCode()
+                closure_variable.getDeclarationTypeCode(in_context = False) + \
+                "& " + getVariableCodeName(in_context = True, variable = closure_variable)
             )
 
         result += CodeTemplates.function_direct_body_template % {
@@ -558,7 +557,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
 
     function_parameter_decl = [
         getLocalVariableInitCode(
-            context    = context,
             variable   = variable,
             in_context = True
         )
@@ -571,7 +569,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     for variable in parameter_variables:
         parameter_context_assign.append(
             "_python_context->%s.setVariableValue( _python_par_%s );" % (
-                variable.getCodeName(),
+                getVariableCodeName(variable = variable, in_context = True),
                 variable.getName()
             )
         )
@@ -583,7 +581,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     for user_variable in user_variables:
         local_var_decl.append(
             getLocalVariableInitCode(
-                context    = context,
                 variable   = user_variable,
                 in_context = True
             )
@@ -594,7 +591,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
 
         local_var_decl.append(
             getLocalVariableInitCode(
-                context    = context,
                 variable   = temp_variable,
                 in_context = True
             )
@@ -603,15 +599,14 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     for closure_variable in closure_variables:
         context_decl.append(
             getLocalVariableInitCode(
-                context    = context,
                 variable   = closure_variable,
                 in_context = True
             )
         )
         context_copy.append(
             "_python_context->%s.shareWith( %s );" % (
-                closure_variable.getCodeName(),
-                closure_variable.getCodeName()
+                getVariableCodeName(variable = closure_variable, in_context = True),
+                getVariableCodeName(variable = closure_variable, in_context = True),
             )
         )
 
@@ -769,7 +764,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     if context.isForDirectCall():
         for closure_variable in closure_variables:
             parameter_objects_decl.append(
-                closure_variable.getDeclarationCode()
+                closure_variable.getDeclarationTypeCode(in_context = False) + \
+                "& " + getVariableCodeName(in_context = True, variable = closure_variable)
             )
 
     result += CodeTemplates.genfunc_function_maker_template % {

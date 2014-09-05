@@ -4239,6 +4239,7 @@ def _generateStatementCode(statement, emit, context):
             emit(
                 """PyException_SetTraceback( exception_value, (PyObject *)exception_tb );"""
             )
+
         emit(
             "PUBLISH_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
         )
@@ -4453,6 +4454,7 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
     assert module.isPythonModule(), module
 
     context = Contexts.PythonModuleContext(
+        module         = module,
         module_name    = module_name,
         code_name      = Generator.getModuleIdentifier(module_name),
         filename       = module.getFilename(),

@@ -560,9 +560,7 @@ def eval_extractor(node):
             final.getStatements() + (
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = source_variable.makeReference(
-                            provider
-                        ),
+                        variable   = source_variable,
                         source_ref = source_ref
                     ),
                     tolerant     = True,
@@ -581,9 +579,7 @@ def eval_extractor(node):
                 condition = ExpressionComparisonIs(
                     left       = ExpressionBuiltinType1(
                         value      = ExpressionTempVariableRef(
-                            variable   = source_variable.makeReference(
-                                provider
-                            ),
+                            variable   = source_variable,
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
@@ -608,17 +604,13 @@ def eval_extractor(node):
         string_fixup = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_variable.makeReference(
-                        provider
-                    ),
+                    variable   = source_variable,
                     source_ref = source_ref
                 ),
                 source = ExpressionCallNoKeywords(
                     called = ExpressionAttributeLookup(
                         expression     = ExpressionTempVariableRef(
-                            variable   = source_variable.makeReference(
-                                provider
-                            ),
+                            variable   = source_variable,
                             source_ref = source_ref
                         ),
                         attribute_name = "strip",
@@ -634,9 +626,7 @@ def eval_extractor(node):
         statements = (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_variable.makeReference(
-                        provider
-                    ),
+                    variable   = source_variable,
                     source_ref = source_ref
                 ),
                 source       = source,
@@ -650,9 +640,7 @@ def eval_extractor(node):
                             source_ref   = source_ref,
                         ),
                         instance = ExpressionTempVariableRef(
-                            variable   = source_variable.makeReference(
-                                provider
-                            ),
+                            variable   = source_variable,
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
@@ -676,9 +664,7 @@ def eval_extractor(node):
             tried      = tried,
             expression = ExpressionBuiltinEval(
                 source_code = ExpressionTempVariableRef(
-                    variable   = source_variable.makeReference(
-                        provider
-                    ),
+                    variable   = source_variable,
                     source_ref = source_ref
                 ),
                 globals_arg = globals_ref,
@@ -791,7 +777,7 @@ def super_extractor(node):
 
                 # If we already have this as a local variable, then use that
                 # instead.
-                if not type.getVariable().isClosureReference():
+                if type.getVariable().getOwner() is provider:
                     type = None
                 else:
                     from nuitka.VariableRegistry import addVariableUsage
@@ -805,7 +791,7 @@ def super_extractor(node):
                 )
 
                 type = ExpressionTempVariableRef(
-                    variable      = class_var.makeReference(parent_provider).makeReference(provider),
+                    variable      = class_var,
                     source_ref    = source_ref
                 )
 

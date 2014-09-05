@@ -69,7 +69,7 @@ def buildComparisonNode(provider, node, source_ref):
             # Now we know it's not the only one, so we change the "left" to be a
             # reference to the previously saved right side.
             left = ExpressionTempVariableRef(
-                variable   = keeper_variable.makeReference(provider),
+                variable   = keeper_variable,
                 source_ref = source_ref
             )
 
@@ -92,7 +92,7 @@ def buildComparisonNode(provider, node, source_ref):
 
             tried = StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
+                    variable   = keeper_variable,
                     source_ref = source_ref
                 ),
                 source       = right,
@@ -103,7 +103,7 @@ def buildComparisonNode(provider, node, source_ref):
             final.append(
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = keeper_variable.makeReference(provider),
+                        variable   = keeper_variable,
                         source_ref = source_ref
                     ),
                     tolerant     = True,
@@ -115,7 +115,7 @@ def buildComparisonNode(provider, node, source_ref):
                 tried       = tried,
                 final       = None,
                 expression  = ExpressionTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
+                    variable   = keeper_variable,
                     source_ref = source_ref
                 ),
                 source_ref  = source_ref

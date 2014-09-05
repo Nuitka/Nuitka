@@ -44,7 +44,7 @@ def _getLocalVariableList(provider):
 
         for variable in provider.getVariables():
             if variable.isParameterVariable():
-                end_part.append(variable )
+                end_part.append(variable)
             else:
                 start_part.append(variable)
 
@@ -63,13 +63,14 @@ def _getLocalVariableList(provider):
         variables
         if not variable.isModuleVariable()
         if not variable.isMaybeLocalVariable()
-        if ( not variable.isClosureReference() or include_closure )
+        if (include_closure or variable.getOwner() is provider)
     ]
 
 
 def _getVariableDictUpdateCode(dict_name, variable, emit, context):
     # TODO: Variable could known to be set here, get a hand at that
     # information.
+
     emit(
         "if (%s.isInitialized())\n{" % getVariableCode(
             variable = variable,
@@ -91,7 +92,7 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
         else:
             access_code += ".object"
     else:
-        if variable.getReferenced().isSharedTechnically():
+        if variable.isSharedTechnically():
             access_code += ".storage->object"
         else:
             access_code += ".object"

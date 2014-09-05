@@ -194,14 +194,10 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return self.source_ref.getFilename()
 
     def getVariableForAssignment(self, variable_name):
-        result = self.getProvidedVariable(variable_name)
-
-        return result.makeReference(self)
+        return self.getProvidedVariable(variable_name)
 
     def getVariableForReference(self, variable_name):
-        result = self.getProvidedVariable(variable_name)
-
-        return result.makeReference(self)
+        return self.getProvidedVariable(variable_name)
 
     def getVariableForClosure(self, variable_name):
         return self.getProvidedVariable(

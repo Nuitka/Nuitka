@@ -423,7 +423,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
             variable = self.getTargetVariableRef().getVariable()
 
             # Temp variables won't raise.
-            if variable.isTempVariableReference():
+            if variable.isTempVariable():
                 return False
 
             return True
