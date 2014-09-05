@@ -103,8 +103,9 @@ def _getConstantInitValueCode(context, constant_value, constant_type):
                     stream_data.getStreamDataCode(encoded)
                 )
             else:
-                return "UNSTREAM_STRING( %s, %d )" % (
-                    stream_data.getStreamDataCode(encoded),
+                return "UNSTREAM_STRING( %s, %d, %d )" % (
+                    stream_data.getStreamDataCode(encoded, fixed_size = True),
+                    len(constant_value),
                     1 if _isAttributeName(constant_value) else 0
                 )
         except UnicodeEncodeError:
