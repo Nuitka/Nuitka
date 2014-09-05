@@ -154,7 +154,9 @@ for filename in sorted(os.listdir( ".")):
         assert type( python_version ) is bytes
 
         if python_version.startswith("3"):
-            path = convertUsing2to3( path )
+            path, changed = convertUsing2to3(path)
+        else:
+            changed = True
 
         my_print( "Consider", path, end = " " )
 
@@ -180,8 +182,8 @@ for filename in sorted(os.listdir( ".")):
 
         checkSequence( module_statements )
 
-        if python_version.startswith("3"):
-            os.unlink( path )
+        if changed:
+            os.unlink(path)
 
         my_print("OK.")
     else:

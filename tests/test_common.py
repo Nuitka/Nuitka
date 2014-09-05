@@ -49,6 +49,23 @@ def check_output(*popenargs, **kwargs):
 
     return output
 
+def check_result(*popenargs, **kwargs):
+    if 'stdout' in kwargs:
+        raise ValueError('stdout argument not allowed, it will be overridden.')
+
+    process = subprocess.Popen(
+        stdout = subprocess.PIPE,
+        *popenargs,
+        **kwargs
+    )
+    _unused_output, _unused_err = process.communicate()
+    retcode = process.poll()
+
+    if retcode:
+        return False
+    else:
+        return True
+
 
 def setup(needs_io_encoding = False, silent = False):
     # Go its own directory, to have it easy with path knowledge.
@@ -136,6 +153,16 @@ def getTempDir():
 
 
 def convertUsing2to3(path):
+    command = [
+        os.environ["PYTHON"],
+        "-m",
+        "py_compile",
+        path
+    ]
+
+    if check_result(command, stderr = open(os.devnull, "w")):
+        return path, False
+
     filename = os.path.basename(path)
 
     new_path = os.path.join(getTempDir(), filename)
@@ -167,7 +194,7 @@ def convertUsing2to3(path):
         stderr = open(os.devnull, "w")
     )
 
-    return new_path
+    return new_path, True
 
 
 def decideFilenameVersionSkip(filename):
@@ -203,7 +230,9 @@ def decideFilenameVersionSkip(filename):
 def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
     # Apply 2to3 conversion if necessary.
     if needs_2to3:
-        path = convertUsing2to3(path)
+        path, converted = convertUsing2to3(path)
+    else:
+        converted = False
 
     command = [
         sys.executable,
@@ -224,12 +253,13 @@ def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
         my_print("Error exit!", result)
         sys.exit(result)
 
-    if needs_2to3:
+    if converted:
         os.unlink(path)
 
     if result == 2:
         sys.stderr.write("Interruped, with CTRL-C\n")
         sys.exit(2)
+
 
 def hasDebugPython():
     global python_version
