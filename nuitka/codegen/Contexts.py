@@ -374,6 +374,13 @@ def _getConstantDefaultPopulation():
             "__loader__",
         )
 
+    if python_version >= 340:
+        result += (
+            # YIELD_FROM uses this
+            "send",
+        )
+
+
     # For patching Python2 internal class type
     if python_version < 300:
         result += (

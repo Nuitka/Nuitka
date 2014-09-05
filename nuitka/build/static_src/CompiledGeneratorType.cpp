@@ -174,7 +174,6 @@ static PyObject *Nuitka_Generator_tp_iternext( Nuitka_GeneratorObject *generator
     return Nuitka_Generator_send( generator, Py_None );
 }
 
-
 #if PYTHON_VERSION < 340
 static
 #endif
@@ -676,6 +675,8 @@ PyObject *PyGen_Send( PyGenObject *generator, PyObject *arg )
     return result;
 }
 
+#if PYTHON_VERSION >= 300
+
 PyObject *ERROR_GET_STOP_ITERATION_VALUE()
 {
     assert( PyErr_ExceptionMatches( PyExc_StopIteration ) );
@@ -709,4 +710,162 @@ PyObject *ERROR_GET_STOP_ITERATION_VALUE()
 
     return value;
 }
+
+static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
+{
+    assertObject( generator->m_exception_type );
+
+    Py_INCREF( generator->m_exception_type );
+    Py_XINCREF( generator->m_exception_value );
+    Py_XINCREF( generator->m_exception_tb );
+
+    PyErr_Restore(
+        generator->m_exception_type,
+        generator->m_exception_value,
+        (PyObject *)generator->m_exception_tb
+    );
+
+    generator->m_exception_type = NULL;
+    generator->m_exception_value = NULL;
+    generator->m_exception_tb = NULL;
+}
+
+extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
+extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
+
+extern PyObject *const_str_plain_send;
+
+PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
+{
+    // This is the value, propagated back and forth the sub-generator and the
+    // yield from consumer.
+    PyObject *send_value = Py_None;
+
+    while( 1 )
+    {
+        // Send iteration value to the sub-generator, which may be a CPython
+        // generator object, something with an iterator next, or a send method,
+        // where the later is only required if values other than "None" need to
+        // be passed in.
+        PyObject *retval;
+
+        // Exception, was thrown into us, need to send that to sub-generator.
+        if ( generator->m_exception_type )
+        {
+            // The yielding generator is being closed, but we also are tasked to
+            // immediately close the currently running sub-generator.
+            if ( PyErr_GivenExceptionMatches( generator->m_exception_type, PyExc_GeneratorExit ) )
+            {
+                PyObject *close_method = PyObject_GetAttrString( value, (char *)"close" );
+
+                if ( close_method )
+                {
+                    PyObject *close_value = PyObject_Call( close_method, const_tuple_empty, NULL );
+                    Py_DECREF( close_method );
+
+                    if (unlikely( close_value == NULL ))
+                    {
+                        return NULL;
+                    }
+
+                    Py_DECREF( close_value );
+                }
+                else if ( !PyErr_ExceptionMatches( PyExc_AttributeError ) )
+                {
+                    PyErr_WriteUnraisable( (PyObject *)generator );
+                }
+
+                RAISE_GENERATOR_EXCEPTION( generator );
+                return NULL;
+            }
+
+            PyObject *throw_method = PyObject_GetAttrString( value, (char *)"throw" );
+
+            if ( throw_method )
+            {
+                retval = PyObject_CallFunctionObjArgs( throw_method, generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb, NULL );
+                Py_DECREF( throw_method );
+
+                if (unlikely( send_value == NULL ))
+                {
+                    if ( PyErr_ExceptionMatches( PyExc_StopIteration ) )
+                    {
+                        return ERROR_GET_STOP_ITERATION_VALUE();
+                    }
+
+                    return NULL;
+                }
+
+
+                generator->m_exception_type = NULL;
+                generator->m_exception_value = NULL;
+                generator->m_exception_tb = NULL;
+            }
+            else if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+            {
+                PyErr_Clear();
+
+                RAISE_GENERATOR_EXCEPTION( generator );
+                return NULL;
+            }
+            else
+            {
+                return NULL;
+            }
+
+        }
+        else if ( PyGen_CheckExact( value ) )
+        {
+            retval = PyGen_Send( (PyGenObject *)value, Py_None );
+        }
+        else if ( send_value == Py_None )
+        {
+            retval = Py_TYPE( value )->tp_iternext( value );
+        }
+        else
+        {
+            // Bug compatibility here, before 3.3 tuples were unrolled in calls, which is what
+            // PyObject_CallMethod does.
+#if PYTHON_VERSION >= 340
+            retval = PyObject_CallMethodObjArgs( value, const_str_plain_send, send_value, NULL );
+#else
+            retval = PyObject_CallMethod( value, (char *)"send", (char *)"O", send_value );
+#endif
+        }
+
+        // Check the sub-generator result
+        if ( retval == NULL )
+        {
+            if ( !ERROR_OCCURED() )
+            {
+                return INCREASE_REFCOUNT( Py_None ) ;
+            }
+
+            // The sub-generator has given an exception. In case of
+            // StopIteration, we need to check the value, as it is going to be
+            // the expression value of this "yield from", and we are done. All
+            // other errors, we need to raise.
+            if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+            {
+                return ERROR_GET_STOP_ITERATION_VALUE();
+            }
+
+            return NULL;
+        }
+        else
+        {
+            generator->m_yielded = retval;
+
+            // Return to the calling context.
+            swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+            send_value = generator->m_yielded;
+
+            assertObject( send_value );
+        }
+    }
+}
+
+#endif
+
 #endif

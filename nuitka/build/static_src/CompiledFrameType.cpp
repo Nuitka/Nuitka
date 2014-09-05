@@ -284,6 +284,9 @@ static void Nuitka_Frame_tp_clear( PyFrameObject *frame )
 }
 
 #if PYTHON_VERSION >= 340
+
+extern PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *args );
+
 static PyObject *Nuitka_Frame_clear( PyFrameObject *frame )
 {
     if ( frame->f_executing )
