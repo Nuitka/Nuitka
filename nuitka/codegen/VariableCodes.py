@@ -19,7 +19,7 @@
 
 """
 
-from nuitka import Variables
+from nuitka import Utils, Variables
 
 from . import CodeTemplates
 from .ConstantCodes import getConstantCode
@@ -186,14 +186,16 @@ def getVariableAccessCode(to_name, variable, emit, context):
         )
 
         if needs_check:
+            if Utils.python_version < 340 and not context.isPythonModule():
+                error_message = '''global name '%s' is not defined'''
+            else:
+                error_message = '''name '%s' is not defined'''
+
             getErrorFormatExitCode(
                 check_name = to_name,
                 exception  = "PyExc_NameError",
                 args       = (
-                    '''%sname '%s' is not defined''' % (
-                       "global " if not context.isPythonModule() else "",
-                       variable.getName()
-                    ),
+                    error_message % variable.getName(),
                 ),
                 emit       = emit,
                 context    = context
