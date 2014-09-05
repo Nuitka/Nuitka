@@ -38,11 +38,6 @@ public:
         Py_XDECREF( this->object );
     }
 
-    bool isInitialized() const
-    {
-        return this->object != NULL;
-    }
-
 private:
 
     PyObjectLocalVariable( const PyObjectLocalVariable &other ) { assert( false ); }

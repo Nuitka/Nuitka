@@ -45,11 +45,6 @@ public:
         Py_XDECREF( this->object );
     }
 
-    inline bool isInitialized() const
-    {
-        return this->object != NULL;
-    }
-
 private:
 
     PyObjectLocalParameterVariableWithDel( const PyObjectLocalParameterVariableWithDel &other ) { assert( false ); }
@@ -86,11 +81,6 @@ public:
         assertObject( this->object );
 
         Py_DECREF( this->object );
-    }
-
-    inline bool isInitialized() const
-    {
-        return true;
     }
 
 private:

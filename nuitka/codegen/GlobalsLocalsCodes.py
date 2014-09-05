@@ -21,7 +21,11 @@ from nuitka import Utils
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitBoolCode
 from .ModuleCodes import getModuleAccessCode
-from .VariableCodes import getVariableAssignmentCode, getVariableCode
+from .VariableCodes import (
+    getVariableAssignmentCode,
+    getVariableCode,
+    getVariableInitializedCheckCode
+)
 
 
 def getLoadGlobalsCode(to_name, emit, context):
@@ -72,7 +76,7 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
     # information.
 
     emit(
-        "if (%s.isInitialized())\n{" % getVariableCode(
+        "if (%s)\n{" % getVariableInitializedCheckCode(
             variable = variable,
             context  = context
         )

@@ -86,11 +86,6 @@ public:
         this->storage->ref_count += 1;
     }
 
-    bool isInitialized() const
-    {
-        return this->storage->object != NULL;
-    }
-
     PyObjectSharedStorage *storage;
 
 private:
@@ -172,11 +167,6 @@ public:
 
         this->storage = other.storage;
         this->storage->ref_count += 1;
-    }
-
-    bool isInitialized() const
-    {
-        return this->storage->object != NULL;
     }
 
 public:

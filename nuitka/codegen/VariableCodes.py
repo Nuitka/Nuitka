@@ -491,3 +491,29 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
             )
     else:
         assert False, variable
+
+
+def getVariableInitializedCheckCode(variable, context):
+    """ Check if a variable is initialized.
+
+        Returns a code expression that says "true" if it is.
+    """
+
+    if variable.isLocalVariable() or variable.isTempVariable():
+        if variable.isParameterVariable() and \
+           not variable.getHasDelIndicator():
+            return "true"
+
+        if variable.isSharedTechnically():
+            template = CodeTemplates.template_check_shared
+        else:
+            template = CodeTemplates.template_check_local
+
+        return template % {
+            "identifier" : getVariableCode(
+                variable = variable,
+                context  = context
+            ),
+        }
+    else:
+        assert False, variable

@@ -102,6 +102,11 @@ if ( %(result)s == true )
 }
 """
 
+template_check_shared = """\
+(%(identifier)s.storage != NULL && %(identifier)s.storage->object != NULL)"""
+
+template_check_local = """\
+(%(identifier)s.object != NULL)"""
 
 template_read_shared_unclear = """\
 if ( %(identifier)s.storage == NULL)
