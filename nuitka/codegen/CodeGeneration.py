@@ -1734,7 +1734,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 expression = value
             )
 
-            base_name = context.allocateTempName("int_base")
+            base_name = context.allocateTempName("long_base")
 
             makeExpressionCode(
                 to_name    = base_name,
