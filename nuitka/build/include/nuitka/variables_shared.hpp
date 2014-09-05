@@ -94,20 +94,6 @@ private:
 
 };
 
-class PyObjectClosureVariable : public PyObjectSharedLocalVariable
-{
-public:
-    explicit PyObjectClosureVariable()
-    {
-        this->storage = NULL;
-    }
-
-
-protected:
-
-    PyObjectClosureVariable( const PyObjectClosureVariable & ) {  assert( false ); }
-};
-
 class PyObjectSharedTempStorage
 {
 public:
