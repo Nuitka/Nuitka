@@ -17,6 +17,7 @@
 #
 from enum import Enum, IntEnum, EnumMeta, unique
 
+print("Enum class with duplicate enumeration values:")
 try:
     class Color(Enum):
         red = 1
@@ -27,3 +28,14 @@ try:
         print("not allowed to get here")
 except Exception as e:
     print("Occured", e)
+
+print("Class variable that conflicts with closure variable:")
+def testClassNamespaceOverridesClosure():
+        # See #17853.
+        x = 42
+        class X:
+            locals()["x"] = 43
+            y = x
+        print("should be 43:", X.y)
+
+testClassNamespaceOverridesClosure()
