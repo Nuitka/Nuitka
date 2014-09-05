@@ -115,6 +115,8 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
 
             PyException_SetTraceback( *exception_value, (PyObject *)(*exception_tb ? *exception_tb : (PyTracebackObject *)Py_None ) );
         }
+
+        *exception_tb = (PyTracebackObject *)PyException_GetTraceback( *exception_value );
 #endif
 
         return;
