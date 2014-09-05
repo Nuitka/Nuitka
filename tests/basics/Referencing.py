@@ -24,7 +24,7 @@ if not hasattr(sys, "gettotalrefcount"):
 gc.disable()
 
 def simpleFunction1():
-   return 1
+    return 1
 
 def simpleFunction2():
     y = 3 * x
