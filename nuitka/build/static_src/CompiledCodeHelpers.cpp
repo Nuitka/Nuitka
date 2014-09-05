@@ -1626,7 +1626,8 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 
     if (unlikely( PyType_Check( type ) == false ))
     {
-        PyErr_Format( PyExc_TypeError, "must be type, not %s", Py_TYPE( type )->tp_name );
+        PyErr_Format( PyExc_RuntimeError, "super(): __class__ is not a type (%s)", Py_TYPE( type )->tp_name );
+
         return NULL;
     }
 
