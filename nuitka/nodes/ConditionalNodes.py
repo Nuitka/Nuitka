@@ -178,10 +178,6 @@ Conditional expression raises in condition."""
 
         return False
 
-    def mayProvideReference(self):
-        return self.getExpressionYes().mayProvideReference() or \
-               self.getExpressionNo().mayProvideReference()
-
 
 class StatementConditional(StatementChildrenHavingBase):
     kind = "STATEMENT_CONDITIONAL"

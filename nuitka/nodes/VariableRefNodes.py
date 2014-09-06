@@ -53,15 +53,20 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
     def getDetails(self):
         if self.variable is None:
-            return { "name" : self.variable_name }
+            return {
+                "name" : self.variable_name
+            }
         else:
-            return { "name" : self.variable_name, "variable" : self.variable }
+            return {
+                "name"     : self.variable_name,
+                "variable" : self.variable
+            }
 
     def getDetail(self):
         if self.variable is None:
             return self.variable_name
         else:
-            return repr( self.variable )
+            return repr(self.variable)
 
     def makeCloneAt(self, source_ref):
         result = self.__class__(
@@ -156,10 +161,6 @@ Replaced read-only module attribute '__package__' with constant value."""
 
     def isKnownToBeIterable(self, count):
         return None
-
-    def mayProvideReference(self):
-        # Variables are capable of "asObject0".
-        return False
 
     def mayHaveSideEffects(self):
         # TODO: Remembered traced could tell better.

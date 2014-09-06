@@ -925,15 +925,6 @@ class ExpressionMixin:
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def mayProvideReference(self):
-        """ May at run time produce a reference.
-
-        This then would have to be consumed or released in a reliable way.
-        """
-
-        # Virtual method, pylint: disable=R0201
-        return True
-
     def getIterationLength(self):
         """ Value that "len" or "PyObject_Size" would give, if known.
 

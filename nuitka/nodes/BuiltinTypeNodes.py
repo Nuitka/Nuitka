@@ -65,10 +65,6 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
 
     builtin_spec = BuiltinOptimization.builtin_bool_spec
 
-    def mayProvideReference(self):
-        # Dedicated code returns "True" or "False" only, which requires no reference
-        return False
-
     def computeExpression(self, constraint_collection):
         value = self.getValue()
 

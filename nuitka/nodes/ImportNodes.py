@@ -278,9 +278,6 @@ class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
     def mayRaiseException(self, exception_type):
         return True
 
-    def mayProvideReference(self):
-        return False
-
 
 class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_IMPORT"

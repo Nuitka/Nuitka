@@ -115,11 +115,6 @@ Replaced negated comparison with inverse comparision."""
 
         return not_node, None, None
 
-    def mayProvideReference(self):
-        # Dedicated code returns "True" or "False" only, which requires no
-        # reference, except for rich comparisons, which do.
-        return self.comparator in PythonOperators.rich_comparison_functions
-
 
 class ExpressionComparisonIsIsNotBase(ExpressionComparison):
     def __init__(self, left, right, comparator, source_ref):

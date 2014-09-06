@@ -271,11 +271,6 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
 
         return (self,)
 
-    def mayProvideReference(self):
-        # Dedicated code returns "True" or "False" only, which requires no
-        # reference, except for rich comparisons, which do.
-        return False
-
 
 class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"

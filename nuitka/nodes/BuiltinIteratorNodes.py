@@ -112,10 +112,6 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
 
         return True
 
-    def mayProvideReference(self):
-        # Method overload, where it's fixed by type, pylint: disable=R0201
-        return True
-
     def isKnownToBeIterableAtMin(self, count):
         assert type( count ) is int
 

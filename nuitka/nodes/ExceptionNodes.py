@@ -215,9 +215,6 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         "exception_value"
     )
 
-    def mayProvideReference(self):
-        return False
-
     def computeExpression(self, constraint_collection):
         return self, None, None
 
