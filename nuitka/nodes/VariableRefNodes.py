@@ -51,6 +51,8 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         if variable is not None:
             assert variable.getName() == variable_name
 
+        self.variable_trace = None
+
     def getDetails(self):
         if self.variable is None:
             return {
@@ -95,6 +97,10 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
     def computeExpression(self, constraint_collection):
         assert self.variable is not None
+
+        self.variable_trace = constraint_collection.getVariableCurrentTrace(
+            variable = self.variable
+        )
 
         if _isReadOnlyUnterdeterminedModuleVariable(self.variable):
             constraint_collection.assumeUnclearLocals(self.source_ref)
@@ -168,7 +174,7 @@ Replaced read-only module attribute '__package__' with constant value."""
 
     def mayRaiseException(self, exception_type):
         # TODO: Remembered traced could tell better.
-        return True
+        return not self.variable_trace.mustHaveValue()
 
 
 class ExpressionTargetVariableRef(ExpressionVariableRef):
@@ -188,7 +194,9 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
 
     def getDetails(self):
         if self.variable is None:
-            return { "name" : self.variable_name }
+            return {
+                "name" : self.variable_name
+            }
         else:
             return {
                 "name"     : self.variable_name,
@@ -230,9 +238,12 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable = variable
+        self.variable_trace = None
 
     def getDetails(self):
-        return { "name" : self.variable.getName() }
+        return {
+            "name" : self.variable.getName()
+        }
 
     def getDetail(self):
         return self.variable.getName()
@@ -253,7 +264,9 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         return False
 
     def computeExpression(self, constraint_collection):
-        constraint_collection.onVariableUsage(self)
+        self.variable_trace = constraint_collection.getVariableCurrentTrace(
+            variable = self.variable
+        )
 
         # Nothing to do here.
         return self, None, None

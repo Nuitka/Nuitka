@@ -1215,24 +1215,18 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         assert False, expression
 
     if expression.isExpressionVariableRef():
-        variable = expression.getVariable()
-
         Generator.getVariableAccessCode(
             to_name     = to_name,
-            variable    = variable,
-            # TODO: Base on SSA instead.
-            needs_check = Generator.decideVariableNeedsCheck(variable),
+            variable    = expression.getVariable(),
+            needs_check = expression.mayRaiseException(BaseException),
             emit        = emit,
             context     = context
         )
     elif expression.isExpressionTempVariableRef():
-        variable = expression.getVariable()
-
         Generator.getVariableAccessCode(
             to_name     = to_name,
-            variable    = variable,
-            # TODO: Base on SSA instead.
-            needs_check = Generator.decideVariableNeedsCheck(variable),
+            variable    = expression.getVariable(),
+            needs_check = expression.mayRaiseException(BaseException),
             emit        = emit,
             context     = context
         )

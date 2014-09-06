@@ -120,6 +120,13 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     def getTruthValue(self):
         return self.getIterationLength() > 0
 
+    def mayRaiseException(self, exception_type):
+        for element in self.getElements():
+            if element.mayRaiseException(exception_type):
+                return True
+
+        return False
+
     def computeExpressionDrop(self, statement, constraint_collection):
         from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 

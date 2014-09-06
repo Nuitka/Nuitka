@@ -70,9 +70,6 @@ class VariableUsageTrackingMixin:
 
             return self.variable_usages[ variable ]
 
-    def setIndications(self):
-        pass
-
     def _initVariable(self, variable):
         if variable.isParameterVariable():
             # TODO: Actually we know better, it is known to be initialized,
@@ -371,11 +368,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         # Make references point to it.
         self.markCurrentVariableTrace( variable, version )
 
-    def onVariableUsage(self, ref_node):
-        variable = ref_node.getVariable()
-
-        self.getVariableCurrentTrace(variable).addUsage(ref_node)
-
     def onVariableContentEscapes(self, variable):
         self.getVariableCurrentTrace( variable ).onValueEscape()
 
@@ -407,12 +399,14 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         if new_node is not expression:
             expression.replaceWith(new_node)
 
-        if new_node.isExpressionVariableRef():
-            # Remember this for constraint collection. Any variable that we
-            # access has a version already that we can query. TODO: May do this
-            # as a "computeReference".
-
-            self.onVariableUsage(new_node)
+        # We add variable reference nodes late to their traces, only after they
+        # are actually produced, and not resolved to something else, so we do
+        # not have them dangling, and the code complexity inside of their own
+        # "computeExpression" functions.
+        if new_node.isExpressionVariableRef() or \
+           new_node.isExpressionTempVariableRef():
+            # Remember the reference for constraint collection.
+            new_node.variable_trace.addUsage(new_node)
 
         return new_node
 
@@ -593,10 +587,6 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
 
         self.variable_actives[variable] = variable_trace.getVersion()
 
-    def mergeBranches(self, collection_yes, collection_no):
-        # Branches in branches, should ask parent about merging them.
-        return self.parent.mergeBranches(collection_yes, collection_no)
-
 
 class ConstraintCollectionFunction(CollectionStartpointMixin,
                                    ConstraintCollectionBase,
@@ -630,10 +620,6 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
             if result is not statements_sequence:
                 function_body.setBody(result)
-
-        # TODO: Should become trace based as well.
-        self.setIndications()
-        # self.dumpTraces()
 
         self.makeVariableTraceOptimizations(function_body)
 
@@ -725,8 +711,6 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
 
             if result is not module_body:
                 module.setBody(result)
-
-        self.setIndications()
 
         self.makeVariableTraceOptimizations(module)
 

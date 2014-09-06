@@ -33,7 +33,6 @@ class Variable:
         self.owner = owner
 
         self.read_only_indicator = None
-        self.has_del = False
 
         self.version_number = 0
 
@@ -50,12 +49,6 @@ class Variable:
         assert value in ( True, False )
 
         self.read_only_indicator = value
-
-    def getHasDelIndicator(self):
-        return self.has_del
-
-    def setHasDelIndicator(self):
-        self.has_del = True
 
     def allocateTargetNumber(self):
         self.version_number += 1
@@ -206,10 +199,8 @@ class ParameterVariable(LocalVariable):
     def getDeclarationTypeCode(self, in_context):
         if self.isSharedTechnically():
             return "PyObjectSharedLocalVariable"
-        elif self.getHasDelIndicator():
-            return "PyObjectLocalParameterVariableWithDel"
         else:
-            return "PyObjectLocalParameterVariableNoDel"
+            return "PyObjectLocalParameterVariableWithDel"
 
 
 class NestedParameterVariable(ParameterVariable):

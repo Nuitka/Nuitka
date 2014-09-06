@@ -108,6 +108,15 @@ class VariableTraceBase:
     def isMergeTrace(self):
         return False
 
+    def mustHaveValue(self):
+        # TODO: Temporarily disable far reaching of assumptions, until value
+        # escaping can be trusted.
+        if self.variable.isModuleVariable() or \
+           self.variable.isSharedTechnically():
+            return False
+
+        return self.isInitTrace() or self.isAssignTrace()
+
 
 class VariableUninitTrace(VariableTraceBase):
     def __init__(self, variable, version):

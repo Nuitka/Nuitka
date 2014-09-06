@@ -189,52 +189,6 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name):
         assert False, variable
 
 
-def decideVariableNeedsCheck(variable):
-    if variable.isModuleVariable():
-        # TODO: use SSA to determine
-        return True
-    elif variable.isMaybeLocalVariable():
-        # TODO: use SSA to determine
-        return True
-    elif variable.isLocalVariable():
-        if variable.isSharedTechnically():
-            if variable.isParameterVariable() and \
-               not variable.getHasDelIndicator():
-                needs_check = False
-            else:
-                needs_check = True
-        else:
-            if variable.isParameterVariable() and \
-               not variable.getHasDelIndicator():
-                needs_check = False
-            else:
-                needs_check = True
-
-        needs_check = True
-
-        # Once not based on del indicator, we can remove the checks.
-        return needs_check
-    elif variable.isTempVariable():
-        if variable.isSharedTechnically():
-            needs_check = True
-
-            return needs_check
-        else:
-            if variable.isParameterVariable() and \
-               not variable.getHasDelIndicator():
-                needs_check = False
-            else:
-                needs_check = True
-
-            if variable.isTempVariable():
-                needs_check = False
-
-
-            return needs_check
-    else:
-        assert False, variable
-
-
 def getVariableAccessCode(to_name, variable, needs_check, emit, context):
     assert isinstance(variable, Variables.Variable), variable
 
@@ -515,10 +469,6 @@ def getVariableInitializedCheckCode(variable, context):
     """
 
     if variable.isLocalVariable() or variable.isTempVariable():
-        if variable.isParameterVariable() and \
-           not variable.getHasDelIndicator():
-            return "true"
-
         if variable.isSharedTechnically():
             template = CodeTemplates.template_check_shared
         else:

@@ -33,13 +33,6 @@ public:
         this->object = NULL;
     }
 
-    void setVariableValue( PyObject *object )
-    {
-        assertObject( object );
-        assert( this->object == NULL);
-        this->object = object;
-    }
-
     ~PyObjectLocalParameterVariableWithDel()
     {
         Py_XDECREF( this->object );
@@ -48,44 +41,6 @@ public:
 private:
 
     PyObjectLocalParameterVariableWithDel( const PyObjectLocalParameterVariableWithDel &other ) { assert( false ); }
-
-public:
-    PyObject *object;
-};
-
-class PyObjectLocalParameterVariableNoDel
-{
-public:
-
-    explicit PyObjectLocalParameterVariableNoDel( PyObject *object )
-    {
-        assertObject( object );
-
-        this->object = object;
-    }
-
-    explicit PyObjectLocalParameterVariableNoDel()
-    {
-        this->object = NULL;
-    }
-
-    void setVariableValue( PyObject *object )
-    {
-        assertObject( object );
-        assert( this->object == NULL);
-        this->object = object;
-    }
-
-    ~PyObjectLocalParameterVariableNoDel()
-    {
-        assertObject( this->object );
-
-        Py_DECREF( this->object );
-    }
-
-private:
-
-    PyObjectLocalParameterVariableNoDel( const PyObjectLocalParameterVariableNoDel &other ) { assert( false ); }
 
 public:
     PyObject *object;

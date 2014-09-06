@@ -544,11 +544,11 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
 
     parameter_variables, entry_point_code, parameter_objects_decl = \
       getParameterParsingCode(
-        function_identifier     = function_identifier,
-        function_name           = function_name,
-        parameters              = parameters,
-        needs_creation          = context.isForCreatedFunction(),
-        context                 = context,
+        function_identifier = function_identifier,
+        function_name       = function_name,
+        parameters          = parameters,
+        needs_creation      = context.isForCreatedFunction(),
+        context             = context,
     )
 
     context_decl = []
@@ -567,12 +567,20 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     parameter_context_assign = []
 
     for variable in parameter_variables:
-        parameter_context_assign.append(
-            "_python_context->%s.setVariableValue( _python_par_%s );" % (
-                getVariableCodeName(variable = variable, in_context = True),
-                variable.getName()
+        if variable.isSharedTechnically():
+            parameter_context_assign.append(
+                "_python_context->%s.storage->object = _python_par_%s;" % (
+                    getVariableCodeName(variable = variable, in_context = True),
+                    variable.getName()
+                )
             )
-        )
+        else:
+            parameter_context_assign.append(
+                "_python_context->%s.object = _python_par_%s;" % (
+                    getVariableCodeName(variable = variable, in_context = True),
+                    variable.getName()
+                )
+            )
         del variable
 
     function_var_inits = []
