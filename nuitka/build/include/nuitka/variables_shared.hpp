@@ -46,10 +46,6 @@ private:
 class PyObjectSharedLocalVariable
 {
 public:
-    explicit PyObjectSharedLocalVariable( PyObject *object )
-    {
-        this->storage = new PyObjectSharedStorage( object );
-    }
 
     explicit PyObjectSharedLocalVariable()
     {
@@ -68,11 +64,6 @@ public:
                 delete this->storage;
             }
         }
-    }
-
-    void setVariableValue( PyObject *object )
-    {
-        this->storage->object = object;
     }
 
     void shareWith( const PyObjectSharedLocalVariable &other )

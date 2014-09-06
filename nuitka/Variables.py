@@ -196,12 +196,6 @@ class ParameterVariable(LocalVariable):
     def isParameterVariableKwOnly(self):
         return self.kw_only
 
-    def getDeclarationTypeCode(self, in_context):
-        if self.isSharedTechnically():
-            return "PyObjectSharedLocalVariable"
-        else:
-            return "PyObjectLocalParameterVariableWithDel"
-
 
 class NestedParameterVariable(ParameterVariable):
     def __init__(self, owner, parameter_name, parameter_spec):

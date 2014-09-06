@@ -19,12 +19,11 @@
 
 """
 
-from nuitka import Utils, Variables
+from nuitka import Utils, Variables, Options
 
 from . import CodeTemplates
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
-    getErrorExitCode,
     getErrorFormatExitBoolCode,
     getErrorFormatExitCode
 )
@@ -99,10 +98,12 @@ def getLocalVariableInitCode(variable, init_from = None, in_context = False):
     if not result.endswith("*"):
         result += " "
 
-    result += getVariableCodeName(
+    code_name = getVariableCodeName(
         in_context = in_context,
         variable   = variable
     )
+
+    result += code_name;
 
     if not in_context:
         if variable.isTempVariable():
@@ -112,7 +113,10 @@ def getLocalVariableInitCode(variable, init_from = None, in_context = False):
                 result += "( NULL )"
         else:
             if init_from is not None:
-                result += "( %s )" % init_from
+                if variable.isSharedTechnically():
+                    result += "; %s.storage->object = %s" % (code_name, init_from)
+                else:
+                    result += "; %s.object = %s" % (code_name, init_from)
 
     result += ";"
 
@@ -219,6 +223,8 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 emit       = emit,
                 context    = context
             )
+        elif Options.isDebug():
+            emit("assertObject(%s);" % to_name)
 
         return
     elif variable.isMaybeLocalVariable():
@@ -246,6 +252,8 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 emit       = emit,
                 context    = context
             )
+        elif Options.isDebug():
+            emit("assertObject(%s);" % to_name)
 
         return
     elif variable.isLocalVariable():
@@ -276,6 +284,8 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 emit       = emit,
                 context    = context
             )
+        elif Options.isDebug():
+            emit("assertObject(%s);" % to_name)
 
         return
     elif variable.isTempVariable():
@@ -301,6 +311,8 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     emit       = emit,
                     context    = context
                 )
+            elif Options.isDebug():
+                emit("assertObject(%s);" % to_name)
 
             return
         else:
@@ -325,6 +337,8 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     emit       = emit,
                     context    = context
                 )
+            elif Options.isDebug():
+                emit("assertObject(%s);" % to_name)
 
             return
 
