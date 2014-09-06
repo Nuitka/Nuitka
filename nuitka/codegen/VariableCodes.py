@@ -189,13 +189,56 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name):
         assert False, variable
 
 
-def getVariableAccessCode(to_name, variable, emit, context):
+def decideVariableNeedsCheck(variable):
+    if variable.isModuleVariable():
+        # TODO: use SSA to determine
+        return True
+    elif variable.isMaybeLocalVariable():
+        # TODO: use SSA to determine
+        return True
+    elif variable.isLocalVariable():
+        if variable.isSharedTechnically():
+            if variable.isParameterVariable() and \
+               not variable.getHasDelIndicator():
+                needs_check = False
+            else:
+                needs_check = True
+        else:
+            if variable.isParameterVariable() and \
+               not variable.getHasDelIndicator():
+                needs_check = False
+            else:
+                needs_check = True
+
+        needs_check = True
+
+        # Once not based on del indicator, we can remove the checks.
+        return needs_check
+    elif variable.isTempVariable():
+        if variable.isSharedTechnically():
+            needs_check = True
+
+            return needs_check
+        else:
+            if variable.isParameterVariable() and \
+               not variable.getHasDelIndicator():
+                needs_check = False
+            else:
+                needs_check = True
+
+            if variable.isTempVariable():
+                needs_check = False
+
+
+            return needs_check
+    else:
+        assert False, variable
+
+
+def getVariableAccessCode(to_name, variable, needs_check, emit, context):
     assert isinstance(variable, Variables.Variable), variable
 
     if variable.isModuleVariable():
-        # TODO: use SSA to determine
-        needs_check = True
-
         emit(
             CodeTemplates.template_read_mvar_unclear % {
                 "module_identifier" : context.getModuleCodeName(),
@@ -225,9 +268,6 @@ def getVariableAccessCode(to_name, variable, emit, context):
 
         return
     elif variable.isMaybeLocalVariable():
-        # TODO: use SSA to determine
-        needs_check = True
-
         emit(
             CodeTemplates.template_read_maybe_local_unclear % {
                 "locals_dict"       : "locals_dict",
@@ -256,25 +296,12 @@ def getVariableAccessCode(to_name, variable, emit, context):
         return
     elif variable.isLocalVariable():
         if variable.isSharedTechnically():
-            if variable.isParameterVariable() and \
-               not variable.getHasDelIndicator():
+            if not needs_check:
                 template = CodeTemplates.template_read_shared_unclear
-                needs_check = False
             else:
                 template = CodeTemplates.template_read_shared_known
-                needs_check = True
         else:
             template = CodeTemplates.template_read_local
-            if variable.isParameterVariable() and \
-               not variable.getHasDelIndicator():
-                needs_check = False
-            else:
-                needs_check = True
-
-        # TODO: Temporary, as DelIndicator is not based on SSA yes, we need
-        # to pretend we may raise even then.
-        context.markAsNeedsExceptionVariables()
-        needs_check = True
 
         emit(
             template % {
@@ -300,7 +327,6 @@ def getVariableAccessCode(to_name, variable, emit, context):
     elif variable.isTempVariable():
         if variable.isSharedTechnically():
             template = CodeTemplates.template_read_shared_unclear
-            needs_check = True
 
             emit(
                 template % {
@@ -308,9 +334,6 @@ def getVariableAccessCode(to_name, variable, emit, context):
                     "identifier" : getVariableCode(context, variable)
                 }
             )
-
-            if variable.isTempVariableReference():
-                needs_check = False
 
             if needs_check:
                 getErrorFormatExitCode(
@@ -328,11 +351,6 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
             return
         else:
             template = CodeTemplates.template_read_local
-            if variable.isParameterVariable() and \
-               not variable.getHasDelIndicator():
-                needs_check = False
-            else:
-                needs_check = True
 
             emit(
                 template % {
@@ -340,9 +358,6 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     "identifier" : getVariableCode(context, variable)
                 }
             )
-
-            if variable.isTempVariable():
-                needs_check = False
 
             if needs_check:
                 getErrorFormatExitCode(

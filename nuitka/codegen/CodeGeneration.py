@@ -1215,27 +1215,26 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         assert False, expression
 
     if expression.isExpressionVariableRef():
-        if expression.getVariable() is None:
-            Tracing.printError("Illegal variable reference, not resolved.")
-
-            expression.dump()
-            assert False, (
-                expression.getSourceReference(),
-                expression.getVariableName()
-            )
+        variable = expression.getVariable()
 
         Generator.getVariableAccessCode(
-            to_name  = to_name,
-            variable = expression.getVariable(),
-            emit     = emit,
-            context  = context
+            to_name     = to_name,
+            variable    = variable,
+            # TODO: Base on SSA instead.
+            needs_check = Generator.decideVariableNeedsCheck(variable),
+            emit        = emit,
+            context     = context
         )
     elif expression.isExpressionTempVariableRef():
+        variable = expression.getVariable()
+
         Generator.getVariableAccessCode(
-            to_name  = to_name,
-            variable = expression.getVariable(),
-            emit     = emit,
-            context  = context
+            to_name     = to_name,
+            variable    = variable,
+            # TODO: Base on SSA instead.
+            needs_check = Generator.decideVariableNeedsCheck(variable),
+            emit        = emit,
+            context     = context
         )
     elif expression.isExpressionConstantRef():
         Generator.getConstantAccess(

@@ -164,6 +164,7 @@ from .SubscriptCodes import (
     getSubscriptLookupCode
 )
 from .VariableCodes import (
+    decideVariableNeedsCheck,
     getVariableAccessCode,
     getVariableAssignmentCode,
     getVariableCode,
