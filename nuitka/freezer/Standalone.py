@@ -36,6 +36,7 @@ from nuitka.__past__ import (  # pylint: disable=W0622
     urlretrieve
 )
 from nuitka.codegen.ConstantCodes import needsPickleInit
+from nuitka.tree import SourceReading
 
 
 def getDependsExePath():
@@ -176,11 +177,11 @@ def _detectedSourceFile(filename, module_name, result, is_late):
             is_late     = is_late
         )
 
-    source_code = open(filename,"rb").read()
-
     if Utils.python_version >= 300:
-        source_code = source_code.decode("utf-8")
+        source_code = SourceReading._readSourceCodeFromFilename3(filename)
         filename = filename.decode("utf-8")
+    else:
+        source_code = open(filename,"rb").read()
 
 
     if module_name == "site":
