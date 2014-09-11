@@ -34,7 +34,7 @@ from logging import debug
 
 
 class VariableTraceBase:
-    def __init__(self, variable, version):
+    def __init__(self, variable, version, previous):
         self.variable = variable
         self.version = version
 
@@ -51,6 +51,9 @@ class VariableTraceBase:
         # yet escaped. If it is 0, it escaped immediately. Escaping is a one
         # time action.
         self.escaped_at = None
+
+        # Previous trace this is replacing.
+        self.previous = previous
 
     def isNode(self):
         return False
@@ -90,6 +93,9 @@ class VariableTraceBase:
     def getDefiniteUsages(self):
         return self.usages
 
+    def getPrevious(self):
+        return self.previous
+
     def getReleases(self):
         return self.releases
 
@@ -117,13 +123,29 @@ class VariableTraceBase:
 
         return self.isInitTrace() or self.isAssignTrace()
 
+    def mustBeUninit(self):
+        if self.variable.isModuleVariable() or \
+           self.variable.isSharedTechnically():
+            return False
+
+        return self.isUninitTrace()
+
+    def mayBeUninit(self):
+        if self.variable.isModuleVariable() or \
+           self.variable.isSharedTechnically():
+            return True
+
+        return self.isUninitTrace() or self.isUnknownTrace()
+
+
 
 class VariableUninitTrace(VariableTraceBase):
-    def __init__(self, variable, version):
+    def __init__(self, variable, version, previous):
         VariableTraceBase.__init__(
             self,
             variable = variable,
-            version  = version
+            version  = version,
+            previous = previous
         )
 
     def __repr__(self):
@@ -195,11 +217,12 @@ class VariableInitTrace(VariableTraceBase):
 
 
 class VariableUnknownTrace(VariableTraceBase):
-    def __init__(self, variable, version):
+    def __init__(self, variable, version, previous):
         VariableTraceBase.__init__(
             self,
             variable = variable,
-            version  = version
+            version  = version,
+            previous = previous
         )
 
     def __repr__(self):
@@ -233,12 +256,15 @@ class VariableUnknownTrace(VariableTraceBase):
 
 
 class VariableAssignTrace(VariableTraceBase):
-    def __init__(self, assign_node, variable, version):
+    def __init__(self, assign_node, variable, version, previous):
         VariableTraceBase.__init__(
             self,
             variable = variable,
-            version  = version
+            version  = version,
+            previous = previous
         )
+
+        assert assign_node.isNode()
 
         self.assign_node = assign_node
 
@@ -247,7 +273,7 @@ class VariableAssignTrace(VariableTraceBase):
 <VariableAssignTrace {variable} {version} at {source_ref}>""".format(
             variable   = self.variable,
             version    = self.version,
-            source_ref = self.assign_node.getSourceReference()
+            source_ref = self.assign_node.getSourceReference().getAsString()
         )
 
     def dump(self):
@@ -288,11 +314,9 @@ class VariableMergeTrace(VariableTraceBase):
         VariableTraceBase.__init__(
             self,
             variable = variable,
-            version  = version
+            version  = version,
+            previous = (trace_yes, trace_no)
         )
-
-        self.trace_yes = trace_yes
-        self.trace_no = trace_no
 
         trace_yes.addMerge(self)
         trace_no.addMerge(self)
@@ -308,6 +332,41 @@ class VariableMergeTrace(VariableTraceBase):
         )
         debug(
             "  Merge of %s <-> %s",
-            self.trace_yes,
-            self.trace_no
+            self.previous[0],
+            self.previous[1]
         )
+
+    def mustHaveValue(self):
+        # TODO: Temporarily disable far reaching of assumptions, until value
+        # escaping can be trusted.
+        if self.variable.isModuleVariable() or \
+           self.variable.isSharedTechnically():
+            return False
+
+        for previous in self.previous:
+            if not previous.isInitTrace() and not previous.isAssignTrace():
+                return False
+
+        return True
+
+    def mustBeUninit(self):
+        if self.variable.isModuleVariable() or \
+           self.variable.isSharedTechnically():
+            return False
+
+        for previous in self.previous:
+            if not previous.isUninitTrace():
+                return False
+
+        return True
+
+    def mayBeUninit(self):
+        if self.variable.isModuleVariable() or \
+           self.variable.isSharedTechnically():
+            return True
+
+        for previous in self.previous:
+            if not previous.isUninitTrace() and not previous.isUnknownTrace():
+                return False
+
+        return True

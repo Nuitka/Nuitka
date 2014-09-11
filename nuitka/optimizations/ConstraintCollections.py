@@ -161,7 +161,8 @@ class CollectionTracingMixin:
                 version  = version,
                 trace    = VariableUnknownTrace(
                     variable = variable,
-                    version  = version
+                    version  = version,
+                    previous = current
                 )
             )
 
@@ -236,7 +237,8 @@ class CollectionStartpointMixin:
             version  = 0,
             trace    = VariableUnknownTrace(
                 variable = variable,
-                version  = 0
+                version  = 0,
+                previous = None
             )
         )
 
@@ -248,7 +250,8 @@ class CollectionStartpointMixin:
             version  = 0,
             trace    = VariableUninitTrace(
                 variable = variable,
-                version  = 0
+                version  = 0,
+                previous = None
             )
         )
 
@@ -320,56 +323,64 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         return self.parent.addVariableMergeTrace(variable, trace_yes, trace_no)
 
     def onVariableSet(self, assign_node):
-        if assign_node.isStatementAssignmentVariable():
-            target_node = assign_node.getTargetVariableRef()
-        else:
-            target_node = assign_node
+        variable_ref = assign_node.getTargetVariableRef()
 
-        # Add a new trace, using the version allocated for the variable, and
-        # remember the value friend.
-        variable = target_node.getVariable()
+        version = variable_ref.getVariableVersion()
+        variable = variable_ref.getVariable()
 
-        # print "SET", target_node, target_node.getVariableVersion()
-        version = target_node.getVariableVersion()
+        variable_trace = VariableAssignTrace(
+            assign_node = assign_node,
+            variable    = variable,
+            version     = version,
+            previous    = self.getVariableCurrentTrace(
+                variable = variable
+            )
+        )
 
         self.addVariableTrace(
             variable = variable,
             version  = version,
-            trace    = VariableAssignTrace(
-                assign_node = assign_node,
-                variable    = variable,
-                version     = version
-            )
+            trace    = variable_trace
         )
 
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
 
-    def onVariableDel(self, target_node):
+        return variable_trace
+
+
+    def onVariableDel(self, del_node):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
-        variable = target_node.getVariable()
+        variable_ref = del_node.getTargetVariableRef()
 
-        current = self.getVariableCurrentTrace( variable )
-        current.addRelease( target_node )
+        version = variable_ref.getVariableVersion()
+        variable = variable_ref.getVariable()
 
-        version = target_node.getVariableVersion()
+        current = self.getVariableCurrentTrace(variable)
+        current.addRelease(del_node)
+
+        variable_trace = VariableUninitTrace(
+            variable = variable,
+            version  = version,
+            previous = current
+        )
 
         # Assign to uninit again.
         self.addVariableTrace(
             variable = variable,
             version  = version,
-            trace    = VariableUninitTrace(
-                variable = variable,
-                version  = version
-            )
+            trace    = variable_trace
         )
 
         # Make references point to it.
-        self.markCurrentVariableTrace( variable, version )
+        self.markCurrentVariableTrace(variable, version)
+
+        return variable_trace
+
 
     def onVariableContentEscapes(self, variable):
-        self.getVariableCurrentTrace( variable ).onValueEscape()
+        self.getVariableCurrentTrace(variable).onValueEscape()
 
     def onExpression(self, expression, allow_none = False):
         if expression is None and allow_none:

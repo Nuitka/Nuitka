@@ -43,7 +43,10 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_VARIABLE_REF"
 
     def __init__(self, variable_name, source_ref, variable = None):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         self.variable_name = variable_name
         self.variable = variable

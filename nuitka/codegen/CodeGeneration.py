@@ -3003,10 +3003,11 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     )
 
     Generator.getVariableAssignmentCode(
-        tmp_name = tmp_name2,
-        variable = tried_statement.getTargetVariableRef().getVariable(),
-        emit     = emit,
-        context  = context
+        tmp_name      = tmp_name2,
+        variable      = tried_statement.getTargetVariableRef().getVariable(),
+        emit          = emit,
+        needs_release = None,
+        context       = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
@@ -3899,7 +3900,10 @@ def generateGeneratorReturnCode(statement, emit, context):
     Generator.getGotoCode(context.getReturnTarget(), emit)
 
 
-def generateAssignmentVariableCode(variable_ref, value, emit, context):
+def generateAssignmentVariableCode(statement, emit, context):
+    variable_ref  = statement.getTargetVariableRef()
+    value         = statement.getAssignSource()
+
     tmp_name = context.allocateTempName("assign_source")
 
     generateExpressionCode(
@@ -3910,14 +3914,15 @@ def generateAssignmentVariableCode(variable_ref, value, emit, context):
     )
 
     Generator.getVariableAssignmentCode(
-        tmp_name = tmp_name,
-        variable = variable_ref.getVariable(),
-        emit     = emit,
-        context  = context
+        tmp_name      = tmp_name,
+        variable      = variable_ref.getVariable(),
+        needs_release = statement.needsReleaseValue(),
+        emit          = emit,
+        context       = context
     )
 
-    if context.needsCleanup(tmp_name):
-        context.removeCleanupTempName(tmp_name)
+    # Ownership of that reference should be transfered.
+    assert not context.needsCleanup(tmp_name)
 
 
 def generateStatementOnlyCode(value, emit, context):
@@ -4010,10 +4015,9 @@ def _generateStatementCode(statement, emit, context):
 
     if statement.isStatementAssignmentVariable():
         generateAssignmentVariableCode(
-            variable_ref  = statement.getTargetVariableRef(),
-            value         = statement.getAssignSource(),
-            emit          = emit,
-            context       = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementAssignmentAttribute():
         generateAssignmentAttributeCode(

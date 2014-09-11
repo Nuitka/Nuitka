@@ -43,6 +43,35 @@ else
     Py_DECREF( old );
 }"""
 
+template_write_local_empty_ref0 = """\
+assert( %(identifier)s.object == NULL );
+%(identifier)s.object = %(tmp_name)s;
+"""
+
+template_write_local_empty_ref1 = """\
+assert( %(identifier)s.object == NULL );
+%(identifier)s.object = INCREASE_REFCOUNT( %(tmp_name)s );
+"""
+
+template_write_local_clear_ref0 = """\
+assert( %(identifier)s.object != NULL );
+{
+    PyObject *old = %(identifier)s.object;
+    %(identifier)s.object = %(tmp_name)s;
+    Py_DECREF( old );
+}
+"""
+
+template_write_local_clear_ref1 = """\
+assert( %(identifier)s.object != NULL );
+{
+    PyObject *old = %(identifier)s.object;
+    %(identifier)s.object = INCREASE_REFCOUNT( %(tmp_name)s );
+    Py_DECREF( old );
+}
+"""
+
+
 template_write_shared_unclear_ref0 = """\
 if (%(identifier)s.storage->object == NULL)
 {
@@ -66,6 +95,17 @@ else
     %(identifier)s.storage->object = INCREASE_REFCOUNT( %(tmp_name)s );
     Py_DECREF( old );
 }"""
+
+template_write_shared_clear_ref0 = """\
+assert( %(identifier)s.storage->object == NULL );
+%(identifier)s.storage->object = %(tmp_name)s;
+"""
+
+template_write_shared_clear_ref1 = """\
+assert( %(identifier)s.storage->object == NULL );
+%(identifier)s.storage->object = INCREASE_REFCOUNT( %(tmp_name)s );
+"""
+
 
 template_read_local = """\
 %(tmp_name)s = %(identifier)s.object;

@@ -123,7 +123,7 @@ def getLocalVariableInitCode(variable, init_from = None, in_context = False):
     return result
 
 
-def getVariableAssignmentCode(context, emit, variable, tmp_name):
+def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
     assert isinstance(variable, Variables.Variable), variable
 
     # For transfer of ownership.
@@ -150,14 +150,30 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name):
     elif variable.isLocalVariable():
         if variable.isSharedTechnically():
             if ref_count:
-                template = CodeTemplates.template_write_shared_unclear_ref0
+                if needs_release is False:
+                    template = CodeTemplates.template_write_shared_clear_ref0
+                else:
+                    template = CodeTemplates.template_write_shared_unclear_ref0
             else:
-                template = CodeTemplates.template_write_shared_unclear_ref1
+                if needs_release is False:
+                    template = CodeTemplates.template_write_shared_clear_ref1
+                else:
+                    template = CodeTemplates.template_write_shared_unclear_ref1
         else:
             if ref_count:
-                template = CodeTemplates.template_write_local_unclear_ref0
+                if needs_release is False:
+                    template = CodeTemplates.template_write_local_empty_ref0
+                elif needs_release is True:
+                    template = CodeTemplates.template_write_local_clear_ref0
+                else:
+                    template = CodeTemplates.template_write_local_unclear_ref0
             else:
-                template = CodeTemplates.template_write_local_unclear_ref1
+                if needs_release is False:
+                    template = CodeTemplates.template_write_local_empty_ref1
+                elif needs_release is True:
+                    template = CodeTemplates.template_write_local_clear_ref1
+                else:
+                    template = CodeTemplates.template_write_local_unclear_ref1
 
         emit(
             template % {
@@ -176,9 +192,19 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name):
                 template = CodeTemplates.template_write_shared_unclear_ref1
         else:
             if ref_count:
-                template = CodeTemplates.template_write_local_unclear_ref0
+                if needs_release is False:
+                    template = CodeTemplates.template_write_local_empty_ref0
+                elif needs_release is True:
+                    template = CodeTemplates.template_write_local_clear_ref0
+                else:
+                    template = CodeTemplates.template_write_local_unclear_ref0
             else:
-                template = CodeTemplates.template_write_local_unclear_ref1
+                if needs_release is False:
+                    template = CodeTemplates.template_write_local_empty_ref1
+                elif needs_release is True:
+                    template = CodeTemplates.template_write_local_clear_ref1
+                else:
+                    template = CodeTemplates.template_write_local_unclear_ref1
 
         emit(
             template % {
