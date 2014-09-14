@@ -63,7 +63,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     variable_name = non_local_name
                 )
 
-                node.registerProvidedVariable( variable )
+                node.registerProvidedVariable(variable)
 
                 if variable.isModuleVariable():
                     SyntaxErrors.raiseSyntaxError(
@@ -110,7 +110,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             # needed.
 
             node.qualname_setup = None
-
 
     def onEnterNode(self, node):
         # Mighty complex code with lots of branches and statements, but it
@@ -162,9 +161,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             # after they were declared, so we need to fix this up.
             if python_version >= 340:
                 self._handleQualnameSetup(node)
-
-
-
         # Attribute access of names of class functions should be mangled, if
         # they start with "__", but do not end in "__" as well.
         elif node.isExpressionAttributeLookup() or \
@@ -204,7 +200,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             current = node
 
             while True:
-                if current.isPythonModule() or current.isExpressionFunctionBody():
+                if current.isPythonModule() or \
+                   current.isExpressionFunctionBody():
                     if node.isStatementContinueLoop():
                         message = "'continue' not properly in loop"
                         col_offset   = 16 if python_version >= 300 else None
@@ -221,9 +218,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             col_offset   = 13
                             display_line = True
                             source_line  = None
-
-                    source_ref = node.getSourceReference()
-                    # source_ref.line += 1
 
                     SyntaxErrors.raiseSyntaxError(
                         message,

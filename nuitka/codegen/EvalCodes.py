@@ -158,7 +158,7 @@ def getExecCode(source_name, globals_name, filename_name, locals_name,
         context      = context
     )
 
-    if store_back :
+    if store_back:
         locals_source = context.allocateTempName("locals_source", unique = True)
 
         emit(

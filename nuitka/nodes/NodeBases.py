@@ -834,10 +834,6 @@ class ClosureTakerMixin:
 
         return result
 
-    def addClosureVariables(self, *variables):
-        for variable in variables:
-            self.addClosureVariable(variable)
-
     def addClosureVariable(self, variable):
         self.taken.add(variable)
 

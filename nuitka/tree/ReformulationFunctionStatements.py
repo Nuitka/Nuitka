@@ -190,7 +190,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
             values = []
 
             for kw_only_name, kw_default in \
-              zip( kw_only_names, node.args.kw_defaults ):
+              zip(kw_only_names, node.args.kw_defaults):
                 if kw_default is not None:
                     keys.append(
                         ExpressionConstantRef(
@@ -199,7 +199,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
                         )
                     )
                     values.append(
-                        buildNode( provider, kw_default, source_ref )
+                        buildNode(provider, kw_default, source_ref)
                     )
 
             kw_defaults = makeDictCreationOrConstant(

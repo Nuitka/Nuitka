@@ -297,10 +297,10 @@ branches."""
         truth_value = condition.getTruthValue()
 
         # TODO: We now know that condition evaluates to true for the yes branch
-        # and to not true for no branch, the branch should know that.
+        # and to not true for no branch, the branch collection should know that.
         yes_branch = self.getBranchYes()
 
-        # Handle branches that became empty behind our back
+        # Handle branches that became empty behind our back.
         if yes_branch is not None:
             if not yes_branch.getStatements():
                 yes_branch = None

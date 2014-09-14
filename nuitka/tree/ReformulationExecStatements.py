@@ -222,6 +222,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         makeStatementsSequence(post_statements, False, source_ref)
     )
 
+
 def buildExecNode(provider, node, source_ref):
     # "exec" statements, should only occur with Python2.
 

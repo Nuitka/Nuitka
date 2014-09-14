@@ -546,7 +546,8 @@ from __future__ imports must occur at the beginning of the file""",
 
 def handleGlobalDeclarationNode(provider, node, source_ref):
 
-    # On the module level, there is nothing to do.
+    # On the module level, there is nothing to do. TODO: Probably a warning
+    # would be warranted.
     if provider.isPythonModule():
         return None
 
