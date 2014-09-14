@@ -15,8 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-def test_basic():
+
+# In Python2, it is not allowed to take closure variables, in a function that
+# has an "exec". For Python3, the problem doesn't exist, as there is no exec
+# statement anymore.
+
+def someFunctionWithUnqualifiedExecAndCallback():
     exec "def f(): pass"
 
     def callback():
-        return self
+        return nested
+
+someFunctionWithUnqualifiedExecAndCallback()
