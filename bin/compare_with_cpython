@@ -404,6 +404,13 @@ def makeDiffable(output):
         if "skipping incompatible /usr/lib/libpython2.6.so" in line:
             continue
 
+        # This is for self compiled Python with default options, gives this
+        # harmless option for every time we link to libpython.
+        if "is dangerous, better use `mkstemp'" in line or \
+           "In function `posix_tempnam'" in line or \
+           "In function `posix_tmpnam'" in line:
+            continue
+
         result.append(line)
 
     return result
