@@ -257,6 +257,9 @@ def _detectImports(command, is_late):
                    'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
                    'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301
 
+    # Make sure the right import path is used.
+    command = ("import sys; sys.path = %s;" % repr(sys.path)) + command
+
     import tempfile
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         if Utils.python_version >= 300:
