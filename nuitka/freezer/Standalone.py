@@ -37,7 +37,7 @@ from nuitka.__past__ import (  # pylint: disable=W0622
 )
 from nuitka.codegen.ConstantCodes import needsPickleInit
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
-
+from nuitka.Importing import getStandardLibraryPaths
 
 def getDependsExePath():
     """ Return the path of depends.exe (for Windows).
@@ -359,69 +359,74 @@ def detectLateImports():
     else:
         return ""
 
+# Some modules we want to blacklist.
+ignore_modules = [
+    "__main__.py",
+    "__init__.py",
+    "antigravity.py",
+]
+if os.name != "nt":
+    ignore_modules.append("wintypes.py")
+    ignore_modules.append("cp65001.py")
+
+def scanStandardLibraryPath(stdlib_dir):
+    for root, dirs, filenames in os.walk(stdlib_dir):
+        import_path = root[len(stdlib_dir):].strip('/\\')
+        import_path = import_path.replace("\\", ".").replace("/",".")
+
+        if import_path == '':
+            if 'site-packages' in dirs:
+                dirs.remove('site-packages')
+            if 'dist-packages' in dirs:
+                dirs.remove('dist-packages')
+            if 'test' in dirs:
+                dirs.remove('test')
+            if 'idlelib' in dirs:
+                dirs.remove('idlelib')
+            if 'turtledemo' in dirs:
+                dirs.remove('turtledemo')
+
+        if import_path in ('tkinter', 'importlib', 'ctypes'):
+            if 'test' in dirs:
+                dirs.remove('test')
+
+        if import_path == "lib2to3":
+            if 'tests' in dirs:
+                dirs.remove('tests')
+
+        if Utils.python_version >= 340 and Utils.getOS() == "Windows":
+            if import_path == "multiprocessing":
+                filenames.remove("popen_fork.py")
+                filenames.remove("popen_forkserver.py")
+                filenames.remove("popen_spawn_posix.py")
+
+        for filename in filenames:
+            if filename.endswith('.py') and filename not in ignore_modules:
+                module_name = filename[:-3]
+                if import_path == '':
+                    yield module_name
+                else:
+                    yield import_path + '.' + module_name
+
+        if Utils.python_version >= 300:
+            if '__pycache__' in dirs:
+                dirs.remove('__pycache__')
+
+        for dirname in dirs:
+            if import_path == '':
+                yield dirname
+            else:
+                yield import_path + '.' + dirname
+
 
 def detectEarlyImports():
     if Options.freezeAllStdlib():
-        stdlib_modules = []
+        stdlib_modules = set()
 
-        stdlib_dir = os.path.dirname(os.__file__)
-        ignore_modules = [
-            "__main__.py",
-            "__init__.py",
-            "antigravity.py",
-        ]
-
-        if os.name != "nt":
-            ignore_modules.append("wintypes.py")
-            ignore_modules.append("cp65001.py")
-
-        for root, dirs, filenames in os.walk(stdlib_dir):
-            import_path = root[len(stdlib_dir):].strip('/\\')
-            import_path = import_path.replace("\\", ".").replace("/",".")
-
-            if import_path == '':
-                if 'site-packages' in dirs:
-                    dirs.remove('site-packages')
-                if 'dist-packages' in dirs:
-                    dirs.remove('dist-packages')
-                if 'test' in dirs:
-                    dirs.remove('test')
-                if 'idlelib' in dirs:
-                    dirs.remove('idlelib')
-                if 'turtledemo' in dirs:
-                    dirs.remove('turtledemo')
-
-            if import_path in ('tkinter', 'importlib', 'ctypes'):
-                if 'test' in dirs:
-                    dirs.remove('test')
-
-            if import_path == "lib2to3":
-                if 'tests' in dirs:
-                    dirs.remove('tests')
-
-            if Utils.python_version >= 340 and Utils.getOS() == "Windows":
-                if import_path == "multiprocessing":
-                    filenames.remove("popen_fork.py")
-                    filenames.remove("popen_forkserver.py")
-                    filenames.remove("popen_spawn_posix.py")
-
-            for filename in filenames:
-                if filename.endswith('.py') and filename not in ignore_modules:
-                    module_name = filename[:-3]
-                    if import_path == '':
-                        stdlib_modules.append(module_name)
-                    else:
-                        stdlib_modules.append(import_path + '.' + module_name)
-
-            if Utils.python_version >= 300:
-                if '__pycache__' in dirs:
-                    dirs.remove('__pycache__')
-
-            for dirname in dirs:
-                if import_path == '':
-                    stdlib_modules.append(dirname)
-                else:
-                    stdlib_modules.append(import_path + '.' + dirname)
+        # Scan the standard library paths (multiple in case of virtualenv.
+        for stdlib_dir in getStandardLibraryPaths():
+            for module_name in scanStandardLibraryPath(stdlib_dir):
+                stdlib_modules.add(module_name)
 
         import_code = 'imports = ' + repr(sorted(stdlib_modules)) + '\n'\
                       'for imp in imports:\n' \
