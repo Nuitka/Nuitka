@@ -103,8 +103,8 @@ def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
 def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                          parameters, local_variables, closure_variables,
                          defaults_name, kw_defaults_name, annotations_name,
-                         source_ref, function_doc, is_generator, emit,
-                         context):
+                         source_ref, function_doc, is_generator, is_optimized,
+                         emit, context):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables
@@ -127,7 +127,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
         line_number   = source_ref.getLineNumber(),
         code_name     = function_name,
         is_generator  = is_generator,
-        is_optimized  = not context.hasLocalsDict(),
+        is_optimized  = is_optimized,
         has_starlist  = parameters.getStarListArgumentName() is not None,
         has_stardict  = parameters.getStarDictArgumentName() is not None,
         has_closure   = closure_variables != (),

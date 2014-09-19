@@ -609,6 +609,7 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
         source_ref          = function_body.getSourceReference(),
         function_doc        = function_body.getDoc(),
         is_generator        = function_body.isGenerator(),
+        is_optimized        = not function_body.needsLocalsDict(),
         emit                = emit,
         context             = context
     )
