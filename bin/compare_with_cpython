@@ -298,6 +298,7 @@ if not silent_mode:
 
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+")
+thread_re                    = re.compile(r"Thread 0x[0-9a-fA-F]+")
 compiled_function_re         = re.compile(r"\<compiled function")
 compiled_frame_re            = re.compile(r"\<compiled_frame")
 compiled_genexpr_re          = re.compile(
@@ -354,6 +355,7 @@ def makeDiffable(output):
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx", line)
+        line = thread_re.sub(r"Thread 0xXXXXXXXX", line)
         line = compiled_function_re.sub(r"<function", line)
         line = compiled_frame_re.sub(r"<frame", line)
         line = compiled_genexpr_re.sub(r"<generator object <\1>", line)
