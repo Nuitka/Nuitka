@@ -469,11 +469,28 @@ def getStandardLibraryPaths():
         orig_prefix_filename = Utils.joinpath(os_path, "orig-prefix.txt")
 
         if Utils.isFile(orig_prefix_filename):
+            # Scan upwards, until we find a "bin" folder, with "activate" to
+            # locate the structural path to be added. We do not know for sure
+            # if there is a subdirectory under lib to use or not. So we try
+            # to detect it.
+            search = os_path
+            lib_part = ""
+
+            while search:
+                if Utils.isFile(Utils.joinpath(search,"bin/activate")):
+                    break
+
+                lib_part = Utils.joinpath(Utils.basename(search), lib_part)
+
+                search = Utils.dirname(search)
+
+            assert search and lib_part
+
             stdlib_paths.add(
                 Utils.normcase(
                     Utils.joinpath(
                         open(orig_prefix_filename).read(),
-                        "lib"
+                        lib_part,
                     )
                 )
             )
