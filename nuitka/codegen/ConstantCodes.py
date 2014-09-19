@@ -135,8 +135,20 @@ def _getConstantInitValueCode(context, constant_value, constant_type):
 
 
 def decideMarshal(constant_value):
-    if False and type(constant_value) is unicode:
-        return True
+    constant_type = type(constant_value)
+
+    if constant_type is type:
+        return False
+    elif constant_type is dict:
+        for key, value in iterItems(constant_value):
+            if not decideMarshal(key):
+                return False
+            if not decideMarshal(value):
+                return False
+    elif constant_type in (tuple, list, set, frozenset):
+        for element_value in constant_value:
+            if not decideMarshal(element_value):
+                return False
 
     # Do it for sufficiently large constants, typically tuples of 20 elements,
     # or dicts of more than 10.
