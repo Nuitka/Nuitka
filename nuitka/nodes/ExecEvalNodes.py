@@ -49,9 +49,9 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getSourceCode = ExpressionChildrenHavingBase.childGetter( "source" )
-    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals" )
-    getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
+    getSourceCode = ExpressionChildrenHavingBase.childGetter("source")
+    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals")
+    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
 
     def computeExpression(self, constraint_collection):
         # TODO: Attempt for constant values to do it.

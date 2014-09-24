@@ -29,7 +29,7 @@ from .NodeBases import (
 
 
 class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
-                                ExpressionChildrenHavingBase):
+                                 ExpressionChildrenHavingBase):
     named_children = ("elements",)
 
     def __init__(self, sequence_kind, elements, source_ref):

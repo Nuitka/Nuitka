@@ -899,7 +899,7 @@ class ExpressionMixin:
         """ Return known truth value. The "None" value indicates unknown. """
 
         if self.isCompileTimeConstant():
-            return bool( self.getCompileTimeConstant() )
+            return bool(self.getCompileTimeConstant())
         else:
             return None
 

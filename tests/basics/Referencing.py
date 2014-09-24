@@ -438,12 +438,12 @@ def simpleFunction54():
 
 
 def simpleFunction55():
-   g = ( x for x in range(9) )
+    g = ( x for x in range(9) )
 
-   try:
-      g.close()
-   except ValueError, e:
-      pass
+    try:
+        g.close()
+    except ValueError, e:
+        pass
 
 def simpleFunction56():
     def f():
@@ -663,80 +663,80 @@ m1 = {}
 m2 = {}
 
 def snapObjRefCntMap(before):
-   if before:
-      global m1
-      m = m1
-   else:
-      global m2
-      m = m2
+    if before:
+        global m1
+        m = m1
+    else:
+        global m2
+        m = m2
 
-   for x in gc.get_objects():
-      if x is m1:
-         continue
+    for x in gc.get_objects():
+        if x is m1:
+            continue
 
-      if x is m2:
-         continue
+        if x is m2:
+            continue
 
-      m[ str( x ) ] = sys.getrefcount( x )
+        m[ str( x ) ] = sys.getrefcount( x )
 
 
 def checkReferenceCount(checked_function, max_rounds = 10):
-   assert sys.exc_info() == ( None, None, None ), sys.exc_info()
+    assert sys.exc_info() == ( None, None, None ), sys.exc_info()
 
-   print checked_function.func_name + ":",
+    print checked_function.func_name + ":",
 
-   ref_count1 = 17
-   ref_count2 = 17
+    ref_count1 = 17
+    ref_count2 = 17
 
-   explain = False
+    explain = False
 
-   for count in range( max_rounds ):
-      x1 = 0
-      x2 = 0
+    for count in range( max_rounds ):
+        x1 = 0
+        x2 = 0
 
-      gc.collect()
-      ref_count1 = sys.gettotalrefcount()
+        gc.collect()
+        ref_count1 = sys.gettotalrefcount()
 
-      if explain and count == max_rounds - 1:
-         snapObjRefCntMap( True )
+        if explain and count == max_rounds - 1:
+            snapObjRefCntMap( True )
 
-      checked_function()
+        checked_function()
 
-      assert sys.exc_info() == ( None, None, None ), sys.exc_info()
+        assert sys.exc_info() == ( None, None, None ), sys.exc_info()
 
-      gc.collect()
+        gc.collect()
 
-      if explain and count == max_rounds - 1:
-         snapObjRefCntMap( False )
+        if explain and count == max_rounds - 1:
+            snapObjRefCntMap( False )
 
-      ref_count2 = sys.gettotalrefcount()
+        ref_count2 = sys.gettotalrefcount()
 
-      if ref_count1 == ref_count2:
-         print "PASSED"
-         break
+        if ref_count1 == ref_count2:
+            print "PASSED"
+            break
 
-      # print count, ref_count1, ref_count2
-   else:
-      print "FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1
+        # print count, ref_count1, ref_count2
+    else:
+        print "FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1
 
-      if explain:
-         assert m1
-         assert m2
+        if explain:
+            assert m1
+            assert m2
 
-         for key in m1.keys():
-            if key not in m2:
-               print "*" * 80
-               print key
-            elif m1[key] != m2[key]:
-               print "*" * 80
-               print key
-            else:
-               pass
-               # print m1[key]
+            for key in m1.keys():
+                if key not in m2:
+                    print "*" * 80
+                    print key
+                elif m1[key] != m2[key]:
+                    print "*" * 80
+                    print key
+                else:
+                    pass
+                    # print m1[key]
 
-   assert sys.exc_info() == ( None, None, None ), sys.exc_info()
+    assert sys.exc_info() == ( None, None, None ), sys.exc_info()
 
-   gc.collect()
+    gc.collect()
 
 
 checkReferenceCount( simpleFunction1 )
@@ -807,7 +807,7 @@ checkReferenceCount( simpleFunction62 )
 # Avoid unraisable output.
 old_stderr = sys.stderr
 try:
-   sys.stderr = open( "/dev/null", "wb" )
+    sys.stderr = open( "/dev/null", "wb" )
 except Exception: # Windows
     checkReferenceCount(simpleFunction63)
 else:
