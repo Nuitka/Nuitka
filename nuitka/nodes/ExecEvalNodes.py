@@ -180,11 +180,7 @@ class StatementExec(StatementChildrenHavingBase):
     getLocals = StatementChildrenHavingBase.childGetter("locals")
 
     def needsLocalsDict(self):
-        return _couldBeNone( self.getGlobals() ) or \
-               self.getGlobals().isExpressionBuiltinLocals() or \
-               ( self.getLocals() is not None and \
-                 self.getLocals().isExpressionBuiltinLocals()
-               )
+        return True
 
     def computeStatement(self, constraint_collection):
         constraint_collection.onExpression(
