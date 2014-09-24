@@ -24,7 +24,7 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka import SyntaxErrors
+from nuitka import SyntaxErrors, PythonVersions
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
@@ -297,9 +297,9 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             if parent_provider.isExpressionFunctionBody() and \
                parent_provider.isUnqualifiedExec():
                 SyntaxErrors.raiseSyntaxError(
-                    reason       = """\
-unqualified exec is not allowed in function '%s' it \
-contains a nested function with free variables""" % parent_provider.getName(),
+                    reason       = PythonVersions.\
+                                     getErrorMessageExecWithNestedFunction() % \
+                                     parent_provider.getName(),
                     source_ref   = parent_provider.getExecSourceRef(),
                     col_offset   = None,
                     display_file = True,
