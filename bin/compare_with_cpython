@@ -380,6 +380,10 @@ def makeDiffable(output):
             "must be a sequence, not compiled_function",
             "must be a sequence, not function"
         )
+        line = line.replace(
+            "compiled_function object is not an iterator",
+            "function object is not an iterator"
+        )
 
         line = ran_tests_re.sub(r"\1x.xxxs", line)
 
