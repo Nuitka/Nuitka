@@ -186,7 +186,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
             {
                 PyErr_Format(
                         PyExc_ValueError,
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 324
                         "int() arg 2 must be >= 2 and <= 36"
 #else
                         "int() base must be >= 2 and <= 36"
@@ -203,7 +203,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
     {
         PyErr_Format(
                 PyExc_ValueError,
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 324
                 "int() arg 2 must be >= 2 and <= 36"
 #else
                 "int() base must be >= 2 and <= 36"
