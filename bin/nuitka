@@ -127,7 +127,7 @@ if needs_reexec:
         args.append("-S")
 
     # Same arguments as before.
-    args += sys.argv
+    args += sys.argv + list(Options.getMainArgs())
 
     if current_version == intended_version:
         os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
