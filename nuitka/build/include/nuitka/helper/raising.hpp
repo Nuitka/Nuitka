@@ -30,8 +30,12 @@ static void CHAIN_EXCEPTION( PyObject *exception_type, PyObject *exception_value
     // Implicit chain of exception already existing.
     PyThreadState *thread_state = PyThreadState_GET();
 
-    // Normalize existing exception first.
-    PyErr_NormalizeException( &thread_state->exc_type, &thread_state->exc_value, &thread_state->exc_traceback );
+    // Normalize existing exception first. TODO: Will normally be done already.
+    NORMALIZE_EXCEPTION(
+        &thread_state->exc_type,
+        &thread_state->exc_value,
+        (PyTracebackObject **)&thread_state->exc_traceback
+    );
 
     PyObject *old_exc_value = thread_state->exc_value;
 
@@ -39,24 +43,28 @@ static void CHAIN_EXCEPTION( PyObject *exception_type, PyObject *exception_value
     {
         Py_INCREF( old_exc_value );
 
-        PyObject *o = old_exc_value;
-        while(true)
+        PyObject *current = old_exc_value;
+        while( true )
         {
-            PyObject *context = PyException_GetContext(o);
+            PyObject *context = PyException_GetContext( current );
             if (!context) break;
 
+            assertObject( context );
             Py_DECREF( context );
+            assertObject( context );
 
             if ( context == exception_value )
             {
-                PyException_SetContext( o, NULL );
+                PyException_SetContext( current, NULL );
                 break;
             }
 
-            o = context;
+            current = context;
         }
 
+        assertObject( old_exc_value );
         PyException_SetContext( exception_value, old_exc_value );
+        assertObject( thread_state->exc_traceback );
         PyException_SetTraceback( old_exc_value, thread_state->exc_traceback );
     }
 }

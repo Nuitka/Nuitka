@@ -315,7 +315,10 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION( PyObject **exceptio
     PRINT_EXCEPTION( *exception_type,  *exception_value, (PyObject *)*exception_tb );
 #endif
 
-    PyErr_NormalizeException( exception_type, exception_value, (PyObject **)exception_tb );
+    if ( *exception_type != Py_None && *exception_type != NULL )
+    {
+        PyErr_NormalizeException( exception_type, exception_value, (PyObject **)exception_tb );
+    }
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("normalized:\n");
