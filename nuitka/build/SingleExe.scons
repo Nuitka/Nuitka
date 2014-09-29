@@ -603,18 +603,14 @@ if debug_mode:
                 # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
                 # which are unfounded, so disable them.
                 "-Wno-error=strict-aliasing",
-                "-Wno-strict-aliasing"
+                "-Wno-strict-aliasing",
+                # At least for self-compiled Python3.2, and MinGW this happens
+                # and has little use anyway.
+                "-Wno-error=format",
+                "-Wno-format"
+
             ]
         )
-
-        # MinGW gives some non-sensical warnings it seems.
-        if os.name == "nt":
-            env.Append(
-                CCFLAGS = [
-                   "-Wno-error=format",
-                   "-Wno-format"
-                ]
-            )
     elif msvc_mode:
         # Disable warnings that system headers already show.
         env.Append(
