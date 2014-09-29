@@ -81,7 +81,7 @@ shutil.rmtree("dist", ignore_errors = True)
 shutil.rmtree("build", ignore_errors = True)
 
 assert 0 == os.system("misc/make-doc.py")
-assert 0 == os.system("python setup.py sdist --formats=gztar" )
+assert 0 == os.system("python setup.py sdist --formats=gztar")
 
 os.chdir("dist")
 
@@ -120,13 +120,17 @@ for filename in os.listdir("."):
 
         # Fixup for py2dsc not taking our custom suffix into account, so we need
         # to rename it ourselves.
-        before_deb_name = filename[:-7].lower().replace( "-", "_" )
-        after_deb_name = before_deb_name.replace( "pre", "~pre" )
+        before_deb_name = filename[:-7].lower().replace("-", "_")
+        after_deb_name = before_deb_name.replace("pre", "~pre")
 
         assert 0 == os.system(
             "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'" % (
                 before_deb_name, after_deb_name
             )
+        )
+
+        assert 0 == os.system(
+            "rm -f deb_dist/*_source*"
         )
 
         # Remove the now useless input, py2dsc has copied it, and we don't
@@ -143,7 +147,7 @@ os.chdir("deb_dist")
 for entry in os.listdir("."):
     if os.path.isdir(entry) and \
        entry.startswith("nuitka") and \
-       not entry.endswith( ".orig" ):
+       not entry.endswith(".orig"):
         break
 else:
     assert False
