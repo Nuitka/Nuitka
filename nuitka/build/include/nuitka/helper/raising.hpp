@@ -67,6 +67,17 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
     *exception_value = NULL;
     *exception_tb = NULL;
 
+#if PYTHON_VERSION < 300
+    // Next, repeatedly, replace a tuple exception with its first item
+    while( PyTuple_Check( *exception_type ) && PyTuple_Size( *exception_type ) > 0 )
+    {
+         PyObject *tmp = *exception_type;
+         *exception_type = PyTuple_GET_ITEM( *exception_type, 0 );
+         Py_INCREF( *exception_type );
+         Py_DECREF( tmp );
+    }
+#endif
+
     if ( PyExceptionClass_Check( *exception_type ) )
     {
         NORMALIZE_EXCEPTION( exception_type, exception_value, exception_tb );
@@ -123,6 +134,8 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
     }
     else
     {
+        Py_DECREF( *exception_type );
+
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( *exception_type )->tp_name );
         PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
 
