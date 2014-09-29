@@ -3404,15 +3404,19 @@ Py_XDECREF( %(keeper_tb)s );%(keeper_tb)s = NULL;""" % {
 if ( %(keeper_type)s )
 {
     NORMALIZE_EXCEPTION( &%(keeper_type)s, &%(keeper_value)s, &%(keeper_tb)s );
-    PyException_SetContext( %(keeper_value)s, exception_value );
+    if( exception_value != %(keeper_value)s )
+    {
+        PyException_SetContext( %(keeper_value)s, exception_value );
+    }
+    else
+    {
+        Py_DECREF( exception_value );
+    }
     Py_DECREF( exception_type );
     exception_type = %(keeper_type)s;
-    // Py_XDECREF( exception_value );
     exception_value = %(keeper_value)s;
     Py_XDECREF( exception_tb );
     exception_tb = %(keeper_tb)s;
-
-
 }
 """ % {
                         "keeper_type"  : keeper_type,
