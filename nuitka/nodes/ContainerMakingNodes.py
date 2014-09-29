@@ -127,6 +127,9 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
 
         return False
 
+    def mayBeNone(self):
+        return False
+
     def computeExpressionDrop(self, statement, constraint_collection):
         from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
@@ -343,6 +346,9 @@ Created dictionary found to be constant."""
 
     def getTruthValue(self):
         return self.getIterationLength() > 0
+
+    def mayBeNone(self):
+        return False
 
     def isMapping(self):
         # Dictionaries are always mappings, but this is a virtual method,

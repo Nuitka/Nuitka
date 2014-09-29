@@ -133,20 +133,6 @@ Changed execfile to exec on class level."""
                 return statement, None, None
 
 
-# TODO: Find a place for this. Potentially as an attribute of nodes themselves.
-def _couldBeNone(node):
-    if node is None:
-        return True
-    elif node.isExpressionMakeDict():
-        return False
-    elif node.isExpressionBuiltinGlobals() or \
-         node.isExpressionBuiltinLocals() or \
-         node.isExpressionBuiltinVars():
-        return False
-    else:
-        # assert False, node
-        return True
-
 class StatementExec(StatementChildrenHavingBase):
     kind = "STATEMENT_EXEC"
 
@@ -180,7 +166,7 @@ class StatementExec(StatementChildrenHavingBase):
     getLocals = StatementChildrenHavingBase.childGetter("locals")
 
     def needsLocalsDict(self):
-        return True
+        return self.getLocals().mayBeNone()
 
     def computeStatement(self, constraint_collection):
         constraint_collection.onExpression(

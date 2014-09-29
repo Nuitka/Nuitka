@@ -50,6 +50,9 @@ class ExpressionBuiltinGlobals(NodeBase, ExpressionMixin):
     def mayRaiseException(self, exception_type):
         return False
 
+    def mayBeNone(self):
+        return None
+
 
 class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_BUILTIN_LOCALS"
@@ -85,6 +88,9 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
 
     def mayRaiseException(self, exception_type):
         return False
+
+    def mayBeNone(self):
+        return None
 
 
 class StatementSetLocals(StatementChildrenHavingBase):
@@ -140,3 +146,6 @@ class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
     def computeExpression(self, constraint_collection):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
+
+    def mayBeNone(self):
+        return None

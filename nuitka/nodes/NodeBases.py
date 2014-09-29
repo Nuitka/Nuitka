@@ -903,6 +903,12 @@ class ExpressionMixin:
         else:
             return None
 
+    def mayBeNone(self):
+        """ Could this evaluate to be "None".
+
+            Yes or no. Defaults to pessimistic yes."""
+        return True
+
     def isKnownToBeIterable(self, count):
         """ Can be iterated at all (count is None) or exactly count times.
 
@@ -1052,6 +1058,9 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
 
     def mayHaveSideEffectsBool(self):
         return False
+
+    def mayBeNone(self):
+        return self.getCompileTimeConstant() is None
 
     def computeExpressionOperationNot(self, not_node, constraint_collection):
         from .NodeMakingHelpers import getComputationResult
