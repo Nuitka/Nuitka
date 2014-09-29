@@ -449,3 +449,132 @@ def hasModule(module_name):
     )
 
     return result == 0
+
+def snapObjRefCntMap(before):
+    if before:
+        global m1
+        m = m1
+    else:
+        global m2
+        m = m2
+
+    for x in gc.get_objects():
+        if x is m1:
+            continue
+
+        if x is m2:
+            continue
+
+        m[ str( x ) ] = sys.getrefcount( x )
+
+
+def checkReferenceCount(checked_function, max_rounds = 10):
+    assert sys.exc_info() == (None, None, None), sys.exc_info()
+
+    print(checked_function.__name__ + ": ", end = "")
+    sys.stdout.flush()
+
+    ref_count1 = 17
+    ref_count2 = 17
+
+    explain = False
+
+    import gc
+
+    assert max_rounds > 0
+    for count in range(max_rounds):
+        gc.collect()
+        ref_count1 = sys.gettotalrefcount()
+
+        if explain and count == max_rounds - 1:
+            snapObjRefCntMap(True)
+
+        checked_function()
+
+        # Not allowed, but happens when bugs occur.
+        assert sys.exc_info() == (None, None, None), sys.exc_info()
+
+        gc.collect()
+
+        if explain and count == max_rounds - 1:
+            snapObjRefCntMap(False)
+
+        ref_count2 = sys.gettotalrefcount()
+
+        if ref_count1 == ref_count2:
+            result = True
+            print("PASSED")
+            break
+
+        # print count, ref_count1, ref_count2
+    else:
+        result = False
+        print("FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1)
+
+        if explain:
+            assert m1
+            assert m2
+
+            for key in m1.keys():
+                if key not in m2:
+                    print("*" * 80)
+                    print(key)
+                elif m1[key] != m2[key]:
+                    print("*" * 80)
+                    print(key)
+                else:
+                    pass
+                    # print m1[key]
+
+    assert sys.exc_info() == (None, None, None), sys.exc_info()
+
+    gc.collect()
+    sys.stdout.flush()
+
+    return result
+
+
+def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
+    import gc
+    gc.disable()
+
+    extract_number = lambda name: int(name.replace(prefix, ""))
+
+    # Find the function names.
+    matching_names = tuple(
+        name
+        for name in names
+        if name.startswith(prefix) and name[-1].isdigit()
+    )
+
+    old_stderr = sys.stderr
+
+    # Everything passed
+    result = True
+
+    for name in sorted(matching_names, key = extract_number):
+        number = extract_number(name)
+
+        # print(tests_skipped)
+        if number in tests_skipped:
+            my_print(name + ": SKIPPED (%s)" % tests_skipped[number])
+            continue
+
+        # Avoid unraisable output.
+        try:
+            if number in tests_stderr:
+                sys.stderr = open("/dev/null", "wb")
+        except Exception: # Windows
+            if not checkReferenceCount(names[name]):
+                result = False
+        else:
+            if not checkReferenceCount(names[name]):
+                result = False
+
+            if number in tests_stderr:
+                new_stderr = sys.stderr
+                sys.stderr = old_stderr
+                new_stderr.close()
+
+    gc.enable()
+    return result

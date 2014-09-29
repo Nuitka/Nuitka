@@ -15,12 +15,28 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import sys, os
 
-import sys, gc
+# Find common code relative in file system. Not using packages for test stuff.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            ".."
+        )
+    )
+)
+from test_common import (
+    executeReferenceChecked,
+    checkReferenceCount,
+    my_print,
+)
 
 if not hasattr(sys, "gettotalrefcount"):
-    print("Warning, using non-debug Python makes this test ineffective.")
+    my_print("Warning, using non-debug Python makes this test ineffective.")
     sys.gettotalrefcount = lambda : 0
+
 
 def simpleFunction1():
     def g():
@@ -60,85 +76,17 @@ def simpleFunction2():
     except TypeError:
         pass
 
+# These need stderr to be wrapped.
+tests_stderr = ()
 
-m1 = {}
-m2 = {}
+# Disabled tests
+tests_skipped = {}
 
-def snapObjRefCntMap(before):
-   if before:
-      global m1
-      m = m1
-   else:
-      global m2
-      m = m2
+result = executeReferenceChecked(
+    prefix        = "simpleFunction",
+    names         = globals(),
+    tests_skipped = tests_skipped,
+    tests_stderr  = tests_stderr
+)
 
-   for x in gc.get_objects():
-      if x is m1:
-         continue
-
-      if x is m2:
-         continue
-
-      m[ str( x ) ] = sys.getrefcount( x )
-
-
-def checkReferenceCount(checked_function, max_rounds = 10):
-   assert sys.exc_info() == ( None, None, None ), sys.exc_info()
-
-   print( checked_function.__name__ + ":", end = "" )
-
-   ref_count1 = 17
-   ref_count2 = 17
-
-   explain = False
-
-   for count in range( max_rounds ):
-      x1 = 0
-      x2 = 0
-
-      gc.collect()
-      ref_count1 = sys.gettotalrefcount()
-
-      if explain and count == max_rounds - 1:
-         snapObjRefCntMap( True )
-
-      checked_function()
-
-      assert sys.exc_info() == ( None, None, None ), sys.exc_info()
-
-      gc.collect()
-
-      if explain and count == max_rounds - 1:
-         snapObjRefCntMap( False )
-
-      ref_count2 = sys.gettotalrefcount()
-
-      if ref_count1 == ref_count2:
-         print( "PASSED" )
-         break
-
-      # print count, ref_count1, ref_count2
-   else:
-      print( "FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1 )
-
-      if explain:
-         assert m1
-         assert m2
-
-         for key in m1.keys():
-            if key not in m2:
-               print( "*" * 80 )
-               print( key )
-            elif m1[key] != m2[key]:
-               print( "*" * 80 )
-               print( key )
-            else:
-               pass
-               # print m1[key]
-
-   assert sys.exc_info() == ( None, None, None ), sys.exc_info()
-
-   gc.collect()
-
-checkReferenceCount( simpleFunction1 )
-checkReferenceCount( simpleFunction2 )
+sys.exit(0 if result else 1)

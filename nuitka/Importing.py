@@ -435,6 +435,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "sgi", "ctypes.macholib.dyld", "bsddb3", "_pybsddb", "_xmlrpclib",
         "netbios", "win32wnet", "email.Parser", "elementree.cElementTree",
         "elementree.ElementTree", "_gbdm",
+
+        # Nuitka tests
+        "test_common"
     )
 
     # TODO: Turn this into a warning that encourages reporting.
