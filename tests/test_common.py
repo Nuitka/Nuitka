@@ -122,6 +122,7 @@ print(("x86_64" if "AMD64" in sys.version else "x86") if os.name=="nt" else os.u
 
     return python_version
 
+
 tmp_dir = None
 
 def getTempDir():
@@ -160,8 +161,9 @@ def convertUsing2to3(path):
         path
     ]
 
-    if check_result(command, stderr = open(os.devnull, "w")):
-        return path, False
+    with open(os.devnull, "w") as stderr:
+        if check_result(command, stderr = stderr):
+            return path, False
 
     filename = os.path.basename(path)
 
@@ -189,10 +191,11 @@ def convertUsing2to3(path):
         new_path
     ]
 
-    check_output(
-        command,
-        stderr = open(os.devnull, "w")
-    )
+    with open(os.devnull, "w") as devnull:
+        check_output(
+            command,
+            stderr = devnull
+        )
 
     return new_path, True
 
@@ -257,7 +260,7 @@ def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
         os.unlink(path)
 
     if result == 2:
-        sys.stderr.write("Interruped, with CTRL-C\n")
+        sys.stderr.write("Interrupted, with CTRL-C\n")
         sys.exit(2)
 
 
@@ -269,8 +272,9 @@ def hasDebugPython():
     if os.path.exists(debug_python):
         return True
 
-    # For self compiled Python, if it's the one also executing the runner, lets
-    # use it.
+    # For other Python, if it's the one also executing the runner, which is
+    # very probably the case, we check that. We don't check the provided
+    # binary here, this could be done as well.
     if sys.executable == os.environ["PYTHON"] and \
        hasattr(sys, "gettotalrefcount"):
         return True

@@ -93,7 +93,7 @@ min_signed_long = -(2**(sizeof_long*8-1)-1)
 
 done = set()
 
-def _getConstantInitValueCode(context, constant_value, constant_type):
+def _getConstantInitValueCode(constant_value, constant_type):
     if constant_type is unicode:
         try:
             encoded = constant_value.encode("utf-8")
@@ -132,6 +132,8 @@ def _getConstantInitValueCode(context, constant_value, constant_type):
         return "UNSTREAM_BYTES( %s )" % (
             stream_data.getStreamDataCode(constant_value)
         )
+    else:
+        return None
 
 
 def decideMarshal(constant_value):
@@ -666,11 +668,10 @@ def getConstantAccess(to_name, constant, emit, context):
         context.addCleanupTempName(to_name)
 
 
-def getModuleConstantCode(constant, context):
+def getModuleConstantCode(constant):
     assert type(constant) is str
 
     result = _getConstantInitValueCode(
-        context        = context,
         constant_value = constant,
         constant_type  = type(constant)
     )

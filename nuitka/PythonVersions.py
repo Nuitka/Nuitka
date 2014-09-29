@@ -68,6 +68,8 @@ def getErrorMessageExecWithNestedFunction():
 
     assert python_version < 300
 
+    # Need to use exec to detect the syntax error, pylint: disable=W0122
+
     try:
         exec("""
 def f():
@@ -75,4 +77,5 @@ def f():
    def nested():
       return closure""")
     except SyntaxError as e:
+        # Falase alarm, pylint: disable=E1101
         return e.message.replace("'f'", "'%s'")

@@ -104,7 +104,6 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
             """exception_type = INCREASE_REFCOUNT( %s );""" % exception,
             """exception_value = %s;""" % getModuleConstantCode(
                 constant = args[0],
-                context  = context
             ),
             """exception_tb = NULL;"""
         ]

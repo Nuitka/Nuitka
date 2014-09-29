@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Code generation for slicing.
+
+This is about slice lookups, assignments, and deletions. There is also a
+special case, for using index values instead of objects. The slice objects
+are also created here, and can be used for indexing.
+"""
 
 from .ErrorCodes import (
     getErrorExitBoolCode,

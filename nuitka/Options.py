@@ -667,10 +667,10 @@ def getOutputDir():
     return options.output_dir if options.output_dir else "."
 
 def getPositionalArgs():
-    return tuple( positional_args )
+    return tuple(positional_args)
 
 def getMainArgs():
-    return tuple( extra_args )
+    return tuple(extra_args)
 
 def shallOptimizeStringExec():
     return False

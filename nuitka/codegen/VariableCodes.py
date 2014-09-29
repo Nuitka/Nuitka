@@ -103,7 +103,7 @@ def getLocalVariableInitCode(variable, init_from = None, in_context = False):
         variable   = variable
     )
 
-    result += code_name;
+    result += code_name
 
     if not in_context:
         if variable.isTempVariable():

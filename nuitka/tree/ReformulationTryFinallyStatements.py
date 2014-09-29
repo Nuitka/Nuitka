@@ -220,7 +220,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         )
 
 
-def makeTryFinallyIndicator(provider, statement, is_loop_exit):
+def makeTryFinallyIndicator(statement, is_loop_exit):
     statements = []
 
     indicator_variables = getIndicatorVariables()

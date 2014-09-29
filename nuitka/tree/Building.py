@@ -651,7 +651,7 @@ def buildStringNode(node, source_ref):
 
 
 def buildNumberNode(node, source_ref):
-    assert type( node.n ) in ( int, long, float, complex ), type( node.n )
+    assert type(node.n) in (int, long, float, complex), type(node.n)
 
     return ExpressionConstantRef(
         constant      = node.n,
@@ -676,7 +676,7 @@ def buildEllipsisNode(source_ref):
     )
 
 
-def buildStatementContinueLoop(provider, node, source_ref):
+def buildStatementContinueLoop(node, source_ref):
     if getBuildContext() == "finally":
         if not Options.isFullCompat() or Utils.python_version >= 300:
             col_offset = node.col_offset - 9
@@ -697,7 +697,6 @@ def buildStatementContinueLoop(provider, node, source_ref):
 
 
     return makeTryFinallyIndicator(
-        provider     = provider,
         statement    = StatementContinueLoop(
             source_ref = source_ref
         ),
@@ -710,7 +709,6 @@ def buildStatementBreakLoop(provider, node, source_ref):
     # pylint: disable=W0613
 
     return makeTryFinallyIndicator(
-        provider     = provider,
         statement    = StatementBreakLoop(
             source_ref = source_ref
         ),
@@ -750,7 +748,6 @@ def buildReturnNode(provider, node, source_ref):
 
 
     return makeTryFinallyIndicator(
-        provider    = provider,
         statement   = StatementReturn(
             expression = expression,
             source_ref = source_ref
@@ -856,7 +853,6 @@ setBuildDispatchers(
         "Repr"         : buildReprNode,
         "AugAssign"    : buildInplaceAssignNode,
         "IfExp"        : buildConditionalExpressionNode,
-        "Continue"     : buildStatementContinueLoop,
         "Break"        : buildStatementBreakLoop,
     },
     path_args2 = {
@@ -865,6 +861,7 @@ setBuildDispatchers(
         "Str"          : buildStringNode,
         "Num"          : buildNumberNode,
         "Bytes"        : buildBytesNode,
+        "Continue"     : buildStatementContinueLoop,
     },
     path_args1 = {
         "Ellipsis"     : buildEllipsisNode,

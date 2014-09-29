@@ -538,6 +538,9 @@ _generated_functions = {}
 
 def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
                                   annotations, defaults_first, emit, context):
+    # This is about creating functions, which is detail ridden stuff,
+    # pylint: disable=R0914
+
     assert function_body.needsCreation(), function_body
 
     parameters = function_body.getParameters()
@@ -962,6 +965,10 @@ def generateSliceLookupCode(to_name, expression, emit, context):
 
 
 def generateCallCode(to_name, call_node, emit, context):
+    # There is a whole lot of different cases, for each of which, we create
+    # optimized code, constant, with and without positional or keyword args
+    # each, so there is lots of branches here, pylint: disable=R0912
+
     called_name = context.allocateTempName("called")
 
     generateExpressionCode(
@@ -972,7 +979,6 @@ def generateCallCode(to_name, call_node, emit, context):
     )
 
     call_args = call_node.getCallArgs()
-
     call_kw = call_node.getCallKw()
 
     if call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}:
@@ -1630,12 +1636,8 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
     elif expression.isExpressionBuiltinOriginalRef():
         assert not expression.isExpressionBuiltinRef()
 
-        Generator.getBuiltinOriginalRefCode(
-            to_name      = to_name,
-            builtin_name = expression.getBuiltinName(),
-            emit         = emit,
-            context      = context
-        )
+        # This is not implemented currently, but ought to be one day.
+        assert False
     elif expression.isExpressionMakeTuple():
         generateTupleCreationCode(
             to_name  = to_name,
@@ -3092,12 +3094,11 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     # The try/finally is very hard for C-ish code generation. We need to react
     # on break, continue, return, raise in the tried blocks with reraise. We
     # need to publish it to the handler (Python3) or save it for re-raise,
-    # unless another exception or continue, break, return occurs.
+    # unless another exception or continue, break, return occurs. So this is
+    # full of detail stuff, pylint: disable=R0914,R0912,R0915
 
     # First, this may be used as an expression, in which case to_name won't be
     # set, we ask the checks to ignore currently set values.
-    global _temp_whitelist
-
     if to_name is not None:
         _temp_whitelist.append(context.getCleanupTempnames())
 
@@ -4314,6 +4315,10 @@ def _generateStatementSequenceCode(statement_sequence, emit, context,
 def generateStatementSequenceCode(statement_sequence, context,
                                   allow_none = False):
 
+    # This is a wrapper that provides also handling of frames, which got a
+    # lot of variants and details, therefore lots of branches and code.
+    # pylint: disable=R0912,R0915
+
     if allow_none and statement_sequence is None:
         return None
 
@@ -4449,6 +4454,9 @@ def generateStatementSequenceCode(statement_sequence, context,
 
 
 def prepareModuleCode(global_context, module, module_name, other_modules):
+    # As this not only creates all modules, but also functions, it deals
+    # with too many details, pylint: disable=R0914
+
     assert module.isPythonModule(), module
 
     context = Contexts.PythonModuleContext(
