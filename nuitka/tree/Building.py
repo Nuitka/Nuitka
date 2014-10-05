@@ -546,12 +546,13 @@ from __future__ imports must occur at the beginning of the file""",
 
 def handleGlobalDeclarationNode(provider, node, source_ref):
 
-    # On the module level, there is nothing to do.
+    # On the module level, there is nothing to do. TODO: Probably a warning
+    # would be warranted.
     if provider.isPythonModule():
         return None
 
     # Need to catch the error of declaring a parameter variable as global
-    # ourselves here. The AST parsing doesn't catch it.
+    # ourselves here. The AST parsing doesn't catch it, so we check here.
     try:
         parameters = provider.getParameters()
 
@@ -574,8 +575,10 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
     except AttributeError:
         pass
 
+    # The module the "global" statement refers to.
     module = provider.getParentModule()
 
+    # Can give multiple names.
     for variable_name in node.names:
         closure_variable = None
 
@@ -585,7 +588,9 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         if provider.hasTakenVariable(variable_name):
             closure_variable = provider.getTakenVariable(variable_name)
 
-            if not closure_variable.isModuleVariableReference():
+            # Only global variables count. Could have a closure reference to
+            # a location of a parent function here.
+            if not closure_variable.isModuleVariable():
                 closure_variable = None
 
         if closure_variable is None:
@@ -597,9 +602,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                 variable = module_variable
             )
 
-        assert closure_variable.isModuleVariableReference()
-
-        closure_variable.markFromGlobalStatement()
+        assert closure_variable.isModuleVariable()
 
         provider.registerProvidedVariable(
             variable = closure_variable
@@ -648,7 +651,7 @@ def buildStringNode(node, source_ref):
 
 
 def buildNumberNode(node, source_ref):
-    assert type( node.n ) in ( int, long, float, complex ), type( node.n )
+    assert type(node.n) in (int, long, float, complex), type(node.n)
 
     return ExpressionConstantRef(
         constant      = node.n,
@@ -673,7 +676,7 @@ def buildEllipsisNode(source_ref):
     )
 
 
-def buildStatementContinueLoop(provider, node, source_ref):
+def buildStatementContinueLoop(node, source_ref):
     if getBuildContext() == "finally":
         if not Options.isFullCompat() or Utils.python_version >= 300:
             col_offset = node.col_offset - 9
@@ -694,7 +697,6 @@ def buildStatementContinueLoop(provider, node, source_ref):
 
 
     return makeTryFinallyIndicator(
-        provider     = provider,
         statement    = StatementContinueLoop(
             source_ref = source_ref
         ),
@@ -707,7 +709,6 @@ def buildStatementBreakLoop(provider, node, source_ref):
     # pylint: disable=W0613
 
     return makeTryFinallyIndicator(
-        provider     = provider,
         statement    = StatementBreakLoop(
             source_ref = source_ref
         ),
@@ -747,7 +748,6 @@ def buildReturnNode(provider, node, source_ref):
 
 
     return makeTryFinallyIndicator(
-        provider    = provider,
         statement   = StatementReturn(
             expression = expression,
             source_ref = source_ref
@@ -853,7 +853,6 @@ setBuildDispatchers(
         "Repr"         : buildReprNode,
         "AugAssign"    : buildInplaceAssignNode,
         "IfExp"        : buildConditionalExpressionNode,
-        "Continue"     : buildStatementContinueLoop,
         "Break"        : buildStatementBreakLoop,
     },
     path_args2 = {
@@ -862,6 +861,7 @@ setBuildDispatchers(
         "Str"          : buildStringNode,
         "Num"          : buildNumberNode,
         "Bytes"        : buildBytesNode,
+        "Continue"     : buildStatementContinueLoop,
     },
     path_args1 = {
         "Ellipsis"     : buildEllipsisNode,

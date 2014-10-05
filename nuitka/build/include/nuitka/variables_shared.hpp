@@ -46,10 +46,6 @@ private:
 class PyObjectSharedLocalVariable
 {
 public:
-    explicit PyObjectSharedLocalVariable( PyObject *object )
-    {
-        this->storage = new PyObjectSharedStorage( object );
-    }
 
     explicit PyObjectSharedLocalVariable()
     {
@@ -70,23 +66,15 @@ public:
         }
     }
 
-    void setVariableValue( PyObject *object )
-    {
-        this->storage->object = object;
-    }
-
     void shareWith( const PyObjectSharedLocalVariable &other )
     {
-        assert( this->storage == NULL );
         assert( other.storage != NULL );
+        assert( this->storage != NULL );
+
+        delete this->storage;
 
         this->storage = other.storage;
         this->storage->ref_count += 1;
-    }
-
-    bool isInitialized() const
-    {
-        return this->storage->object != NULL;
     }
 
     PyObjectSharedStorage *storage;
@@ -95,20 +83,6 @@ private:
 
     PyObjectSharedLocalVariable( const PyObjectSharedLocalVariable & ) {  assert( false ); };
 
-};
-
-class PyObjectClosureVariable : public PyObjectSharedLocalVariable
-{
-public:
-    explicit PyObjectClosureVariable()
-    {
-        this->storage = NULL;
-    }
-
-
-protected:
-
-    PyObjectClosureVariable( const PyObjectClosureVariable & ) {  assert( false ); }
 };
 
 class PyObjectSharedTempStorage
@@ -170,11 +144,6 @@ public:
 
         this->storage = other.storage;
         this->storage->ref_count += 1;
-    }
-
-    bool isInitialized() const
-    {
-        return this->storage->object != NULL;
     }
 
 public:

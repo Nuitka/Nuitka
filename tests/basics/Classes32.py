@@ -102,4 +102,9 @@ def someFunctionWithLocalClassesMadeGlobal():
 
 someFunctionWithLocalClassesMadeGlobal()
 
+print("Function in a class with private name")
+class someClassWithPrivateArgumentNames:
+    def f(self, *, __kw:1):
+        pass
+print(someClassWithPrivateArgumentNames.f.__annotations__)
 print("OK.")

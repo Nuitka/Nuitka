@@ -33,10 +33,11 @@ class VariableWriteExtractor(VisitorNoopMixin):
         self.written_to = set()
 
     def onEnterNode(self, node):
-        if node.isExpressionTargetVariableRef():
+        if node.isExpressionTargetVariableRef() or \
+           node.isExpressionTargetTempVariableRef():
             key = node.getVariable(), node.getVariableVersion()
 
-            self.written_to.add( key )
+            self.written_to.add(key)
 
     def getResult(self):
         return self.written_to
@@ -44,6 +45,6 @@ class VariableWriteExtractor(VisitorNoopMixin):
 
 def getVariablesWritten(node):
     visitor = VariableWriteExtractor()
-    visitTree( node, visitor )
+    visitTree(node, visitor)
 
     return visitor.getResult()

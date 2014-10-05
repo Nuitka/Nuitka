@@ -298,6 +298,7 @@ if not silent_mode:
 
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+")
+thread_re                    = re.compile(r"Thread 0x[0-9a-fA-F]+")
 compiled_function_re         = re.compile(r"\<compiled function")
 compiled_frame_re            = re.compile(r"\<compiled_frame")
 compiled_genexpr_re          = re.compile(
@@ -354,6 +355,7 @@ def makeDiffable(output):
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx", line)
+        line = thread_re.sub(r"Thread 0xXXXXXXXX", line)
         line = compiled_function_re.sub(r"<function", line)
         line = compiled_frame_re.sub(r"<frame", line)
         line = compiled_genexpr_re.sub(r"<generator object <\1>", line)
@@ -378,6 +380,10 @@ def makeDiffable(output):
             "must be a sequence, not compiled_function",
             "must be a sequence, not function"
         )
+        line = line.replace(
+            "compiled_function object is not an iterator",
+            "function object is not an iterator"
+        )
 
         line = ran_tests_re.sub(r"\1x.xxxs", line)
 
@@ -397,6 +403,18 @@ def makeDiffable(output):
         # This is for NetBSD, which seems to build libpython so it gives such
         # warnings.
         if "() possibly used unsafely, use mkstemp() or mkdtemp()" in line:
+            continue
+
+        # This is for CentOS5, where the linker says this, and it's hard to
+        # disable
+        if "skipping incompatible /usr/lib/libpython2.6.so" in line:
+            continue
+
+        # This is for self compiled Python with default options, gives this
+        # harmless option for every time we link to libpython.
+        if "is dangerous, better use `mkstemp'" in line or \
+           "In function `posix_tempnam'" in line or \
+           "In function `posix_tmpnam'" in line:
             continue
 
         result.append(line)

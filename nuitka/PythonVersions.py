@@ -59,3 +59,23 @@ def doShowUnknownEncodingName():
         return True
 
     return False
+
+
+def getErrorMessageExecWithNestedFunction():
+    """ Error message of the concrete Python in case an exec occurs in a
+        function that takes a closure variable.
+    """
+
+    assert python_version < 300
+
+    # Need to use exec to detect the syntax error, pylint: disable=W0122
+
+    try:
+        exec("""
+def f():
+   exec ""
+   def nested():
+      return closure""")
+    except SyntaxError as e:
+        # Falase alarm, pylint: disable=E1101
+        return e.message.replace("'f'", "'%s'")

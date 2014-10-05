@@ -86,9 +86,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         statements = (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_indicator_var.makeReference(
-                        provider
-                    ),
+                    variable   = tmp_indicator_var,
                     source_ref = source_ref.atInternal()
                 ),
                 source       = ExpressionConstantRef(
@@ -100,9 +98,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
             build_tried(),
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_indicator_var.makeReference(
-                        provider
-                    ),
+                    variable   = tmp_indicator_var,
                     source_ref = source_ref.atInternal()
                 ),
                 source       = ExpressionConstantRef(
@@ -132,9 +128,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         prelude = StatementConditional(
             condition = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
-                    variable   = tmp_indicator_var.makeReference(
-                        provider
-                    ),
+                    variable   = tmp_indicator_var,
                     source_ref = source_ref.atInternal()
                 ),
                 right      = ExpressionConstantRef(
@@ -162,9 +156,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
             StatementConditional(
                 condition = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
-                        variable   = tmp_indicator_var.makeReference(
-                            provider
-                        ),
+                        variable   = tmp_indicator_var,
                         source_ref = source_ref.atInternal()
                     ),
                     right      = ExpressionConstantRef(
@@ -177,9 +169,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                     statements = (
                         StatementDelVariable(
                             variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = tmp_indicator_var.makeReference(
-                                    provider
-                                ),
+                                variable   = tmp_indicator_var,
                                 source_ref = source_ref.atInternal()
                             ),
                             tolerant   = False,
@@ -195,9 +185,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                     statements = (
                         StatementDelVariable(
                             variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = tmp_indicator_var.makeReference(
-                                    provider
-                                ),
+                                variable   = tmp_indicator_var,
                                 source_ref = source_ref.atInternal()
                             ),
                             tolerant   = False,
@@ -232,7 +220,7 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         )
 
 
-def makeTryFinallyIndicator(provider, statement, is_loop_exit):
+def makeTryFinallyIndicator(statement, is_loop_exit):
     statements = []
 
     indicator_variables = getIndicatorVariables()
@@ -247,9 +235,7 @@ def makeTryFinallyIndicator(provider, statement, is_loop_exit):
             statements.append(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = indicator_variable.makeReference(
-                            provider
-                        ),
+                        variable   = indicator_variable,
                         source_ref = source_ref.atInternal()
                     ),
                     source       = ExpressionConstantRef(

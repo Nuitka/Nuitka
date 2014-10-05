@@ -132,8 +132,3 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     def computeExpression(self, constraint_collection):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
-
-    def mayProvideReference(self):
-        # Dedicated code returns "True" or "False" only, which requires no reference,
-        # except for rich comparisons, which do.
-        return False

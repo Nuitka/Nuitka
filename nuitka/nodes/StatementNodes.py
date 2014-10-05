@@ -330,7 +330,7 @@ class StatementsFrame(StatementsSequence):
                             provider.isGenerator(),
             is_optimized  = not provider.isPythonModule() and \
                             not provider.isClassDictCreation() and \
-                            not context.hasLocalsDict(),
+                            not provider.hasLocalsDict(),
             has_starlist  = self.has_starlist,
             has_stardict  = self.has_stardict,
             has_closure   = provider.isExpressionFunctionBody() and \

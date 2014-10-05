@@ -112,21 +112,28 @@ class classExecfile:
     # TODO: Won't work yet, Issue#5
     # print execfile( tmp_filename ),
     execfile( tmp_filename )
-    print e, f
+    print "execfile changed local values:", e, f
 
 
-def functionExecNones():
+f = 7
+
+def functionExecNonesTuple():
     f = 0
 
     exec( "f=1", None, None )
+    print "Exec with None as optimizable tuple args did update locals:", f
 
-    print "Exec with None as tuple args did update locals:", f
-
+def functionExecNonesSyntax():
+    f = 0
     exec "f=2" in None, None
+    print "Exec with None as optimizable normal args did update locals:", f
 
-    print "Exec with None as normal args did update locals:", f
+# TODO: Needs solution for Issue#154.
+if False:
+    functionExecNonesTuple()
+    functionExecNonesSyntax()
 
-functionExecNones()
+print "Global value is untouched", f
 
 def functionEvalNones2():
     f = 11
@@ -142,24 +149,33 @@ def functionEvalNones2():
 
 functionEvalNones2()
 
-def functionExecNones2():
+def functionExecNonesTuple2():
     f = 0
 
     code = "f=1"
     g = None
     l = None
 
-    exec ( code, l, g )
+    exec( code, l, g )
 
     print "Exec with None as tuple args from variable did update locals:", f
 
+def functionExecNonesSyntax2():
+    f = 0
+
     code = "f=2"
+    g = None
+    l = None
 
     exec code in l, g
 
     print "Exec with None as normal args did update locals:", f
 
-functionExecNones2()
+
+# TODO: Needs solution for Issue#154.
+if False:
+    functionExecNonesTuple2()
+    functionExecNonesSyntax2()
 
 print "Exec with a future division definition and one without:"
 
@@ -249,10 +265,9 @@ functionWithClosureProvidedByExec()
 x = 2
 
 def functionWithExecAffectingClosure():
-
     x = 4
 
-    code = "d=3"
+    code = "d=3;x=5"
     space = locals()
 
     exec code in space

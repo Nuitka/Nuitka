@@ -538,6 +538,9 @@ _generated_functions = {}
 
 def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
                                   annotations, defaults_first, emit, context):
+    # This is about creating functions, which is detail ridden stuff,
+    # pylint: disable=R0914
+
     assert function_body.needsCreation(), function_body
 
     parameters = function_body.getParameters()
@@ -609,6 +612,7 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
         source_ref          = function_body.getSourceReference(),
         function_doc        = function_body.getDoc(),
         is_generator        = function_body.isGenerator(),
+        is_optimized        = not function_body.needsLocalsDict(),
         emit                = emit,
         context             = context
     )
@@ -961,6 +965,10 @@ def generateSliceLookupCode(to_name, expression, emit, context):
 
 
 def generateCallCode(to_name, call_node, emit, context):
+    # There is a whole lot of different cases, for each of which, we create
+    # optimized code, constant, with and without positional or keyword args
+    # each, so there is lots of branches here, pylint: disable=R0912
+
     called_name = context.allocateTempName("called")
 
     generateExpressionCode(
@@ -971,7 +979,6 @@ def generateCallCode(to_name, call_node, emit, context):
     )
 
     call_args = call_node.getCallArgs()
-
     call_kw = call_node.getCallKw()
 
     if call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}:
@@ -1215,27 +1222,20 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         assert False, expression
 
     if expression.isExpressionVariableRef():
-        if expression.getVariable() is None:
-            Tracing.printError("Illegal variable reference, not resolved.")
-
-            expression.dump()
-            assert False, (
-                expression.getSourceReference(),
-                expression.getVariableName()
-            )
-
         Generator.getVariableAccessCode(
-            to_name  = to_name,
-            variable = expression.getVariable(),
-            emit     = emit,
-            context  = context
+            to_name     = to_name,
+            variable    = expression.getVariable(),
+            needs_check = expression.mayRaiseException(BaseException),
+            emit        = emit,
+            context     = context
         )
     elif expression.isExpressionTempVariableRef():
         Generator.getVariableAccessCode(
-            to_name  = to_name,
-            variable = expression.getVariable(),
-            emit     = emit,
-            context  = context
+            to_name     = to_name,
+            variable    = expression.getVariable(),
+            needs_check = expression.mayRaiseException(BaseException),
+            emit        = emit,
+            context     = context
         )
     elif expression.isExpressionConstantRef():
         Generator.getConstantAccess(
@@ -1636,12 +1636,8 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
     elif expression.isExpressionBuiltinOriginalRef():
         assert not expression.isExpressionBuiltinRef()
 
-        Generator.getBuiltinOriginalRefCode(
-            to_name      = to_name,
-            builtin_name = expression.getBuiltinName(),
-            emit         = emit,
-            context      = context
-        )
+        # This is not implemented currently, but ought to be one day.
+        assert False
     elif expression.isExpressionMakeTuple():
         generateTupleCreationCode(
             to_name  = to_name,
@@ -1734,7 +1730,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 expression = value
             )
 
-            base_name = context.allocateTempName("int_base")
+            base_name = context.allocateTempName("long_base")
 
             makeExpressionCode(
                 to_name    = base_name,
@@ -3010,10 +3006,11 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     )
 
     Generator.getVariableAssignmentCode(
-        tmp_name = tmp_name2,
-        variable = tried_statement.getTargetVariableRef().getVariable(),
-        emit     = emit,
-        context  = context
+        tmp_name      = tmp_name2,
+        variable      = tried_statement.getTargetVariableRef().getVariable(),
+        emit          = emit,
+        needs_release = None,
+        context       = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
@@ -3097,12 +3094,11 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     # The try/finally is very hard for C-ish code generation. We need to react
     # on break, continue, return, raise in the tried blocks with reraise. We
     # need to publish it to the handler (Python3) or save it for re-raise,
-    # unless another exception or continue, break, return occurs.
+    # unless another exception or continue, break, return occurs. So this is
+    # full of detail stuff, pylint: disable=R0914,R0912,R0915
 
     # First, this may be used as an expression, in which case to_name won't be
     # set, we ask the checks to ignore currently set values.
-    global _temp_whitelist
-
     if to_name is not None:
         _temp_whitelist.append(context.getCleanupTempnames())
 
@@ -3408,15 +3404,19 @@ Py_XDECREF( %(keeper_tb)s );%(keeper_tb)s = NULL;""" % {
 if ( %(keeper_type)s )
 {
     NORMALIZE_EXCEPTION( &%(keeper_type)s, &%(keeper_value)s, &%(keeper_tb)s );
-    PyException_SetContext( %(keeper_value)s, exception_value );
+    if( exception_value != %(keeper_value)s )
+    {
+        PyException_SetContext( %(keeper_value)s, exception_value );
+    }
+    else
+    {
+        Py_DECREF( exception_value );
+    }
     Py_DECREF( exception_type );
     exception_type = %(keeper_type)s;
-    // Py_XDECREF( exception_value );
     exception_value = %(keeper_value)s;
     Py_XDECREF( exception_tb );
     exception_tb = %(keeper_tb)s;
-
-
 }
 """ % {
                         "keeper_type"  : keeper_type,
@@ -3906,7 +3906,10 @@ def generateGeneratorReturnCode(statement, emit, context):
     Generator.getGotoCode(context.getReturnTarget(), emit)
 
 
-def generateAssignmentVariableCode(variable_ref, value, emit, context):
+def generateAssignmentVariableCode(statement, emit, context):
+    variable_ref  = statement.getTargetVariableRef()
+    value         = statement.getAssignSource()
+
     tmp_name = context.allocateTempName("assign_source")
 
     generateExpressionCode(
@@ -3917,14 +3920,15 @@ def generateAssignmentVariableCode(variable_ref, value, emit, context):
     )
 
     Generator.getVariableAssignmentCode(
-        tmp_name = tmp_name,
-        variable = variable_ref.getVariable(),
-        emit     = emit,
-        context  = context
+        tmp_name      = tmp_name,
+        variable      = variable_ref.getVariable(),
+        needs_release = statement.needsReleaseValue(),
+        emit          = emit,
+        context       = context
     )
 
-    if context.needsCleanup(tmp_name):
-        context.removeCleanupTempName(tmp_name)
+    # Ownership of that reference should be transfered.
+    assert not context.needsCleanup(tmp_name)
 
 
 def generateStatementOnlyCode(value, emit, context):
@@ -4017,10 +4021,9 @@ def _generateStatementCode(statement, emit, context):
 
     if statement.isStatementAssignmentVariable():
         generateAssignmentVariableCode(
-            variable_ref  = statement.getTargetVariableRef(),
-            value         = statement.getAssignSource(),
-            emit          = emit,
-            context       = context
+            statement = statement,
+            emit      = emit,
+            context   = context
         )
     elif statement.isStatementAssignmentAttribute():
         generateAssignmentAttributeCode(
@@ -4239,6 +4242,7 @@ def _generateStatementCode(statement, emit, context):
             emit(
                 """PyException_SetTraceback( exception_value, (PyObject *)exception_tb );"""
             )
+
         emit(
             "PUBLISH_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
         )
@@ -4314,6 +4318,10 @@ def _generateStatementSequenceCode(statement_sequence, emit, context,
 
 def generateStatementSequenceCode(statement_sequence, context,
                                   allow_none = False):
+
+    # This is a wrapper that provides also handling of frames, which got a
+    # lot of variants and details, therefore lots of branches and code.
+    # pylint: disable=R0912,R0915
 
     if allow_none and statement_sequence is None:
         return None
@@ -4450,9 +4458,13 @@ def generateStatementSequenceCode(statement_sequence, context,
 
 
 def prepareModuleCode(global_context, module, module_name, other_modules):
+    # As this not only creates all modules, but also functions, it deals
+    # with too many details, pylint: disable=R0914
+
     assert module.isPythonModule(), module
 
     context = Contexts.PythonModuleContext(
+        module         = module,
         module_name    = module_name,
         code_name      = Generator.getModuleIdentifier(module_name),
         filename       = module.getFilename(),

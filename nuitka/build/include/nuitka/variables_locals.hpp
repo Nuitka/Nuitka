@@ -21,16 +21,9 @@
 class PyObjectLocalVariable
 {
 public:
-    explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL  )
-    {
-        this->var_name   = var_name;
-        this->object     = object;
-    }
-
     explicit PyObjectLocalVariable()
     {
-        this->var_name   = NULL;
-        this->object     = NULL;
+        this->object = NULL;
     }
 
     ~PyObjectLocalVariable()
@@ -38,16 +31,9 @@ public:
         Py_XDECREF( this->object );
     }
 
-    bool isInitialized() const
-    {
-        return this->object != NULL;
-    }
-
 private:
 
     PyObjectLocalVariable( const PyObjectLocalVariable &other ) { assert( false ); }
-
-    PyObject *var_name;
 
 public:
 

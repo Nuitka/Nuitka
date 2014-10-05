@@ -315,7 +315,10 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION( PyObject **exceptio
     PRINT_EXCEPTION( *exception_type,  *exception_value, (PyObject *)*exception_tb );
 #endif
 
-    PyErr_NormalizeException( exception_type, exception_value, (PyObject **)exception_tb );
+    if ( *exception_type != Py_None && *exception_type != NULL )
+    {
+        PyErr_NormalizeException( exception_type, exception_value, (PyObject **)exception_tb );
+    }
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("normalized:\n");
@@ -350,5 +353,23 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL( PyObject *exception
 
     return PyErr_GivenExceptionMatches( exception_value, exception_checked );
 }
+
+#if PYTHON_VERSION >= 300
+// Attach the exception context if necessary.
+NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT( PyObject **exception_type, PyObject **exception_value )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *context = tstate->exc_value;
+
+    if ( context != NULL )
+    {
+        NORMALIZE_EXCEPTION( exception_type, exception_value, NULL );
+
+        Py_INCREF( context );
+        PyException_SetContext( *exception_value, context );
+    }
+}
+#endif
 
 #endif

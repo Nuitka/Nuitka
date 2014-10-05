@@ -19,32 +19,33 @@
 from __future__ import print_function
 
 # Python2 will fallback to this variable, which Python3 will ignore.
-__class__ = "Using module level __class__ variable, wrong for Python3"
+__class__ = "Using module level __class__ variable, would be wrong for Python3"
 
 class ClassWithUnderClassClosure:
-  def g(self):
-    def h():
-      print( "Variable __class__ in ClassWithUnderClassClosure is", __class__)
+    def g(self):
+        def h():
+            print("Variable __class__ in ClassWithUnderClassClosure is", __class__)
 
-    h()
+        h()
 
-    try:
-      print( "ClassWithUnderClassClosure: Super in ClassWithUnderClassClosure is", super() )
-    except Exception as e:
-      print( "ClassWithUnderClassClosure: Occured during super call", repr(e) )
+        try:
+            print("ClassWithUnderClassClosure: Super in ClassWithUnderClassClosure is", super())
+        except Exception as e:
+            print("ClassWithUnderClassClosure: Occured during super call", repr(e))
 
 
+print("Class with a method that has a local function accessing __class__:")
 ClassWithUnderClassClosure().g()
 
 class ClassWithoutUnderClassClosure:
-  def g(self):
-    __class__ = "Providing __class__ ourselves, then it must be used"
-    print( __class__)
+    def g(self):
+        __class__ = "Providing __class__ ourselves, then it must be used"
+        print( __class__)
 
-    try:
-      print( "ClassWithoutUnderClassClosure: Super", super() )
-    except Exception as e:
-      print( "ClassWithoutUnderClassClosure: Occured during super call", repr(e) )
+        try:
+            print( "ClassWithoutUnderClassClosure: Super", super() )
+        except Exception as e:
+            print( "ClassWithoutUnderClassClosure: Occured during super call", repr(e) )
 
 
 ClassWithoutUnderClassClosure().g()
@@ -65,23 +66,20 @@ class X:
     __class__ = "some string"
 
     def f1(self):
-        print( "f1", locals() )
+        print("f1", locals())
+
         try:
-            print( "f1", __class__ )
+            print("f1", __class__)
         except Exception as e:
-            print( "Accessing __class__ in f1 gave", repr(e) )
+            print("Accessing __class__ in f1 gave", repr(e))
 
     def f2(self):
-        print( "f2", locals() )
-
-    def f3(self):
-        print( "f3", locals() )
-        super
+        print("f2", locals())
 
     def f4(self):
-        print( "f4", self )
+        print("f4", self)
         self = X()
-        print( "f4", self )
+        print("f4", self)
 
         try:
             print( "f4", super() )
@@ -106,20 +104,18 @@ class X:
             import sys
             assert sys.version < (3,)
 
-    print( "Early pre-class calls begin" )
-    print( "Set in class __class__", __class__ )
-    f1( 1 )
-    f2( 2 )
-    f3( 3 )
-    print( "Early pre-class calls end" )
+    print("Early pre-class calls begin")
+    print("Set in class __class__", __class__)
+    f1(1)
+    f2(2)
+    print("Early pre-class calls end")
 
     del __class__
 
 x = X()
 x.f1()
 x.f2()
-x.f3()
 x.f4()
-print( "f5", x.f5() )
+print("f5", x.f5())
 x.f6()
-print( "f7", list( x.f7() ) )
+print("f7", list(x.f7()))

@@ -134,8 +134,25 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 # TODO: Make the try/catch below unnecessary by detecting the presence
 # or return statements in generators.
 genfunc_yielder_template = """
+#ifdef _NUITKA_MAKECONTEXT_INTS
+static void %(function_identifier)s_context( int generator_address_1, int generator_address_2 )
+{
+    // Restore the pointer from ints should it be necessary, often it can be
+    // directly received.
+    int generator_addresses[2] = {
+        generator_address_1,
+        generator_address_2
+    };
+
+    Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)*(uintptr_t *)&generator_addresses[0];
+#else
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
+#endif
+
+    assertObject( (PyObject *)generator );
+    assert( Nuitka_Generator_Check( (PyObject *)generator ) );
+
     // Make context accessible if one is used.
 %(context_access)s
 

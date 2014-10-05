@@ -37,68 +37,56 @@ if not hasattr(sys, "gettotalrefcount"):
     my_print("Warning, using non-debug Python makes this test ineffective.")
     sys.gettotalrefcount = lambda : 0
 
+x = 17
+
+# Python2 only syntax things are here.
 def simpleFunction1():
-    def abc(*, exc=IOError):
+    try:
+        raise TypeError, (3,x,x,x)
+    except TypeError:
         pass
-    for _ in range(100):
-        abc()
 
 def simpleFunction2():
-    def abc(*, exc=IOError):
-        raise ValueError from None
-
     try:
-        abc()
-    except (ValueError, TypeError):
+        raise ValueError(1,2,3), ValueError(1,2,3)
+    except Exception:
         pass
 
 def simpleFunction3():
-    a = 1
-
-    def nonlocal_writer():
-        nonlocal a
-
-        for a in range(10):
-            pass
-
-    nonlocal_writer()
-
-    assert a == 9, a
-
-def simpleFunction4():
-    x = 2
-
-    def local_func(a: int, b: x*x):
+    try:
+        raise ValueError, 2, None
+    except Exception:
         pass
 
-    local_func(x, x)
-
+def simpleFunction4():
+    try:
+        raise ValueError, 2, 3
+    except Exception:
+        pass
 
 def simpleFunction5():
-        # Make sure exception state is cleaned up as soon as the except
-        # block is left. See #2507
+    def nested_args_function((a,b), c):
+        return a, b, c
 
-        class MyException(Exception):
-            def __init__(self, obj):
-                self.obj = obj
+    nested_args_function((1, 2), 3)
 
-        class MyObj:
-            pass
+def simpleFunction6():
+    def nested_args_function((a,b), c):
+        return a, b, c
 
-        def inner_raising_func():
-            local_ref = obj
-            raise MyException(obj)
+    try:
+        nested_args_function((1,), 3)
+    except ValueError:
+        pass
 
-        # "except" block raising another exception
-        obj = MyObj()
+def simpleFunction7():
+    def nested_args_function((a,b), c):
+        return a, b, c
 
-        try:
-            try:
-                inner_raising_func()
-            except:
-                raise KeyError
-        except KeyError as e:
-            pass
+    try:
+        nested_args_function((1, 2, 3), 3)
+    except ValueError:
+        pass
 
 
 # These need stderr to be wrapped.

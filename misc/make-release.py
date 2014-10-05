@@ -161,6 +161,10 @@ for filename in os.listdir( "." ):
             )
         )
 
+        assert 0 == os.system(
+            "rm -f deb_dist/*_source*"
+        )
+
         # Remove the now useless input, py2dsc has copied it, and we don't
         # publish it.
         os.unlink( new_name )

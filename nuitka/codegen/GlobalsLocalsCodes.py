@@ -21,7 +21,11 @@ from nuitka import Utils
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitBoolCode
 from .ModuleCodes import getModuleAccessCode
-from .VariableCodes import getVariableAssignmentCode, getVariableCode
+from .VariableCodes import (
+    getVariableAssignmentCode,
+    getVariableCode,
+    getVariableInitializedCheckCode
+)
 
 
 def getLoadGlobalsCode(to_name, emit, context):
@@ -44,7 +48,7 @@ def _getLocalVariableList(provider):
 
         for variable in provider.getVariables():
             if variable.isParameterVariable():
-                end_part.append(variable )
+                end_part.append(variable)
             else:
                 start_part.append(variable)
 
@@ -63,15 +67,16 @@ def _getLocalVariableList(provider):
         variables
         if not variable.isModuleVariable()
         if not variable.isMaybeLocalVariable()
-        if ( not variable.isClosureReference() or include_closure )
+        if (include_closure or variable.getOwner() is provider)
     ]
 
 
 def _getVariableDictUpdateCode(dict_name, variable, emit, context):
     # TODO: Variable could known to be set here, get a hand at that
     # information.
+
     emit(
-        "if (%s.isInitialized())\n{" % getVariableCode(
+        "if (%s)\n{" % getVariableInitializedCheckCode(
             variable = variable,
             context  = context
         )
@@ -91,7 +96,7 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
         else:
             access_code += ".object"
     else:
-        if variable.getReferenced().isSharedTechnically():
+        if variable.isSharedTechnically():
             access_code += ".storage->object"
         else:
             access_code += ".object"
@@ -237,10 +242,11 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
 
             context.addCleanupTempName(value_name)
             getVariableAssignmentCode(
-                variable   = variable,
-                tmp_name   = value_name,
-                emit       = emit,
-                context    = context
+                variable      = variable,
+                tmp_name      = value_name,
+                needs_release = None, # TODO: Could be known maybe.
+                emit          = emit,
+                context       = context
             )
 
             emit("}")

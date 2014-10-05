@@ -140,6 +140,6 @@ def deletingClosureVariable():
         g()
         g()
     except Exception as e:
-        return e
+        return repr(e)
 
-print("Using deleted non-local variable", deletingClosureVariable())
+print("Using deleted non-local variable:", deletingClosureVariable())

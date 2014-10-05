@@ -81,7 +81,6 @@ def prepareModuleCode(context, module_name, codes, metapath_loader_inittab,
     # Temp local variable initializations
     local_var_inits = [
         getLocalVariableInitCode(
-            context  = context,
             variable = variable
         )
         for variable in

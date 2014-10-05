@@ -32,10 +32,18 @@ void _initFiber( Fiber *to )
     to->start_stack = NULL;
 }
 
-int _prepareFiber( Fiber *to, void *code, intptr_t arg )
+int _prepareFiber( Fiber *to, void *code, uintptr_t arg )
 {
+#ifdef _NUITKA_MAKECONTEXT_INTS
+    int ar[2];
+    memcpy( &ar[0], &arg, sizeof(arg) );
+#endif
+
     int res = getcontext( &to->f_context );
-    if( res != 0 ) return res;
+    if (unlikely( res != 0 ))
+    {
+        return 1;
+    }
 
     to->f_context.uc_stack.ss_size = STACK_SIZE;
     to->f_context.uc_stack.ss_sp = last_stack ? last_stack : malloc( STACK_SIZE );
@@ -43,18 +51,27 @@ int _prepareFiber( Fiber *to, void *code, intptr_t arg )
     to->f_context.uc_link = NULL;
     last_stack = NULL;
 
+#ifdef _NUITKA_MAKECONTEXT_INTS
+    makecontext( &to->f_context, (void (*)())code, 2, ar[0], ar[1] );
+#else
     makecontext( &to->f_context, (void (*)())code, 1, (unsigned long)arg );
+#endif
     return 0;
 }
 
 void _releaseFiber( Fiber *to )
 {
-    if ( last_stack == NULL )
+    if ( to->start_stack != NULL )
     {
-        last_stack = to->start_stack;
-    }
-    else
-    {
-        free( to->start_stack );
+        if ( last_stack == NULL )
+        {
+            last_stack = to->start_stack;
+        }
+        else
+        {
+            free( to->start_stack );
+        }
+
+        to->start_stack = NULL;
     }
 }

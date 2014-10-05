@@ -16,14 +16,24 @@
 #     limitations under the License.
 #
 
-# In Python2, it is not allowed to take closure variables, in a function that
-# has an "exec". For Python3, the problem doesn't exist, as there is no exec
-# statement anymore.
+# From Issue#146, this has crashed in the past.
 
-def someFunctionWithUnqualifiedExecAndCallback():
-    exec "def f(): pass"
+import threading
 
-    def callback():
-        return nested
+def some_generator():
+    yield 1
 
-someFunctionWithUnqualifiedExecAndCallback()
+def run():
+    for i in range(10000):
+        for j in some_generator():
+            pass
+
+def main():
+    workers = [threading.Thread(target=run) for i in range(5)]
+    for t in workers:
+        t.start()
+    for t in workers:
+        t.join()
+
+if __name__ == "__main__":
+    main()

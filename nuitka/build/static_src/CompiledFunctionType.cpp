@@ -521,7 +521,7 @@ static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_par
     result->m_context = context;
     result->m_cleanup = cleanup;
 
-    if (defaults == NULL)
+    if ( defaults == NULL )
     {
         defaults = INCREASE_REFCOUNT( Py_None );
     }

@@ -93,9 +93,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
     post_statements = [
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = globals_keeper_variable.makeReference(
-                    provider
-                ),
+                variable   = globals_keeper_variable,
                 source_ref = globals_node.getSourceReference()
             ),
             tolerant     = False,
@@ -103,9 +101,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = locals_keeper_variable.makeReference(
-                    provider
-                ),
+                variable   = locals_keeper_variable,
                 source_ref = locals_node.getSourceReference()
             ),
             tolerant     = False,
@@ -117,9 +113,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
     locals_default = ExpressionConditional(
         condition = ExpressionComparisonIs(
             left       = ExpressionTempVariableRef(
-                variable   = globals_keeper_variable.makeReference(
-                    provider
-                ),
+                variable   = globals_keeper_variable,
                 source_ref = source_ref
             ),
             right      = ExpressionConstantRef(
@@ -129,9 +123,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             source_ref = source_ref
         ),
         no_expression  = ExpressionTempVariableRef(
-            variable   = globals_keeper_variable.makeReference(
-                provider
-            ),
+            variable   = globals_keeper_variable,
             source_ref = source_ref
         ),
         yes_expression = ExpressionBuiltinLocals(
@@ -144,9 +136,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         # First assign globals and locals temporary the values given.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = globals_keeper_variable.makeReference(
-                    provider
-                ),
+                variable   = globals_keeper_variable,
                 source_ref = source_ref
             ),
             source       = globals_node,
@@ -154,9 +144,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = locals_keeper_variable.makeReference(
-                    provider
-                ),
+                variable   = locals_keeper_variable,
                 source_ref = source_ref
             ),
             source       = locals_node,
@@ -165,9 +153,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         StatementConditional(
             condition      = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
-                    variable   = locals_keeper_variable.makeReference(
-                        provider
-                    ),
+                    variable   = locals_keeper_variable,
                     source_ref = source_ref
                 ),
                 right      = ExpressionConstantRef(
@@ -179,9 +165,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             yes_branch     = makeStatementsSequenceFromStatement(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = locals_keeper_variable.makeReference(
-                            provider
-                        ),
+                        variable   = locals_keeper_variable,
                         source_ref = source_ref
                     ),
                     source       = locals_default,
@@ -194,9 +178,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         StatementConditional(
             condition      = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
-                    variable   = globals_keeper_variable.makeReference(
-                        provider
-                    ),
+                    variable   = globals_keeper_variable,
                     source_ref = source_ref
                 ),
                 right      = ExpressionConstantRef(
@@ -208,9 +190,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             yes_branch     = makeStatementsSequenceFromStatement(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = globals_keeper_variable.makeReference(
-                            provider
-                        ),
+                        variable   = globals_keeper_variable,
                         source_ref = source_ref
                     ),
                     source       = ExpressionBuiltinGlobals(
@@ -226,18 +206,14 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
 
     return (
         ExpressionTempVariableRef(
-            variable   = globals_keeper_variable.makeReference(
-                provider
-            ),
+            variable   = globals_keeper_variable,
             source_ref = source_ref
               if globals_node is None else
             globals_node.getSourceReference()
 
         ),
         ExpressionTempVariableRef(
-            variable   = locals_keeper_variable.makeReference(
-                provider
-            ),
+            variable   = locals_keeper_variable,
             source_ref = source_ref
               if locals_node is None else
             locals_node.getSourceReference()
@@ -245,6 +221,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         makeStatementsSequence(pre_statements, False, source_ref),
         makeStatementsSequence(post_statements, False, source_ref)
     )
+
 
 def buildExecNode(provider, node, source_ref):
     # "exec" statements, should only occur with Python2.
@@ -310,17 +287,13 @@ exec: arg 1 must be a string, file, or code object""",
     file_fixup = [
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = source_variable.makeReference(
-                    provider
-                ),
+                variable   = source_variable,
                 source_ref = source_ref
             ),
             source = ExpressionCallEmpty(
                 called = ExpressionAttributeLookup(
                     expression     = ExpressionTempVariableRef(
-                        variable   = source_variable.makeReference(
-                            provider
-                        ),
+                        variable   = source_variable,
                         source_ref = source_ref
                     ),
                     attribute_name = "read",
@@ -335,9 +308,7 @@ exec: arg 1 must be a string, file, or code object""",
     statements = (
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = source_variable.makeReference(
-                    provider
-                ),
+                variable   = source_variable,
                 source_ref = source_ref
             ),
             source       = source_code,
@@ -350,9 +321,7 @@ exec: arg 1 must be a string, file, or code object""",
                     source_ref   = source_ref,
                 ),
                 instance = ExpressionTempVariableRef(
-                    variable   = source_variable.makeReference(
-                        provider
-                    ),
+                    variable   = source_variable,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -366,9 +335,7 @@ exec: arg 1 must be a string, file, or code object""",
         ),
         StatementExec(
             source_code = ExpressionTempVariableRef(
-                variable   = source_variable.makeReference(
-                    provider
-                ),
+                variable   = source_variable,
                 source_ref = source_ref
             ),
             globals_arg = globals_ref,
@@ -386,9 +353,7 @@ exec: arg 1 must be a string, file, or code object""",
         final.getStatements() + (
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_variable.makeReference(
-                        provider
-                    ),
+                    variable   = source_variable,
                     source_ref = source_ref
                 ),
                 tolerant     = True,

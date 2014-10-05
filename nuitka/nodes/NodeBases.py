@@ -82,9 +82,6 @@ NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object, ), {})
 class NodeBase(NodeMetaClassBase):
     kind = None
 
-    # Must be overloaded by expressions.
-    value_friend_maker = None
-
     def __init__(self, source_ref):
         # The base class has no __init__ worth calling, pylint: disable=W0231
 
@@ -698,11 +695,11 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
     def getProvidedVariable(self, variable_name):
         if variable_name not in self.providing:
-            self.providing[ variable_name ] = self.createProvidedVariable(
+            self.providing[variable_name] = self.createProvidedVariable(
                 variable_name = variable_name
             )
 
-        return self.providing[ variable_name ]
+        return self.providing[variable_name]
 
     def createProvidedVariable(self, variable_name):
         # Virtual method, pylint: disable=R0201,W0613
@@ -832,15 +829,12 @@ class ClosureTakerMixin:
                 variable_name = variable_name
             )
 
-        return self.addClosureVariable(result)
+        if not result.isModuleVariable():
+            self.addClosureVariable(result)
 
-    def addClosureVariables(self, *variables):
-        for variable in variables:
-            self.addClosureVariable(variable)
+        return result
 
     def addClosureVariable(self, variable):
-        variable = variable.makeReference(self)
-
         self.taken.add(variable)
 
         return variable
@@ -852,7 +846,7 @@ class ClosureTakerMixin:
                     take
                     for take in
                     self.taken
-                    if take.isClosureReference()
+                    if not take.isModuleVariable()
                 ],
                 key = lambda x : x.getName()
             )
@@ -905,9 +899,15 @@ class ExpressionMixin:
         """ Return known truth value. The "None" value indicates unknown. """
 
         if self.isCompileTimeConstant():
-            return bool( self.getCompileTimeConstant() )
+            return bool(self.getCompileTimeConstant())
         else:
             return None
+
+    def mayBeNone(self):
+        """ Could this evaluate to be "None".
+
+            Yes or no. Defaults to pessimistic yes."""
+        return True
 
     def isKnownToBeIterable(self, count):
         """ Can be iterated at all (count is None) or exactly count times.
@@ -926,15 +926,6 @@ class ExpressionMixin:
     def isKnownToBeIterableAtMax(self, count):
         # Virtual method, pylint: disable=R0201,W0613
         return False
-
-    def mayProvideReference(self):
-        """ May at run time produce a reference.
-
-        This then would have to be consumed or released in a reliable way.
-        """
-
-        # Virtual method, pylint: disable=R0201
-        return True
 
     def getIterationLength(self):
         """ Value that "len" or "PyObject_Size" would give, if known.
@@ -1067,6 +1058,9 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
 
     def mayHaveSideEffectsBool(self):
         return False
+
+    def mayBeNone(self):
+        return self.getCompileTimeConstant() is None
 
     def computeExpressionOperationNot(self, not_node, constraint_collection):
         from .NodeMakingHelpers import getComputationResult

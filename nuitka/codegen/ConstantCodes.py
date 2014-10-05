@@ -93,7 +93,7 @@ min_signed_long = -(2**(sizeof_long*8-1)-1)
 
 done = set()
 
-def _getConstantInitValueCode(context, constant_value, constant_type):
+def _getConstantInitValueCode(constant_value, constant_type):
     if constant_type is unicode:
         try:
             encoded = constant_value.encode("utf-8")
@@ -103,8 +103,9 @@ def _getConstantInitValueCode(context, constant_value, constant_type):
                     stream_data.getStreamDataCode(encoded)
                 )
             else:
-                return "UNSTREAM_STRING( %s, %d )" % (
-                    stream_data.getStreamDataCode(encoded),
+                return "UNSTREAM_STRING( %s, %d, %d )" % (
+                    stream_data.getStreamDataCode(encoded, fixed_size = True),
+                    len(constant_value),
                     1 if _isAttributeName(constant_value) else 0
                 )
         except UnicodeEncodeError:
@@ -131,11 +132,25 @@ def _getConstantInitValueCode(context, constant_value, constant_type):
         return "UNSTREAM_BYTES( %s )" % (
             stream_data.getStreamDataCode(constant_value)
         )
+    else:
+        return None
 
 
 def decideMarshal(constant_value):
-    if False and type(constant_value) is unicode:
-        return True
+    constant_type = type(constant_value)
+
+    if constant_type is type:
+        return False
+    elif constant_type is dict:
+        for key, value in iterItems(constant_value):
+            if not decideMarshal(key):
+                return False
+            if not decideMarshal(value):
+                return False
+    elif constant_type in (tuple, list, set, frozenset):
+        for element_value in constant_value:
+            if not decideMarshal(element_value):
+                return False
 
     # Do it for sufficiently large constants, typically tuples of 20 elements,
     # or dicts of more than 10.
@@ -653,11 +668,10 @@ def getConstantAccess(to_name, constant, emit, context):
         context.addCleanupTempName(to_name)
 
 
-def getModuleConstantCode(constant, context):
+def getModuleConstantCode(constant):
     assert type(constant) is str
 
     result = _getConstantInitValueCode(
-        context        = context,
         constant_value = constant,
         constant_type  = type(constant)
     )

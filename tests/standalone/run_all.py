@@ -42,7 +42,7 @@ from test_common import (
 
 python_version = setup(needs_io_encoding=True)
 
-search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
+search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
 
 start_at = sys.argv[2] if len(sys.argv) > 2 else None
 
@@ -122,6 +122,19 @@ for filename in sorted(os.listdir(".")):
 
         # For the warnings.
         extra_flags.append( "ignore_stderr" )
+
+    if filename.startswith("Win"):
+        if os.name != "nt":
+            my_print("Skipping", filename, "windows only.")
+            continue
+
+    if filename == "Win32ComUsing.py":
+        if not hasModule("win32com"):
+            my_print(
+                "Skipping", filename, "win32com not installed for",
+                python_version, "but test needs it."
+            )
+            continue
 
     if filename not in ("PySideUsing.py", "PyQtUsing.py", "GtkUsing.py"):
         extra_flags += [

@@ -32,7 +32,11 @@ from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
-    named_children = ( "source", "globals", "locals" )
+    named_children = (
+        "source",
+        "globals",
+        "locals"
+    )
 
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -45,9 +49,9 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getSourceCode = ExpressionChildrenHavingBase.childGetter( "source" )
-    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals" )
-    getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
+    getSourceCode = ExpressionChildrenHavingBase.childGetter("source")
+    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals")
+    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
 
     def computeExpression(self, constraint_collection):
         # TODO: Attempt for constant values to do it.
@@ -95,7 +99,7 @@ if Utils.python_version < 300:
     class ExpressionBuiltinExecfile(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXECFILE"
 
-        named_children = ( "source", "globals", "locals" )
+        named_children = ("source", "globals", "locals")
 
         def __init__(self, source_code, globals_arg, locals_arg, source_ref):
             ExpressionBuiltinEval.__init__(
@@ -129,24 +133,14 @@ Changed execfile to exec on class level."""
                 return statement, None, None
 
 
-# TODO: Find a place for this. Potentially as an attribute of nodes themselves.
-def _couldBeNone(node):
-    if node is None:
-        return True
-    elif node.isExpressionMakeDict():
-        return False
-    elif node.isExpressionBuiltinGlobals() or \
-         node.isExpressionBuiltinLocals() or \
-         node.isExpressionBuiltinVars():
-        return False
-    else:
-        # assert False, node
-        return True
-
 class StatementExec(StatementChildrenHavingBase):
     kind = "STATEMENT_EXEC"
 
-    named_children = ( "source", "globals", "locals" )
+    named_children = (
+        "source",
+        "globals",
+        "locals"
+    )
 
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -160,29 +154,27 @@ class StatementExec(StatementChildrenHavingBase):
         )
 
     def setChild(self, name, value):
-        if name in ( "globals", "locals" ):
+        if name in ("globals", "locals"):
             from .NodeMakingHelpers import convertNoneConstantToNone
 
-            value = convertNoneConstantToNone( value )
+            value = convertNoneConstantToNone(value)
 
         return StatementChildrenHavingBase.setChild( self, name, value )
 
-    getSourceCode = StatementChildrenHavingBase.childGetter( "source" )
-    getGlobals = StatementChildrenHavingBase.childGetter( "globals" )
-    getLocals = StatementChildrenHavingBase.childGetter( "locals" )
+    getSourceCode = StatementChildrenHavingBase.childGetter("source")
+    getGlobals = StatementChildrenHavingBase.childGetter("globals")
+    getLocals = StatementChildrenHavingBase.childGetter("locals")
 
     def needsLocalsDict(self):
-        return _couldBeNone( self.getGlobals() ) or \
-               self.getGlobals().isExpressionBuiltinLocals() or \
-               ( self.getLocals() is not None and \
-                 self.getLocals().isExpressionBuiltinLocals()
-               )
+        return self.getLocals().mayBeNone()
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getSourceCode() )
+        constraint_collection.onExpression(
+            expression = self.getSourceCode()
+        )
         source_code = self.getSourceCode()
 
-        if source_code.willRaiseException( BaseException ):
+        if source_code.willRaiseException(BaseException):
             result = source_code
 
             return (
@@ -199,7 +191,7 @@ Exec statement raises implicitely when determining source code argument."""
         globals_arg = self.getGlobals()
 
         if globals_arg is not None and \
-           globals_arg.willRaiseException( BaseException ):
+           globals_arg.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -223,7 +215,7 @@ Exec statement raises implicitely when determining globals argument."""
         locals_arg = self.getLocals()
 
         if locals_arg is not None and \
-           locals_arg.willRaiseException( BaseException ):
+           locals_arg.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -254,6 +246,7 @@ Exec statement raises implicitely when determining locals argument."""
             )
 
         return self, None, None
+
 
 class ExpressionBuiltinCompile(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_COMPILE"

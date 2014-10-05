@@ -49,6 +49,23 @@ def check_output(*popenargs, **kwargs):
 
     return output
 
+def check_result(*popenargs, **kwargs):
+    if 'stdout' in kwargs:
+        raise ValueError('stdout argument not allowed, it will be overridden.')
+
+    process = subprocess.Popen(
+        stdout = subprocess.PIPE,
+        *popenargs,
+        **kwargs
+    )
+    _unused_output, _unused_err = process.communicate()
+    retcode = process.poll()
+
+    if retcode:
+        return False
+    else:
+        return True
+
 
 def setup(needs_io_encoding = False, silent = False):
     # Go its own directory, to have it easy with path knowledge.
@@ -105,6 +122,7 @@ print(("x86_64" if "AMD64" in sys.version else "x86") if os.name=="nt" else os.u
 
     return python_version
 
+
 tmp_dir = None
 
 def getTempDir():
@@ -135,8 +153,19 @@ def getTempDir():
     return tmp_dir
 
 
-def convertUsing2to3( path ):
-    filename = os.path.basename( path )
+def convertUsing2to3(path):
+    command = [
+        os.environ["PYTHON"],
+        "-m",
+        "py_compile",
+        path
+    ]
+
+    with open(os.devnull, "w") as stderr:
+        if check_result(command, stderr = stderr):
+            return path, False
+
+    filename = os.path.basename(path)
 
     new_path = os.path.join(getTempDir(), filename)
     shutil.copy(path, new_path)
@@ -146,7 +175,7 @@ def convertUsing2to3( path ):
         command = [
             sys.executable,
             os.path.join(
-                os.path.dirname( sys.executable ),
+                os.path.dirname(sys.executable),
                 "Tools/Scripts/2to3.py"
             )
         ]
@@ -162,12 +191,13 @@ def convertUsing2to3( path ):
         new_path
     ]
 
-    check_output(
-        command,
-        stderr = open(os.devnull, "w")
-    )
+    with open(os.devnull, "w") as devnull:
+        check_output(
+            command,
+            stderr = devnull
+        )
 
-    return new_path
+    return new_path, True
 
 
 def decideFilenameVersionSkip(filename):
@@ -186,11 +216,15 @@ def decideFilenameVersionSkip(filename):
         return False
 
     # Skip tests that require Python 3.2 at least.
-    if filename.endswith("32.py") and not python_version.startswith("3"):
+    if filename.endswith("32.py") and python_version < "3.2":
         return False
 
     # Skip tests that require Python 3.3 at least.
-    if filename.endswith("33.py") and not python_version.startswith("3.3"):
+    if filename.endswith("33.py") and python_version < "3.3":
+        return False
+
+    # Skip tests that require Python 3.4 at least.
+    if filename.endswith("34.py") and python_version < "3.4":
         return False
 
     return True
@@ -199,7 +233,9 @@ def decideFilenameVersionSkip(filename):
 def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
     # Apply 2to3 conversion if necessary.
     if needs_2to3:
-        path = convertUsing2to3(path)
+        path, converted = convertUsing2to3(path)
+    else:
+        converted = False
 
     command = [
         sys.executable,
@@ -220,12 +256,13 @@ def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
         my_print("Error exit!", result)
         sys.exit(result)
 
-    if needs_2to3:
+    if converted:
         os.unlink(path)
 
     if result == 2:
-        sys.stderr.write("Interruped, with CTRL-C\n")
+        sys.stderr.write("Interrupted, with CTRL-C\n")
         sys.exit(2)
+
 
 def hasDebugPython():
     global python_version
@@ -235,8 +272,9 @@ def hasDebugPython():
     if os.path.exists(debug_python):
         return True
 
-    # For self compiled Python, if it's the one also executing the runner, lets
-    # use it.
+    # For other Python, if it's the one also executing the runner, which is
+    # very probably the case, we check that. We don't check the provided
+    # binary here, this could be done as well.
     if sys.executable == os.environ["PYTHON"] and \
        hasattr(sys, "gettotalrefcount"):
         return True
@@ -411,3 +449,132 @@ def hasModule(module_name):
     )
 
     return result == 0
+
+def snapObjRefCntMap(before):
+    if before:
+        global m1
+        m = m1
+    else:
+        global m2
+        m = m2
+
+    for x in gc.get_objects():
+        if x is m1:
+            continue
+
+        if x is m2:
+            continue
+
+        m[ str( x ) ] = sys.getrefcount( x )
+
+
+def checkReferenceCount(checked_function, max_rounds = 10):
+    assert sys.exc_info() == (None, None, None), sys.exc_info()
+
+    print(checked_function.__name__ + ": ", end = "")
+    sys.stdout.flush()
+
+    ref_count1 = 17
+    ref_count2 = 17
+
+    explain = False
+
+    import gc
+
+    assert max_rounds > 0
+    for count in range(max_rounds):
+        gc.collect()
+        ref_count1 = sys.gettotalrefcount()
+
+        if explain and count == max_rounds - 1:
+            snapObjRefCntMap(True)
+
+        checked_function()
+
+        # Not allowed, but happens when bugs occur.
+        assert sys.exc_info() == (None, None, None), sys.exc_info()
+
+        gc.collect()
+
+        if explain and count == max_rounds - 1:
+            snapObjRefCntMap(False)
+
+        ref_count2 = sys.gettotalrefcount()
+
+        if ref_count1 == ref_count2:
+            result = True
+            print("PASSED")
+            break
+
+        # print count, ref_count1, ref_count2
+    else:
+        result = False
+        print("FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1)
+
+        if explain:
+            assert m1
+            assert m2
+
+            for key in m1.keys():
+                if key not in m2:
+                    print("*" * 80)
+                    print(key)
+                elif m1[key] != m2[key]:
+                    print("*" * 80)
+                    print(key)
+                else:
+                    pass
+                    # print m1[key]
+
+    assert sys.exc_info() == (None, None, None), sys.exc_info()
+
+    gc.collect()
+    sys.stdout.flush()
+
+    return result
+
+
+def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
+    import gc
+    gc.disable()
+
+    extract_number = lambda name: int(name.replace(prefix, ""))
+
+    # Find the function names.
+    matching_names = tuple(
+        name
+        for name in names
+        if name.startswith(prefix) and name[-1].isdigit()
+    )
+
+    old_stderr = sys.stderr
+
+    # Everything passed
+    result = True
+
+    for name in sorted(matching_names, key = extract_number):
+        number = extract_number(name)
+
+        # print(tests_skipped)
+        if number in tests_skipped:
+            my_print(name + ": SKIPPED (%s)" % tests_skipped[number])
+            continue
+
+        # Avoid unraisable output.
+        try:
+            if number in tests_stderr:
+                sys.stderr = open("/dev/null", "wb")
+        except Exception: # Windows
+            if not checkReferenceCount(names[name]):
+                result = False
+        else:
+            if not checkReferenceCount(names[name]):
+                result = False
+
+            if number in tests_stderr:
+                new_stderr = sys.stderr
+                sys.stderr = old_stderr
+                new_stderr.close()
+
+    gc.enable()
+    return result

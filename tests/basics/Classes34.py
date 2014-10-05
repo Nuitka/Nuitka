@@ -15,15 +15,27 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from enum import Enum, IntEnum, EnumMeta, unique
 
-# In Python2, it is not allowed to take closure variables, in a function that
-# has an "exec". For Python3, the problem doesn't exist, as there is no exec
-# statement anymore.
+print("Enum class with duplicate enumeration values:")
+try:
+    class Color(Enum):
+        red = 1
+        green = 2
+        blue = 3
+        red = 4
 
-def someFunctionWithUnqualifiedExecAndCallback():
-    exec "def f(): pass"
+        print("not allowed to get here")
+except Exception as e:
+    print("Occured", e)
 
-    def callback():
-        return nested
+print("Class variable that conflicts with closure variable:")
+def testClassNamespaceOverridesClosure():
+        # See #17853.
+        x = 42
+        class X:
+            locals()["x"] = 43
+            y = x
+        print("should be 43:", X.y)
 
-someFunctionWithUnqualifiedExecAndCallback()
+testClassNamespaceOverridesClosure()

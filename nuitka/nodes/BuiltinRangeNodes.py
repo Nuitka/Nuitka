@@ -44,6 +44,9 @@ class ExpressionBuiltinRange0(ExpressionBuiltinNoArgBase):
     def mayHaveSideEffects(self):
         return False
 
+    def mayBeNone(self):
+        return False
+
 
 class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
     """ Base class for range nodes with 1/2/3 arguments. """
@@ -124,6 +127,9 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
 
     def getStep(self):
         return None
+
+    def mayBeNone(self):
+        return False
 
 
 class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):

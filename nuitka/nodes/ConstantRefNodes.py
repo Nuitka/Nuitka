@@ -236,9 +236,6 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         # Constants won't raise any kind of exception.
         return False
 
-    def mayProvideReference(self):
-        return self.isMutable()
-
     def getIntegerValue(self):
         if self.isNumberConstant():
             return int( self.constant )

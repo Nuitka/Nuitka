@@ -30,8 +30,12 @@ static void CHAIN_EXCEPTION( PyObject *exception_type, PyObject *exception_value
     // Implicit chain of exception already existing.
     PyThreadState *thread_state = PyThreadState_GET();
 
-    // Normalize existing exception first.
-    PyErr_NormalizeException( &thread_state->exc_type, &thread_state->exc_value, &thread_state->exc_traceback );
+    // Normalize existing exception first. TODO: Will normally be done already.
+    NORMALIZE_EXCEPTION(
+        &thread_state->exc_type,
+        &thread_state->exc_value,
+        (PyTracebackObject **)&thread_state->exc_traceback
+    );
 
     PyObject *old_exc_value = thread_state->exc_value;
 
@@ -39,24 +43,28 @@ static void CHAIN_EXCEPTION( PyObject *exception_type, PyObject *exception_value
     {
         Py_INCREF( old_exc_value );
 
-        PyObject *o = old_exc_value;
-        while(true)
+        PyObject *current = old_exc_value;
+        while( true )
         {
-            PyObject *context = PyException_GetContext(o);
+            PyObject *context = PyException_GetContext( current );
             if (!context) break;
 
+            assertObject( context );
             Py_DECREF( context );
+            assertObject( context );
 
             if ( context == exception_value )
             {
-                PyException_SetContext( o, NULL );
+                PyException_SetContext( current, NULL );
                 break;
             }
 
-            o = context;
+            current = context;
         }
 
+        assertObject( old_exc_value );
         PyException_SetContext( exception_value, old_exc_value );
+        assertObject( thread_state->exc_traceback );
         PyException_SetTraceback( old_exc_value, thread_state->exc_traceback );
     }
 }
@@ -66,6 +74,17 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
 {
     *exception_value = NULL;
     *exception_tb = NULL;
+
+#if PYTHON_VERSION < 300
+    // Next, repeatedly, replace a tuple exception with its first item
+    while( PyTuple_Check( *exception_type ) && PyTuple_Size( *exception_type ) > 0 )
+    {
+         PyObject *tmp = *exception_type;
+         *exception_type = PyTuple_GET_ITEM( *exception_type, 0 );
+         Py_INCREF( *exception_type );
+         Py_DECREF( tmp );
+    }
+#endif
 
     if ( PyExceptionClass_Check( *exception_type ) )
     {
@@ -115,12 +134,16 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
 
             PyException_SetTraceback( *exception_value, (PyObject *)(*exception_tb ? *exception_tb : (PyTracebackObject *)Py_None ) );
         }
+
+        *exception_tb = (PyTracebackObject *)PyException_GetTraceback( *exception_value );
 #endif
 
         return;
     }
     else
     {
+        Py_DECREF( *exception_type );
+
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( *exception_type )->tp_name );
         PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
 

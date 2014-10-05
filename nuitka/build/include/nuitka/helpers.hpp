@@ -170,20 +170,57 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 {
+    // TODO: Need to check if 3.4 is really the first version to do this.
+#if PYTHON_VERSION < 340
     long base_int = PyInt_AsLong( base );
+#else
+    long base_int = PyNumber_AsSsize_t( base, NULL );
+#endif
 
     if (unlikely( base_int == -1 ))
     {
         if (likely( ERROR_OCCURED() ))
         {
+#if PYTHON_VERSION >= 300
+            if ( PyErr_ExceptionMatches( PyExc_OverflowError ) )
+            {
+                PyErr_Format(
+                        PyExc_ValueError,
+#if PYTHON_VERSION < 324
+                        "int() arg 2 must be >= 2 and <= 36"
+#else
+                        "int() base must be >= 2 and <= 36"
+#endif
+                );
+            }
+#endif
             return NULL;
         }
     }
 
+#if PYTHON_VERSION >= 300
+    if (unlikely( ( base_int != 0 && base_int < 2 ) || base_int > 36 ))
+    {
+        PyErr_Format(
+                PyExc_ValueError,
+#if PYTHON_VERSION < 324
+                "int() arg 2 must be >= 2 and <= 36"
+#else
+                "int() base must be >= 2 and <= 36"
+#endif
+        );
+
+        return NULL;
+    }
+#endif
+
 #if PYTHON_VERSION < 300
     if (unlikely( !Nuitka_String_Check( value ) && !PyUnicode_Check( value ) ))
     {
-        PyErr_Format( PyExc_TypeError, "int() can't convert non-string with explicit base" );
+        PyErr_Format(
+            PyExc_TypeError,
+            "int() can't convert non-string with explicit base"
+        );
         return NULL;
     }
 
@@ -263,6 +300,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 #endif
 }
 
+#if PYTHON_VERSION < 300
+// Note: Python3 uses TO_INT2 function.
 NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG2( PyObject *value, PyObject *base )
 {
     long base_int = PyInt_AsLong( base );
@@ -275,13 +314,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG2( PyObject *value, PyObject *base 
         }
     }
 
-#if PYTHON_VERSION < 300
     if (unlikely( !Nuitka_String_Check( value ) && !PyUnicode_Check( value ) ))
     {
         PyErr_Format( PyExc_TypeError, "long() can't convert non-string with explicit base" );
         return NULL;
     }
-#endif
 
     char *value_str = Nuitka_String_AsString( value );
     if (unlikely( value_str == NULL ))
@@ -297,6 +334,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG2( PyObject *value, PyObject *base 
 
     return result;
 }
+#endif
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_BOOL( PyObject *value )
 {
@@ -721,7 +759,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 
 #include "nuitka/frame_stack.hpp"
 
-#include "nuitka/variables_parameters.hpp"
 #include "nuitka/variables_locals.hpp"
 #include "nuitka/variables_shared.hpp"
 

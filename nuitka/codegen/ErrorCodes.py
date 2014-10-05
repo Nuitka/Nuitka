@@ -32,7 +32,7 @@ from . import CodeTemplates
 from .ExceptionCodes import getExceptionIdentifier
 from .Indentation import indented
 from .LineNumberCodes import getLineNumberUpdateCode
-
+from nuitka import Utils
 
 def getErrorExitReleaseCode(context):
     return "\n".join(
@@ -100,18 +100,21 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     if len(args) == 1:
         from .ConstantCodes import getModuleConstantCode
 
-        set_exception = """\
-exception_type = INCREASE_REFCOUNT( %s );
-exception_value = %s;
-exception_tb = NULL;""" % (
-            exception,
-            getModuleConstantCode(
+        set_exception = [
+            """exception_type = INCREASE_REFCOUNT( %s );""" % exception,
+            """exception_value = %s;""" % getModuleConstantCode(
                 constant = args[0],
-                context  = context
-            )
-        )
+            ),
+            """exception_tb = NULL;"""
+        ]
     else:
         assert False, args
+
+
+    if Utils.python_version >= 300 and context.isExceptionPublished():
+        set_exception += [
+            "ADD_EXCEPTION_CONTEXT( &exception_type, &exception_value );",
+        ]
 
     emit(
         indented(

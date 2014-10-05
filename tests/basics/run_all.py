@@ -107,7 +107,10 @@ for filename in sorted(os.listdir(".")):
         "GeneratorExpressions.py",
 
         # Order change for dictionary contraction"
-        "ListContractions.py"
+        "ListContractions.py",
+
+        # Prepared dictionaries of Enums are not used early enough
+        "Classes34.py",
     )
 
     if active:

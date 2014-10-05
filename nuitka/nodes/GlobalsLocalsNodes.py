@@ -50,6 +50,9 @@ class ExpressionBuiltinGlobals(NodeBase, ExpressionMixin):
     def mayRaiseException(self, exception_type):
         return False
 
+    def mayBeNone(self):
+        return None
+
 
 class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_BUILTIN_LOCALS"
@@ -62,17 +65,14 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
 
     def computeExpression(self, constraint_collection):
         # Just inform the collection that all escaped.
-        for variable_ref in constraint_collection.getActiveVariables():
-            variable = variable_ref
-
-            while variable.isReference():
-                variable = variable.getReferenced()
+        for variable in constraint_collection.getActiveVariables():
 
             # TODO: Currently this is a bit difficult to express in a positive
-            # way.
-            if not variable.isTempVariable():
+            # way, but we want to have only local variables.
+            if not variable.isTempVariable() and \
+               not variable.isModuleVariable():
                 variable_trace = constraint_collection.getVariableCurrentTrace(
-                    variable_ref
+                    variable
                 )
 
                 variable_trace.addUsage(self)
@@ -88,6 +88,9 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
 
     def mayRaiseException(self, exception_type):
         return False
+
+    def mayBeNone(self):
+        return None
 
 
 class StatementSetLocals(StatementChildrenHavingBase):
@@ -143,3 +146,6 @@ class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
     def computeExpression(self, constraint_collection):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
+
+    def mayBeNone(self):
+        return None

@@ -225,8 +225,3 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
         # check.
 
         return self, None, None
-
-    def mayProvideReference(self):
-        # Dedicated code returns "True" or "False" only, which requires no
-        # reference.
-        return False

@@ -29,7 +29,7 @@ void _initFiber( Fiber *to )
     to->fiber = NULL;
 }
 
-int _prepareFiber( Fiber *to, void *code, intptr_t arg )
+int _prepareFiber( Fiber *to, void *code, uintptr_t arg )
 {
     to->fiber = CreateFiber( STACK_SIZE, (LPFIBER_START_ROUTINE)code, (LPVOID)arg );
     return to->fiber != NULL ? 0 : 1;

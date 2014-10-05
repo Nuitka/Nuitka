@@ -43,7 +43,10 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_VARIABLE_REF"
 
     def __init__(self, variable_name, source_ref, variable = None):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         self.variable_name = variable_name
         self.variable = variable
@@ -51,17 +54,24 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         if variable is not None:
             assert variable.getName() == variable_name
 
+        self.variable_trace = None
+
     def getDetails(self):
         if self.variable is None:
-            return { "name" : self.variable_name }
+            return {
+                "name" : self.variable_name
+            }
         else:
-            return { "name" : self.variable_name, "variable" : self.variable }
+            return {
+                "name"     : self.variable_name,
+                "variable" : self.variable
+            }
 
     def getDetail(self):
         if self.variable is None:
             return self.variable_name
         else:
-            return repr( self.variable )
+            return repr(self.variable)
 
     def makeCloneAt(self, source_ref):
         result = self.__class__(
@@ -91,10 +101,14 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
     def computeExpression(self, constraint_collection):
         assert self.variable is not None
 
+        self.variable_trace = constraint_collection.getVariableCurrentTrace(
+            variable = self.variable
+        )
+
         if _isReadOnlyUnterdeterminedModuleVariable(self.variable):
             constraint_collection.assumeUnclearLocals(self.source_ref)
 
-        if _isReadOnlyModuleVariable( self.variable ):
+        if _isReadOnlyModuleVariable(self.variable):
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
@@ -125,8 +139,7 @@ Module variable '%s' found to be builtin reference.""" % (
                 )
             elif self.variable_name == "__name__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().\
-                        getFullName(),
+                    constant   = self.variable.getOwner().getFullName(),
                     source_ref = self.getSourceReference()
                 )
 
@@ -135,8 +148,7 @@ Module variable '%s' found to be builtin reference.""" % (
 Replaced read-only module attribute '__name__' with constant value."""
             elif self.variable_name == "__package__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().\
-                                   getPackage(),
+                    constant   = self.variable.getOwner().getPackage(),
                     source_ref = self.getSourceReference()
                 )
 
@@ -159,17 +171,13 @@ Replaced read-only module attribute '__package__' with constant value."""
     def isKnownToBeIterable(self, count):
         return None
 
-    def mayProvideReference(self):
-        # Variables are capable of "asObject0".
-        return False
-
     def mayHaveSideEffects(self):
         # TODO: Remembered traced could tell better.
         return True
 
     def mayRaiseException(self, exception_type):
         # TODO: Remembered traced could tell better.
-        return True
+        return not self.variable_trace.mustHaveValue()
 
 
 class ExpressionTargetVariableRef(ExpressionVariableRef):
@@ -189,7 +197,9 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
 
     def getDetails(self):
         if self.variable is None:
-            return { "name" : self.variable_name }
+            return {
+                "name" : self.variable_name
+            }
         else:
             return {
                 "name"     : self.variable_name,
@@ -231,9 +241,12 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable = variable
+        self.variable_trace = None
 
     def getDetails(self):
-        return { "name" : self.variable.getName() }
+        return {
+            "name" : self.variable.getName()
+        }
 
     def getDetail(self):
         return self.variable.getName()
@@ -254,13 +267,15 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         return False
 
     def computeExpression(self, constraint_collection):
-        constraint_collection.onVariableUsage( self )
+        self.variable_trace = constraint_collection.getVariableCurrentTrace(
+            variable = self.variable
+        )
 
         # Nothing to do here.
         return self, None, None
 
     def onContentEscapes(self, constraint_collection):
-        constraint_collection.onVariableContentEscapes( self.variable )
+        constraint_collection.onVariableContentEscapes(self.variable)
 
     def mayHaveSideEffects(self):
         # Can't happen

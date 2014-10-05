@@ -28,19 +28,24 @@ from .NodeBases import ExpressionChildrenHavingBase
 class ExpressionBuiltinVars(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_VARS"
 
-    named_children = ( "source", )
+    named_children = (
+        "source",
+    )
 
     def __init__(self, source, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"  : source,
+                "source" : source,
             },
             source_ref = source_ref
         )
 
-    getSource = ExpressionChildrenHavingBase.childGetter( "source" )
+    getSource = ExpressionChildrenHavingBase.childGetter("source")
 
     def computeExpression(self, constraint_collection):
         # TODO: Should be possible. pylint: disable=W0613
         return self, None, None
+
+    def mayBeNone(self):
+        return None

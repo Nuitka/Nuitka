@@ -59,7 +59,7 @@ from .ReformulationFunctionStatements import (
 
 
 def buildLambdaNode(provider, node, source_ref):
-    assert getKind( node ) == "Lambda"
+    assert getKind(node) == "Lambda"
 
     parameters = buildParameterSpec( "<lambda>", node, source_ref )
 
@@ -95,9 +95,7 @@ def buildLambdaNode(provider, node, source_ref):
             statements = (
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable = tmp_return_value.makeReference(
-                            function_body
-                        ),
+                        variable = tmp_return_value,
                         source_ref = source_ref,
                     ),
                     source     = body,
@@ -106,9 +104,7 @@ def buildLambdaNode(provider, node, source_ref):
                 StatementConditional(
                     condition = ExpressionComparisonIsNOT(
                         left       = ExpressionTempVariableRef(
-                            variable = tmp_return_value.makeReference(
-                                function_body
-                            ),
+                            variable = tmp_return_value,
                             source_ref = source_ref,
                         ),
                         right      = ExpressionConstantRef(
@@ -121,9 +117,7 @@ def buildLambdaNode(provider, node, source_ref):
                         statement = StatementExpressionOnly(
                             expression = ExpressionYield(
                                 expression = ExpressionTempVariableRef(
-                                    variable = tmp_return_value.makeReference(
-                                        function_body
-                                    ),
+                                    variable = tmp_return_value,
                                     source_ref = source_ref,
                                 ),
                                 source_ref = source_ref
@@ -139,9 +133,7 @@ def buildLambdaNode(provider, node, source_ref):
                 tried      = statements,
                 final      = StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable = tmp_return_value.makeReference(
-                            function_body
-                        ),
+                        variable = tmp_return_value,
                         source_ref = source_ref,
                     ),
                     tolerant   = True,

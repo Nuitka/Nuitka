@@ -29,11 +29,11 @@ from .NodeBases import (
 
 
 class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
-                                ExpressionChildrenHavingBase):
+                                 ExpressionChildrenHavingBase):
     named_children = ("elements",)
 
     def __init__(self, sequence_kind, elements, source_ref):
-        assert sequence_kind in ( "TUPLE", "LIST", "SET" ), sequence_kind
+        assert sequence_kind in ("TUPLE", "LIST", "SET"), sequence_kind
 
         for element in elements:
             assert element.isExpression(), element
@@ -55,7 +55,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     def getSequenceKind(self):
         return self.sequence_kind
 
-    getElements = ExpressionChildrenHavingBase.childGetter( "elements" )
+    getElements = ExpressionChildrenHavingBase.childGetter("elements")
 
     def getSimulator(self):
         # Abstract method, pylint: disable=R0201,W0613
@@ -103,13 +103,13 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
         return False
 
     def isKnownToBeIterable(self, count):
-        return count is None or count == len( self.getElements() )
+        return count is None or count == len(self.getElements())
 
     def getIterationValue(self, count):
-        return self.getElements()[ count ]
+        return self.getElements()[count]
 
     def getIterationLength(self):
-        return len( self.getElements() )
+        return len(self.getElements())
 
     def canPredictIterationValues(self):
         return True
@@ -119,6 +119,16 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
 
     def getTruthValue(self):
         return self.getIterationLength() > 0
+
+    def mayRaiseException(self, exception_type):
+        for element in self.getElements():
+            if element.mayRaiseException(exception_type):
+                return True
+
+        return False
+
+    def mayBeNone(self):
+        return False
 
     def computeExpressionDrop(self, statement, constraint_collection):
         from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
@@ -336,6 +346,9 @@ Created dictionary found to be constant."""
 
     def getTruthValue(self):
         return self.getIterationLength() > 0
+
+    def mayBeNone(self):
+        return False
 
     def isMapping(self):
         # Dictionaries are always mappings, but this is a virtual method,

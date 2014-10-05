@@ -93,7 +93,7 @@ for filename in sorted( os.listdir( my_dir ) ):
         )
 
         if result == 2:
-            sys.stderr.write( "Interruped, with CTRL-C\n" )
+            sys.stderr.write( "Interrupted, with CTRL-C\n" )
             sys.exit( 2 )
 
         if result != 0 and search_mode:

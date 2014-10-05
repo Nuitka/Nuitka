@@ -981,7 +981,7 @@ bool PRINT_NEW_LINE_TO( PyObject *file )
 
 bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 {
-// The print builtin function cannot replace "softspace" behaviour of CPython
+// The print built-in function cannot replace "softspace" behavior of CPython
 // print statement, so this code is really necessary.
 #if PYTHON_VERSION < 300
     if ( file == NULL || file == Py_None )
@@ -1059,7 +1059,7 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         PyDict_SetItem( print_kw, const_str_plain_end, const_str_empty );
         PyDict_SetItem( print_kw, const_str_plain_file, GET_STDOUT() );
 
-        PyObject *print_args = PyTuple_New(1);
+        PyObject *print_args = PyTuple_New( 1 );
         PyTuple_SET_ITEM( print_args, 0, INCREASE_REFCOUNT( object ) );
 
         PyObject *res = CALL_FUNCTION(
@@ -1071,7 +1071,7 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         Py_DECREF( print_args );
         Py_DECREF( print_kw );
 
-        Py_XDECREF(res);
+        Py_XDECREF( res );
 
         return res != NULL;
     }
@@ -1626,7 +1626,8 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 
     if (unlikely( PyType_Check( type ) == false ))
     {
-        PyErr_Format( PyExc_TypeError, "must be type, not %s", Py_TYPE( type )->tp_name );
+        PyErr_Format( PyExc_RuntimeError, "super(): __class__ is not a type (%s)", Py_TYPE( type )->tp_name );
+
         return NULL;
     }
 

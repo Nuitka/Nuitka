@@ -36,7 +36,7 @@ typedef struct _Fiber
 
 extern "C" void _initFiber( Fiber *to );
 extern "C" void _swapFiber( Fiber *to, Fiber *from );
-extern "C" int _prepareFiber( Fiber *to, void *code, intptr_t arg );
+extern "C" int _prepareFiber( Fiber *to, void *code, uintptr_t arg );
 extern "C" void _releaseFiber( Fiber *to );
 
 // Have centralized assertions as wrappers in debug mode, or directly access
@@ -61,10 +61,12 @@ static inline void swapFiber( Fiber *to, Fiber *from )
     _swapFiber( to, from );
 }
 
-static inline int prepareFiber( Fiber *to, void *code, intptr_t arg )
+static inline int prepareFiber( Fiber *to, void *code, uintptr_t arg )
 {
     assert( to != NULL );
     assert( code != NULL );
+
+    assertObject( (PyObject *)arg );
 
     return _prepareFiber( to, code, arg );
 }

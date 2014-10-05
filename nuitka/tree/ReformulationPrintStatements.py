@@ -68,7 +68,7 @@ def buildPrintNode(provider, node, source_ref):
 
         target_default_statement = StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_target_variable.makeReference(provider),
+                variable   = tmp_target_variable,
                 source_ref = source_ref
             ),
             source       = ExpressionImportModuleHard(
@@ -82,7 +82,7 @@ def buildPrintNode(provider, node, source_ref):
         statements = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_target_variable.makeReference(provider),
+                    variable   = tmp_target_variable,
                     source_ref = source_ref
                 ),
                 source       = buildNode(
@@ -95,9 +95,7 @@ def buildPrintNode(provider, node, source_ref):
             StatementConditional(
                 condition  = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
-                        variable   = tmp_target_variable.makeReference(
-                            provider
-                        ),
+                        variable   = tmp_target_variable,
                         source_ref = source_ref
                     ),
                     right      = ExpressionConstantRef(
@@ -129,9 +127,7 @@ def buildPrintNode(provider, node, source_ref):
         print_statements = [
             StatementPrintValue(
                 dest       = ExpressionTempVariableRef(
-                    variable   = tmp_target_variable.makeReference(
-                        provider
-                    ),
+                    variable   = tmp_target_variable,
                     source_ref = source_ref
                 ),
                 value      = value,
@@ -144,9 +140,7 @@ def buildPrintNode(provider, node, source_ref):
             print_statements.append(
                 StatementPrintNewline(
                     dest       = ExpressionTempVariableRef(
-                        variable   = tmp_target_variable.makeReference(
-                            provider
-                        ),
+                        variable   = tmp_target_variable,
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
@@ -158,9 +152,7 @@ def buildPrintNode(provider, node, source_ref):
                 tried      = print_statements,
                 final      = StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_target_variable.makeReference(
-                            provider
-                        ),
+                        variable   = tmp_target_variable,
                         source_ref = source_ref
                     ),
                     tolerant     = False,

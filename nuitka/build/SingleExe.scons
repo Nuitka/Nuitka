@@ -398,8 +398,11 @@ if "g++" in (env["CXX"] or ""):
 # Detect compiler to be used from supported ones, if there is no usable g++
 # link.
 if os.name != "nt" and env["CXX"] is None:
+    # Try out the Debian names, as no "gcc" default compiler package needs to
+    # be installed.
+
     for candidate in ("g++-4.9", "g++-4.8", "g++-4.7", "g++-4.6", "g++-4.5",
-                      "g++-4.4", "clang"):
+                      "g++-4.4", "g++44", "clang" ):
         if os.path.exists(os.path.join("/usr/bin", candidate)):
             env["CXX"] = candidate
             env["CC"] = candidate.replace("++", "cc")
@@ -548,7 +551,7 @@ version for lto mode (>= 4.6).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
 
         if debug_mode:
             env.Append(
-                CCFLAGS = [ "-Wunused-but-set-variable" ]
+                CCFLAGS = ["-Wunused-but-set-variable"]
             )
 
     # Use link time optimizations so that gcc can help with optimization across
@@ -600,18 +603,14 @@ if debug_mode:
                 # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
                 # which are unfounded, so disable them.
                 "-Wno-error=strict-aliasing",
-                "-Wno-strict-aliasing"
+                "-Wno-strict-aliasing",
+                # At least for self-compiled Python3.2, and MinGW this happens
+                # and has little use anyway.
+                "-Wno-error=format",
+                "-Wno-format"
+
             ]
         )
-
-        # MinGW gives some non-sensical warnings it seems.
-        if os.name == "nt":
-            env.Append(
-                CCFLAGS = [
-                   "-Wno-error=format",
-                   "-Wno-format"
-                ]
-            )
     elif msvc_mode:
         # Disable warnings that system headers already show.
         env.Append(
@@ -934,13 +933,13 @@ if debug_mode or unstriped_mode:
             ASFLAGS = ["-g"]
         )
 
-        if "g++" in env[ "CXX" ]:
+        if "g++" in env["CXX"]:
             env.Append(
                 CCFLAGS = ["-feliminate-unused-debug-types"]
             )
     elif msvc_mode:
         env.Append(
-            CCFLAGS = ["/Zi"]
+            CCFLAGS = ["/Z7"]
         )
 
         # Higher MSVC versions need this for parallel compilation
@@ -1268,6 +1267,10 @@ else:
         result_basepath + ".exe",
         source_files + source_targets
     )
+
+# On some architectures, makecontext cannot pass pointers reliably.
+if target_arch == "x86_64" and "linux" in sys.platform:
+    env.Append(CPPDEFINES = ["_NUITKA_MAKECONTEXT_INTS"])
 
 # Avoid IO for compilation as much as possible, this should make the
 # compilation more memory hungry, but also faster.

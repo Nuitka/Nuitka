@@ -27,7 +27,6 @@ that should be unified at some point.
 
 from .NodeBases import StatementChildrenHavingBase
 
-
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class StatementAssignmentVariable(StatementChildrenHavingBase):
@@ -37,6 +36,8 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         "source",
         "variable_ref"
     )
+
+    inplace_suspect = None
 
     def __init__(self, variable_ref, source, source_ref):
         assert variable_ref is not None, source_ref
@@ -52,8 +53,6 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
             },
             source_ref = source_ref
         )
-
-        self.inplace_suspect = None
 
     def getDetail(self):
         variable_ref = self.getTargetVariableRef()
@@ -82,14 +81,26 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
 
     def computeStatement(self, constraint_collection):
         # Assignment source may re-compute here:
-        constraint_collection.onExpression(self.getAssignSource())
+        constraint_collection.onExpression(
+            expression = self.getAssignSource()
+        )
 
-        constraint_collection.onVariableSet(
-            assign_node = self,
+        self.variable_trace = constraint_collection.onVariableSet(
+            assign_node = self
         )
 
         # TODO: Remove this, it's old.
         return constraint_collection._onStatementAssignmentVariable(self)
+
+    def needsReleaseValue(self):
+        previous = self.variable_trace.getPrevious()
+
+        if previous.mustBeUninit():
+            return False
+        elif previous.mustHaveValue():
+            return True
+        else:
+            return None
 
 
 class StatementAssignmentAttribute(StatementChildrenHavingBase):
@@ -394,22 +405,19 @@ class StatementDelVariable(StatementChildrenHavingBase):
     )
 
     def computeStatement(self, constraint_collection):
-        variable = self.getTargetVariableRef().getVariable()
+        self.variable_trace = constraint_collection.onVariableDel(
+            del_node = self
+        )
 
-        trace = constraint_collection.getVariableCurrentTrace(variable)
+        if self.isTolerant():
+            previous = self.variable_trace.getPrevious()
 
-        # Optimize away tolerant "del" that is not needed.
-        if trace.isUninitTrace():
-            if self.isTolerant():
+            if previous is None or previous.isUninitTrace():
                 return (
                     None,
                     "new_statements",
-                    "Removed tolerate del without effect."
+                    "Removed tolerant del without effect."
                 )
-
-        constraint_collection.onVariableDel(
-            target_node = self.getTargetVariableRef()
-        )
 
         return self, None, None
 
@@ -423,7 +431,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
             variable = self.getTargetVariableRef().getVariable()
 
             # Temp variables won't raise.
-            if variable.isTempVariableReference():
+            if variable.isTempVariable():
                 return False
 
             return True

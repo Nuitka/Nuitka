@@ -30,13 +30,13 @@ def _readSourceCodeFromFilename3(source_filename):
     with open(source_filename, "rb") as source_file:
         source_code = source_file.read()
 
-    if source_code.startswith( b'\xef\xbb\xbf' ):
+    if source_code.startswith(b'\xef\xbb\xbf'):
         source_code = source_code[3:]
 
     new_line = source_code.find(b"\n")
 
     if new_line is not -1:
-        line = source_code[ : new_line ]
+        line = source_code[: new_line]
 
         line_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line)
 

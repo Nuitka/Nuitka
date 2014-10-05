@@ -156,7 +156,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         statements = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_iter_var.makeReference(provider),
+                    variable   = source_iter_var,
                     source_ref = source_ref
                 ),
                 source = ExpressionBuiltinIter1(
@@ -187,14 +187,12 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                 statements.append(
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = element_var.makeReference(provider),
+                            variable   = element_var,
                             source_ref = source_ref
                         ),
                         source = ExpressionSpecialUnpack(
                             value      = ExpressionTempVariableRef(
-                                variable   = source_iter_var.makeReference(
-                                    provider
-                                ),
+                                variable   = source_iter_var,
                                 source_ref = source_ref
                             ),
                             count      = element_index + 1,
@@ -209,14 +207,12 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                 statements.append(
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = element_var.makeReference(provider),
+                            variable   = element_var,
                             source_ref = source_ref
                         ),
                         source = ExpressionBuiltinList(
                             value      = ExpressionTempVariableRef(
-                                variable   = source_iter_var.makeReference(
-                                    provider
-                                ),
+                                variable   = source_iter_var,
                                 source_ref = source_ref
                             ),
                             source_ref = source_ref
@@ -229,7 +225,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             statements.append(
                 StatementSpecialUnpackCheck(
                     iterator   = ExpressionTempVariableRef(
-                        variable   = source_iter_var.makeReference(provider),
+                        variable   = source_iter_var,
                         source_ref = source_ref
                     ),
                     count      = len(detail),
@@ -249,7 +245,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                     kind       = element[0],
                     detail     = element[1],
                     source     = ExpressionTempVariableRef(
-                        variable   = element_var.makeReference(provider),
+                        variable   = element_var,
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
@@ -261,7 +257,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         final_statements.append(
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_iter_var.makeReference(provider),
+                    variable   = source_iter_var,
                     source_ref = source_ref
                 ),
                 tolerant     = True,
@@ -274,7 +270,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             final_statements.append(
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = element_var.makeReference(provider),
+                        variable   = element_var,
                         source_ref = source_ref
                     ),
                     tolerant     = True,
@@ -439,7 +435,7 @@ def buildAssignNode(provider, node, source_ref):
         statements = [
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_source.makeReference(provider),
+                    variable   = tmp_source,
                     source_ref = source_ref
                 ),
                 source       = source,
@@ -453,7 +449,7 @@ def buildAssignNode(provider, node, source_ref):
                     provider   = provider,
                     node       = target,
                     source     = ExpressionTempVariableRef(
-                        variable   = tmp_source.makeReference(provider),
+                        variable   = tmp_source,
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
@@ -462,7 +458,7 @@ def buildAssignNode(provider, node, source_ref):
 
         final_statements = StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_source.makeReference(provider),
+                variable   = tmp_source,
                 source_ref = source_ref
             ),
             tolerant     = True,
@@ -573,7 +569,7 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
     # First assign the target value to a temporary variable.
     preserve_to_tmp = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_variable1.makeReference(provider),
+            variable   = tmp_variable1,
             source_ref = source_ref
         ),
         source     = ExpressionVariableRef(
@@ -585,13 +581,13 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
     # Second assign the inplace result to a temporary variable
     inplace_to_tmp = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_variable2.makeReference(provider),
+            variable   = tmp_variable2,
             source_ref = source_ref
         ),
         source     = ExpressionOperationBinaryInplace(
             operator   = operator,
             left       = ExpressionTempVariableRef(
-                variable   = tmp_variable1.makeReference(provider),
+                variable   = tmp_variable1,
                 source_ref = source_ref
             ),
             right      = expression,
@@ -604,11 +600,11 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
     copy_back_from_tmp = StatementConditional(
         condition = ExpressionComparisonIsNOT(
             left       = ExpressionTempVariableRef(
-                variable   = tmp_variable1.makeReference(provider),
+                variable   = tmp_variable1,
                 source_ref = source_ref
             ),
             right      = ExpressionTempVariableRef(
-                variable   = tmp_variable2.makeReference(provider),
+                variable   = tmp_variable2,
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -617,7 +613,7 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
             statement = StatementAssignmentVariable(
                 variable_ref = variable_ref.makeCloneAt(source_ref),
                 source     = ExpressionTempVariableRef(
-                    variable   = tmp_variable2.makeReference(provider),
+                    variable   = tmp_variable2,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -638,7 +634,7 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
             final = (
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_variable1.makeReference(provider),
+                        variable   = tmp_variable1,
                         source_ref = source_ref
                     ),
                     tolerant     = False,
@@ -646,7 +642,7 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
                 ),
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_variable2.makeReference(provider),
+                        variable   = tmp_variable2,
                         source_ref = source_ref
                     ),
                     tolerant     = True,
@@ -664,7 +660,7 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
     # First assign the target value to a temporary variable.
     preserve_to_tmp = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_variable1.makeReference(provider),
+            variable   = tmp_variable1,
             source_ref = source_ref
         ),
         source     = ExpressionAttributeLookup(
@@ -678,13 +674,13 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
     # Second assign the inplace result to a temporary variable
     inplace_to_tmp = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_variable2.makeReference( provider ),
+            variable   = tmp_variable2,
             source_ref = source_ref
         ),
         source     = ExpressionOperationBinaryInplace(
             operator   = operator,
             left       = ExpressionTempVariableRef(
-                variable   = tmp_variable1.makeReference( provider ),
+                variable   = tmp_variable1,
                 source_ref = source_ref
             ),
             right      = expression,
@@ -697,11 +693,11 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
     copy_back_from_tmp = StatementConditional(
         condition  = ExpressionComparisonIsNOT(
             left       = ExpressionTempVariableRef(
-                variable   = tmp_variable1.makeReference( provider ),
+                variable   = tmp_variable1,
                 source_ref = source_ref
             ),
             right      = ExpressionTempVariableRef(
-                variable   = tmp_variable2.makeReference( provider ),
+                variable   = tmp_variable2,
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -711,7 +707,7 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
                 expression     = lookup_source.makeCloneAt(source_ref),
                 attribute_name = attribute_name,
                 source         = ExpressionTempVariableRef(
-                    variable    = tmp_variable2.makeReference(provider),
+                    variable    = tmp_variable2,
                     source_ref  = source_ref
                 ),
                 source_ref     = source_ref
@@ -725,7 +721,7 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
         tried = copy_back_from_tmp,
         final = StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_variable2.makeReference(provider),
+                variable   = tmp_variable2,
                 source_ref = source_ref
             ),
             tolerant     = False,
@@ -744,7 +740,7 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
             ),
             final = StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_variable1.makeReference(provider),
+                    variable   = tmp_variable1,
                     source_ref = source_ref
                 ),
                 tolerant     = False,
@@ -761,7 +757,7 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
     # First assign the subcribed value to a temporary variable.
     preserve_to_tmp1 = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_variable1.makeReference( provider ),
+            variable   = tmp_variable1,
             source_ref = source_ref
         ),
         source     = subscribed,
@@ -770,7 +766,7 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
     # Second assign the subscript value to a temporary variable
     preserve_to_tmp2  = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_variable2.makeReference( provider ),
+            variable   = tmp_variable2,
             source_ref = source_ref
         ),
         source     = subscript,
@@ -779,22 +775,22 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
 
     execute_in_place = StatementAssignmentSubscript(
         expression = ExpressionTempVariableRef(
-            variable   = tmp_variable1.makeReference( provider ),
+            variable   = tmp_variable1,
             source_ref = source_ref
         ),
         subscript  = ExpressionTempVariableRef(
-            variable   = tmp_variable2.makeReference( provider ),
+            variable   = tmp_variable2,
             source_ref = source_ref
         ),
         source     = ExpressionOperationBinaryInplace(
             operator   = operator,
             left       = ExpressionSubscriptLookup(
                 expression = ExpressionTempVariableRef(
-                    variable   = tmp_variable1.makeReference( provider ),
+                    variable   = tmp_variable1,
                     source_ref = source_ref
                 ),
                 subscript  = ExpressionTempVariableRef(
-                    variable   = tmp_variable2.makeReference( provider ),
+                    variable   = tmp_variable2,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -817,7 +813,7 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
             final      = (
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_variable1.makeReference(provider),
+                        variable   = tmp_variable1,
                         source_ref = source_ref
                     ),
                     tolerant     = False,
@@ -825,7 +821,7 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
                 ),
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_variable2.makeReference(provider),
+                        variable   = tmp_variable2,
                         source_ref = source_ref
                     ),
                     tolerant     = True,
@@ -844,7 +840,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
     # First assign the target value, lower and upper to temporary variables.
     copy_to_tmp = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_variable1.makeReference(provider),
+            variable   = tmp_variable1,
             source_ref = source_ref
         ),
         source       = lookup_source,
@@ -854,7 +850,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
     final_statements = [
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_variable1.makeReference(provider),
+                variable   = tmp_variable1,
                 source_ref = source_ref
             ),
             tolerant     = False,
@@ -867,7 +863,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_variable2.makeReference(provider),
+                    variable   = tmp_variable2,
                     source_ref = source_ref
                 ),
                 source       = lower,
@@ -877,7 +873,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
         final_statements.append(
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_variable2.makeReference(provider),
+                    variable   = tmp_variable2,
                     source_ref = source_ref
                 ),
                 tolerant     = True,
@@ -886,11 +882,11 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
         )
 
         lower_ref1 = ExpressionTempVariableRef(
-            variable   = tmp_variable2.makeReference(provider),
+            variable   = tmp_variable2,
             source_ref = source_ref
         )
         lower_ref2 = ExpressionTempVariableRef(
-            variable   = tmp_variable2.makeReference(provider),
+            variable   = tmp_variable2,
             source_ref = source_ref
         )
     else:
@@ -902,7 +898,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_variable3.makeReference( provider ),
+                    variable   = tmp_variable3,
                     source_ref = source_ref
                 ),
                 source     = upper,
@@ -912,7 +908,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
         final_statements.append(
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_variable3.makeReference(provider),
+                    variable   = tmp_variable3,
                     source_ref = source_ref
                 ),
                 tolerant     = True,
@@ -921,11 +917,11 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
         )
 
         upper_ref1 = ExpressionTempVariableRef(
-            variable   = tmp_variable3.makeReference( provider ),
+            variable   = tmp_variable3,
             source_ref = source_ref
         )
         upper_ref2 = ExpressionTempVariableRef(
-            variable   = tmp_variable3.makeReference(provider),
+            variable   = tmp_variable3,
             source_ref = source_ref
         )
     else:
@@ -937,7 +933,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
     statements.append(
         StatementAssignmentSlice(
             expression = ExpressionTempVariableRef(
-                variable   = tmp_variable1.makeReference(provider),
+                variable   = tmp_variable1,
                 source_ref = source_ref
             ),
             lower      = lower_ref1,
@@ -946,7 +942,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
                 operator   = operator,
                 left       = ExpressionSliceLookup(
                     expression = ExpressionTempVariableRef(
-                        variable   = tmp_variable1.makeReference(provider),
+                        variable   = tmp_variable1,
                         source_ref = source_ref
                     ),
                     lower      = lower_ref2,

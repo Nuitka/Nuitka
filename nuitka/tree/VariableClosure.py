@@ -24,7 +24,7 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka import SyntaxErrors
+from nuitka import SyntaxErrors, PythonVersions
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
@@ -63,9 +63,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     variable_name = non_local_name
                 )
 
-                node.registerProvidedVariable( variable )
+                node.registerProvidedVariable(variable)
 
-                if variable.isModuleVariableReference():
+                if variable.isModuleVariable():
                     SyntaxErrors.raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (
                             non_local_name
@@ -79,6 +79,37 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         display_line = not isFullCompat() or \
                                        python_version >= 340
                     )
+
+    def _handleQualnameSetup(self, node):
+        if node.qualname_setup is not None:
+            if node.isClassDictCreation():
+                class_assign, qualname_assign = node.qualname_setup
+                class_variable = class_assign.getTargetVariableRef().getVariable()
+
+                if class_variable.isModuleVariable():
+                    qualname_node = qualname_assign.getAssignSource()
+
+                    qualname_node.replaceWith(
+                        makeConstantReplacementNode(
+                            constant = class_variable.getName(),
+                            node     = qualname_node
+                        )
+                    )
+
+                    node.qualname_provider = node.getParentModule()
+            else:
+                function_variable_ref = node.qualname_setup
+                function_variable = function_variable_ref.getVariable()
+
+                if function_variable.isModuleVariable():
+                    node.qualname_provider = node.getParentModule()
+
+            # TODO: Actually for nested global classes, this approach
+            # may not work, as their qualnames will be wrong. In that
+            # case a dedicated node for qualname references might be
+            # needed.
+
+            node.qualname_setup = None
 
     def onEnterNode(self, node):
         # Mighty complex code with lots of branches and statements, but it
@@ -119,9 +150,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         node.getVariable()
                     )
                 )
-
-                assert node.getVariable().isClosureReference(), \
-                  node.getVariable()
         elif node.isExpressionFunctionBody():
             if python_version >= 300:
                 self._handleNonLocal(node)
@@ -131,33 +159,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             # Python3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
-            if python_version >= 340 and node.isClassDictCreation():
-                class_assign, qualname_assign = node.qualname_setup
-                class_variable = class_assign.getTargetVariableRef().getVariable()
-
-                if class_variable.isModuleVariable() and \
-                   class_variable.isFromGlobalStatement():
-                    qualname_node = qualname_assign.getAssignSource()
-
-                    qualname_node.replaceWith(
-                        makeConstantReplacementNode(
-                            constant = class_variable.getName(),
-                            node     = qualname_node
-                        )
-                    )
-
-                    node.qualname_provider = node.getParentModule()
-
-                    # TODO: Actually for nested global classes, this approach
-                    # may not work, as their qualnames will be wrong. In that
-                    # case a dedicated node for qualname references might be
-                    # needed.
-
-                del node.qualname_setup
-
-
-
-
+            if python_version >= 340:
+                self._handleQualnameSetup(node)
         # Attribute access of names of class functions should be mangled, if
         # they start with "__", but do not end in "__" as well.
         elif node.isExpressionAttributeLookup() or \
@@ -197,7 +200,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             current = node
 
             while True:
-                if current.isPythonModule() or current.isExpressionFunctionBody():
+                if current.isPythonModule() or \
+                   current.isExpressionFunctionBody():
                     if node.isStatementContinueLoop():
                         message = "'continue' not properly in loop"
                         col_offset   = 16 if python_version >= 300 else None
@@ -214,9 +218,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             col_offset   = 13
                             display_line = True
                             source_line  = None
-
-                    source_ref = node.getSourceReference()
-                    # source_ref.line += 1
 
                     SyntaxErrors.raiseSyntaxError(
                         message,
@@ -270,21 +271,23 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
     def _attachVariable(self, node, provider):
         # print "Late reference", node.getVariableName(), "for", provider, "caused at", node, "of", node.getParent()
 
+        variable_name = node.getVariableName()
+
+        was_taken = provider.hasTakenVariable(variable_name)
+
         variable = provider.getVariableForReference(
-            variable_name = node.getVariableName()
+            variable_name = variable_name
         )
 
         node.setVariable(
             variable
         )
 
-        # Need to catch functions with "exec" not allowed.
+        # Need to catch functions with "exec" and closure variables not allowed.
         if python_version < 300 and \
+           not was_taken and \
            provider.isExpressionFunctionBody() and \
-           variable.isReference() and \
-             (not variable.isModuleVariableReference() or \
-              not variable.isFromGlobalStatement() ):
-
+           variable.getOwner() is not provider:
             parent_provider = provider.getParentVariableProvider()
 
             while parent_provider.isExpressionFunctionBody() and \
@@ -294,9 +297,9 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             if parent_provider.isExpressionFunctionBody() and \
                parent_provider.isUnqualifiedExec():
                 SyntaxErrors.raiseSyntaxError(
-                    reason       = """\
-unqualified exec is not allowed in function '%s' it \
-contains a nested function with free variables""" % parent_provider.getName(),
+                    reason       = PythonVersions.\
+                                     getErrorMessageExecWithNestedFunction() % \
+                                     parent_provider.getName(),
                     source_ref   = parent_provider.getExecSourceRef(),
                     col_offset   = None,
                     display_file = True,
@@ -335,8 +338,6 @@ contains a nested function with free variables""" % parent_provider.getName(),
                         temp_scope = None,
                         name       = "__class__"
                     )
-
-                    variable = variable.makeReference(parent_provider)
 
                     node.addClosureVariable(variable)
 

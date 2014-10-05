@@ -58,10 +58,10 @@ def setMainScriptDirectory(main_dir):
     main_path = main_dir
 
 def isPackageDir(dirname):
-    return Utils.isDir( dirname ) and \
+    return Utils.isDir(dirname) and \
            (
                Utils.python_version >= 330 or
-               Utils.isFile( Utils.joinpath( dirname, "__init__.py" ) )
+               Utils.isFile(Utils.joinpath(dirname, "__init__.py"))
            )
 
 def findModule(source_ref, module_name, parent_package, level, warn):
@@ -69,7 +69,7 @@ def findModule(source_ref, module_name, parent_package, level, warn):
     # pylint: disable=R0912
 
     if level > 1 and parent_package is not None:
-        parent_package = ".".join( parent_package.split(".")[ : -level+1 ] )
+        parent_package = ".".join(parent_package.split(".")[:-level+1])
 
         if parent_package == "":
             parent_package = None
@@ -81,11 +81,11 @@ def findModule(source_ref, module_name, parent_package, level, warn):
                 parent_package = parent_package
             )
         except ImportError:
-            if warn and not _isWhiteListedNotExistingModule( module_name ):
+            if warn and not _isWhiteListedNotExistingModule(module_name):
                 key = module_name, parent_package, level
 
                 if key not in warned_about:
-                    warned_about.add( key )
+                    warned_about.add(key)
 
                     if level == 0:
                         level_desc = "as absolute import"
@@ -114,14 +114,14 @@ def findModule(source_ref, module_name, parent_package, level, warn):
 
 
             if "." in module_name:
-                module_package_name = module_name[ : module_name.rfind( "." ) ]
+                module_package_name = module_name[:module_name.rfind(".")]
             else:
                 module_package_name = None
 
             module_filename = None
     else:
         if "." in module_name:
-            module_package_name = module_name[ : module_name.rfind( "." ) ]
+            module_package_name = module_name[:module_name.rfind(".")]
         else:
             module_package_name = None
 
@@ -195,15 +195,17 @@ def _findModuleInPath(module_name, package_name):
             module_name = package_name.split(".")[-1]
             package_name = ".".join(package_name.split(".")[:-1])
 
-        def getPackageDirname(element):
-            return Utils.joinpath(element,*package_name.split("."))
+        def getPackageDirnames(element):
+            yield Utils.joinpath(element,*package_name.split(".")), False
 
-        ext_path = [
-            getPackageDirname(element)
-            for element in
-            extra_paths + sys.path
-            if isPackageDir(getPackageDirname(element))
-        ]
+            if package_name == "win32com":
+                yield Utils.joinpath(element,"win32comext"), True
+
+        ext_path = []
+        for element in extra_paths + sys.path:
+            for package_dir, force_package in getPackageDirnames(element):
+                if isPackageDir(package_dir) or force_package:
+                    ext_path.append(package_dir)
 
         if _debug_module_finding:
             print("_findModuleInPath: Package, using extended path", ext_path)
@@ -433,6 +435,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "sgi", "ctypes.macholib.dyld", "bsddb3", "_pybsddb", "_xmlrpclib",
         "netbios", "win32wnet", "email.Parser", "elementree.cElementTree",
         "elementree.ElementTree", "_gbdm",
+
+        # Nuitka tests
+        "test_common"
     )
 
     # TODO: Turn this into a warning that encourages reporting.
@@ -467,11 +472,28 @@ def getStandardLibraryPaths():
         orig_prefix_filename = Utils.joinpath(os_path, "orig-prefix.txt")
 
         if Utils.isFile(orig_prefix_filename):
+            # Scan upwards, until we find a "bin" folder, with "activate" to
+            # locate the structural path to be added. We do not know for sure
+            # if there is a subdirectory under lib to use or not. So we try
+            # to detect it.
+            search = os_path
+            lib_part = ""
+
+            while search:
+                if Utils.isFile(Utils.joinpath(search,"bin/activate")):
+                    break
+
+                lib_part = Utils.joinpath(Utils.basename(search), lib_part)
+
+                search = Utils.dirname(search)
+
+            assert search and lib_part
+
             stdlib_paths.add(
                 Utils.normcase(
                     Utils.joinpath(
                         open(orig_prefix_filename).read(),
-                        "lib"
+                        lib_part,
                     )
                 )
             )

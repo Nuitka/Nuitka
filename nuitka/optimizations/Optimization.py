@@ -165,6 +165,9 @@ def optimizeVariables(module):
                 if variable_trace.isAssignTrace():
                     empty = False
                     break
+                elif variable_trace.isInitTrace():
+                    empty = False
+                    break
                 elif variable_trace.getDefiniteUsages():
                     # Checking definite is enough, the merges, we shall see
                     # them as well.

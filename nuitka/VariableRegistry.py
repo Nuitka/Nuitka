@@ -43,11 +43,6 @@ class VariableInformation:
 
 
 def addVariableUsage(variable, user):
-    # TODO: Later, references are supposed to die, but this can only happen
-    # after we complete this.
-    while variable.isReference():
-        variable = variable.getReferenced()
-
     if variable not in variable_registry:
         variable_registry[variable] = VariableInformation(variable)
 
@@ -56,22 +51,12 @@ def addVariableUsage(variable, user):
 
 
 def isSharedLogically(variable):
-    # TODO: Later, references are supposed to die, but this can only happen
-    # after we complete this.
-    while variable.isReference():
-        variable = variable.getReferenced()
-
     variable_info = variable_registry[variable]
 
     return len(variable_info.users) > 1
 
 
 def isSharedTechnically(variable):
-    # TODO: Later, references are supposed to die, but this can only happen
-    # after we complete this.
-    while variable.isReference():
-        variable = variable.getReferenced()
-
     variable_info = variable_registry[variable]
 
     top_owner = variable_info.getTopOwner()

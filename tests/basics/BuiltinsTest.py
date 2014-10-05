@@ -165,6 +165,13 @@ else:
     print "Worked"
 
 try:
+    print "Int with large base", int(2, 37),
+except Exception as e:
+    print "Caused", repr(e)
+else:
+    print "Worked"
+
+try:
     print "Long with only base", long(base = 2),
 except Exception as e:
     print "Caused", repr(e)
@@ -203,6 +210,15 @@ base = 16
 value = u"20"
 
 print "Unoptimized calls of int with unicode args", int(value, base), int(value)
+
+base = 37
+try:
+    print "Int with large base", int(2, base),
+except Exception as e:
+    print "Caused", repr(e)
+else:
+    print "Worked"
+
 
 try:
     print chr()

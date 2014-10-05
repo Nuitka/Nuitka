@@ -57,7 +57,6 @@ def getMainCode(main_module, codes, context):
     main_code        = CodeTemplates.main_program % {
         "sys_executable"       : getModuleConstantCode(
             constant = sys.executable,
-            context  = context
         ),
         "python_sysflag_debug" : sys.flags.debug,
         "python_sysflag_py3k_warning" : ( sys.flags.py3k_warning

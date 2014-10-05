@@ -34,26 +34,14 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
         # print node, node.provider
 
         for variable in node.getClosureVariables():
-
-            referenced = variable
-            while referenced.isClosureReference():
-                referenced = referenced.getReferenced()
-            referenced_owner = referenced.getOwner()
-
-            assert not referenced.isModuleVariable()
+            assert not variable.isModuleVariable()
 
             current = node
 
-            while current is not referenced_owner:
+            while current is not variable.getOwner():
                 if current.isExpressionFunctionBody():
-                    for current_variable in current.getClosureVariables():
-                        while current_variable.getReferenced().isClosureReference():
-                            current_variable = current_variable.getReferenced()
-
-                        if current_variable.getReferenced() is referenced:
-                            break
-                    else:
-                        current.addClosureVariable(referenced)
+                    if variable not in current.getClosureVariables():
+                        current.addClosureVariable(variable)
 
                 # Detect loops in the provider relationship
                 assert current.getParentVariableProvider() is not current
@@ -61,4 +49,4 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
                 current = current.getParentVariableProvider()
 
                 # Not found?!
-                assert current is not None, ( variable, referenced )
+                assert current is not None, variable

@@ -151,16 +151,16 @@ for filename in sorted(os.listdir( ".")):
 
     if active:
         # Apply 2to3 conversion if necessary.
-        assert type( python_version ) is bytes
-
         if python_version.startswith("3"):
-            path = convertUsing2to3( path )
+            path, changed = convertUsing2to3(path)
+        else:
+            changed = True
 
-        my_print( "Consider", path, end = " " )
+        my_print("Consider", path, end = " ")
 
         command = [
-            os.environ[ "PYTHON" ],
-            os.path.join( "..", "..", "bin", "nuitka" ),
+            os.environ["PYTHON"],
+            os.path.join("..", "..", "bin", "nuitka"),
             "--dump-xml",
             "--module",
             path
@@ -171,17 +171,17 @@ for filename in sorted(os.listdir( ".")):
         )
 
         # Parse the result into XML and check it.
-        root = lxml.etree.fromstring( result )
-        module_body  = root[0]
-        module_statements_sequence = module_body[ 0 ]
+        root = lxml.etree.fromstring(result)
+        module_body = root[0]
+        module_statements_sequence = module_body[0]
 
-        assert len( module_statements_sequence ) == 1
-        module_statements = iter( module_statements_sequence ).next()
+        assert len(module_statements_sequence) == 1
+        module_statements = next(iter(module_statements_sequence))
 
-        checkSequence( module_statements )
+        checkSequence(module_statements)
 
-        if python_version.startswith("3"):
-            os.unlink( path )
+        if changed:
+            os.unlink(path)
 
         my_print("OK.")
     else:

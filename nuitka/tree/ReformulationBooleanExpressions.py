@@ -93,7 +93,7 @@ def buildOrNode(provider, values, source_ref):
 
         tried = StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = keeper_variable.makeReference(provider),
+                variable   = keeper_variable,
                 source_ref = source_ref
             ),
             source       = values[-1],
@@ -105,11 +105,11 @@ def buildOrNode(provider, values, source_ref):
             final      = None,
             expression = ExpressionConditional(
                 condition      = ExpressionTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
+                    variable   = keeper_variable,
                     source_ref = source_ref
                 ),
                 yes_expression  = ExpressionTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
+                    variable   = keeper_variable,
                     source_ref = source_ref
                 ),
                 no_expression   = makeTryFinallyExpression(
@@ -117,7 +117,7 @@ def buildOrNode(provider, values, source_ref):
                     final      = None,
                     tried      = StatementDelVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = keeper_variable.makeReference(provider),
+                            variable   = keeper_variable,
                             source_ref = source_ref
                         ),
                         tolerant     = False,
@@ -134,7 +134,7 @@ def buildOrNode(provider, values, source_ref):
             result,
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
+                    variable   = keeper_variable,
                     source_ref = source_ref
                 ),
                 tolerant     = True,
@@ -170,7 +170,7 @@ def buildAndNode(provider, values, source_ref):
 
         tried = StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
-                variable   = keeper_variable.makeReference(provider),
+                variable   = keeper_variable,
                 source_ref = source_ref
             ),
             source       = values[-1],
@@ -182,11 +182,11 @@ def buildAndNode(provider, values, source_ref):
             final      = None,
             expression = ExpressionConditional(
                 condition  = ExpressionTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
+                    variable   = keeper_variable,
                     source_ref = source_ref
                 ),
                 no_expression   = ExpressionTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
+                    variable   = keeper_variable,
                     source_ref = source_ref
                 ),
                 yes_expression  = makeTryFinallyExpression(
@@ -194,7 +194,7 @@ def buildAndNode(provider, values, source_ref):
                     final      = None,
                     tried      = StatementDelVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = keeper_variable.makeReference(provider),
+                            variable   = keeper_variable,
                             source_ref = source_ref
                         ),
                         tolerant     = False,
@@ -211,7 +211,7 @@ def buildAndNode(provider, values, source_ref):
             result,
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = keeper_variable.makeReference(provider),
+                    variable   = keeper_variable,
                     source_ref = source_ref
                 ),
                 tolerant     = True,

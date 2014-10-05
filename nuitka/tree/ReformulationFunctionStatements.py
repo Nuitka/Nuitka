@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import SyntaxErrors, Utils
+from nuitka import SyntaxErrors, Utils, Variables
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
@@ -51,7 +51,7 @@ from .Helpers import (
 
 
 def buildFunctionNode(provider, node, source_ref):
-    assert getKind( node ) == "FunctionDef"
+    assert getKind(node) == "FunctionDef"
 
     function_statements, function_doc = extractDocFromBody( node )
 
@@ -126,7 +126,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
-    decorated_body = ExpressionFunctionCreation(
+    function_creation = ExpressionFunctionCreation(
         function_ref = ExpressionFunctionRef(
             function_body,
             source_ref = source_ref
@@ -151,24 +151,31 @@ def buildFunctionNode(provider, node, source_ref):
             ),
         )
 
+    decorated_function = function_creation
     for decorator in decorators:
-        decorated_body = ExpressionCallNoKeywords(
+        decorated_function = ExpressionCallNoKeywords(
             called     = decorator,
             args       = ExpressionMakeTuple(
-                elements    = ( decorated_body, ),
+                elements    = (decorated_function,),
                 source_ref = source_ref
             ),
             source_ref = decorator.getSourceReference()
         )
 
-    return StatementAssignmentVariable(
+
+    result = StatementAssignmentVariable(
         variable_ref = ExpressionTargetVariableRef(
             variable_name = node.name,
             source_ref    = source_ref
         ),
-        source       = decorated_body,
+        source       = decorated_function,
         source_ref   = source_ref
     )
+
+    if Utils.python_version >= 340:
+        function_body.qualname_setup = result.getTargetVariableRef()
+
+    return result
 
 
 def buildParameterKwDefaults(provider, node, function_body, source_ref):
@@ -183,7 +190,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
             values = []
 
             for kw_only_name, kw_default in \
-              zip( kw_only_names, node.args.kw_defaults ):
+              zip(kw_only_names, node.args.kw_defaults):
                 if kw_default is not None:
                     keys.append(
                         ExpressionConstantRef(
@@ -192,7 +199,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
                         )
                     )
                     values.append(
-                        buildNode( provider, kw_default, source_ref )
+                        buildNode(provider, kw_default, source_ref)
                     )
 
             kw_defaults = makeDictCreationOrConstant(
@@ -208,6 +215,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
 
     return kw_defaults
 
+
 def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=R0912
 
@@ -215,13 +223,22 @@ def buildParameterAnnotations(provider, node, source_ref):
     if Utils.python_version < 300:
         return None
 
+
+    # Strange as it is, startin with Python 3.4, the names of parameters are
+    # mangled in annotations too.
+    if Utils.python_version < 340:
+        mangle = lambda variable_name: variable_name
+    else:
+        def mangle(variable_name):
+            return Variables.mangleName(variable_name, provider)
+
     keys = []
     values = []
 
     def addAnnotation(key, value):
         keys.append(
             ExpressionConstantRef(
-                constant      = key,
+                constant      = mangle(key),
                 source_ref    = source_ref,
                 user_provided = True
             )
@@ -229,19 +246,19 @@ def buildParameterAnnotations(provider, node, source_ref):
         values.append( value )
 
     def extractArg(arg):
-        if getKind( arg ) == "Name":
+        if getKind(arg) == "Name":
             assert arg.annotation is None
-        elif getKind( arg ) == "arg":
+        elif getKind(arg) == "arg":
             if arg.annotation is not None:
                 addAnnotation(
                     key   = arg.arg,
-                    value = buildNode( provider, arg.annotation, source_ref )
+                    value = buildNode(provider, arg.annotation, source_ref)
                 )
-        elif getKind( arg ) == "Tuple":
+        elif getKind(arg) == "Tuple":
             for arg in arg.elts:
-                extractArg( arg )
+                extractArg(arg)
         else:
-            assert False, getKind( arg )
+            assert False, getKind(arg)
 
     for arg in node.args.args:
         extractArg(arg)
@@ -267,15 +284,17 @@ def buildParameterAnnotations(provider, node, source_ref):
             )
     else:
         if node.args.vararg is not None:
-            extractArg( node.args.vararg )
+            extractArg(node.args.vararg)
         if node.args.kwarg is not None:
-            extractArg( node.args.kwarg )
+            extractArg(node.args.kwarg)
 
     # Return value annotation (not there for lambdas)
     if hasattr( node, "returns" ) and node.returns is not None:
         addAnnotation(
             key   = "return",
-            value = buildNode( provider, node.returns, source_ref )
+            value = buildNode(
+                provider, node.returns, source_ref
+            )
         )
 
     if keys:

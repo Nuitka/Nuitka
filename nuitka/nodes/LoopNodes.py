@@ -104,8 +104,12 @@ class StatementLoop(StatementChildrenHavingBase):
             statements = loop_body.getStatements()
             assert statements # Cannot be empty
 
+            # If the last statement is a "continue" statement, it can simply
+            # be discarded.
             last_statement = statements[-1]
             if last_statement.isStatementContinueLoop():
+                # TODO: This is unnecessarily ugly way of doing this, simply
+                # replacing the continue should be good enough.
                 loop_body.removeStatement(last_statement)
                 statements = loop_body.getStatements()
 
@@ -130,7 +134,7 @@ class StatementLoop(StatementChildrenHavingBase):
             statements = loop_body.getStatements()
             assert statements # Cannot be empty
 
-            if len( statements ) == 1 and statements[-1].isStatementBreakLoop():
+            if len(statements) == 1 and statements[-1].isStatementBreakLoop():
                 return None, "new_statements", """\
 Removed loop immediately broken."""
 

@@ -19,13 +19,11 @@
 
 """
 
-from nuitka import Variables
+from nuitka import Utils, Variables, Options
 
 from . import CodeTemplates
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
     getErrorFormatExitBoolCode,
     getErrorFormatExitCode
 )
@@ -35,6 +33,8 @@ def _getContextAccess(context, force_closure = False):
     # Context access is variant depending on if that's a created function or
     # not. For generators, they even share closure variables in the common
     # context.
+
+    # This is a return factory, pylint: disable=R0911
     if context.isPythonModule():
         return ""
     else:
@@ -58,17 +58,35 @@ def _getContextAccess(context, force_closure = False):
                 return ""
 
 
+def getVariableCodeName(in_context, variable):
+    if in_context:
+        # Closure case:
+        return "closure_" + Utils.encodeNonAscii(variable.getName())
+    elif variable.isParameterVariable():
+        return "par_" + Utils.encodeNonAscii(variable.getName())
+    elif variable.isTempVariable():
+        return "tmp_" + Utils.encodeNonAscii(variable.getName())
+    else:
+        return "var_" + Utils.encodeNonAscii(variable.getName())
+
+
+
 def getVariableCode(context, variable):
     from_context = _getContextAccess(
         context       = context,
-        force_closure = variable.isClosureReference()
+        force_closure = variable.getOwner() is not context.getOwner()
     )
 
-    return from_context + variable.getCodeName()
+    return from_context + getVariableCodeName(
+        in_context = context.getOwner() is not variable.getOwner() or \
+                     # TODO: Ought to not treat generator context as always
+                     # closure, that makes it too pointless.
+                     (not context.getOwner().isPythonModule() and context.getOwner().isGenerator()),
+        variable   = variable
+    )
 
 
-def getLocalVariableInitCode(context, variable, init_from = None,
-                             in_context = False):
+def getLocalVariableInitCode(variable, init_from = None, in_context = False):
     # This has many cases to deal with, so there need to be a lot of branches.
     # pylint: disable=R0912
 
@@ -77,10 +95,15 @@ def getLocalVariableInitCode(context, variable, init_from = None,
     result = variable.getDeclarationTypeCode(in_context)
 
     # For pointer types, we don't have to separate with spaces.
-    if not result.endswith( "*" ):
+    if not result.endswith("*"):
         result += " "
 
-    result += variable.getCodeName()
+    code_name = getVariableCodeName(
+        in_context = in_context,
+        variable   = variable
+    )
+
+    result += code_name
 
     if not in_context:
         if variable.isTempVariable():
@@ -90,14 +113,17 @@ def getLocalVariableInitCode(context, variable, init_from = None,
                 result += "( NULL )"
         else:
             if init_from is not None:
-                result += "( %s )" % init_from
+                if variable.isSharedTechnically():
+                    result += "; %s.storage->object = %s" % (code_name, init_from)
+                else:
+                    result += "; %s.object = %s" % (code_name, init_from)
 
     result += ";"
 
     return result
 
 
-def getVariableAssignmentCode(context, emit, variable, tmp_name):
+def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
     assert isinstance(variable, Variables.Variable), variable
 
     # For transfer of ownership.
@@ -124,14 +150,30 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name):
     elif variable.isLocalVariable():
         if variable.isSharedTechnically():
             if ref_count:
-                template = CodeTemplates.template_write_shared_unclear_ref0
+                if needs_release is False:
+                    template = CodeTemplates.template_write_shared_clear_ref0
+                else:
+                    template = CodeTemplates.template_write_shared_unclear_ref0
             else:
-                template = CodeTemplates.template_write_shared_unclear_ref1
+                if needs_release is False:
+                    template = CodeTemplates.template_write_shared_clear_ref1
+                else:
+                    template = CodeTemplates.template_write_shared_unclear_ref1
         else:
             if ref_count:
-                template = CodeTemplates.template_write_local_unclear_ref0
+                if needs_release is False:
+                    template = CodeTemplates.template_write_local_empty_ref0
+                elif needs_release is True:
+                    template = CodeTemplates.template_write_local_clear_ref0
+                else:
+                    template = CodeTemplates.template_write_local_unclear_ref0
             else:
-                template = CodeTemplates.template_write_local_unclear_ref1
+                if needs_release is False:
+                    template = CodeTemplates.template_write_local_empty_ref1
+                elif needs_release is True:
+                    template = CodeTemplates.template_write_local_clear_ref1
+                else:
+                    template = CodeTemplates.template_write_local_unclear_ref1
 
         emit(
             template % {
@@ -142,17 +184,27 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name):
 
         if ref_count:
             context.removeCleanupTempName(tmp_name)
-    elif variable.isClosureReference() or variable.isTempVariableReference():
-        if variable.getReferenced().isSharedTechnically():
+    elif variable.isTempVariable():
+        if variable.isSharedTechnically():
             if ref_count:
                 template = CodeTemplates.template_write_shared_unclear_ref0
             else:
                 template = CodeTemplates.template_write_shared_unclear_ref1
         else:
             if ref_count:
-                template = CodeTemplates.template_write_local_unclear_ref0
+                if needs_release is False:
+                    template = CodeTemplates.template_write_local_empty_ref0
+                elif needs_release is True:
+                    template = CodeTemplates.template_write_local_clear_ref0
+                else:
+                    template = CodeTemplates.template_write_local_unclear_ref0
             else:
-                template = CodeTemplates.template_write_local_unclear_ref1
+                if needs_release is False:
+                    template = CodeTemplates.template_write_local_empty_ref1
+                elif needs_release is True:
+                    template = CodeTemplates.template_write_local_clear_ref1
+                else:
+                    template = CodeTemplates.template_write_local_unclear_ref1
 
         emit(
             template % {
@@ -167,13 +219,10 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name):
         assert False, variable
 
 
-def getVariableAccessCode(to_name, variable, emit, context):
+def getVariableAccessCode(to_name, variable, needs_check, emit, context):
     assert isinstance(variable, Variables.Variable), variable
 
     if variable.isModuleVariable():
-        # TODO: use SSA to determine
-        needs_check = True
-
         emit(
             CodeTemplates.template_read_mvar_unclear % {
                 "module_identifier" : context.getModuleCodeName(),
@@ -186,24 +235,25 @@ def getVariableAccessCode(to_name, variable, emit, context):
         )
 
         if needs_check:
+            if Utils.python_version < 340 and not context.isPythonModule():
+                error_message = '''global name '%s' is not defined'''
+            else:
+                error_message = '''name '%s' is not defined'''
+
             getErrorFormatExitCode(
                 check_name = to_name,
                 exception  = "PyExc_NameError",
                 args       = (
-                    '''%sname '%s' is not defined''' % (
-                       "global " if not context.isPythonModule() else "",
-                       variable.getName()
-                    ),
+                    error_message % variable.getName(),
                 ),
                 emit       = emit,
                 context    = context
             )
+        elif Options.isDebug():
+            emit("assertObject(%s);" % to_name)
 
         return
     elif variable.isMaybeLocalVariable():
-        # TODO: use SSA to determine
-        needs_check = True
-
         emit(
             CodeTemplates.template_read_maybe_local_unclear % {
                 "locals_dict"       : "locals_dict",
@@ -228,29 +278,18 @@ def getVariableAccessCode(to_name, variable, emit, context):
                 emit       = emit,
                 context    = context
             )
+        elif Options.isDebug():
+            emit("assertObject(%s);" % to_name)
 
         return
     elif variable.isLocalVariable():
         if variable.isSharedTechnically():
-            if variable.isParameterVariable() and \
-               not variable.getHasDelIndicator():
+            if not needs_check:
                 template = CodeTemplates.template_read_shared_unclear
-                needs_check = False
             else:
                 template = CodeTemplates.template_read_shared_known
-                needs_check = True
         else:
             template = CodeTemplates.template_read_local
-            if variable.isParameterVariable() and \
-               not variable.getHasDelIndicator():
-                needs_check = False
-            else:
-                needs_check = True
-
-        # TODO: Temporary, as DelIndicator is not based on SSA yes, we need
-        # to pretend we may raise even then.
-        context.markAsNeedsExceptionVariables()
-        needs_check = True
 
         emit(
             template % {
@@ -271,12 +310,13 @@ def getVariableAccessCode(to_name, variable, emit, context):
                 emit       = emit,
                 context    = context
             )
+        elif Options.isDebug():
+            emit("assertObject(%s);" % to_name)
 
         return
-    elif variable.isClosureReference() or variable.isTempVariableReference():
-        if variable.getReferenced().isSharedTechnically():
+    elif variable.isTempVariable():
+        if variable.isSharedTechnically():
             template = CodeTemplates.template_read_shared_unclear
-            needs_check = True
 
             emit(
                 template % {
@@ -284,9 +324,6 @@ def getVariableAccessCode(to_name, variable, emit, context):
                     "identifier" : getVariableCode(context, variable)
                 }
             )
-
-            if variable.isTempVariableReference():
-                needs_check = False
 
             if needs_check:
                 getErrorFormatExitCode(
@@ -300,15 +337,12 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     emit       = emit,
                     context    = context
                 )
+            elif Options.isDebug():
+                emit("assertObject(%s);" % to_name)
 
             return
         else:
             template = CodeTemplates.template_read_local
-            if variable.isParameterVariable() and \
-               not variable.getHasDelIndicator():
-                needs_check = False
-            else:
-                needs_check = True
 
             emit(
                 template % {
@@ -316,9 +350,6 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     "identifier" : getVariableCode(context, variable)
                 }
             )
-
-            if variable.isTempVariableReference():
-                needs_check = False
 
             if needs_check:
                 getErrorFormatExitCode(
@@ -332,30 +363,12 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     emit       = emit,
                     context    = context
                 )
+            elif Options.isDebug():
+                emit("assertObject(%s);" % to_name)
 
             return
 
-    identifier = getVariableCode(context, variable)
-    ref_count = identifier.getCheapRefCount()
-
-    assert ref_count == 0
-
-    assert not variable.isLocalVariable()
     assert False, variable
-
-    emit(
-        "%s = %s;" % (
-            to_name,
-            identifier.getCodeTemporaryRef(),
-        )
-    )
-
-    if variable.isClosureReference():
-        getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
-        )
 
 
 def getVariableDelCode(tolerant, variable, emit, context):
@@ -423,22 +436,35 @@ def getVariableDelCode(tolerant, variable, emit, context):
                 }
             )
 
-            getErrorFormatExitBoolCode(
-                condition = "%s == false" % res_name,
-                exception = "PyExc_UnboundLocalError",
-                args      = (
-'''local variable '%s' referenced before assignment''' % (
-                       variable.getName()
+            if variable.getOwner() is context.getOwner():
+                getErrorFormatExitBoolCode(
+                    condition = "%s == false" % res_name,
+                    exception = "PyExc_UnboundLocalError",
+                    args      = ("""\
+local variable '%s' referenced before assignment""" % (
+                           variable.getName()
+                        ),
                     ),
-                ),
-                emit      = emit,
-                context   = context
-            )
-    elif variable.isTempVariableReference():
+                    emit      = emit,
+                    context   = context
+                )
+            else:
+                getErrorFormatExitBoolCode(
+                    condition = "%s == false" % res_name,
+                    exception = "PyExc_NameError",
+                    args       = ("""\
+free variable '%s' referenced before assignment in enclosing scope""" % (
+                            variable.getName()
+                        ),
+                    ),
+                    emit      = emit,
+                    context   = context
+                )
+    elif variable.isTempVariable():
         if tolerant:
             # Temp variables use similar classes, can use same templates.
 
-            if variable.getReferenced().isSharedTechnically():
+            if variable.isSharedTechnically():
                 template = CodeTemplates.template_del_shared_tolerant
             else:
                 template = CodeTemplates.template_del_local_tolerant
@@ -472,80 +498,27 @@ def getVariableDelCode(tolerant, variable, emit, context):
             emit(
                 """assert( %s != false );""" % res_name
             )
-    elif variable.isClosureReference():
-        if tolerant:
-            if variable.isSharedTechnically():
-                template = CodeTemplates.template_del_shared_tolerant
-            else:
-                template = CodeTemplates.template_del_local_tolerant
-
-            emit(
-                template % {
-                    "identifier" : getVariableCode(
-                        variable = variable,
-                        context  = context
-                    )
-                }
-            )
-        else:
-            res_name = context.getBoolResName()
-
-            if variable.isSharedTechnically():
-                template = CodeTemplates.template_del_shared_intolerant
-            else:
-                template = CodeTemplates.template_del_local_intolerant
-
-            emit(
-                template % {
-                    "identifier" : getVariableCode(
-                        variable = variable,
-                        context  = context
-                    ),
-                    "result"     : res_name
-                }
-            )
-
-            getErrorFormatExitBoolCode(
-                condition = "%s == false" % res_name,
-                exception = "PyExc_UnboundLocalError",
-                    args       = ("""\
-free variable '%s' referenced before assignment in enclosing scope""" % (
-                        variable.getName()
-                    ),
-                ),
-                emit      = emit,
-                context   = context
-            )
     else:
         assert False, variable
 
-        if tolerant:
-            emit(
-                "%s.del( true );" % (
-                    getVariableCode(
-                        variable = variable,
-                        context  = context
-                    ),
-                )
-            )
-        elif variable.isTempVariableReference():
-            emit(
-                "%s.del( false );" % (
-                    getVariableCode(
-                        variable = variable,
-                        context  = context
-                    ),
-                )
-            )
-        else:
-            getErrorExitBoolCode(
-                condition = "%s.del( false ) == false" % (
-                    getVariableCode(
-                        variable = variable,
-                        context  = context
-                    ),
-                ),
 
-                emit      = emit,
-                context   = context
-            )
+def getVariableInitializedCheckCode(variable, context):
+    """ Check if a variable is initialized.
+
+        Returns a code expression that says "true" if it is.
+    """
+
+    if variable.isLocalVariable() or variable.isTempVariable():
+        if variable.isSharedTechnically():
+            template = CodeTemplates.template_check_shared
+        else:
+            template = CodeTemplates.template_check_local
+
+        return template % {
+            "identifier" : getVariableCode(
+                variable = variable,
+                context  = context
+            ),
+        }
+    else:
+        assert False, variable

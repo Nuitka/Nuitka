@@ -1,13 +1,15 @@
 #     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
-#     Python tests originally created or extracted from other peoples work. The
-#     parts were too small to be protected.
+#     Python test originally created or extracted from other peoples work. The
+#     parts from me are licensed as below. It is at least Free Softwar where
+#     it's copied from other people. In these cases, that will normally be
+#     indicated.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#         http://www.apache.org/licenses/LICENSE-2.0
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,14 +18,6 @@
 #     limitations under the License.
 #
 
-# In Python2, it is not allowed to take closure variables, in a function that
-# has an "exec". For Python3, the problem doesn't exist, as there is no exec
-# statement anymore.
 
-def someFunctionWithUnqualifiedExecAndCallback():
-    exec "def f(): pass"
-
-    def callback():
-        return nested
-
-someFunctionWithUnqualifiedExecAndCallback()
+from win32com import storagecon
+from win32com.shell import shell, shellcon

@@ -123,14 +123,6 @@ class FinalizeMarkups(FinalizationVisitorBase):
             if search.isGenerator():
                 search.markAsNeedsGeneratorReturnHandling(1)
 
-        if node.isStatementDelVariable():
-            variable = node.getTargetVariableRef().getVariable()
-
-            while variable.isReference():
-                variable = variable.getReferenced()
-
-            variable.setHasDelIndicator()
-
         if node.isStatementTryExcept():
             if node.public_exc:
                 parent_frame = node.getParentStatementsFrame()

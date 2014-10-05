@@ -84,9 +84,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
         (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_handler_indicator_variable.makeReference(
-                        provider
-                    ),
+                    variable   = tmp_handler_indicator_variable,
                     source_ref = source_ref.atInternal()
                 ),
                 source       = ExpressionConstantRef(
@@ -115,9 +113,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
         StatementConditional(
             condition  = ExpressionComparisonIs(
                 left = ExpressionTempVariableRef(
-                    variable   = tmp_handler_indicator_variable.makeReference(
-                        provider
-                    ),
+                    variable   = tmp_handler_indicator_variable,
                     source_ref = source_ref
                 ),
                 right = ExpressionConstantRef(
@@ -134,9 +130,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
 
     final = StatementDelVariable(
         variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_handler_indicator_variable.makeReference(
-                provider
-            ),
+            variable   = tmp_handler_indicator_variable,
             source_ref = source_ref.atInternal()
         ),
         tolerant   = False,
@@ -147,9 +141,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
         statements = (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_handler_indicator_variable.makeReference(
-                        provider
-                    ),
+                    variable   = tmp_handler_indicator_variable,
                     source_ref = source_ref.atInternal()
                 ),
                 source       = ExpressionConstantRef(
