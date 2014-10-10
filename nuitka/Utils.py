@@ -177,9 +177,13 @@ def callExec(args):
     else:
         args = list(args)
         del args[1]
-        sys.exit(
-            subprocess.call(args)
-        )
+
+        try:
+            sys.exit(
+                subprocess.call(args)
+            )
+        except KeyboardInterrupt:
+            os._exit(2)
 
 
 def encodeNonAscii(var_name):
