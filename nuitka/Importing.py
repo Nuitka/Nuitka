@@ -479,7 +479,7 @@ def getStandardLibraryPaths():
             search = os_path
             lib_part = ""
 
-            while search:
+            while os.path.splitdrive(search)[1] not in (os.path.sep, ""):
                 if Utils.isFile(Utils.joinpath(search,"bin/activate")):
                     break
 
