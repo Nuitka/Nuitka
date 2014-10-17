@@ -480,7 +480,8 @@ def getStandardLibraryPaths():
             lib_part = ""
 
             while os.path.splitdrive(search)[1] not in (os.path.sep, ""):
-                if Utils.isFile(Utils.joinpath(search,"bin/activate")):
+                if Utils.isFile(Utils.joinpath(search,"bin/activate")) or \
+                   Utils.isFile(Utils.joinpath(search,"scripts/activate")):
                     break
 
                 lib_part = Utils.joinpath(Utils.basename(search), lib_part)
@@ -511,7 +512,11 @@ def getStandardLibraryPaths():
                 )
             )
 
-        getStandardLibraryPaths.result = stdlib_paths
+        getStandardLibraryPaths.result = [
+            Utils.normcase(stdlib_path)
+            for stdlib_path in
+            stdlib_paths
+        ]
 
     return getStandardLibraryPaths.result
 
