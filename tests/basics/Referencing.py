@@ -630,6 +630,12 @@ def simpleFunction77():
     a = "x = 2"
     exec(a)
 
+def simpleFunction78():
+    "some doc"
+
+    simpleFunction78.__doc__ = simpleFunction78.__doc__.replace("doc", "dok")
+    simpleFunction78.__doc__ += " and more" + simpleFunction78.__name__
+
 
 # These need stderr to be wrapped.
 tests_stderr = (63,)

@@ -19,10 +19,10 @@
 count = 0
 
 def recurse():
-   global count
-   count += 1
+    global count
+    count += 1
 
-   if count < 50:
-      recurse()
+    if count < 50:
+        recurse()
 
 recurse()

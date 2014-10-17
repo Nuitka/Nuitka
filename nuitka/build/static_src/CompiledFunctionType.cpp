@@ -427,6 +427,8 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 
     Py_DECREF( function->m_defaults );
 
+    Py_DECREF( function->m_doc );
+
 #if PYTHON_VERSION >= 300
     Py_DECREF( function->m_kwdefaults );
     Py_DECREF( function->m_annotations );
@@ -545,7 +547,7 @@ static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_par
     result->m_code_object = code_object;
 
     result->m_module = module;
-    result->m_doc    = doc;
+    result->m_doc    = INCREASE_REFCOUNT( doc );
 
     result->m_dict   = NULL;
     result->m_weakrefs = NULL;
