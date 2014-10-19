@@ -1,6 +1,41 @@
 Nuitka Release 0.5.6 (Draft)
 ============================
 
+
+Bug Fixes
+---------
+
+- Overwriting compiled function's ``__doc__`` attribute more than once could
+  corrupt the old value, leading to crashes.
+  `Issue#156 <http://bugs.nuitka.net/issue156>`__. Fixed in 0.5.5.2 already.
+
+- Detection of Windows virtualenv was not working properly, need to check for
+  ``activate`` not only in ``bin``, but also in ``scripts`` folder. Fixed in
+  0.5.5.2 already.
+
+- Large enough constants structures are now unstreamed via ``marshal`` module,
+  avoiding large codes being generated with no point. Fixed in 0.5.5.2 already.
+
+- Windows: Pressing CTRL-C gave two stack traces, one from the re-execution of
+  Nuitka which was rather pointless. Fixed in 0.5.5.1 already.
+
+- Windows: Searching for virtualenv environments didn't terminate in all cases.
+  Fixed in 0.5.5.1 already.
+
+- During installation from PyPI with Python3 versions, there were errors given
+  for the Python2 only scons files.
+  `Issue#153 <http://bugs.nuitka.net/issue153>`__. Fixed in 0.5.5.3 already.
+
+Organizational
+--------------
+
+- Added support for ARM "hard float" architecture.
+
+- Added package for Ubuntu 14.10 for download.
+
+- Added package for openSUSE 13.2 for download.
+
+
 Nuitka Release 0.5.5
 ====================
 
