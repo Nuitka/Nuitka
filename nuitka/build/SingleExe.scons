@@ -994,6 +994,10 @@ def getLinkerArch():
         if target_arch == "x86_64":
             return "elf64-x86-64"
         elif target_arch == "armv5tel":
+            # Debian arch "armel"
+            return "elf32-littlearm"
+        elif target_arch == "armv7l":
+            # Debian arch "armhf"
             return "elf32-littlearm"
         else:
             # TODO: Detect from objdump mayhaps.
@@ -1096,7 +1100,7 @@ def discoverSourceFiles():
     elif target_arch == "x86_64" and "linux" in sys.platform:
         result.append(getStatic("x64_ucontext_src/fibers_x64.cpp"))
         result.append(getStatic("x64_ucontext_src/swapfiber.S"))
-    elif "arm" in target_arch:
+    elif target_arch == "armv5tel":
         result.append(getStatic("arm_ucontext_src/fibers_arm.cpp"))
         result.append(getStatic("arm_ucontext_src/ucontext.cpp"))
         result.append(getStatic("arm_ucontext_src/getcontext.asm"))
