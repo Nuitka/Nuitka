@@ -18,6 +18,8 @@
 
 import sys, os
 
+os.chdir(os.path.dirname(__file__) or ".")
+
 scripts = ["bin/nuitka", "bin/nuitka-run"]
 
 # For Windows, there are batch files to launch Nuitka.
@@ -80,19 +82,19 @@ def find_packages():
 package = find_packages()
 
 from distutils.command.install_scripts import install_scripts
-class nuitka_installscripts( install_scripts ):
+class NuitkaInstallScripts(install_scripts):
     """
     This is a specialization of install_scripts that replaces the @LIBDIR@ with
     the configured directory for modules. If possible, the path is made relative
     to the directory for scripts.
     """
 
-    def initialize_options( self ):
+    def initialize_options(self):
         install_scripts.initialize_options(self)
 
         self.install_lib = None
 
-    def finalize_options( self ):
+    def finalize_options(self):
         install_scripts.finalize_options(self)
 
         self.set_undefined_options("install", ("install_lib", "install_lib"))
@@ -100,7 +102,8 @@ class nuitka_installscripts( install_scripts ):
     def run(self):
         install_scripts.run(self)
 
-        if os.path.splitdrive(self.install_dir)[0] != os.path.splitdrive(self.install_lib)[0]:
+        if os.path.splitdrive(self.install_dir)[0] != \
+           os.path.splitdrive(self.install_lib)[0]:
             # can't make relative paths from one drive to another, so use an
             # absolute path instead
             libdir = self.install_lib
@@ -126,7 +129,7 @@ class nuitka_installscripts( install_scripts ):
             if b'\0' in data:
                 continue
 
-            data = data.replace( b"@LIBDIR@", libdir.encode("unicode_escape"))
+            data = data.replace(b"@LIBDIR@", libdir.encode("unicode_escape"))
 
             if patch_bats and outfile.endswith(".bat"):
                 data = data.replace("..\\","")
@@ -136,7 +139,7 @@ class nuitka_installscripts( install_scripts ):
             fp.close()
 
 cmdclass = {
-    "install_scripts" : nuitka_installscripts
+    "install_scripts" : NuitkaInstallScripts
 }
 
 if os.path.exists("/usr/bin/scons") and \
@@ -159,6 +162,23 @@ if "bdist_msi" in sys.argv:
     project_name = "Nuitka%s" % (64 if "AMD64" in sys.version else 32)
 else:
     project_name = "Nuitka"
+
+# Lets hack the byte_compile function so it doesn't byte compile Scons built-in
+# copy with Python3.
+if sys.version_info >= (3,):
+    from distutils import util
+
+    real_byte_compile = util.byte_compile
+
+    def byte_compile(py_files, *args, **kw):
+        py_files = [
+            py_file
+            for py_file in py_files
+            if "inline_copy" not in py_file
+        ]
+
+        real_byte_compile( py_files, *args, **kw)
+
 
 from distutils.core import setup
 
