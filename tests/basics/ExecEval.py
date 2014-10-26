@@ -128,10 +128,8 @@ def functionExecNonesSyntax():
     exec "f=2" in None, None
     print "Exec with None as optimizable normal args did update locals:", f
 
-# TODO: Needs solution for Issue#154.
-if False:
-    functionExecNonesTuple()
-    functionExecNonesSyntax()
+functionExecNonesTuple()
+functionExecNonesSyntax()
 
 print "Global value is untouched", f
 
@@ -172,10 +170,8 @@ def functionExecNonesSyntax2():
     print "Exec with None as normal args did update locals:", f
 
 
-# TODO: Needs solution for Issue#154.
-if False:
-    functionExecNonesTuple2()
-    functionExecNonesSyntax2()
+functionExecNonesTuple2()
+functionExecNonesSyntax2()
 
 print "Exec with a future division definition and one without:"
 
@@ -206,7 +202,7 @@ from __future__ import print_function
 x = 2
 print( "Exec local x is", x )
 """
-    print "Function global x is", x
+    print "Function global x referenced as local x in exec is", x
 
     exec """
 from __future__ import print_function
@@ -218,9 +214,9 @@ print( "Re-exec local x", x )
 from __future__ import print_function
 global x
 x = 3
-print( "Exec global x is", x )
+print( "Exec global x is inside exec", x )
 """
-    print "Exec level global x is", x
+    print "Global x referenced as global x in exec is", x
 
     exec """
 from __future__ import print_function

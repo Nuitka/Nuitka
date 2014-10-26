@@ -155,10 +155,8 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             )
     else:
         if mode == "copy":
-            assert False
-
             emit(
-                "%s = PyDict_Copy( locals_dict )" % (
+                "%s = PyDict_Copy( locals_dict );" % (
                     to_name,
                 )
             )

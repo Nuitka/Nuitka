@@ -24,7 +24,10 @@ to do.
 
 from nuitka import Utils
 
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase
+)
 
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
@@ -246,6 +249,36 @@ Exec statement raises implicitely when determining locals argument."""
             )
 
         return self, None, None
+
+
+class StatementLocalsDictSync(StatementChildrenHavingBase):
+    kind = "STATEMENT_LOCALS_DICT_SYNC"
+
+    named_children = (
+        "locals",
+    )
+
+    def __init__(self, locals_arg, source_ref):
+        StatementChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "locals"  : locals_arg,
+            },
+            source_ref = source_ref,
+        )
+
+    def computeStatement(self, constraint_collection):
+        if self.getParentVariableProvider().isPythonModule():
+            return None, "new_statements", "Removed sync back to locals without locals."
+
+        constraint_collection.removeAllKnowledge()
+
+        return self, None, None
+
+    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
+
+    def mayRaiseException(self, exception_type):
+        return False
 
 
 class ExpressionBuiltinCompile(ExpressionChildrenHavingBase):

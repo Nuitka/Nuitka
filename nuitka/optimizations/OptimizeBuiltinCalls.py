@@ -478,13 +478,6 @@ if python_version < 300:
                                                   locals_node, source_ref):
             provider = node.getParentVariableProvider()
 
-            # TODO: Can't really be true, can it?
-            if provider.isExpressionFunctionBody():
-                provider.markAsExecContaining()
-
-                if provider.isClassDictCreation():
-                    provider.markAsUnqualifiedExecContaining( source_ref )
-
             temp_scope = provider.allocateTempScope("execfile")
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(

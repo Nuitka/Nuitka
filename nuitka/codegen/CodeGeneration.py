@@ -2904,9 +2904,6 @@ def generateExecCode(statement, emit, context):
         )
 
     provider = statement.getParentVariableProvider()
-    store_back = provider.isExpressionFunctionBody() and \
-                 provider.isUnqualifiedExec()
-
 
     old_source_ref = context.setCurrentSourceCodeReference(
         locals_arg.getSourceReference()
@@ -2919,7 +2916,33 @@ def generateExecCode(statement, emit, context):
         globals_name  = globals_name,
         locals_name   = locals_name,
         filename_name = filename_name,
-        store_back    = store_back,
+        provider      = provider,
+        emit          = emit,
+        context       = context,
+    )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
+
+
+def generateLocalsDictSyncCode(statement, emit, context):
+    locals_arg = statement.getLocals()
+    locals_name = context.allocateTempName("eval_locals")
+
+    generateExpressionCode(
+        to_name    = locals_name,
+        expression = locals_arg,
+        emit       = emit,
+        context    = context
+    )
+
+    provider = statement.getParentVariableProvider()
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        statement.getSourceReference()
+    )
+
+    Generator.getLocalsDictSyncCode(
+        locals_name   = locals_name,
         provider      = provider,
         emit          = emit,
         context       = context,
@@ -3014,7 +3037,6 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
-
 
     if context.needsCleanup(tmp_name2):
         context.removeCleanupTempName(tmp_name2)
@@ -4152,6 +4174,12 @@ def _generateStatementCode(statement, emit, context):
         )
     elif statement.isStatementExec():
         generateExecCode(
+            statement = statement,
+            emit      = emit,
+            context   = context
+        )
+    elif statement.isStatementLocalsDictSync():
+        generateLocalsDictSyncCode(
             statement = statement,
             emit      = emit,
             context   = context

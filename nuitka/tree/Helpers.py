@@ -278,6 +278,17 @@ def makeStatementsSequenceFromStatement(statement):
     )
 
 
+def makeStatementsSequenceFromStatements(*statements):
+    assert statements
+    assert None not in statements
+
+    return StatementsSequence(
+        statements = statements,
+        source_ref = statements[0].getSourceReference()
+    )
+
+
+
 def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # Sequence creation. Tries to avoid creations with only constant
     # elements. Would be caught by optimization, but would be useless churn. For
