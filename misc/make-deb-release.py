@@ -171,7 +171,7 @@ os.chdir(entry)
 # that way.
 print("Checking licenses... ")
 for line in subprocess.check_output("licensecheck -r .", shell = True).\
-  strip().split( b"\n" ):
+  strip().split(b"\n"):
     assert b"UNKNOWN" not in line, line
 
 # Build the debian package, but disable the running of tests, will be done later
