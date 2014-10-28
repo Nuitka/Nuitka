@@ -75,7 +75,10 @@ if branch_name.startswith("release") or \
 else:
     assert checkChangeLog("New upstream pre-release.")
 
-    category = "develop"
+    if branch_name == "factory":
+        category = "factory"
+    else:
+        category = "develop"
 
 shutil.rmtree("dist", ignore_errors = True)
 shutil.rmtree("build", ignore_errors = True)
