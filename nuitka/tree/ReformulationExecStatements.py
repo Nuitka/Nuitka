@@ -39,10 +39,7 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.ExecEvalNodes import (
-    StatementExec,
-    StatementLocalsDictSync
-)
+from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
     ExpressionBuiltinLocals

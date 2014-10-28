@@ -75,7 +75,12 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
-from .EvalCodes import getCompileCode, getEvalCode, getExecCode, getLocalsDictSyncCode
+from .EvalCodes import (
+    getCompileCode,
+    getEvalCode,
+    getExecCode,
+    getLocalsDictSyncCode
+)
 from .ExceptionCodes import (
     getExceptionCaughtTracebackCode,
     getExceptionCaughtTypeCode,

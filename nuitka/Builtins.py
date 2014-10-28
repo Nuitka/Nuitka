@@ -19,11 +19,12 @@
 
 """
 
+import functools
 import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
-from . import Utils
-
+from nuitka.Utils import python_version
+from nuitka.__past__ import iterItems
 
 def _getBuiltinExceptionNames():
     def isExceptionName(builtin_name):
@@ -153,7 +154,7 @@ def _getAnonBuiltins():
         "file"                       : "&PyFile_Type"
     }
 
-    if Utils.python_version < 300:
+    if python_version < 300:
         class Temp:
             def __init__(self):
                 pass
@@ -173,3 +174,18 @@ def _getAnonBuiltins():
     return anon_names, anon_codes
 
 builtin_anon_names, builtin_anon_codes = _getAnonBuiltins()
+
+def calledWithBuiltinArgumentNamesDecorator(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kw):
+        new_kw = {}
+
+        for key, value in iterItems(kw):
+            if key in builtin_all_names:
+                key = key + "_arg"
+
+            new_kw[key] = value
+
+        return f(*args, **new_kw)
+
+    return wrapper

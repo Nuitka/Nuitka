@@ -21,6 +21,7 @@ For builtin name references, we check if it's one of the supported builtin
 types.
 """
 
+from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
@@ -108,6 +109,7 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.Options import isDebug, shallMakeModule
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.Utils import python_version
+from nuitka.VariableRegistry import addVariableUsage
 
 from . import BuiltinOptimization
 
@@ -194,19 +196,16 @@ def type_extractor(node):
         )
 
 def iter_extractor(node):
-    # Note: Iter in fact names its first argument if the default applies
-    # "collection", but it won't matter much, fixed up in a wrapper.  The
-    # "callable" is part of the API, pylint: disable=W0622
-
-    def wrapIterCreation(callable, sentinel, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def wrapIterCreation(callable_arg, sentinel, source_ref):
         if sentinel is None:
             return ExpressionBuiltinIter1(
-                value      = callable,
+                value      = callable_arg,
                 source_ref = source_ref
             )
         else:
             return ExpressionBuiltinIter2(
-                callable   = callable,
+                callable   = callable_arg,
                 sentinel   = sentinel,
                 source_ref = source_ref
             )
@@ -242,9 +241,8 @@ def next_extractor(node):
 
 
 def dict_extractor(node):
-    # The dict is a bit strange in that it accepts a position parameter, or not,
-    # but won't have a default.
-
+    # The "dict" built-in is a bit strange in that it accepts a position
+    # parameter, or not, but won't have a default value.
     def wrapExpressionBuiltinDictCreation(positional_args, dict_star_arg,
                                           source_ref):
         if len(positional_args) > 1:
@@ -471,19 +469,17 @@ if python_version < 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExecfile
 
     def execfile_extractor(node):
-        # Need to accept globals and local keyword argument, that is just the
-        # API of execfile, pylint: disable=W0622
-
-        def wrapExpressionBuiltinExecfileCreation(filename, globals_node,
-                                                  locals_node, source_ref):
+        @calledWithBuiltinArgumentNamesDecorator
+        def wrapExpressionBuiltinExecfileCreation(filename, globals_arg,
+                                                  locals_arg, source_ref):
             provider = node.getParentVariableProvider()
 
             temp_scope = provider.allocateTempScope("execfile")
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
                 provider     = provider,
-                globals_node = globals_node,
-                locals_node  = locals_node,
+                globals_node = globals_arg,
+                locals_node  = locals_arg,
                 temp_scope   = temp_scope,
                 source_ref   = source_ref
             )
@@ -522,27 +518,27 @@ if python_version < 300:
         )
 
 def eval_extractor(node):
-    # Need to accept globals and local keyword argument, that is just the API of
-    # eval, pylint: disable=W0622
-
-    def wrapEvalBuiltin(source, globals, locals, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def wrapEvalBuiltin(source, globals_arg, locals_arg, source_ref):
         provider = node.getParentVariableProvider()
 
         temp_scope = provider.allocateTempScope("eval")
 
         globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
             provider     = provider,
-            globals_node = globals,
-            locals_node  = locals,
+            globals_node = globals_arg,
+            locals_node  = locals_arg,
             temp_scope   = temp_scope,
             source_ref   = source_ref
         )
 
         # The wrapping should not relocate to the "source_ref".
-        assert globals is None or \
-               globals_ref.getSourceReference() == globals.getSourceReference()
-        assert locals is None or \
-               locals_ref.getSourceReference() == locals.getSourceReference()
+        assert globals_arg is None or \
+               globals_ref.getSourceReference() == \
+               globals_arg.getSourceReference()
+        assert locals_arg is None or \
+               locals_ref.getSourceReference() == \
+               locals_arg.getSourceReference()
 
         source_variable = provider.allocateTempVariable(
             temp_scope = temp_scope,
@@ -678,10 +674,8 @@ if python_version >= 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 
     def exec_extractor(node):
-        # Need to accept globals and local keyword argument, that is just the
-        # API of exec, pylint: disable=W0622
-
-        def wrapExpressionBuiltinExecCreation(source, globals, locals,
+        @calledWithBuiltinArgumentNamesDecorator
+        def wrapExpressionBuiltinExecCreation(source, globals_arg, locals_arg,
                                               source_ref):
             provider = node.getParentVariableProvider()
 
@@ -690,14 +684,14 @@ if python_version >= 300:
                 provider.markAsExecContaining()
 
                 if provider.isClassDictCreation():
-                    provider.markAsUnqualifiedExecContaining( source_ref )
+                    provider.markAsUnqualifiedExecContaining(source_ref)
 
             temp_scope = provider.allocateTempScope("exec")
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
                 provider     = provider,
-                globals_node = globals,
-                locals_node  = locals,
+                globals_node = globals_arg,
+                locals_node  = locals_arg,
                 temp_scope   = temp_scope,
                 source_ref   = source_ref
             )
@@ -749,20 +743,19 @@ def open_extractor(node):
     )
 
 def super_extractor(node):
-    # Need to accept type and object as keyword argument, that is just the API
-    # of super, pylint: disable=W0622
-    def wrapSuperBuiltin(type, object, source_ref):
-        if type is None and python_version >= 300:
+    @calledWithBuiltinArgumentNamesDecorator
+    def wrapSuperBuiltin(type_arg, object_arg, source_ref):
+        if type_arg is None and python_version >= 300:
             provider = node.getParentVariableProvider()
 
             if python_version < 340 or True: # TODO: Temporarily reverted:
-                type = ExpressionVariableRef(
+                type_arg = ExpressionVariableRef(
                     variable_name = "__class__",
                     source_ref    = source_ref
                 )
 
                 # Ought to be already closure taken.
-                type.setVariable(
+                type_arg.setVariable(
                     provider.getVariableForClosure(
                         variable_name = "__class__"
                     )
@@ -770,11 +763,10 @@ def super_extractor(node):
 
                 # If we already have this as a local variable, then use that
                 # instead.
-                if type.getVariable().getOwner() is provider:
-                    type = None
+                if type_arg.getVariable().getOwner() is provider:
+                    type_arg = None
                 else:
-                    from nuitka.VariableRegistry import addVariableUsage
-                    addVariableUsage(type.getVariable(), provider)
+                    addVariableUsage(type_arg.getVariable(), provider)
             else:
                 parent_provider = provider.getParentVariableProvider()
 
@@ -783,18 +775,16 @@ def super_extractor(node):
                     name       = "__class__"
                 )
 
-                type = ExpressionTempVariableRef(
+                type_arg = ExpressionTempVariableRef(
                     variable      = class_var,
                     source_ref    = source_ref
                 )
-
-                from nuitka.VariableRegistry import addVariableUsage
-                addVariableUsage(type.getVariable(), provider)
+                addVariableUsage(type_arg.getVariable(), provider)
 
             from nuitka.nodes.NodeMakingHelpers import \
                 makeRaiseExceptionReplacementExpression
 
-            if type is None:
+            if type_arg is None:
                 return makeRaiseExceptionReplacementExpression(
                     expression      = node,
                     exception_type  = "SystemError"
@@ -803,24 +793,24 @@ def super_extractor(node):
                     exception_value = "super(): __class__ cell not found",
                 )
 
-            if object is None:
+            if object_arg is None:
                 if provider.getParameters().getArgumentCount() > 0:
                     par1_name = provider.getParameters().getArgumentNames()[0]
                     # TODO: Nested first argument would kill us here, need a
                     # test for that.
 
-                    object = ExpressionVariableRef(
+                    object_arg = ExpressionVariableRef(
                         variable_name = par1_name,
                         source_ref    = source_ref
                     )
 
-                    object.setVariable(
+                    object_arg.setVariable(
                         provider.getVariableForReference(
                             variable_name = par1_name
                         )
                     )
 
-                    if not object.getVariable().isParameterVariable():
+                    if not object_arg.getVariable().isParameterVariable():
                         return makeRaiseExceptionReplacementExpression(
                             expression      = node,
                             exception_type  = "SystemError"
@@ -836,8 +826,8 @@ def super_extractor(node):
                     )
 
         return ExpressionBuiltinSuper(
-            super_type   = type,
-            super_object = object,
+            super_type   = type_arg,
+            super_object = object_arg,
             source_ref   = source_ref
         )
 

@@ -34,9 +34,9 @@ from .ParameterParsing import (
 )
 from .PythonAPICodes import getReferenceExportCode
 from .VariableCodes import (
-    getVariableCodeName,
     getLocalVariableInitCode,
-    getVariableCode
+    getVariableCode,
+    getVariableCodeName
 )
 
 

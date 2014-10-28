@@ -36,8 +36,9 @@ from nuitka.__past__ import (  # pylint: disable=W0622
     urlretrieve
 )
 from nuitka.codegen.ConstantCodes import needsPickleInit
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.Importing import getStandardLibraryPaths
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
+
 
 def getDependsExePath():
     """ Return the path of depends.exe (for Windows).

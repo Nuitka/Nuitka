@@ -19,14 +19,11 @@
 
 """
 
-from nuitka import Utils, Variables, Options
+from nuitka import Options, Utils, Variables
 
 from . import CodeTemplates
 from .ConstantCodes import getConstantCode
-from .ErrorCodes import (
-    getErrorFormatExitBoolCode,
-    getErrorFormatExitCode
-)
+from .ErrorCodes import getErrorFormatExitBoolCode, getErrorFormatExitCode
 
 
 def _getContextAccess(context, force_closure = False):
