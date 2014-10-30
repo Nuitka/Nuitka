@@ -324,6 +324,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         # The first iterated value is to be calculated outside of the function
         # and will be given as a parameter "_iterated", the others are built
         # inside the function.
+
         if qual is node.generators[0]:
             def makeIteratorRef():
                 return outer_iter_ref.makeCloneAt(source_ref)
@@ -359,6 +360,10 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                     source_ref = source_ref
                 )
             ]
+
+            # We the closure variable, and this function in a for loop, but
+            # only once, and because the other branch above can dedice to
+            # do something entirely different, pylint: disable=W0640
 
             def makeIteratorRef():
                 return ExpressionTempVariableRef(

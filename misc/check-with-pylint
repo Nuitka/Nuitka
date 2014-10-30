@@ -43,7 +43,7 @@ os.chdir("..")
 
 pylint_options = """
 --rcfile=/dev/null
---disable=I0011,W0232,C0326,C0330,W0120,C1001,E1120,E1123,E1103,W0632
+--disable=I0011,I0012,W0232,C0326,C0330,W0120,C1001,E1120,E1123,E1103,W0632
 --msg-template="{path}:{line} {msg_id} {obj} {msg}"
 --reports=no
 --persistent=no

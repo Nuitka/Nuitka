@@ -613,7 +613,6 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
         function_doc        = function_body.getDoc(),
         is_generator        = function_body.isGenerator(),
         is_optimized        = not function_body.needsLocalsDict(),
-        emit                = emit,
         context             = context
     )
 
@@ -631,9 +630,8 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
         function_decl += "\n"
 
         function_decl += Generator.getFunctionContextDefinitionCode(
-            context              = context,
-            function_identifier  = function_body.getCodeName(),
-            closure_variables    = function_body.getClosureVariables(),
+            function_identifier = function_body.getCodeName(),
+            closure_variables   = function_body.getClosureVariables(),
         )
 
     context.addDeclaration(function_identifier, function_decl)
@@ -660,6 +658,7 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
         emit       = emit,
         context    = context
     )
+
 
 def generateFunctionBodyCode(function_body, context):
     function_identifier = function_body.getCodeName()
@@ -723,8 +722,6 @@ def generateFunctionBodyCode(function_body, context):
                 cross_module = function_body.isCrossModuleUsed()
             )
         )
-
-
 
     return function_code
 
@@ -2903,8 +2900,6 @@ def generateExecCode(statement, emit, context):
             context  = context
         )
 
-    provider = statement.getParentVariableProvider()
-
     old_source_ref = context.setCurrentSourceCodeReference(
         locals_arg.getSourceReference()
           if Options.isFullCompat() else
@@ -2916,7 +2911,6 @@ def generateExecCode(statement, emit, context):
         globals_name  = globals_name,
         locals_name   = locals_name,
         filename_name = filename_name,
-        provider      = provider,
         emit          = emit,
         context       = context,
     )

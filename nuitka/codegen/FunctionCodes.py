@@ -104,7 +104,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                          parameters, local_variables, closure_variables,
                          defaults_name, kw_defaults_name, annotations_name,
                          source_ref, function_doc, is_generator, is_optimized,
-                         emit, context):
+                         context):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables
@@ -356,8 +356,7 @@ def getFunctionDirectDecl(function_identifier, closure_variables,
     return result
 
 
-def getFunctionContextDefinitionCode(function_identifier, closure_variables,
-                                     context):
+def getFunctionContextDefinitionCode(function_identifier, closure_variables):
     context_decl = []
 
     # Always empty now, but we may not use C++ destructors for everything in the

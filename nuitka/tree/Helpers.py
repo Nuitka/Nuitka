@@ -293,6 +293,10 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # Sequence creation. Tries to avoid creations with only constant
     # elements. Would be caught by optimization, but would be useless churn. For
     # mutable constants we cannot do it though.
+
+    # Due to the many sequence types, there is a lot of cases here
+    # pylint: disable=W0612
+
     for element in elements:
         if not element.isExpressionConstantRef():
             constant = False

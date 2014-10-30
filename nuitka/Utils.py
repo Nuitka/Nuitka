@@ -183,6 +183,8 @@ def callExec(args):
                 subprocess.call(args)
             )
         except KeyboardInterrupt:
+            # There was a more relevant stack trace already, so abort this
+            # right here, pylint: disable=W0212
             os._exit(2)
 
 

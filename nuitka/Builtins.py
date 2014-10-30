@@ -23,8 +23,9 @@ import functools
 import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
-from nuitka.Utils import python_version
 from nuitka.__past__ import iterItems
+from nuitka.Utils import python_version
+
 
 def _getBuiltinExceptionNames():
     def isExceptionName(builtin_name):
@@ -162,20 +163,22 @@ def _getAnonBuiltins():
             def method(self):
                 pass
 
-        anon_names[ "classobj" ] = type(Temp)
-        anon_codes[ "classobj" ] = "&PyClass_Type"
+        anon_names["classobj"] = type(Temp)
+        anon_codes["classobj"] = "&PyClass_Type"
 
-        anon_names[ "instance" ] = type(Temp())
-        anon_codes[ "instance" ] = "&PyInstance_Type"
+        anon_names["instance"] = type(Temp())
+        anon_codes["instance"] = "&PyInstance_Type"
 
-        anon_names[ "instancemethod" ] = type(Temp().method)
-        anon_codes[ "instancemethod" ] = "&PyMethod_Type"
+        anon_names["instancemethod"] = type(Temp().method)
+        anon_codes["instancemethod"] = "&PyMethod_Type"
 
     return anon_names, anon_codes
 
 builtin_anon_names, builtin_anon_codes = _getAnonBuiltins()
 
 def calledWithBuiltinArgumentNamesDecorator(f):
+    # Accepting all arguments for a decorator, pylint: disable=W0142
+
     @functools.wraps(f)
     def wrapper(*args, **kw):
         new_kw = {}

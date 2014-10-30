@@ -109,7 +109,7 @@ def getEvalCode(to_name, source_name, filename_name, globals_name, locals_name,
 
 
 def getExecCode(source_name, globals_name, filename_name, locals_name,
-                provider, emit, context):
+                emit, context):
     compiled_name = context.allocateTempName("exec_compiled")
 
     getCompileCode(

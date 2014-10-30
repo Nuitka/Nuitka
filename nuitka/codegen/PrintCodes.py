@@ -15,7 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Print related codes.
 
+This is broken down to to level on printing one individual item, and
+a new line potentially. The heavy lifting for 'softspace', etc. is
+happening in the C helper functions.
+
+"""
 
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCode, getReleaseCodes
 

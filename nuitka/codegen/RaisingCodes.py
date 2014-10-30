@@ -30,11 +30,13 @@ def getReRaiseExceptionCode(emit, context):
 
     if context.isExceptionPublished():
         emit(
-            "RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
+            """\
+RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"""
         )
         emit(
             """\
-if (exception_tb && exception_tb->tb_frame == %(frame_identifier)s) %(frame_identifier)s->f_lineno = exception_tb->tb_lineno;""" % {
+if (exception_tb && exception_tb->tb_frame == %(frame_identifier)s) \
+%(frame_identifier)s->f_lineno = exception_tb->tb_lineno;""" % {
                 "frame_identifier" : context.getFrameHandle()
             }
         )
