@@ -823,11 +823,7 @@ class ClosureTakerMixin:
         # There is no maybe with closures. It means, it is closure variable in
         # this case.
         if result.isMaybeLocalVariable():
-            # This mixin is used with nodes only, but doesn't want to inherit
-            # from it, pylint: disable=E1101
-            result = self.getParentModule().getVariableForClosure(
-                variable_name = variable_name
-            )
+            result = result.getMaybeVariable()
 
         if not result.isModuleVariable():
             self.addClosureVariable(result)

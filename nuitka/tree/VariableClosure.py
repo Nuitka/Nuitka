@@ -24,7 +24,7 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka import PythonVersions, SyntaxErrors
+from nuitka import PythonVersions, SyntaxErrors, Variables
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
@@ -138,11 +138,25 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 provider = node.getParentVariableProvider()
 
                 if provider.isEarlyClosure():
-                    node.setVariable(
-                        provider.getVariableForReference(
-                            variable_name = node.getVariableName()
-                        )
+                    variable = provider.getVariableForReference(
+                        variable_name = node.getVariableName()
                     )
+
+                    # Python3.4 version respects closure variables taken can be
+                    # overridden by writes to locals. It should be done for
+                    # globals too, on all versions, but for Python2 the locals
+                    # dictionary is avoided unless "exec" appears, so it's not
+                    # done.
+                    if variable.getOwner() is not provider:
+                        if python_version >= 340 or \
+                           (python_version >= 300 and \
+                            variable.isModuleVariable()):
+                            variable = Variables.MaybeLocalVariable(
+                                owner          = provider,
+                                maybe_variable = variable
+                            )
+
+                    node.setVariable(variable)
         elif node.isExpressionTempVariableRef():
             if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.setVariable(

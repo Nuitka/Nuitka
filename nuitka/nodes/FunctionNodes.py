@@ -282,9 +282,11 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             # variable.
             if self.isUnoptimized() and result.isModuleVariable():
                 result = Variables.MaybeLocalVariable(
-                    owner         = self,
-                    variable_name = variable_name
+                    owner          = self,
+                    maybe_variable = result
                 )
+
+                self.registerProvidedVariable(result)
 
         return result
 

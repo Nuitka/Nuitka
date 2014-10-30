@@ -139,7 +139,8 @@ Module variable '%s' found to be builtin reference.""" % (
                 )
             elif self.variable_name == "__name__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getOwner().getFullName(),
+                    constant   = self.variable.getOwner().getParentModule().\
+                                   getFullName(),
                     source_ref = self.getSourceReference()
                 )
 

@@ -28,6 +28,7 @@ class Variable:
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
         assert type(owner) not in (tuple, list), owner
+        assert owner.getFullName
 
         self.variable_name = variable_name
         self.owner = owner
@@ -162,22 +163,28 @@ class ClassVariable(LocalVariable):
 
 
 class MaybeLocalVariable(Variable):
-    def __init__(self, owner, variable_name):
+    def __init__(self, owner, maybe_variable):
         Variable.__init__(
             self,
             owner         = owner,
-            variable_name = variable_name
+            variable_name = maybe_variable.getName()
         )
 
+        self.maybe_variable = maybe_variable
+
     def __repr__(self):
-        return "<%s '%s' of '%s' maybe a global reference>" % (
+        return "<%s '%s' of '%s' maybe '%s'" % (
             self.__class__.__name__,
             self.variable_name,
-            self.owner.getName()
+            self.owner.getName(),
+            self.maybe_variable
         )
 
     def isMaybeLocalVariable(self):
         return True
+
+    def getMaybeVariable(self):
+        return self.maybe_variable
 
 
 class ParameterVariable(LocalVariable):
@@ -226,7 +233,8 @@ class NestedParameterVariable(ParameterVariable):
 
 class ModuleVariable(Variable):
     def __init__(self, module, variable_name):
-        assert type( variable_name ) is str, repr( variable_name )
+        assert type(variable_name) is str, repr(variable_name)
+        assert module.isPythonModule()
 
         Variable.__init__(
             self,

@@ -419,6 +419,12 @@ class ConstraintCollectionBase(CollectionTracingMixin):
             # Remember the reference for constraint collection.
             new_node.variable_trace.addUsage(new_node)
 
+            if new_node.getVariable().isMaybeLocalVariable():
+                variable_trace = self.getVariableCurrentTrace(
+                    variable = new_node.getVariable().getMaybeVariable()
+                )
+                variable_trace.addUsage(new_node)
+
         return new_node
 
     def onModuleVariableAssigned(self, variable, assign_source):

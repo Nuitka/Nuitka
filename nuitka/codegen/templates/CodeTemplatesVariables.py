@@ -180,11 +180,7 @@ template_read_maybe_local_unclear = """\
 
 if ( %(tmp_name)s == NULL )
 {
-    %(tmp_name)s = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s );
-    if (unlikely( %(tmp_name)s == NULL ))
-    {
-        %(tmp_name)s = GET_STRING_DICT_VALUE( dict_builtin, (Nuitka_StringObject *)%(var_name)s );
-    }
+%(fallback)s
 }
 """
 
