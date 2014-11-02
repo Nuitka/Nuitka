@@ -360,7 +360,7 @@ can then be used as input to the constant folding.
 From modules attributes, only ``__name__`` is currently actually optimized. Also
 possible would be at least ``__doc__``.
 
-Also built-in exception name references are optimized if they are uses as module
+Also built-in exception name references are optimized if they are used as module
 level read only variables:
 
 .. code-block:: python
