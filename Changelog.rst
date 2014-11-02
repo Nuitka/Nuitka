@@ -1,6 +1,8 @@
 Nuitka Release 0.5.6 (Draft)
 ============================
 
+This release brings bug fixes, newly supported platforms, and important
+compatiblity improvements. It is a maintenance release mostly.
 
 Bug Fixes
 ---------
@@ -9,9 +11,22 @@ Bug Fixes
   corrupt the old value, leading to crashes.
   `Issue#156 <http://bugs.nuitka.net/issue156>`__. Fixed in 0.5.5.2 already.
 
-- Detection of Windows virtualenv was not working properly, need to check for
-  ``activate`` not only in ``bin``, but also in ``scripts`` folder. Fixed in
-  0.5.5.2 already.
+- Compatibility Python2: The ``exec`` statement ``execfile`` were changing
+  ``locals()`` was given as an argument.
+
+  .. code-block:: python
+
+      def function():
+         a = 1
+
+         exec code in locals() # Cannot change local "a".
+         exec code in None     # Can change local "a"
+         exec code
+
+  Previously Nuitka treated all 3 variants the same.
+
+- Detection of Windows virtualenv was not working properly. Fixed in 0.5.5.2
+  already.
 
 - Large enough constants structures are now unstreamed via ``marshal`` module,
   avoiding large codes being generated with no point. Fixed in 0.5.5.2 already.
@@ -34,6 +49,31 @@ Organizational
 - Added package for Ubuntu 14.10 for download.
 
 - Added package for openSUSE 13.2 for download.
+
+- Donations were used to buy a Cubox-i4 Pro. It got Debian Jessie installed
+  on it, and will be used to run an even larger amount of tests.
+
+- Using Nikola 7.1 with external filters instead of our own, outdated branch
+  for the web site.
+
+Cleanups
+--------
+
+- For ``exec`` statements, the coping back to local variables is now an
+  explicit node in the tree, leader to cleaner code generation, as it now
+  uses normal variable assignment code generation.
+
+- The ``MaybeLocalVariables`` became explicit about which variable they
+  might be, and contribute to its SSA trace as well, which was incomplete
+  before.
+
+Summary
+-------
+
+The release is mainly the result of consolidation work. While the previous
+release contained many important enhancements, this is only a small step
+towards improved SSA, closing one loop whole (class variables, exec functions),
+before extending its use.
 
 
 Nuitka Release 0.5.5
