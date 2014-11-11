@@ -277,7 +277,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
             self.replaceWith(result)
 
-            return iter_node, "new_constant", """
+            return iter_node, "new_constant", """\
 Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
 
         return iter_node, None, None

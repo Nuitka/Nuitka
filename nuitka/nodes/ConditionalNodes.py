@@ -199,11 +199,11 @@ class StatementConditional(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getCondition = StatementChildrenHavingBase.childGetter( "condition" )
-    getBranchYes = StatementChildrenHavingBase.childGetter( "yes_branch" )
-    setBranchYes = StatementChildrenHavingBase.childSetter( "yes_branch" )
-    getBranchNo = StatementChildrenHavingBase.childGetter( "no_branch" )
-    setBranchNo = StatementChildrenHavingBase.childSetter( "no_branch" )
+    getCondition = StatementChildrenHavingBase.childGetter("condition")
+    getBranchYes = StatementChildrenHavingBase.childGetter("yes_branch")
+    setBranchYes = StatementChildrenHavingBase.childSetter("yes_branch")
+    getBranchNo = StatementChildrenHavingBase.childGetter("no_branch")
+    setBranchNo = StatementChildrenHavingBase.childSetter("no_branch")
 
     def isStatementAborting(self):
         yes_branch = self.getBranchYes()

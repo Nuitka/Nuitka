@@ -180,7 +180,7 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
         self.replaceWith(result)
 
         return iter_node, "new_expression", """\
-Iteration of list reduced to tuple."""
+Iteration over list reduced to tuple."""
 
 
 class ExpressionMakeSet(ExpressionMakeSequenceBase):
@@ -206,7 +206,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
         self.replaceWith(result)
 
         return iter_node, "new_expression", """\
-Iteration of set reduced to tuple."""
+Iteration over set reduced to tuple."""
 
 
 class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
