@@ -56,6 +56,9 @@ Organizational
 - Using Nikola 7.1 with external filters instead of our own, outdated branch
   for the web site.
 
+- Made it more clear in the user documentation that the ``.exe`` suffix is used
+  for all platforms, and why.
+
 Cleanups
 --------
 

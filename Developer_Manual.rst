@@ -130,7 +130,8 @@ Line Length
 -----------
 
 No more than 120 characters. Screens are wider these days, but most of the code
-aims at keeping the lines below 80.
+aims at keeping the lines below 80. Long lines are also a sign of writing
+incomprehensible code.
 
 
 Indentation
@@ -210,7 +211,7 @@ modules.
 Packages shall only be used to group packages. In ``nuitka.codegen`` the code
 generation packages are located, while the main interface is
 ``nuitka.codegen.CodeGeneration`` and may then use most of the entries as local
-imports.
+imports. There is no code in packages.
 
 The use of a global package ``nuitka``, originally introduced by Nicolas, makes
 the packaging of Nuitka with ``distutils`` etc. easier and lowers the
@@ -309,13 +310,14 @@ The "git flow" model
 
   Code under construction. We publish commits there, that may not hold up in
   testing, and before it enters develop branch. Factory may have severe
-  regressions frequently, and commits become rebased all the time.
+  regressions frequently, and commits become **rebased all the time**, so do
+  not base your patches on it, prefer develop branch for that.
 
 * Feature Branches
 
   On these long lived developments that extend for multiple release cycles or
   contain changes that break Nuitka temporarily. They need not be functional at
-  all.
+  all, and may lag behind main branches.
 
 
 Checking the Source
@@ -701,16 +703,16 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 
 Locating Modules and Packages
-------------------------------
+-----------------------------
 
 The search for of modules used is driven by ``nuitka.Importing`` module.
 
 * From the module documentation
 
   The actual import of a module may already execute code that changes
-  things. Imagine a module that does ``os.system()``, it will be done. People
-  often connect to databases, and these kind of things, at import time. Not a
-  good style, but it's being done.
+  things. Imagine a module that does ``os.system()``, it would be done during
+  compilation. People often connect to databases, and these kind of things,
+  at import time.
 
   Therefore CPython exhibits the interfaces in an ``imp`` module in standard
   library, which one can use those to know ahead of time, what file import would
@@ -729,16 +731,21 @@ The search for of modules used is driven by ``nuitka.Importing`` module.
   known one. It will give warnings for modules attempted to be located, but not
   found. These warnings are controlled by a while list inside the module.
 
+The decision making and caching are located in the ``nuitka.tree`` package, in
+modules ``nuitka.tree.Recursion`` and ``nuitka.tree.ImportCache``. Each module
+is only imported once (cache), and we need to obey lots of user choices, e.g.
+to compile standard library or not.
+
 
 Hooking for module ``import`` process
 -------------------------------------
 
-Currently, in created code, for every ``import`` a normal ``__import__()`` call
-is executed. The "ModuleUnfreezer.cpp" (located in "nuitka/build/static_src")
-provides the implementation of a ``sys.meta_path`` hook.
+Currently, in generated code, for every ``import`` a normal ``__import__()``
+built-in call is executed. The ``nuitka/build/static_src/ModuleUnfreezer.cpp``
+file provides the implementation of a ``sys.meta_path`` hook.
 
-This one allows us to have the Nuitka provided module imported even when
-imported by non-compiled code.
+This meta path based importer allows us to have the Nuitka provided module
+imported even when imported by non-compiled code.
 
 .. note::
 
@@ -833,7 +840,7 @@ In Python, every function, class, and module has a frame. It creates created
 when the scope it entered, and there is a stack of these at run time, which
 becomes visible in tracebacks in case of exceptions.
 
-The choice of Nuitka is to make this non-static elements of the node tree, that
+The choice of Nuitka is to make this an explicit element of the node tree, that
 are as such subject to optimization. In cases, where they are not needed, they
 may be removed.
 
@@ -942,9 +949,9 @@ actual C++ patterns. To control the order to object deletion, this is vital.
 Exceptions
 ++++++++++
 
-To handle and work with exceptions, every construct that can raise has to have a
-``bool`` return code or ``PyObject *`` with ``NULL`` return value. This is very
-much in line with that the Python C-API does.
+To handle and work with exceptions, every construct that can raise has either a
+``bool`` or ``int`` return code or ``PyObject *`` with ``NULL`` return value.
+This is very much in line with that the Python C-API does.
 
 Every helper function that contains code that might raise needs these
 variables. After a failed call, ``PyErr_Fetch`` must be used to catch the
@@ -966,7 +973,7 @@ that represent references. For some, these should be released at the end of the
 statement, or they represent a leak.
 
 The larger scope temporary variables, are tracked in the function or module
-context, where they are supposed to have explicit "del" to release their
+context, where they are supposed to have explicit ``del`` to release their
 references.
 
 Exit Targets
@@ -981,11 +988,11 @@ alike.
 
 For frames, later, local variables will need to be freed on the way out. The way
 out for a frame, should either be a function return, or another frame exit. We
-will later have a ``try``/``finally`` with
+will later have a ``try``/``finally`` with the ``del`` around them.
 
 Generally, the exits stack of with constructs that need to register themselves
-for some exit types. A loop e.g. registers the ``continue exit, and a contained
-``try``/``finally`` too, so it can execute the final code.
+for some exit types. A loop e.g. registers the ``continue`` exit, and a
+contained ``try``/``finally`` too, so it can execute the final code.
 
 Frames
 ++++++
@@ -994,8 +1001,6 @@ Frames are containers for variable declarations and cleanups. As such, frames
 provide error exits and success exits, which remove the frame from the frame
 stack, and then proceed to the parent exit.
 
-Once local variables are to be released, the frames should establish that this
-is happening.
 
 Abortive Statements
 +++++++++++++++++++
@@ -1018,33 +1023,23 @@ file, but that approach didn't scale well.
 
 Problems were
 
-* Even unused code contributed to start-up time.
+* Even unused code contributed to start-up time, this can become a lot for
+  large programs, especially in standalone mode.
 
-* The massive amount of constant creation codes gave C++ compilers a harder time
-  than necessary.
+* The massive amount of constant creation codes gave C++ compilers a much
+  harder time than necessary to grok all at once.
 
-.. note::
+The current approach is as follows. Code generation detects constants used in
+only one module, and declared ``static`` there, if the module is the only user,
+or ``extern`` if it is not. Some values or forced to be global, as they are
+used pre-main or in helpers.
 
-   This is so far only a plan.
+The ``extern`` values are globally created pre-main. The ``static`` values are
+created when the module is loaded.
 
-The new approach is as follows. Code generation uses the same identifiers for
-constants as before, but these will be declared module local ("static"), if the
-module is the only user, or "extern" if it is not.
-
-The "extern" values will be globally created pre-main. Some values, that are
-e.g. used in pre-main code, references to "None" module should enforce this
-behavior.
-
-Code for all modules will be created with a delay. The final association with
-the module body template must wait until all are ready, because only then the
-scope of the constants will be known.
-
-The most important goal is to avoid globally initializing constants that are
-used only in one module.
-
-We need to trace used constants per module, and for nested ones, we also need to
-associate them. The global constants code is special in that it can only use
-"static" for nested values it exclusively uses, and has to export values that
+We trace used constants per module, and for nested ones, we also associate
+them. The global constants code is special in that it can only use
+``static`` for nested values it exclusively uses, and has to export values that
 others use.
 
 
@@ -1104,9 +1099,10 @@ variables keep the value for the potential read in the same expression. The
 syntax is not Python, and only pseudo language to expression the internal
 structure of the node tree after the transformation.
 
-This useful "keeper" variables that enable this transformation and allow to
+These useful "keeper" variables that enable this transformation and allow to
 express the short circuit nature of comparison chains by using ``and``
-operations.
+operations. There are implicit ``del`` added to when a temporary variable
+"keeper" is no longer needed with ``try/finally`` constructs.
 
 
 The ``execfile`` built-in
@@ -1116,29 +1112,40 @@ Handling is:
 
 .. code-block:: python
 
-   execfile( filename )
+   execfile(filename)
    # Basically the same as:
-   exec( compile( open( filename ).read() ), filename, "exec" )
+   exec compile(open(filename).read()), filename, "exec"
 
 .. note::
 
    This allows optimizations to discover the file opening nature easily and
    apply file embedding or whatever we will have there one day.
 
-This transformation is performed when the ``execfile`` builtin is detected as
-such during optimization.
+This transformation is performed when the ``execfile`` built-in is detected as
+such during optimization. It does not have the implications
 
 
 Generator expressions with ``yield``
 ++++++++++++++++++++++++++++++++++++
 
 These are converted at tree building time into a generator function body that
-yields the iterator given, which is the put into a for loop to iterate, created
-a lambda function of and then called with the first iterator.
+yields from the iterator given, which is the put into a for loop to iterate,
+created a lambda function of and then called with the first iterator.
 
 That eliminates the generator expression for this case. It's a bizarre construct
 and with this trick needs no special code generation.
 
+This is a complex example, demonstrating multiple cases of yield in unexpected
+cases:
+
+.. code-block:: python
+
+   x = ((yield i) for i in (1,2) if not (yield))
+   # Basically the same as:
+   def x():
+       for i in (1,2):
+           if not (yield):
+               yield(yield i)
 
 Function Decorators
 +++++++++++++++++++
@@ -1156,10 +1163,13 @@ When one learns about decorators, you see that:
    function = decorator( function )
 
 The only difference is the assignment to function. In the ``@decorator`` case,
-if the decorator fails with an exception, the name ``function`` is not assigned.
+if the decorator fails with an exception, the name ``function`` is not assigned
+yet, but kept in a temporary variable.
 
-Therefore in Nuitka this assignment is from a "function body expression" and
-only the last decorator returned value is assigned to the function name.
+Therefore in Nuitka this assignment is more similar to that of a lambda
+expression, where the assignment to the name is only at the end, which also
+has the extra benefit of not treating real function and lambda functions any
+different.
 
 This removes the need for optimization and code generation to support decorators
 at all. And it should make the two variants optimize equally well.
@@ -1185,7 +1195,7 @@ makes it explicit that the assign target may change its value.
    if a is not _tmp:
        a = _tmp
 
-Using ``__iadd__`` here to express that not the ``+``, but the in-place variant
+Using ``__iadd__`` here to express that for the ``+``, the in-place variant
 ``iadd`` is used instead. The ``is`` check may be optimized away depending on
 type and value knowledge later on.
 
@@ -1211,7 +1221,9 @@ multiple simple assignments instead.
 
 This is possible, because in Python, if one assignment fails, it can just be
 interrupted, so in fact, they are sequential, and all that is required is to not
-calculate ``c`` twice, which the temporary variable takes care of.
+calculate ``c`` twice, which the temporary variable takes care of. Were ``a``
+a more complex expression, e.g. ``a.some_attribute`` that might raise an
+exception, ``b`` would still be assigned.
 
 
 Unpacking Assignments
@@ -1229,25 +1241,25 @@ Becomes this:
 
    _tmp = h()
 
-   _iter1 = iter( _tmp )
-   _tmp1 = unpack( _iter1, 3 )
-   _tmp2 = unpack( _iter1, 3 )
-   _tmp3 = unpack( _iter1, 3 )
-   unpack_check( _iter1 )
+   _iter1 = iter(_tmp)
+   _tmp1 = unpack(_iter1, 3)
+   _tmp2 = unpack(_iter1, 3)
+   _tmp3 = unpack(_iter1, 3)
+   unpack_check(_iter1)
    a = _tmp1
    b.attr = _tmp2
    c[ind] = _tmp3
    d = _tmp
-   _iter2 = iter( _tmp )
-   _tmp4 = unpack( _iter2, 3 )
-   _tmp5 = unpack( _iter2, 3 )
-   _tmp6 = unpack( _iter2, 3 )
-   unpack_check( _iter1 )
+   _iter2 = iter(_tmp)
+   _tmp4 = unpack(_iter2, 3)
+   _tmp5 = unpack(_iter2, 3)
+   _tmp6 = unpack(_iter2, 3)
+   unpack_check(_iter1)
    e = _tmp4
    f = _tmp5
    g = _tmp6
 
-That way, the unpacking is decomposed into multiple simple statementy. It will
+That way, the unpacking is decomposed into multiple simple statements. It will
 be the job of optimizations to try and remove unnecessary unpacking, in case
 e.g. the source is a known tuple or list creation.
 
@@ -1261,7 +1273,9 @@ e.g. the source is a known tuple or list creation.
 .. note::
 
    The ``unpack_check`` is a special node that raises a ``ValueError`` exception
-   if the iterator is not finished, i.e. there are more values to unpack.
+   if the iterator is not finished, i.e. there are more values to unpack. Again
+   the number of values to unpack is provided to construct the error message.
+
 
 With Statements
 +++++++++++++++
@@ -1307,19 +1321,19 @@ is fulfilled by ``try``/``except`` clause instead.
 
         tmp_indicator = True
 
-        if not tmp_exit( *sys.exc_info() ):
+        if not tmp_exit(*sys.exc_info()):
             raise
     finally:
         if not tmp_indicator
             # Call the exit if no exception occurred with all arguments
             # as "None".
-            tmp_exit( None, None, None )
+            tmp_exit(None, None, None)
 
 .. note::
 
    We don't refer really to ``sys.exc_info()`` at all, instead, we have
-   references to the current exception type, value and trace, taken directory
-   from the caught exception object on the C++ level.
+   fast references to the current exception type, value and trace, taken
+   directly from the caught exception object on the C level.
 
    If we had the ability to optimize ``sys.exc_info()`` to do that, we could use
    the same transformation, but right now we don't have it.
@@ -1328,12 +1342,12 @@ is fulfilled by ``try``/``except`` clause instead.
 For Loops
 +++++++++
 
-The for loops use normal assignments and handle the iterator that is implicit in
-the code explicitly.
+The ``for`` loops use normal assignments and handle the iterator that is
+implicit in the code explicitly.
 
 .. code-block:: python
 
-    for x,y in iterable:
+    for x, y in iterable:
         if something( x ):
             break
     else:
@@ -1343,12 +1357,12 @@ This is roughly equivalent to the following code:
 
 .. code-block:: python
 
-    _iter = iter( iterable )
+    _iter = iter(iterable)
     _no_break_indicator = False
 
-    while True:
+    while 1:
         try:
-            _tmp_value = next( _iter )
+            _tmp_value = next(_iter)
         except StopIteration:
             # Set the indicator that the else branch may be executed.
             _no_break_indicator = True
@@ -1361,7 +1375,7 @@ This is roughly equivalent to the following code:
          x, y = _tmp_value
          del _tmp_value
 
-         if something( x ):
+         if something(x):
              break
 
     if _no_break_indicator:
@@ -1369,14 +1383,14 @@ This is roughly equivalent to the following code:
 
 .. note::
 
-   The ``_iter`` temporary variable is of course in a temp block and the ``x,
-   y`` assignment is the normal is of course re-formulation of an assignment
-   that cannot fail.
+   The ``_iter`` temporary variable is of course also in a ``try/finally``
+   construct, to make sure it releases after its used. The ``x, y`` assignment
+   is of course subject to unpacking re-formulation.
 
    The ``try``/``except`` is detected to allow to use a variant of ``next`` that
-   throws no C++ exception, but instead to use ``ITERATOR_NEXT`` and which
-   returns NULL in that case, so that the code doesn't really have any Python
-   level exception handling going on.
+   does not raise an exception, but to be fast check about the ``NULL`` return
+   from ``next`` built-in. So no actual exception handling is happening in this
+   case.
 
 
 While Loops
@@ -1392,28 +1406,30 @@ re-formulated like this:
 
 .. code-block:: python
 
-    while True:
+    while 1:
         if not condition:
             break
 
         something()
 
-
 This is to totally remove the specialization of loops, with the condition moved
-to the loop body in a conditional statement, which contains a break statement.
+to the loop body in an initial conditional statement, which contains a ``break``
+statement.
 
-That makes it clear, that only break statements exit the loop, and allow for
+That achieves, that only ``break`` statements exit the loop, and allow for
 optimization to remove always true loop conditions, without concerning code
 generation about it, and to detect such a situation, consider e.g. endless
 loops.
 
 .. note::
 
-   Loop analysis can therefore work on a reduced problem (which ``break``
-   statements are executed under which conditions) and be very general, but it
-   cannot take advantage of the knowledge encoded directly anymore. The fact
-   that the loop body may not be entered at all, if the condition is not met, is
-   something harder to discover.
+   Loop analysis (not yet done) can then work on a reduced problem (which
+   ``break`` statements are executed under what conditions) and is then
+   automatically very general.
+
+   The fact that the loop body may not be entered at all, is still optimized,
+   but also in the general sense. Explicit breaks at the loop start and loop
+   conditions are the same.
 
 
 Exception Handlers
@@ -1554,6 +1570,7 @@ building stage anymore. The type inference will of course have to become able to
 understand ``make_class`` quite well, so it can recognize the created class
 again.
 
+
 Class Creation (Python3)
 ++++++++++++++++++++++++
 
@@ -1611,6 +1628,7 @@ not sure, what ``__prepare__`` is allowed to return.
    # Build and assign the class.
    SomeClass = _makeSomeClass()
 
+
 Generator Expressions
 +++++++++++++++++++++
 
@@ -1621,7 +1639,7 @@ nested) for loops:
 
 .. code-block:: python
 
-    gen = ( x*2 for x in range(8) if cond() )
+    gen = (x*2 for x in range(8) if cond())
 
 .. code-block:: python
 
@@ -1630,7 +1648,8 @@ nested) for loops:
           if cond():
               yield x*2
 
-    gen = _gen_helper( range(8 ) )
+    gen = _gen_helper(range(8))
+
 
 List Contractions
 +++++++++++++++++
@@ -1641,7 +1660,7 @@ ever exists.
 
 .. code-block:: python
 
-   list_value = [ x*2 for x in range(8) if cond() ]
+   list_value = [x*2 for x in range(8) if cond()]
 
 .. code-block:: python
 
@@ -1650,15 +1669,15 @@ ever exists.
 
        for x in __iterator:
           if cond():
-              result.append( x*2 )
+              result.append(x*2)
 
        return result
 
-    list_value = listcontr_helper( range(8) )
+    list_value = _listcontr_helper(range(8))
 
-The difference is that with Python3, the function "_listcontr_helper" is real
-and named ``<listcomp>``, whereas with Python2 the function must be considered
-in-lined.
+The difference is that with Python3, the function "_listcontr_helper" is really
+there and named ``<listcomp>``, whereas with Python2 the function is to be
+considered in-lined.
 
 This in-inlining in case of Python2 causes difficulties, because it's statements
 that occur inside an expression, which means a lot of side effects, that may or
@@ -1668,13 +1687,49 @@ may not be possible to unroll to outside.
 Set Contractions
 ++++++++++++++++
 
-TODO.
+The set contractions of Python2.7 are like list contractions in Python3, in that
+they produce an actual helper function:
+
+.. code-block:: python
+
+   set_value = {x*2 for x in range(8) if cond()}
+
+.. code-block:: python
+
+    def _setcontr_helper(__iterator):
+       result = set()
+
+       for x in __iterator:
+          if cond():
+              result.add(x*2)
+
+       return result
+
+    set_value = _setcontr_helper( range(8) )
 
 
 Dict Contractions
 +++++++++++++++++
 
-TODO.
+The dict contractions of Python2.7 are like list contractions in Python3, in
+that they produce an actual helper function:
+
+.. code-block:: python
+
+   dict_value = {x: x*2 for x in range(8) if cond()}
+
+.. code-block:: python
+
+    def _dictcontr_helper(__iterator):
+       result = {}
+
+       for x in __iterator:
+          if cond():
+              result[x] = x*2
+
+       return result
+
+    set_value = _dictcontr_helper( range(8) )
 
 
 Boolean expressions ``and`` and ``or``
@@ -1689,7 +1744,7 @@ the ``if``/``else`` expressions and are therefore re-formulated as such:
 
 .. code-block:: python
 
-   _tmp if ( _tmp = expr1() ) else expr2()
+   _tmp if (_tmp = expr1()) else expr2()
 
 .. code-block:: python
 
@@ -1697,7 +1752,7 @@ the ``if``/``else`` expressions and are therefore re-formulated as such:
 
 .. code-block:: python
 
-   expr2() if ( _tmp = expr1() ) else _tmp
+   expr2() if (_tmp = expr1()) else _tmp
 
 In this form, the differences between these two operators becomes very apparent,
 the operands are simply switching sides.
@@ -1738,6 +1793,7 @@ actually easier for code generation.
 Although the above looks like a complex call, it actually is not. No checks are
 needed for the types of the star arguments and it's directly translated to
 ``PyObject_Call``.
+
 
 Complex Calls
 +++++++++++++
@@ -1859,6 +1915,13 @@ given, which would be ``sys.stdout`` in a rather hard-coded way (no variable
 look-ups involved).
 
 
+Call to ``dir`` without arguments
+---------------------------------
+
+This expression is reformulated to ``locals().keys()`` for Python2, and
+``list(locals.keys())``.
+
+
 Nodes that serve special purposes
 ---------------------------------
 
@@ -1914,6 +1977,7 @@ Modelling side effects explicitely has the advantage of recognizing them easily
 and allowing to drop the call to the tuple building and checking its length,
 only to release it.
 
+
 Caught Exception Type/Value References
 ++++++++++++++++++++++++++++++++++++++
 
@@ -1925,15 +1989,9 @@ For these, not ``sys.exc_info()`` is used, instead there are special nodes
 dedicated to these values: ``CaughtExceptionTypeRef`` and
 ``CaughtExceptionValueRef``.
 
-Call to ``dir`` without arguments
----------------------------------
-
-This expression is reformulated to ``locals().keys()`` for Python2, and
-``list(locals.keys())``.
-
 
 Hard Module Imports
--------------------
++++++++++++++++++++
 
 These are module look-ups that don't depend on any local variable for the module
 to be looked up, but with hard-coded names. These may be the result of
@@ -1941,6 +1999,15 @@ optimization gaining such level of certainty.
 
 Currently they are used to represent ``sys.stdout`` usage for ``print``
 statements, but other usages will follow.
+
+
+Locals Dict Update Statement
+++++++++++++++++++++++++++++
+
+For the ``exec`` re-formulation, we apply an explicit sync back to locals as
+an explicit node. It helps us to tell the affected local variable traces that
+they might be affected. It represents the bit of ``exec`` in Python2, that
+treats ``None`` as the locals argument as an indication to copy back.
 
 
 Plan to replace "python-qt" for the GUI
@@ -1960,9 +2027,10 @@ Goals/Allowances to the task
 ----------------------------
 
 1. Goal: Must not use any pre-existing C/C++ language file headers, only
-   generate declarations in generated C++ code ourselves. We would rather write
-   a C header to ``ctypes`` declarations convert if it needs to be, but not mix
-   and use declarations from existing header code.
+   generate declarations in generated C code ourselves. We would rather write
+   or use tools that turn an existing a C header to ``ctypes`` declarations
+   if it needs to be, but not mix and use declarations from existing header
+   code.
 2. Allowance: May use ``ctypes`` module at compile time to ask things about
    ``ctypes`` and its types.
 3. Goal: Should make use of ``ctypes``, to e.g. not hard code what
@@ -1976,13 +2044,13 @@ Goals/Allowances to the task
 Type Inference - The Discussion
 -------------------------------
 
-Main goal is to forward value knowledge. When you have ``a = b``, that means
-that a and b now "alias". And if you know the value of ``b`` you can assume to
-know the value of ``a``. This is called "Aliasing".
+Main initial goal is to forward value knowledge. When you have ``a = b``, that
+means that a and b now "alias". And if you know the value of ``b`` you can
+assume to know the value of ``a``. This is called "aliasing".
 
 When assigning ``a`` to something new, that won't change ``b`` at all. But when
-an attribute is set, a method called of it, that impacts both, or actually the
-value. We need to understand mutable vs. immutable though.
+an attribute is set, a method called of it, that impacts the actual value,
+referenced by both. We need to understand mutable vs. immutable though.
 
 .. code-block:: python
 
@@ -1992,7 +2060,7 @@ value. We need to understand mutable vs. immutable though.
    b += 4 # a is not changed
 
    a = [ 3 ]
-   b = [ 3 ]
+   b = a
 
    b += [ 4 ] # a is changed
 
@@ -2036,8 +2104,8 @@ builtin ``long``, ``str`` as well.
 
 .. note::
 
-   This "use the real thing" concept extends beyond builtin types,
-   e.g. ``ctypes.c_int()`` should also be used, but we must be aware of platform
+   This "use the real thing" concept extends beyond builtin types, e.g.
+   ``ctypes.c_int()`` should also be used, but we must be aware of platform
    dependencies. The maximum size of ``ctypes.c_int`` values would be an example
    of that. Of course that may not be possible for everything.
 
@@ -2050,7 +2118,7 @@ Another example, consider the following code:
 
 .. code-block:: python
 
-   len( "a" * 1000000000000 )
+   len("a" * 1000000000000)
 
 To predict this code, calculating it at compile time using constant operations,
 while feasible, puts an unacceptable burden on the compilation.
@@ -2119,7 +2187,7 @@ Back to the original example:
 
 .. code-block:: python
 
-   len( "a" * 1000000000000 )
+   len("a" * 1000000000000)
 
 The theme here, is that when we can't compute all intermediate expressions, and
 we sure can't do it in the general case. But we can still, predict some of
@@ -2166,11 +2234,11 @@ be more like a plug-in, loaded only if necessary, i.e. the user code actually
 uses ``ctypes``.
 
 Coming back to the original expression, it also contains an assignment
-expression, because it is more like this:
+expression, because it re-formuated to be more like this:
 
 .. code-block:: python
 
-   ctypes = __import__( "ctypes" )
+   ctypes = __import__("ctypes")
 
 The assigned to object, simply gets the type inferred propagated as part of an
 SSA form. Ideally, we could be sure that nothing in the program changes the
@@ -2182,7 +2250,7 @@ assume that it could still be ctypes, or something else.
 
 Depending on how well we control module variable assignment, we can decide this
 more of less quickly. With "compiled modules" types, the expectation is that
-it's merely a quick C++ `==` comparison check. The module friend should offer
+it's merely a quick C `==` comparison check. The module friend should offer
 code to allow a check if it applies, for uncertain cases.
 
 Then when we come to uses of it:
@@ -2210,7 +2278,7 @@ propagate forward, how to handle this:
 .. code-block:: python
 
    def my_append(a, b):
-      a.append( b )
+      a.append(b)
 
       return a
 
@@ -2221,7 +2289,7 @@ returned. Otherwise an exception occurs.
 The type of ``a`` changes to that after ``a.append`` look-up succeeds. It might
 be many kinds of an object, but e.g. it could have a higher probability of being
 a ``PyListObject``. And we would know it cannot be a ``PyStringObject``, as that
-one has no "append".
+one has no ``append`` method, and would have raised an exception therefore.
 
 .. note::
 
@@ -2230,7 +2298,7 @@ one has no "append".
 
 .. note::
 
-   On the other hand, types without ``append`` attribute could be eliminated.
+   On the other hand, types without ``append`` attribute can be eliminated.
 
 It would be great, if functions provided some sort of analysis on their return
 type, or a quick way to predict return value properties, based on input value
@@ -2240,7 +2308,7 @@ So this could work:
 
 .. code-block:: python
 
-   b = my_append( [], 3 )
+   b = my_append([], 3)
 
    assert b == [3] # Could be decided now
 
@@ -2295,20 +2363,20 @@ Excursion to Loops
 
    print a
 
-The handling of loops (both "for" and "while" are re-formulated to loops with
-breaks) has its own problem. The loop start and may have an assumption from
-before it started, that "a" is constant, but that is only true for the first
-iteration. So, we can't pass knowledge from outside loop forward directly into
-the for loop body.
+The handling of loops (both ``for`` and ``while`` are re-formulated to this
+kind of loops with ``break`` statements) has its own problem. The loop start
+and may have an assumption from before it started, that ``a`` is constant, but
+that is only true for the first iteration. So, we can't pass knowledge from
+outside loop forward directly into the for loop body.
 
-So the collection for loops needs to be two pass. First, to collect assignments,
-and merge these into the start state, before entering the loop body. The need to
-make two passes is special to loops.
+So the collection for loops needs to be two pass for loops. First, to collect
+assignments, and merge these into the start state, before entering the loop
+body. The need to make two passes is special to loops.
 
 For a start, it could be done like this though: At loop entry, all knowledge is
 removed about everything, and so is at loop exit. That way, only the loop inner
 working is optimized, and before and after the loop are separate things. The
-optimal handling of "a" in the example code will take a while.
+optimal handling of ``a`` in the example code will take a while.
 
 For a general solution, it would be sweet to trace different exit paths
 differently. One loop exit may be good enough, as it will be the common case.
@@ -2326,13 +2394,13 @@ Excursion to Conditions
    b = x < 3
 
 The above code contains a condition, and these have the problem, that when
-exiting the conditional block, a merge must be done, of the "x" versions. It
+exiting the conditional block, a merge must be done, of the ``x`` versions. It
 could be either one. The merge may trace the condition under which a choice is
 taken. That way, we could decide pairs of traces under the same condition.
 
 These merges of SSA variable versions, represent alternatives. They pose
 difficulties, and might have to be reduced to commonality. In the above example,
-the "<" operator will have to check for each version, and then to decide that
+the ``<`` operator will have to check for each version, and then to decide that
 both indeed give the same result.
 
 The constraint collection tracks variable changes in conditional branches, and
@@ -2399,8 +2467,8 @@ Excursion to ``return`` statements
 ----------------------------------
 
 The ``return`` statement (like ``break``, ``continue``, ``raise``) is "aborting"
-to control flow. It is always the last statement of inspected block. Were there
-statements to follow it, optimization will remove it as dead code.
+to control flow. It is always the last statement of inspected block. When there
+statements to follow it, optimization will remove it as "dead code".
 
 If all branches of a conditional statement are "aborting", the statement is
 decided "aborting" too. If a loop doesn't break, it should be considered
@@ -2415,7 +2483,8 @@ decided "aborting" too. If a loop doesn't break, it should be considered
 So, ``return`` statements are easy for local optimization. In the general
 picture, it would be sweet to collect all return statements, and analyze the
 commonality of them. The goal to predict function results, might be solvable by
-looking at their traces.
+looking at their values traces.
+
 
 Excursion to ``yield`` expressions
 ----------------------------------
@@ -2425,6 +2494,7 @@ invalidates some known constraints just as much as they do. It executes outside
 code for an unknown amount of time, and then returns, with little about the
 outside world known anymore.
 
+
 Mixed Types
 -----------
 
@@ -2433,7 +2503,7 @@ Consider the following inside a function or module:
 .. code-block:: python
 
    if cond is not None:
-      a = [ x for x in something() if cond(x) ]
+      a = [x for x in something() if cond(x)]
    else:
       a = ()
 
@@ -2448,7 +2518,7 @@ later, as these are mutable.
    .. code-block:: python
 
       if cond is not None:
-         a = tuple( x for x in something() if cond(x) )
+         a = tuple(x for x in something() if cond(x))
       else:
          a = ()
 
@@ -2488,21 +2558,22 @@ Now to the interface
 
 The following is the intended interface:
 
-- Iteration with node methods ``computeStatement`` and ``computeNode``.
+- Iteration with node methods ``computeStatement`` and ``computeExpression``.
 
   These traverse modules and functions (i.e. scopes) and visit everything in the
   order that Python executes it. The visiting object is ``ConstraintCollection``
   and pass forward. Some node types, e.g. ``StatementConditional`` new create
-  child constraint collections and handle the SSA merging at exit.
+  branch constraint collections and handle the SSA merging at exit.
 
 - Replacing nodes during the visit.
 
-  Both ``computeStatement`` and ``computeNode`` are tasked to return potential
-  replacements of themselves, together with "tags" (meaningless now), and a
-  "message", used for verbose tracing.
+  Both ``computeStatement`` and ``computeExpression`` are tasked to return
+  potential replacements of themselves, together with "tags" (meaningless now),
+  and a "message", used for verbose tracing.
 
-  The replacement node of "+" operator, may e.g. the pre-computed result,
-  wrapped in side effects of the node.
+  The replacement node of "+" operator, may e.g. be the pre-computed constant
+  result, wrapped in side effects of the node, or the expression raised, again
+  wrapped in side effects.
 
 - Assignments and references affect SSA.
 
