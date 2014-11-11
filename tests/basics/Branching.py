@@ -163,3 +163,20 @@ def dontOptimizeSideEffects():
         print "Bad branch taken."
 
 dontOptimizeSideEffects()
+
+def dontOptimizeTruthCheck():
+    class A:
+        def __nonzero__(self):
+            raise ValueError
+
+    a = A()
+
+    if a:
+        pass
+
+try:
+    print "Check that branch conditions are not optimized way:",
+    dontOptimizeTruthCheck()
+    print "FAIL."
+except ValueError:
+    print "OK."

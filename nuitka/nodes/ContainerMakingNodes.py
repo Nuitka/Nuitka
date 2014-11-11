@@ -400,3 +400,12 @@ Created dictionary found to be constant."""
 
         return result, "new_statements", """\
 Removed sequence creation for unused sequence."""
+
+    def computeExpressionIter1(self, iter_node, constraint_collection):
+        return self, None, None
+
+        # TODO: This ought to be possible. Only difficulty is to
+        # preserve order of evaluation, by making values a side
+        # effect of the keys.
+        # return iter_node, "new_expression", """\
+# Iteration over dict reduced to tuple."""

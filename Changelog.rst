@@ -25,6 +25,18 @@ Bug Fixes
 
   Previously Nuitka treated all 3 variants the same.
 
+- Compatibility: Empty branches with a condition were reduced to only the
+  condition, but they need in fact to also check the truth value:
+
+  .. code-block:: python
+
+      if condition:
+          pass
+      # must be treated as
+      bool(condition)
+      # and not (bug)
+      condition
+
 - Detection of Windows virtualenv was not working properly. Fixed in 0.5.5.2
   already.
 

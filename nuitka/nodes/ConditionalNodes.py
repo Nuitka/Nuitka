@@ -23,6 +23,7 @@ expressed via nesting of conditional statements.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
 
 
 # Delayed import into multiple branches is not an issue, pylint: disable=W0404
@@ -355,6 +356,12 @@ branches."""
         if yes_branch is None and no_branch is None:
             from .NodeMakingHelpers import \
                 makeStatementExpressionOnlyReplacementNode
+
+            if truth_value is None:
+                condition = ExpressionBuiltinBool(
+                    value      = condition,
+                    source_ref = condition.getSourceReference()
+                )
 
             # With both branches eliminated, the condition remains as a side
             # effect.
