@@ -156,3 +156,18 @@ class ClassesWithNestedClass:
             return { 'a':2 }
 
 print ClassesWithNestedClass, ClassesWithNestedClass().NestedClass, ClassesWithNestedClass().NestedClass().getDict()
+
+secondary = "global closure wins"
+
+class ClassWithModuleVariableCollisionMain():
+    secondary = None
+
+    def __init__(self):
+        self.secondary = self.Child()
+        self.value = self.secondary.attr
+
+    class Child():
+        def __init__(self):
+            self.attr = secondary
+
+print ClassWithModuleVariableCollisionMain, ClassWithModuleVariableCollisionMain().value

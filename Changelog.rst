@@ -7,6 +7,10 @@ compatiblity improvements. It is a maintenance release mostly.
 Bug Fixes
 ---------
 
+- Closure taking of global variables in member functions of classes that had
+  a class variable of the same name was binding to the class variable as
+  opposed to the module variable.
+
 - Overwriting compiled function's ``__doc__`` attribute more than once could
   corrupt the old value, leading to crashes.
   `Issue#156 <http://bugs.nuitka.net/issue156>`__. Fixed in 0.5.5.2 already.

@@ -299,7 +299,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         if self.isClassDictCreation():
             if variable_name == "__class__":
                 if Utils.python_version < 300:
-                    return self.provider.getVariableForReference(
+                    return self.provider.getVariableForClosure(
                         variable_name
                     )
                 elif Utils.python_version >= 340 and False: # TODO: Temporarily reverted
@@ -310,7 +310,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
                     return result
             else:
-                return self.provider.getVariableForReference(
+                return self.provider.getVariableForClosure(
                     variable_name
                 )
 
