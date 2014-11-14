@@ -158,6 +158,7 @@ def makeStatementExpressionOnlyReplacementNode(expression, node):
         source_ref = node.getSourceReference()
     )
 
+
 def mergeStatements(statements):
     """ Helper function that merges nested statement sequences. """
     merged_statements = []
@@ -171,6 +172,7 @@ def mergeStatements(statements):
             assert False, statement
 
     return merged_statements
+
 
 def makeStatementsSequenceReplacementNode(statements, node):
     return StatementsSequence(

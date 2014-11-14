@@ -664,7 +664,7 @@ def generateFunctionBodyCode(function_body, context):
     function_identifier = function_body.getCodeName()
 
     if function_identifier in _generated_functions:
-        return _generated_functions[ function_identifier ]
+        return _generated_functions[function_identifier]
 
     if function_body.needsCreation():
         function_context = Contexts.PythonFunctionCreatedContext(

@@ -627,7 +627,7 @@ class ChildrenHavingMixin:
 
                     return key
             else:
-                assert False, ( key, value, value.__class__ )
+                assert False, (key, value, value.__class__)
 
         raise AssertionError(
             "Didn't find child",

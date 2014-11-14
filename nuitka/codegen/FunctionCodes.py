@@ -718,9 +718,9 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
 
     result += CodeTemplates.genfunc_yielder_template % {
         "function_identifier" : function_identifier,
-        "function_body"       : indented(function_codes, 1),
-        "function_var_inits"  : indented(function_locals, 1),
-        "context_access"      : indented(context_access_instance, 1),
+        "function_body"       : indented(function_codes),
+        "function_var_inits"  : indented(function_locals),
+        "context_access"      : indented(context_access_instance),
         "generator_exit"      : generator_exit
     }
 
