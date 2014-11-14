@@ -678,13 +678,14 @@ def generateFunctionBodyCode(function_body, context):
         )
 
     # TODO: Generate both codes, and base direct/etc. decisions on context.
-    function_codes = generateStatementSequenceCode(
+    function_codes = []
+
+    generateStatementSequenceCode(
         statement_sequence = function_body.getBody(),
         allow_none         = True,
+        emit               = function_codes.append,
         context            = function_context
     )
-
-    function_codes = function_codes or []
 
     parameters = function_body.getParameters()
 
@@ -3062,7 +3063,7 @@ def generateTryExceptCode(statement, emit, context):
 
     emit("// Tried block of try/except")
 
-    _generateStatementSequenceCode(
+    generateStatementSequenceCode(
         statement_sequence = tried_block,
         emit               = emit,
         context            = context,
@@ -3080,7 +3081,7 @@ def generateTryExceptCode(statement, emit, context):
     context.setExceptionPublished(statement.needsExceptionPublish())
 
     emit("// Exception handler of try/except")
-    _generateStatementSequenceCode(
+    generateStatementSequenceCode(
         statement_sequence = handling_block,
         context            = context,
         emit               = emit,
@@ -3188,7 +3189,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
 
     # Now the tried block can be generated.
     emit("// Tried code")
-    _generateStatementSequenceCode(
+    generateStatementSequenceCode(
         statement_sequence = tried_block,
         emit               = emit,
         allow_none         = True,
@@ -3310,7 +3311,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
                 context.allocateLabel("try_finally_handler_break")
             )
 
-        _generateStatementSequenceCode(
+        generateStatementSequenceCode(
             statement_sequence = final_block,
             emit               = emit,
             context            = context
@@ -3803,7 +3804,7 @@ def generateBranchCode(statement, emit, context):
 
     Generator.getLabelCode(true_target, emit)
 
-    _generateStatementSequenceCode(
+    generateStatementSequenceCode(
         statement_sequence = statement.getBranchYes(),
         emit               = emit,
         context            = context
@@ -3813,7 +3814,7 @@ def generateBranchCode(statement, emit, context):
         Generator.getGotoCode(end_target, emit)
         Generator.getLabelCode(false_target, emit)
 
-        _generateStatementSequenceCode(
+        generateStatementSequenceCode(
             statement_sequence = statement.getBranchNo(),
             emit               = emit,
             context            = context
@@ -3839,7 +3840,7 @@ def generateLoopCode(statement, emit, context):
     context.setLoopBreakTarget(loop_end_label)
     context.setLoopContinueTarget(loop_start_label)
 
-    _generateStatementSequenceCode(
+    generateStatementSequenceCode(
         statement_sequence = statement.getLoopBody(),
         allow_none         = True,
         emit               = emit,
@@ -4323,16 +4324,11 @@ def _generateStatementSequenceCode(statement_sequence, emit, context,
             )
 
         if statement.isStatementsSequence():
-            code = "\n".join(
-                generateStatementSequenceCode(
-                    statement_sequence = statement,
-                    context            = context
-                )
+            generateStatementSequenceCode(
+                statement_sequence = statement,
+                emit               = emit,
+                context            = context
             )
-
-            code = code.strip()
-
-            emit(code)
         else:
             generateStatementCode(
                 statement = statement,
@@ -4341,12 +4337,131 @@ def _generateStatementSequenceCode(statement_sequence, emit, context,
             )
 
 
-def generateStatementSequenceCode(statement_sequence, context,
-                                  allow_none = False):
-
+def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames, which got a
     # lot of variants and details, therefore lots of branches and code.
     # pylint: disable=R0912,R0915
+
+    provider = statement_sequence.getParentVariableProvider()
+    guard_mode = statement_sequence.getGuardMode()
+
+    parent_exception_exit = context.getExceptionEscape()
+
+    if guard_mode != "pass_through":
+        if provider.isExpressionFunctionBody():
+            context.setFrameHandle("frame_function")
+        else:
+            context.setFrameHandle("frame_module")
+
+        context.setExceptionEscape(
+            context.allocateLabel("frame_exception_exit")
+        )
+    else:
+        context.setFrameHandle("PyThreadState_GET()->frame")
+
+    needs_preserve = statement_sequence.needsFrameExceptionPreserving()
+
+    if statement_sequence.mayReturn() and guard_mode != "pass_through":
+        parent_return_exit = context.getReturnTarget()
+
+        context.setReturnTarget(
+            context.allocateLabel("frame_return_exit")
+        )
+    else:
+        parent_return_exit = None
+
+    local_emit = Emission.SourceCodeCollector()
+
+    _generateStatementSequenceCode(
+        statement_sequence = statement_sequence,
+        emit               = local_emit,
+        context            = context
+    )
+
+
+    if statement_sequence.mayRaiseException(BaseException) or \
+       guard_mode == "generator":
+        frame_exception_exit = context.getExceptionEscape()
+    else:
+        frame_exception_exit = None
+
+    if parent_return_exit is not None:
+        frame_return_exit = context.getReturnTarget()
+    else:
+        frame_return_exit = None
+
+    if guard_mode == "generator":
+        assert provider.isExpressionFunctionBody() and \
+               provider.isGenerator()
+
+        # TODO: This case should care about "needs_preserve", as for
+        # Python3 it is actually not a stub of empty code.
+
+        codes = Generator.getFrameGuardLightCode(
+            frame_identifier      = context.getFrameHandle(),
+            code_identifier       = statement_sequence.getCodeObjectHandle(
+                context = context
+            ),
+            codes                 = local_emit.codes,
+            parent_exception_exit = parent_exception_exit,
+            frame_exception_exit  = frame_exception_exit,
+            parent_return_exit    = parent_return_exit,
+            frame_return_exit     = frame_return_exit,
+            provider              = provider,
+            context               = context
+        ).split("\n")
+    elif guard_mode == "pass_through":
+        assert provider.isExpressionFunctionBody()
+
+        # This case does not care about "needs_preserve", as for that kind
+        # of frame, it is an empty code stub anyway.
+        codes = "\n".join(local_emit.codes),
+    elif guard_mode == "full":
+        assert provider.isExpressionFunctionBody()
+
+        codes = Generator.getFrameGuardHeavyCode(
+            frame_identifier      = context.getFrameHandle(),
+            code_identifier       = statement_sequence.getCodeObjectHandle(
+                context
+            ),
+            parent_exception_exit = parent_exception_exit,
+            parent_return_exit    = parent_return_exit,
+            frame_exception_exit  = frame_exception_exit,
+            frame_return_exit     = frame_return_exit,
+            codes                 = local_emit.codes,
+            needs_preserve        = needs_preserve,
+            provider              = provider,
+            context               = context
+        ).split("\n")
+    elif guard_mode == "once":
+        codes = Generator.getFrameGuardOnceCode(
+            frame_identifier      = context.getFrameHandle(),
+            code_identifier       = statement_sequence.getCodeObjectHandle(
+                context = context
+            ),
+            parent_exception_exit = parent_exception_exit,
+            parent_return_exit    = parent_return_exit,
+            frame_exception_exit  = frame_exception_exit,
+            frame_return_exit     = frame_return_exit,
+            codes                 = local_emit.codes,
+            needs_preserve        = needs_preserve,
+            provider              = provider,
+            context               = context
+        ).split("\n")
+    else:
+        assert False, guard_mode
+
+    context.setExceptionEscape(parent_exception_exit)
+
+    if frame_return_exit is not None:
+        context.setReturnTarget(parent_return_exit)
+
+    for line in codes:
+        emit(line)
+
+
+def generateStatementSequenceCode(statement_sequence, emit, context,
+                                  allow_none = False):
 
     if allow_none and statement_sequence is None:
         return None
@@ -4355,131 +4470,22 @@ def generateStatementSequenceCode(statement_sequence, context,
 
     statement_context = Contexts.PythonStatementCContext(context)
 
-    # Frame context or normal statement context.
     if statement_sequence.isStatementsFrame():
-        provider = statement_sequence.getParentVariableProvider()
-        guard_mode = statement_sequence.getGuardMode()
-
-        parent_exception_exit = statement_context.getExceptionEscape()
-
-        if guard_mode != "pass_through":
-            if provider.isExpressionFunctionBody():
-                statement_context.setFrameHandle("frame_function")
-            else:
-                statement_context.setFrameHandle("frame_module")
-
-            statement_context.setExceptionEscape(
-                statement_context.allocateLabel("frame_exception_exit")
-            )
-        else:
-            context.setFrameHandle("PyThreadState_GET()->frame")
-
-        needs_preserve = statement_sequence.needsFrameExceptionPreserving()
-
-        if statement_sequence.mayReturn() and guard_mode != "pass_through":
-            parent_return_exit = statement_context.getReturnTarget()
-
-            statement_context.setReturnTarget(
-                statement_context.allocateLabel("frame_return_exit")
-            )
-        else:
-            parent_return_exit = None
-
-    emit = Emission.SourceCodeCollector()
-
-    # print statement_sequence.source_ref, len(statements)
-
-    _generateStatementSequenceCode(
-        statement_sequence = statement_sequence,
-        emit               = emit,
-        context            = statement_context
-    )
+        generateStatementsFrameCode(
+            statement_sequence = statement_sequence,
+            emit               = emit,
+            context            = statement_context
+        )
+    else:
+        _generateStatementSequenceCode(
+            statement_sequence = statement_sequence,
+            emit               = emit,
+            context            = statement_context
+        )
 
     # Complain if any temporary was not dealt with yet.
     assert not statement_context.getCleanupTempnames(), \
       statement_context.getCleanupTempnames()
-
-    if statement_sequence.isStatementsFrame():
-        if statement_sequence.mayRaiseException(BaseException) or \
-           guard_mode == "generator":
-            frame_exception_exit = statement_context.getExceptionEscape()
-        else:
-            frame_exception_exit = None
-
-        if parent_return_exit is not None:
-            frame_return_exit = statement_context.getReturnTarget()
-        else:
-            frame_return_exit = None
-
-        if guard_mode == "generator":
-            assert provider.isExpressionFunctionBody() and \
-                   provider.isGenerator()
-
-            # TODO: This case should care about "needs_preserve", as for
-            # Python3 it is actually not a stub of empty code.
-
-            codes = Generator.getFrameGuardLightCode(
-                frame_identifier      = context.getFrameHandle(),
-                code_identifier       = statement_sequence.getCodeObjectHandle(
-                    context = context
-                ),
-                codes                 = emit.codes,
-                parent_exception_exit = parent_exception_exit,
-                frame_exception_exit  = frame_exception_exit,
-                parent_return_exit    = parent_return_exit,
-                frame_return_exit     = frame_return_exit,
-                provider              = provider,
-                context               = statement_context
-            ).split("\n")
-        elif guard_mode == "pass_through":
-            assert provider.isExpressionFunctionBody()
-
-            # This case does not care about "needs_preserve", as for that kind
-            # of frame, it is an empty code stub anyway.
-            codes = "\n".join(emit.codes),
-        elif guard_mode == "full":
-            assert provider.isExpressionFunctionBody()
-
-            codes = Generator.getFrameGuardHeavyCode(
-                frame_identifier      = context.getFrameHandle(),
-                code_identifier       = statement_sequence.getCodeObjectHandle(
-                    context
-                ),
-                parent_exception_exit = parent_exception_exit,
-                parent_return_exit    = parent_return_exit,
-                frame_exception_exit  = frame_exception_exit,
-                frame_return_exit     = frame_return_exit,
-                codes                 = emit.codes,
-                needs_preserve        = needs_preserve,
-                provider              = provider,
-                context               = statement_context
-            ).split("\n")
-        elif guard_mode == "once":
-            codes = Generator.getFrameGuardOnceCode(
-                frame_identifier      = context.getFrameHandle(),
-                code_identifier       = statement_sequence.getCodeObjectHandle(
-                    context = context
-                ),
-                parent_exception_exit = parent_exception_exit,
-                parent_return_exit    = parent_return_exit,
-                frame_exception_exit  = frame_exception_exit,
-                frame_return_exit     = frame_return_exit,
-                codes                 = emit.codes,
-                needs_preserve        = needs_preserve,
-                provider              = provider,
-                context               = statement_context
-            ).split("\n")
-        else:
-            assert False, guard_mode
-
-        context.setExceptionEscape(parent_exception_exit)
-
-        if frame_return_exit is not None:
-            context.setReturnTarget(parent_return_exit)
-    else:
-        codes = emit.codes
-
-    return codes
 
 
 def prepareModuleCode(global_context, module, module_name, other_modules):
@@ -4501,13 +4507,14 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
 
     statement_sequence = module.getBody()
 
-    codes = generateStatementSequenceCode(
+    codes = []
+
+    generateStatementSequenceCode(
         statement_sequence = statement_sequence,
+        emit               = codes.append,
         allow_none         = True,
         context            = context,
     )
-
-    codes = codes or []
 
     function_decl_codes = []
     function_body_codes = []

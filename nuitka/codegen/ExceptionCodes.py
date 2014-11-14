@@ -44,8 +44,11 @@ def getExceptionRefCode(to_name, exception_type, emit, context):
 
 
 def getTracebackMakingIdentifier(context):
+    frame_handle = context.getFrameHandle()
+    assert frame_handle is not None
+
     return "MAKE_TRACEBACK( INCREASE_REFCOUNT( %s ) )" % (
-        context.getFrameHandle()
+        frame_handle
     )
 
 
