@@ -146,7 +146,7 @@ class StatementTryFinally(StatementChildrenHavingBase,
 
             # Might be changed.
             if result is not tried_statement_sequence:
-                tried_statement_sequence.replaceWith(result)
+                self.setBlockTry(result)
                 tried_statement_sequence = result
 
         final_statement_sequence = self.getBlockFinal()
@@ -179,7 +179,6 @@ class StatementTryFinally(StatementChildrenHavingBase,
 
             if result is not final_statement_sequence:
                 self.setBlockFinal(result)
-
                 final_statement_sequence = result
 
         if tried_statement_sequence is None:
@@ -303,7 +302,7 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
 
             # Might be changed.
             if result is not tried_statement_sequence:
-                tried_statement_sequence.replaceWith(result)
+                self.setBlockTry(result)
                 tried_statement_sequence = result
 
         # The main expression itself.

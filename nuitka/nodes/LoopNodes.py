@@ -48,6 +48,7 @@ class StatementLoop(StatementChildrenHavingBase):
         self.has_break = False
 
     getLoopBody = StatementChildrenHavingBase.childGetter("frame")
+    setLoopBody = StatementChildrenHavingBase.childSetter("frame")
 
     def mayReturn(self):
         loop_body = self.getLoopBody()
@@ -93,7 +94,7 @@ class StatementLoop(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not loop_body:
-                loop_body.replaceWith(result)
+                self.setLoopBody(result)
                 loop_body = result
 
         # Consider trailing "continue" statements, these have no effect, so we
