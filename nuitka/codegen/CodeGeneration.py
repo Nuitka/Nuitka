@@ -4339,8 +4339,8 @@ def _generateStatementSequenceCode(statement_sequence, emit, context,
 
 def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames, which got a
-    # lot of variants and details, therefore lots of branches and code.
-    # pylint: disable=R0912,R0915
+    # lot of variants and details, therefore lots of branches.
+    # pylint: disable=R0912
 
     provider = statement_sequence.getParentVariableProvider()
     guard_mode = statement_sequence.getGuardMode()
@@ -4370,6 +4370,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     else:
         parent_return_exit = None
 
+    # Now generate the statements code into a local buffer, to we can wrap
+    # the frame stuff around it.
     local_emit = Emission.SourceCodeCollector()
 
     _generateStatementSequenceCode(
@@ -4377,7 +4379,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         emit               = local_emit,
         context            = context
     )
-
 
     if statement_sequence.mayRaiseException(BaseException) or \
        guard_mode == "generator":

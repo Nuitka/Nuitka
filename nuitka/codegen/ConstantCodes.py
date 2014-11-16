@@ -94,6 +94,8 @@ min_signed_long = -(2**(sizeof_long*8-1)-1)
 done = set()
 
 def _getConstantInitValueCode(constant_value, constant_type):
+    # This function is a case driven by returns, pylint: disable=R0911
+
     if constant_type is unicode:
         try:
             encoded = constant_value.encode("utf-8")
@@ -517,9 +519,6 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
 
 def getConstantsInitCode(context):
-    # There are many cases for constants to be created in the most efficient
-    # way, pylint: disable=R0912
-
     emit = SourceCodeCollector()
 
     sorted_constants = sorted(
@@ -541,8 +540,6 @@ def getConstantsInitCode(context):
 
 
 def getConstantsDeclCode(context):
-    # There are many cases for constants of different types.
-    # pylint: disable=R0912
     statements = []
 
     sorted_constants = sorted(
@@ -571,7 +568,7 @@ def getConstantsDeclCode(context):
 
 def getConstantAccess(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
-    # empty.  pylint: disable=R0911,R0912, R0915
+    # empty.  pylint: disable=R0912, R0915
 
     if type(constant) is dict:
         if constant:

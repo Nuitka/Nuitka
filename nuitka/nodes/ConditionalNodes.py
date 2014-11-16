@@ -22,11 +22,9 @@ statement, 'if a: ... else: ...' and there is no 'elif', because that is
 expressed via nesting of conditional statements.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
 
-
-# Delayed import into multiple branches is not an issue, pylint: disable=W0404
+from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 
 class ExpressionConditional(ExpressionChildrenHavingBase):
@@ -67,8 +65,6 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
     )
 
     def computeExpressionRaw(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
         constraint_collection.onExpression(
@@ -83,8 +79,8 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
 Conditional statements already raises implicitely in condition, removing \
 branches."""
 
-
-        # If the condition raises, we let that escape.
+        # If the condition raises, we let that escape instead, and the
+        # branches don't matter at all.
         if condition.willRaiseException(BaseException):
             return condition, "new_raise", """\
 Conditional expression raises in condition."""

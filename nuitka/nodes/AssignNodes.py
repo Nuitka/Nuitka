@@ -295,7 +295,8 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
         if source.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import \
+                makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,

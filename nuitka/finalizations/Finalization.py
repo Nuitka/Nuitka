@@ -28,8 +28,6 @@ from .FinalizeClosureTaking import FinalizeClosureTaking
 from .FinalizeMarkups import FinalizeMarkups
 
 
-# Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
-
 def prepareCodeGeneration(tree):
     visitor = FinalizeMarkups()
     Operations.visitTree(tree, visitor)

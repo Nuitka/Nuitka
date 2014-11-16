@@ -15,10 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Tree nodes for builtin references.
+""" Tree nodes for built-in references.
 
-There is 2 major types of builtin references. One is the values from
-builtins, the other is builtin exceptions. They work differently and
+There is 2 major types of built-in references. One is the values from
+built-ins, the other is built-in exceptions. They work differently and
 mean different things, but they have similar origin, that is, access
 to variables only ever read.
 
@@ -72,7 +72,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         )
 
     def isCompileTimeConstant(self):
-        # Virtual method, pylint: disable=R0201
         return True
 
     def getCompileTimeConstant(self):
@@ -124,9 +123,8 @@ class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
     kind = "EXPRESSION_BUILTIN_ORIGINAL_REF"
 
     def isCompileTimeConstant(self):
-        # TODO: Actually the base class should not be constant and this one should be.
-
-        # Virtual method, pylint: disable=R0201
+        # TODO: Actually the base class should not be constant and this
+        # one should be.
         return False
 
     def computeExpression(self, constraint_collection):
@@ -148,7 +146,6 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
         )
 
     def isCompileTimeConstant(self):
-        # Virtual method, pylint: disable=R0201
         return True
 
     def getCompileTimeConstant(self):
@@ -179,7 +176,6 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
     def isCompileTimeConstant(self):
-        # Virtual method, pylint: disable=R0201
         return True
 
     def mayRaiseException(self, exception_type):

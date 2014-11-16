@@ -182,7 +182,7 @@ from .YieldCodes import getYieldCode, getYieldFromCode
 
 def getOperationCode(to_name, operator, arg_names, emit, context):
     # This needs to have one return per operation of Python, and there are many
-    # of these, pylint: disable=R0911
+    # of these.
 
     prefix_args = ()
     ref_count = 1

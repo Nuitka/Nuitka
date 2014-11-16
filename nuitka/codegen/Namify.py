@@ -31,9 +31,6 @@ from logging import warning
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 
 
-# False alarms about "hashlib.md5" due to its strange way of defining what is
-# exported, pylint won't understand it. pylint: disable=E1101
-
 class ExceptionCannotNamify(Exception):
     pass
 

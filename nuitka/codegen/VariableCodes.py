@@ -23,9 +23,10 @@ from nuitka import Options, Utils, Variables
 
 from . import CodeTemplates
 from .ConstantCodes import getConstantCode
-from .ErrorCodes import getErrorFormatExitBoolCode, getErrorFormatExitCode
 from .Emission import SourceCodeCollector
+from .ErrorCodes import getErrorFormatExitBoolCode, getErrorFormatExitCode
 from .Indentation import indented
+
 
 def _getContextAccess(context, force_closure = False):
     # Context access is variant depending on if that's a created function or
@@ -85,9 +86,6 @@ def getVariableCode(context, variable):
 
 
 def getLocalVariableInitCode(variable, init_from = None, in_context = False):
-    # This has many cases to deal with, so there need to be a lot of branches.
-    # pylint: disable=R0912
-
     assert not variable.isModuleVariable()
 
     result = variable.getDeclarationTypeCode(in_context)

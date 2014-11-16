@@ -20,13 +20,13 @@
 # Disabled globally:
 #
 # W0232: Class has no __init__ method
-# Who cares, I am using overrides that don't need to change object init a lot
-# and I rarely ever made a mistake with forgetting to call __init__ of the
+# Who cares, we are using overrides that don't need to change object init a lot
+# and rarely ever made a mistake with forgetting to call used __init__ of the
 # parent.
 #
 # I0011: Locally disabling W....
-# Strange one anyway, I want to locally disable stuff. And that just makes it
-# a different warning. Amazing. Luckily I can decide to ignore that globally
+# Strange one anyway, we want to locally disable stuff. And that just makes it
+# a different warning. Amazing. Luckily we can decide to ignore that globally
 # then.
 #
 # E1120 / E1123: Constructor call checks frequently fail miserably.
@@ -61,6 +61,7 @@ pylint_options = """
 --max-public-methods=100
 --max-args=10
 --max-parents=10
+--enable=useless-suppression
 """.split()
 
 

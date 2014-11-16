@@ -15,7 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Code generation for index values.
 
+This is not for actual subscripts (see SubscriptCodes), but to convert
+generic values to indexes. Also the maximum and minimum index values
+are abstracted here.
+
+"""
 
 from .ErrorCodes import getErrorExitBoolCode
 

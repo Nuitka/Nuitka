@@ -32,6 +32,9 @@ from .Namify import namifyConstant
 # Many methods won't use self, but it's the interface. pylint: disable=R0201
 
 class TempMixin:
+    # Lots of details, everything gets to store bits here, to indicate
+    # code generation states, and there are many, pylint: disable=R0902
+
     def __init__(self):
         self.tmp_names = {}
         self.tmp_types = {}
@@ -260,9 +263,6 @@ class CodeObjectsMixin:
 
         return self.code_objects[key]
 
-
-    # False alarms about "hashlib.md5" due to its strange way of defining what
-    # is exported, PyLint won't understand it. pylint: disable=E1101
     if python_version < 300:
         def _calcHash(self, key):
             hash_value = hashlib.md5(
@@ -277,7 +277,6 @@ class CodeObjectsMixin:
             )
 
             return hash_value.hexdigest()
-
 
 
 class PythonContextBase:

@@ -275,7 +275,6 @@ class TempVariable(Variable):
         )
 
     def isTempVariable(self):
-        # Virtual method, pylint: disable=R0201
         return True
 
     def getDeclarationTypeCode(self, in_context):

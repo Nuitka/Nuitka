@@ -109,7 +109,7 @@ def dumpTreeXML(tree):
 
 def displayTree(tree):
     # Import only locally so the Qt4 dependency doesn't normally come into play
-    # when it's not strictly needed, pylint: disable=W0404
+    # when it's not strictly needed.
     from .gui import TreeDisplay
 
     TreeDisplay.displayTreeInspector(tree)
@@ -513,9 +513,9 @@ def callExec(args, clean_path, add_path):
     sys.stdout.flush()
     sys.stderr.flush()
 
+    # Add the main arguments, previous separated.
     args += Options.getMainArgs()
 
-    # That's the API of execl, pylint: disable=W0142
     Utils.callExec(args)
 
 
@@ -624,7 +624,7 @@ def main():
     """
 
     # Main has to fullfil many options, leading to many branches and statements
-    # to deal with them.  pylint: disable=R0912,R0915
+    # to deal with them.  pylint: disable=R0912
 
     positional_args = Options.getPositionalArgs()
     assert len(positional_args) > 0

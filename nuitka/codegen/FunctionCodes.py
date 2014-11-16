@@ -383,6 +383,8 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
                     function_codes, function_doc, file_scope,
                     needs_exception_exit):
 
+    # Many arguments, as we need much input transferred, pylint: disable=R0913
+
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=R0912,R0914
 

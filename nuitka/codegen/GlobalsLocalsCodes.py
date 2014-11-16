@@ -15,6 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Code generation for locals and globals handling.
+
+This also includes writing back to locals for exec statements.
+"""
 
 from nuitka import Utils
 

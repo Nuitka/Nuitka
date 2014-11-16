@@ -30,9 +30,7 @@ from nuitka.__past__ import unicode  # pylint: disable=W0622
 try:
     import cPickle as cpickle
 except ImportError:
-    # False alarm, no double import at all, pylint: disable=W0404
     import pickle as cpickle
-
 
 
 if Utils.python_version >= 300:

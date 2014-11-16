@@ -256,9 +256,10 @@ def _detectImports(command, is_late):
     if Utils.python_version >= 300:
         command += '\nimport sys\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + ' \
                    'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
-                   'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it, pylint: disable=C0301
+                   'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it
 
-    # Make sure the right import path is used.
+    # Make sure the right import path (the one Nuitka binary is running with)
+    # is used.
     command = ("import sys; sys.path = %s;" % repr(sys.path)) + command
 
     import tempfile
@@ -286,7 +287,6 @@ def _detectImports(command, is_late):
 
     debug("Detecting imports:")
 
-    # bug of PyLint, pylint: disable=E1103
     for line in stderr.replace(b"\r", b"").split(b"\n"):
         if line.startswith(b"import "):
             # print(line)
@@ -371,6 +371,9 @@ if os.name != "nt":
     ignore_modules.append("cp65001.py")
 
 def scanStandardLibraryPath(stdlib_dir):
+    # There is a lot of black-listing here, done in branches, so there
+    # is many of them, but that's acceptable, pylint: disable=R0912
+
     for root, dirs, filenames in os.walk(stdlib_dir):
         import_path = root[len(stdlib_dir):].strip('/\\')
         import_path = import_path.replace("\\", ".").replace("/",".")
@@ -453,209 +456,238 @@ def detectEarlyImports():
 
     return result
 
+
+def _detectBinaryPathDLLsLinuxBSD(binary_filename):
+    # Ask "ldd" about the libraries being used by the created binary, these
+    # are the ones that interest us.
+    result = set()
+
+    process = subprocess.Popen(
+        args   = [
+            "ldd",
+            binary_filename
+        ],
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE
+    )
+
+    stdout, _stderr = process.communicate()
+
+    for line in stdout.split(b"\n"):
+        if not line:
+            continue
+
+        if b"=>" not in line:
+            continue
+
+        part = line.split(b" => ", 2)[1]
+
+        if b"(" in part:
+            filename = part[:part.rfind(b"(")-1]
+        else:
+            filename = part
+
+        if not filename:
+            continue
+
+        if Utils.python_version >= 300:
+            filename = filename.decode("utf-8")
+
+        result.add(filename)
+
+    return result
+
+def _detectBinaryPathDLLsMacOS(binary_filename):
+    result = set()
+
+    process = subprocess.Popen(
+        args   = [
+            "otool",
+            "-L",
+            binary_filename
+        ],
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE
+    )
+
+    stdout, _stderr = process.communicate()
+    system_paths = (b"/usr/lib/", b"/System/Library/Frameworks/")
+    for line in stdout.split(b"\n"):
+        if not line:
+            continue
+
+        if line.startswith(b"\t"):
+            filename = line.split(b" (")[0].strip()
+            stop = False
+            for w in system_paths:
+                if filename.startswith(w):
+                    stop = True
+                    break
+            if not stop:
+                if Utils.python_version >= 300:
+                    filename = filename.decode("utf-8")
+
+                # print "adding", filename
+                result.add(filename)
+
+    return result
+
+
+def _detectBinaryPathDLLsWindows(binary_filename, package_name):
+    result = set()
+
+    depends_exe = getDependsExePath()
+
+    # Put the PYTHONPATH into the system PATH, DLLs frequently live in
+    # the package directories.
+    env = os.environ.copy()
+    path = env.get("PATH","").split(";")
+
+    path += sys.path
+
+    if package_name is not None:
+        for element in sys.path:
+            candidate = Utils.joinpath(element, package_name)
+
+            if Utils.isDir(candidate):
+                path.append(candidate)
+
+
+    env["PATH"] = ";".join(path)
+
+    subprocess.call(
+        (
+            depends_exe,
+            "-c",
+            "-ot%s" % binary_filename + ".depends",
+            "-f1",
+            "-pa1",
+            "-ps1",
+            binary_filename
+        ),
+        env = env,
+    )
+
+    inside = False
+    for line in open(binary_filename + ".depends"):
+        if "| Module Dependency Tree |" in line:
+            inside = True
+            continue
+
+        if not inside:
+            continue
+
+        if "| Module List |" in line:
+            break
+
+        if "]" not in line:
+            continue
+
+        # Skip missing DLLs, apparently not needed anyway.
+        if "?" in line[:line.find("]")]:
+            continue
+
+        dll_filename = line[line.find("]")+2:-1]
+        assert Utils.isFile(dll_filename), dll_filename
+
+        # The executable itself is of course exempted.
+        if Utils.normcase(dll_filename) == \
+            Utils.normcase(Utils.abspath(binary_filename)):
+            continue
+
+        dll_name = Utils.basename(dll_filename).upper()
+
+        # Win API can be assumed.
+        if dll_name.startswith("API-MS-WIN-") or \
+           dll_name.startswith("EXT-MS-WIN-"):
+            continue
+
+        if dll_name in ("SHELL32.DLL", "USER32.DLL", "KERNEL32.DLL",
+            "NTDLL.DLL", "NETUTILS.DLL", "LOGONCLI.DLL", "GDI32.DLL",
+            "RPCRT4.DLL", "ADVAPI32.DLL", "SSPICLI.DLL", "SECUR32.DLL",
+            "KERNELBASE.DLL", "WINBRAND.DLL", "DSROLE.DLL", "DNSAPI.DLL",
+            "SAMCLI.DLL", "WKSCLI.DLL", "SAMLIB.DLL", "WLDAP32.DLL",
+            "NTDSAPI.DLL", "CRYPTBASE.DLL", "W32TOPL", "WS2_32.DLL",
+            "SPPC.DLL", "MSSIGN32.DLL", "CERTCLI.DLL", "WEBSERVICES.DLL",
+            "AUTHZ.DLL", "CERTENROLL.DLL", "VAULTCLI.DLL", "REGAPI.DLL",
+            "BROWCLI.DLL", "WINNSI.DLL", "DHCPCSVC6.DLL", "PCWUM.DLL",
+            "CLBCATQ.DLL", "IMAGEHLP.DLL", "MSASN1.DLL", "DBGHELP.DLL",
+            "DEVOBJ.DLL", "DRVSTORE.DLL", "CABINET.DLL", "SCECLI.DLL",
+            "SPINF.DLL", "SPFILEQ.DLL", "GPAPI.DLL", "NETJOIN.DLL",
+            "W32TOPL.DLL", "NETBIOS.DLL", "DXGI.DLL", "DWRITE.DLL",
+            "D3D11.DLL", "WLANAPI.DLL", "WLANUTIL.DLL", "ONEX.DLL",
+            "EAPPPRXY.DLL", "MFPLAT.DLL", "AVRT.DLL", "ELSCORE.DLL",
+            "INETCOMM.DLL", "MSOERT2.DLL", "IEUI.DLL", "MSCTF.DLL",
+            "MSFEEDS.DLL", "UIAUTOMATIONCORE.DLL", "PSAPI.DLL",
+            "EFSADU.DLL", "MFC42U.DLL", "ODBC32.DLL", "OLEDLG.DLL",
+            "NETAPI32.DLL", "LINKINFO.DLL", "DUI70.DLL", "ADVPACK.DLL",
+            "NTSHRUI.DLL", "WINSPOOL.DRV", "EFSUTIL.DLL", "WINSCARD.DLL",
+            "SHDOCVW.DLL", "IEFRAME.DLL", "D2D1.DLL", "GDIPLUS.DLL",
+            "OCCACHE.DLL", "IEADVPACK.DLL", "MLANG.DLL", "MSI.DLL",
+            "MSHTML.DLL", "COMDLG32.DLL", "PRINTUI.DLL", "PUIAPI.DLL",
+            "ACLUI.DLL", "WTSAPI32.DLL", "FMS.DLL", "DFSCLI.DLL",
+            "HLINK.DLL", "MSRATING.DLL", "PRNTVPT.DLL", "IMGUTIL.DLL",
+            "MSLS31.DLL", "VERSION.DLL", "NORMALIZ.DLL", "IERTUTIL.DLL",
+            "WININET.DLL", "WINTRUST.DLL", "XMLLITE.DLL", "APPHELP.DLL",
+            "PROPSYS.DLL", "RSTRTMGR.DLL", "NCRYPT.DLL", "BCRYPT.DLL",
+            "MMDEVAPI.DLL", "MSILTCFG.DLL", "DEVMGR.DLL", "DEVRTL.DLL",
+            "NEWDEV.DLL", "VPNIKEAPI.DLL", "WINHTTP.DLL", "WEBIO.DLL",
+            "NSI.DLL", "DHCPCSVC.DLL", "CRYPTUI.DLL", "ESENT.DLL",
+            "DAVHLPR.DLL", "CSCAPI.DLL", "ATL.DLL", "OLEAUT32.DLL",
+            "SRVCLI.DLL", "RASDLG.DLL", "MPRAPI.DLL", "RTUTILS.DLL",
+            "RASMAN.DLL", "MPRMSG.DLL", "SLC.DLL", "CRYPTSP.DLL",
+            "RASAPI32.DLL", "TAPI32.DLL", "EAPPCFG.DLL", "NDFAPI.DLL",
+            "WDI.DLL", "COMCTL32.DLL", "UXTHEME.DLL", "IMM32.DLL",
+            "OLEACC.DLL", "WINMM.DLL", "WINDOWSCODECS.DLL", "DWMAPI.DLL",
+            "DUSER.DLL", "PROFAPI.DLL", "URLMON.DLL", "SHLWAPI.DLL",
+            "LPK.DLL", "USP10.DLL", "CFGMGR32.DLL", "MSIMG32.DLL",
+            "POWRPROF.DLL", "SETUPAPI.DLL", "WINSTA.DLL", "CRYPT32.DLL",
+            "IPHLPAPI.DLL", "MPR.DLL", "CREDUI.DLL", "NETPLWIZ.DLL",
+            "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL",
+            "APPREPAPI.DLL", "BCP47LANGS.DLL", "BCRYPTPRIMITIVES.DLL",
+            "CERTCA.DLL", "CHARTV.DLL", "COMBASE.DLL", "DCOMP.DLL",
+            "DPAPI.DLL", "DSPARSE.DLL", "FECLIENT.DLL", "FIREWALLAPI.DLL",
+            "FLTLIB.DLL", "MRMCORER.DLL", "MSVCRT.DLL",
+            "NINPUT.DLL", "NTASN1.DLL", "PCACLI.DLL", "RTWORKQ.DLL",
+            "SECHOST.DLL", "SETTINGSYNCPOLICY.DLL", "SHCORE.DLL",
+            "TBS.DLL", "TWINAPI.DLL", "TWINAPI.APPCORE.DLL", "VIRTDISK.DLL",
+            "WEBSOCKET.DLL", "WEVTAPI.DLL", "WINMMBASE.DLL", "WMICLNT.DLL"):
+            continue
+
+        result.add(
+            Utils.normcase(Utils.abspath(dll_filename))
+        )
+
+    os.unlink(binary_filename + ".depends")
+
+    return result
+
 def detectBinaryDLLs(binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 
         Using ldd (Linux), depends.exe (Windows), or otool (MacOS) the list
         of used DLLs is retrieved.
     """
-    result = set()
+
 
     if Utils.getOS() in ("Linux", "NetBSD"):
-        # Ask "ldd" about the libraries being used by the created binary, these
-        # are the ones that interest us.
-        process = subprocess.Popen(
-            args   = [
-                "ldd",
-                binary_filename
-            ],
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
+        # TODO: FreeBSD may work the same way, not tested.
+
+        return _detectBinaryPathDLLsLinuxBSD(
+            binary_filename = binary_filename
         )
-
-        stdout, _stderr = process.communicate()
-
-        for line in stdout.split(b"\n"):
-            if not line:
-                continue
-
-            if b"=>" not in line:
-                continue
-
-            part = line.split(b" => ", 2)[1]
-
-            if b"(" in part:
-                filename = part[:part.rfind(b"(")-1]
-            else:
-                filename = part
-
-            if not filename:
-                continue
-
-            if Utils.python_version >= 300:
-                filename = filename.decode("utf-8")
-
-            result.add(filename)
     elif Utils.getOS() == "Windows":
-        depends_exe = getDependsExePath()
-
-        # Put the PYTHONPATH into the system PATH, DLLs frequently live in
-        # the package directories.
-        env = os.environ.copy()
-        path = env.get("PATH","").split(";")
-
-        path += sys.path
-
-        if package_name is not None:
-            for element in sys.path:
-                candidate = Utils.joinpath(element, package_name)
-
-                if Utils.isDir(candidate):
-                    path.append(candidate)
-
-
-        env["PATH"] = ";".join(path)
-
-        subprocess.call(
-            (
-                depends_exe,
-                "-c",
-                "-ot%s" % binary_filename + ".depends",
-                "-f1",
-                "-pa1",
-                "-ps1",
-                binary_filename
-            ),
-            env = env,
+        return _detectBinaryPathDLLsWindows(
+            binary_filename = binary_filename,
+            package_name    = package_name
         )
-
-        inside = False
-        for line in open(binary_filename + ".depends"):
-            if "| Module Dependency Tree |" in line:
-                inside = True
-                continue
-
-            if not inside:
-                continue
-
-            if "| Module List |" in line:
-                break
-
-            if "]" not in line:
-                continue
-
-            # Skip missing DLLs, apparently not needed anyway.
-            if "?" in line[:line.find("]")]:
-                continue
-
-            dll_filename = line[line.find("]")+2:-1]
-            assert Utils.isFile(dll_filename), dll_filename
-
-            # The executable itself is of course exempted.
-            if Utils.normcase(dll_filename) == \
-                Utils.normcase(Utils.abspath(binary_filename)):
-                continue
-
-            dll_name = Utils.basename(dll_filename).upper()
-
-            # Win API can be assumed.
-            if dll_name.startswith("API-MS-WIN-") or \
-               dll_name.startswith("EXT-MS-WIN-"):
-                continue
-
-            if dll_name in ("SHELL32.DLL", "USER32.DLL", "KERNEL32.DLL",
-                "NTDLL.DLL", "NETUTILS.DLL", "LOGONCLI.DLL", "GDI32.DLL",
-                "RPCRT4.DLL", "ADVAPI32.DLL", "SSPICLI.DLL", "SECUR32.DLL",
-                "KERNELBASE.DLL", "WINBRAND.DLL", "DSROLE.DLL", "DNSAPI.DLL",
-                "SAMCLI.DLL", "WKSCLI.DLL", "SAMLIB.DLL", "WLDAP32.DLL",
-                "NTDSAPI.DLL", "CRYPTBASE.DLL", "W32TOPL", "WS2_32.DLL",
-                "SPPC.DLL", "MSSIGN32.DLL", "CERTCLI.DLL", "WEBSERVICES.DLL",
-                "AUTHZ.DLL", "CERTENROLL.DLL", "VAULTCLI.DLL", "REGAPI.DLL",
-                "BROWCLI.DLL", "WINNSI.DLL", "DHCPCSVC6.DLL", "PCWUM.DLL",
-                "CLBCATQ.DLL", "IMAGEHLP.DLL", "MSASN1.DLL", "DBGHELP.DLL",
-                "DEVOBJ.DLL", "DRVSTORE.DLL", "CABINET.DLL", "SCECLI.DLL",
-                "SPINF.DLL", "SPFILEQ.DLL", "GPAPI.DLL", "NETJOIN.DLL",
-                "W32TOPL.DLL", "NETBIOS.DLL", "DXGI.DLL", "DWRITE.DLL",
-                "D3D11.DLL", "WLANAPI.DLL", "WLANUTIL.DLL", "ONEX.DLL",
-                "EAPPPRXY.DLL", "MFPLAT.DLL", "AVRT.DLL", "ELSCORE.DLL",
-                "INETCOMM.DLL", "MSOERT2.DLL", "IEUI.DLL", "MSCTF.DLL",
-                "MSFEEDS.DLL", "UIAUTOMATIONCORE.DLL", "PSAPI.DLL",
-                "EFSADU.DLL", "MFC42U.DLL", "ODBC32.DLL", "OLEDLG.DLL",
-                "NETAPI32.DLL", "LINKINFO.DLL", "DUI70.DLL", "ADVPACK.DLL",
-                "NTSHRUI.DLL", "WINSPOOL.DRV", "EFSUTIL.DLL", "WINSCARD.DLL",
-                "SHDOCVW.DLL", "IEFRAME.DLL", "D2D1.DLL", "GDIPLUS.DLL",
-                "OCCACHE.DLL", "IEADVPACK.DLL", "MLANG.DLL", "MSI.DLL",
-                "MSHTML.DLL", "COMDLG32.DLL", "PRINTUI.DLL", "PUIAPI.DLL",
-                "ACLUI.DLL", "WTSAPI32.DLL", "FMS.DLL", "DFSCLI.DLL",
-                "HLINK.DLL", "MSRATING.DLL", "PRNTVPT.DLL", "IMGUTIL.DLL",
-                "MSLS31.DLL", "VERSION.DLL", "NORMALIZ.DLL", "IERTUTIL.DLL",
-                "WININET.DLL", "WINTRUST.DLL", "XMLLITE.DLL", "APPHELP.DLL",
-                "PROPSYS.DLL", "RSTRTMGR.DLL", "NCRYPT.DLL", "BCRYPT.DLL",
-                "MMDEVAPI.DLL", "MSILTCFG.DLL", "DEVMGR.DLL", "DEVRTL.DLL",
-                "NEWDEV.DLL", "VPNIKEAPI.DLL", "WINHTTP.DLL", "WEBIO.DLL",
-                "NSI.DLL", "DHCPCSVC.DLL", "CRYPTUI.DLL", "ESENT.DLL",
-                "DAVHLPR.DLL", "CSCAPI.DLL", "ATL.DLL", "OLEAUT32.DLL",
-                "SRVCLI.DLL", "RASDLG.DLL", "MPRAPI.DLL", "RTUTILS.DLL",
-                "RASMAN.DLL", "MPRMSG.DLL", "SLC.DLL", "CRYPTSP.DLL",
-                "RASAPI32.DLL", "TAPI32.DLL", "EAPPCFG.DLL", "NDFAPI.DLL",
-                "WDI.DLL", "COMCTL32.DLL", "UXTHEME.DLL", "IMM32.DLL",
-                "OLEACC.DLL", "WINMM.DLL", "WINDOWSCODECS.DLL", "DWMAPI.DLL",
-                "DUSER.DLL", "PROFAPI.DLL", "URLMON.DLL", "SHLWAPI.DLL",
-                "LPK.DLL", "USP10.DLL", "CFGMGR32.DLL", "MSIMG32.DLL",
-                "POWRPROF.DLL", "SETUPAPI.DLL", "WINSTA.DLL", "CRYPT32.DLL",
-                "IPHLPAPI.DLL", "MPR.DLL", "CREDUI.DLL", "NETPLWIZ.DLL",
-                "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL",
-                "APPREPAPI.DLL", "BCP47LANGS.DLL", "BCRYPTPRIMITIVES.DLL",
-                "CERTCA.DLL", "CHARTV.DLL", "COMBASE.DLL", "DCOMP.DLL",
-                "DPAPI.DLL", "DSPARSE.DLL", "FECLIENT.DLL", "FIREWALLAPI.DLL",
-                "FLTLIB.DLL", "MRMCORER.DLL", "MSVCRT.DLL",
-                "NINPUT.DLL", "NTASN1.DLL", "PCACLI.DLL", "RTWORKQ.DLL",
-                "SECHOST.DLL", "SETTINGSYNCPOLICY.DLL", "SHCORE.DLL",
-                "TBS.DLL", "TWINAPI.DLL", "TWINAPI.APPCORE.DLL", "VIRTDISK.DLL",
-                "WEBSOCKET.DLL", "WEVTAPI.DLL", "WINMMBASE.DLL", "WMICLNT.DLL"):
-                continue
-
-            result.add(
-                Utils.normcase(Utils.abspath(dll_filename))
-            )
-
-        os.unlink(binary_filename + ".depends")
     elif Utils.getOS() == "Darwin":
-        # print "Darwin", binary_filename
-        process = subprocess.Popen(
-            args   = [
-                "otool",
-                "-L",
-                binary_filename
-            ],
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
+        return _detectBinaryPathDLLsLinuxBSD(
+            binary_filename = binary_filename
         )
-
-        stdout, _stderr = process.communicate()
-        sysstops = [b"/usr/lib/", b"/System/Library/Frameworks/"]
-        for line in stdout.split(b"\n"):
-            if not line:
-                continue
-
-            if line.startswith(b"\t"):
-                filename = line.split(b" (")[0].strip()
-                stop = False
-                for w in sysstops:
-                    if filename.startswith(w):
-                        stop = True
-                        break
-                if not stop:
-                    if Utils.python_version >= 300:
-                        filename = filename.decode("utf-8")
-
-                    # print "adding", filename
-                    result.add(filename)
     else:
         # Support your platform above.
         assert False, Utils.getOS()
-
-    return result
 
 
 def detectUsedDLLs(standalone_entry_points):
@@ -745,6 +777,11 @@ libraries that need to be removed."""
 
 
 def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
+    # This is terribly complex, because we check the list of used DLLs
+    # trying to avoid duplicates, and detecting errors with them not
+    # being binary identical, so we can report them. And then of course
+    # we also need to handle OS specifics, pylint: disable=R0912,R0914
+
     dll_map = []
 
     used_dlls = detectUsedDLLs(standalone_entry_points)

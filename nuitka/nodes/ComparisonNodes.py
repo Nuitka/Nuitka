@@ -24,8 +24,6 @@ from nuitka import PythonOperators
 from .NodeBases import ExpressionChildrenHavingBase
 
 
-# Delayed import into multiple branches is not an issue, pylint: disable=W0404
-
 class ExpressionComparison(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_COMPARISON"
 

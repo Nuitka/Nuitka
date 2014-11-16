@@ -231,8 +231,6 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         return ()
 
     def mayRaiseException(self, exception_type):
-        # Virtual method, pylint: disable=R0201,W0613
-
         # Constants won't raise any kind of exception.
         return False
 
