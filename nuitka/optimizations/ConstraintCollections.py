@@ -436,78 +436,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
     def onTempVariableAssigned(self, variable, assign_source):
         self.parent.onTempVariableAssigned( variable, assign_source )
 
-    def _onStatementAssignmentVariable(self, statement):
-        # But now it cannot re-compute anymore:
-        source = statement.getAssignSource()
 
-        if source.willRaiseException(BaseException):
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = source,
-                node       = statement
-            )
-
-            return result, "new_raise", """\
-Removed assignment that has source that will raise."""
-
-        variable_ref = statement.getTargetVariableRef()
-        variable = variable_ref.getVariable()
-
-        assert variable is not None
-
-        # Assigning from and to the same variable, can be optimized away
-        # immediately, there is no point in doing it. Exceptions are of course
-        # module variables that collide with built-in names.
-        if not variable.isModuleVariable() and \
-             source.isExpressionVariableRef() and \
-             source.getVariable() == variable:
-
-            if source.mayHaveSideEffects():
-                result = makeStatementExpressionOnlyReplacementNode(
-                    expression = source,
-                    node       = statement
-                )
-
-                return result, "new_statements", """\
-Reduced assignment of variable from itself to access of it."""
-            else:
-                return None, "new_statements", """\
-Removed assignment of variable from itself which is known to be defined."""
-
-        # If the assignment source has side effects, we can simply evaluate them
-        # beforehand, we have already visited and evaluated them before.
-        if source.isExpressionSideEffects():
-            statements = [
-                makeStatementExpressionOnlyReplacementNode(
-                    side_effect,
-                    statement
-                )
-                for side_effect in
-                source.getSideEffects()
-            ]
-
-            statements.append( statement )
-
-            result = makeStatementsSequenceReplacementNode(
-                statements = statements,
-                node       = statement,
-            )
-
-            source.replaceWith( source.getExpression() )
-
-            # Need to update it.
-            source = statement.getAssignSource()
-
-            result = result, "new_statements", """\
-Side effects of assignments promoted to statements."""
-        else:
-            result = statement, None, None
-
-        if variable.isModuleVariable():
-            self.onModuleVariableAssigned(variable, source)
-        elif variable.isLocalVariable():
-            self.onLocalVariableAssigned(variable, source)
-        elif variable.isTempVariable():
-            self.onTempVariableAssigned(variable, source)
 
         return result
 
@@ -694,11 +623,6 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
     def __repr__(self):
         return "<ConstraintCollectionFunction for %s>" % self.function_body
 
-    def onLocalVariableAssigned(self, variable, assign_source):
-        self._getVariableUsage( variable ).markAsWrittenTo( assign_source )
-
-    def onTempVariableAssigned(self, variable, assign_source):
-        self._getVariableUsage(variable).markAsWrittenTo(assign_source)
 
 
 class ConstraintCollectionModule(CollectionStartpointMixin,
@@ -734,9 +658,6 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
     def onModuleVariableAssigned(self, variable, assign_source):
         assert variable.isModuleVariable()
 
-        self._getVariableUsage(variable).markAsWrittenTo(assign_source)
-
-    def onTempVariableAssigned(self, variable, assign_source):
         self._getVariableUsage(variable).markAsWrittenTo(assign_source)
 
     def getWrittenVariables(self):
