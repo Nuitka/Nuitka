@@ -75,8 +75,6 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
         return True
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         if self.hasOnlyConstantArguments():
             pos_arg = self.getPositionalArgument()
 
@@ -100,7 +98,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                     node     = self
                 )
 
-                return new_node, "new_expression", "Replace dict call with constant arguments."
+                return new_node, "new_expression", "Replace 'dict' call with constant arguments."
             else:
                 pos_args = None
 
@@ -111,7 +109,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 computation = lambda : builtin_dict_spec.simulateCall(
                     (pos_args, self.getNamedArgumentPairs())
                 ),
-                description = "Replace dict call with constant arguments."
+                description = "Replace 'dict' call with constant arguments."
             )
         else:
             return self, None, None

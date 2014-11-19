@@ -256,18 +256,23 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
     )
 
     def needsReturnHandling(self):
+        # This is an overload, pylint: disable=R0201
         return False
 
     def needsReturnValueRelease(self):
+        # This is an overload, pylint: disable=R0201
         return False
 
     def needsContinueHandling(self):
+        # This is an overload, pylint: disable=R0201
         return False
 
     def needsBreakHandling(self):
+        # This is an overload, pylint: disable=R0201
         return False
 
     def needsExceptionPublish(self):
+        # This is an overload, pylint: disable=R0201
         return False
 
     def mayRaiseException(self, exception_type):
@@ -391,16 +396,19 @@ Replaced try/finally expression with try/finally statement."""
 
 
     def canPredictIterationValues(self):
+        # pylint: disable=R0201
+
         return False
 
         # TODO: Users should not rely on this to be able to directly extract
         # values, but preserve our side effects.
-        return self.getExpression().canPredictIterationValues()
+        # return self.getExpression().canPredictIterationValues()
 
     def getIterationValues(self):
         return self.getExpression().getIterationValues()
 
     def isMappingWithConstantStringKeys(self):
+        # pylint: disable=R0201
         return False
 
         # TODO: Uses should not depend on this to mean there is no side effects,
@@ -536,7 +544,8 @@ Removed try/except with empty tried block."""
         if self.getExceptionHandling() is not None:
             from nuitka.optimizations.ConstraintCollections import \
               ConstraintCollectionBranch
-            collection_exception_handling = ConstraintCollectionBranch(
+
+            _collection_exception_handling = ConstraintCollectionBranch(
                 parent = constraint_collection,
                 branch = self.getExceptionHandling()
             )

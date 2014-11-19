@@ -69,8 +69,7 @@ class TagSet(set):
 
             if tag in self:
                 return True
-        else:
-            return False
+        return False
 
     def add(self, tag):
         assert tag in allowed_tags, tag

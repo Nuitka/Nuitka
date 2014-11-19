@@ -34,7 +34,7 @@ from nuitka import Utils, Variables
 
 class TooManyArguments(Exception):
     def __init__(self, real_exception):
-        Exception.__init__( self )
+        Exception.__init__(self)
 
         self.real_exception = real_exception
 
@@ -105,8 +105,7 @@ class ParameterSpecTuple:
         for variable in self.normal_variables:
             if variable.isNestedParameterVariable():
                 return True
-        else:
-            return False
+        return False
 
     def getAllVariables(self):
         result = self.normal_variables[:]
@@ -142,8 +141,11 @@ class ParameterSpecTuple:
 
 
 class ParameterSpec(ParameterSpecTuple):
-    def __init__( self, name, normal_args, kw_only_args, list_star_arg,
-                  dict_star_arg, default_count ):
+    # These got many attributes, in part duplicating name and instance of
+    # variables, pylint: disable=R0902
+
+    def __init__(self, name, normal_args, kw_only_args, list_star_arg,
+                 dict_star_arg, default_count):
         assert None not in normal_args
 
         self.name = name
@@ -175,8 +177,7 @@ class ParameterSpec(ParameterSpecTuple):
         for arg_name in arg_names:
             if arg_names.count( arg_name ) != 1:
                 return "duplicate argument '%s' in function definition" % arg_name
-        else:
-            return None
+        return None
 
     def __repr__(self):
         parts = [ str(normal_arg) for normal_arg in self.normal_args ]

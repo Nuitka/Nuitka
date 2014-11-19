@@ -295,7 +295,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # mutable constants we cannot do it though.
 
     # Due to the many sequence types, there is a lot of cases here
-    # pylint: disable=W0612
+    # pylint: disable=R0912
 
     for element in elements:
         if not element.isExpressionConstantRef():

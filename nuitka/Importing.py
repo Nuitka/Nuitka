@@ -533,9 +533,7 @@ def isStandardLibraryPath(path):
     if "dist-packages" in path or "site-packages" in path:
         return False
 
-
     for candidate in getStandardLibraryPaths():
         if path.startswith(candidate):
             return True
-    else:
-        return False
+    return False

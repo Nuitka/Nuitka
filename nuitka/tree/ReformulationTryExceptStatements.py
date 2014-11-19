@@ -237,8 +237,8 @@ def buildTryExceptionNode(provider, node, source_ref):
     # for the "del" as done for Python3. Also catches always work a tuple of
     # exception types and hides away that they may be built or not.
 
-    # Many variables, due to the re-formulation that is going on here, which
-    # just has the complexity, pylint: disable=R0914
+    # Many variables and branches, due to the re-formulation that is going on
+    # here, which just has the complexity, pylint: disable=R0912,R0914
 
     tried = buildStatementsNode(
         provider   = provider,
@@ -286,6 +286,8 @@ def buildTryExceptionNode(provider, node, source_ref):
                 source_ref = source_ref,
             )
 
+            # We didn't allow None, therefore it cannot be None, and
+            # the unpack is safe: pylint: disable=W0633
             kind, detail = target_info
 
             assert kind == "Name", kind

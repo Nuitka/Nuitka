@@ -762,8 +762,7 @@ def _areConstants(expressions):
 
         if expression.isMutable():
             return False
-    else:
-        return True
+    return True
 
 def generateSliceRangeIdentifier(lower, upper, scope, emit, context):
     lower_name = context.allocateTempName(
@@ -2729,6 +2728,7 @@ def generateDelSliceCode(statement, emit, context):
     else:
         subscript_name = context.allocateTempName("sliceass_subscript")
 
+        # We know that 3 expressions are created, pylint: disable=W0632
         target_name, lower_name, upper_name = generateExpressionsCode(
             names       = (
                 "slicedel_target", "slicedel_lower", "slicedel_upper"
@@ -3703,6 +3703,7 @@ def generateImportModuleCode(to_name, expression, emit, context):
 
 
 def generateBuiltinImportCode(to_name, expression, emit, context):
+    # We know that 5 expressions are created, pylint: disable=W0632
     module_name, globals_name, locals_name, import_list_name, level_name = \
       generateExpressionsCode(
         expressions = (

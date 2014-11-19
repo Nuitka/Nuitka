@@ -54,7 +54,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         until phase 2.
     """
 
-    def _handleNonLocal(self, node):
+    @staticmethod
+    def _handleNonLocal(node):
         # Take closure variables for non-local declarations.
 
         for non_local_names, source_ref in node.getNonlocalDeclarations():
@@ -80,7 +81,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                        python_version >= 340
                     )
 
-    def _handleQualnameSetup(self, node):
+    @staticmethod
+    def _handleQualnameSetup(node):
         if node.qualname_setup is not None:
             if node.isClassDictCreation():
                 class_assign, qualname_assign = node.qualname_setup
@@ -282,7 +284,8 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
         variable set now, the others, only in this phase.
     """
 
-    def _attachVariable(self, node, provider):
+    @staticmethod
+    def _attachVariable(node, provider):
         # print "Late reference", node.getVariableName(), "for", provider, "caused at", node, "of", node.getParent()
 
         variable_name = node.getVariableName()

@@ -113,21 +113,21 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
 
     named_children = (
         "instance",
-        "cls"
+        "classes"
     )
 
-    def __init__(self, instance, cls, source_ref):
+    def __init__(self, instance, classes, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "instance" : instance,
-                "cls"      : cls
+                "classes"  : classes
 
             },
             source_ref = source_ref )
 
-    getInstance = ExpressionChildrenHavingBase.childGetter( "instance" )
-    getCls = ExpressionChildrenHavingBase.childGetter( "cls" )
+    getInstance = ExpressionChildrenHavingBase.childGetter("instance")
+    getCls = ExpressionChildrenHavingBase.childGetter("classes")
 
     def computeExpression(self, constraint_collection):
         # TODO: Quite some cases should be possible to predict.

@@ -27,7 +27,11 @@ from .NodeBases import ExpressionChildrenHavingBase
 class ExpressionBuiltinOpen(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_OPEN"
 
-    named_children = ( "filename", "mode", "buffering" )
+    named_children = (
+        "filename",
+        "mode",
+        "buffering"
+    )
 
     def __init__(self, filename, mode, buffering, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -40,11 +44,11 @@ class ExpressionBuiltinOpen(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getFilename = ExpressionChildrenHavingBase.childGetter( "filename" )
-    getMode = ExpressionChildrenHavingBase.childGetter( "mode" )
-    getBuffering = ExpressionChildrenHavingBase.childGetter( "buffering" )
+    getFilename = ExpressionChildrenHavingBase.childGetter("filename")
+    getMode = ExpressionChildrenHavingBase.childGetter("mode")
+    getBuffering = ExpressionChildrenHavingBase.childGetter("buffering")
 
     def computeExpression(self, constraint_collection):
         # Note: Quite impossible to predict without further assumptions, but we could look
-        # at the arguments at least, pylint: disable=W0613
+        # at the arguments at least.
         return self, None, None

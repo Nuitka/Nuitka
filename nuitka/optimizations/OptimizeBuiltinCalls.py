@@ -340,11 +340,24 @@ def repr_extractor(node):
 def range_extractor(node):
     def selectRangeBuiltin(low, high, step, source_ref):
         if high is None:
-            return ExpressionBuiltinRange1( low, source_ref )
+            return ExpressionBuiltinRange1(
+                low        = low,
+                source_ref = source_ref
+            )
         elif step is None:
-            return ExpressionBuiltinRange2(low, high, source_ref)
+            return ExpressionBuiltinRange2(
+                low        = low,
+                high       = high,
+                source_ref = source_ref
+            )
         else:
-            return ExpressionBuiltinRange3(low, high, step, source_ref)
+            return ExpressionBuiltinRange3(
+                low        = low,
+                high       = high,
+                step       = step,
+                source_ref = source_ref
+            )
+
 
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
@@ -624,13 +637,13 @@ def eval_extractor(node):
             StatementConditional(
                 condition = ExpressionOperationNOT(
                     operand    = ExpressionBuiltinIsinstance(
-                        cls = ExpressionBuiltinAnonymousRef(
-                            builtin_name = "code",
-                            source_ref   = source_ref,
-                        ),
-                        instance = ExpressionTempVariableRef(
+                        instance   = ExpressionTempVariableRef(
                             variable   = source_variable,
                             source_ref = source_ref
+                        ),
+                        classes    = ExpressionBuiltinAnonymousRef(
+                            builtin_name = "code",
+                            source_ref   = source_ref,
                         ),
                         source_ref = source_ref
                     ),
@@ -716,16 +729,16 @@ if python_version >= 300:
 
 def compile_extractor(node):
     def wrapExpressionBuiltinCompileCreation(source_code, filename, mode, flags,
-                                              dont_inherit, optimize = None,
-                                              source_ref = None):
+                                             dont_inherit, optimize = None,
+                                             source_ref = None):
         return ExpressionBuiltinCompile(
-            source_code,
-            filename,
-            mode,
-            flags,
-            dont_inherit,
-            optimize,
-            source_ref
+            source_code  = source_code,
+            filename     = filename,
+            mode         = mode,
+            flags        = flags,
+            dont_inherit = dont_inherit,
+            optimize     = optimize,
+            source_ref   = source_ref
         )
 
     return BuiltinOptimization.extractBuiltinArgs(

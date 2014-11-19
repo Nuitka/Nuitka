@@ -97,8 +97,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
         for child in self.getVisitableNodes():
             if child.willRaiseException(exception_type):
                 return True
-        else:
-            return False
+        return False
 
     def getTruthValue(self):
         return self.getExpression().getTruthValue()

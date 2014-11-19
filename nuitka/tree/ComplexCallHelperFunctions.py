@@ -248,7 +248,7 @@ def getCallableNameDescBody():
                         variable      = called_variable,
                         source_ref    = source_ref
                     ),
-                    cls        = ExpressionBuiltinAnonymousRef(
+                    classes    = ExpressionBuiltinAnonymousRef(
                         builtin_name = "instance",
                         source_ref   = source_ref
                     ),
@@ -290,7 +290,7 @@ def getCallableNameDescBody():
                         variable      = called_variable,
                         source_ref    = source_ref
                     ),
-                    cls        = ExpressionBuiltinAnonymousRef(
+                    classes   = ExpressionBuiltinAnonymousRef(
                         builtin_name = "classobj",
                         source_ref   = source_ref
                     ),
@@ -319,7 +319,7 @@ def getCallableNameDescBody():
                     variable      = called_variable,
                     source_ref    = source_ref
                 ),
-                cls        = ExpressionMakeTuple(
+                classes    = ExpressionMakeTuple(
                     elements   = tuple(
                         ExpressionBuiltinAnonymousRef(
                             builtin_name = builtin_name,
@@ -410,7 +410,7 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
         condition  = ExpressionOperationNOT(
             operand = ExpressionBuiltinIsinstance(
                 instance   = star_list_variable_ref.makeCloneAt( source_ref ),
-                cls        = ExpressionBuiltinRef(
+                classes    = ExpressionBuiltinRef(
                     builtin_name = "tuple",
                     source_ref   = source_ref
                 ),
@@ -654,7 +654,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                 instance   = star_dict_variable_ref.makeCloneAt(
                     source_ref = source_ref
                 ),
-                cls        = ExpressionBuiltinRef(
+                classes    = ExpressionBuiltinRef(
                     builtin_name = "dict",
                     source_ref   = source_ref
                 ),
@@ -1241,7 +1241,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         condition  = ExpressionOperationNOT(
             operand    = ExpressionBuiltinIsinstance(
                 instance   = star_dict_variable_ref.makeCloneAt(source_ref),
-                cls        = ExpressionBuiltinRef(
+                classes    = ExpressionBuiltinRef(
                     builtin_name = "dict",
                     source_ref   = source_ref
                 ),

@@ -162,7 +162,7 @@ Side effects of assignments promoted to statements."""
             result = self, None, None
 
         if variable.isModuleVariable():
-            constraint_collection.onModuleVariableAssigned(variable, source)
+            constraint_collection.onModuleVariableAssigned(variable)
 
         self.variable_trace = constraint_collection.onVariableSet(
             assign_node = self
@@ -459,6 +459,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.variable_trace = None
         self.tolerant = tolerant
 
     def getDetail(self):

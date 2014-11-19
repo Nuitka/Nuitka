@@ -97,7 +97,8 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
 
 def decideRecursion(module_filename, module_name, module_package,
                     module_kind ):
-    # Many branches, which make decisions immediately, pylint: disable=R0911
+    # Many branches, which make decisions immediately, by returning
+    # pylint: disable=R0911,R0912
 
     if module_kind == "shlib":
         if Options.isStandaloneMode():
@@ -200,6 +201,8 @@ def isSameModulePath(path1, path2):
     return Utils.abspath(path1) == Utils.abspath(path2)
 
 def _checkPluginPath(plugin_filename, module_package):
+    # Many branches, for the decision is very complex, pylint: disable=R0912
+
     debug(
         "Checking detail plugin path %s %s",
         plugin_filename,

@@ -55,7 +55,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
                              MarkLocalsDictIndicator,
                              MarkUnoptimizedFunctionIndicator):
     # We really want these many ancestors, as per design, we add properties via
-    # base class mix-ins a lot, pylint: disable=R0901
+    # base class mix-ins a lot, leading to many instance attributes, and
+    # methods, pylint: disable=R0901,R0902,R0904
 
     kind = "EXPRESSION_FUNCTION_BODY"
 

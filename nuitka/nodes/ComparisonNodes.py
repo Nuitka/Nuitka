@@ -35,7 +35,6 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
     def __init__(self, left, right, comparator, source_ref):
         assert left.isExpression()
         assert right.isExpression()
-        assert type( comparator ) is str, comparator
 
         assert comparator in PythonOperators.all_comparison_functions
 
@@ -66,14 +65,14 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
         return self.comparator
 
     def getDetails(self):
-        return { "comparator" : self.comparator }
+        return {
+            "comparator" : self.comparator
+        }
 
     def getSimulator(self):
         return PythonOperators.all_comparison_functions[self.comparator]
 
     def computeExpression(self, constraint_collection):
-        # Left and right is all we need, pylint: disable=W0613
-
         left, right = self.getOperands()
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():

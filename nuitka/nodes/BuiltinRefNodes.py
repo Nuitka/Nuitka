@@ -171,7 +171,9 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         )
 
     def getDetails(self):
-        return { "exception_name" : self.builtin_name }
+        return {
+            "exception_name" : self.builtin_name
+        }
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
@@ -182,11 +184,10 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         return False
 
     def getCompileTimeConstant(self):
-        return builtin_exception_values[ self.builtin_name ]
+        return builtin_exception_values[self.builtin_name]
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
+        # Not much that can be done here.
         return self, None, None
 
     def computeExpressionCall(self, call_node, constraint_collection):

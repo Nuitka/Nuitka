@@ -239,7 +239,9 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 def _buildContractionBodyNode(provider, node, emit_class, start_value,
                               container_tmp, outer_iter_ref, temp_scope,
                               assign_provider, source_ref, function_body):
-
+    # This uses lots of variables and branches. There is no good way
+    # around that, and we deal with many cases, due to having generator
+    # expressions sharing this code, pylint: disable=R0912,R0914
     if start_value is not None:
         statements = [
             StatementAssignmentVariable(
@@ -360,10 +362,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                     source_ref = source_ref
                 )
             ]
-
-            # We the closure variable, and this function in a for loop, but
-            # only once, and because the other branch above can dedice to
-            # do something entirely different, pylint: disable=W0640
 
             def makeIteratorRef():
                 return ExpressionTempVariableRef(
@@ -500,9 +498,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                           assign_provider, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
     # described in the developer manual. They use a lot of temporary names,
-    # nested blocks, etc. and so a lot of variable names. There is no good way
-    # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=R0912,R0914
+    # nested blocks, etc. and so a lot of variable names.
 
     # Note: The assign_provider is only to cover Python2 list contractions,
     # assigning one of the loop variables to the outside scope.

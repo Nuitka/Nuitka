@@ -259,12 +259,12 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getCallable = ExpressionChildrenHavingBase.childGetter( "callable" )
-    getSentinel = ExpressionChildrenHavingBase.childGetter( "sentinel" )
+    getCallable = ExpressionChildrenHavingBase.childGetter("callable")
+    getSentinel = ExpressionChildrenHavingBase.childGetter("sentinel")
 
     def computeExpression(self, constraint_collection):
-        # TODO: The "callable" should be investigated here,
-        # pylint: disable=W0613
+        # TODO: The "callable" should be investigated here, maybe it is not
+        # really callable, or raises an exception.
 
         return self, None, None
 
@@ -275,7 +275,10 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
 class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"
 
-    named_children = ( "iterator", "default", )
+    named_children = (
+        "iterator",
+        "default"
+    )
 
     def __init__(self, iterator, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -291,6 +294,6 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, constraint_collection):
-        # TODO: The "iterator" should be investigated here, pylint: disable=W0613
-
+        # TODO: The "iterator" should be investigated here, if it is iterable,
+        # or if the default is raising.
         return self, None, None

@@ -568,7 +568,7 @@ def getConstantsDeclCode(context):
 
 def getConstantAccess(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
-    # empty.  pylint: disable=R0912, R0915
+    # empty.  pylint: disable=R0912,R0915
 
     if type(constant) is dict:
         if constant:

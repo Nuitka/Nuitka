@@ -34,6 +34,7 @@ class NodeCheckMetaClass(type):
     kinds = set()
 
     def __new__(cls, name, bases, dictionary):
+        # This is in conflict with either PyDev or Pylint, pylint: disable=C0204
         assert len(bases) == len(set(bases))
 
         return type.__new__(cls, name, bases, dictionary)
@@ -73,7 +74,6 @@ class NodeCheckMetaClass(type):
         type.__init__(cls, name, bases, dictionary)
 
 # For every node type, there is a test, and then some more members,
-# pylint: disable=R0904
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
 # used and doesn't require making a choice.
@@ -91,10 +91,6 @@ class NodeBase(NodeMetaClassBase):
         self.parent = None
 
         self.source_ref = source_ref
-
-    def isNode(self):
-        # Virtual method, pylint: disable=R0201
-        return True
 
     def __repr__(self):
         # This is to avoid crashes, because of bugs in detail.
@@ -128,8 +124,7 @@ class NodeBase(NodeMetaClassBase):
             display.
 
         """
-        # Virtual method, pylint: disable=R0201
-        return str( self.getDetails() )[1:-1]
+        return str(self.getDetails())[1:-1]
 
     def getParent(self):
         """ Parent of the node. Every node except modules have to have a parent.
@@ -191,8 +186,7 @@ class NodeBase(NodeMetaClassBase):
 
     def isParentVariableProvider(self):
         # Check if it's a closure giver, in which cases it can provide variables,
-        # pylint: disable=E1101
-        return isinstance( self, ClosureGiverNodeBase )
+        return isinstance(self, ClosureGiverNodeBase)
 
     def getParentVariableProvider(self):
         parent = self.getParent()
@@ -261,6 +255,11 @@ class NodeBase(NodeMetaClassBase):
 
         Tracing.printSeparator( level )
 
+    @staticmethod
+    def isPythonModule():
+        # For overload by module nodes
+        return False
+
     def isExpression(self):
         return self.kind.startswith( "EXPRESSION_" )
 
@@ -277,23 +276,23 @@ class NodeBase(NodeMetaClassBase):
         return self.kind.startswith( "EXPRESSION_BOOL_" )
 
     def isStatementReraiseException(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def isExpressionMakeSequence(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def isIteratorMaking(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def isNumberConstant(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def isExpressionCall(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def visit(self, context, visitor):
@@ -303,7 +302,7 @@ class NodeBase(NodeMetaClassBase):
             visitable.visit( context, visitor )
 
     def getVisitableNodes(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return ()
 
     def getVisitableNodesNamed(self):
@@ -324,12 +323,12 @@ class NodeBase(NodeMetaClassBase):
             self.parent = None
 
     def getName(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return None
 
     def mayHaveSideEffects(self):
         """ Unless we are told otherwise, everything may have a side effect. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
 
         return True
 
@@ -338,15 +337,14 @@ class NodeBase(NodeMetaClassBase):
 
     def mayHaveSideEffectsBool(self):
         """ Unless we are told otherwise, everything may have a side effect. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
 
         return True
 
     def extractSideEffects(self):
         """ Unless defined otherwise, the expression is the side effect. """
-        # Virtual method, pylint: disable=R0201,W0613
 
-        return ( self, )
+        return (self,)
 
     def mayRaiseException(self, exception_type):
         """ Unless we are told otherwise, everything may raise everything. """
@@ -358,9 +356,11 @@ class NodeBase(NodeMetaClassBase):
         return "_RETURN" in self.kind
 
     def mayBreak(self):
+        # For overload, pylint: disable=R0201
         return False
 
     def mayContinue(self):
+        # For overload, pylint: disable=R0201
         return False
 
     def needsFrame(self):
@@ -377,13 +377,12 @@ class NodeBase(NodeMetaClassBase):
 
     def isIndexable(self):
         """ Unless we are told otherwise, it's not indexable. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
 
         return False
 
     def isStatementAborting(self):
         """ Is the node aborting, control flow doesn't continue after this node.  """
-        # Virtual method, pylint: disable=R0201
         assert self.isStatement(), self.kind
 
         return False
@@ -391,12 +390,12 @@ class NodeBase(NodeMetaClassBase):
     def needsLocalsDict(self):
         """ Node requires a locals dictionary by provider. """
 
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def getIntegerValue(self):
         """ Node as integer value, if possible."""
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return None
 
 
@@ -662,6 +661,8 @@ class ChildrenHavingMixin:
         )
 
         try:
+            # Using star dict arguments here for generic use,
+            # pylint: disable=W0142
             return self.__class__(
                 source_ref = source_ref,
                 **values
@@ -702,8 +703,8 @@ class ClosureGiverNodeBase(CodeNodeBase):
         return self.providing[variable_name]
 
     def createProvidedVariable(self, variable_name):
-        # Virtual method, pylint: disable=R0201,W0613
-        assert type( variable_name ) is str
+        # Virtual method, pylint: disable=R0201
+        assert type(variable_name) is str
 
         return None
 
@@ -852,15 +853,13 @@ class ClosureTakerMixin:
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return True
-        else:
-            return False
+        return False
 
     def getTakenVariable(self, variable_name):
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return variable
-        else:
-            return None
+        return None
 
     def isEarlyClosure(self):
         """ Early closure taking means immediate binding of references.
@@ -903,6 +902,8 @@ class ExpressionMixin:
         """ Could this evaluate to be "None".
 
             Yes or no. Defaults to pessimistic yes."""
+        # For overload, pylint: disable=R0201
+
         return True
 
     def isKnownToBeIterable(self, count):
@@ -934,7 +935,7 @@ class ExpressionMixin:
 
     def getStringValue(self):
         """ Node as integer value, if possible."""
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return None
 
     def getStrValue(self):
@@ -986,36 +987,40 @@ class ExpressionMixin:
                                     constraint_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=R0201,W0613
-        constraint_collection.removeKnowledge( lookup_node )
+        constraint_collection.removeKnowledge(lookup_node)
 
         return lookup_node, None, None
 
     def computeExpressionSubscript(self, lookup_node, subscript,
                                    constraint_collection):
         # By default, an subscript may change everything about the lookup
-        # source.
-        constraint_collection.removeKnowledge( lookup_node )
+        # source. Virtual method, pylint: disable=R0201,W0613
+        constraint_collection.removeKnowledge(lookup_node)
 
         return lookup_node, None, None
 
     def computeExpressionSlice(self, lookup_node, lower, upper,
                                constraint_collection):
         # By default, a slicing may change everything about the lookup source.
-        constraint_collection.removeKnowledge( lookup_node )
+        # Virtual method, pylint: disable=R0201,W0613
+        constraint_collection.removeKnowledge(lookup_node)
 
         return lookup_node, None, None
 
     def computeExpressionCall(self, call_node, constraint_collection):
+        # Virtual method, pylint: disable=R0201
         call_node.getCalled().onContentEscapes(constraint_collection)
 
         return call_node, None, None
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
+        # Virtual method, pylint: disable=R0201
         iter_node.getValue().onContentEscapes(constraint_collection)
 
         return iter_node, None, None
 
     def computeExpressionOperationNot(self, not_node, constraint_collection):
+        # Virtual method, pylint: disable=R0201
         constraint_collection.removeKnowledge(not_node)
 
         return not_node, None, None
@@ -1046,13 +1051,14 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
             compile time and e.g. operations or conditions, or even calls may
             be executed against it.
         """
-        # Virtual method, pylint: disable=R0201
         return True
 
     def mayHaveSideEffects(self):
+        # Virtual method, pylint: disable=R0201
         return False
 
     def mayHaveSideEffectsBool(self):
+        # Virtual method, pylint: disable=R0201
         return False
 
     def mayBeNone(self):
@@ -1265,8 +1271,7 @@ class SideEffectsFromChildrenMixin:
         for child in self.getVisitableNodes():
             if child.mayHaveSideEffects():
                 return True
-        else:
-            return False
+        return False
 
     def extractSideEffects(self):
         # No side effects at all but from the children.

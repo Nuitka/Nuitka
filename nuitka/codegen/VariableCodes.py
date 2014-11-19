@@ -120,6 +120,8 @@ def getLocalVariableInitCode(variable, init_from = None, in_context = False):
 
 
 def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
+    # Many different cases, as this must be, pylint: disable=R0912,R0915
+
     assert isinstance(variable, Variables.Variable), variable
 
     # For transfer of ownership.
@@ -216,6 +218,8 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
 
 
 def getVariableAccessCode(to_name, variable, needs_check, emit, context):
+    # Many different cases, as this must be, pylint: disable=R0912
+
     assert isinstance(variable, Variables.Variable), variable
 
     if variable.isModuleVariable():
@@ -363,6 +367,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
 
 
 def getVariableDelCode(tolerant, variable, emit, context):
+    # Many different cases, as this must be, pylint: disable=R0912
     assert isinstance(variable, Variables.Variable), variable
 
     if variable.isModuleVariable():

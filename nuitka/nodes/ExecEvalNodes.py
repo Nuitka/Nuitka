@@ -27,8 +27,6 @@ from nuitka import Utils
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 
-# Delayed import into multiple branches is not an issue, pylint: disable=W0404
-
 class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_EVAL"
 

@@ -42,7 +42,7 @@ class BuiltinParameterSpec(ParameterSpec):
             kw_only_args   = ()
         )
 
-        self.builtin = __builtins__[ name ]
+        self.builtin = __builtins__[name]
 
     def __repr__(self):
         return "<BuiltinParameterSpec %s>" % self.name
@@ -51,11 +51,14 @@ class BuiltinParameterSpec(ParameterSpec):
         return self.name
 
     def isCompileTimeComputable(self, values):
+        # By default, we make this dependent on the ability to compute the
+        # arguments, which is of course a good start for most cases, so this
+        # is for overloads, pylint: disable=R0201
+
         for value in values:
             if value is not None and not value.isCompileTimeConstant():
                 return False
-        else:
-            return True
+        return True
 
     def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really
@@ -263,7 +266,7 @@ builtin_hasattr_spec = BuiltinParameterSpecNoKeywords("hasattr", ("object", "nam
 builtin_getattr_spec = BuiltinParameterSpecNoKeywords("getattr", ("object", "name", "default"), 1)
 builtin_setattr_spec = BuiltinParameterSpecNoKeywords("setattr", ("object", "name", "value"), 0)
 
-builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "cls"), 0)
+builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "classes"), 0)
 
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
@@ -271,6 +274,9 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
         BuiltinParameterSpecNoKeywords.__init__(self, *args)
 
     def isCompileTimeComputable(self, values):
+        # For ranges, we need have many cases that can prevent the ability
+        # to pre-compute, pylint: disable=R0911,R0912
+
         result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
             self,
             values = values

@@ -44,7 +44,9 @@ class ExpressionOperationBase(ExpressionChildrenHavingBase):
         return self.operator
 
     def getDetails(self):
-        return { "operator" : self.operator }
+        return {
+            "operator" : self.operator
+        }
 
     def getOperator(self):
         return self.operator
@@ -85,6 +87,9 @@ class ExpressionOperationBinary(ExpressionOperationBase):
         return self.inplace_suspect
 
     def computeExpression(self, constraint_collection):
+        # This is using many returns based on many conditions,
+        # pylint: disable=R0911,R0912
+
         operator = self.getOperator()
         operands = self.getOperands()
 
@@ -206,12 +211,13 @@ class ExpressionOperationUnary(ExpressionOperationBase):
         else:
             return self, None, None
 
-    getOperand = ExpressionChildrenHavingBase.childGetter( "operand" )
+    getOperand = ExpressionChildrenHavingBase.childGetter("operand")
 
     def getOperands(self):
-        return ( self.getOperand(), )
+        return (self.getOperand(),)
 
-    def isExpressionOperationUnary(self):
+    @staticmethod
+    def isExpressionOperationUnary():
         return True
 
 
@@ -286,7 +292,8 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
             source_ref = source_ref
         )
 
-    def isExpressionOperationBinary(self):
+    @staticmethod
+    def isExpressionOperationBinary():
         return True
 
     def computeExpression(self, constraint_collection):

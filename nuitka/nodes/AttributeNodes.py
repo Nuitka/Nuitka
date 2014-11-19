@@ -125,8 +125,6 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         default = self.getDefault()
 
         if default is None:
@@ -186,13 +184,11 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
-    getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
-    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
+    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         # Note: Might be possible to predict or downgrade to mere attribute set.
         return self, None, None
 
@@ -219,8 +215,6 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         # Note: Might be possible to predict or downgrade to mere attribute
         # check.
 

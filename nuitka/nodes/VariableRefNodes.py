@@ -83,7 +83,8 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
         return result
 
-    def isTargetVariableRef(self):
+    @staticmethod
+    def isTargetVariableRef():
         return False
 
     def getVariableName(self):
@@ -220,7 +221,8 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
     def computeExpression(self, constraint_collection):
         assert False
 
-    def isTargetVariableRef(self):
+    @staticmethod
+    def isTargetVariableRef():
         return True
 
     def getVariableVersion(self):
@@ -264,7 +266,8 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
     def getVariable(self):
         return self.variable
 
-    def isTargetVariableRef(self):
+    @staticmethod
+    def isTargetVariableRef():
         return False
 
     def computeExpression(self, constraint_collection):
@@ -310,7 +313,8 @@ class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
     def computeExpression(self, constraint_collection):
         assert False, self.parent
 
-    def isTargetVariableRef(self):
+    @staticmethod
+    def isTargetVariableRef():
         return True
 
     def getVariableVersion(self):

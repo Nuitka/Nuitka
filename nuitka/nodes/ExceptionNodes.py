@@ -80,7 +80,8 @@ class StatementRaiseException(StatementChildrenHavingBase):
     def isStatementAborting(self):
         return True
 
-    def isImplicit(self):
+    @staticmethod
+    def isImplicit():
         return False
 
     def computeStatement(self, constraint_collection):
@@ -168,10 +169,12 @@ Explicit raise already raises implicitely building exception cause."""
 class StatementRaiseExceptionImplicit(StatementRaiseException):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
 
-    def isStatementRaiseException(self):
+    @staticmethod
+    def isStatementRaiseException():
         return True
 
-    def isImplicit(self):
+    @staticmethod
+    def isImplicit():
         return True
 
 
@@ -198,8 +201,6 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         )
 
     def willRaiseException(self, exception_type):
-        # Virtual method, pylint: disable=R0201,W0613
-
         # One thing is clear, it will raise. TODO: Match exception_type more
         # closely if it is predictable.
         if exception_type is BaseException:
@@ -294,7 +295,8 @@ class ExpressionCaughtExceptionValueRef(NodeBase, ExpressionMixin):
         # Referencing the expression type has no side effect
         return False
 
-    def makeCloneAt(self, source_ref):
+    @staticmethod
+    def makeCloneAt(source_ref):
         return ExpressionCaughtExceptionValueRef(
             source_ref = source_ref
         )

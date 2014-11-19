@@ -55,10 +55,12 @@ class PythonModuleMixin:
         else:
             return self.getName()
 
-    def isMainModule(self):
+    @staticmethod
+    def isMainModule():
         return False
 
-    def isInternalModule(self):
+    @staticmethod
+    def isInternalModule():
         return False
 
     def attemptRecursion(self):
@@ -110,6 +112,7 @@ def checkModuleBody(value):
     assert value is None or value.isStatementsSequence()
 
     return value
+
 
 class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
                    ClosureGiverNodeBase):
@@ -167,8 +170,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         }
 
     def asXml(self):
-        # The class is new style, false alarm: pylint: disable=E1002
-        result = super( PythonModule, self ).asXml()
+        result = super(PythonModule, self).asXml()
 
         for function_body in self.functions:
             result.append( function_body.asXml() )
@@ -178,7 +180,8 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
 
-    def isPythonModule(self):
+    @staticmethod
+    def isPythonModule():
         return True
 
     def getParent(self):
@@ -274,7 +277,8 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     # TODO: Can't really use locals for modules, this should probably be made
     # sure to not be used.
-    def getLocalsMode(self):
+    @staticmethod
+    def getLocalsMode():
         return "copy"
 
 
@@ -301,7 +305,8 @@ class PythonMainModule(PythonModule, SingleCreationMixin):
 
         self.main_added = main_added
 
-    def isMainModule(self):
+    @staticmethod
+    def isMainModule():
         return True
 
     def getOutputFilename(self):
@@ -328,7 +333,8 @@ class PythonInternalModule(PythonModule, SingleCreationMixin):
 
         SingleCreationMixin.__init__( self )
 
-    def isInternalModule(self):
+    @staticmethod
+    def isInternalModule():
         return True
 
     def getOutputFilename(self):

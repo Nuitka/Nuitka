@@ -93,7 +93,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     popIndicatorVariable()
 
-    if function_body.isExpressionFunctionBody() and function_body.isGenerator():
+    if function_body.isGenerator():
         # TODO: raise generator exit?
         pass
     elif function_statements_body is None:

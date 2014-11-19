@@ -29,11 +29,22 @@
 # a different warning. Amazing. Luckily we can decide to ignore that globally
 # then.
 #
-# E1120 / E1123: Constructor call checks frequently fail miserably.
+# C0326: No space allowed...
+# Our spaces before keyword argument calls are not allowed, and this is
+# not possible to distinguish.
+#
+# C1001: Old-style class defined.
+# Yes, so what, why care.
+#
+# E1120 / E1123: ....
+# Constructor call checks frequently fail miserably, so this is full of
+# mysterious false alarms, while it's unlikely to help much.
 #
 # E1103: Instance of 'x' has no 'y' member but some types could not be inferred
+# Rarely is this any help, but it's full of false alarms.
 #
-# W0632: Possible unbalanced tuple unpacking with sequence defined at
+# W0632: Possible unbalanced tuple unpacking with sequence defined at ...
+# It's not really good at guessing these things.
 #
 import sys, os, subprocess
 
@@ -43,7 +54,7 @@ os.chdir("..")
 
 pylint_options = """
 --rcfile=/dev/null
---disable=I0011,I0012,W0232,C0326,C0330,W0120,C1001,E1120,E1123,E1103,W0632
+--disable=I0011,W0232,C0326,C1001,E1120,E1123,E1103,W0632
 --msg-template="{path}:{line} {msg_id} {obj} {msg}"
 --reports=no
 --persistent=no
@@ -52,7 +63,7 @@ pylint_options = """
 --function-rgx=.*
 --variable-rgx=.*
 --argument-rgx=.*
---dummy-variables-rgx=_.*
+--dummy-variables-rgx=_.*\|constraint_collection
 --const-rgx=.*
 --max-line-length=120
 --no-docstring-rgx=.*
@@ -90,7 +101,7 @@ blacklist = (
     "TreeDisplay.py"
 )
 
-def executePyLint( filename ):
+def executePyLint(filename):
     command = "pylint %s %s %s" % (
         " ".join(pylint_options),
         os.environ.get("PYLINT_EXTRA_OPTIONS", ""),
@@ -117,7 +128,7 @@ def executePyLint( filename ):
     sys.stdout.flush()
 
 if "PYTHONPATH" not in os.environ:
-    os.environ[ "PYTHONPATH" ] = "."
+    os.environ["PYTHONPATH"] = "."
 
 if positional_args:
     for positional_arg in positional_args:

@@ -107,7 +107,8 @@ def buildExtSliceNode(provider, node, source_ref):
 def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                                          source_ref):
     # This is using many variable names on purpose, so as to give names to the
-    # unpacked detail values, pylint: disable=R0914
+    # unpacked detail values, and has many branches due to the many cases
+    # dealt with, pylint: disable=R0912,R0914
 
     if kind == "Name":
         variable_ref = detail
@@ -295,6 +296,8 @@ def buildAssignmentStatements(provider, node, source, source_ref,
     if temp_provider is None:
         temp_provider = provider
 
+    # We don't allow None, as we handled that above, and so we know it must
+    # be a tuple, pylint: disable=W0633
     kind, detail = decodeAssignTarget(
         provider   = provider,
         node       = node,
@@ -382,7 +385,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
             )
         else:
             assert False, slice_kind
-    elif kind in ( "Tuple", "List" ):
+    elif kind in ("Tuple", "List"):
         return "Tuple", tuple(
             decodeAssignTarget(
                 provider   = provider,
@@ -541,6 +544,8 @@ def buildDeleteNode(provider, node, source_ref):
     statements = []
 
     for target in node.targets:
+        # We don't allow None, cannot happen, and so we know it must
+        # be a tuple, pylint: disable=W0633
         kind, detail = decodeAssignTarget(
             provider   = provider,
             node       = target,
@@ -561,9 +566,8 @@ def buildDeleteNode(provider, node, source_ref):
     )
 
 
-def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
-                                    tmp_variable2, operator, expression,
-                                    source_ref):
+def _buildInplaceAssignVariableNode(variable_ref, tmp_variable1, tmp_variable2,
+                                    operator, expression, source_ref):
     assert variable_ref.isExpressionTargetVariableRef(), variable_ref
 
     # First assign the target value to a temporary variable.
@@ -654,7 +658,7 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
     )
 
 
-def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
+def _buildInplaceAssignAttributeNode(lookup_source, attribute_name,
                                      tmp_variable1, tmp_variable2, operator,
                                      expression, source_ref):
     # First assign the target value to a temporary variable.
@@ -751,10 +755,10 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
     )
 
 
-def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
-                                     tmp_variable1, tmp_variable2, operator,
-                                     expression, source_ref):
-    # First assign the subcribed value to a temporary variable.
+def _buildInplaceAssignSubscriptNode(subscribed, subscript, tmp_variable1,
+                                     tmp_variable2, operator, expression,
+                                     source_ref):
+    # First assign the subscribed value to a temporary variable.
     preserve_to_tmp1 = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
             variable   = tmp_variable1,
@@ -833,9 +837,13 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
     )
 
 
-def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
-                                 tmp_variable1, tmp_variable2, tmp_variable3,
-                                 operator, expression, source_ref):
+def _buildInplaceAssignSliceNode(lookup_source, lower, upper, tmp_variable1,
+                                 tmp_variable2, tmp_variable3, operator,
+                                 expression, source_ref):
+
+    # Due to the 3 inputs, which we need to also put into temporary variables,
+    # there are too many variables here, but they are needed.
+    # pylint: disable=R0914
 
     # First assign the target value, lower and upper to temporary variables.
     copy_to_tmp = StatementAssignmentVariable(
@@ -971,13 +979,15 @@ def buildInplaceAssignNode(provider, node, source_ref):
     # into names, so we end up with a lot of variables, which is on purpose,
     # pylint: disable=R0914
 
-    operator = getKind( node.op )
+    operator = getKind(node.op)
 
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
     expression = buildNode(provider, node.value, source_ref)
 
+    # We don't allow None, as we handled that above, and so we know it must
+    # be a tuple, pylint: disable=W0633
     kind, detail = decodeAssignTarget(
         provider   = provider,
         node       = node.target,
@@ -998,7 +1008,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
             name       = "inplace_end"
         )
         statements = _buildInplaceAssignVariableNode(
-            provider      = provider,
             variable_ref  = variable_ref,
             tmp_variable1 = tmp_variable1,
             tmp_variable2 = tmp_variable2,
@@ -1019,7 +1028,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
         )
 
         statements = _buildInplaceAssignAttributeNode(
-            provider       = provider,
             lookup_source  = lookup_source,
             attribute_name = attribute_name,
             tmp_variable1  = tmp_variable1,
@@ -1041,7 +1049,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
         )
 
         statements = _buildInplaceAssignSubscriptNode(
-            provider      = provider,
             subscribed    = subscribed,
             subscript     = subscript,
             tmp_variable1 = tmp_variable1,
@@ -1074,7 +1081,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
             tmp_variable3 = None
 
         statements = _buildInplaceAssignSliceNode(
-            provider      = provider,
             lookup_source = lookup_source,
             lower         = lower,
             upper         = upper,

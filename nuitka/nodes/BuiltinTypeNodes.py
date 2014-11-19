@@ -129,8 +129,6 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
     getBase = ChildrenHavingMixin.childGetter("base")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         value = self.getValue()
         base = self.getBase()
 
@@ -154,7 +152,9 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
         else:
             given_values = (value, base)
 
-        return self.computeBuiltinSpec(given_values)
+        return self.computeBuiltinSpec(
+            given_values = given_values
+        )
 
 
 class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
@@ -187,8 +187,6 @@ class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
     getErrors = ChildrenHavingMixin.childGetter("errors")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         args = [
             self.getValue(),
             self.getEncoding(),
@@ -198,7 +196,9 @@ class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
         while args and args[-1] is None:
             del args[-1]
 
-        return self.computeBuiltinSpec( tuple( args ) )
+        return self.computeBuiltinSpec(
+            given_values = tuple(args)
+        )
 
 
 if python_version < 300:

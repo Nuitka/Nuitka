@@ -239,6 +239,11 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
 def buildExecNode(provider, node, source_ref):
     # "exec" statements, should only occur with Python2.
 
+    # This is using many variables, due to the many details this is
+    # dealing with. The locals and globals need to be dealt with in
+    # temporary variables, and we need handling of indicators, so
+    # that is just the complexity, pylint: disable=R0914
+
     exec_globals = node.globals
     exec_locals = node.locals
     body = node.body
@@ -453,17 +458,17 @@ exec: arg 1 must be a string, file, or code object""",
             ),
             source_ref     = source_ref
         ),
-        # Source needs some special treatment for not done for eval, if it's a
+        # Source needs some special treatment for not done for "eval", if it's a
         # file object, then  must be read.
         StatementConditional(
             condition = ExpressionBuiltinIsinstance(
-                cls = ExpressionBuiltinAnonymousRef(
-                    builtin_name = "file",
-                    source_ref   = source_ref,
-                ),
-                instance = ExpressionTempVariableRef(
+                instance   = ExpressionTempVariableRef(
                     variable   = source_variable,
                     source_ref = source_ref
+                ),
+                classes    = ExpressionBuiltinAnonymousRef(
+                    builtin_name = "file",
+                    source_ref   = source_ref,
                 ),
                 source_ref = source_ref
             ),

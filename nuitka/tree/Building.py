@@ -612,9 +612,6 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
 
 def handleNonlocalDeclarationNode(provider, node, source_ref):
-    # The source reference of the nonlocal really doesn't matter.
-    # pylint: disable=W0613
-
     # Need to catch the error of declaring a parameter variable as global
     # ourselves here. The AST parsing doesn't catch it, but we can do it here.
     parameters = provider.getParameters()

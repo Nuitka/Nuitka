@@ -238,8 +238,8 @@ def _detectedShlibFile(filename, module_name):
     )
 
     shlib_module = PythonShlibModule(
-        package_name = package_name,
         name         = name,
+        package_name = package_name,
         source_ref   = source_ref
     )
 
