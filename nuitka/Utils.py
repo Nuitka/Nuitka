@@ -26,14 +26,7 @@ import os
 import subprocess
 import sys
 
-
-# TODO: Duplicated with PythonVersions, but too much work to relocate fully.
-def _getPythonVersion():
-    big, major, minor = sys.version_info[0:3]
-
-    return big * 100 + major * 10 + minor
-
-python_version = _getPythonVersion()
+from nuitka.PythonVersions import python_version
 
 
 def getOS():
