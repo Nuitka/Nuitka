@@ -29,9 +29,15 @@
 # a different warning. Amazing. Luckily we can decide to ignore that globally
 # then.
 #
+# I0012: Locally enabling W....
+# Sure, we disabled it for a block, and re-enabled it then.
+#
 # C0326: No space allowed...
 # Our spaces before keyword argument calls are not allowed, and this is
 # not possible to distinguish.
+#
+# C0330: Wrong hanging line indentation
+# No it's not wrong.
 #
 # C1001: Old-style class defined.
 # Yes, so what, why care.
@@ -46,6 +52,9 @@
 # W0632: Possible unbalanced tuple unpacking with sequence defined at ...
 # It's not really good at guessing these things.
 #
+
+from __future__ import print_function
+
 import sys, os, subprocess
 
 # Go its own directory, to have it easy with path knowledge.
@@ -54,7 +63,7 @@ os.chdir("..")
 
 pylint_options = """
 --rcfile=/dev/null
---disable=I0011,W0232,C0326,C1001,E1120,E1123,E1103,W0632
+--disable=I0011,I0012,W0232,C0326,C0330,C1001,E1120,E1123,E1103,W0632
 --msg-template="{path}:{line} {msg_id} {obj} {msg}"
 --reports=no
 --persistent=no
@@ -89,6 +98,15 @@ parser.add_option(
     Default is %default."""
 )
 
+parser.add_option(
+    "--verbose",
+    action  = "store_true",
+    dest    = "verbose",
+    default = False,
+    help    = """\
+    Default is %default."""
+)
+
 options, positional_args = parser.parse_args()
 
 if os.environ.get("TODO", 0) or options.no_todos:
@@ -101,7 +119,14 @@ blacklist = (
     "TreeDisplay.py"
 )
 
+exit_code = 0
+
 def executePyLint(filename):
+    if options.verbose:
+        print("Checking", filename, "...")
+
+    global exit_code
+
     command = "pylint %s %s %s" % (
         " ".join(pylint_options),
         os.environ.get("PYLINT_EXTRA_OPTIONS", ""),
@@ -120,6 +145,8 @@ def executePyLint(filename):
 
     assert not _stderr
     if stdout:
+        exit_code = 1
+
         for line in stdout.split(b"\n"):
             output = line.decode()
 
@@ -160,3 +187,5 @@ else:
                 executePyLint(
                     os.path.join(dirpath, filename)
                 )
+
+sys.exit(exit_code)

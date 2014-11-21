@@ -28,7 +28,6 @@ from nuitka.odict import OrderedDict
 from nuitka.oset import OrderedSet
 from nuitka.VariableRegistry import addVariableUsage
 
-lxml = TreeXML.lxml
 
 class NodeCheckMetaClass(type):
     kinds = set()
@@ -83,8 +82,10 @@ class NodeBase(NodeMetaClassBase):
     kind = None
 
     def __init__(self, source_ref):
-        # The base class has no __init__ worth calling, pylint: disable=W0231
+        # The base class has no __init__ worth calling.
 
+        # Check source reference to meet basic standards, so we note errors
+        # when they occur.
         assert source_ref is not None
         assert source_ref.line is not None
 
@@ -213,30 +214,30 @@ class NodeBase(NodeMetaClassBase):
         return self.source_ref
 
     def asXml(self):
-        result = lxml.etree.Element(
+        result = TreeXML.Element(
             "node",
             kind = self.__class__.__name__,
             line = "%s" % self.getSourceReference().getLineNumber()
         )
 
-        for key, value in iterItems( self.getDetails() ):
-            value = str( value )
+        for key, value in iterItems(self.getDetails()):
+            value = str(value)
 
-            if value.startswith( "<" ) and value.endswith( ">" ):
+            if value.startswith("<") and value.endswith(">"):
                 value = value[1:-1]
 
-            result.set( key, str( value ) )
+            result.set(key, str(value))
 
         for name, children in self.getVisitableNodesNamed():
-            if type( children ) not in ( list, tuple ):
-                children = ( children, )
+            if type(children) not in (list, tuple):
+                children = (children,)
 
-            role = lxml.etree.Element(
+            role = TreeXML.Element(
                 "role",
                 name = name
             )
 
-            result.append( role )
+            result.append(role)
 
             for child in children:
                 if child is not None:

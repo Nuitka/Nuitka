@@ -241,7 +241,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                               assign_provider, source_ref, function_body):
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=R0912,R0914
+    # expressions sharing this code, pylint: disable=R0912,R0914,R0915
     if start_value is not None:
         statements = [
             StatementAssignmentVariable(
@@ -328,8 +328,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         # inside the function.
 
         if qual is node.generators[0]:
-            def makeIteratorRef():
-                return outer_iter_ref.makeCloneAt(source_ref)
+            iterator_ref = outer_iter_ref.makeCloneAt(source_ref)
 
             tmp_iter_variable = None
 
@@ -363,11 +362,10 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 )
             ]
 
-            def makeIteratorRef():
-                return ExpressionTempVariableRef(
-                    variable   = tmp_iter_variable,
-                    source_ref = source_ref
-                )
+            iterator_ref = ExpressionTempVariableRef(
+                variable   = tmp_iter_variable,
+                source_ref = source_ref
+            )
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
@@ -378,7 +376,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                             source_ref = source_ref
                         ),
                         source     = ExpressionBuiltinNext1(
-                            value      = makeIteratorRef(),
+                            value      = iterator_ref,
                             source_ref = source_ref
                         ),
                         source_ref = source_ref

@@ -764,6 +764,7 @@ def _areConstants(expressions):
             return False
     return True
 
+
 def generateSliceRangeIdentifier(lower, upper, scope, emit, context):
     lower_name = context.allocateTempName(
         scope + "slicedel_index_lower",

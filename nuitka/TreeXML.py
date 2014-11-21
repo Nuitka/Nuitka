@@ -23,10 +23,15 @@ XML tree to ASCII or output it.
 
 from . import Tracing, Utils
 
+# False alarms happen with lxml, pylint: disable=E1101
+
 try:
     import lxml.etree
+
+    Element = lxml.etree.Element
 except ImportError:
     lxml = None
+    Element = None
 
 def toString(xml):
     return lxml.etree.tostring(xml, pretty_print = True)
