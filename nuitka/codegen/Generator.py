@@ -272,15 +272,6 @@ def getConditionCheckTrueCode(to_name, value_name, emit):
     )
 
 
-def getConditionCheckFalseCode(to_name, value_name, emit):
-    emit(
-        "%s = CHECK_IF_FALSE( %s );" % (
-            to_name,
-            value_name
-        )
-    )
-
-
 def getBuiltinRefCode(to_name, builtin_name, emit, context):
     emit(
         "%s = LOOKUP_BUILTIN( %s );" % (

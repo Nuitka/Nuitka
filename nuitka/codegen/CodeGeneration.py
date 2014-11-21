@@ -26,7 +26,7 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
-from nuitka import Constants, Options, PythonOperators, Tracing, Utils
+from nuitka import Constants, Options, Tracing, Utils
 from nuitka.__past__ import iterItems
 
 from . import Contexts, Emission, Generator, LineNumberCodes
@@ -268,22 +268,13 @@ def _generateDictionaryCreationCode(to_name, pairs, emit, context):
             context.removeCleanupTempName(dict_key_name)
 
 
-def generateConditionCode(condition, emit, context, inverted = False,
-                          allow_none = False):
+def generateConditionCode(condition, emit, context):
     # The complexity is needed to avoid unnecessary complex generated C++, so
     # e.g. inverted is typically a branch inside every optimizable case.
-    # pylint: disable=R0912,R0915,R0914
+    # pylint: disable=R0915,R0914
 
-    if condition is None and allow_none:
-        # TODO: Allow none, why?
-
-        Generator.getGotoCode(context.getTrueBranchTarget(), emit)
-    elif condition.isExpressionConstantRef():
+    if condition.isExpressionConstantRef():
         value = condition.getConstant()
-
-        if inverted:
-            value = not value
-            inverted = False
 
         if value:
             Generator.getGotoCode(context.getTrueBranchTarget(), emit)
@@ -308,42 +299,23 @@ def generateConditionCode(condition, emit, context, inverted = False,
             context    = context
         )
 
-        comparator = condition.getComparator()
-
-        # Do not allow this, can be expected to be optimized away.
-        assert not inverted or \
-              comparator not in PythonOperators.comparison_inversions, \
-                 condition
-
-        # If inverted, lets just switch the targets temporarily.
-        if inverted:
-            true_target = context.getTrueBranchTarget()
-            false_target = context.getFalseBranchTarget
-
-            context.setTrueBranchTarget(false_target)
-            context.setFalseBranchTarget(true_target)
-
         old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
         Generator.getComparisonExpressionBoolCode(
-            comparator      = comparator,
+            comparator      = condition.getComparator(),
             left_name       = left_name,
             right_name      = right_name,
             emit            = emit,
             context         = context
         )
         context.setCurrentSourceCodeReference(old_source_ref)
-
-        if inverted:
-            context.setTrueBranchTarget(true_target)
-            context.setFalseBranchTarget(false_target)
     elif condition.isExpressionOperationNOT():
-        # If not inverted, lets just switch the targets temporarily.
-        if not inverted:
-            true_target = context.getTrueBranchTarget()
-            false_target = context.getFalseBranchTarget()
+        # Lets just switch the targets temporarily to get at "NOT" without
+        # any effort really.
+        true_target = context.getTrueBranchTarget()
+        false_target = context.getFalseBranchTarget()
 
-            context.setTrueBranchTarget(false_target)
-            context.setFalseBranchTarget(true_target)
+        context.setTrueBranchTarget(false_target)
+        context.setFalseBranchTarget(true_target)
 
         generateConditionCode(
             condition = condition.getOperand(),
@@ -351,9 +323,8 @@ def generateConditionCode(condition, emit, context, inverted = False,
             context   = context
         )
 
-        if not inverted:
-            context.setTrueBranchTarget(true_target)
-            context.setFalseBranchTarget(false_target)
+        context.setTrueBranchTarget(true_target)
+        context.setFalseBranchTarget(false_target)
     elif condition.isExpressionConditional():
         expression_yes = condition.getExpressionYes()
         expression_no = condition.getExpressionNo()
@@ -427,8 +398,6 @@ def generateConditionCode(condition, emit, context, inverted = False,
 
         context.setCurrentSourceCodeReference(old_source_ref)
     elif condition.isExpressionBuiltinIsinstance():
-        assert not inverted
-
         inst_name = context.allocateTempName("isinstance_inst")
         cls_name = context.allocateTempName("isinstance_cls")
 
@@ -466,18 +435,11 @@ def generateConditionCode(condition, emit, context, inverted = False,
             context    = context
         )
 
-        if inverted:
-            Generator.getConditionCheckFalseCode(
-                to_name    = truth_name,
-                value_name = condition_name,
-                emit       = emit
-            )
-        else:
-            Generator.getConditionCheckTrueCode(
-                to_name    = truth_name,
-                value_name = condition_name,
-                emit       = emit
-            )
+        Generator.getConditionCheckTrueCode(
+            to_name    = truth_name,
+            value_name = condition_name,
+            emit       = emit
+        )
 
         old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
 
