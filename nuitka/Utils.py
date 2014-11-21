@@ -37,6 +37,7 @@ def getOS():
     else:
         assert False, os.name
 
+
 def getArchitecture():
     if getOS() == "Windows":
         if "AMD64" in sys.version:
@@ -187,11 +188,13 @@ def encodeNonAscii(var_name):
     if python_version < 300:
         return var_name
     else:
+        # Using a escaping here, because that makes it safe in terms of not
+        # to occur in the encoding escape sequence for unicode use.
+        var_name = var_name.replace("$$", "$_$")
+
         var_name = var_name.encode("ascii", "xmlcharrefreplace")
         var_name = var_name.decode("ascii")
 
-        # TODO: Is this truly safe of collisions, I think it is not. It might be
-        # necessary to use something that is not allowed otherwise.
         return var_name.replace("&#", "$$").replace(";", "")
 
 
