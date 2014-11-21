@@ -42,7 +42,7 @@ import os
 import sys
 from logging import warning
 
-from . import Options, Utils
+from . import Utils
 
 _debug_module_finding = False
 
@@ -440,12 +440,14 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "test_common"
     )
 
-    # TODO: Turn this into a warning that encourages reporting.
-    if False and Options.isDebug():
-        for module_name in sys.builtin_module_names:
-            assert module_name in white_list, module_name
+    result = module_name in white_list
 
-    return module_name in white_list
+    if not result and module_name in sys.builtin_module_names:
+        warning("""\
+Your CPython version has a built-in module '%s', that is not white-listed
+please report this to http://bugs.nuitka.net.""", module_name )
+
+    return result
 
 
 def getStandardLibraryPaths():
