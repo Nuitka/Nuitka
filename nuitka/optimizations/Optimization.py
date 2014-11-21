@@ -65,9 +65,7 @@ def signalChange(tags, source_ref, message):
 ConstraintCollections.signalChange = signalChange
 
 def _optimizeModulePass(module):
-    module.collection = ConstraintCollections.ConstraintCollectionModule(
-        module        = module
-    )
+    module.computeModule()
 
     # Pick up parent package if any.
     _attemptRecursion(module)

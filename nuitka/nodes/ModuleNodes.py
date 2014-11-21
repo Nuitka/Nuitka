@@ -25,6 +25,8 @@ import re
 import sys
 
 from nuitka import Importing, Utils, Variables
+from nuitka.optimizations. \
+    ConstraintCollections import ConstraintCollectionModule
 from nuitka.oset import OrderedSet
 from nuitka.SourceCodeReferences import SourceCodeReference
 
@@ -280,6 +282,23 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     @staticmethod
     def getLocalsMode():
         return "copy"
+
+    def computeModule(self):
+        self.collection = ConstraintCollectionModule()
+
+        module_body = self.getBody()
+
+        if module_body is not None:
+            result = module_body.computeStatementsSequence(
+                constraint_collection = self.collection
+            )
+
+            if result is not module_body:
+                self.setBody(result)
+
+        self.collection.makeVariableTraceOptimizations(self)
+
+
 
 
 class SingleCreationMixin:

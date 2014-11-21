@@ -265,8 +265,6 @@ class CollectionStartpointMixin:
         self.unclear_locals = True
 
 
-# TODO: This code is only here while staging it, will live in a dedicated module
-# later on
 class ConstraintCollectionBase(CollectionTracingMixin):
     def __init__(self, parent):
         CollectionTracingMixin.__init__( self )
@@ -621,31 +619,16 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 class ConstraintCollectionModule(CollectionStartpointMixin,
                                  ConstraintCollectionBase,
                                  VariableUsageTrackingMixin):
-    def __init__(self, module):
-        assert module.isPythonModule()
-
+    def __init__(self):
         CollectionStartpointMixin.__init__(self)
 
         ConstraintCollectionBase.__init__(
             self,
-            None
+            parent = None
         )
 
         VariableUsageTrackingMixin.__init__(self)
 
-        self.module = module
-
-        module_body = module.getBody()
-
-        if module_body is not None:
-            result = module_body.computeStatementsSequence(
-                constraint_collection = self
-            )
-
-            if result is not module_body:
-                module.setBody(result)
-
-        self.makeVariableTraceOptimizations(module)
 
     def onModuleVariableAssigned(self, variable):
         assert variable.isModuleVariable()
