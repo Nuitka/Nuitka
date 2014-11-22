@@ -22,6 +22,7 @@
 import ctypes
 import re
 import struct
+from logging import warning
 
 import marshal
 from nuitka.__past__ import iterItems, long, unicode  # pylint: disable=W0622
@@ -180,9 +181,9 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
     marshal_value = marshal.dumps(constant_value)
     restored = marshal.loads(marshal_value)
 
-    # TODO: This should probably issue a warning, so we could eliminate this
-    # in decideMarshal already.
     if constant_value != restored:
+        warning("Problem with marshal of constant %r", constant_value)
+
         return False
 
     emit(
