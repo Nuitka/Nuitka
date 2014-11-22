@@ -48,44 +48,30 @@ def getDictOperationGetCode(to_name, dict_name, key_name, emit, context):
 
 
 def getBuiltinDict2Code(to_name, seq_name, dict_name, emit, context):
-    # Both not available must have been optimized way.
-    assert seq_name is not None or dict_name is not None
+    # Seq not available must have been optimized way already.
+    assert seq_name is not None
 
-    if seq_name is not None:
-        emit(
-            "%s = TO_DICT( %s, %s );" % (
-                to_name,
-                seq_name,
-                "NULL" if dict_name is None else dict_name
-            )
+    emit(
+        "%s = TO_DICT( %s, %s );" % (
+            to_name,
+            seq_name,
+            "NULL" if dict_name is None else dict_name
         )
+    )
 
-        getReleaseCodes(
-            release_names = (seq_name, dict_name),
-            emit          = emit,
-            context       = context
-        )
+    getReleaseCodes(
+        release_names = (seq_name, dict_name),
+        emit          = emit,
+        context       = context
+    )
 
-        getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
-        )
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
 
-        context.addCleanupTempName(to_name)
-    else:
-        # TODO: This could be avoided entirely, but it's only an alias, so we
-        # leave it to the C++ compiler for now.
-        emit(
-            "%s = %s;" % (
-                to_name,
-                dict_name
-            )
-        )
-
-        if context.needsCleanup(dict_name):
-            context.addCleanupTempName(to_name)
-            context.removeCleanupTempName(dict_name)
+    context.addCleanupTempName(to_name)
 
 
 def getDictOperationRemoveCode(dict_name, key_name, emit, context):

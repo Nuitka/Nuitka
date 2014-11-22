@@ -2086,24 +2086,38 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             seq_name = None
 
         if expression.getNamedArgumentPairs():
-            dict_name = context.allocateTempName("dict_arg")
+            # If there is no sequence to mix in, then directly generate
+            # into to_name.
 
-            generateDictionaryCreationCode(
-                to_name  = dict_name,
-                pairs    = expression.getNamedArgumentPairs(),
-                emit     = emit,
-                context  = context
-            )
+            if seq_name is None:
+                generateDictionaryCreationCode(
+                    to_name  = to_name,
+                    pairs    = expression.getNamedArgumentPairs(),
+                    emit     = emit,
+                    context  = context
+                )
+
+                dict_name = None
+            else:
+                dict_name = context.allocateTempName("dict_arg")
+
+                generateDictionaryCreationCode(
+                    to_name  = dict_name,
+                    pairs    = expression.getNamedArgumentPairs(),
+                    emit     = emit,
+                    context  = context
+                )
         else:
             dict_name = None
 
-        Generator.getBuiltinDict2Code(
-            to_name   = to_name,
-            seq_name  = seq_name,
-            dict_name = dict_name,
-            emit      = emit,
-            context   = context
-        )
+        if seq_name is not None:
+            Generator.getBuiltinDict2Code(
+                to_name   = to_name,
+                seq_name  = seq_name,
+                dict_name = dict_name,
+                emit      = emit,
+                context   = context
+            )
     elif expression.isExpressionBuiltinSet():
         generateCAPIObjectCode(
             to_name  = to_name,
