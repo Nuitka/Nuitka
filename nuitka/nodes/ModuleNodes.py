@@ -233,8 +233,11 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
             else:
                 return "$$%d$" % ord(c)
 
-        return "module_" + \
-          "".join(re.sub("[^a-zA-Z0-9_]", r ,c) for c in self.getFullName())
+        return "".join(
+            re.sub("[^a-zA-Z0-9_]", r ,c)
+            for c in
+            self.getFullName()
+        )
 
     def addFunction(self, function_body):
         assert function_body not in self.functions
@@ -405,6 +408,9 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
 
     def getFilename(self):
         return self.getSourceReference().getFilename()
+
+    def getCodeName(self):
+        return None
 
     def startTraversal(self):
         pass

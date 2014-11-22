@@ -140,7 +140,6 @@ from .MainCodes import getMainCode
 from .ModuleCodes import (
     getModuleAccessCode,
     getModuleCode,
-    getModuleIdentifier,
     getModuleMetapathLoaderEntryCode,
     prepareModuleCode
 )

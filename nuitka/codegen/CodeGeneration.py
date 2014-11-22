@@ -4476,7 +4476,7 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
     context = Contexts.PythonModuleContext(
         module         = module,
         module_name    = module_name,
-        code_name      = Generator.getModuleIdentifier(module_name),
+        code_name      = module.getCodeName(),
         filename       = module.getFilename(),
         global_context = global_context,
         is_empty       = module.getBody() is None
@@ -4549,21 +4549,21 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
     for other_module in other_modules:
         metapath_loader_inittab.append(
             Generator.getModuleMetapathLoaderEntryCode(
-                module_name = other_module.getFullName(),
-                is_shlib    = other_module.isPythonShlibModule(),
-                is_package  = other_module.isPythonPackage()
+                module_name       = other_module.getFullName(),
+                module_identifier = other_module.getCodeName(),
+                is_shlib          = other_module.isPythonShlibModule(),
+                is_package        = other_module.isPythonPackage()
             )
         )
 
         if not other_module.isPythonShlibModule():
             metapath_module_decls.append(
-                "MOD_INIT_DECL( %s );" % Generator.getModuleIdentifier(
-                    other_module.getFullName()
-                )
+                "MOD_INIT_DECL( %s );" % other_module.getCodeName()
             )
 
     template_values = Generator.prepareModuleCode(
         module_name             = module_name,
+        module_identifier       = module.getCodeName(),
         codes                   = codes,
         metapath_loader_inittab = metapath_loader_inittab,
         metapath_module_decls   = metapath_module_decls,
@@ -4572,7 +4572,7 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
         temp_variables          = module.getTempVariables(),
         is_main_module          = module.isMainModule(),
         is_internal_module      = module.isInternalModule(),
-        context                 = context,
+        context                 = context
     )
 
     if Utils.python_version >= 330:

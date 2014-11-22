@@ -38,19 +38,8 @@ def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
 
-def getModuleIdentifier(module_name):
-    # TODO: This is duplication with ModuleNode.getCodeName, remove it.
-    def r(match):
-        c = match.group()
-        if c == '.':
-            return "$"
-        else:
-            return "$$%d$" % ord(c)
-
-    return "".join(re.sub("[^a-zA-Z0-9_]", r ,c) for c in module_name)
-
-
-def getModuleMetapathLoaderEntryCode(module_name, is_shlib, is_package):
+def getModuleMetapathLoaderEntryCode(module_name, module_identifier,
+                                     is_shlib, is_package):
     if is_shlib:
         assert module_name != "__main__"
         assert not is_package
@@ -61,22 +50,21 @@ def getModuleMetapathLoaderEntryCode(module_name, is_shlib, is_package):
     elif is_package:
         return CodeTemplates.template_metapath_loader_compiled_package_entry % {
             "module_name"       : module_name,
-            "module_identifier" : getModuleIdentifier(module_name),
+            "module_identifier" : module_identifier,
         }
     else:
         return CodeTemplates.template_metapath_loader_compiled_module_entry % {
             "module_name"       : module_name,
-            "module_identifier" : getModuleIdentifier(module_name),
+            "module_identifier" : module_identifier,
         }
 
 
-def prepareModuleCode(context, module_name, codes, metapath_loader_inittab,
-                      metapath_module_decls, function_decl_codes,
-                      function_body_codes, temp_variables, is_main_module,
-                      is_internal_module):
+def prepareModuleCode(context, module_name, module_identifier, codes,
+                      metapath_loader_inittab, metapath_module_decls,
+                      function_decl_codes, function_body_codes, temp_variables,
+                      is_main_module, is_internal_module):
     # For the module code, lots of attributes come together.
     # pylint: disable=R0914
-    module_identifier = getModuleIdentifier(module_name)
 
     # Temp local variable initializations
     local_var_inits = [
