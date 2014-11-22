@@ -270,7 +270,7 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
         "%s = MAKE_FUNCTION_%s( %s );" % (
             to_name,
             function_identifier,
-            ", ".join( args )
+            ", ".join(args)
         )
     )
 
@@ -279,7 +279,7 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
     if context.needsCleanup(kw_defaults_name):
         context.removeCleanupTempName(kw_defaults_name)
 
-    # TODO: Error checks
+    # No error checks, this supposedly, cannot fail.
     context.addCleanupTempName(to_name)
 
 
@@ -532,6 +532,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         result += entry_point_code
 
     return result
+
 
 def getGeneratorFunctionCode( context, function_name, function_identifier,
                               parameters, closure_variables, user_variables,

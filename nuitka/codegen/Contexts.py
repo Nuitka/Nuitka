@@ -674,7 +674,7 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin):
         return self.return_release_mode
 
     def mayRecurse(self):
-        # TODO: Determine this at compile time.
+        # TODO: Determine this at compile time for enhanced optimizations.
         return True
 
     def getCodeObjectHandle(self, **kw):
