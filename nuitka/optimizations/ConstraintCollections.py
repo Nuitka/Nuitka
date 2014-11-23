@@ -207,10 +207,10 @@ class CollectionStartpointMixin:
     def addVariableMergeTrace(self, variable, trace_yes, trace_no):
         version = variable.allocateTargetNumber()
         trace_merge = VariableMergeTrace(
-            variable     = variable,
-            version      = version,
-            trace_yes    = trace_yes,
-            trace_no     = trace_no
+            variable  = variable,
+            version   = version,
+            trace_yes = trace_yes,
+            trace_no  = trace_no
         )
 
         self.addVariableTrace(variable, version, trace_merge)

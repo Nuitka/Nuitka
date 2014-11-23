@@ -292,7 +292,7 @@ are not really incompatible, but different.""",
 
 codegen_group.add_option(
     "--code-gen-no-statement-lines",
-    action  ="store_false",
+    action  = "store_false",
     dest    = "statement_lines",
     default = True,
     help    = """\
@@ -318,7 +318,7 @@ outputdir_group = OptionGroup(
 
 outputdir_group.add_option(
     "--output-dir",
-    action  ="store",
+    action  = "store",
     dest    = "output_dir",
     metavar = "DIRECTORY",
     default = "",
@@ -444,7 +444,7 @@ compilers. Defaults to the most recent version."""
 
 cpp_compiler_group.add_option(
     "-j", "--jobs",
-    action  ="store",
+    action  = "store",
     dest    = "jobs",
     metavar = "N",
     default = Utils.getCoreCount(),

@@ -126,13 +126,13 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         )
 
         prelude = StatementConditional(
-            condition = ExpressionComparisonIs(
+            condition  = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
                     variable   = tmp_indicator_var,
                     source_ref = source_ref.atInternal()
                 ),
                 right      = ExpressionConstantRef(
-                    constant = False,
+                    constant   = False,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -154,13 +154,13 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
 
         postlude = (
             StatementConditional(
-                condition = ExpressionComparisonIs(
+                condition  = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
                         variable   = tmp_indicator_var,
                         source_ref = source_ref.atInternal()
                     ),
                     right      = ExpressionConstantRef(
-                        constant = False,
+                        constant   = False,
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
@@ -172,8 +172,8 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                                 variable   = tmp_indicator_var,
                                 source_ref = source_ref.atInternal()
                             ),
-                            tolerant   = False,
-                            source_ref = source_ref.atInternal()
+                            tolerant     = False,
+                            source_ref   = source_ref.atInternal()
                         ),
                         StatementReraiseFrameException(
                             source_ref = source_ref.atInternal()
@@ -188,8 +188,8 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                                 variable   = tmp_indicator_var,
                                 source_ref = source_ref.atInternal()
                             ),
-                            tolerant   = False,
-                            source_ref = source_ref.atInternal()
+                            tolerant     = False,
+                            source_ref   = source_ref.atInternal()
                         ),
                     ),
                     source_ref = source_ref.atInternal()

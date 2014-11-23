@@ -156,7 +156,7 @@ def buildFunctionNode(provider, node, source_ref):
         decorated_function = ExpressionCallNoKeywords(
             called     = decorator,
             args       = ExpressionMakeTuple(
-                elements    = (decorated_function,),
+                elements   = (decorated_function,),
                 source_ref = source_ref
             ),
             source_ref = decorator.getSourceReference()
@@ -325,14 +325,14 @@ def buildParameterSpec(name, node, source_ref):
             assert False, getKind( arg )
 
     result = ParameterSpec(
-        name           = name,
-        normal_args    = [ extractArg( arg ) for arg in node.args.args ],
-        kw_only_args   = [ extractArg( arg ) for arg in node.args.kwonlyargs ]
+        name          = name,
+        normal_args   = [ extractArg( arg ) for arg in node.args.args ],
+        kw_only_args  = [ extractArg( arg ) for arg in node.args.kwonlyargs ]
                            if Utils.python_version >= 300 else
                          [],
-        list_star_arg  = extractArg( node.args.vararg ),
-        dict_star_arg  = extractArg( node.args.kwarg ),
-        default_count  = len(node.args.defaults)
+        list_star_arg = extractArg( node.args.vararg ),
+        dict_star_arg = extractArg( node.args.kwarg ),
+        default_count = len(node.args.defaults)
     )
 
     message = result.checkValid()

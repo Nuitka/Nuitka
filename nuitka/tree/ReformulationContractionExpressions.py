@@ -87,8 +87,8 @@ def buildListContractionNode(provider, node, source_ref):
         )
 
         outer_iter_ref = ExpressionTempVariableRef(
-            variable      = outer_iter_var,
-            source_ref    = source_ref
+            variable   = outer_iter_var,
+            source_ref = source_ref
         )
 
         container_tmp   = provider.allocateTempVariable(
@@ -127,7 +127,7 @@ def buildListContractionNode(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                source_ref  = source_ref
+                source_ref   = source_ref
             )
         )
 
@@ -207,16 +207,16 @@ def buildDictContractionNode(provider, node, source_ref):
     # Dict contractions are dealt with by general code.
 
     return _buildContractionNode(
-        provider         = provider,
-        node             = node,
-        name             = "<dictcontraction>",
-        emit_class       = ExpressionDictOperationSet,
-        start_value      = ExpressionConstantRef(
+        provider        = provider,
+        node            = node,
+        name            = "<dictcontraction>",
+        emit_class      = ExpressionDictOperationSet,
+        start_value     = ExpressionConstantRef(
             constant   = {},
             source_ref = source_ref
         ),
-        assign_provider  = False,
-        source_ref       = source_ref
+        assign_provider = False,
+        source_ref      = source_ref
     )
 
 
@@ -249,8 +249,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                     variable   = container_tmp,
                     source_ref = source_ref
                 ),
-                source     = start_value,
-                source_ref = source_ref.atInternal()
+                source       = start_value,
+                source_ref   = source_ref.atInternal()
             )
         ]
 
@@ -297,12 +297,12 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 variable   = container_tmp,
                 source_ref = source_ref
             ),
-            key = buildNode(
+            key        = buildNode(
                 provider   = function_body,
                 node       = node.key,
                 source_ref = source_ref,
             ),
-            value = buildNode(
+            value      = buildNode(
                 provider   = function_body,
                 node       = node.value,
                 source_ref = source_ref,
@@ -357,8 +357,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                         variable   = tmp_iter_variable,
                         source_ref = source_ref
                     ),
-                    source     = value_iterator,
-                    source_ref = source_ref
+                    source       = value_iterator,
+                    source_ref   = source_ref
                 )
             ]
 
@@ -375,11 +375,11 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                             variable   = tmp_value_variable,
                             source_ref = source_ref
                         ),
-                        source     = ExpressionBuiltinNext1(
+                        source       = ExpressionBuiltinNext1(
                             value      = iterator_ref,
                             source_ref = source_ref
                         ),
-                        source_ref = source_ref
+                        source_ref   = source_ref
                     )
                 ),
                 exception_name = "StopIteration",
@@ -423,7 +423,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         elif len(conditions) > 1:
             loop_statements.append(
                 StatementConditional(
-                    condition = buildAndNode(
+                    condition  = buildAndNode(
                         provider   = function_body,
                         values     = conditions,
                         source_ref = source_ref
@@ -455,8 +455,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                         variable   = tmp_iter_variable,
                         source_ref = source_ref
                     ),
-                    tolerant   = False,
-                    source_ref = source_ref
+                    tolerant     = False,
+                    source_ref   = source_ref
                 )
             )
 
@@ -484,8 +484,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                     variable   = tmp_variable,
                     source_ref = source_ref
                 ),
-                tolerant   = True,
-                source_ref = source_ref.atInternal()
+                tolerant     = True,
+                source_ref   = source_ref.atInternal()
             )
         )
 

@@ -262,13 +262,13 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                    return_value.getConstant() is not None:
                     SyntaxErrors.raiseSyntaxError(
                         "'return' with argument inside generator",
-                        source_ref   = node.getSourceReference(),
+                        source_ref = node.getSourceReference(),
                     )
 
             node.replaceWith(
                 StatementGeneratorReturn(
-                    expression  = return_value,
-                    source_ref  = node.getSourceReference()
+                    expression = return_value,
+                    source_ref = node.getSourceReference()
                 )
             )
 

@@ -37,9 +37,8 @@ class ExceptionCannotNamify(Exception):
 def namifyConstant(constant):
     # Many branches, statements and every case has a return, this is a huge case
     # statement, that encodes the naming policy of constants, with often complex
-    # decisions to make, pylint: disable=R0911,R0912,R0915
 
-    if type( constant ) is int:
+    if type(constant) is int:
         if constant == 0:
             result = "int_0"
         elif constant > 0:
@@ -189,7 +188,7 @@ def _namifyString(string):
 
 def _isAscii(string):
     try:
-        _unused = str( string )
+        _unused = str(string)
 
         return True
     except UnicodeEncodeError:
@@ -203,5 +202,8 @@ def _digest(value):
             return hashlib.md5(value).hexdigest()
         else:
             return hashlib.md5(
-                value.encode("utf-8", errors="backslashreplace")
+                value.encode(
+                    "utf-8",
+                    errors = "backslashreplace"
+                )
             ).hexdigest()

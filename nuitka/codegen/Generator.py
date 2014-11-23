@@ -474,7 +474,7 @@ def getStatementTrace(source_desc, statement_repr):
 
 def getConstantsDefinitionCode(context):
     constant_inits = getConstantsInitCode(
-        context    = context
+        context = context
     )
 
     constant_declarations = getConstantsDeclCode(

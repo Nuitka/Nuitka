@@ -79,19 +79,19 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
 
     if list_star_arg is None and dict_star_arg is None:
         return ExpressionCall(
-            called  = called,
-            args    = makeSequenceCreationOrConstant(
+            called     = called,
+            args       = makeSequenceCreationOrConstant(
                 sequence_kind = "tuple",
                 elements      = positional_args,
                 source_ref    = source_ref
             ),
-            kw      = makeDictCreationOrConstant(
+            kw         = makeDictCreationOrConstant(
                 keys       = keys,
                 values     = values,
                 lazy_order = True,
                 source_ref = source_ref
             ),
-            source_ref      = source_ref,
+            source_ref = source_ref,
         )
     else:
         # Dispatch to complex helper function for each case. These do

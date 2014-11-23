@@ -42,7 +42,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
 
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "pos_arg" : pos_arg,
                 "pairs"   : tuple(
                     ExpressionKeyValuePair(
@@ -105,7 +105,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             from .NodeMakingHelpers import getComputationResult
 
             return getComputationResult(
-                node         = self,
+                node        = self,
                 computation = lambda : builtin_dict_spec.simulateCall(
                     (pos_args, self.getNamedArgumentPairs())
                 ),

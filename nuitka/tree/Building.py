@@ -395,8 +395,8 @@ def buildImportModulesNode(node, source_ref):
                                     module_topname,
                     source_ref    = source_ref
                 ),
-                source     = import_node,
-                source_ref = source_ref
+                source       = import_node,
+                source_ref   = source_ref
             )
         )
 
@@ -509,7 +509,7 @@ from __future__ imports must occur at the beginning of the file""",
                 level       = level,
                 source_ref  = source_ref
             ),
-            source_ref  = source_ref
+            source_ref    = source_ref
         )
     else:
         import_nodes = []
@@ -521,7 +521,7 @@ from __future__ imports must occur at the beginning of the file""",
                         variable_name = target_name,
                         source_ref    = source_ref
                     ),
-                    source     = ExpressionImportName(
+                    source       = ExpressionImportName(
                         module      = ExpressionImportModule(
                             module_name = module_name,
                             import_list = tuple(import_names),
@@ -531,7 +531,7 @@ from __future__ imports must occur at the beginning of the file""",
                         import_name = import_name,
                         source_ref  = source_ref
                     ),
-                    source_ref = source_ref
+                    source_ref   = source_ref
                 )
             )
 
@@ -745,7 +745,7 @@ def buildReturnNode(provider, node, source_ref):
 
 
     return makeTryFinallyIndicator(
-        statement   = StatementReturn(
+        statement    = StatementReturn(
             expression = expression,
             source_ref = source_ref
         ),
@@ -920,12 +920,12 @@ from __future__ imports must occur at the beginning of the file""",
             statements.append(
                 StatementExpressionOnly(
                     expression = ExpressionImportModule(
-                        module_name    = "site",
-                        import_list    = (),
-                        level          = 0,
-                        source_ref     = source_ref,
+                        module_name = "site",
+                        import_list = (),
+                        level       = 0,
+                        source_ref  = source_ref,
                     ),
-                    source_ref  = source_ref
+                    source_ref = source_ref
                 )
             )
 
@@ -1154,7 +1154,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             assert Utils.python_version >= 330, source_filename
 
             source_ref, result = createNamespacePackage(
-                package_name = package_name,
+                package_name   = package_name,
                 module_relpath = filename
             )
             source_filename = None
@@ -1225,7 +1225,7 @@ def buildModuleTree(filename, package, is_top, is_main):
     )
 
     addImportedModule(
-        module_relpath = Utils.relpath(filename),
+        module_relpath  = Utils.relpath(filename),
         imported_module = module
     )
 

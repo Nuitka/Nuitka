@@ -437,11 +437,11 @@ function call""" % self.getName()
             )
 
             result = wrapExpressionWithSideEffects(
-                new_node = makeRaiseExceptionReplacementExpressionFromInstance(
-                    expression     = call_node,
-                    exception      = e.getRealException()
+                new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
+                    expression = call_node,
+                    exception  = e.getRealException()
                 ),
-                old_node           = call_node,
+                old_node     = call_node,
                 side_effects = call_node.extractPreCallSideEffects()
             )
 

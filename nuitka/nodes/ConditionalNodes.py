@@ -377,7 +377,7 @@ Both branches have no effect, reduced to evaluate condition."""
             from .OperatorNodes import ExpressionOperationNOT
 
             new_statement = StatementConditional(
-                condition = ExpressionOperationNOT(
+                condition  = ExpressionOperationNOT(
                     operand    = condition,
                     source_ref = condition.getSourceReference()
                 ),

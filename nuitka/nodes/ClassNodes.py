@@ -32,7 +32,7 @@ class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
     def __init__(self, metaclass, bases, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "metaclass" : metaclass,
                 "bases"     : bases
             },

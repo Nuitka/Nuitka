@@ -252,7 +252,7 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     def __init__(self, callable, sentinel, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "callable" : callable,
                 "sentinel" : sentinel,
             },
@@ -283,7 +283,7 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     def __init__(self, iterator, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "iterator" : iterator,
                 "default"  : default,
             },

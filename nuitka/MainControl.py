@@ -334,8 +334,8 @@ def makeSourceDirectory(main_module):
                 )
 
             writeSourceCode(
-                filename     = cpp_filename,
-                source_code  = source_code
+                filename    = cpp_filename,
+                source_code = source_code
             )
 
             if Options.isShowInclusion():
@@ -577,7 +577,7 @@ def compileTree(main_module):
             frozen_code = generateBytecodeFrozenCode()
 
             writeSourceCode(
-                filename = Utils.joinpath(
+                filename    = Utils.joinpath(
                     source_dir,
                     "__frozen.cpp"
                 ),
@@ -597,14 +597,14 @@ def compileTree(main_module):
     if Options.isShowProgress():
         Tracing.printLine(
             """Total memory usage before running scons: {memory}:""".format(
-                memory      = Utils.getHumanReadableProcessMemoryUsage()
+                memory = Utils.getHumanReadableProcessMemoryUsage()
             )
         )
 
     # Run the Scons to build things.
     result, options = runScons(
-        main_module  = main_module,
-        quiet        = not Options.isShowScons()
+        main_module = main_module,
+        quiet       = not Options.isShowScons()
     )
 
     return result, options

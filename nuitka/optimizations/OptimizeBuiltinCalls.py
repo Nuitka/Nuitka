@@ -126,12 +126,12 @@ def dir_extractor(node):
             )
 
         result = ExpressionCallEmpty(
-            called = ExpressionAttributeLookup(
+            called     = ExpressionAttributeLookup(
                 expression     = source,
                 attribute_name = "keys",
                 source_ref     = source_ref
             ),
-            source_ref     = source_ref
+            source_ref = source_ref
         )
 
         # For Python3, keys doesn't really return values, but instead a handle
@@ -164,7 +164,7 @@ def vars_extractor(node):
             )
 
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
+        node                = node,
         builtin_class       = ExpressionBuiltinVars,
         builtin_spec        = BuiltinOptimization.builtin_vars_spec,
         empty_special_class = selectVarsEmptyClass
@@ -252,8 +252,8 @@ def dict_extractor(node):
             )
 
             result = makeRaiseExceptionReplacementExpressionFromInstance(
-                expression     = node,
-                exception      = TypeError(
+                expression = node,
+                exception  = TypeError(
                     "dict expected at most 1 arguments, got %d" % (
                         len(positional_args)
                     )
@@ -572,13 +572,13 @@ def eval_extractor(node):
         )
 
         strip_choice =  ExpressionConstantRef(
-            constant = (" \t",),
+            constant   = (" \t",),
             source_ref = source_ref
         )
 
         if python_version >= 300:
             strip_choice = ExpressionConditional(
-                condition = ExpressionComparisonIs(
+                condition      = ExpressionComparisonIs(
                     left       = ExpressionBuiltinType1(
                         value      = ExpressionTempVariableRef(
                             variable   = source_variable,
@@ -593,7 +593,7 @@ def eval_extractor(node):
                     source_ref = source_ref
                 ),
                 yes_expression = ExpressionConstantRef(
-                    constant = (b" \t",),
+                    constant   = (b" \t",),
                     source_ref = source_ref
                 ),
                 no_expression  = strip_choice,
@@ -609,8 +609,8 @@ def eval_extractor(node):
                     variable   = source_variable,
                     source_ref = source_ref
                 ),
-                source = ExpressionCallNoKeywords(
-                    called = ExpressionAttributeLookup(
+                source       = ExpressionCallNoKeywords(
+                    called     = ExpressionAttributeLookup(
                         expression     = ExpressionTempVariableRef(
                             variable   = source_variable,
                             source_ref = source_ref
@@ -618,10 +618,10 @@ def eval_extractor(node):
                         attribute_name = "strip",
                         source_ref     = source_ref
                     ),
-                    args         = strip_choice,
-                    source_ref   = source_ref
+                    args       = strip_choice,
+                    source_ref = source_ref
                 ),
-                source_ref = source_ref
+                source_ref   = source_ref
             )
         ]
 
@@ -635,7 +635,7 @@ def eval_extractor(node):
                 source_ref   = source_ref,
             ),
             StatementConditional(
-                condition = ExpressionOperationNOT(
+                condition  = ExpressionOperationNOT(
                     operand    = ExpressionBuiltinIsinstance(
                         instance   = ExpressionTempVariableRef(
                             variable   = source_variable,
@@ -718,7 +718,7 @@ if python_version >= 300:
                     locals_arg  = locals_ref,
                     source_ref  = source_ref
                 ),
-                source_ref  = source_ref
+                source_ref = source_ref
             )
 
         return BuiltinOptimization.extractBuiltinArgs(
@@ -789,8 +789,8 @@ def super_extractor(node):
                 )
 
                 type_arg = ExpressionTempVariableRef(
-                    variable      = class_var,
-                    source_ref    = source_ref
+                    variable   = class_var,
+                    source_ref = source_ref
                 )
                 addVariableUsage(type_arg.getVariable(), provider)
 
@@ -1001,15 +1001,15 @@ Replaced call to builtin %s with try/finally guarded call.""" % (
 
             new_node = ExpressionConditional(
                 condition      = ExpressionComparisonIs(
-                    left  = ExpressionBuiltinRef(
+                    left       = ExpressionBuiltinRef(
                         builtin_name = builtin_name,
                         source_ref   = source_ref
                     ),
-                    right = ExpressionBuiltinOriginalRef(
+                    right      = ExpressionBuiltinOriginalRef(
                         builtin_name = builtin_name,
                         source_ref   = source_ref
                     ),
-                    source_ref   = source_ref
+                    source_ref = source_ref
                 ),
                 yes_expression = new_node,
                 no_expression  = makeRaiseExceptionReplacementExpression(

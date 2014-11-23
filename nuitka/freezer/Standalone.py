@@ -263,7 +263,7 @@ def _detectImports(command, is_late):
     command = ("import sys; sys.path = %s;" % repr(sys.path)) + command
 
     import tempfile
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(delete = True) as tmp:
         if Utils.python_version >= 300:
             command = command.encode('ascii')
         tmp.write(command)
@@ -305,25 +305,25 @@ def _detectImports(command, is_late):
                 filename = parts[1][len(b"precompiled from "):]
 
                 _detectedPrecompiledFile(
-                    filename     = filename,
-                    module_name  = module_name,
-                    result       = result,
-                    is_late      = is_late
+                    filename    = filename,
+                    module_name = module_name,
+                    result      = result,
+                    is_late     = is_late
                 )
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
 
                 if filename.endswith(b".py"):
                     _detectedSourceFile(
-                        filename     = filename,
-                        module_name  = module_name,
-                        result       = result,
-                        is_late      = is_late
+                        filename    = filename,
+                        module_name = module_name,
+                        result      = result,
+                        is_late     = is_late
                     )
                 elif not filename.endswith(b"<frozen>"):
                     _detectedShlibFile(
-                        filename     = filename,
-                        module_name  = module_name
+                        filename    = filename,
+                        module_name = module_name
                     )
             elif origin == b"dynamically":
                 # Shared library in early load, happens on RPM based systems and

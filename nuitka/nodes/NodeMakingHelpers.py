@@ -110,7 +110,7 @@ def makeCompileTimeConstantReplacementNode(value, node):
         if value.__name__ in builtin_names:
             return ExpressionBuiltinRef(
                 builtin_name = value.__name__,
-                source_ref    = node.getSourceReference()
+                source_ref   = node.getSourceReference()
             )
         else:
             return node

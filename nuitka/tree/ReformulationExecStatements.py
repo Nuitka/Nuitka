@@ -124,7 +124,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
 
     # The locals default is dependant on exec_mode, globals or locals.
     locals_default = ExpressionConditional(
-        condition = ExpressionComparisonIs(
+        condition      = ExpressionComparisonIs(
             left       = ExpressionTempVariableRef(
                 variable   = globals_keeper_variable,
                 source_ref = source_ref
@@ -164,7 +164,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             source_ref   = source_ref,
         ),
         StatementConditional(
-            condition      = ExpressionComparisonIs(
+            condition  = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
                     variable   = locals_keeper_variable,
                     source_ref = source_ref
@@ -175,7 +175,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                 ),
                 source_ref = source_ref
             ),
-            yes_branch     = makeStatementsSequenceFromStatement(
+            yes_branch = makeStatementsSequenceFromStatement(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
                         variable   = locals_keeper_variable,
@@ -185,11 +185,11 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                     source_ref   = source_ref,
                 )
             ),
-            no_branch      = None,
-            source_ref     = source_ref
+            no_branch  = None,
+            source_ref = source_ref
         ),
         StatementConditional(
-            condition      = ExpressionComparisonIs(
+            condition  = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
                     variable   = globals_keeper_variable,
                     source_ref = source_ref
@@ -200,7 +200,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                 ),
                 source_ref = source_ref
             ),
-            yes_branch     = makeStatementsSequenceFromStatement(
+            yes_branch = makeStatementsSequenceFromStatement(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
                         variable   = globals_keeper_variable,
@@ -212,8 +212,8 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                     source_ref   = source_ref,
                 )
             ),
-            no_branch      = None,
-            source_ref     = source_ref
+            no_branch  = None,
+            source_ref = source_ref
         )
     ]
 
@@ -263,7 +263,7 @@ def buildExecNode(provider, node, source_ref):
                 exec_locals = parts[2]
         else:
             return StatementRaiseException(
-                exception_type = ExpressionBuiltinExceptionRef(
+                exception_type  = ExpressionBuiltinExceptionRef(
                     exception_name = "TypeError",
                     source_ref     = source_ref
                 ),
@@ -365,7 +365,7 @@ exec: arg 1 must be a string, file, or code object""",
             source_ref   = source_ref
         ),
         StatementConditional(
-            condition      = ExpressionComparisonIs(
+            condition  = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
                     variable   = globals_keeper_variable,
                     source_ref = source_ref
@@ -376,7 +376,7 @@ exec: arg 1 must be a string, file, or code object""",
                 ),
                 source_ref = source_ref
             ),
-            yes_branch     = makeStatementsSequenceFromStatements(
+            yes_branch = makeStatementsSequenceFromStatements(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
                         variable   = globals_keeper_variable,
@@ -388,7 +388,7 @@ exec: arg 1 must be a string, file, or code object""",
                     source_ref   = source_ref,
                 ),
                 StatementConditional(
-                    condition      = ExpressionComparisonIs(
+                    condition  = ExpressionComparisonIs(
                         left       = ExpressionTempVariableRef(
                             variable   = locals_keeper_variable,
                             source_ref = source_ref
@@ -399,7 +399,7 @@ exec: arg 1 must be a string, file, or code object""",
                         ),
                         source_ref = source_ref
                     ),
-                    yes_branch     = makeStatementsSequenceFromStatements(
+                    yes_branch = makeStatementsSequenceFromStatements(
                         StatementAssignmentVariable(
                             variable_ref = ExpressionTargetTempVariableRef(
                                 variable   = locals_keeper_variable,
@@ -426,9 +426,9 @@ exec: arg 1 must be a string, file, or code object""",
                     source_ref = source_ref
                 ),
             ),
-            no_branch      = makeStatementsSequenceFromStatements(
+            no_branch  = makeStatementsSequenceFromStatements(
                 StatementConditional(
-                    condition      = ExpressionComparisonIs(
+                    condition  = ExpressionComparisonIs(
                         left       = ExpressionTempVariableRef(
                             variable   = locals_keeper_variable,
                             source_ref = source_ref
@@ -439,7 +439,7 @@ exec: arg 1 must be a string, file, or code object""",
                         ),
                         source_ref = source_ref
                     ),
-                    yes_branch     = makeStatementsSequenceFromStatement(
+                    yes_branch = makeStatementsSequenceFromStatement(
                         statement = StatementAssignmentVariable(
                             variable_ref = ExpressionTargetTempVariableRef(
                                 variable   = locals_keeper_variable,
@@ -452,16 +452,16 @@ exec: arg 1 must be a string, file, or code object""",
                             source_ref   = source_ref,
                         )
                     ),
-                    no_branch      = None,
-                    source_ref     = source_ref
+                    no_branch  = None,
+                    source_ref = source_ref
                 )
             ),
-            source_ref     = source_ref
+            source_ref = source_ref
         ),
         # Source needs some special treatment for not done for "eval", if it's a
         # file object, then  must be read.
         StatementConditional(
-            condition = ExpressionBuiltinIsinstance(
+            condition  = ExpressionBuiltinIsinstance(
                 instance   = ExpressionTempVariableRef(
                     variable   = source_variable,
                     source_ref = source_ref
@@ -478,8 +478,8 @@ exec: arg 1 must be a string, file, or code object""",
                         variable   = source_variable,
                         source_ref = source_ref
                     ),
-                    source = ExpressionCallEmpty(
-                        called = ExpressionAttributeLookup(
+                    source       = ExpressionCallEmpty(
+                        called     = ExpressionAttributeLookup(
                             expression     = ExpressionTempVariableRef(
                                 variable   = source_variable,
                                 source_ref = source_ref
@@ -487,16 +487,16 @@ exec: arg 1 must be a string, file, or code object""",
                             attribute_name = "read",
                             source_ref     = source_ref
                         ),
-                        source_ref   = source_ref
+                        source_ref = source_ref
                     ),
-                    source_ref = source_ref
+                    source_ref   = source_ref
                 )
             ),
             no_branch  = None,
             source_ref = source_ref
         ),
         StatementTryFinally(
-            tried = makeStatementsSequenceFromStatement(
+            tried      = makeStatementsSequenceFromStatement(
                 statement = StatementExec(
                     source_code = ExpressionTempVariableRef(
                         variable   = source_variable,
@@ -513,9 +513,9 @@ exec: arg 1 must be a string, file, or code object""",
                     source_ref  = source_ref
                 )
             ),
-            final = makeStatementsSequenceFromStatements(
+            final      = makeStatementsSequenceFromStatements(
                 StatementConditional(
-                    condition      = ExpressionComparisonIs(
+                    condition  = ExpressionComparisonIs(
                         left       = ExpressionTempVariableRef(
                             variable   = plain_indicator_variable,
                             source_ref = source_ref
@@ -526,7 +526,7 @@ exec: arg 1 must be a string, file, or code object""",
                         ),
                         source_ref = source_ref
                     ),
-                    yes_branch     = makeStatementsSequenceFromStatement(
+                    yes_branch = makeStatementsSequenceFromStatement(
                         statement = StatementLocalsDictSync(
                             locals_arg = ExpressionTempVariableRef(
                                 variable   = locals_keeper_variable,
@@ -535,8 +535,8 @@ exec: arg 1 must be a string, file, or code object""",
                             source_ref = source_ref.atInternal()
                         )
                     ),
-                    no_branch      = None,
-                    source_ref     = source_ref
+                    no_branch  = None,
+                    source_ref = source_ref
                 ),
             ),
             public_exc = False,

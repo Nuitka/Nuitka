@@ -34,12 +34,12 @@ class BuiltinParameterSpec(ParameterSpec):
                   dict_star_arg = None):
         ParameterSpec.__init__(
             self,
-            name           = name,
-            normal_args    = arg_names,
-            list_star_arg  = list_star_arg,
-            dict_star_arg  = dict_star_arg,
-            default_count  = default_count,
-            kw_only_args   = ()
+            name          = name,
+            normal_args   = arg_names,
+            list_star_arg = list_star_arg,
+            dict_star_arg = dict_star_arg,
+            default_count = default_count,
+            kw_only_args  = ()
         )
 
         self.builtin = __builtins__[name]
@@ -382,8 +382,8 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
 
         return wrapExpressionWithSideEffects(
             new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
-                expression     = node,
-                exception      = e.getRealException()
+                expression = node,
+                exception  = e.getRealException()
             ),
             old_node     = node,
             side_effects = node.extractPreCallSideEffects()

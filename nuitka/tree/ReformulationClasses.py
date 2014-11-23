@@ -169,7 +169,7 @@ def _buildClassNode3(provider, node, source_ref):
                 variable      = module_variable,
                 source_ref    = source_ref
             ),
-            source        = ExpressionConstantRef(
+            source       = ExpressionConstantRef(
                 constant      = provider.getParentModule().getFullName(),
                 source_ref    = source_ref,
                 user_provided = True
@@ -190,7 +190,7 @@ def _buildClassNode3(provider, node, source_ref):
                     variable      = doc_variable,
                     source_ref    = source_ref
                 ),
-                source        = ExpressionConstantRef(
+                source       = ExpressionConstantRef(
                     constant      = class_doc,
                     source_ref    = source_ref,
                     user_provided = True
@@ -371,7 +371,7 @@ def _buildClassNode3(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       = makeDictCreationOrConstant(
-                keys      = [
+                keys       = [
                     ExpressionConstantRef(
                         constant      = keyword.arg,
                         source_ref    = source_ref,
@@ -380,7 +380,7 @@ def _buildClassNode3(provider, node, source_ref):
                     for keyword in
                     node.keywords
                 ],
-                values = [
+                values     = [
                     buildNode(provider, keyword.value, source_ref)
                     for keyword in
                     node.keywords
@@ -388,7 +388,7 @@ def _buildClassNode3(provider, node, source_ref):
                 lazy_order = False,
                 source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref   = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
@@ -396,8 +396,8 @@ def _buildClassNode3(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       = ExpressionSelectMetaclass(
-                metaclass = ExpressionConditional(
-                    condition = ExpressionComparison(
+                metaclass  = ExpressionConditional(
+                    condition      = ExpressionComparison(
                         comparator = "In",
                         left       = ExpressionConstantRef(
                             constant      = "metaclass",
@@ -450,13 +450,13 @@ def _buildClassNode3(provider, node, source_ref):
                     ),
                     source_ref     = source_ref
                 ),
-                bases     = ExpressionTempVariableRef(
+                bases      = ExpressionTempVariableRef(
                     variable   = tmp_bases,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
             ),
-            source_ref = source_ref_orig
+            source_ref   = source_ref_orig
         ),
         StatementConditional(
             condition  = ExpressionComparison(
@@ -475,11 +475,11 @@ def _buildClassNode3(provider, node, source_ref):
             no_branch  = None,
             yes_branch = makeStatementsSequenceFromStatement(
                 statement = StatementDictOperationRemove(
-                    dicte = ExpressionTempVariableRef(
+                    dicte      = ExpressionTempVariableRef(
                         variable   = tmp_class_decl_dict,
                         source_ref = source_ref
                     ),
-                    key   = ExpressionConstantRef(
+                    key        = ExpressionConstantRef(
                         constant      = "metaclass",
                         source_ref    = source_ref,
                         user_provided = True
@@ -495,7 +495,7 @@ def _buildClassNode3(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       = ExpressionConditional(
-                condition = ExpressionBuiltinHasattr(
+                condition      = ExpressionBuiltinHasattr(
                     object     = ExpressionTempVariableRef(
                         variable   = tmp_metaclass,
                         source_ref = source_ref
@@ -507,7 +507,7 @@ def _buildClassNode3(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                no_expression = ExpressionConstantRef(
+                no_expression  = ExpressionConstantRef(
                     constant      = {},
                     source_ref    = source_ref,
                     user_provided = True
@@ -541,17 +541,17 @@ def _buildClassNode3(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                source_ref = source_ref
+                source_ref     = source_ref
             ),
-            source_ref = source_ref
+            source_ref   = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetVariableRef(
                 variable_name = node.name,
                 source_ref    = source_ref
             ),
-            source     = decorated_body,
-            source_ref = source_ref
+            source       = decorated_body,
+            source_ref   = source_ref
         ),
     )
 
@@ -569,32 +569,32 @@ def _buildClassNode3(provider, node, source_ref):
                 variable   = tmp_bases,
                 source_ref = source_ref
             ),
-            tolerant   = True,
-            source_ref = source_ref
+            tolerant     = True,
+            source_ref   = source_ref
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_class_decl_dict,
                 source_ref = source_ref
             ),
-            tolerant   = True,
-            source_ref = source_ref
+            tolerant     = True,
+            source_ref   = source_ref
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_metaclass,
                 source_ref = source_ref
             ),
-            tolerant   = True,
-            source_ref = source_ref
+            tolerant     = True,
+            source_ref   = source_ref
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_prepared,
                 source_ref = source_ref
             ),
-            tolerant   = True,
-            source_ref = source_ref
+            tolerant     = True,
+            source_ref   = source_ref
         )
     )
 
@@ -640,7 +640,7 @@ def _buildClassNode2(provider, node, source_ref):
                 variable_name = "__module__",
                 source_ref    = source_ref
             ),
-            source        = ExpressionConstantRef(
+            source       = ExpressionConstantRef(
                 constant      = provider.getParentModule().getFullName(),
                 source_ref    = source_ref,
                 user_provided = True
@@ -656,7 +656,7 @@ def _buildClassNode2(provider, node, source_ref):
                     variable_name = "__doc__",
                     source_ref    = source_ref
                 ),
-                source        = ExpressionConstantRef(
+                source       = ExpressionConstantRef(
                     constant      = class_doc,
                     source_ref    = source_ref,
                     user_provided = True
@@ -714,7 +714,7 @@ def _buildClassNode2(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       =   ExpressionFunctionCall(
-                function = ExpressionFunctionCreation(
+                function   = ExpressionFunctionCreation(
                     function_ref = ExpressionFunctionRef(
                         function_body = function_body,
                         source_ref    = source_ref
@@ -735,7 +735,7 @@ def _buildClassNode2(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       = ExpressionConditional(
-                condition =  ExpressionComparison(
+                condition      =  ExpressionComparison(
                     comparator = "In",
                     left       = ExpressionConstantRef(
                         constant      = "__metaclass__",
@@ -749,40 +749,40 @@ def _buildClassNode2(provider, node, source_ref):
                     source_ref = source_ref
                 ),
                 yes_expression = ExpressionDictOperationGet(
-                    dicte = ExpressionTempVariableRef(
+                    dicte      = ExpressionTempVariableRef(
                         variable   = tmp_class_dict,
                         source_ref = source_ref
                     ),
-                    key   = ExpressionConstantRef(
+                    key        = ExpressionConstantRef(
                         constant      = "__metaclass__",
                         source_ref    = source_ref,
                         user_provided = True
                     ),
                     source_ref = source_ref
                 ),
-                no_expression = ExpressionSelectMetaclass(
-                    metaclass = None,
-                    bases     = ExpressionTempVariableRef(
+                no_expression  = ExpressionSelectMetaclass(
+                    metaclass  = None,
+                    bases      = ExpressionTempVariableRef(
                         variable   = tmp_bases,
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
                 ),
-                source_ref = source_ref
+                source_ref     = source_ref
             ),
-            source_ref = source_ref
+            source_ref   = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_class,
                 source_ref = source_ref
             ),
-            source     = ExpressionCallNoKeywords(
-                called         = ExpressionTempVariableRef(
+            source       = ExpressionCallNoKeywords(
+                called     = ExpressionTempVariableRef(
                     variable   = tmp_metaclass,
                     source_ref = source_ref
                 ),
-                args           = ExpressionMakeTuple(
+                args       = ExpressionMakeTuple(
                     elements   = (
                         ExpressionConstantRef(
                             constant      = node.name,
@@ -802,7 +802,7 @@ def _buildClassNode2(provider, node, source_ref):
                 ),
                 source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref   = source_ref
         ),
     ]
 
@@ -820,7 +820,7 @@ def _buildClassNode2(provider, node, source_ref):
                 source       = ExpressionCallNoKeywords(
                     called     = decorator,
                     args       = ExpressionMakeTuple(
-                        elements  = (
+                        elements   = (
                             ExpressionTempVariableRef(
                                 variable   = tmp_class,
                                 source_ref = source_ref
@@ -840,11 +840,11 @@ def _buildClassNode2(provider, node, source_ref):
                 variable_name = node.name,
                 source_ref    = source_ref
             ),
-            source     = ExpressionTempVariableRef(
+            source       = ExpressionTempVariableRef(
                 variable   = tmp_class,
                 source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref   = source_ref
         )
     )
 
@@ -854,32 +854,32 @@ def _buildClassNode2(provider, node, source_ref):
                 variable   = tmp_class,
                 source_ref = source_ref
             ),
-            tolerant   = True,
-            source_ref = source_ref
+            tolerant     = True,
+            source_ref   = source_ref
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_bases,
                 source_ref = source_ref
             ),
-            tolerant   = True,
-            source_ref = source_ref
+            tolerant     = True,
+            source_ref   = source_ref
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_class_dict,
                 source_ref = source_ref
             ),
-            tolerant   = True,
-            source_ref = source_ref
+            tolerant     = True,
+            source_ref   = source_ref
         ),
         StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_metaclass,
                 source_ref = source_ref
             ),
-            tolerant   = True,
-            source_ref = source_ref
+            tolerant     = True,
+            source_ref   = source_ref
         )
     )
 

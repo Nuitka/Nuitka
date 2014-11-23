@@ -1238,7 +1238,7 @@ class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
     def __init__(self, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "value" : value,
             },
             source_ref = source_ref

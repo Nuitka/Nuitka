@@ -46,9 +46,9 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
         )
 
         getErrorExitCode(
-            check_name  = to_name,
-            emit        = emit,
-            context     = context
+            check_name = to_name,
+            emit       = emit,
+            context    = context
         )
 
         getReleaseCode(

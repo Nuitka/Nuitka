@@ -448,7 +448,7 @@ local variable '%s' referenced before assignment""" % (
                 getErrorFormatExitBoolCode(
                     condition = "%s == false" % res_name,
                     exception = "PyExc_NameError",
-                    args       = ("""\
+                    args      = ("""\
 free variable '%s' referenced before assignment in enclosing scope""" % (
                             variable.getName()
                         ),
