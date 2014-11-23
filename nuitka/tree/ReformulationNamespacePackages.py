@@ -88,6 +88,6 @@ def createNamespacePackage(package_name, module_relpath):
         )
     )
 
-    completeVariableClosures( package )
+    completeVariableClosures(package)
 
     return source_ref, package

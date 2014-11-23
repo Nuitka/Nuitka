@@ -138,7 +138,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
         if node.isExpressionBuiltinImport() and \
            not Options.getShallFollowExtra() and \
            not isWhiteListedImport(node):
-            warning( """Unresolved '__import__' call at '%s' may require use \
+            warning("""Unresolved '__import__' call at '%s' may require use \
 of '--recurse-directory'.""" % (
                     node.getSourceReference().getAsString()
                 )

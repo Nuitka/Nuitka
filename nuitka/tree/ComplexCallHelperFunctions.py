@@ -382,7 +382,7 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
                             ),
                             ExpressionAttributeLookup(
                                 expression     = ExpressionBuiltinType1(
-                                    value      = star_list_variable_ref.makeCloneAt( source_ref ),
+                                    value      = star_list_variable_ref.makeCloneAt(source_ref),
                                     source_ref = source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -409,7 +409,7 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
     return StatementConditional(
         condition  = ExpressionOperationNOT(
             operand    = ExpressionBuiltinIsinstance(
-                instance   = star_list_variable_ref.makeCloneAt( source_ref ),
+                instance   = star_list_variable_ref.makeCloneAt(source_ref),
                 classes    = ExpressionBuiltinRef(
                     builtin_name = "tuple",
                     source_ref   = source_ref
@@ -422,7 +422,7 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
             statement = makeTryExceptSingleHandlerNode(
                 tried          =  makeStatementsSequenceFromStatement(
                     statement = StatementAssignmentVariable(
-                        variable_ref = star_list_target_variable_ref.makeCloneAt( source_ref ),
+                        variable_ref = star_list_target_variable_ref.makeCloneAt(source_ref),
                         source       = ExpressionBuiltinTuple(
                             value      = star_list_variable_ref.makeCloneAt(
                                 source_ref
@@ -478,7 +478,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                             ),
                             ExpressionAttributeLookup(
                                 expression     = ExpressionBuiltinType1(
-                                    value      = star_dict_variable_ref.makeCloneAt( source_ref ),
+                                    value      = star_dict_variable_ref.makeCloneAt(source_ref),
                                     source_ref = source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -906,13 +906,13 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentSubscript(
-            expression = kw_variable_ref.makeCloneAt( source_ref ),
+            expression = kw_variable_ref.makeCloneAt(source_ref),
             subscript  = ExpressionTempVariableRef(
                 variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
-                expression = star_dict_variable_ref.makeCloneAt( source_ref ),
+                expression = star_dict_variable_ref.makeCloneAt(source_ref),
                 subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = source_ref

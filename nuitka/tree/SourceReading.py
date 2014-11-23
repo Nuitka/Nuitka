@@ -133,8 +133,8 @@ def _readSourceCodeFromFilename2(source_filename):
 
                 wrong_byte = re.search(
                     "byte 0x([a-f0-9]{2}) in position",
-                    str( e )
-                ).group( 1 )
+                    str(e)
+                ).group(1)
 
                 SyntaxErrors.raiseSyntaxError(
                     reason       = """\

@@ -119,13 +119,13 @@ blacklist = (
     "TreeDisplay.py"
 )
 
-exit_code = 0
+our_exit_code = 0
 
 def executePyLint(filename):
     if options.verbose:
         print("Checking", filename, "...")
 
-    global exit_code
+    global our_exit_code
 
     command = "pylint %s %s %s" % (
         " ".join(pylint_options),
@@ -145,7 +145,7 @@ def executePyLint(filename):
 
     assert not _stderr
     if stdout:
-        exit_code = 1
+        our_exit_code = 1
 
         for line in stdout.split(b"\n"):
             output = line.decode()
@@ -188,4 +188,4 @@ else:
                     os.path.join(dirpath, filename)
                 )
 
-sys.exit(exit_code)
+sys.exit(our_exit_code)

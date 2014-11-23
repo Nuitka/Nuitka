@@ -61,7 +61,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
                 change_desc = "Predicted len argument"
 
                 new_node = wrapExpressionWithNodeSideEffects(
-                    new_node = makeConstantReplacementNode( arg_length, self ),
+                    new_node = makeConstantReplacementNode(arg_length, self),
                     old_node = self.getValue()
                 )
 
@@ -108,18 +108,18 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
 
     def mayHaveSideEffects(self):
         if self.getValue().isCompileTimeConstant():
-            return self.getValue().isKnownToBeIterable( None )
+            return self.getValue().isKnownToBeIterable(None)
 
         return True
 
     def isKnownToBeIterableAtMin(self, count):
-        assert type( count ) is int
+        assert type(count) is int
 
         iter_length = self.getValue().getIterationLength()
         return iter_length is not None and iter_length < count
 
     def isKnownToBeIterableAtMax(self, count):
-        assert type( count ) is int
+        assert type(count) is int
 
         iter_length = self.getValue().getIterationLength()
 
@@ -177,7 +177,7 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
         )
 
     def getDetails(self):
-        result = ExpressionBuiltinNext1.getDetails( self )
+        result = ExpressionBuiltinNext1.getDetails(self)
         result[ "element_index" ] = self.getCount()
 
         return result
@@ -212,13 +212,13 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
     def getCount(self):
         return self.count
 
-    getIterator = StatementChildrenHavingBase.childGetter( "iterator" )
+    getIterator = StatementChildrenHavingBase.childGetter("iterator")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getIterator() )
+        constraint_collection.onExpression(self.getIterator())
         iterator = self.getIterator()
 
-        if iterator.willRaiseException( BaseException ):
+        if iterator.willRaiseException(BaseException):
             from .NodeMakingHelpers import \
               makeStatementExpressionOnlyReplacementNode
 
@@ -231,7 +231,7 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
 Explicit raise already raises implicitely building exception type."""
 
         # Remove the check if it can be decided at compile time.
-        if iterator.isKnownToBeIterableAtMax( 0 ):
+        if iterator.isKnownToBeIterableAtMax(0):
             return None, "new_statements", """\
 Determined iteration end check to be always true."""
 

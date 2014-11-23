@@ -184,8 +184,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
              node.isStatementDelAttribute():
             attribute_name = node.getAttributeName()
 
-            if attribute_name.startswith( "__" ) and \
-               not attribute_name.endswith( "__" ):
+            if attribute_name.startswith("__") and \
+               not attribute_name.endswith("__"):
                 seen_function = False
 
                 current = node

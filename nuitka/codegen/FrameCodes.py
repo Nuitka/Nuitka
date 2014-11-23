@@ -260,4 +260,4 @@ exception_tb = (PyTracebackObject *)INCREASE_REFCOUNT( PyThreadState_GET()->exc_
     getSetLineNumberCodeRaw("exception_tb->tb_lineno", emit, context)
     getFrameRestoreExceptionCode(emit, context)
 
-    getGotoCode(context.getExceptionEscape(), emit )
+    getGotoCode(context.getExceptionEscape(), emit)

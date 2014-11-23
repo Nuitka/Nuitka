@@ -684,11 +684,11 @@ def _buildClassNode2(provider, node, source_ref):
     # The class body is basically a function that implicitely, at the end
     # returns its locals and cannot have other return statements contained.
 
-    function_body.setBody( body )
+    function_body.setBody(body)
 
-    temp_scope = provider.allocateTempScope( "class_creation" )
+    temp_scope = provider.allocateTempScope("class_creation")
 
-    tmp_bases = provider.allocateTempVariable( temp_scope, "bases" )
+    tmp_bases = provider.allocateTempVariable(temp_scope, "bases")
     tmp_class_dict = provider.allocateTempVariable(temp_scope, "class_dict")
     tmp_metaclass = provider.allocateTempVariable(temp_scope, "metaclass")
     tmp_class = provider.allocateTempVariable(temp_scope, "class")
@@ -808,7 +808,7 @@ def _buildClassNode2(provider, node, source_ref):
 
     for decorator in buildNodeList(
             provider,
-            reversed( node.decorator_list ),
+            reversed(node.decorator_list),
             source_ref
         ):
         statements.append(
@@ -891,7 +891,7 @@ def _buildClassNode2(provider, node, source_ref):
 
 
 def buildClassNode(provider, node, source_ref):
-    assert getKind( node ) == "ClassDef"
+    assert getKind(node) == "ClassDef"
 
     # Python2 and Python3 are similar, but fundamentally different, so handle
     # them in dedicated code.

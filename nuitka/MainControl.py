@@ -142,7 +142,7 @@ def getResultBasepath(main_module):
 
     if Options.isStandaloneMode():
         return Utils.joinpath(
-            getStandaloneDirectoryPath( main_module ),
+            getStandaloneDirectoryPath(main_module),
             Utils.basename(
                 getTreeFilenameWithSuffix(main_module, "")
             )
@@ -210,7 +210,7 @@ def pickSourceFilenames(source_dir, modules):
 
         # Note: Could detect if the filesystem is cases sensitive in source_dir
         # or not, but that's probably not worth the effort.
-        collision_filename = Utils.normcase( base_filename )
+        collision_filename = Utils.normcase(base_filename)
 
         if collision_filename in seen_filenames:
             collision_filenames.add(collision_filename)
@@ -232,11 +232,11 @@ def pickSourceFilenames(source_dir, modules):
             module.getFullName()
         )
 
-        collision_filename = Utils.normcase( base_filename )
+        collision_filename = Utils.normcase(base_filename)
 
         if collision_filename in collision_filenames:
             collision_counts[ collision_filename ] = \
-              collision_counts.get( collision_filename, 0 ) + 1
+              collision_counts.get(collision_filename, 0) + 1
             hash_suffix = "@%d" % collision_counts[ collision_filename ]
         else:
             hash_suffix = ""
@@ -369,7 +369,7 @@ def makeSourceDirectory(main_module):
             assert False, module
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
+        filename    = Utils.joinpath(source_dir, "__constants.cpp"),
         source_code = CodeGeneration.generateConstantsDefinitionCode(
             context = global_context
         )
@@ -378,12 +378,12 @@ def makeSourceDirectory(main_module):
     helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode()
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__helpers.hpp" ),
+        filename    = Utils.joinpath(source_dir, "__helpers.hpp"),
         source_code = helper_decl_code
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__helpers.cpp" ),
+        filename    = Utils.joinpath(source_dir, "__helpers.cpp"),
         source_code = helper_impl_code
     )
 
@@ -524,7 +524,7 @@ def executeMain(binary_filename, tree, clean_path):
 
     if Options.isStandaloneMode():
         name = binary_filename
-    elif main_filename.endswith( ".py" ):
+    elif main_filename.endswith(".py"):
         name = main_filename[:-3]
     else:
         name = main_filename
@@ -591,7 +591,7 @@ def compileTree(main_module):
     else:
         source_dir = getSourceDirectoryPath(main_module)
 
-        if not Utils.isFile( Utils.joinpath(source_dir, "__helpers.hpp")):
+        if not Utils.isFile(Utils.joinpath(source_dir, "__helpers.hpp")):
             sys.exit("Error, no previous build directory exists.")
 
     if Options.isShowProgress():

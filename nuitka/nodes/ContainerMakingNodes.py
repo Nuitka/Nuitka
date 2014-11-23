@@ -228,8 +228,8 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
             source_ref = source_ref
         )
 
-    getKey = ExpressionChildrenHavingBase.childGetter( "key" )
-    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, constraint_collection):
         key = self.getKey()
@@ -330,10 +330,10 @@ Created dictionary found to be constant."""
         return False
 
     def isKnownToBeIterable(self, count):
-        return count is None or count == len( self.getPairs() )
+        return count is None or count == len(self.getPairs())
 
     def getIterationLength(self):
-        return len( self.getPairs() )
+        return len(self.getPairs())
 
     def canPredictIterationValues(self):
         # Dictionaries are fully predictable, pylint: disable=R0201

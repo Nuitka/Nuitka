@@ -413,9 +413,9 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             values = []
 
             for positional_arg in call_node.getPositionalArguments():
-                for _arg_name, arg_value in iterItems( args_dict ):
+                for _arg_name, arg_value in iterItems(args_dict):
                     if arg_value is positional_arg:
-                        values.append( arg_value )
+                        values.append(arg_value)
 
             result = ExpressionFunctionCall(
                 function_body = self,

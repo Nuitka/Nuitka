@@ -145,10 +145,10 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
     getKey = StatementChildrenHavingBase.childGetter("key")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getDict() )
+        constraint_collection.onExpression(self.getDict())
         dicte = self.getDict()
 
-        if dicte.willRaiseException( BaseException ):
+        if dicte.willRaiseException(BaseException):
             from .NodeMakingHelpers import \
               makeStatementExpressionOnlyReplacementNode
 
@@ -160,10 +160,10 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
             return result, "new_raise", """\
 Dictionary remove already raises implicitely accessing dictionary."""
 
-        constraint_collection.onExpression( self.getKey() )
+        constraint_collection.onExpression(self.getKey())
         key = self.getKey()
 
-        if key.willRaiseException( BaseException ):
+        if key.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -177,7 +177,7 @@ Dictionary remove already raises implicitely accessing dictionary."""
 Dictionary remove already raises implicitely building key."""
 
         # TODO: Be less lossly about it.
-        constraint_collection.removeKnowledge( dicte )
+        constraint_collection.removeKnowledge(dicte)
 
         return self, None, None
 

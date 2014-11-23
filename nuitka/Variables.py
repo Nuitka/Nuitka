@@ -96,7 +96,7 @@ class Variable:
 
 
 def mangleName(variable_name, owner):
-    if not variable_name.startswith( "__" ) or variable_name.endswith( "__" ):
+    if not variable_name.startswith("__") or variable_name.endswith("__"):
         return variable_name
     else:
         # The mangling of function variable names depends on being inside a
@@ -152,8 +152,8 @@ class ClassVariable(LocalVariable):
             In classes, names like "__name__" are not mangled, only "__name"
             would be.
         """
-        if not self.variable_name.startswith( "__" ) or \
-           self.variable_name.endswith( "__" ):
+        if not self.variable_name.startswith("__") or \
+           self.variable_name.endswith("__"):
             return self.variable_name
         else:
             return "_%s%s" % (

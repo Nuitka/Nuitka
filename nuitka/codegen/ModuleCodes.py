@@ -19,8 +19,6 @@
 
 """
 
-import re
-
 from nuitka import Options, Utils
 
 from . import CodeTemplates
@@ -63,8 +61,8 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
                       metapath_loader_inittab, metapath_module_decls,
                       function_decl_codes, function_body_codes, temp_variables,
                       is_main_module, is_internal_module):
-    # For the module code, lots of attributes come together.
-    # pylint: disable=R0914
+    # For the module code, lots of arguments and attributes come together.
+    # pylint: disable=R0913,R0914
 
     # Temp local variable initializations
     local_var_inits = [

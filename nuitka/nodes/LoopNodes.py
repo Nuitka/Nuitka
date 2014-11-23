@@ -146,7 +146,7 @@ class StatementContinueLoop(NodeBase):
     kind = "STATEMENT_CONTINUE_LOOP"
 
     def __init__(self, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
     def isStatementAborting(self):
         return True
@@ -168,7 +168,7 @@ class StatementBreakLoop(NodeBase):
     kind = "STATEMENT_BREAK_LOOP"
 
     def __init__(self, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
     def isStatementAborting(self):
         return True

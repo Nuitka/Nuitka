@@ -43,7 +43,7 @@ def getConstantCode(context, constant):
 
 # TODO: The determination of this should already happen in Building or in a
 # helper not during code generation.
-_match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
+_match_attribute_names = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 
 def getConstantCodeName(context, constant):
     return context.getConstantCode(constant)
@@ -700,7 +700,7 @@ def getConstantInitCodes(module_context):
         if not constant_identifier.startswith("const_"):
             continue
 
-        if global_context.getConstantUseCount(constant_identifier ) == 1:
+        if global_context.getConstantUseCount(constant_identifier) == 1:
             qualifier = "static "
 
             constant_value = global_context.constants[constant_identifier]

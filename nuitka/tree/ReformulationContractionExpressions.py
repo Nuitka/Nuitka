@@ -315,7 +315,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         source_ref = source_ref
     )
 
-    for count, qual in enumerate(reversed( node.generators)):
+    for count, qual in enumerate(reversed(node.generators)):
         tmp_value_variable = function_body.allocateTempVariable(
             temp_scope = temp_scope,
             name       = "iter_value_%d" % count

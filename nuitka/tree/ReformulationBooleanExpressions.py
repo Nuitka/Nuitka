@@ -43,7 +43,7 @@ from .Helpers import (
 
 
 def buildBoolOpNode(provider, node, source_ref):
-    bool_op = getKind( node.op )
+    bool_op = getKind(node.op)
 
     if bool_op == "Or":
         # The "or" may be short circuit and is therefore not a plain operation

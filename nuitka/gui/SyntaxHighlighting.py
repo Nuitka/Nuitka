@@ -42,15 +42,15 @@ def createTextFormat(color, style=''):
 
 # Syntax styles that can be shared by all languages
 STYLES = {
-    'keyword'  : createTextFormat( 'blue'),
-    'operator' : createTextFormat( 'red'),
-    'brace'    : createTextFormat( 'darkGray'),
-    'defclass' : createTextFormat( 'black', 'bold'),
-    'string'   : createTextFormat( 'magenta'),
-    'string2'  : createTextFormat( 'darkMagenta'),
-    'comment'  : createTextFormat( 'darkGreen', 'italic'),
-    'self'     : createTextFormat( 'black', 'italic'),
-    'numbers'  : createTextFormat( 'brown'),
+    'keyword'  : createTextFormat('blue'),
+    'operator' : createTextFormat('red'),
+    'brace'    : createTextFormat('darkGray'),
+    'defclass' : createTextFormat('black', 'bold'),
+    'string'   : createTextFormat('magenta'),
+    'string2'  : createTextFormat('darkMagenta'),
+    'comment'  : createTextFormat('darkGreen', 'italic'),
+    'self'     : createTextFormat('black', 'italic'),
+    'numbers'  : createTextFormat('brown'),
 }
 
 
@@ -85,7 +85,7 @@ class PythonHighlighter(QSyntaxHighlighter):
         '\{', '\}', '\(', '\)', '\[', '\]',
     ]
     def __init__(self, document):
-        QSyntaxHighlighter.__init__( self, document )
+        QSyntaxHighlighter.__init__(self, document)
 
         # Multi-line strings (expression, flag, style)
         # The triple-quotes in these two lines will mess up the
@@ -195,4 +195,4 @@ class PythonHighlighter(QSyntaxHighlighter):
             return False
 
 def addPythonHighlighter(document):
-    PythonHighlighter( document )
+    PythonHighlighter(document)

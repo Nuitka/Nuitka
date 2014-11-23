@@ -350,7 +350,7 @@ def getFunctionDirectDecl(function_identifier, closure_variables,
     result = CodeTemplates.template_function_direct_declaration % {
         "file_scope"           : file_scope,
         "function_identifier"  : function_identifier,
-        "direct_call_arg_spec" : ", ".join( parameter_objects_decl ),
+        "direct_call_arg_spec" : ", ".join(parameter_objects_decl),
     }
 
     return result

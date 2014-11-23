@@ -29,14 +29,14 @@ def _encodeString(value):
 
         This doesn't handle limits.
     """
-    assert type( value ) is bytes, type( value )
+    assert type(value) is bytes, type(value)
 
     result = ""
     octal = False
 
     for c in value:
         if str is not unicode:
-            cv = ord( c )
+            cv = ord(c)
         else:
             cv = c
 
@@ -48,7 +48,7 @@ def _encodeString(value):
             if octal and c in b'0123456789':
                 result += '" "'
 
-            result += chr( cv )
+            result += chr(cv)
 
             octal = False
         else:
@@ -56,7 +56,7 @@ def _encodeString(value):
 
             octal = True
 
-    result = result.replace( '" "\\', "\\" )
+    result = result.replace('" "\\', "\\")
 
     return '"%s"' % result
 
@@ -66,12 +66,12 @@ def encodeString(value):
     """
 
     # Not all compilers don't allow arbitrary large C++ strings.
-    result = _encodeString( value[:16000 ] )
+    result = _encodeString(value[:16000 ])
     value = value[16000:]
 
-    while len( value ) > 0:
+    while len(value) > 0:
         result += " "
-        result += _encodeString( value[:16000 ] )
+        result += _encodeString(value[:16000 ])
         value = value[16000:]
 
     return result

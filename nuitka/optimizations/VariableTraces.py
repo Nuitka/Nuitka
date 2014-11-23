@@ -282,8 +282,7 @@ class VariableAssignTrace(VariableTraceBase):
     def dump(self):
         debug("Trace of %s %d:",
             self.variable,
-            self.version
-        )
+            self.version)
         debug("  Starts assigned")
 
         for count, usage in enumerate(self.usages):

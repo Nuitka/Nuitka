@@ -95,14 +95,14 @@ class ExpressionOperationBinary(ExpressionOperationBase):
 
         left, right = operands
 
-        if left.willRaiseException( BaseException ):
+        if left.willRaiseException(BaseException):
             return (
                 left,
                 "new_raise",
                 "Left argument of binary operation raises exception"
             )
 
-        if right.willRaiseException( BaseException ):
+        if right.willRaiseException(BaseException):
             from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
             result = wrapExpressionWithNodeSideEffects(
@@ -145,8 +145,8 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                     if iter_length * left_value > 256:
                         return self, None, None
             elif operator == "Add" and \
-                left.isKnownToBeIterable( None ) and \
-                right.isKnownToBeIterable( None ):
+                left.isKnownToBeIterable(None) and \
+                right.isKnownToBeIterable(None):
 
                 iter_length = left.getIterationLength() + \
                               right.getIterationLength()
@@ -170,8 +170,8 @@ class ExpressionOperationBinary(ExpressionOperationBase):
     def getOperands(self):
         return ( self.getLeft(), self.getRight() )
 
-    getLeft = ExpressionChildrenHavingBase.childGetter( "left" )
-    getRight = ExpressionChildrenHavingBase.childGetter( "right" )
+    getLeft = ExpressionChildrenHavingBase.childGetter("left")
+    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
 
 class ExpressionOperationUnary(ExpressionOperationBase):
@@ -235,7 +235,7 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
     def computeExpression(self, constraint_collection):
         operand = self.getOperand()
 
-        if operand.willRaiseException( BaseException ):
+        if operand.willRaiseException(BaseException):
             return (
                 operand,
                 "new_raise",

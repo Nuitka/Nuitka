@@ -67,12 +67,12 @@ def buildExtSliceNode(provider, node, source_ref):
     elements = []
 
     for dim in node.slice.dims:
-        dim_kind = getKind( dim )
+        dim_kind = getKind(dim)
 
         if dim_kind == "Slice":
-            lower = buildNode( provider, dim.lower, source_ref, True )
-            upper = buildNode( provider, dim.upper, source_ref, True )
-            step = buildNode( provider, dim.step, source_ref, True )
+            lower = buildNode(provider, dim.lower, source_ref, True)
+            upper = buildNode(provider, dim.upper, source_ref, True)
+            step = buildNode(provider, dim.step, source_ref, True)
 
             element = ExpressionSliceObject(
                 lower      = lower,
@@ -95,7 +95,7 @@ def buildExtSliceNode(provider, node, source_ref):
         else:
             assert False, dim
 
-        elements.append( element )
+        elements.append(element)
 
     return makeSequenceCreationOrConstant(
         sequence_kind = "tuple",
@@ -366,13 +366,13 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
                 )
             else:
                 return "Slice", (
-                    buildNode( provider, node.value, source_ref ),
+                    buildNode(provider, node.value, source_ref),
                     lower,
                     upper
                 )
         elif slice_kind == "ExtSlice":
             return "Subscript", (
-                buildNode( provider, node.value, source_ref ),
+                buildNode(provider, node.value, source_ref),
                 buildExtSliceNode(provider, node, source_ref)
             )
         elif slice_kind == "Ellipsis":

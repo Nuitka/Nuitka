@@ -160,7 +160,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
             source_ref = source_ref
         )
 
-    getLow = ExpressionChildrenHavingBase.childGetter( "low" )
+    getLow = ExpressionChildrenHavingBase.childGetter("low")
 
     def computeExpression(self, constraint_collection):
         # TODO: Support Python3 range objects too.
@@ -223,8 +223,8 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
             source_ref = source_ref
         )
 
-    getLow  = ExpressionChildrenHavingBase.childGetter( "low" )
-    getHigh = ExpressionChildrenHavingBase.childGetter( "high" )
+    getLow  = ExpressionChildrenHavingBase.childGetter("low")
+    getHigh = ExpressionChildrenHavingBase.childGetter("high")
 
     builtin_spec = BuiltinOptimization.builtin_range_spec
 
@@ -256,7 +256,7 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
         if high is None:
             return None
 
-        return max( 0, high - low )
+        return max(0, high - low)
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
@@ -361,18 +361,18 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
             if step < 0:
                 estimate = 0
             else:
-                estimate = math.ceil( float( high - low ) / step )
+                estimate = math.ceil(float(high - low) / step)
         else:
             if step > 0:
                 estimate = 0
             else:
-                estimate = math.ceil( float( high - low ) / step )
+                estimate = math.ceil(float(high - low) / step)
 
-        estimate = round( estimate )
+        estimate = round(estimate)
 
         assert not estimate < 0
 
-        return int( estimate )
+        return int(estimate)
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
@@ -425,6 +425,6 @@ class ExpressionBuiltinXrange(ExpressionChildrenHavingBase):
     def computeExpression(self, constraint_collection):
         return self, None, None
 
-    getLow  = ExpressionChildrenHavingBase.childGetter( "low" )
-    getHigh = ExpressionChildrenHavingBase.childGetter( "high" )
-    getStep = ExpressionChildrenHavingBase.childGetter( "step" )
+    getLow  = ExpressionChildrenHavingBase.childGetter("low")
+    getHigh = ExpressionChildrenHavingBase.childGetter("high")
+    getStep = ExpressionChildrenHavingBase.childGetter("step")

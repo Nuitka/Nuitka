@@ -68,7 +68,7 @@ class NodeCheckMetaClass(type):
                 return self.kind == kind
 
             if not hasattr(NodeBase, checker_method):
-                setattr( NodeBase, checker_method, checkKind )
+                setattr(NodeBase, checker_method, checkKind)
 
         type.__init__(cls, name, bases, dictionary)
 
@@ -147,7 +147,7 @@ class NodeBase(NodeMetaClassBase):
         while True:
             current = current.getParent()
 
-            result.append( current )
+            result.append(current)
 
             if current.isPythonModule() or current.isExpressionFunctionBody():
                 break
@@ -176,7 +176,7 @@ class NodeBase(NodeMetaClassBase):
         parent = self
 
         while not parent.isPythonModule():
-            if hasattr( parent, "provider" ):
+            if hasattr(parent, "provider"):
                 # After we checked, we can use it, will be much faster,
                 # pylint: disable=E1101
                 parent = parent.provider
@@ -248,13 +248,13 @@ class NodeBase(NodeMetaClassBase):
         return result
 
     def dump(self, level = 0):
-        Tracing.printIndented( level, self )
-        Tracing.printSeparator( level )
+        Tracing.printIndented(level, self)
+        Tracing.printSeparator(level)
 
         for visitable in self.getVisitableNodes():
-            visitable.dump( level + 1 )
+            visitable.dump(level + 1)
 
-        Tracing.printSeparator( level )
+        Tracing.printSeparator(level)
 
     @staticmethod
     def isPythonModule():
@@ -262,19 +262,19 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     def isExpression(self):
-        return self.kind.startswith( "EXPRESSION_" )
+        return self.kind.startswith("EXPRESSION_")
 
     def isStatement(self):
-        return self.kind.startswith( "STATEMENT_" )
+        return self.kind.startswith("STATEMENT_")
 
     def isExpressionBuiltin(self):
-        return self.kind.startswith( "EXPRESSION_BUILTIN_" )
+        return self.kind.startswith("EXPRESSION_BUILTIN_")
 
     def isOperation(self):
-        return self.kind.startswith( "EXPRESSION_OPERATION_" )
+        return self.kind.startswith("EXPRESSION_OPERATION_")
 
     def isExpressionOperationBool2(self):
-        return self.kind.startswith( "EXPRESSION_BOOL_" )
+        return self.kind.startswith("EXPRESSION_BOOL_")
 
     def isStatementReraiseException(self):
         # Virtual method, pylint: disable=R0201
@@ -297,10 +297,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     def visit(self, context, visitor):
-        visitor( self )
+        visitor(self)
 
         for visitable in self.getVisitableNodes():
-            visitable.visit( context, visitor )
+            visitable.visit(context, visitor)
 
     def getVisitableNodes(self):
         # Virtual method, pylint: disable=R0201
@@ -404,7 +404,7 @@ class CodeNodeBase(NodeBase):
     def __init__(self, name, code_prefix, source_ref):
         assert name is not None
 
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
         self.name = name
         self.code_prefix = code_prefix
@@ -443,9 +443,9 @@ class CodeNodeBase(NodeBase):
             provider = self.getParentVariableProvider()
             parent_name = provider.getCodeName()
 
-            uid = "_%d" % provider.getChildUID( self )
+            uid = "_%d" % provider.getChildUID(self)
 
-            assert isinstance( self, CodeNodeBase )
+            assert isinstance(self, CodeNodeBase)
 
             if self.name:
                 name = uid + "_" + self.name
@@ -487,7 +487,7 @@ class ChildrenHavingMixin:
 
             assert type(value) is not list, key
 
-            if type( value ) is tuple:
+            if type(value) is tuple:
                 assert None not in value, key
 
                 for val in value:
@@ -564,17 +564,17 @@ class ChildrenHavingMixin:
 
             if value is None:
                 pass
-            elif type( value ) is tuple:
-                result += list( value )
-            elif isinstance( value, NodeBase ):
-                result.append( value )
+            elif type(value) is tuple:
+                result += list(value)
+            elif isinstance(value, NodeBase):
+                result.append(value)
             else:
                 raise AssertionError(
                     self,
                     "has illegal child", name, value, value.__class__
                 )
 
-        return tuple( result )
+        return tuple(result)
 
     def getVisitableNodesNamed(self):
         result = []
@@ -582,7 +582,7 @@ class ChildrenHavingMixin:
         for name in self.named_children:
             value = self.child_values[ name ]
 
-            result.append( ( name, value ) )
+            result.append(( name, value ))
 
         return result
 
@@ -640,7 +640,7 @@ class ChildrenHavingMixin:
         values = {}
 
         for key, value in self.child_values.items():
-            assert type( value ) is not list, key
+            assert type(value) is not list, key
 
             if value is None:
                 values[key] = None
@@ -790,7 +790,7 @@ class ParameterHavingNodeBase(ClosureGiverNodeBase):
         )
 
         self.parameters = parameters
-        self.parameters.setOwner( self )
+        self.parameters.setOwner(self)
 
         self.registerProvidedVariables(
             *self.parameters.getVariables()
@@ -1200,7 +1200,7 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, NodeBase,
 
 class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
     def __init__(self, values, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
         ChildrenHavingMixin.__init__(
             self,

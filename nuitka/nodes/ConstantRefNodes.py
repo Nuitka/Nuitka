@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Node for constant expressions. Can be any builtin type.
+""" Node for constant expressions. Can be all common built-in types.
 
 """
 
@@ -70,8 +70,6 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
             except TypeError:
                 pass
 
-        # TODO: Make this a warning, and cover all constant types.
-        # assert type(constant) is not str or len(constant) < 30000
 
     def __repr__(self):
         return "<Node %s value %s at %s %s>" % (
@@ -104,7 +102,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
             new_node     = makeRaiseExceptionReplacementExpression(
                 expression      = self,
                 exception_type  = "TypeError",
-                exception_value = "'%s' object is not callable" % type( self.constant ).__name__
+                exception_value = "'%s' object is not callable" % type(self.constant).__name__
             ),
             old_node     = call_node,
             side_effects = call_node.extractPreCallSideEffects()
@@ -133,7 +131,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         return self.constant is None or self.isNumberConstant()
 
     def isKnownToBeIterable(self, count):
-        if isIterableConstant( self.constant ):
+        if isIterableConstant(self.constant):
             return count is None or \
                    getConstantIterationLength(self.constant) == count
         else:
@@ -145,7 +143,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         return length is not None and length >= count
 
     def canPredictIterationValues(self):
-        return self.isKnownToBeIterable( None )
+        return self.isKnownToBeIterable(None)
 
     def getIterationValue(self, count):
         assert count < len(self.constant)

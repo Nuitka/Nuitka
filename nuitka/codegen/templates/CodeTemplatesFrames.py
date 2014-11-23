@@ -100,7 +100,7 @@ template_frame_guard_once = """\
 // Frame without reuse.
 PyFrameObject *%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
 
-// Push the new frame as the currently active one, and we should be exlusively
+// Push the new frame as the currently active one, and we should be exclusively
 // owning it.
 pushFrameStack( %(frame_identifier)s );
 assert( Py_REFCNT( %(frame_identifier)s ) == 1 );

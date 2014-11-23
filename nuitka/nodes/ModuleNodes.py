@@ -39,7 +39,7 @@ class PythonModuleMixin:
         assert type(name) is str, type(name)
         assert "." not in name, name
         assert package_name is None or \
-               (type( package_name ) is str and package_name != "")
+               (type(package_name) is str and package_name != "")
 
         self.name = name
         self.package_name = package_name
@@ -110,6 +110,11 @@ class PythonModuleMixin:
 
         return result
 
+    def getCodeName(self):
+        # Abstract method, pylint: disable=R0201
+        return None
+
+
 def checkModuleBody(value):
     assert value is None or value.isStatementsSequence()
 
@@ -175,7 +180,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         result = super(PythonModule, self).asXml()
 
         for function_body in self.functions:
-            result.append( function_body.asXml() )
+            result.append(function_body.asXml())
 
         return result
 
@@ -242,7 +247,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def addFunction(self, function_body):
         assert function_body not in self.functions
 
-        self.functions.add( function_body )
+        self.functions.add(function_body)
 
     def getFunctions(self):
         return self.functions
@@ -309,7 +314,7 @@ class SingleCreationMixin:
 
     def __init__(self):
         assert self.__class__ not in self.created
-        self.created.add( self.__class__ )
+        self.created.add(self.__class__)
 
 
 class PythonMainModule(PythonModule, SingleCreationMixin):
@@ -323,7 +328,7 @@ class PythonMainModule(PythonModule, SingleCreationMixin):
             source_ref   = source_ref
         )
 
-        SingleCreationMixin.__init__( self )
+        SingleCreationMixin.__init__(self)
 
         self.main_added = main_added
 
@@ -353,7 +358,7 @@ class PythonInternalModule(PythonModule, SingleCreationMixin):
             )
         )
 
-        SingleCreationMixin.__init__( self )
+        SingleCreationMixin.__init__(self)
 
     @staticmethod
     def isInternalModule():
@@ -377,7 +382,7 @@ class PythonPackage(PythonModule):
         )
 
     def getOutputFilename(self):
-        return Utils.dirname( self.getFilename() )
+        return Utils.dirname(self.getFilename())
 
 
 class PythonShlibModule(PythonModuleMixin, NodeBase):
@@ -408,9 +413,6 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
 
     def getFilename(self):
         return self.getSourceReference().getFilename()
-
-    def getCodeName(self):
-        return None
 
     def startTraversal(self):
         pass

@@ -67,7 +67,7 @@ class StatementsSequence(StatementChildrenHavingBase):
     def getDetails(self):
         if self.getStatements():
             return {
-                "statement_count" : len( self.getStatements() )
+                "statement_count" : len(self.getStatements())
             }
         else:
             return {

@@ -67,8 +67,7 @@ def getDependsExePath():
         Tracing.printLine("""\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules. Is it OK to download
-and put it in APPDATA (no installer needed, cached, one time question)."""
-        )
+and put it in APPDATA (no installer needed, cached, one time question).""")
 
         reply = raw_input("Proceed and download? [Yes]/No ")
 

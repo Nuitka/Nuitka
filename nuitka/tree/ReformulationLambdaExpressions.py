@@ -61,7 +61,7 @@ from .ReformulationFunctionStatements import (
 def buildLambdaNode(provider, node, source_ref):
     assert getKind(node) == "Lambda"
 
-    parameters = buildParameterSpec( "<lambda>", node, source_ref )
+    parameters = buildParameterSpec("<lambda>", node, source_ref)
 
     function_body = ExpressionFunctionBody(
         provider   = provider,

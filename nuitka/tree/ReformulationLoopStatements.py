@@ -283,7 +283,7 @@ def buildWhileLoopNode(provider, node, source_ref):
     )
 
     if else_block is not None:
-        temp_scope = provider.allocateTempScope( "while_loop" )
+        temp_scope = provider.allocateTempScope("while_loop")
 
         tmp_break_indicator = provider.allocateTempVariable(
             temp_scope = temp_scope,

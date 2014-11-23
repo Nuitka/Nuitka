@@ -50,9 +50,9 @@ class ExpressionCall(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getCalled = ExpressionChildrenHavingBase.childGetter( "called" )
-    getCallArgs = ExpressionChildrenHavingBase.childGetter( "args" )
-    getCallKw = ExpressionChildrenHavingBase.childGetter( "kw" )
+    getCalled = ExpressionChildrenHavingBase.childGetter("called")
+    getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
+    getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
 
     def isExpressionCall(self):
         return True

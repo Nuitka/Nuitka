@@ -150,7 +150,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
                     module_fullpath = module_package + "." + module_name
 
                 if module_filename not in self._warned_about:
-                    self._warned_about.add( module_filename )
+                    self._warned_about.add(module_filename)
 
                     warning(
                         """\
@@ -364,10 +364,10 @@ class StatementImportStar(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getModule = StatementChildrenHavingBase.childGetter( "module" )
+    getModule = StatementChildrenHavingBase.childGetter("module")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getModule() )
+        constraint_collection.onExpression(self.getModule())
 
         # Need to invalidate everything, and everything could be assigned to
         # something else now.

@@ -92,7 +92,7 @@ class StatementRaiseException(StatementChildrenHavingBase):
         exception_type = self.getExceptionType()
 
         if exception_type is not None and \
-           exception_type.willRaiseException( BaseException ):
+           exception_type.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
@@ -109,7 +109,7 @@ Explicit raise already raises implicitely building exception type."""
         )
         exception_value = self.getExceptionValue()
 
-        if exception_value is not None and exception_value.willRaiseException( BaseException ):
+        if exception_value is not None and exception_value.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -129,7 +129,7 @@ Explicit raise already raises implicitely building exception value."""
         exception_trace = self.getExceptionTrace()
 
         if exception_trace is not None and \
-           exception_trace.willRaiseException( BaseException ):
+           exception_trace.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -150,7 +150,7 @@ Explicit raise already raises implicitely building exception traceback."""
         exception_cause = self.getExceptionCause()
 
         if exception_cause is not None and \
-           exception_cause.willRaiseException( BaseException ):
+           exception_cause.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -241,7 +241,7 @@ class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "args" : tuple( args ),
+                "args" : tuple(args),
             },
             source_ref = source_ref
         )
@@ -254,7 +254,7 @@ class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
     def getExceptionName(self):
         return self.exception_name
 
-    getArgs = ExpressionChildrenHavingBase.childGetter( "args" )
+    getArgs = ExpressionChildrenHavingBase.childGetter("args")
 
     def computeExpression(self, constraint_collection):
         return self, None, None

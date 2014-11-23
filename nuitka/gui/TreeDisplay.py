@@ -44,14 +44,14 @@ class NodeTreeModelItem:
     def _children(self):
         if self.children is None:
             self.children = [
-                NodeTreeModelItem( child, self )
+                NodeTreeModelItem(child, self)
                 for child in
                 self.node.getVisitableNodes()
             ]
 
         if self.node.isPythonModule():
             self.children.extend(
-                NodeTreeModelItem( child, self )
+                NodeTreeModelItem(child, self)
                 for child in
                 self.node.getFunctions()
             )
@@ -63,7 +63,7 @@ class NodeTreeModelItem:
         return self._children()[ row ]
 
     def childCount(self):
-        return len( self._children() )
+        return len(self._children())
 
     def columnCount(self):
         return 2
@@ -76,20 +76,20 @@ class NodeTreeModelItem:
         else:
             assert False
 
-        return QtCore.QVariant( result )
+        return QtCore.QVariant(result)
 
     def parent(self):
         return self.parent_treeitem
 
     def row(self):
-        return self.parent_treeitem._children().index( self ) if self.parent else 0
+        return self.parent_treeitem._children().index(self) if self.parent else 0
 
 class NodeTreeModel(QtCore.QAbstractItemModel):
     def __init__(self, root, parent = None):
-        QtCore.QAbstractItemModel.__init__( self, parent )
+        QtCore.QAbstractItemModel.__init__(self, parent)
 
         self.root_node = root
-        self.root_item = NodeTreeModelItem( root )
+        self.root_item = NodeTreeModelItem(root)
 
     def columnCount(self, _parent):
         return self.root_item.columnCount()
@@ -103,7 +103,7 @@ class NodeTreeModel(QtCore.QAbstractItemModel):
 
         item = index.internalPointer()
 
-        return QtCore.QVariant( item.data( index.column() ) )
+        return QtCore.QVariant(item.data(index.column()))
 
     def flags(self, index):
         if not index.isValid():
@@ -114,16 +114,16 @@ class NodeTreeModel(QtCore.QAbstractItemModel):
     def headerData(self, section, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             if section == 0:
-                return QtCore.QVariant( "Node Type" )
+                return QtCore.QVariant("Node Type")
             elif section == 1:
-                return QtCore.QVariant( "Node Detail" )
+                return QtCore.QVariant("Node Detail")
 
-            return self.root_item.data( section )
+            return self.root_item.data(section)
 
         return QtCore.QVariant()
 
     def index(self, row, column, parent):
-        if row < 0 or column < 0 or row >= self.rowCount( parent ) or column >= self.columnCount( parent ):
+        if row < 0 or column < 0 or row >= self.rowCount(parent) or column >= self.columnCount(parent):
             return QtCore.QModelIndex()
 
         if not parent.isValid():
@@ -131,10 +131,10 @@ class NodeTreeModel(QtCore.QAbstractItemModel):
         else:
             parent = parent.internalPointer()
 
-        child = parent.child( row )
+        child = parent.child(row)
 
         if child:
-            return self.createIndex( row, column, child )
+            return self.createIndex(row, column, child)
         else:
             return QtCore.QModelIndex()
 
@@ -148,7 +148,7 @@ class NodeTreeModel(QtCore.QAbstractItemModel):
         if parent == self.root_item:
             return QtCore.QModelIndex()
 
-        return self.createIndex( parent.row(), 0, parent )
+        return self.createIndex(parent.row(), 0, parent)
 
     def rowCount(self, parent):
         if parent.column() > 0:
@@ -162,7 +162,7 @@ class NodeTreeModel(QtCore.QAbstractItemModel):
         return parent.childCount()
 
     def getNodeFromPath(self, tree_path):
-        tree_path = list( tree_path )
+        tree_path = list(tree_path)
 
         current = self.root_node
 
@@ -179,24 +179,24 @@ class NodeTreeModel(QtCore.QAbstractItemModel):
                 return item
 
             for child in item._children():
-                result = check( child )
+                result = check(child)
 
                 if result is not None:
                     return result
 
-        return check( self.root_item )
+        return check(self.root_item)
 
 
 class InspectNodeTreeDialog(QtGui.QDialog):
     def __init__(self, *args):
-        QtGui.QDialog.__init__( self, *args )
+        QtGui.QDialog.__init__(self, *args)
 
-        ui_dir = Utils.dirname( __file__ )
-        ui_filename = Utils.joinpath( ui_dir, "dialogs", "InspectPythonTree.ui" )
+        ui_dir = Utils.dirname(__file__)
+        ui_filename = Utils.joinpath(ui_dir, "dialogs", "InspectPythonTree.ui")
 
-        uic.loadUi( ui_filename, self )
+        uic.loadUi(ui_filename, self)
 
-        self.treeview_nodes.setSelectionMode( self.treeview_nodes.SingleSelection )
+        self.treeview_nodes.setSelectionMode(self.treeview_nodes.SingleSelection)
 
         self.displayed = None
         self.source_code = None
@@ -204,7 +204,7 @@ class InspectNodeTreeDialog(QtGui.QDialog):
         self.moving = None
 
     def setModel(self, model):
-        self.treeview_nodes.setModel( model )
+        self.treeview_nodes.setModel(model)
         self.treeview_nodes.expandAll()
 
     @QtCore.pyqtSignature("on_treeview_nodes_clicked(QModelIndex)")
@@ -212,25 +212,25 @@ class InspectNodeTreeDialog(QtGui.QDialog):
         tree_path = []
 
         while item.isValid():
-            tree_path.insert( 0, item.row() )
+            tree_path.insert(0, item.row())
 
             item = item.parent()
 
-        clicked_node = self.model.getNodeFromPath( tree_path )
+        clicked_node = self.model.getNodeFromPath(tree_path)
         source_ref = clicked_node.getSourceReference()
 
         self.moving = True
 
-        self.textedit_source.moveCursor( 1, 0 )
+        self.textedit_source.moveCursor(1, 0)
 
-        for _i in range( 1, source_ref.getLineNumber()  ):
-            self.textedit_source.moveCursor( 12, 0 )
+        for _i in range(1, source_ref.getLineNumber()):
+            self.textedit_source.moveCursor(12, 0)
 
         self.textedit_source.setFocus()
 
         self.moving = False
 
-    @QtCore.pyqtSignature( "on_textedit_source_cursorPositionChanged()")
+    @QtCore.pyqtSignature("on_textedit_source_cursorPositionChanged()")
     def onTexteditSourceCursorMoved(self):
         if self.moving:
             return
@@ -257,7 +257,7 @@ class InspectNodeTreeDialog(QtGui.QDialog):
             item_path = []
 
             while item:
-                item_path.insert( 0, item )
+                item_path.insert(0, item)
 
                 item = item.parent()
 
@@ -266,15 +266,15 @@ class InspectNodeTreeDialog(QtGui.QDialog):
             parent = self.model.root_item
 
             for item in item_path[1:]:
-                index = index.child( parent._children().index( item )+1, 1 )
+                index = index.child(parent._children().index(item)+1, 1)
                 parent = item
 
             # print self.treeview_nodes.visualRect( index )
 
     def loadSource(self, filename):
         self.moving = True
-        self.source_code = open( filename ).read()
-        self.textedit_source.setPlainText( self.source_code  )
+        self.source_code = open(filename).read()
+        self.textedit_source.setPlainText(self.source_code)
         self.moving = False
 
         self.displayed = SourceCodeReferences.fromFilename(
@@ -284,12 +284,12 @@ class InspectNodeTreeDialog(QtGui.QDialog):
 
 
 def displayTreeInspector(tree):
-    app = QtGui.QApplication( sys.argv )
+    app = QtGui.QApplication(sys.argv)
 
-    model = NodeTreeModel( tree )
+    model = NodeTreeModel(tree)
 
     dialog = InspectNodeTreeDialog()
-    dialog.setModel( model )
+    dialog.setModel(model)
     dialog.model = model
 
     from . import SyntaxHighlighting
@@ -297,9 +297,9 @@ def displayTreeInspector(tree):
     SyntaxHighlighting.addPythonHighlighter(
         document = dialog.textedit_source.document()
     )
-    dialog.loadSource( tree.getFilename() )
+    dialog.loadSource(tree.getFilename())
 
-    dialog.setWindowFlags( QtCore.Qt.Window )
+    dialog.setWindowFlags(QtCore.Qt.Window)
     dialog.show()
 
     import signal

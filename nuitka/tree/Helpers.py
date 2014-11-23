@@ -107,13 +107,13 @@ def buildNode(provider, node, source_ref, allow_none = False):
         if result is None and allow_none:
             return None
 
-        assert isinstance( result, NodeBase ), result
+        assert isinstance(result, NodeBase), result
 
         return result
     except SyntaxError:
         raise
     except:
-        warning( "Problem at '%s' with %s." % ( source_ref, ast.dump( node ) ) )
+        warning("Problem at '%s' with %s." % ( source_ref, ast.dump(node) ))
         raise
 
 
@@ -122,7 +122,7 @@ def buildNodeList(provider, nodes, source_ref, allow_none = False):
         result = []
 
         for node in nodes:
-            if hasattr( node, "lineno" ):
+            if hasattr(node, "lineno"):
                 node_source_ref = source_ref.atLineNumber(node.lineno)
             else:
                 node_source_ref = source_ref
@@ -354,7 +354,7 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable.
 
-    assert len( keys ) == len( values )
+    assert len(keys) == len(values)
     for key, value in zip(keys, values):
         if not key.isExpressionConstantRef():
             constant = False

@@ -53,13 +53,13 @@ from .Helpers import (
 def buildFunctionNode(provider, node, source_ref):
     assert getKind(node) == "FunctionDef"
 
-    function_statements, function_doc = extractDocFromBody( node )
+    function_statements, function_doc = extractDocFromBody(node)
 
     function_body = ExpressionFunctionBody(
         provider   = provider,
         name       = node.name,
         doc        = function_doc,
-        parameters = buildParameterSpec( node.name, node, source_ref ),
+        parameters = buildParameterSpec(node.name, node, source_ref),
         source_ref = source_ref
     )
 
@@ -243,7 +243,7 @@ def buildParameterAnnotations(provider, node, source_ref):
                 user_provided = True
             )
         )
-        values.append( value )
+        values.append(value)
 
     def extractArg(arg):
         if getKind(arg) == "Name":
@@ -289,7 +289,7 @@ def buildParameterAnnotations(provider, node, source_ref):
             extractArg(node.args.kwarg)
 
     # Return value annotation (not there for lambdas)
-    if hasattr( node, "returns" ) and node.returns is not None:
+    if hasattr(node, "returns") and node.returns is not None:
         addAnnotation(
             key   = "return",
             value = buildNode(
@@ -308,30 +308,30 @@ def buildParameterAnnotations(provider, node, source_ref):
         return None
 
 def buildParameterSpec(name, node, source_ref):
-    kind = getKind( node )
+    kind = getKind(node)
 
     assert kind in ( "FunctionDef", "Lambda" ), "unsupported for kind " + kind
 
     def extractArg(arg):
-        if type( arg ) is str or arg is None:
+        if type(arg) is str or arg is None:
             return arg
-        elif getKind( arg ) == "Name":
+        elif getKind(arg) == "Name":
             return arg.id
-        elif getKind( arg ) == "arg":
+        elif getKind(arg) == "arg":
             return arg.arg
-        elif getKind( arg ) == "Tuple":
-            return tuple( extractArg( arg ) for arg in arg.elts )
+        elif getKind(arg) == "Tuple":
+            return tuple( extractArg(arg) for arg in arg.elts )
         else:
-            assert False, getKind( arg )
+            assert False, getKind(arg)
 
     result = ParameterSpec(
         name          = name,
-        normal_args   = [ extractArg( arg ) for arg in node.args.args ],
-        kw_only_args  = [ extractArg( arg ) for arg in node.args.kwonlyargs ]
+        normal_args   = [ extractArg(arg) for arg in node.args.args ],
+        kw_only_args  = [ extractArg(arg) for arg in node.args.kwonlyargs ]
                            if Utils.python_version >= 300 else
                          [],
-        list_star_arg = extractArg( node.args.vararg ),
-        dict_star_arg = extractArg( node.args.kwarg ),
+        list_star_arg = extractArg(node.args.vararg),
+        dict_star_arg = extractArg(node.args.kwarg),
         default_count = len(node.args.defaults)
     )
 

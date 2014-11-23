@@ -740,7 +740,7 @@ def generateSliceRangeIdentifier(lower, upper, scope, emit, context):
     def isSmallNumberConstant(node):
         value = node.getConstant()
 
-        if Constants.isNumberConstant( value ):
+        if Constants.isNumberConstant(value):
             return abs(int(value)) < 2**63-1
         else:
             return False
@@ -1176,7 +1176,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
 
 
     if not expression.isExpression():
-        Tracing.printError( "No expression %r" % expression )
+        Tracing.printError("No expression %r" % expression)
 
         expression.dump()
         assert False, expression
@@ -3419,8 +3419,7 @@ if ( %(keeper_type)s )
                         "keeper_type"  : keeper_type,
                         "keeper_value" : keeper_value,
                         "keeper_tb"    : keeper_tb
-                    }
-                )
+                    })
 
 
         context.setExceptionEscape(old_escape)

@@ -44,7 +44,7 @@ class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
         return self, None, None
 
     getMetaclass = ExpressionChildrenHavingBase.childGetter("metaclass")
-    getBases = ExpressionChildrenHavingBase.childGetter( "bases" )
+    getBases = ExpressionChildrenHavingBase.childGetter("bases")
 
 
 class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
@@ -63,9 +63,9 @@ class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getTypeName = ExpressionChildrenHavingBase.childGetter( "type_name" )
-    getBases = ExpressionChildrenHavingBase.childGetter( "bases" )
-    getDict = ExpressionChildrenHavingBase.childGetter( "dict" )
+    getTypeName = ExpressionChildrenHavingBase.childGetter("type_name")
+    getBases = ExpressionChildrenHavingBase.childGetter("bases")
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
 
     def computeExpression(self, constraint_collection):
         # TODO: Should be compile time computable if bases and dict are.

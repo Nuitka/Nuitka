@@ -25,7 +25,7 @@ to be the same as in templates.
 def _indentedCode(codes, count):
     return "\n".join(
         " " * count + line
-          if (line and not line.startswith( "#" )) else
+          if (line and not line.startswith("#")) else
         line for line in codes
     )
 

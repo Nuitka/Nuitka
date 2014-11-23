@@ -65,7 +65,7 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
 
     def makeCloneAt(self, source_ref):
         return ExpressionAttributeLookup(
-            expression     = self.getLookupSource().makeCloneAt( source_ref ),
+            expression     = self.getLookupSource().makeCloneAt(source_ref),
             attribute_name = self.getAttributeName(),
             source_ref     = source_ref
         )
@@ -73,7 +73,7 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
     def computeExpression(self, constraint_collection):
         lookup_source = self.getLookupSource()
 
-        if lookup_source.willRaiseException( BaseException ):
+        if lookup_source.willRaiseException(BaseException):
             return lookup_source, "new_raise", "Attribute lookup source raises exception."
 
         return lookup_source.computeExpressionAttribute(
@@ -94,7 +94,7 @@ class ExpressionSpecialAttributeLookup(ExpressionAttributeLookup):
     def computeExpression(self, constraint_collection):
         lookup_source = self.getLookupSource()
 
-        if lookup_source.willRaiseException( BaseException ):
+        if lookup_source.willRaiseException(BaseException):
             return lookup_source, "new_raise", "Special attribute lookup source raises exception."
 
         # TODO: Special lookups may reuse "computeExpressionAttribute"
@@ -211,8 +211,8 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
-    getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
+    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
     def computeExpression(self, constraint_collection):
         # Note: Might be possible to predict or downgrade to mere attribute

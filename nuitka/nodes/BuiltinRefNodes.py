@@ -40,8 +40,8 @@ from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     def __init__(self, builtin_name, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
-        CompileTimeConstantExpressionMixin.__init__( self )
+        NodeBase.__init__(self, source_ref = source_ref)
+        CompileTimeConstantExpressionMixin.__init__(self)
 
         self.builtin_name = builtin_name
 
@@ -112,7 +112,7 @@ Builtin constant %s resolved""" % self.builtin_name
         return new_node, tags, message
 
     def getStringValue(self):
-        return repr( self.getCompileTimeConstant() )
+        return repr(self.getCompileTimeConstant())
 
     def isKnownToBeIterable(self, count):
         # TODO: Why yes, some may be, could be told here.
@@ -155,7 +155,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
         return self, None, None
 
     def getStringValue(self):
-        return repr( self.getCompileTimeConstant() )
+        return repr(self.getCompileTimeConstant())
 
 
 class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):

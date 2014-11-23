@@ -158,9 +158,9 @@ def _impFindModuleWrapper(module_name, search_path):
     except ImportError:
         if Utils.python_version >= 330:
             for path_element in search_path:
-                candidate = Utils.joinpath( path_element, module_name )
+                candidate = Utils.joinpath(path_element, module_name)
 
-                if Utils.isDir( candidate ):
+                if Utils.isDir(candidate):
                     module_filename = candidate
                     module_fh = None
 
@@ -226,7 +226,7 @@ def _findModuleInPath(module_name, package_name):
             return module_filename, package_name
         except ImportError:
             if _debug_module_finding:
-                print( "_findModuleInPath: imp.find_module failed to locate" )
+                print("_findModuleInPath: imp.find_module failed to locate")
         except SyntaxError:
             # Warn user, as this is kind of unusual.
             warning(
@@ -445,7 +445,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
     if not result and module_name in sys.builtin_module_names:
         warning("""\
 Your CPython version has a built-in module '%s', that is not white-listed
-please report this to http://bugs.nuitka.net.""", module_name )
+please report this to http://bugs.nuitka.net.""", module_name)
 
     return result
 

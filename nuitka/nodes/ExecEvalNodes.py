@@ -48,7 +48,7 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
         )
 
     getSourceCode = ExpressionChildrenHavingBase.childGetter("source")
-    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals")
+    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
     getLocals = ExpressionChildrenHavingBase.childGetter("locals")
 
     def computeExpression(self, constraint_collection):
@@ -157,7 +157,7 @@ class StatementExec(StatementChildrenHavingBase):
 
             value = convertNoneConstantToNone(value)
 
-        return StatementChildrenHavingBase.setChild( self, name, value )
+        return StatementChildrenHavingBase.setChild(self, name, value)
 
     getSourceCode = StatementChildrenHavingBase.childGetter("source")
     getGlobals = StatementChildrenHavingBase.childGetter("globals")

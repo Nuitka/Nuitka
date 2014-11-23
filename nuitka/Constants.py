@@ -32,27 +32,27 @@ def compareConstants(a, b):
     # Many many cases to deal with, pylint: disable=R0911,R0912
 
     # Supposed fast path for comparison.
-    if type( a ) is not type( b ):
+    if type(a) is not type(b):
         return False
 
     # Now it's either not the same, or it is a container that contains NaN or it
     # is a complex or float that is NaN, the other cases can use == at the end.
-    if type( a ) is complex:
-        return compareConstants( a.imag, b.imag ) and \
-               compareConstants( a.real, b.real )
+    if type(a) is complex:
+        return compareConstants(a.imag, b.imag) and \
+               compareConstants(a.real, b.real)
 
-    if type( a ) is float:
+    if type(a) is float:
         # Check sign first, -0.0 is not 0.0, or -nan is not nan, it has a
         # different sign for a start.
-        if math.copysign( 1.0, a ) != math.copysign( 1.0, b ):
+        if math.copysign(1.0, a) != math.copysign(1.0, b):
             return False
 
-        if math.isnan( a ) and math.isnan( b ):
+        if math.isnan(a) and math.isnan(b):
             return True
 
         return a == b
 
-    if type( a ) in ( tuple, list ):
+    if type(a) in ( tuple, list ):
         if len(a) != len(b):
             return False
 
@@ -74,8 +74,8 @@ def compareConstants(a, b):
                 return False
         return True
 
-    if type( a ) in ( frozenset, set ):
-        if len( a ) != len( b ):
+    if type(a) in ( frozenset, set ):
+        if len(a) != len(b):
             return False
 
         for ea in a:
@@ -83,7 +83,7 @@ def compareConstants(a, b):
                 # Due to NaN values, we need to compare each set element with
                 # all the other set to be really sure.
                 for eb in b:
-                    if compareConstants( ea, eb ):
+                    if compareConstants(ea, eb):
                         break
                 else:
                     return False
@@ -176,9 +176,9 @@ def isIterableConstant(constant):
 
 
 def getConstantIterationLength(constant):
-    assert isIterableConstant( constant )
+    assert isIterableConstant(constant)
 
-    return len( constant )
+    return len(constant)
 
 
 def isNumberConstant(constant):
@@ -204,7 +204,7 @@ def createConstantDict(keys, values, lazy_order):
             None
         )
 
-    for key, value in zip( keys, values ):
+    for key, value in zip(keys, values):
         constant_value[ key ] = value
 
     return constant_value

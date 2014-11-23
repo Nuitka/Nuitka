@@ -59,7 +59,7 @@ def _getParameterParsingCode(context, parameters, function_name):
 
     # Max allowed number of positional arguments, all except keyword only
     # arguments.
-    plain_possible_count = len( top_level_parameters ) - \
+    plain_possible_count = len(top_level_parameters) - \
                            parameters.getKwOnlyParameterCount()
 
     if top_level_parameters:
@@ -140,7 +140,7 @@ def _getParameterParsingCode(context, parameters, function_name):
 
         parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {}
 
-        for count, variable in enumerate( top_level_parameters ):
+        for count, variable in enumerate(top_level_parameters):
             if variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.argparse_template_nested_argument % {
                     "parameter_name"            : variable.getName(),
@@ -154,7 +154,7 @@ def _getParameterParsingCode(context, parameters, function_name):
                     "top_level_parameter_count" : plain_possible_count,
                 }
 
-                plain_var_names.append( "_python_par_" + variable.getName() )
+                plain_var_names.append("_python_par_" + variable.getName())
 
         parameter_parsing_code += CodeTemplates.template_arguments_check % {
             "parameter_test" : " || ".join(
@@ -162,7 +162,7 @@ def _getParameterParsingCode(context, parameters, function_name):
                 for plain_var_name in
                 plain_var_names
             ),
-            "parameter_list" : ", ".join( plain_var_names )
+            "parameter_list" : ", ".join(plain_var_names)
         }
 
 
@@ -179,7 +179,7 @@ def _getParameterParsingCode(context, parameters, function_name):
     def unPackNestedParameterVariables(variables):
         result = ""
 
-        for count, variable in enumerate( variables ):
+        for count, variable in enumerate(variables):
             if variable.isNestedParameterVariable():
                 assign_source = "_python_par_%s" % variable.getName()
 
@@ -187,7 +187,7 @@ def _getParameterParsingCode(context, parameters, function_name):
 
                 child_variables = variable.getTopLevelVariables()
 
-                for count, child_variable in enumerate( child_variables ):
+                for count, child_variable in enumerate(child_variables):
                     unpack_code += CodeTemplates.parse_argument_template_nested_argument_assign % {
                         "parameter_name" : child_variable.getName(),
                         "iter_name"      : variable.getName(),
@@ -225,7 +225,7 @@ def _getParameterParsingCode(context, parameters, function_name):
             )
         }
 
-        kw_only_var_names.append( "_python_par_" + variable.getName() )
+        kw_only_var_names.append("_python_par_" + variable.getName())
 
     if kw_only_var_names:
         parameter_parsing_code += CodeTemplates.template_kwonly_arguments_check % {
@@ -234,10 +234,10 @@ def _getParameterParsingCode(context, parameters, function_name):
                 for kw_only_var_name in
                 kw_only_var_names
             ),
-            "parameter_list" : ", ".join( kw_only_var_names )
+            "parameter_list" : ", ".join(kw_only_var_names)
         }
 
-    return indented( parameter_parsing_code )
+    return indented(parameter_parsing_code)
 
 def getParameterParsingCode( context, function_identifier, function_name,
                              parameters, needs_creation ):
@@ -261,8 +261,8 @@ def getParameterParsingCode( context, function_identifier, function_name,
         parameter_objects_list = []
 
     if needs_creation:
-        parameter_objects_decl.insert( 0, "Nuitka_FunctionObject *self" )
-        parameter_objects_list.insert( 0, "self" )
+        parameter_objects_decl.insert(0, "Nuitka_FunctionObject *self")
+        parameter_objects_list.insert(0, "self")
 
     parameter_release_code = "".join(
         [
@@ -286,7 +286,7 @@ def getParameterParsingCode( context, function_identifier, function_name,
         "impl_function_identifier"  : getDirectFunctionEntryPointIdentifier(
             function_identifier = function_identifier
         ),
-        "parameter_objects_list"    : ", ".join( parameter_objects_list ),
+        "parameter_objects_list"    : ", ".join(parameter_objects_list),
         "parameter_release_code"    : parameter_release_code,
     }
 
@@ -295,7 +295,7 @@ def getParameterParsingCode( context, function_identifier, function_name,
         args_forward = []
 
         count = -1
-        for count, variable in enumerate( parameters.getTopLevelVariables() ):
+        for count, variable in enumerate(parameters.getTopLevelVariables()):
             args_forward.append(
                 ", INCREASE_REFCOUNT( args[ %d ] )" % count
             )
@@ -318,8 +318,8 @@ def getParameterParsingCode( context, function_identifier, function_name,
 
         parameter_entry_point_code += CodeTemplates.template_dparser % {
             "function_identifier" : function_identifier,
-            "arg_count"           : len( function_parameter_variables ),
-            "args_forward"        : "".join( args_forward )
+            "arg_count"           : len(function_parameter_variables),
+            "args_forward"        : "".join(args_forward)
 
         }
 

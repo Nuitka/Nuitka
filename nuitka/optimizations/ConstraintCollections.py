@@ -63,7 +63,7 @@ class VariableUsageTrackingMixin:
         if variable in self.variable_usages:
             return self.variable_usages[ variable ]
         else:
-            self.variable_usages[ variable ] = VariableUsageProfile( variable )
+            self.variable_usages[ variable ] = VariableUsageProfile(variable)
 
             return self.variable_usages[ variable ]
 
@@ -267,7 +267,7 @@ class CollectionStartpointMixin:
 
 class ConstraintCollectionBase(CollectionTracingMixin):
     def __init__(self, parent):
-        CollectionTracingMixin.__init__( self )
+        CollectionTracingMixin.__init__(self)
 
         self.parent = parent
 
@@ -306,12 +306,12 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         self.parent.assumeUnclearLocals(source_ref)
 
     def getVariableTrace(self, variable, version):
-        return self.parent.getVariableTrace( variable, version )
+        return self.parent.getVariableTrace(variable, version)
 
     def addVariableTrace(self, variable, version, trace):
         assert self.parent is not None, self
 
-        self.parent.addVariableTrace( variable, version, trace )
+        self.parent.addVariableTrace(variable, version, trace)
 
     def addVariableMergeTrace(self, variable, trace_yes, trace_no):
         assert self.parent is not None, self
@@ -545,7 +545,7 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
         if statements_sequence is not None and \
            not statements_sequence.getStatements():
-            function_body.setStatements( None )
+            function_body.setStatements(None)
             statements_sequence = None
 
         if statements_sequence is not None:

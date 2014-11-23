@@ -50,10 +50,10 @@ class StatementReturn(StatementChildrenHavingBase):
         return self.getExpression().mayRaiseException(exception_type)
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getExpression() )
+        constraint_collection.onExpression(self.getExpression())
         expression = self.getExpression()
 
-        if expression.willRaiseException( BaseException ):
+        if expression.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(

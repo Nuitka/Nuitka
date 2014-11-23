@@ -321,7 +321,7 @@ Subscript assignment raises exception in subscribed, removed assignment."""
         )
         subscript = self.getSubscript()
 
-        if subscript.willRaiseException( BaseException ):
+        if subscript.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -399,7 +399,7 @@ Slice assignment raises exception in assigned value, removed assignment."""
             return result, "new_raise", """\
 Slice assignment raises exception in sliced value, removed assignment."""
 
-        constraint_collection.onExpression( self.getLower(), allow_none = True )
+        constraint_collection.onExpression(self.getLower(), allow_none = True)
         lower = self.getLower()
 
         if lower is not None and lower.willRaiseException(BaseException):
@@ -417,7 +417,7 @@ Slice assignment raises exception in sliced value, removed assignment."""
 Slice assignment raises exception in lower slice boundary value, removed \
 assignment."""
 
-        constraint_collection.onExpression( self.getUpper(), allow_none = True )
+        constraint_collection.onExpression(self.getUpper(), allow_none = True)
         upper = self.getUpper()
 
         if upper is not None and upper.willRaiseException(BaseException):

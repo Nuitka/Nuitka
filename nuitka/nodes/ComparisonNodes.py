@@ -58,8 +58,8 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
             self.getRight()
         )
 
-    getLeft = ExpressionChildrenHavingBase.childGetter( "left" )
-    getRight = ExpressionChildrenHavingBase.childGetter( "right" )
+    getLeft = ExpressionChildrenHavingBase.childGetter("left")
+    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def getComparator(self):
         return self.comparator
@@ -138,7 +138,7 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
     def computeExpression(self, constraint_collection):
         left, right = self.getOperands()
 
-        if constraint_collection.mustAlias( left, right ):
+        if constraint_collection.mustAlias(left, right):
             from .NodeMakingHelpers import (
                 makeConstantReplacementNode,
                 wrapExpressionWithSideEffects
@@ -161,7 +161,7 @@ Determined values to alias and therefore result of %s comparison.""" % (
                 self.comparator
             )
 
-        if constraint_collection.mustNotAlias( left, right ):
+        if constraint_collection.mustNotAlias(left, right):
             from .NodeMakingHelpers import (
                 makeConstantReplacementNode,
                 wrapExpressionWithSideEffects

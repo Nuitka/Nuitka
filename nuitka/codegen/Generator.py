@@ -439,7 +439,7 @@ def getSelectMetaclassCode(to_name, metaclass_name, bases_name, emit, context):
     emit(
         "%s = SELECT_METACLASS( %s );" % (
             to_name,
-            ", ".join( args )
+            ", ".join(args)
         )
     )
 
@@ -468,7 +468,7 @@ def getSelectMetaclassCode(to_name, metaclass_name, bases_name, emit, context):
 
 def getStatementTrace(source_desc, statement_repr):
     return 'puts( "Execute: " %s );' % (
-        CppStrings.encodeString( source_desc + b" " + statement_repr ),
+        CppStrings.encodeString(source_desc + b" " + statement_repr),
     )
 
 

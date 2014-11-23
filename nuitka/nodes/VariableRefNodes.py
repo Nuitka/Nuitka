@@ -94,7 +94,7 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         return self.variable
 
     def setVariable(self, variable):
-        assert isinstance( variable, Variables.Variable ), repr( variable )
+        assert isinstance(variable, Variables.Variable), repr(variable)
         assert self.variable is None
 
         self.variable = variable
@@ -118,10 +118,9 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
                     source_ref     = self.getSourceReference()
                 )
 
-                # TODO: More like "removed_variable and new_constant" probably
-                change_tags = "new_builtin"
+                change_tags = "new_builtin_ref"
                 change_desc = """\
-Module variable '%s' found to be builtin exception reference.""" % (
+Module variable '%s' found to be built-in exception reference.""" % (
                     self.variable_name
                 )
             elif self.variable_name in Builtins.builtin_names:
@@ -132,10 +131,9 @@ Module variable '%s' found to be builtin exception reference.""" % (
                     source_ref   = self.getSourceReference()
                 )
 
-                # TODO: More like "removed_variable and new_constant" probably
-                change_tags = "new_builtin"
+                change_tags = "new_builtin_ref"
                 change_desc = """\
-Module variable '%s' found to be builtin reference.""" % (
+Module variable '%s' found to be built-in reference.""" % (
                     self.variable_name
                 )
             elif self.variable_name == "__name__":
@@ -241,7 +239,7 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__(self, variable, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
         self.variable = variable
         self.variable_trace = None
@@ -306,7 +304,7 @@ class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
     kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
 
     def __init__(self, variable, source_ref):
-        ExpressionTempVariableRef.__init__( self, variable, source_ref )
+        ExpressionTempVariableRef.__init__(self, variable, source_ref)
 
         self.variable_version = variable.allocateTargetNumber()
 
@@ -322,6 +320,6 @@ class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
 
     # Python3 only, it updates temporary variables that are closure variables.
     def setVariable(self, variable):
-        ExpressionTempVariableRef.setVariable( self, variable )
+        ExpressionTempVariableRef.setVariable(self, variable)
 
         self.variable_version = self.variable.allocateTargetNumber()

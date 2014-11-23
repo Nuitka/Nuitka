@@ -88,7 +88,7 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
                     "Predicted truth value of built-in bool argument"
                 )
 
-        return ExpressionBuiltinTypeBase.computeExpression( self, constraint_collection )
+        return ExpressionBuiltinTypeBase.computeExpression(self, constraint_collection)
 
 
 class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
@@ -109,7 +109,7 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
     def __init__(self, value, base, source_ref):
         from .NodeMakingHelpers import makeConstantReplacementNode
 
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
         if value is None and self.base_only_value:
             value = makeConstantReplacementNode(

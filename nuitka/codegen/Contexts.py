@@ -289,14 +289,14 @@ class PythonContextBase:
         return False
 
     def allocateTempNumber(self, tmp_scope):
-        result = self.temp_counts.get( tmp_scope, 0 ) + 1
+        result = self.temp_counts.get(tmp_scope, 0) + 1
         self.temp_counts[ tmp_scope ] = result
         return result
 
 
 class PythonChildContextBase(PythonContextBase):
     def __init__(self, parent):
-        PythonContextBase.__init__( self )
+        PythonContextBase.__init__(self)
 
         self.parent = parent
 
@@ -310,10 +310,10 @@ class PythonChildContextBase(PythonContextBase):
         return self.parent.getModuleName()
 
     def addHelperCode(self, key, code):
-        self.parent.addHelperCode( key, code )
+        self.parent.addHelperCode(key, code)
 
     def addDeclaration(self, key, code):
-        self.parent.addDeclaration( key, code )
+        self.parent.addDeclaration(key, code)
 
 
 def _getConstantDefaultPopulation():

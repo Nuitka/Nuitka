@@ -59,7 +59,7 @@ def buildPrintNode(provider, node, source_ref):
             )
 
     if node.dest is not None:
-        temp_scope = provider.allocateTempScope( "print" )
+        temp_scope = provider.allocateTempScope("print")
 
         tmp_target_variable = provider.allocateTempVariable(
             temp_scope = temp_scope,
