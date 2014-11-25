@@ -15,6 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
 import sys
 
@@ -53,14 +54,14 @@ def someNestedGlobalUser2():
 
     # Nested function that uses a global z doesn't affect the local variable z at
     # all. This doesn't change if it's done inside an exec block.
-    exec """
+    exec("""
 def setZ():
     global z
 
     z = 3
 
 setZ()
-"""
+""")
 
     return z
 
@@ -69,7 +70,7 @@ def someNestedGlobalUser3a():
     # the global one only. We verify that by looking at locals. This means that the global
     # statement inside the function of exec changes the effect of the z.
 
-    exec """
+    exec("""
 z = 1
 
 def setZ():
@@ -78,7 +79,7 @@ def setZ():
     z = 3
 
 setZ()
-"""
+""")
 
     return z, locals().keys() == [ "setZ" ]
 
@@ -86,9 +87,9 @@ def someNestedGlobalUser3b():
     # Nested function that uses a exec variable scope z and a global z, changes
     # z to be the global one only. We verify that by looking at locals.
 
-    exec """
+    exec("""
 z = 1
-"""
+""")
 
     if sys.version_info[0] < 3:
         return z, locals().keys() == [ "z" ]
@@ -102,7 +103,7 @@ def someNestedGlobalUser4():
     # This one proves that the local variable z is entirely ignored, and that the global z
     # has the value 2 inside setZ().
 
-    exec """
+    exec("""
 z = 2
 
 def setZ():
@@ -111,7 +112,7 @@ def setZ():
     z = 3*z
 
 setZ()
-"""
+""")
     return z
 
 def someNestedGlobalUser5():
@@ -119,42 +120,42 @@ def someNestedGlobalUser5():
 
     # Without a global statement, z affects the local variable z.
 
-    exec """
+    exec("""
 z = 3
 
-"""
+""")
     return z
 
 def someNestedGlobalUser6():
     # Without a global statement, a local variable z is created.
 
-    exec """
+    exec("""
 z = 7
 
-"""
+""")
     return z
 
 
 
-print "Function that shadows a global variable with a local variable"
-print someFunction1()
-print "Function that accesses and changes a global variable declared with a global statement"
-print someFunction2()
-print "Function that uses a global variable"
-print someFunction3()
-print "Functions that uses a global variable in a nested function in various ways:"
-print someNestedGlobalUser1, someNestedGlobalUser1()
+print("Function that shadows a global variable with a local variable")
+print(someFunction1())
+print("Function that accesses and changes a global variable declared with a global statement")
+print(someFunction2())
+print("Function that uses a global variable")
+print(someFunction3())
+print("Functions that uses a global variable in a nested function in various ways:")
+print(someNestedGlobalUser1, someNestedGlobalUser1())
 del z
-print someNestedGlobalUser2, someNestedGlobalUser2()
+print(someNestedGlobalUser2, someNestedGlobalUser2())
 del z
-print someNestedGlobalUser3a, someNestedGlobalUser3a()
+print(someNestedGlobalUser3a, someNestedGlobalUser3a())
 del z
-print someNestedGlobalUser3b, someNestedGlobalUser3b()
-print someNestedGlobalUser4, ( someNestedGlobalUser4(), z )
+print(someNestedGlobalUser3b, someNestedGlobalUser3b())
+print(someNestedGlobalUser4, ( someNestedGlobalUser4(), z ))
 del z
-print someNestedGlobalUser5, someNestedGlobalUser5()
+print(someNestedGlobalUser5, someNestedGlobalUser5())
 z = 9
-print someNestedGlobalUser6, ( someNestedGlobalUser6(), z )
+print(someNestedGlobalUser6, ( someNestedGlobalUser6(), z ))
 
 
 x = 7
@@ -170,7 +171,7 @@ def f():
     return g()
 
 
-print f()
+print(f())
 
 global global_already
 global_already = 1
