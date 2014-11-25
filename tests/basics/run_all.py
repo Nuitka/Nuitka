@@ -67,11 +67,6 @@ for filename in sorted(os.listdir(".")):
     if not decideFilenameVersionSkip(filename):
         continue
 
-    # The overflow functions test gives syntax error on Python 3.x and will be
-    # skiped as well.
-    if filename == "OverflowFunctions.py" and python_version.startswith("3"):
-        continue
-
     path = filename
 
     if not active and start_at in (filename, path):
