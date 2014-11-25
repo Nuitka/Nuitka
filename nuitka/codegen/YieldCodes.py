@@ -58,6 +58,9 @@ def getYieldFromCode(to_name, value_name, in_handler, emit, context):
         )
     )
 
+    if not context.needsCleanup(value_name):
+        context.addCleanupTempName(value_name)
+
     getReleaseCode(
         release_name = value_name,
         emit         = emit,
