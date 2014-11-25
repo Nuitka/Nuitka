@@ -71,5 +71,4 @@ def f():
    def nested():
       return closure""")
     except SyntaxError as e:
-        # Falase alarm, pylint: disable=E1101
         return e.message.replace("'f'", "'%s'")

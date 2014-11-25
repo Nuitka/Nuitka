@@ -23,8 +23,6 @@ XML tree to ASCII or output it.
 
 from . import Tracing, Utils
 
-# False alarms happen with lxml, pylint: disable=E1101
-
 try:
     import lxml.etree
 

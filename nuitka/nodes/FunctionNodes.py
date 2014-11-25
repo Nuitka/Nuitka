@@ -56,11 +56,13 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
                              MarkUnoptimizedFunctionIndicator):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, leading to many instance attributes, and
-    # methods, pylint: disable=R0901,R0902,R0904
+    # methods, pylint: disable=R0901,R0902
 
     kind = "EXPRESSION_FUNCTION_BODY"
 
-    named_children = ("body",)
+    named_children = (
+        "body",
+    )
 
     if Utils.python_version >= 340:
         qualname_setup = None

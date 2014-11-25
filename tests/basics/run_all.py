@@ -41,7 +41,7 @@ python_version = setup(needs_io_encoding = True)
 
 search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
 
-start_at = sys.argv[2] if len( sys.argv ) > 2 else None
+start_at = sys.argv[2] if len(sys.argv) > 2 else None
 
 if start_at:
     active = False
@@ -50,8 +50,8 @@ else:
 
 # Create large constants test on the fly, if it's not there, not going to
 # add it to release archives for no good reason.
-if not os.path.exists( "BigConstants.py" ):
-    with open( "BigConstants.py", "w" ) as output:
+if not os.path.exists("BigConstants.py"):
+    with open("BigConstants.py", "w") as output:
         output.write(
             "# Automatically generated test, not part of releases or git.\n\n"
         )
@@ -76,12 +76,12 @@ for filename in sorted(os.listdir(".")):
 
     # This test should be run with the debug Python, and makes outputs to
     # standard error that might be ignored.
-    if filename.startswith( "Referencing" ):
-        extra_flags.append( "python_debug" )
+    if filename.startswith("Referencing"):
+        extra_flags.append("python_debug")
 
     # This tests warns about __import__() used.
     if filename == "OrderChecks.py":
-        extra_flags.append( "ignore_stderr" )
+        extra_flags.append("ignore_stderr")
 
     # TODO: Nuitka does not give output for ignored exception in dtor, this is
     # not fully compatible and potentially an error.
@@ -94,7 +94,7 @@ for filename in sorted(os.listdir(".")):
         # The "__class__" doesn't work as expected.
         "BuiltinSuper.py",
 
-        # Dictionary order changes from star args usages
+        # Dictionary order changes from star argument usages
         "Constants.py",
 
         # Too little attributes for generator objects, "__del__" is missing it
@@ -104,7 +104,7 @@ for filename in sorted(os.listdir(".")):
         # Order change for dictionary contraction"
         "ListContractions.py",
 
-        # Prepared dictionaries of Enums are not used early enough
+        # Prepared dictionaries of "enum.Enums" are not used early enough
         "Classes34.py",
     )
 

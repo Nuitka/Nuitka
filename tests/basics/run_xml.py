@@ -25,8 +25,8 @@ import os, sys, subprocess, tempfile, shutil
 nuitka1 = sys.argv[1]
 nuitka2 = sys.argv[2]
 
-search_mode = len( sys.argv ) > 3 and sys.argv[3] == "search"
-start_at = sys.argv[4] if len( sys.argv ) > 4 else None
+search_mode = len(sys.argv) > 3 and sys.argv[3] == "search"
+start_at = sys.argv[4] if len(sys.argv) > 4 else None
 
 if start_at:
     active = False
@@ -38,23 +38,23 @@ def check_output(*popenargs, **kwargs):
 
     if 'stdout' in kwargs:
         raise ValueError('stdout argument not allowed, it will be overridden.')
-    process = Popen(stdout=PIPE, *popenargs, **kwargs)
+    process = Popen(stdout = PIPE, *popenargs, **kwargs)
     output, unused_err = process.communicate()
     retcode = process.poll()
     if retcode:
         cmd = kwargs.get("args")
         if cmd is None:
             cmd = popenargs[0]
-        raise CalledProcessError(retcode, cmd, output=output)
+        raise CalledProcessError(retcode, cmd, output = output)
     return output
 
-my_dir = os.path.dirname( os.path.abspath( __file__ ) )
+my_dir = os.path.dirname(os.path.abspath(__file__))
 
-for filename in sorted( os.listdir( my_dir ) ):
-    if not filename.endswith( ".py" ) or filename.startswith( "run_" ):
+for filename in sorted(os.listdir(my_dir)):
+    if not filename.endswith(".py") or filename.startswith("run_"):
         continue
 
-    path = os.path.relpath( os.path.join( my_dir, filename ) )
+    path = os.path.relpath(os.path.join(my_dir, filename))
 
     if not active and start_at in ( filename, path ):
         active = True
@@ -62,26 +62,26 @@ for filename in sorted( os.listdir( my_dir ) ):
     if active:
         # TODO: Reactivate Python3 support here.
         if False:
-            new_path = os.path.join( tempfile.gettempdir(), filename )
-            shutil.copy( path, new_path )
+            new_path = os.path.join(tempfile.gettempdir(), filename)
+            shutil.copy(path, new_path)
 
             path = new_path
 
             # On Windows, we cannot rely on 2to3 to be in the path.
             if os.name == "nt":
-               command = sys.executable + " " + os.path.join( os.path.dirname( sys.executable ), "Tools/Scripts/2to3.py" )
+                command = sys.executable + " " + os.path.join(os.path.dirname(sys.executable), "Tools/Scripts/2to3.py")
             else:
-               command = "2to3"
+                command = "2to3"
 
             result = subprocess.call(
                 command + " -w -n --no-diffs " + path,
-                stderr = open( "/dev/null", "w" ),
+                stderr = open("/dev/null", "w"),
                 shell  = True
             )
 
         command = "%s %s '%s' '%s' %s" % (
             sys.executable,
-            os.path.join( my_dir, "..", "..", "bin", "compare_with_xml" ),
+            os.path.join(my_dir, "..", "..", "bin", "compare_with_xml"),
             nuitka1,
             nuitka2,
             path,
@@ -93,11 +93,11 @@ for filename in sorted( os.listdir( my_dir ) ):
         )
 
         if result == 2:
-            sys.stderr.write( "Interrupted, with CTRL-C\n" )
-            sys.exit( 2 )
+            sys.stderr.write("Interrupted, with CTRL-C\n")
+            sys.exit(2)
 
         if result != 0 and search_mode:
             print("Error exit!", result)
-            sys.exit( result )
+            sys.exit(result)
     else:
         print("Skipping", filename)

@@ -450,7 +450,12 @@ def hasModule(module_name):
 
     return result == 0
 
+m1 = {}
+m2 = {}
+
 def snapObjRefCntMap(before):
+    import gc
+
     if before:
         global m1
         m = m1
@@ -465,7 +470,7 @@ def snapObjRefCntMap(before):
         if x is m2:
             continue
 
-        m[ str( x ) ] = sys.getrefcount( x )
+        m[ str(x) ] = sys.getrefcount( x )
 
 
 def checkReferenceCount(checked_function, max_rounds = 10):

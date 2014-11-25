@@ -177,8 +177,8 @@ class NodeBase(NodeMetaClassBase):
 
         while not parent.isPythonModule():
             if hasattr(parent, "provider"):
-                # After we checked, we can use it, will be much faster,
-                # pylint: disable=E1101
+                # After we checked, we can use it, will be much faster route
+                # to take.
                 parent = parent.provider
             else:
                 parent = parent.getParent()

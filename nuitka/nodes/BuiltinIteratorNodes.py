@@ -65,7 +65,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
                     old_node = self.getValue()
                 )
 
-                if new_node.isExpressionSideEffects(): # false alarm pylint: disable=E1103
+                if new_node.isExpressionSideEffects():
                     change_desc += " maintaining side effects"
 
         return new_node, change_tags, change_desc

@@ -377,7 +377,7 @@ def _getConstantDefaultPopulation():
 
     if python_version >= 340:
         result += (
-            # YIELD_FROM uses this
+            # YIELD_FROM uses this starting 3.4, with 3.3 other code is used.
             "send",
         )
 

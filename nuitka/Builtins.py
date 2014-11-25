@@ -38,7 +38,7 @@ def _getBuiltinExceptionNames():
         else:
             return False
 
-    # Hide Python3 changes for builtin exception names
+    # Hide Python3 changes for built-in exception names
     try:
         import exceptions
 
@@ -124,9 +124,6 @@ assert "sys" not in builtin_names
 builtin_all_names = builtin_names + builtin_exception_names + builtin_warnings
 
 def _getAnonBuiltins():
-    # False positive for "__code__" attribute of function,
-    # pylint: disable=E1101
-
     with open(sys.executable) as any_file:
         anon_names = {
             # Strangely not Python3 types module

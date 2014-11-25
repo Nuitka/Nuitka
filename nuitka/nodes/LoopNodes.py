@@ -18,7 +18,7 @@
 """ Loop nodes.
 
 There are for and loop nodes, but both are reduced to loops with break/continue
-statements for it. These reformulations require that optimization of loops has
+statements for it. These re-formulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
@@ -43,8 +43,7 @@ class StatementLoop(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-        # For code generation, so it knows wether to produce the exit target or
-        # not.
+        # For code generation, so it knows if an exit target is needed.
         self.has_break = False
 
     getLoopBody = StatementChildrenHavingBase.childGetter("frame")

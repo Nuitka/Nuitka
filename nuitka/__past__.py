@@ -55,12 +55,12 @@ if unicode is str:
 else:
     raw_input = raw_input
 
-# pylint: disable=E0611,F0401
+# pylint: disable=E0611
 try:
     from urllib.request import urlretrieve
 except ImportError:
     from urllib import urlretrieve
-# pylint: enable=E0611,F0401
+# pylint: enable=E0611
 
 # For PyLint to be happy.
 assert long
