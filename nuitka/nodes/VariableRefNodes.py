@@ -172,11 +172,9 @@ Replaced read-only module attribute '__package__' with constant value."""
         return None
 
     def mayHaveSideEffects(self):
-        # TODO: Remembered traced could tell better.
-        return True
+        return not self.variable_trace.mustHaveValue()
 
     def mayRaiseException(self, exception_type):
-        # TODO: Remembered traced could tell better.
         return not self.variable_trace.mustHaveValue()
 
 
