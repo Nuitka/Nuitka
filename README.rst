@@ -234,6 +234,31 @@ Report issues or bugs
 Should you encounter any issues, bugs, or ideas, please visit the `Nuitka bug
 tracker <http://bugs.nuitka.net>`__ and report them.
 
+Best practices for reporting bugs:
+
+- Please aways include the following information in your report, for the
+  underlying Python version. You can easily copy&paste this into your
+  report.
+
+  .. code-block:: sh
+
+      nuitka --version
+
+- Try to make your example minimal. That is, try to remove code that does
+  not contribute to the issue as much as possible. Ideally come up with
+  a small reproducing program that illustrates the issue, using ``print``
+  with different results when that programs runs compiled or native.
+
+- If the problem occurs spuriously (i.e. not each time), try to set the
+  environment variable ``PYTHONHASHSEED`` to ``0``, disabling hash
+  randomization. If that makes the problem go away, try increasing in
+  steps of 1 to a hash seed value that makes it happen every time.
+
+- Do not include the created code in your report. Given proper input,
+  it's redundent, and it's not likely that I will look at it without
+  the ability to change the Python or Nuitka source and re-run it.
+
+
 Contact me via email with your questions
 ----------------------------------------
 
