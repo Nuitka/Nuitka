@@ -57,6 +57,33 @@ Bug Fixes
   for the Python2 only scons files.
   `Issue#153 <http://bugs.nuitka.net/issue153>`__. Fixed in 0.5.5.3 already.
 
+- Fix, the arguments of ``yield from`` expressions could be leaked.
+
+- Fix, closure taking of a class variable could have in a sub class where the
+  module variable was meant.
+
+  .. code-block:: python
+
+  var = 1
+
+  class C:
+     var = 2
+
+     class D:
+        def f():
+           # was C.var, now correctly addressed top level var
+           return var
+
+New Optimization
+----------------
+
+- Added support for ``bytearray`` built-in.
+
+- Micro optimization to ``dict`` built-in for simpler code generation.
+
+- Variables that must be assigned also have no side effects.
+
+
 Organizational
 --------------
 
@@ -69,14 +96,25 @@ Organizational
 - Donations were used to buy a Cubox-i4 Pro. It got Debian Jessie installed
   on it, and will be used to run an even larger amount of tests.
 
-- Using Nikola 7.1 with external filters instead of our own, outdated branch
-  for the web site.
-
 - Made it more clear in the user documentation that the ``.exe`` suffix is used
   for all platforms, and why.
 
+- Generally updated information in user manual and developer manual about the
+  optimization status.
+
+- Using Nikola 7.1 with external filters instead of our own, outdated branch
+  for the web site.
+
 Cleanups
 --------
+
+- PyLint clean for the first time ever. We now have a Buildbot driven test
+  that this stays that way.
+
+- Massive indentation cleanup of keyword argument calls. We have a rule to
+  align the keywords, but as this was done manually, it could easily get out
+  of touch. Now with a "autoformat" tool based on RedBaron, it's correct. Also,
+  spacing around arguments is now automatically corrected. More to come.
 
 - For ``exec`` statements, the coping back to local variables is now an
   explicit node in the tree, leader to cleaner code generation, as it now
@@ -85,6 +123,12 @@ Cleanups
 - The ``MaybeLocalVariables`` became explicit about which variable they
   might be, and contribute to its SSA trace as well, which was incomplete
   before.
+
+- Removed some cases of code duplication that were marked as TODO items. This
+  often resulted in cleanups.
+
+- Do not use ``replaceWith`` on child nodes, that potentially were re-used
+  during their computation.
 
 Summary
 -------
