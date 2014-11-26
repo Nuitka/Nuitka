@@ -21,6 +21,8 @@ For built-in name references, we check if it's one of the supported built-in
 types, and then specialize for the ones, where it makes sense.
 """
 
+from logging import warning
+
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
@@ -941,7 +943,20 @@ def check():
 
 check()
 
+_builtin_white_list = (
+    # Not supporting 'print', because it could be replaced, and is not
+    # worth the effort yet.
+    "print",
+
+    # TODO: This could, and should be supported, as we could e.g. lower
+    # types easily for it.
+    "sorted",
+)
+
 def computeBuiltinCall(call_node, called):
+    # There is some dispatching for how to output various types of changes,
+    # with lots of cases, pylint: disable=R0912
+
     builtin_name = called.getBuiltinName()
 
     if builtin_name in _dispatch_dict:
@@ -1037,5 +1052,9 @@ Replaced call to built-in '%s' with try/finally guarded call.""" % (
 
         return new_node, tags, message
     else:
-        # TODO: Consider giving warnings, whitelisted potentially
+        if isDebug() and builtin_name not in _builtin_white_list:
+            warning(
+                "Not handling built-in '%s', consider support." % builtin_name
+            )
+
         return call_node, None, None
