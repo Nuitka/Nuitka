@@ -245,3 +245,28 @@ else:
         kind = "EXPRESSION_BUILTIN_STR"
 
         builtin_spec = BuiltinOptimization.builtin_str_spec
+
+
+class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
+    kind = "EXPRESSION_BUILTIN_BYTEARRAY"
+
+    builtin_spec = BuiltinOptimization.builtin_bytearray_spec
+
+    def __init__(self, value, source_ref):
+        if value is None:
+            from .ConstantRefNodes import ExpressionConstantRef
+            value = ExpressionConstantRef(
+                constant   = b"",
+                source_ref = source_ref
+            )
+
+        ExpressionBuiltinTypeBase.__init__(
+            self,
+            value      = value,
+            source_ref = source_ref
+        )
+
+    def computeExpression(self, constraint_collection):
+        # TODO: Quite impossible as this has a variable result, but we could
+        # look at the arguments at least.
+        return self, None, None

@@ -44,7 +44,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         NodeBase.__init__(self, source_ref = source_ref)
         CompileTimeConstantExpressionMixin.__init__(self)
 
-        assert isConstant(constant), constant
+        assert isConstant(constant), repr(constant)
 
         self.constant = constant
 
@@ -158,8 +158,9 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
         return tuple(
             ExpressionConstantRef(
-                constant   = value,
-                source_ref = source_ref
+                constant      = value,
+                source_ref    = source_ref,
+                user_provided = self.user_provided
             )
             for value in
             self.constant

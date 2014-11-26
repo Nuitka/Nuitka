@@ -15,10 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Optimize calls to builtins reference builtin nodes.
+""" Optimize calls to built-in references to specific built-in calls.
 
-For builtin name references, we check if it's one of the supported builtin
-types.
+For built-in name references, we check if it's one of the supported built-in
+types, and then specialize for the ones, where it makes sense.
 """
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
@@ -69,7 +69,8 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinList,
     ExpressionBuiltinSet,
     ExpressionBuiltinStr,
-    ExpressionBuiltinTuple
+    ExpressionBuiltinTuple,
+    ExpressionBuiltinBytearray
 )
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
 from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
@@ -878,6 +879,15 @@ def isinstance_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_isinstance_spec
     )
 
+def bytearray_extractor(node):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = ExpressionBuiltinBytearray,
+        builtin_spec  = BuiltinOptimization.builtin_bytearray_spec
+    )
+
+
+
 _dispatch_dict = {
     "compile"    : compile_extractor,
     "globals"    : globals_extractor,
@@ -909,7 +919,8 @@ _dispatch_dict = {
     "hasattr"    : hasattr_extractor,
     "getattr"    : getattr_extractor,
     "setattr"    : setattr_extractor,
-    "isinstance" : isinstance_extractor
+    "isinstance" : isinstance_extractor,
+    "bytearray"  : bytearray_extractor
 }
 
 if python_version < 300:
@@ -957,33 +968,33 @@ Replaced dynamic __import__ %s with static module import.""" % (
         elif inspect_node.isExpressionBuiltin() or \
              inspect_node.isStatementExec():
             tags = "new_builtin"
-            message = "Replaced call to builtin %s with builtin call %s." % (
+            message = "Replaced call to built-in '%s' with built-in call '%s'." % (
                 builtin_name,
                 inspect_node.kind,
             )
         elif inspect_node.isExpressionRaiseException():
             tags = "new_raise"
             message = """\
-Replaced call to builtin %s with exception raising call.""" % (
+Replaced call to built-in '%s' with exception raising call.""" % (
                 inspect_node.kind,
             )
         elif inspect_node.isExpressionOperationUnary():
             tags = "new_expression"
             message = """\
-Replaced call to builtin %s with unary operation %s.""" % (
+Replaced call to built-in '%s' with unary operation '%s'.""" % (
                 inspect_node.kind,
                 inspect_node.getOperator()
             )
         elif inspect_node.isExpressionCall():
             tags = "new_expression"
             message = """\
-Replaced call to builtin %s with call.""" % (
+Replaced call to built-in '%s' with call.""" % (
                 inspect_node.kind,
             )
         elif inspect_node.isExpressionTryFinally():
             tags = "new_expression"
             message = """\
-Replaced call to builtin %s with try/finally guarded call.""" % (
+Replaced call to built-in '%s' with try/finally guarded call.""" % (
                 inspect_node.getExpression().kind,
             )
         else:
@@ -1014,7 +1025,7 @@ Replaced call to builtin %s with try/finally guarded call.""" % (
                 yes_expression = new_node,
                 no_expression  = makeRaiseExceptionReplacementExpression(
                     exception_type  = "RuntimeError",
-                    exception_value = "Builtin '%s' was overloaded'" % (
+                    exception_value = "Built-in '%s' cannot be replaced." % (
                         builtin_name
                     ),
                     expression      = call_node

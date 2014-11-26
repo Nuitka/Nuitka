@@ -380,6 +380,19 @@ PyObject *BUILTIN_HEX( PyObject *value )
 #endif
 }
 
+PyObject *BUILTIN_BYTEARRAY( PyObject *value )
+{
+    PyObject *result = PyByteArray_FromObject( value );
+
+    if ( unlikely( result == NULL ))
+    {
+        return NULL;
+    }
+
+    return result;
+}
+
+
 // From CPython:
 typedef struct {
     PyObject_HEAD

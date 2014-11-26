@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Optimizations of builtins to builtin calls.
+""" Optimizations of built-ins to built-in calls.
 
 """
 import math
@@ -268,6 +268,7 @@ builtin_setattr_spec = BuiltinParameterSpecNoKeywords("setattr", ("object", "nam
 
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "classes"), 0)
 
+builtin_bytearray_spec = BuiltinParameterSpecNoKeywords("bytearray", ("iterable_of_ints",), 1)
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def __init__(self, *args):

@@ -2154,6 +2154,16 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             emit       = emit,
             context    = context
         )
+    elif expression.isExpressionBuiltinBytearray():
+        generateCAPIObjectCode(
+            to_name  = to_name,
+            capi     = "BUILTIN_BYTEARRAY",
+            arg_desc = (
+                ("bytearray_arg", expression.getValue()),
+            ),
+            emit     = emit,
+            context  = context
+        )
     elif expression.isExpressionBuiltinSuper():
         type_name, object_name = generateExpressionsCode(
             expressions = (

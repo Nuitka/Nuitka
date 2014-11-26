@@ -848,8 +848,10 @@ extern PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObjec
 // For built-in setattr() functionality.
 extern PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value );
 
-extern PyObject *const_str_plain___builtins__;
+// For built-in bytearray() functionality.
+extern PyObject *BUILTIN_BYTEARRAY( PyObject *value );
 
+extern PyObject *const_str_plain___builtins__;
 //
 extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals );
 

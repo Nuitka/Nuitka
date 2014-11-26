@@ -1179,7 +1179,7 @@ class ExpressionSpecBasedComputationMixin(ExpressionMixin):
         return getComputationResult(
             node        = self,
             computation = lambda : self.builtin_spec.simulateCall(given_values),
-            description = "Builtin call to '%s' precomputed." % (
+            description = "Built-in call to '%s' precomputed." % (
                 self.builtin_spec.getName()
             )
         )
