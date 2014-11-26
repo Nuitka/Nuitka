@@ -123,6 +123,19 @@ assert "sys" not in builtin_names
 
 builtin_all_names = builtin_names + builtin_exception_names + builtin_warnings
 
+def getBuiltinTypeNames():
+    result = []
+
+    for builtin_name in builtin_names:
+        if isinstance(__builtins__[builtin_name],type):
+            result.append(builtin_name)
+
+    return tuple(sorted(result))
+
+
+builtin_type_names = getBuiltinTypeNames()
+
+
 def _getAnonBuiltins():
     with open(sys.executable) as any_file:
         anon_names = {
