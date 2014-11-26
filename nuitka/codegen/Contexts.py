@@ -380,6 +380,12 @@ def _getConstantDefaultPopulation():
             # YIELD_FROM uses this starting 3.4, with 3.3 other code is used.
             "send",
         )
+    if python_version >= 330:
+        result += (
+            # YIELD_FROM uses this
+            "throw",
+            "close",
+        )
 
 
     # For patching Python2 internal class type

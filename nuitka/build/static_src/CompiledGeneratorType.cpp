@@ -715,9 +715,9 @@ static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
 {
     assertObject( generator->m_exception_type );
 
-    Py_INCREF( generator->m_exception_type );
-    Py_XINCREF( generator->m_exception_value );
-    Py_XINCREF( generator->m_exception_tb );
+//    Py_INCREF( generator->m_exception_type );
+//    Py_XINCREF( generator->m_exception_value );
+//    Py_XINCREF( generator->m_exception_tb );
 
     PyErr_Restore(
         generator->m_exception_type,
@@ -733,7 +733,7 @@ static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
 
-extern PyObject *const_str_plain_send;
+extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
 
 PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 {
@@ -756,7 +756,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
             // immediately close the currently running sub-generator.
             if ( PyErr_GivenExceptionMatches( generator->m_exception_type, PyExc_GeneratorExit ) )
             {
-                PyObject *close_method = PyObject_GetAttrString( value, (char *)"close" );
+                PyObject *close_method = PyObject_GetAttr( value, const_str_plain_close );
 
                 if ( close_method )
                 {
@@ -772,14 +772,14 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
                 }
                 else if ( !PyErr_ExceptionMatches( PyExc_AttributeError ) )
                 {
-                    PyErr_WriteUnraisable( (PyObject *)generator );
+                    PyErr_WriteUnraisable( (PyObject *)value );
                 }
 
                 RAISE_GENERATOR_EXCEPTION( generator );
                 return NULL;
             }
 
-            PyObject *throw_method = PyObject_GetAttrString( value, (char *)"throw" );
+            PyObject *throw_method = PyObject_GetAttr( value, const_str_plain_throw );
 
             if ( throw_method )
             {
@@ -810,6 +810,10 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
             }
             else
             {
+                Py_CLEAR( generator->m_exception_type );
+                Py_CLEAR( generator->m_exception_value );
+                Py_CLEAR( generator->m_exception_tb );
+
                 return NULL;
             }
 

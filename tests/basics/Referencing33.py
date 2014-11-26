@@ -76,8 +76,41 @@ def simpleFunction2():
     except TypeError:
         pass
 
+# Broken iterator class.
+class Broken:
+    def __iter__(self):
+        return self
+    def __next__(self):
+        return 1
+    def __getattr__(self, attr):
+
+        1/0
+
+def simpleFunction3():
+    def g():
+        yield from Broken()
+
+    try:
+        gi = g()
+        next(gi)
+    except Exception:
+        pass
+
+def simpleFunction4():
+    def g():
+        yield from Broken()
+
+    try:
+        gi = g()
+        next(gi)
+        gi.throw(AttributeError)
+    except Exception:
+        pass
+
+
+
 # These need stderr to be wrapped.
-tests_stderr = ()
+tests_stderr = (3, )
 
 # Disabled tests
 tests_skipped = {}
