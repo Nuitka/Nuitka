@@ -20,12 +20,12 @@ print "Generator expression that demonstrates the timing:"
 def iteratorCreationTiming():
     def getIterable(x):
         print "Getting iterable", x
-        return Iterable( x )
+        return Iterable(x)
 
     class Iterable:
         def __init__(self, x):
             self.x = x
-            self.values = range( x )
+            self.values = range(x)
             self.count = 0
 
         def __iter__(self):
@@ -36,7 +36,7 @@ def iteratorCreationTiming():
         def next(self):
             print "Next of", self.x, "is", self.count
 
-            if len( self.values ) > self.count:
+            if len(self.values) > self.count:
                 self.count += 1
 
                 return self.values[ self.count - 1 ]
@@ -49,11 +49,11 @@ def iteratorCreationTiming():
             print "Deleting", self.x
 
 
-    gen = ( (y,z) for y in getIterable( 3 ) for z in getIterable( 2 ) )
+    gen = ( (y,z) for y in getIterable(3) for z in getIterable(2) )
 
     print "Using generator", gen
     gen.next()
-    res = tuple( gen )
+    res = tuple(gen)
     print res
 
     print "*" * 20
@@ -65,7 +65,7 @@ def iteratorCreationTiming():
 
         try:
             import inspect
-            print "Generator state then is", inspect.getgeneratorstate( gen )
+            print "Generator state then is", inspect.getgeneratorstate(gen)
         except AttributeError:
             pass
 
@@ -73,7 +73,7 @@ def iteratorCreationTiming():
 
     print "Early aborting generator"
 
-    gen2 = ( (y,z) for y in getIterable( 3 ) for z in getIterable( 2 ) )
+    gen2 = ( (y,z) for y in getIterable(3) for z in getIterable(2) )
     del gen2
 
 iteratorCreationTiming()
@@ -88,7 +88,7 @@ print tuple( x for (x,y) in zip(range(2),range(4)))
 print "Directory of generator expressions:"
 for_dir = ( x for x in [1] )
 
-gen_dir = dir( for_dir )
+gen_dir = dir(for_dir)
 
 print sorted( g for g in gen_dir )
 
@@ -110,14 +110,14 @@ def genexprSend():
 
     print "Throwing an exception to it."
     try:
-        x.throw( 2, 2, None )
+        x.throw(2, 2, None)
         assert False
     except TypeError, e:
         print "Gave expected TypeError:", e
 
     print "Throwing an exception to it."
     try:
-        x.throw( ValueError, 2, None )
+        x.throw(ValueError, 2, None)
     except ValueError, e:
         print "Gave expected ValueError:", e
 
@@ -132,7 +132,7 @@ def genexprSend():
 
     print "Throwing another exception from it."
     try:
-        x.throw( ValueError, 5, None )
+        x.throw(ValueError, 5, None)
     except ValueError, e:
         print "Gave expected ValueError with text:", e
 
@@ -162,10 +162,10 @@ def genexprThrown():
 
         return z
 
-    x = ( checked( x ) for x in range(9) )
+    x = ( checked(x) for x in range(9) )
 
     try:
-        for count, value in enumerate( x ):
+        for count, value in enumerate(x):
             print count, value
     except ValueError:
         print count+1, ValueError
@@ -192,11 +192,11 @@ def lambdaGenerators():
 
     x = lambda : (yield a)
 
-    print "Simple lambda generator", x, x(), list( x() )
+    print "Simple lambda generator", x, x(), list(x())
 
     y = lambda : ((yield 1),(yield 2))
 
-    print "Complex lambda generator", y, y(), list( y() )
+    print "Complex lambda generator", y, y(), list(y())
 
 lambdaGenerators()
 
@@ -208,12 +208,12 @@ def functionGenerators():
     def x():
         yield a
 
-    print "Simple function generator", x, x(), list( x() )
+    print "Simple function generator", x, x(), list(x())
 
     def y():
         yield((yield 1),(yield 2))
 
-    print "Complex function generator", y, y(), list( y() )
+    print "Complex function generator", y, y(), list(y())
 
 functionGenerators()
 

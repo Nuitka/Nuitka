@@ -22,7 +22,7 @@ print "Module name is", __name__
 class SomeClass:
     pass
 
-print "Class inside names it as", repr( SomeClass.__module__ )
+print "Class inside names it as", repr(SomeClass.__module__)
 
 if __name__ == "__main__":
     print "Executed as __main__"
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # The sys.argv[0] might contain .exe, .py or no suffix at all. Remove it, so the diff
     # is more acceptable.
     args = sys.argv[:]
-    args[0] = os.path.basename( args[0] ).replace( ".exe", ".py" ).replace( ".py", "" )
+    args[0] = os.path.basename(args[0]).replace(".exe", ".py").replace(".py", "")
 
     print "Arguments were", args
 

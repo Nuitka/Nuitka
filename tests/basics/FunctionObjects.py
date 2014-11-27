@@ -32,14 +32,14 @@ print "Documentation initially:",  func.__doc__
 print "Changing its doc:"
 func.__doc__ = "changed doc" + chr(0) + " with 0 character"
 
-print "Documentation updated:",  repr( func.__doc__ )
+print "Documentation updated:",  repr(func.__doc__)
 
 print "Setting its dict"
 func.my_value = "attached value"
 print "Reading its dict", func.my_value
 
 print "func_code", func.func_code, func.func_code.co_argcount
-print dir( func.func_code )
+print dir(func.func_code)
 
 def func2(arg1, arg2 = "default_arg2", arg3 = "default_arg3"):
    x = 1

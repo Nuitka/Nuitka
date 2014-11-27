@@ -31,7 +31,7 @@ def functionEval2():
 
     g = {}
 
-    r = eval( "1+3", g )
+    r = eval("1+3", g)
 
     return r, g.keys()
 
@@ -40,8 +40,8 @@ print "eval in a function with globals provided", functionEval2()
 def functionEval3():
     result = []
 
-    for x in eval( "(1,2)"):
-        result.append( x )
+    for x in eval("(1,2)"):
+        result.append(x)
 
     return result
 
@@ -71,22 +71,22 @@ print "exec in function without and with locals() provided:", functionExec1(), f
 
 tmp_filename = tempfile.gettempdir() + "/execfile.py"
 
-f = open( tmp_filename, "w" )
-f.write( "e=7\nf=8\n" )
+f = open(tmp_filename, "w")
+f.write("e=7\nf=8\n")
 f.close()
 
-execfile( tmp_filename )
+execfile(tmp_filename)
 
 print "execfile with defaults f,g=", e, f
 
 global_vars = { 'e' : '0', 'f' : 0 }
-local_vars = dict( global_vars )
+local_vars = dict(global_vars)
 
-execfile( tmp_filename, global_vars )
+execfile(tmp_filename, global_vars)
 
 print "execfile with globals dict:", global_vars.keys()
 
-execfile( tmp_filename, global_vars, local_vars )
+execfile(tmp_filename, global_vars, local_vars)
 
 print "execfile with globals and locals dict:", local_vars
 
@@ -95,10 +95,10 @@ def functionExecfile():
     f = 0
 
     global_vars = { 'e' : '0', 'f' : 0 }
-    local_vars = dict( global_vars )
+    local_vars = dict(global_vars)
 
     print "execfile with globals and locals dict in a function:",
-    x = execfile( tmp_filename, global_vars, local_vars )
+    x = execfile(tmp_filename, global_vars, local_vars)
     print x,
     print global_vars.keys(), local_vars, e, f
 
@@ -111,7 +111,7 @@ class classExecfile:
     print "execfile in a class:",
     # TODO: Won't work yet, Issue#5
     # print execfile( tmp_filename ),
-    execfile( tmp_filename )
+    execfile(tmp_filename)
     print "execfile changed local values:", e, f
 
 
@@ -140,7 +140,7 @@ def functionEvalNones2():
     g = None
     l = None
 
-    f1 = eval ( code, l, g )
+    f1 = eval (code, l, g)
 
     print "Eval with None arguments from variables did access locals:", f1
 
@@ -283,12 +283,12 @@ def generatorFunctionWithExec():
 
     yield y
 
-print "Exec in a generator function", tuple( generatorFunctionWithExec() )
+print "Exec in a generator function", tuple(generatorFunctionWithExec())
 
 def evalInContractions():
 
-    r1 = list( eval( str( s ) ) for s in range( 3 ) )
-    r2 = [ eval( str( s ) ) for s in range( 4 ) ]
+    r1 = list( eval(str(s)) for s in range(3) )
+    r2 = [ eval(str(s)) for s in range(4) ]
 
     return r1, r2
 
@@ -309,4 +309,4 @@ def makeAddPair(a, b):
 
 print "Exec adds functions declares in explicit locals() given.", execDefinesFunctionToLocalsExplicity()
 
-os.unlink( tmp_filename )
+os.unlink(tmp_filename)

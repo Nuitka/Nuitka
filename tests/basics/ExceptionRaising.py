@@ -135,7 +135,7 @@ def checkTraceback():
 
         print("Check traceback:")
 
-        traceback.print_tb( sys.exc_info()[2], file = sys.stdout )
+        traceback.print_tb(sys.exc_info()[2], file = sys.stdout)
 
         print("End of traceback")
 

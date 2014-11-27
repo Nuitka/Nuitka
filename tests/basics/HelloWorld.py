@@ -30,8 +30,8 @@ def printHelloWorld2(arg):
 
 print printHelloWorld2
 
-printHelloWorld2( "Hello World from Function positional argument" )
-printHelloWorld2( arg = "Hello World from Function keyword argument" )
+printHelloWorld2("Hello World from Function positional argument")
+printHelloWorld2(arg = "Hello World from Function keyword argument" )
 
 def printHelloWorld3(arg = "Hello World from Function default argument"):
     print arg

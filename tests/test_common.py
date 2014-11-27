@@ -45,7 +45,7 @@ def check_output(*popenargs, **kwargs):
         cmd = kwargs.get("args")
         if cmd is None:
             cmd = popenargs[0]
-        raise subprocess.CalledProcessError(retcode, cmd, output=output)
+        raise subprocess.CalledProcessError(retcode, cmd, output = output)
 
     return output
 
@@ -71,7 +71,7 @@ def setup(needs_io_encoding = False, silent = False):
     # Go its own directory, to have it easy with path knowledge.
     os.chdir(
         os.path.dirname(
-            os.path.abspath( sys.modules[ "__main__" ].__file__ )
+            os.path.abspath(sys.modules[ "__main__" ].__file__)
         )
     )
 
@@ -134,7 +134,7 @@ def getTempDir():
         tmp_dir = tempfile.mkdtemp(
             prefix = os.path.basename(
                 os.path.dirname(
-                    os.path.abspath( sys.modules[ "__main__" ].__file__ )
+                    os.path.abspath(sys.modules[ "__main__" ].__file__)
                 )
             ) + "-",
             dir    = tempfile.gettempdir() if
@@ -470,7 +470,7 @@ def snapObjRefCntMap(before):
         if x is m2:
             continue
 
-        m[ str(x) ] = sys.getrefcount( x )
+        m[ str(x) ] = sys.getrefcount(x)
 
 
 def checkReferenceCount(checked_function, max_rounds = 10):

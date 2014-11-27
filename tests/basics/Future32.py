@@ -17,6 +17,6 @@
 #
 from __future__ import barry_as_FLUFL
 
-print( eval( "1 <> 2" ) )
-print( eval( '"a"<>"b"' ) )
-print( eval( 'range(7) <> range(7)' ) )
+print( eval("1 <> 2") )
+print( eval('"a"<>"b"') )
+print( eval('range(7) <> range(7)') )

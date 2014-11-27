@@ -42,7 +42,7 @@ print "Simple class:", SimpleClass
 print "Lives in", SimpleClass.__module__
 print "Documentation", SimpleClass.__doc__
 print "Instantiate simple class:", SimpleClass(14)
-print "Call simple class normal method:", SimpleClass( 11 ).normal_method(1, 2)
+print "Call simple class normal method:", SimpleClass(11).normal_method(1, 2)
 print "Call simple class static method:", SimpleClass(11).static_method()
 
 class MetaClass(type):
@@ -55,9 +55,9 @@ print MetaClass
 class ComplexClass:
     __metaclass__ = MetaClass
 
-print ComplexClass, dir( ComplexClass )
+print ComplexClass, dir(ComplexClass)
 
-print ComplexClass, hasattr( ComplexClass, "addedin" ) and ComplexClass.addedin
+print ComplexClass, hasattr(ComplexClass, "addedin") and ComplexClass.addedin
 
 
 def function():
@@ -124,7 +124,7 @@ print "Class that updates its locals:",
 class DictUpdating:
     a = 1
 
-    locals().update( { "b" : 2 } )
+    locals().update({ "b" : 2 })
 
     for f in range(6):
         locals()[ "test_%s" % f ] = f

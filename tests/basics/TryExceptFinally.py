@@ -83,7 +83,7 @@ def tryScope4(x):
     finally:
         print("finally obeyed")
 
-tryScope4(1 )
+tryScope4(1)
 tryScope4([1])
 
 def tryScope5():

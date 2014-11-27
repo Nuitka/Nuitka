@@ -42,25 +42,25 @@ print({} is {})
 a = ( {}, [] )
 
 a[0][1] = 2
-a[1].append( 3 )
+a[1].append(3)
 
 print("Mutable list and dict inside an immutable tuple:")
 print(a)
 
 print("Empty list and dict are hopefully unchanged:")
-print( ( {}, [] ) )
+print(( {}, [] ))
 
 def argChanger(a):
     a[0][1] = 2
-    a[1].append( 3 )
+    a[1].append(3)
 
     return a
 
 print("Mutable list and dict inside an immutable tuple as arguments:")
-print( argChanger( ( {}, [] ) ) )
+print(argChanger(( {}, [] )))
 
 print("Empty list and dict are hopefully still unchanged:")
-print( ( {}, [] ) )
+print(( {}, [] ))
 
 print("Set constants:")
 print(set(['foo']))
@@ -71,7 +71,7 @@ def mutableConstantChanger():
     print("Start out with value:")
     print(a)
 
-    a[1].append( 5 )
+    a[1].append(5)
     print("Changed to value:")
     print(a)
 
@@ -87,7 +87,7 @@ def mutableConstantChanger():
     print(d)
 
 
-    spec = dict(qual=[], storage=set(), type=[], function=set(), q = 1)
+    spec = dict(qual = [], storage = set(), type = [], function = set(), q = 1)
     spec["type"].insert(0, 2)
     spec["storage"].add(3)
     print("Dictionary created from dict built-in.")
@@ -113,9 +113,9 @@ def f():
     def two():
         print("two")
 
-    a = dd(qual=one(), storage=two(), type=[], function=[])
+    a = dd(qual = one(), storage = two(), type = [], function = [])
     print("f mutable", a)
-    a = dd(qual=1, storage=2, type=3, function=4)
+    a = dd(qual = 1, storage = 2, type = 3, function = 4)
     print("f immutable", a)
 
     # TODO: This exposes a bug in how the star dict argument should populate the
@@ -150,13 +150,13 @@ d = { "qual" :  1, "storage" : 2, "type2" : 3, "function" : 4 }
 print("Immutable values dictionary constant:", d)
 
 # Constants that might be difficult
-min_signed_int = int( -(2**(8*8-1)-1)-1 )
+min_signed_int = int(-(2**(8*8-1)-1)-1)
 print("Small int:", min_signed_int, type(min_signed_int))
-min_signed_int = int( -(2**(8*4-1)-1)-1 )
+min_signed_int = int(-(2**(8*4-1)-1)-1)
 print("Small int", min_signed_int, type(min_signed_int))
 
 # Constants that might be difficult
-min_signed_long = long( -(2**(8*8-1)-1)-1 )
+min_signed_long = long(-(2**(8*8-1)-1)-1)
 print("Small long", min_signed_long, type(min_signed_long))
-min_signed_long = long( -(2**(8*4-1)-1)-1 )
+min_signed_long = long(-(2**(8*4-1)-1)-1)
 print("Small long", min_signed_long, type(min_signed_long))

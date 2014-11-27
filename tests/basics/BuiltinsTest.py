@@ -66,7 +66,7 @@ def displayDict(d):
 
     return repr(d)
 
-print "Vars on module level", displayDict( vars() )
+print "Vars on module level", displayDict(vars())
 
 module_locals = locals()
 
@@ -107,15 +107,15 @@ print new_class, new_class()
 
 print "None has type", type(None)
 
-print "Constant ranges", range( 2 ), range( 1, 6 ), range( 3, 0, -1 ), range( 3, 8, 2 ), range(5, -5, -3)
-print "Border cases", range(0), range(-1), range( -1, 1 )
+print "Constant ranges", range(2), range(1, 6), range(3, 0, -1), range(3, 8, 2), range(5, -5, -3)
+print "Border cases", range(0), range(-1), range(-1, 1)
 
 print "Corner case large negative value", range(-2**100)
 print "Corner case with large start/end values in small range", range(2**100,2**100+2)
 
 try:
     print "Range with 0 step gives:",
-    print range( 3, 8, 0 )
+    print range(3, 8, 0)
 except ValueError, e:
     print e
 
@@ -131,31 +131,31 @@ try:
 except TypeError, e:
     print "Gives exception:", e
 
-print "List from iterable", list( "abc" ), list()
-print "List from sequence", list( sequence = (0, 1, 2) )
-print "Tuple from iterable", tuple( "cda" ), tuple()
-print "Tuple from sequence", tuple( sequence = (0, 1, 2) )
+print "List from iterable", list("abc"), list()
+print "List from sequence", list(sequence = (0, 1, 2))
+print "Tuple from iterable", tuple("cda"), tuple()
+print "Tuple from sequence", tuple(sequence = (0, 1, 2))
 
-print "Dictionary from iterable and keywords", dict( ( "ab", ( 1, 2 ) ), f = 1, g = 1 )
+print "Dictionary from iterable and keywords", dict(( "ab", ( 1, 2 ) ), f = 1, g = 1)
 print "More constant dictionaries", {'two': 2, 'one': 1}, {}, dict()
 g = {'two': 2, 'one': 1}
-print "Variable dictionary", dict( g )
-print "Found during optimization", dict( dict( {'le': 2, 'la': 1} ), fu = 3 ), dict( named = dict( {'le': 2, 'la': 1} ) )
+print "Variable dictionary", dict(g)
+print "Found during optimization", dict(dict({'le': 2, 'la': 1}), fu = 3), dict(named = dict({'le': 2, 'la': 1}))
 
-print "Floats from constants", float( "3.0" ), float( x = 9.0 ), float()
-print "Found during optimization", float( float( "3.2" ) ), float( x = float( 11.0 ) )
+print "Floats from constants", float("3.0"), float(x = 9.0), float()
+print "Found during optimization", float(float("3.2")), float(x = float(11.0))
 
-print "Strs from constants", str( "3.3" ), str( object = 9.1 ), str()
-print "Found during optimization", str( float( "3.3" ) ), str( object = float( 12.0 ) )
+print "Strs from constants", str("3.3"), str(object = 9.1), str()
+print "Found during optimization", str(float("3.3")), str(object = float(12.0))
 
-print "Bools from constants", bool( "3.3" ), bool( x = 9.1 ), bool(0), bool()
-print "Found during optimization", bool( float( "3.3" ) ), bool( x = float( 0.0 ) )
+print "Bools from constants", bool("3.3"), bool(x = 9.1), bool(0), bool()
+print "Found during optimization", bool(float("3.3")), bool(x = float(0.0))
 
-print "Ints from constants", int( "3" ), int( x = "9" ), int( "f", 16 ), int( x = "e", base = 16 ), int( "0101", base = 2 ), int(0), int()
-print "Found ints during optimization", int( int( "3" ) ), int( x = int( 0.0 ) )
+print "Ints from constants", int("3"), int(x = "9" ), int("f", 16), int(x = "e", base = 16), int("0101", base = 2), int(0), int()
+print "Found ints during optimization", int(int("3")), int(x = int(0.0))
 
 print "Longs from constants", long("3"), long(x = "9"), long("f", 16), long(x = "e", base = 16), long("0101", base = 2), long(0), long()
-print "Found longs during optimization", long(long( "3" )), long(x = long( 0.0))
+print "Found longs during optimization", long(long("3")), long(x = long(0.0))
 
 try:
     print "Int with only base", int(base = 2),
@@ -179,31 +179,31 @@ else:
     print "Worked"
 
 
-print "Oct from constants", oct( 467 ), oct( 0 )
-print "Found during optimization", oct( int( "3" ) )
+print "Oct from constants", oct(467), oct(0)
+print "Found during optimization", oct(int("3"))
 
-print "Hex from constants", hex( 467 ), hex( 0 )
-print "Found during optimization", hex( int( "3" ) )
+print "Hex from constants", hex(467), hex(0)
+print "Found during optimization", hex(int("3"))
 
 
-print "Bin from constants", bin( 467 ), bin( 0 )
-print "Found during optimization", bin( int( "3" ) )
+print "Bin from constants", bin(467), bin(0)
+print "Found during optimization", bin(int("3"))
 
 try:
-    int( 1,2,3 )
+    int(1,2,3)
 except Exception as e:
     print "Too many args gave", repr(e)
 
 try:
-    int( y = 1 )
+    int(y = 1)
 except Exception as e:
     print "Wrong arg", repr(e)
 
 f = 3
-print "Unoptimized call of int", int( "0" * f, base = 16 )
+print "Unoptimized call of int", int("0" * f, base = 16)
 
 d = { "x" : "12", "base" : 8 }
-print "Dict call of int", int( **d )
+print "Dict call of int", int(**d)
 
 
 base = 16
@@ -231,22 +231,22 @@ except Exception as e:
     print "Disallowed without args", repr(e)
 
 try:
-    print ord( s = 1 )
+    print ord(s = 1)
 except Exception as e:
     print "Disallowed keyword args", repr(e)
 
 try:
-    print ord( 1, 2 )
+    print ord(1, 2)
 except Exception as e:
     print "Too many plain args", repr(e)
 
 try:
-    print ord( 1, s = 2 )
+    print ord(1, s = 2)
 except Exception as e:
     print "Too many args, some keywords", repr(e)
 
 try:
-    print str( "1", offer = 2 )
+    print str("1", offer = 2)
 except Exception as e:
     print "Too many args, some keywords", repr(e)
 
@@ -257,19 +257,19 @@ print "Can optimize the star list argness away", int(*(a,)),
 print "Can optimize the empty star list arg away", int(*tuple()),
 print "Can optimize the empty star dict arg away", long(**dict())
 
-print "Dict building with keyword arguments", dict(), dict( a = f )
-print "Dictionary entirely from constant args", dict(q='Guido', w='van', e='Rossum', r='invented', t='Python', y='')
+print "Dict building with keyword arguments", dict(), dict(a = f)
+print "Dictionary entirely from constant args", dict(q = 'Guido', w = 'van', e = 'Rossum', r = 'invented', t = 'Python', y = '')
 
 a = 5
-print "Instance check recognises", isinstance( a, int )
+print "Instance check recognises", isinstance(a, int)
 
 try:
-    print "Instance check with too many arguments", isinstance( a, long, int )
+    print "Instance check with too many arguments", isinstance(a, long, int)
 except Exception as e:
     print "Too many args", repr(e)
 
 try:
-    print "Instance check with too many arguments", isinstance( a )
+    print "Instance check with too many arguments", isinstance(a)
 except Exception as e:
     print "Too few args", repr(e)
 
@@ -284,7 +284,7 @@ def usingIterToCheckIterable(a):
 usingIterToCheckIterable(1)
 
 print "Nested constant, dict inside a list, referencing a built-in compile time constant",
-print( [dict(type=int)] )
+print( [dict(type = int)] )
 
 print "nan and -nan sign checks:"
 from math import copysign

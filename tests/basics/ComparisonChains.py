@@ -58,7 +58,7 @@ def function_torture_is():
 
 function_torture_is()
 
-print("Check if lambda can have expression chains:", end="")
+print("Check if lambda can have expression chains:", end = "")
 
 def function_lambda_with_chain():
 
