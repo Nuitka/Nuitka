@@ -251,6 +251,10 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
 
         return self, None, None
 
+    def mayRaiseException(self, exception_type):
+        return self.getKey().mayRaiseException(exception_type) or \
+               self.getValue().mayRaiseException(exception_type)
+
 
 class ExpressionMakeDict(SideEffectsFromChildrenMixin,
                          ExpressionChildrenHavingBase):
@@ -325,6 +329,13 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
 
         return new_node, "new_constant", """\
 Created dictionary found to be constant."""
+
+    def mayRaiseException(self, exception_type):
+        for pair in self.getPairs():
+            if pair.mayRaiseException(exception_type):
+                return True
+
+        return False
 
     def mayHaveSideEffectsBool(self):
         return False
