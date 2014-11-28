@@ -28,6 +28,24 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
+from .Helpers import generateChildExpressionsCode
+
+
+def generateBuiltinSliceCode(to_name, expression, emit, context):
+    arg_names = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    getSliceObjectCode(
+        to_name    = to_name,
+        lower_name = arg_names[0],
+        upper_name = arg_names[1],
+        step_name  = arg_names[2],
+        emit       = emit,
+        context    = context
+    )
 
 
 def getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit,
@@ -84,8 +102,9 @@ def getSliceLookupIndexesCode(to_name, lower_name, upper_name, source_name,
 
 def getSliceObjectCode(to_name, lower_name, upper_name, step_name, emit,
                        context):
+
     emit(
-        "%s = MAKE_SLICEOBJ( %s, %s, %s );" % (
+        "%s = MAKE_SLICEOBJ3( %s, %s, %s );" % (
             to_name,
             lower_name if lower_name is not None else "Py_None",
             upper_name if upper_name is not None else "Py_None",
@@ -100,7 +119,6 @@ def getSliceObjectCode(to_name, lower_name, upper_name, step_name, emit,
     )
 
     # Note: Cannot fail
-
     context.addCleanupTempName(to_name)
 
 

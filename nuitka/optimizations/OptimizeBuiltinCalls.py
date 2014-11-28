@@ -66,13 +66,14 @@ from nuitka.nodes.BuiltinRefNodes import (
 )
 from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBool,
+    ExpressionBuiltinBytearray,
     ExpressionBuiltinFloat,
     ExpressionBuiltinInt,
     ExpressionBuiltinList,
     ExpressionBuiltinSet,
+    ExpressionBuiltinSlice,
     ExpressionBuiltinStr,
-    ExpressionBuiltinTuple,
-    ExpressionBuiltinBytearray
+    ExpressionBuiltinTuple
 )
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
 from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
@@ -889,6 +890,27 @@ def bytearray_extractor(node):
     )
 
 
+def slice_extractor(node):
+    def wrapSlice(start, stop, step, source_ref):
+        if start is not None and stop is None:
+            # Default rules are strange. If one argument is given, it's the
+            # second one then.
+            stop = start
+            start = None
+
+        return ExpressionBuiltinSlice(
+            start      = start,
+            stop       = stop,
+            step       = step,
+            source_ref = source_ref
+        )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = wrapSlice,
+        builtin_spec  = BuiltinOptimization.builtin_slice_spec
+    )
+
 
 _dispatch_dict = {
     "compile"    : compile_extractor,
@@ -922,7 +944,8 @@ _dispatch_dict = {
     "getattr"    : getattr_extractor,
     "setattr"    : setattr_extractor,
     "isinstance" : isinstance_extractor,
-    "bytearray"  : bytearray_extractor
+    "bytearray"  : bytearray_extractor,
+    "slice"      : slice_extractor
 }
 
 if python_version < 300:
@@ -1014,7 +1037,7 @@ Replaced call to built-in '%s' with try/finally guarded call.""" % (
             )
         else:
 
-            assert False, ( builtin_name, "->", inspect_node )
+            assert False, (builtin_name, "->", inspect_node)
 
         # TODO: One day, this should be enabled by default and call either the
         # original built-in or the optimized above one. That should be done,

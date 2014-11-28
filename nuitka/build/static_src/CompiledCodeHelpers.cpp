@@ -3366,23 +3366,23 @@ PyObject *DEEP_COPY( PyObject *value )
     }
     else if (
 #if PYTHON_VERSION < 300
-        PyString_Check( value ) ||
+        PyString_Check( value )  ||
 #endif
         PyUnicode_Check( value ) ||
 #if PYTHON_VERSION < 300
-        PyInt_Check( value ) ||
+        PyInt_Check( value )     ||
 #endif
-        PyLong_Check( value ) ||
-        value == Py_None ||
-        PyBool_Check( value ) ||
-        PyFloat_Check( value ) ||
-        PyBytes_Check( value ) ||
+        PyLong_Check( value )    ||
+        value == Py_None         ||
+        PyBool_Check( value )    ||
+        PyFloat_Check( value )   ||
+        PyBytes_Check( value )   ||
 #if PYTHON_VERSION >= 300
-        PyRange_Check( value ) ||
+        PyRange_Check( value )   ||
 #endif
-        PyType_Check( value ) ||
+        PyType_Check( value )    ||
+        PySlice_Check( value )   ||
         PyComplex_Check( value )
-
         )
     {
         return INCREASE_REFCOUNT( value );

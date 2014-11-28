@@ -316,6 +316,7 @@ class PythonChildContextBase(PythonContextBase):
         self.parent.addDeclaration(key, code)
 
 
+
 def _getConstantDefaultPopulation():
     result = (
         # Basic values that the helper code uses all the times.

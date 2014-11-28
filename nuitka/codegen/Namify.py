@@ -155,6 +155,12 @@ def namifyConstant(constant):
         return "range_%s" % (
             str(constant)[6:-1].replace(" ", "").replace(",", "_")
         )
+    elif type(constant) is slice:
+        return "slice_%s_%s_%s" % (
+            namifyConstant(constant.start),
+            namifyConstant(constant.stop),
+            namifyConstant(constant.step)
+        )
 
     raise ExceptionCannotNamify("%r" % constant)
 

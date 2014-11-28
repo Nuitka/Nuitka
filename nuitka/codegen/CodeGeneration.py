@@ -32,8 +32,10 @@ from nuitka.codegen.AttributeCodes import generateAttributeLookupCode
 
 from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
 from .ConstantCodes import generateConstantReferenceCode
-from .VariableCodes import generateVariableReferenceCode
+from .SliceCodes import generateBuiltinSliceCode
 from .SubscriptCodes import generateSubscriptLookupCode
+from .VariableCodes import generateVariableReferenceCode
+
 
 def generateTupleCreationCode(to_name, elements, emit, context):
     if _areConstants(elements):
@@ -2615,6 +2617,7 @@ def generateDelSubscriptCode(statement, emit, context):
 
     context.setCurrentSourceCodeReference(old_source_ref)
 
+
 def generateDelSliceCode(statement, emit, context):
     target  = statement.getLookupSource()
     lower   = statement.getLower()
@@ -4568,6 +4571,7 @@ Helpers.setExpressionDispatchDict(
         "TEMP_VARIABLE_REF" : generateVariableReferenceCode,
         "CONSTANT_REF"      : generateConstantReferenceCode,
         "ATTRIBUTE_LOOKUP"  : generateAttributeLookupCode,
-        "SUBSCRIPT_LOOKUP"  : generateSubscriptLookupCode
+        "SUBSCRIPT_LOOKUP"  : generateSubscriptLookupCode,
+        "BUILTIN_SLICE"     : generateBuiltinSliceCode
     }
 )

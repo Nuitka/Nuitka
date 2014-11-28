@@ -15,12 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Builtin type nodes tuple/list/float/int etc.
+""" Built-in type nodes tuple/list/float/int etc.
 
 These are all very simple and have predictable properties, because we know their type and
 that should allow some important optimizations.
 """
 
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.Utils import python_version
 
@@ -165,7 +166,11 @@ class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
 
 class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
                                    ExpressionSpecBasedComputationMixin):
-    named_children = ("value", "encoding", "errors")
+    named_children = (
+        "value",
+        "encoding",
+        "errors"
+    )
 
     def __init__(self, value, encoding, errors, source_ref):
         NodeBase.__init__(
@@ -270,3 +275,56 @@ class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
         # TODO: Quite impossible as this has a variable result, but we could
         # look at the arguments at least.
         return self, None, None
+
+
+class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
+                             ExpressionSpecBasedComputationMixin):
+    kind = "EXPRESSION_BUILTIN_SLICE"
+
+    named_children = (
+        "start",
+        "stop",
+        "step"
+    )
+
+    builtin_spec = BuiltinOptimization.builtin_slice_spec
+
+    def __init__(self, start, step, stop, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = {
+                "start" : start,
+                "stop"  : stop,
+                "step"  : step
+            }
+        )
+
+    def computeExpression(self, constraint_collection):
+        start = self.getStart()
+        stop = self.getStop()
+        step = self.getStep()
+
+        args = (
+            start,
+            stop,
+            step
+        )
+
+        args = tuple(
+            arg or ExpressionConstantRef(constant = None, source_ref = self.getSourceReference())
+            for arg in
+            args
+        )
+
+        return self.computeBuiltinSpec(
+            given_values = args
+        )
+
+    getStart = ChildrenHavingMixin.childGetter("start")
+    getStop = ChildrenHavingMixin.childGetter("stop")
+    getStep = ChildrenHavingMixin.childGetter("step")

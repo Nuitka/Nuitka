@@ -272,6 +272,9 @@ builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instanc
 
 builtin_bytearray_spec = BuiltinParameterSpecNoKeywords("bytearray", ("iterable_of_ints",), 1)
 
+# Beware: One argument defines stop, not start.
+builtin_slice_spec = BuiltinParameterSpecNoKeywords("slice", ("start", "stop", "step"), 2)
+
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def __init__(self, *args):
         BuiltinParameterSpecNoKeywords.__init__(self, *args)

@@ -209,7 +209,7 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
 def _addConstantInitCode(context, emit, constant_type, constant_value,
                          constant_identifier, module_level):
     # This has many cases, that all return, and do a lot.
-    # pylint: disable=R0911,R0912,R0915
+    # pylint: disable=R0911,R0912,R0915,R0914
 
     if constant_value in constant_builtin_types:
         return
@@ -518,6 +518,46 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
         return
 
+    if constant_type is slice:
+        slice1_name = getConstantCodeName(context, constant_value.start)
+        _addConstantInitCode(
+            emit                = emit,
+            constant_type       = type(constant_value.start),
+            constant_value      = constant_value.start,
+            constant_identifier = slice1_name,
+            module_level        = module_level,
+            context             = context
+        )
+        slice2_name = getConstantCodeName(context, constant_value.stop)
+        _addConstantInitCode(
+            emit                = emit,
+            constant_type       = type(constant_value.stop),
+            constant_value      = constant_value.stop,
+            constant_identifier = slice2_name,
+            module_level        = module_level,
+            context             = context
+        )
+        slice3_name = getConstantCodeName(context, constant_value.step)
+        _addConstantInitCode(
+            emit                = emit,
+            constant_type       = type(constant_value.step),
+            constant_value      = constant_value.step,
+            constant_identifier = slice3_name,
+            module_level        = module_level,
+            context             = context
+        )
+
+        emit(
+             "%s = PySlice_New( %s, %s, %s );" % (
+                constant_identifier,
+                slice1_name,
+                slice2_name,
+                slice3_name
+            )
+        )
+
+        return
+
     if constant_type in (frozenset, complex, unicode, long, range):
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
@@ -748,6 +788,10 @@ def allocateNestedConstants(module_context):
             for key, value in iterItems(constant_value):
                 considerForDeferral(key)
                 considerForDeferral(value)
+        elif constant_type is slice:
+            considerForDeferral(constant_value.start)
+            considerForDeferral(constant_value.step)
+            considerForDeferral(constant_value.stop)
 
     for constant_identifier in set(module_context.getConstants()):
         constant_value = module_context.global_context.constants[
@@ -756,5 +800,5 @@ def allocateNestedConstants(module_context):
 
         constant_type = type(constant_value)
 
-        if constant_type in (tuple, dict, list, set, frozenset):
+        if constant_type in (tuple, dict, list, set, frozenset, slice):
             considerForDeferral(constant_value)

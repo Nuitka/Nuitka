@@ -98,7 +98,17 @@ def compareConstants(a, b):
 
 # These built-in type references are kind of constant too. TODO: The list is
 # totally not complete.
-constant_builtin_types = (int, set, str, float, list, tuple, dict, complex)
+constant_builtin_types = (
+    int,
+    str,
+    float,
+    list,
+    tuple,
+    set,
+    dict,
+    slice,
+    complex
+)
 
 if python_version >= 300:
     constant_builtin_types += (
@@ -138,6 +148,8 @@ def isConstant(constant):
         return True
     elif constant_type is type:
         return constant in constant_builtin_types
+    elif constant_type is slice:
+        return True
     else:
         return False
 
@@ -152,7 +164,7 @@ def isMutable(constant):
     constant_type = type(constant)
 
     if constant_type in (str, unicode, complex, int, long, bool, float,
-                         NoneType, range, bytes):
+                         NoneType, range, bytes, slice):
         return False
     elif constant_type in (dict, list, set):
         return True
