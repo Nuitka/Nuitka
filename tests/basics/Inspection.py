@@ -25,7 +25,7 @@ def compiledFunction(a, b):
 
 assert inspect.isfunction(compiledFunction) is True
 assert isinstance(compiledFunction, types.FunctionType)
-assert isinstance(compiledFunction, ( int, types.FunctionType ))
+assert isinstance(compiledFunction, (int, types.FunctionType))
 
 print("Compiled spec:", inspect.getargspec(compiledFunction))
 print("Compiled args:", inspect.formatargspec(*inspect.getargspec(compiledFunction)))
@@ -46,10 +46,10 @@ assert isinstance(CompiledClass, types.FunctionType) is False
 assert inspect.ismethod(compiledFunction) is False
 assert inspect.ismethod(CompiledClass) is False
 
-assert inspect.ismethod(CompiledClass.compiledMethod) == ( sys.version_info < ( 3, ) )
+assert inspect.ismethod(CompiledClass.compiledMethod) == ( sys.version_info < (3, ) )
 assert inspect.ismethod(CompiledClass().compiledMethod) is True
 
-assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == ( sys.version_info < ( 3, ) )
+assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == ( sys.version_info < (3, ) )
 
 
 print("Compiled method:", inspect.getargspec(CompiledClass().compiledMethod))

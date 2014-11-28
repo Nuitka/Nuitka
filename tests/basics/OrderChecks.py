@@ -47,7 +47,7 @@ def listOrderCheck():
 
         return 22
 
-    print [ value1(), value2() ]
+    print [value1(), value2() ]
 
 def sliceOrderCheck():
     d = range(10)
@@ -282,7 +282,7 @@ def inOrderCheck():
     def container():
         print "container",
 
-        return [ 3 ]
+        return [3]
 
     def searched():
         print "searched",

@@ -21,7 +21,7 @@ def cond():
 
 def loopingFunction(a = 1*2):
     c = []
-    f = [ c, a ]
+    f = [c, a]
 
     for a in range(6 or 8):
         for b in range(8):

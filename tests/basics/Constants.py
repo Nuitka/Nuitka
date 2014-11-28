@@ -26,7 +26,7 @@ except NameError:
 
 
 print("A bunch of constants and their representation:")
-for value in (0, 3, -4, 17, "hey", (0, ), 0.0, -0.0 ):
+for value in (0, 3, -4, 17, "hey", (0, ), 0.0, -0.0):
     print(value, ":", repr(value))
 
 print("Comparing constants, optimizable:")
@@ -39,7 +39,7 @@ print(repr(long(0)), repr(a) == "0L")
 print("Identity of empty dictionary constants:")
 print({} is {})
 
-a = ( {}, [] )
+a = ({}, [])
 
 a[0][1] = 2
 a[1].append(3)
@@ -48,7 +48,7 @@ print("Mutable list and dict inside an immutable tuple:")
 print(a)
 
 print("Empty list and dict are hopefully unchanged:")
-print(( {}, [] ))
+print(({}, []))
 
 def argChanger(a):
     a[0][1] = 2
@@ -57,10 +57,10 @@ def argChanger(a):
     return a
 
 print("Mutable list and dict inside an immutable tuple as arguments:")
-print(argChanger(( {}, [] )))
+print(argChanger(({}, [])))
 
 print("Empty list and dict are hopefully still unchanged:")
-print(( {}, [] ))
+print(({}, []))
 
 print("Set constants:")
 print(set(['foo']))

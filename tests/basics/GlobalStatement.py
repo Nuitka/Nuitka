@@ -81,7 +81,7 @@ def setZ():
 setZ()
 """)
 
-    return z, locals().keys() == [ "setZ" ]
+    return z, locals().keys() == ["setZ"]
 
 def someNestedGlobalUser3b():
     # Nested function that uses a exec variable scope z and a global z, changes
@@ -92,7 +92,7 @@ z = 1
 """)
 
     if sys.version_info[0] < 3:
-        return z, locals().keys() == [ "z" ]
+        return z, locals().keys() == ["z"]
     else:
         return locals().keys() == []
 
@@ -151,11 +151,11 @@ del z
 print(someNestedGlobalUser3a, someNestedGlobalUser3a())
 del z
 print(someNestedGlobalUser3b, someNestedGlobalUser3b())
-print(someNestedGlobalUser4, ( someNestedGlobalUser4(), z ))
+print(someNestedGlobalUser4, (someNestedGlobalUser4(), z))
 del z
 print(someNestedGlobalUser5, someNestedGlobalUser5())
 z = 9
-print(someNestedGlobalUser6, ( someNestedGlobalUser6(), z ))
+print(someNestedGlobalUser6, (someNestedGlobalUser6(), z))
 
 
 x = 7

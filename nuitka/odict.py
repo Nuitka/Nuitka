@@ -31,7 +31,7 @@
 It is not in 2.6, for this version we are using the odict.py as mentioned in the PEP-0372
 
 This can be removed safely after the transition, note that the documentation was removed,
-as it's not interesting really, being redundent to Python 2.7 documentation. """
+as it's not interesting really, being redundant to Python 2.7 documentation. """
 
 # pylint: disable=E0611,W0141
 

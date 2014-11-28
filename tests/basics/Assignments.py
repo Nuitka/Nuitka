@@ -26,7 +26,7 @@ def someFunction():
     b = c = 3
     print("Assignment to 2 variables", b, c)
 
-    z = [ 1, 2, 3 ]
+    z = [1, 2, 3]
     z[2] = z[1] = 5
 
     print("Assignment to list subscripts:", z)
@@ -34,16 +34,16 @@ def someFunction():
     d, e = 1, 2
     print("Assignment to variable tuple:", d, e)
 
-    [ f, g ] = 7, 9
+    [f, g] = 7, 9
     print("Assignment to variable list:", f, g)
 
-    j = [ h, i ] = ( 7, 9 )
+    j = [h, i] = (7, 9)
     print("Complex Assignment from variabe list:", j, type(j), h, i)
 
-    a, (b,c) = 1, (2,3 )
+    a, (b,c) = 1, (2,3)
     print("Assigment to nested tuples:", a, b, c)
 
-    v = [ 1, 2, 3, 4 ]
+    v = [1, 2, 3, 4]
     v[2:3] = (8,9)
     print("Assignment to list slice", v)
 
@@ -221,7 +221,7 @@ def optimizeableTargets():
 def complexDel():
     a = b = c = d = 1
 
-    del a, b, ( c, d )
+    del a, b, (c, d)
 
     try:
         print(c)

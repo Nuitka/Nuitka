@@ -274,8 +274,7 @@ def _generateDictionaryCreationCode(to_name, pairs, emit, context):
 
 
 def generateConditionCode(condition, emit, context):
-    # The complexity is needed to avoid unnecessary complex generated C++, so
-    # e.g. inverted is typically a branch inside every optimizable case.
+    # The complexity is needed to avoid unnecessary complex generated C++
     # pylint: disable=R0915,R0914
 
     if condition.isExpressionConstantRef():

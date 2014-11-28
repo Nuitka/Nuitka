@@ -157,7 +157,7 @@ def dontOptimizeSideEffects():
         print "function 'returnFalse' should not have beeen called",
         return False
 
-    if ( returnTrue() or returnFalse(), ):
+    if (returnTrue() or returnFalse(), ):
         print "Taken branch as expected."
     else:
         print "Bad branch taken."

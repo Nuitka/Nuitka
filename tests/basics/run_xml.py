@@ -56,7 +56,7 @@ for filename in sorted(os.listdir(my_dir)):
 
     path = os.path.relpath(os.path.join(my_dir, filename))
 
-    if not active and start_at in ( filename, path ):
+    if not active and start_at in (filename, path):
         active = True
 
     if active:

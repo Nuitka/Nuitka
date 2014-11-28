@@ -120,7 +120,7 @@ f = 7
 def functionExecNonesTuple():
     f = 0
 
-    exec( "f=1", None, None )
+    exec("f=1", None, None)
     print "Exec with None as optimizable tuple args did update locals:", f
 
 def functionExecNonesSyntax():
@@ -154,7 +154,7 @@ def functionExecNonesTuple2():
     g = None
     l = None
 
-    exec( code, l, g )
+    exec(code, l, g)
 
     print "Exec with None as tuple args from variable did update locals:", f
 

@@ -65,7 +65,7 @@ def simpleFunction4():
 
 def simpleFunction5(a = 1*2):
     c = 1
-    f = [ a, a + c ]
+    f = [a, a + c]
 
 def simpleFunction6():
     for b in range(6):
@@ -136,7 +136,7 @@ def simpleFunction15p(x):
         pass
 
 def simpleFunction15():
-    simpleFunction15p([ 1 ])
+    simpleFunction15p([1])
 
 def simpleFunction16():
     class EmptyClass:
@@ -215,12 +215,12 @@ def simpleFunction25():
 
 def simpleFunction26():
     class X:
-        f = [ 5 ]
+        f = [5]
 
     def inplace_adder(b):
         X.f += b
 
-    return inplace_adder([ 1, 2 ])
+    return inplace_adder([1, 2])
 
 def simpleFunction27():
     a = { "g": 8 }
@@ -231,12 +231,12 @@ def simpleFunction27():
     return inplace_adder(3)
 
 def simpleFunction28():
-    a = { "g": [ 8 ], "h": 2 }
+    a = { "g": [8], "h": 2 }
 
     def inplace_adder(b):
         a[ "g" ] += b
 
-    return inplace_adder([ 3, 5 ])
+    return inplace_adder([3, 5])
 
 
 def simpleFunction29():
@@ -302,7 +302,7 @@ def simpleFunction36():
         pass
 
 def simpleFunction37():
-    l = [ 1, 2, 3 ]
+    l = [1, 2, 3]
 
     try:
         a, b = l
@@ -531,7 +531,7 @@ def simpleFunction68():
     x = randrange(18)
 
 def simpleFunction69():
-    pools = [ tuple() ]
+    pools = [tuple() ]
     g = ((len(pool) == 0,) for pool in pools)
     next(g)
 

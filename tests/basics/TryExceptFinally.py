@@ -63,7 +63,7 @@ def tryScope3(x):
 print("*" * 20)
 
 tryScope2(1, TypeError)
-tryScope2([ 1 ], TypeError)
+tryScope2([1], TypeError)
 
 print("*" * 20)
 

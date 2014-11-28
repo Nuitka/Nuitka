@@ -255,7 +255,7 @@ Best practices for reporting bugs:
   steps of 1 to a hash seed value that makes it happen every time.
 
 - Do not include the created code in your report. Given proper input,
-  it's redundent, and it's not likely that I will look at it without
+  it's redundant, and it's not likely that I will look at it without
   the ability to change the Python or Nuitka source and re-run it.
 
 

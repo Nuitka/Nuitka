@@ -186,7 +186,8 @@ class VariableInitTrace(VariableTraceBase):
         VariableTraceBase.__init__(
             self,
             variable = variable,
-            version  = version
+            version  = version,
+            previous = None
         )
 
     def __repr__(self):
