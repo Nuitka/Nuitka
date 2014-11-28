@@ -25,7 +25,7 @@ from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 def checkStatements(value):
-    """ Check that statements list value propert.
+    """ Check that statements list value property.
 
     Must not be None, must not contain None, and of course only statements,
     may be empty.

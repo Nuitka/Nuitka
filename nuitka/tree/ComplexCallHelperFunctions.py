@@ -159,7 +159,7 @@ def getCallableNameDescBody():
 
     def makeNameAttributeLookup(node, attribute_name = "__name__"):
         return ExpressionAttributeLookup(
-            expression     = node,
+            source         = node,
             attribute_name = attribute_name,
             source_ref     = source_ref
         )
@@ -381,7 +381,7 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
                                 source_ref = source_ref
                             ),
                             ExpressionAttributeLookup(
-                                expression     = ExpressionBuiltinType1(
+                                source         = ExpressionBuiltinType1(
                                     value      = star_list_variable_ref.makeCloneAt(source_ref),
                                     source_ref = source_ref
                                 ),
@@ -477,7 +477,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                                 source_ref = source_ref
                             ),
                             ExpressionAttributeLookup(
-                                expression     = ExpressionBuiltinType1(
+                                source         = ExpressionBuiltinType1(
                                     value      = star_dict_variable_ref.makeCloneAt(source_ref),
                                     source_ref = source_ref
                                 ),
@@ -542,7 +542,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
-                expression = star_dict_variable_ref.makeCloneAt(source_ref),
+                subscribed = star_dict_variable_ref.makeCloneAt(source_ref),
                 subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = source_ref
@@ -583,7 +583,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                     ),
                     source       = ExpressionCallEmpty(
                         called     = ExpressionAttributeLookup(
-                            expression     = star_dict_variable_ref.makeCloneAt(
+                            source         = star_dict_variable_ref.makeCloneAt(
                                 source_ref
                             ),
                             attribute_name = "keys",
@@ -748,7 +748,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                 source_ref = source_ref
                             ),
                             ExpressionAttributeLookup(
-                                expression     = ExpressionBuiltinType1(
+                                source         = ExpressionBuiltinType1(
                                     value      = star_dict_variable_ref.makeCloneAt(source_ref),
                                     source_ref = source_ref
                                 ),
@@ -912,7 +912,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
-                expression = star_dict_variable_ref.makeCloneAt(source_ref),
+                subscribed = star_dict_variable_ref.makeCloneAt(source_ref),
                 subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = source_ref
@@ -953,7 +953,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     ),
                     source       = ExpressionCallEmpty(
                         called     = ExpressionAttributeLookup(
-                            expression     = star_dict_variable_ref.makeCloneAt(
+                            source         = star_dict_variable_ref.makeCloneAt(
                                 source_ref
                             ),
                             attribute_name = "keys",
@@ -1124,7 +1124,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                 source_ref = source_ref
             ),
             source       = ExpressionSubscriptLookup(
-                expression = ExpressionTempVariableRef(
+                subscribed = ExpressionTempVariableRef(
                     variable   = tmp_item_variable,
                     source_ref = source_ref
                 ),
@@ -1160,7 +1160,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
-                expression = ExpressionTempVariableRef(
+                subscribed = ExpressionTempVariableRef(
                     variable   = tmp_item_variable,
                     source_ref = source_ref
                 ),
@@ -1198,7 +1198,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source       = ExpressionBuiltinIter1(
                 value      = ExpressionCallEmpty(
                     called     = ExpressionAttributeLookup(
-                        expression     = star_dict_variable_ref.makeCloneAt(
+                        source         = star_dict_variable_ref.makeCloneAt(
                             source_ref
                         ),
                         attribute_name = "iteritems"

@@ -61,7 +61,7 @@ build_nodes_args3 = None
 build_nodes_args2 = None
 build_nodes_args1 = None
 
-def setBuildDispatchers(path_args3, path_args2, path_args1):
+def setBuildingDispatchers(path_args3, path_args2, path_args1):
     # Using global here, as this is really a singleton, in the form of a module,
     # and this is to break the cyclic dependency it has, pylint: disable=W0603
 

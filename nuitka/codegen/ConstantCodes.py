@@ -36,6 +36,16 @@ from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Pickling import getStreamedConstant
 
+
+def generateConstantReferenceCode(to_name, expression, emit, context):
+    getConstantAccess(
+        to_name  = to_name,
+        constant = expression.getConstant(),
+        emit     = emit,
+        context  = context
+    )
+
+
 stream_data = StreamData()
 
 def getConstantCode(context, constant):
@@ -43,7 +53,7 @@ def getConstantCode(context, constant):
 
 # TODO: The determination of this should already happen in Building or in a
 # helper not during code generation.
-_match_attribute_names = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$" )
+_match_attribute_names = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
 
 def getConstantCodeName(context, constant):
     return context.getConstantCode(constant)

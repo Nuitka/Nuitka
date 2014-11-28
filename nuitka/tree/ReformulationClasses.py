@@ -433,7 +433,7 @@ def _buildClassNode3(provider, node, source_ref):
                         ),
                         yes_expression = ExpressionBuiltinType1(
                             value      = ExpressionSubscriptLookup(
-                                expression = ExpressionTempVariableRef(
+                                subscribed = ExpressionTempVariableRef(
                                     variable   = tmp_bases,
                                     source_ref = source_ref
                                 ),
@@ -514,7 +514,7 @@ def _buildClassNode3(provider, node, source_ref):
                 ),
                 yes_expression = ExpressionCall(
                     called     = ExpressionAttributeLookup(
-                        expression     = ExpressionTempVariableRef(
+                        source         = ExpressionTempVariableRef(
                             variable   = tmp_metaclass,
                             source_ref = source_ref
                         ),

@@ -20,7 +20,7 @@
 Does all the Python parsing and puts it into a tree structure for use in later
 stages of the compilation process.
 
-In the nuitka.tree.Helpers module, the dispatching is happening. One function
+In the "nuitka.tree.Helpers" module, the dispatching is happening. One function
 deals with every node kind as found in the AST. The parsing is centered around
 the module "ast" output.
 
@@ -112,7 +112,7 @@ from .Helpers import (
     makeSequenceCreationOrConstant,
     makeStatementsSequenceOrStatement,
     mergeStatements,
-    setBuildDispatchers
+    setBuildingDispatchers
 )
 from .ImportCache import addImportedModule
 from .ReformulationAssertStatements import buildAssertNode
@@ -294,7 +294,7 @@ def buildSubscriptNode(provider, node, source_ref):
 
     if kind == "Index":
         return ExpressionSubscriptLookup(
-            expression = buildNode(provider, node.value, source_ref),
+            subscribed = buildNode(provider, node.value, source_ref),
             subscript  = buildNode(provider, node.slice.value, source_ref),
             source_ref = source_ref
         )
@@ -306,7 +306,7 @@ def buildSubscriptNode(provider, node, source_ref):
             step = buildNode(provider, node.slice.step,  source_ref)
 
             return ExpressionSubscriptLookup(
-                expression = buildNode(provider, node.value, source_ref),
+                subscribed = buildNode(provider, node.value, source_ref),
                 subscript  = ExpressionSliceObject(
                     lower      = lower,
                     upper      = upper,
@@ -324,13 +324,13 @@ def buildSubscriptNode(provider, node, source_ref):
             )
     elif kind == "ExtSlice":
         return ExpressionSubscriptLookup(
-            expression = buildNode(provider, node.value, source_ref),
+            subscribed = buildNode(provider, node.value, source_ref),
             subscript  = buildExtSliceNode(provider, node, source_ref),
             source_ref = source_ref
         )
     elif kind == "Ellipsis":
         return ExpressionSubscriptLookup(
-            expression = buildNode(provider, node.value, source_ref),
+            subscribed = buildNode(provider, node.value, source_ref),
             subscript  = ExpressionConstantRef(
                 constant   = Ellipsis,
                 source_ref = source_ref
@@ -424,7 +424,7 @@ def enableFutureFeature(object_name, future_spec, source_ref):
             "not a chance",
             source_ref
         )
-    elif object_name in ( "nested_scopes", "generators", "with_statement" ):
+    elif object_name in ("nested_scopes", "generators", "with_statement"):
         # These are enabled in all cases already.
         pass
     else:
@@ -715,7 +715,7 @@ def buildStatementBreakLoop(provider, node, source_ref):
 
 def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
-        expression     = buildNode(provider, node.value, source_ref),
+        source         = buildNode(provider, node.value, source_ref),
         attribute_name = node.attr,
         source_ref     = source_ref
     )
@@ -806,7 +806,7 @@ def buildConditionalExpressionNode(provider, node, source_ref):
     )
 
 
-setBuildDispatchers(
+setBuildingDispatchers(
     path_args3 = {
         "Name"         : buildVariableReferenceNode,
         "Assign"       : buildAssignNode,

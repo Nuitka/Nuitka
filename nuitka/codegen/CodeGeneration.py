@@ -28,9 +28,12 @@ language syntax.
 
 from nuitka import Constants, Options, Tracing, Utils
 from nuitka.__past__ import iterItems
+from nuitka.codegen.AttributeCodes import generateAttributeLookupCode
 
-from . import Contexts, Emission, Generator, LineNumberCodes
-
+from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
+from .ConstantCodes import generateConstantReferenceCode
+from .VariableCodes import generateVariableReferenceCode
+from .SubscriptCodes import generateSubscriptLookupCode
 
 def generateTupleCreationCode(to_name, elements, emit, context):
     if _areConstants(elements):
@@ -810,32 +813,6 @@ def decideSlicing(lower, upper):
            (lower is None or lower.isIndexable()) and \
            (upper is None or upper.isIndexable())
 
-def generateSubscriptLookupCode(to_name, expression, emit, context):
-    subscribed_name = context.allocateTempName("subscr_target")
-    subscript_name = context.allocateTempName("subscr_subscript")
-
-    generateExpressionCode(
-        to_name    = subscribed_name,
-        expression = expression.getLookupSource(),
-        emit       = emit,
-        context    = context
-    )
-
-    generateExpressionCode(
-        to_name    = subscript_name,
-        expression = expression.getSubscript(),
-        emit       = emit,
-        context    = context
-    )
-
-    return Generator.getSubscriptLookupCode(
-        to_name         = to_name,
-        subscribed_name = subscribed_name,
-        subscript_name  = subscript_name,
-        emit            = emit,
-        context         = context
-    )
-
 
 def generateSliceLookupCode(to_name, expression, emit, context):
     lower = expression.getLower()
@@ -1181,51 +1158,15 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         expression.dump()
         assert False, expression
 
-    if expression.isExpressionVariableRef():
-        Generator.getVariableAccessCode(
-            to_name     = to_name,
-            variable    = expression.getVariable(),
-            needs_check = expression.mayRaiseException(BaseException),
-            emit        = emit,
-            context     = context
-        )
-    elif expression.isExpressionTempVariableRef():
-        Generator.getVariableAccessCode(
-            to_name     = to_name,
-            variable    = expression.getVariable(),
-            needs_check = expression.mayRaiseException(BaseException),
-            emit        = emit,
-            context     = context
-        )
-    elif expression.isExpressionConstantRef():
-        Generator.getConstantAccess(
-            to_name  = to_name,
-            constant = expression.getConstant(),
-            emit     = emit,
-            context  = context
-        )
-    elif expression.isExpressionAttributeLookup():
-        source_name = context.allocateTempName("source_name")
+    res = Helpers.generateExpressionCode(
+        to_name    = to_name,
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
 
-        makeExpressionCode(
-            to_name    = source_name,
-            expression = expression.getLookupSource()
-        )
-
-        Generator.getAttributeLookupCode(
-            to_name        = to_name,
-            source_name    = source_name,
-            attribute_name = expression.getAttributeName(),
-            emit           = emit,
-            context        = context
-        )
-    elif expression.isExpressionSubscriptLookup():
-        generateSubscriptLookupCode(
-            to_name    = to_name,
-            expression = expression,
-            emit       = emit,
-            context    = context
-        )
+    if res:
+        pass
     elif expression.isExpressionSliceLookup():
         generateSliceLookupCode(
             to_name    = to_name,
@@ -4620,3 +4561,13 @@ def generateHelpersCode():
 
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()
+
+Helpers.setExpressionDispatchDict(
+    {
+        "VARIABLE_REF"      : generateVariableReferenceCode,
+        "TEMP_VARIABLE_REF" : generateVariableReferenceCode,
+        "CONSTANT_REF"      : generateConstantReferenceCode,
+        "ATTRIBUTE_LOOKUP"  : generateAttributeLookupCode,
+        "SUBSCRIPT_LOOKUP"  : generateSubscriptLookupCode
+    }
+)

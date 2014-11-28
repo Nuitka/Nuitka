@@ -30,14 +30,14 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
     named_children = (
-        "expression",
+        "source",
     )
 
-    def __init__(self, expression, attribute_name, source_ref):
+    def __init__(self, source, attribute_name, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "expression" : expression
+                "source" : source
             },
             source_ref = source_ref
         )
@@ -62,12 +62,12 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
         )
 
     getLookupSource = ExpressionChildrenHavingBase.childGetter(
-        "expression"
+        "source"
     )
 
     def makeCloneAt(self, source_ref):
         return ExpressionAttributeLookup(
-            expression     = self.getLookupSource().makeCloneAt(source_ref),
+            source         = self.getLookupSource().makeCloneAt(source_ref),
             attribute_name = self.getAttributeName(),
             source_ref     = source_ref
         )

@@ -136,7 +136,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                 source_ref = source_ref
             ),
             source       = attribute_lookup_class(
-                expression     = ExpressionTempVariableRef(
+                source         = ExpressionTempVariableRef(
                     variable   = tmp_source_variable,
                     source_ref = source_ref
                 ),
@@ -152,7 +152,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
             ),
             source       = ExpressionCallEmpty(
                 called     = attribute_lookup_class(
-                    expression     = ExpressionTempVariableRef(
+                    source         = ExpressionTempVariableRef(
                         variable   = tmp_source_variable,
                         source_ref = source_ref
                     ),

@@ -28,6 +28,16 @@ from .ErrorCodes import getErrorFormatExitBoolCode, getErrorFormatExitCode
 from .Indentation import indented
 
 
+def generateVariableReferenceCode(to_name, expression, emit, context):
+    getVariableAccessCode(
+        to_name     = to_name,
+        variable    = expression.getVariable(),
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
+    )
+
+
 def _getContextAccess(context, force_closure = False):
     # Context access is variant depending on if that's a created function or
     # not. For generators, they even share closure variables in the common

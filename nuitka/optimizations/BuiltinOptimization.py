@@ -138,6 +138,8 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
                 arg_list += [ value.getCompileTimeConstant() for value in given_list_star_arg ]
         except Exception as e:
             print >> sys.stderr, "Fatal error: ",
+            import traceback
+            traceback.print_exc()
             sys.exit(repr(e))
 
         return self.builtin(*arg_list)

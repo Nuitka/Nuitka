@@ -480,7 +480,7 @@ exec: arg 1 must be a string, file, or code object""",
                     ),
                     source       = ExpressionCallEmpty(
                         called     = ExpressionAttributeLookup(
-                            expression     = ExpressionTempVariableRef(
+                            source         = ExpressionTempVariableRef(
                                 variable   = source_variable,
                                 source_ref = source_ref
                             ),

@@ -22,6 +22,23 @@ much faster than general subscript lookups.
 """
 
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+from .Helpers import generateChildExpressionsCode
+
+
+def generateSubscriptLookupCode(to_name, expression, emit, context):
+    subscribed_name, subscript_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    return getSubscriptLookupCode(
+        to_name         = to_name,
+        subscribed_name = subscribed_name,
+        subscript_name  = subscript_name,
+        emit            = emit,
+        context         = context
+    )
 
 
 def getIntegerSubscriptLookupCode(to_name, target_name, subscript_name,

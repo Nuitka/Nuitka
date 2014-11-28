@@ -668,14 +668,14 @@ def _buildInplaceAssignAttributeNode(lookup_source, attribute_name,
             source_ref = source_ref
         ),
         source       = ExpressionAttributeLookup(
-            expression     = lookup_source.makeCloneAt(source_ref),
+            source         = lookup_source.makeCloneAt(source_ref),
             attribute_name = attribute_name,
             source_ref     = source_ref
         ),
         source_ref   = source_ref
     )
 
-    # Second assign the inplace result to a temporary variable
+    # Second assign the in-place result to a temporary variable
     inplace_to_tmp = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
             variable   = tmp_variable2,
@@ -789,7 +789,7 @@ def _buildInplaceAssignSubscriptNode(subscribed, subscript, tmp_variable1,
         source     = ExpressionOperationBinaryInplace(
             operator   = operator,
             left       = ExpressionSubscriptLookup(
-                expression = ExpressionTempVariableRef(
+                subscribed = ExpressionTempVariableRef(
                     variable   = tmp_variable1,
                     source_ref = source_ref
                 ),

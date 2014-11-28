@@ -28,6 +28,23 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
+from .Helpers import generateChildExpressionsCode
+
+
+def generateAttributeLookupCode(to_name, expression, emit, context):
+    source_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    getAttributeLookupCode(
+        to_name        = to_name,
+        source_name    = source_name,
+        attribute_name = expression.getAttributeName(),
+        emit           = emit,
+        context        = context
+    )
 
 
 def getSpecialAttributeLookupCode(to_name, source_name, attr_name, emit,
