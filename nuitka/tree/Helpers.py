@@ -113,7 +113,7 @@ def buildNode(provider, node, source_ref, allow_none = False):
     except SyntaxError:
         raise
     except:
-        warning("Problem at '%s' with %s." % ( source_ref, ast.dump(node) ))
+        warning("Problem at '%s' with %s." % (source_ref, ast.dump(node)))
         raise
 
 

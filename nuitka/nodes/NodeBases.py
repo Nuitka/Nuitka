@@ -104,14 +104,14 @@ class NodeBase(NodeMetaClassBase):
         if not detail:
             return "<Node %s>" % self.getDescription()
         else:
-            return "<Node %s %s>" % ( self.getDescription(), detail )
+            return "<Node %s %s>" % (self.getDescription(), detail)
 
     def getDescription(self):
         """ Description of the node, intented for use in __repr__ and
             graphical display.
 
         """
-        return "%s at %s" % ( self.kind, self.source_ref.getAsString() )
+        return "%s at %s" % (self.kind, self.source_ref.getAsString())
 
     def getDetails(self):
         """ Details of the node, intended for use in __repr__ and dumps.
@@ -133,7 +133,7 @@ class NodeBase(NodeMetaClassBase):
         """
 
         if self.parent is None and not self.isPythonModule():
-            assert False, ( self,  self.source_ref )
+            assert False, (self,  self.source_ref)
 
         return self.parent
 
@@ -432,7 +432,7 @@ class CodeNodeBase(NodeBase):
             name = current.getName()
 
             if name is not None:
-                result = "%s__%s" % ( name, result )
+                result = "%s__%s" % (name, result)
 
         assert "<" not in result, result
 
@@ -452,7 +452,7 @@ class CodeNodeBase(NodeBase):
             else:
                 name = uid
 
-            self.code_name = "%s%s_of_%s" % ( self.code_prefix, name, parent_name )
+            self.code_name = "%s%s_of_%s" % (self.code_prefix, name, parent_name)
 
         return self.code_name
 
@@ -582,7 +582,7 @@ class ChildrenHavingMixin:
         for name in self.named_children:
             value = self.child_values[ name ]
 
-            result.append(( name, value ))
+            result.append((name, value))
 
         return result
 

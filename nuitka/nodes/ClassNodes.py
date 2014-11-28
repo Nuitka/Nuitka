@@ -27,7 +27,7 @@ from .NodeBases import ExpressionChildrenHavingBase
 class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 
-    named_children = ( "metaclass", "bases", )
+    named_children = ("metaclass", "bases", )
 
     def __init__(self, metaclass, bases, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -50,7 +50,7 @@ class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
 class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_TYPE3"
 
-    named_children = ( "type_name", "bases", "dict" )
+    named_children = ("type_name", "bases", "dict")
 
     def __init__(self, type_name, bases, type_dict, source_ref):
         ExpressionChildrenHavingBase.__init__(

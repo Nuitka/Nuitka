@@ -392,7 +392,7 @@ def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches, pylint: disable=R0912
 
-    python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
+    python_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
 
     if hasattr(sys, "abiflags"):
         if Options.isPythonDebug() or \

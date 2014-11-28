@@ -141,7 +141,7 @@ def getComputationResult(node, computation, description):
         )
 
         if isDebug():
-            assert new_node is not node, ( node, result )
+            assert new_node is not node, (node, result)
 
         if new_node is not node:
             change_tags = "new_constant"
@@ -223,7 +223,7 @@ def wrapStatementWithSideEffects(new_node, old_node, allow_none = False):
 
         if new_node is not None:
             new_node = makeStatementsSequenceReplacementNode(
-                statements = side_effects + ( new_node, ),
+                statements = side_effects + (new_node, ),
                 node       = old_node
             )
         else:

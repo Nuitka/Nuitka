@@ -123,7 +123,7 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
             source_ref = source_ref
         )
 
-        assert comparator in ( "Is", "IsNot" )
+        assert comparator in ("Is", "IsNot")
 
         self.match_value = comparator == "Is"
 

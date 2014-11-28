@@ -806,10 +806,13 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
                 PyErr_Clear();
 
                 RAISE_GENERATOR_EXCEPTION( generator );
+
                 return NULL;
             }
             else
             {
+                assert( ERROR_OCCURED() );
+
                 Py_CLEAR( generator->m_exception_type );
                 Py_CLEAR( generator->m_exception_value );
                 Py_CLEAR( generator->m_exception_tb );

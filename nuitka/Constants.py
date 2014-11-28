@@ -52,7 +52,7 @@ def compareConstants(a, b):
 
         return a == b
 
-    if type(a) in ( tuple, list ):
+    if type(a) in (tuple, list):
         if len(a) != len(b):
             return False
 
@@ -74,7 +74,7 @@ def compareConstants(a, b):
                 return False
         return True
 
-    if type(a) in ( frozenset, set ):
+    if type(a) in (frozenset, set):
         if len(a) != len(b):
             return False
 
@@ -182,11 +182,11 @@ def getConstantIterationLength(constant):
 
 
 def isNumberConstant(constant):
-    return type(constant) in ( int, long, float, bool )
+    return type(constant) in (int, long, float, bool)
 
 
 def isIndexConstant(constant):
-    return type(constant) in ( int, long, bool )
+    return type(constant) in (int, long, bool)
 
 
 def createConstantDict(keys, values, lazy_order):

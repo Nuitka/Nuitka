@@ -171,7 +171,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         }
 
     def getDetail(self):
-        return "named %s with %s" % ( self.name, self.parameters )
+        return "named %s with %s" % (self.name, self.parameters)
 
     def getParent(self):
         assert False
@@ -246,7 +246,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         return self.providing.values()
 
     def removeVariable(self, variable):
-        assert variable in self.providing.values(), ( self.providing, variable )
+        assert variable in self.providing.values(), (self.providing, variable)
 
         del self.providing[variable.getName()]
 

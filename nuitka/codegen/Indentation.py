@@ -33,7 +33,7 @@ def indented(codes, level = 1, vert_block = False):
     if type(codes) is str:
         codes = codes.split("\n")
 
-    if vert_block and codes != [ "" ]:
+    if vert_block and codes != [""]:
         codes.insert(0, "")
         codes.append("")
 

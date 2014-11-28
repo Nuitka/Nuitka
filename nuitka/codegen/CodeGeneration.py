@@ -1494,7 +1494,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             to_name  = to_name,
             capi     = "MAKE_ITERATOR",
             arg_desc = (
-                ( "iter_arg", expression.getValue() ),
+                ("iter_arg", expression.getValue()),
             ),
             emit     = emit,
             context  = context
@@ -1515,7 +1515,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             to_name  = to_name,
             capi     = "BUILTIN_TYPE1",
             arg_desc = (
-                ( "type_arg", expression.getValue() ),
+                ("type_arg", expression.getValue()),
             ),
             emit     = emit,
             context  = context
@@ -2321,7 +2321,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             parent = expression.parent
             assert parent.isExpressionSideEffects() or \
                    parent.isExpressionConditional(), \
-                   ( expression, expression.parent )
+                   (expression, expression.parent)
 
         raise_type_name  = context.allocateTempName("raise_type")
 

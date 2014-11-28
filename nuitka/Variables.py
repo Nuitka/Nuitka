@@ -47,7 +47,7 @@ class Variable:
         return self.read_only_indicator
 
     def setReadOnlyIndicator(self, value):
-        assert value in ( True, False )
+        assert value in (True, False)
 
         self.read_only_indicator = value
 

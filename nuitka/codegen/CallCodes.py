@@ -56,7 +56,7 @@ def getCallCodeNoArgs(to_name, called_name, emit, context):
 
 
 # Outside helper code relies on some quick call to be present.
-quick_calls_used = set([ 1, 2, 3 ])
+quick_calls_used = set([1, 2, 3])
 
 def getCallCodePosArgsQuick(to_name, called_name, arg_names, emit, context):
 

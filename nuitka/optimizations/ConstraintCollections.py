@@ -116,7 +116,7 @@ class VariableUsageTrackingMixin:
                     variable_trace = variable_trace
                 )
             except:
-                print( "Problem with", variable_trace, "in", owner )
+                print("Problem with", variable_trace, "in", owner)
                 raise
 
 
@@ -185,7 +185,7 @@ class CollectionStartpointMixin:
         self.unclear_locals = False
 
     def getVariableTrace(self, variable, version):
-        return self.variable_traces[( variable, version )]
+        return self.variable_traces[(variable, version)]
 
     def getVariableTraces(self, variable):
         result = []
@@ -201,7 +201,7 @@ class CollectionStartpointMixin:
     def addVariableTrace(self, variable, version, trace):
         key = variable, version
 
-        assert key not in self.variable_traces, ( key, self )
+        assert key not in self.variable_traces, (key, self)
         self.variable_traces[key] = trace
 
     def addVariableMergeTrace(self, variable, trace_yes, trace_no):

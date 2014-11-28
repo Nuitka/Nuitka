@@ -33,7 +33,7 @@ imported_modules = {}
 imported_by_name = {}
 
 def addImportedModule(module_relpath, imported_module):
-    if ( module_relpath, "__main__" ) in imported_modules:
+    if (module_relpath, "__main__") in imported_modules:
         warning("""\
 Re-importing __main__ module via its filename duplicates the module.""")
 

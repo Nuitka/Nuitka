@@ -310,7 +310,7 @@ def buildParameterAnnotations(provider, node, source_ref):
 def buildParameterSpec(name, node, source_ref):
     kind = getKind(node)
 
-    assert kind in ( "FunctionDef", "Lambda" ), "unsupported for kind " + kind
+    assert kind in ("FunctionDef", "Lambda"), "unsupported for kind " + kind
 
     def extractArg(arg):
         if type(arg) is str or arg is None:

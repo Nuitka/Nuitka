@@ -75,7 +75,7 @@ def createNamespacePackage(package_name, module_relpath):
                         args       = ExpressionConstantRef(
                             constant   = (
                                 package_name,
-                                [ module_relpath ],
+                                [module_relpath],
                                 None
                             ),
                             source_ref =  source_ref

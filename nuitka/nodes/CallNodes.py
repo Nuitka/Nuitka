@@ -102,7 +102,7 @@ class ExpressionCall(ExpressionChildrenHavingBase):
 class ExpressionCallNoKeywords(ExpressionCall):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
-    named_children = ( "called", "args", "kw" )
+    named_children = ("called", "args", "kw")
 
     def __init__(self, called, args, source_ref):
         assert called.isExpression()
@@ -121,7 +121,7 @@ class ExpressionCallNoKeywords(ExpressionCall):
 class ExpressionCallKeywordsOnly(ExpressionCall):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
-    named_children = ( "called", "args", "kw" )
+    named_children = ("called", "args", "kw")
 
     def __init__(self, called, kw, source_ref):
         assert called.isExpression()
@@ -141,7 +141,7 @@ class ExpressionCallKeywordsOnly(ExpressionCall):
 class ExpressionCallEmpty(ExpressionCall):
     kind = "EXPRESSION_CALL_EMPTY"
 
-    named_children = ( "called", "args", "kw" )
+    named_children = ("called", "args", "kw")
 
     def __init__(self, called, source_ref):
         assert called.isExpression()

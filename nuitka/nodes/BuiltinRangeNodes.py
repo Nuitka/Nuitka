@@ -211,7 +211,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
 class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
     kind = "EXPRESSION_BUILTIN_RANGE2"
 
-    named_children = ( "low", "high" )
+    named_children = ("low", "high")
 
     def __init__(self, low, high, source_ref):
         ExpressionBuiltinRangeBase.__init__(

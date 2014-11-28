@@ -335,7 +335,7 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults, posit
     # pylint: disable=R0914,R0912,R0915
 
     assert type(positional) is tuple
-    assert type(pairs) in ( tuple, list )
+    assert type(pairs) in (tuple, list)
 
     # Make a copy, we are going to modify it.
     pairs = list(pairs)

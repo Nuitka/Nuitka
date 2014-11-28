@@ -62,10 +62,10 @@ class ExpressionOperationBase(ExpressionChildrenHavingBase):
 class ExpressionOperationBinary(ExpressionOperationBase):
     kind = "EXPRESSION_OPERATION_BINARY"
 
-    named_children = ( "left", "right" )
+    named_children = ("left", "right")
 
     def __init__(self, operator, left, right, source_ref):
-        assert left.isExpression() and right.isExpression, ( left, right )
+        assert left.isExpression() and right.isExpression, (left, right)
 
         ExpressionOperationBase.__init__(
             self,
@@ -168,7 +168,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             return self, None, None
 
     def getOperands(self):
-        return ( self.getLeft(), self.getRight() )
+        return (self.getLeft(), self.getRight())
 
     getLeft = ExpressionChildrenHavingBase.childGetter("left")
     getRight = ExpressionChildrenHavingBase.childGetter("right")
@@ -177,7 +177,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
 class ExpressionOperationUnary(ExpressionOperationBase):
     kind = "EXPRESSION_OPERATION_UNARY"
 
-    named_children = ( "operand", )
+    named_children = ("operand", )
 
     def __init__(self, operator, operand, source_ref):
         assert operand.isExpression(), operand

@@ -164,7 +164,7 @@ def _namifyString(string):
     # Many branches case has a return, encodes the naming policy of strings
     # constants, with often complex decisions to make, pylint: disable=R0911
 
-    if string in ( "", b"" ):
+    if string in ("", b""):
         return "empty"
     elif string == " ":
         return "space"

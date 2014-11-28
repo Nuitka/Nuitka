@@ -40,7 +40,7 @@ class SourceCodeReference:
         self.set_line = True
 
     def __repr__(self):
-        return "<%s to %s:%s>" % ( self.__class__.__name__, self.filename, self.line )
+        return "<%s to %s:%s>" % (self.__class__.__name__, self.filename, self.line)
 
     def clone(self, line):
         result = SourceCodeReference.fromFilenameAndLine(
@@ -68,7 +68,7 @@ class SourceCodeReference:
         return self.future_spec
 
     def getAsString(self):
-        return "%s:%s" % ( self.filename, self.line )
+        return "%s:%s" % (self.filename, self.line)
 
     def shallSetCurrentLine(self):
         return self.set_line

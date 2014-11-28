@@ -120,35 +120,35 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
         )
 
         table = {
-            (  True,   True,  True, False ) :
+            (True,   True,  True, False) :
                 getFunctionCallHelperPosKeywordsStarList,
-            (  True,  False,  True, False ) :
+            (True,  False,  True, False) :
                 getFunctionCallHelperPosStarList,
-            ( False,   True,  True, False ) :
+            (False,   True,  True, False) :
                 getFunctionCallHelperKeywordsStarList,
-            ( False,  False,  True, False ) :
+            (False,  False,  True, False) :
                 getFunctionCallHelperStarList,
-            (  True,   True, False,  True ) :
+            (True,   True, False,  True) :
                 getFunctionCallHelperPosKeywordsStarDict,
-            (  True,  False, False,  True ) :
+            (True,  False, False,  True) :
                 getFunctionCallHelperPosStarDict,
-            ( False,   True, False,  True ) :
+            (False,   True, False,  True) :
                 getFunctionCallHelperKeywordsStarDict,
-            ( False,  False, False,  True ) :
+            (False,  False, False,  True) :
                 getFunctionCallHelperStarDict,
-            (  True,   True,  True,  True ) :
+            (True,   True,  True,  True) :
                 getFunctionCallHelperPosKeywordsStarListStarDict,
-            (  True,  False,  True,  True ) :
+            (True,  False,  True,  True) :
                 getFunctionCallHelperPosStarListStarDict,
-            ( False,   True,  True,  True ) :
+            (False,   True,  True,  True) :
                 getFunctionCallHelperKeywordsStarListStarDict,
-            ( False,  False,  True,  True ) :
+            (False,  False,  True,  True) :
                 getFunctionCallHelperStarListStarDict,
         }
 
         get_helper = table[ key ]
 
-        helper_args = [ called ]
+        helper_args = [called]
 
         if positional_args:
             helper_args.append(

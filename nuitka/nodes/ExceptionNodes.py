@@ -188,7 +188,7 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_RAISE_EXCEPTION"
 
-    named_children = ( "exception_type", "exception_value" )
+    named_children = ("exception_type", "exception_value")
 
     def __init__(self, exception_type, exception_value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -235,7 +235,7 @@ Propgated implict raise expression to raise statement."""
 class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
-    named_children = ( "args", )
+    named_children = ("args", )
 
     def __init__(self, exception_name, args, source_ref):
         ExpressionChildrenHavingBase.__init__(

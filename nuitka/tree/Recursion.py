@@ -56,7 +56,7 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
                         source_filename = source_filename,
                         is_main         = False
                     )
-                except ( SyntaxError, IndentationError ) as e:
+                except (SyntaxError, IndentationError) as e:
                     if module_filename not in Importing.warned_about:
                         Importing.warned_about.add(module_filename)
 

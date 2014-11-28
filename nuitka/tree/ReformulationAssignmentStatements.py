@@ -285,7 +285,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             source_ref = source_ref
         )
     else:
-        assert False, ( kind, source_ref, detail )
+        assert False, (kind, source_ref, detail)
 
 
 def buildAssignmentStatements(provider, node, source, source_ref,
@@ -404,7 +404,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
             allow_none = False
         )
     else:
-        assert False, ( source_ref, kind )
+        assert False, (source_ref, kind)
 
 
 def buildAssignNode(provider, node, source_ref):
@@ -529,7 +529,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
             source_ref = source_ref
         )
     else:
-        assert False, ( kind, detail, source_ref )
+        assert False, (kind, detail, source_ref)
 
 
 def buildDeleteNode(provider, node, source_ref):

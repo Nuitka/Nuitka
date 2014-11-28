@@ -51,7 +51,9 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
         self.attribute_name = attribute_name
 
     def getDetails(self):
-        return { "attribute" : self.getAttributeName() }
+        return {
+            "attribute" : self.getAttributeName()
+        }
 
     def getDetail(self):
         return "attribute %s from %s" % (
@@ -168,7 +170,7 @@ attribute '%s' to mere attribute lookup""" % attribute_name
 class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
-    named_children = ( "source", "attribute", "value" )
+    named_children = ("source", "attribute", "value")
 
     # Need to accept 'object' keyword argument, that is just the API of setattr,
     # pylint: disable=W0622
@@ -196,7 +198,7 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
 class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
-    named_children = ( "source", "attribute" )
+    named_children = ("source", "attribute")
 
     # Need to accept object keyword argument, that is just the API of hasattr,
     # pylint: disable=W0622

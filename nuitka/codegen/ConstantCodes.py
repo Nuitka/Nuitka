@@ -516,7 +516,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
         return
 
-    assert False, ( type(constant_value), constant_value, constant_identifier )
+    assert False, (type(constant_value), constant_value, constant_identifier)
 
 
 def getConstantsInitCode(context):
