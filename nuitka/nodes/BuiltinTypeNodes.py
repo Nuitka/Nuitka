@@ -259,7 +259,6 @@ class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
 
     def __init__(self, value, source_ref):
         if value is None:
-            from .ConstantRefNodes import ExpressionConstantRef
             value = ExpressionConstantRef(
                 constant   = b"",
                 source_ref = source_ref

@@ -31,7 +31,7 @@ from .NodeBases import ExpressionChildrenHavingBase
 class ExpressionYield(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_YIELD"
 
-    named_children = ("expression", )
+    named_children = ("expression",)
 
     def __init__(self, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -65,7 +65,7 @@ class ExpressionYield(ExpressionChildrenHavingBase):
 class ExpressionYieldFrom(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_YIELD_FROM"
 
-    named_children = ("expression", )
+    named_children = ("expression",)
 
     def __init__(self, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(

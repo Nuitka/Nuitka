@@ -26,7 +26,7 @@ from .NodeBases import StatementChildrenHavingBase
 class StatementReturn(StatementChildrenHavingBase):
     kind = "STATEMENT_RETURN"
 
-    named_children = ("expression", )
+    named_children = ("expression",)
 
     def __init__(self, expression, source_ref):
         StatementChildrenHavingBase.__init__(

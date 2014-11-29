@@ -177,7 +177,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
 class ExpressionOperationUnary(ExpressionOperationBase):
     kind = "EXPRESSION_OPERATION_UNARY"
 
-    named_children = ("operand", )
+    named_children = ("operand",)
 
     def __init__(self, operator, operand, source_ref):
         assert operand.isExpression(), operand

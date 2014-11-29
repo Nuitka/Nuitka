@@ -76,7 +76,7 @@ class NodeCheckMetaClass(type):
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
 # used and doesn't require making a choice.
-NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object, ), {})
+NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object,), {})
 
 class NodeBase(NodeMetaClassBase):
     kind = None

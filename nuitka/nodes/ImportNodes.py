@@ -353,7 +353,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 class StatementImportStar(StatementChildrenHavingBase):
     kind = "STATEMENT_IMPORT_STAR"
 
-    named_children = ("module", )
+    named_children = ("module",)
 
     def __init__(self, module_import, source_ref):
         StatementChildrenHavingBase.__init__(

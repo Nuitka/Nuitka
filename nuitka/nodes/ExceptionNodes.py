@@ -235,7 +235,7 @@ Propgated implict raise expression to raise statement."""
 class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
-    named_children = ("args", )
+    named_children = ("args",)
 
     def __init__(self, exception_name, args, source_ref):
         ExpressionChildrenHavingBase.__init__(

@@ -104,7 +104,7 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         if self.getValue().isCompileTimeConstant():
             return ()
         else:
-            return (self, )
+            return (self,)
 
     def mayHaveSideEffects(self):
         if self.getValue().isCompileTimeConstant():

@@ -189,7 +189,7 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
 
         self.variable_version = None
 
-        # TODO: Remove setVariable, once not needed anymore and inline to
+        # TODO: Remove setVariable, once not needed anymore and in-line to
         # here.
         if variable is not None:
             self.setVariable(variable)
