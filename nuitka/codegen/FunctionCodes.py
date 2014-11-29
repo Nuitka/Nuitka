@@ -459,6 +459,8 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         context.getTempNameInfos()
     ]
 
+    local_var_inits += context.getFrameDeclarations()
+
     # TODO: Could avoid this unless try/except or try/finally with returns
     # occur.
     if context.hasTempName("return_value"):
@@ -703,6 +705,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         for tmp_name, tmp_type in
         context.getTempNameInfos()
     ]
+
+    function_locals += context.getFrameDeclarations()
 
     # TODO: Could avoid this unless try/except or try/finally with returns
     # occur.

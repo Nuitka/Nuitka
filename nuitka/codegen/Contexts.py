@@ -506,8 +506,19 @@ class PythonGlobalContext:
         return self.constants
 
 
+class FrameDeclarationsMixin:
+    def __init__(self):
+        self.frame_declarations = []
 
-class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
+    def addFrameDeclaration(self, frame_decl):
+        self.frame_declarations.append(frame_decl)
+
+    def getFrameDeclarations(self):
+        return self.frame_declarations
+
+
+class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
+                          FrameDeclarationsMixin):
     # Plent of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
@@ -517,6 +528,7 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
 
         TempMixin.__init__(self)
         CodeObjectsMixin.__init__(self)
+        FrameDeclarationsMixin.__init__(self)
 
         self.module = module
         self.name = module_name
@@ -621,7 +633,8 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
         return self.constants
 
 
-class PythonFunctionContext(PythonChildContextBase, TempMixin):
+class PythonFunctionContext(PythonChildContextBase, TempMixin,
+                            FrameDeclarationsMixin):
     def __init__(self, parent, function):
         PythonChildContextBase.__init__(
             self,
@@ -629,6 +642,7 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin):
         )
 
         TempMixin.__init__(self)
+        FrameDeclarationsMixin.__init__(self)
 
         self.function = function
 
@@ -856,6 +870,9 @@ class PythonStatementCContext(PythonChildContextBase):
 
     def markAsNeedsExceptionVariables(self):
         self.parent.markAsNeedsExceptionVariables()
+
+    def addFrameDeclaration(self, frame_decl):
+        self.parent.addFrameDeclaration(frame_decl)
 
     def mayRecurse(self):
         return self.parent.mayRecurse()

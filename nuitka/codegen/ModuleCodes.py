@@ -112,6 +112,8 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
         context.getTempNameInfos()
     ]
 
+    local_var_inits += context.getFrameDeclarations()
+
     if context.needsExceptionVariables():
         module_exit = CodeTemplates.template_module_exception_exit
     else:
