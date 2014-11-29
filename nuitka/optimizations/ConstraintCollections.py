@@ -34,6 +34,7 @@ from nuitka.VariableRegistry import isSharedLogically
 from .VariableTraces import (
     VariableAssignTrace,
     VariableMergeTrace,
+    VariableInitTrace,
     VariableUninitTrace,
     VariableUnknownTrace
 )
@@ -69,9 +70,7 @@ class VariableUsageTrackingMixin:
 
     def _initVariable(self, variable):
         if variable.isParameterVariable():
-            # TODO: Actually we know better, it is known to be initialized,
-            # just not the exact value.
-            self._initVariableUnknown(variable)
+            self._initVariableInit(variable)
         elif variable.isLocalVariable():
             self._initVariableUninit(variable)
         elif variable.isMaybeLocalVariable():
@@ -236,6 +235,18 @@ class CollectionStartpointMixin:
                 variable = variable,
                 version  = 0,
                 previous = None
+            )
+        )
+
+        self.markCurrentVariableTrace(variable, 0)
+
+    def _initVariableInit(self, variable):
+        self.addVariableTrace(
+            variable = variable,
+            version  = 0,
+            trace    = VariableInitTrace(
+                variable = variable,
+                version  = 0,
             )
         )
 
