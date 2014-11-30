@@ -353,6 +353,12 @@ class NodeBase(NodeMetaClassBase):
 
         return True
 
+    def mayRaiseExceptionBool(self, exception_type):
+        """ Unless we are told otherwise, everything may raise being checked. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
     def mayReturn(self):
         return "_RETURN" in self.kind
 

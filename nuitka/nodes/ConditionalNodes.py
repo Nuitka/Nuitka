@@ -175,6 +175,43 @@ Conditional expression raises in condition."""
 
         return False
 
+    def mayRaiseException(self, exception_type):
+        condition = self.getCondition()
+
+        if condition.mayRaiseException(exception_type):
+            return True
+
+        if condition.mayRaiseExceptionBool(exception_type):
+            return True
+
+        yes_branch = self.getExpressionYes()
+
+        # Handle branches that became empty behind our back
+        if yes_branch is not None and \
+           yes_branch.mayRaiseException(exception_type):
+            return True
+
+        no_branch = self.getExpressionNo()
+
+        # Handle branches that became empty behind our back
+        if no_branch is not None and \
+           no_branch.mayRaiseException(exception_type):
+            return True
+
+        return False
+
+    def mayRaiseExceptionBool(self, exception_type):
+        if self.getCondition().mayRaiseExceptionBool():
+            return True
+
+        if self.getExpressionYes().mayRaiseExceptionBool():
+            return True
+
+        if self.getExpressionNo().mayRaiseExceptionBool():
+            return True
+
+        return False
+
 
 class StatementConditional(StatementChildrenHavingBase):
     kind = "STATEMENT_CONDITIONAL"
@@ -224,6 +261,9 @@ class StatementConditional(StatementChildrenHavingBase):
         if condition.mayRaiseException(exception_type):
             return True
 
+        if condition.mayRaiseExceptionBool(exception_type):
+            return True
+
         yes_branch = self.getBranchYes()
 
         # Handle branches that became empty behind our back
@@ -244,6 +284,9 @@ class StatementConditional(StatementChildrenHavingBase):
         condition = self.getCondition()
 
         if condition.mayRaiseException(BaseException):
+            return True
+
+        if condition.mayRaiseExceptionBool(BaseException):
             return True
 
         yes_branch = self.getBranchYes()

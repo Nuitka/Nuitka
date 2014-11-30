@@ -135,6 +135,9 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
         return self.getLeft().mayRaiseException(exception_type) or \
                self.getRight().mayRaiseException(exception_type)
 
+    def mayRaiseExceptionBool(self, exception_type):
+        return False
+
     def computeExpression(self, constraint_collection):
         left, right = self.getOperands()
 
