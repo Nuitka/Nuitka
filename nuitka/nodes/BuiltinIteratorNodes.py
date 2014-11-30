@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Builtin iterator nodes.
+""" Built-in iterator nodes.
 
 These play a role in for loops, and in unpacking. They can something be
 predicted to succeed or fail, in which case, code can become less complex.
@@ -228,7 +228,7 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Explicit raise already raises implicitely building exception type."""
+Explicit raise already raises implicitly building exception type."""
 
         # Remove the check if it can be decided at compile time.
         if iterator.isKnownToBeIterableAtMax(0):

@@ -158,7 +158,7 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Dictionary remove already raises implicitely accessing dictionary."""
+Dictionary remove already raises implicitly accessing dictionary."""
 
         constraint_collection.onExpression(self.getKey())
         key = self.getKey()
@@ -174,7 +174,7 @@ Dictionary remove already raises implicitely accessing dictionary."""
             )
 
             return result, "new_node", """
-Dictionary remove already raises implicitely building key."""
+Dictionary remove already raises implicitly building key."""
 
         # TODO: Be less lossly about it.
         constraint_collection.removeKnowledge(dicte)

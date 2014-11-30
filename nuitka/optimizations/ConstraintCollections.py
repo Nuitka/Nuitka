@@ -33,8 +33,8 @@ from nuitka.VariableRegistry import isSharedLogically
 
 from .VariableTraces import (
     VariableAssignTrace,
-    VariableMergeTrace,
     VariableInitTrace,
+    VariableMergeTrace,
     VariableUninitTrace,
     VariableUnknownTrace
 )

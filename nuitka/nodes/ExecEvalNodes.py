@@ -179,7 +179,7 @@ class StatementExec(StatementChildrenHavingBase):
                 result,
                 "new_raise",
                 """\
-Exec statement raises implicitely when determining source code argument."""
+Exec statement raises implicitly when determining source code argument."""
             )
 
         constraint_collection.onExpression(
@@ -203,7 +203,7 @@ Exec statement raises implicitely when determining source code argument."""
                 result,
                 "new_raise",
                 """\
-Exec statement raises implicitely when determining globals argument."""
+Exec statement raises implicitly when determining globals argument."""
             )
 
         constraint_collection.onExpression(
@@ -228,7 +228,7 @@ Exec statement raises implicitely when determining globals argument."""
                 result,
                 "new_raise",
                 """\
-Exec statement raises implicitely when determining locals argument."""
+Exec statement raises implicitly when determining locals argument."""
             )
 
         str_value = self.getSourceCode().getStrValue()

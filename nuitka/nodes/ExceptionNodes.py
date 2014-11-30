@@ -101,7 +101,7 @@ class StatementRaiseException(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Explicit raise already raises implicitely building exception type."""
+Explicit raise already raises implicitly building exception type."""
 
         constraint_collection.onExpression(
             expression = self.getExceptionValue(),
@@ -120,7 +120,7 @@ Explicit raise already raises implicitely building exception type."""
             )
 
             return result, "new_node", """\
-Explicit raise already raises implicitely building exception value."""
+Explicit raise already raises implicitly building exception value."""
 
         constraint_collection.onExpression(
             expression = self.getExceptionTrace(),
@@ -141,7 +141,7 @@ Explicit raise already raises implicitely building exception value."""
             )
 
             return result, "new_raise", """\
-Explicit raise already raises implicitely building exception traceback."""
+Explicit raise already raises implicitly building exception traceback."""
 
         constraint_collection.onExpression(
             expression = self.getExceptionCause(),
@@ -161,7 +161,7 @@ Explicit raise already raises implicitely building exception traceback."""
             )
 
             return result, "new_raise", """
-Explicit raise already raises implicitely building exception cause."""
+Explicit raise already raises implicitly building exception cause."""
 
         return self, None, None
 

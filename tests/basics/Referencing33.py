@@ -110,7 +110,7 @@ def simpleFunction4():
 
 
 # These need stderr to be wrapped.
-tests_stderr = (3, )
+tests_stderr = (3, 4)
 
 # Disabled tests
 tests_skipped = {}

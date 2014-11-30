@@ -18,7 +18,7 @@
 """ Comparison related codes.
 
 Rich comparisons, "in", and "not in", also "is", and "is not", and the
-"isinstance" check as used in conditons.
+"isinstance" check as used in conditions.
 """
 
 from . import OperatorCodes

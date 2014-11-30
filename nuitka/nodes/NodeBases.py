@@ -1226,12 +1226,12 @@ class ExpressionBuiltinNoArgBase(NodeBase, ExpressionMixin):
     def computeExpression(self, constraint_collection):
         from .NodeMakingHelpers import getComputationResult
 
-        # The lamba is there for make sure that no argument parsing will reach
-        # the builtin function at all, pylint: disable=W0108
+        # The lambda is there for make sure that no argument parsing will reach
+        # the built-in function at all, pylint: disable=W0108
         return getComputationResult(
             node        = self,
             computation = lambda : self.builtin_function(),
-            description = "No arg %s builtin" % self.builtin_function.__name__
+            description = "No arg %s built-in" % self.builtin_function.__name__
         )
 
 
@@ -1266,7 +1266,7 @@ class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
         else:
             if value.willRaiseException(BaseException):
                 return value, "new_raise", """\
-Builtin call raises exception while building argument."""
+Built-in call raises exception while building argument."""
 
             return self.computeBuiltinSpec(
                 given_values = (value,)

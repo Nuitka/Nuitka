@@ -310,12 +310,12 @@ def _buildClassNode3(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    # The class body is basically a function that implicitely, at the end
+    # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
 
     class_creation_function.setBody(body)
 
-    # The class body is basically a function that implicitely, at the end
+    # The class body is basically a function that implicitly, at the end
     # returns its created class and cannot have other return statements
     # contained.
 
@@ -631,7 +631,7 @@ def _buildClassNode2(provider, node, source_ref):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref.atInternal()
 
-    # The class body is basically a function that implicitely, at the end
+    # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained, and
     # starts out with a variables "__module__" and potentially "__doc__" set.
     statements = [
@@ -681,7 +681,7 @@ def _buildClassNode2(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    # The class body is basically a function that implicitely, at the end
+    # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
 
     function_body.setBody(body)

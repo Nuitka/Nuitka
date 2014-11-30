@@ -76,7 +76,7 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         # not matter at all.
         if condition.willRaiseException(BaseException):
             return condition, "new_raise", """\
-Conditional statements already raises implicitely in condition, removing \
+Conditional statements already raises implicitly in condition, removing \
 branches."""
 
         # If the condition raises, we let that escape instead, and the
@@ -162,9 +162,7 @@ Conditional expression raises in condition."""
             return self, None, None
 
     def mayHaveSideEffectsBool(self):
-        condition = self.getCondition()
-
-        if condition.mayHaveSideEffectsBool():
+        if self.getCondition().mayHaveSideEffectsBool():
             return True
 
         if self.getExpressionYes().mayHaveSideEffectsBool():
@@ -326,7 +324,7 @@ class StatementConditional(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Conditional statements already raises implicitely in condition, removing \
+Conditional statements already raises implicitly in condition, removing \
 branches."""
 
         from nuitka.optimizations.ConstraintCollections import \
