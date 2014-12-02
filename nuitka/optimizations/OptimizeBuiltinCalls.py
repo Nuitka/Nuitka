@@ -1075,7 +1075,7 @@ Replaced call to built-in '%s' with try/finally guarded call.""" % (
 
         return new_node, tags, message
     else:
-        if isDebug() and builtin_name not in _builtin_white_list:
+        if False and isDebug() and builtin_name not in _builtin_white_list:
             warning(
                 "Not handling built-in '%s', consider support." % builtin_name
             )
