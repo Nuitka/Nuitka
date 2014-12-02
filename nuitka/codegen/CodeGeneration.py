@@ -1800,7 +1800,8 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             Generator.getGotoCode(end_target, real_emit)
             Generator.getLabelCode(false_target, real_emit)
 
-            real_emit.codes += emit.codes
+            for line in emit.codes:
+                real_emit(line)
             emit = real_emit
 
             emit("Py_INCREF( %s );" % to_name)
@@ -1810,13 +1811,15 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             Generator.getGotoCode(end_target, real_emit)
             Generator.getLabelCode(false_target, real_emit)
 
-            real_emit.codes += emit.codes
+            for line in emit.codes:
+                real_emit(line)
             emit = real_emit
         else:
             Generator.getGotoCode(end_target, real_emit)
             Generator.getLabelCode(false_target, real_emit)
 
-            real_emit.codes += emit.codes
+            for line in emit.codes:
+                real_emit(line)
             emit = real_emit
 
         Generator.getLabelCode(end_target,emit)
