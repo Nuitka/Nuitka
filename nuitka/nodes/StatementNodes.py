@@ -419,7 +419,9 @@ class StatementsFrame(StatementsSequence):
 class StatementExpressionOnly(StatementChildrenHavingBase):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
-    named_children = ("expression",)
+    named_children = (
+        "expression",
+    )
 
     def __init__(self, expression, source_ref):
         assert expression.isExpression()
@@ -437,6 +439,9 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
 
     def mayHaveSideEffects(self):
         return self.getExpression().mayHaveSideEffects()
+
+    def mayRaiseException(self, exception_type):
+        return self.getExpression().mayRaiseException(exception_type)
 
     getExpression = StatementChildrenHavingBase.childGetter(
         "expression"
