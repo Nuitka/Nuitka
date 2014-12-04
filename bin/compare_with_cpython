@@ -385,6 +385,13 @@ def makeDiffable(output):
             "function object is not an iterator"
         )
 
+        # This URL is updated, and Nuitka outputs the new one, but we test
+        # against versions that don't have that.
+        line = line.replace(
+            "http://www.python.org/peps/pep-0263.html",
+            "http://python.org/dev/peps/pep-0263/",
+        )
+
         line = ran_tests_re.sub(r"\1x.xxxs", line)
 
         # This is a bug potentially, occurs only for CPython when re-directed,

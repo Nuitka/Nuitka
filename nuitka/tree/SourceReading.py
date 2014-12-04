@@ -139,7 +139,7 @@ def _readSourceCodeFromFilename2(source_filename):
                 SyntaxErrors.raiseSyntaxError(
                     reason       = """\
 Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
-see http://www.python.org/peps/pep-0263.html for details""" % (
+see http://python.org/dev/peps/pep-0263/ for details""" % (
                         wrong_byte,
                         source_filename,
                         count+1,
