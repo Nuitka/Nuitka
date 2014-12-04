@@ -33,6 +33,7 @@ from nuitka.codegen.AttributeCodes import generateAttributeLookupCode
 from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
 from .ConditionalCodes import generateConditionCode
 from .ConstantCodes import generateConstantReferenceCode
+from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 from .SliceCodes import generateBuiltinSliceCode
 from .SubscriptCodes import generateSubscriptLookupCode
 from .VariableCodes import generateVariableReferenceCode
@@ -908,57 +909,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             emit       = emit,
             context    = context
         )
-
-    def generateCAPIObjectCodeommon(to_name, capi, arg_desc, ref_count, emit,
-                                     context, none_null = False):
-        arg_names = []
-
-        for arg_name, arg_expression in arg_desc:
-            if arg_expression is None and none_null:
-                arg_names.append("NULL")
-            else:
-                arg_name = context.allocateTempName(arg_name)
-
-                makeExpressionCode(
-                    to_name    = arg_name,
-                    expression = arg_expression
-                )
-
-                arg_names.append(arg_name)
-
-        Generator.getCAPIObjectCode(
-            to_name   = to_name,
-            capi      = capi,
-            arg_names = arg_names,
-            ref_count = ref_count,
-            emit      = emit,
-            context   = context
-        )
-
-    def generateCAPIObjectCode(to_name, capi, arg_desc, emit, context,
-                               none_null = False):
-        generateCAPIObjectCodeommon(
-            to_name   = to_name,
-            capi      = capi,
-            arg_desc  = arg_desc,
-            ref_count = 1,
-            emit      = emit,
-            context   = context,
-            none_null = none_null
-        )
-
-    def generateCAPIObjectCode0(to_name, capi, arg_desc, emit, context,
-                                none_null = False):
-        generateCAPIObjectCodeommon(
-            to_name   = to_name,
-            capi      = capi,
-            arg_desc  = arg_desc,
-            ref_count = 0,
-            emit      = emit,
-            context   = context,
-            none_null = none_null
-        )
-
 
     if not expression.isExpression():
         Tracing.printError("No expression %r" % expression)
@@ -4371,6 +4321,20 @@ def generateHelpersCode():
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()
 
+
+# TODO: Find a proper home for this code
+def generateBuiltinIdCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name  = to_name,
+        capi     = "PyLong_FromVoidPtr",
+        arg_desc = (
+            ("id_arg", expression.getValue()),
+        ),
+        emit     = emit,
+        context  = context
+    )
+
+
 Helpers.setExpressionDispatchDict(
     {
         "VARIABLE_REF"      : generateVariableReferenceCode,
@@ -4379,5 +4343,6 @@ Helpers.setExpressionDispatchDict(
         "ATTRIBUTE_LOOKUP"  : generateAttributeLookupCode,
         "SUBSCRIPT_LOOKUP"  : generateSubscriptLookupCode,
         "BUILTIN_SLICE"     : generateBuiltinSliceCode,
+        "BUILTIN_ID"        : generateBuiltinIdCode
     }
 )

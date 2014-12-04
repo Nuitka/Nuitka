@@ -226,6 +226,7 @@ builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ("c",), 0)
 builtin_bin_spec = BuiltinParameterSpecNoKeywords("bin", ("number",), 0)
 builtin_oct_spec = BuiltinParameterSpecNoKeywords("oct", ("number",), 0)
 builtin_hex_spec = BuiltinParameterSpecNoKeywords("hex", ("number",), 0)
+builtin_id_spec = BuiltinParameterSpecNoKeywords("id", ("object",), 0)
 builtin_repr_spec = BuiltinParameterSpecNoKeywords("repr", ("object",), 0)
 
 builtin_dir_spec = BuiltinParameterSpecNoKeywords("dir", ("object",), 1)

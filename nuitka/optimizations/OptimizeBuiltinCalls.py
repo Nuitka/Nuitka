@@ -43,7 +43,8 @@ from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinBin,
     ExpressionBuiltinHex,
-    ExpressionBuiltinOct
+    ExpressionBuiltinOct,
+    ExpressionBuiltinId
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
@@ -325,6 +326,13 @@ def hex_extractor(node):
         node          = node,
         builtin_class = ExpressionBuiltinHex,
         builtin_spec  = BuiltinOptimization.builtin_hex_spec
+    )
+
+def id_extractor(node):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = ExpressionBuiltinId,
+        builtin_spec  = BuiltinOptimization.builtin_id_spec
     )
 
 def repr_extractor(node):
@@ -925,6 +933,7 @@ _dispatch_dict = {
     "bin"        : bin_extractor,
     "oct"        : oct_extractor,
     "hex"        : hex_extractor,
+    "id"         : id_extractor,
     "type"       : type_extractor,
     "iter"       : iter_extractor,
     "next"       : next_extractor,

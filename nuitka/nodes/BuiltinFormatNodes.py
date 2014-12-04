@@ -32,12 +32,25 @@ class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinOptimization.builtin_bin_spec
 
+
 class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_OCT"
 
     builtin_spec = BuiltinOptimization.builtin_oct_spec
 
+
 class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_HEX"
 
     builtin_spec = BuiltinOptimization.builtin_hex_spec
+
+
+class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
+    kind = "EXPRESSION_BUILTIN_ID"
+
+    builtin_spec = BuiltinOptimization.builtin_id_spec
+
+    def computeExpression(self, constraint_collection):
+        # Note: Quite impossible to predict the pointer value or anything, but
+        # we know the result will be a long.
+        return self, None, None

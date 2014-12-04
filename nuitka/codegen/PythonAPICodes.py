@@ -28,6 +28,64 @@ from .ErrorCodes import (
 )
 
 
+def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, ref_count, emit,
+                                 context, none_null = False):
+    arg_names = []
+
+    # TODO: This will move to Helpers module, but not yet done.
+    from .CodeGeneration import generateExpressionCode
+
+    for arg_name, arg_expression in arg_desc:
+        if arg_expression is None and none_null:
+            arg_names.append("NULL")
+        else:
+            arg_name = context.allocateTempName(arg_name)
+
+            generateExpressionCode(
+                to_name    = arg_name,
+                expression = arg_expression,
+                emit       = emit,
+                context    = context
+            )
+
+            arg_names.append(arg_name)
+
+    getCAPIObjectCode(
+        to_name   = to_name,
+        capi      = capi,
+        arg_names = arg_names,
+        ref_count = ref_count,
+        emit      = emit,
+        context   = context
+    )
+
+
+def generateCAPIObjectCode(to_name, capi, arg_desc, emit, context,
+                           none_null = False):
+    generateCAPIObjectCodeCommon(
+        to_name   = to_name,
+        capi      = capi,
+        arg_desc  = arg_desc,
+        ref_count = 1,
+        emit      = emit,
+        context   = context,
+        none_null = none_null
+    )
+
+
+def generateCAPIObjectCode0(to_name, capi, arg_desc, emit, context,
+                            none_null = False):
+    generateCAPIObjectCodeCommon(
+        to_name   = to_name,
+        capi      = capi,
+        arg_desc  = arg_desc,
+        ref_count = 0,
+        emit      = emit,
+        context   = context,
+        none_null = none_null
+    )
+
+
 def getCAPIObjectCode(to_name, capi, arg_names, ref_count, emit, context):
     emit(
         "%s = %s( %s );" % (
