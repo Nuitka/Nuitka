@@ -75,7 +75,7 @@ for filename in sorted(os.listdir(my_dir)):
 
             result = subprocess.call(
                 command + " -w -n --no-diffs " + path,
-                stderr = open("/dev/null", "w"),
+                stderr = open(os.devnull, "w"),
                 shell  = True
             )
 

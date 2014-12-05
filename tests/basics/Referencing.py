@@ -561,14 +561,17 @@ def simpleFunction71():
         except Exception:
             pass
 
-def simpleFunction71():
-    for i in range(10):
-        try:
-            undefined
-        finally:
-            break
-
 def simpleFunction72():
+    try:
+        for i in range(10):
+            try:
+                undefined
+            finally:
+                break
+    except Exception:
+        pass
+
+def simpleFunction73():
     for i in range(10):
         try:
             undefined
@@ -576,12 +579,12 @@ def simpleFunction72():
             return 7
 
 
-def simpleFunction73():
+def simpleFunction74():
     import os
 
     return os
 
-def simpleFunction74():
+def simpleFunction75():
     def raising_gen():
         try:
             raise TypeError
@@ -596,7 +599,7 @@ def simpleFunction74():
     except RuntimeError:
         pass
 
-def simpleFunction75():
+def simpleFunction76():
     class MyException(Exception):
         def __init__(self, obj):
             self.obj = obj
@@ -617,7 +620,7 @@ def simpleFunction75():
         except MyException:
             pass
 
-def simpleFunction76():
+def simpleFunction77():
     class weirdstr(str):
         def __getitem__(self, index):
             return weirdstr(str.__getitem__(self, index))
@@ -626,16 +629,21 @@ def simpleFunction76():
     # filter(lambda x: x>="33", weirdstr("1234"))
 
 
-def simpleFunction77():
+def simpleFunction78():
     a = "x = 2"
     exec(a)
 
-def simpleFunction78():
+def simpleFunction79():
     "some doc"
 
-    simpleFunction78.__doc__ = simpleFunction78.__doc__.replace("doc", "dok")
-    simpleFunction78.__doc__ += " and more" + simpleFunction78.__name__
+    simpleFunction79.__doc__ = simpleFunction79.__doc__.replace("doc", "dok")
+    simpleFunction79.__doc__ += " and more" + simpleFunction79.__name__
 
+
+def simpleFunction80():
+    "some doc"
+
+    del simpleFunction80.__doc__
 
 # These need stderr to be wrapped.
 tests_stderr = (63,)
@@ -643,7 +651,7 @@ tests_stderr = (63,)
 # Disabled tests
 tests_skipped = {
    56 : "Functions with closure to themselves are not yet released.",
-   76 : "Functions with closure to themselves are not yet released.",
+   77 : "Functions with closure to themselves are not yet released.",
 }
 
 result = executeReferenceChecked(

@@ -422,7 +422,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
             dll_filename = line[line.find("]")+2:-1]
             assert os.path.isfile(dll_filename), dll_filename
 
-            # The executable itself is of course excempted.
+            # The executable itself is of course exempted.
             if os.path.normcase(dll_filename) == \
                 os.path.normcase(os.path.abspath(path)):
                 continue
@@ -568,7 +568,7 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
         # Avoid unraisable output.
         try:
             if number in tests_stderr:
-                sys.stderr = open("/dev/null", "wb")
+                sys.stderr = open(os.devnull, "wb")
         except Exception: # Windows
             if not checkReferenceCount(names[name]):
                 result = False
