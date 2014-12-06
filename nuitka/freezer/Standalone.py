@@ -262,18 +262,22 @@ def _detectImports(command, is_late):
     command = ("import sys; sys.path = %s;" % repr(sys.path)) + command
 
     import tempfile
-    with tempfile.NamedTemporaryFile(delete = True) as tmp:
+    tmp_file, tmp_filename = tempfile.mkstemp()
+
+    try:
         if Utils.python_version >= 300:
             command = command.encode('ascii')
-        tmp.write(command)
-        tmp.flush()
+        os.write(tmp_file, command)
+        os.close(tmp_file)
 
         process = subprocess.Popen(
-            args   = [sys.executable, "-s", "-S", "-v", tmp.name],
+            args   = [sys.executable, "-s", "-S", "-v", tmp_filename],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
         )
         _stdout, stderr = process.communicate()
+    finally:
+        os.unlink(tmp_filename)
 
     # Don't let errors here go unnoticed.
     if process.returncode != 0:
