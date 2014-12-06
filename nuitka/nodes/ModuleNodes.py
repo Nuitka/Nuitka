@@ -434,6 +434,7 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
         elif full_name == "lxml.etree":
             return (
                 ("gzip", None),
+                ("_elementpath", "lxml")
             )
         elif full_name == "gtk._gtk":
             return (

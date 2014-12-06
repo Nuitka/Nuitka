@@ -136,7 +136,15 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
-    if filename not in ("PySideUsing.py", "PyQtUsing.py", "GtkUsing.py"):
+    if filename == "LxmlUsing.py":
+        if not hasModule("lxml.etree"):
+            my_print(
+                "Skipping", filename, "lxml.etree not installed for",
+                python_version, "but test needs it."
+            )
+            continue
+
+    if filename not in ("PySideUsing.py", "PyQtUsing.py", "GtkUsing.py", "LxmlUsing.py"):
         extra_flags += [
             "no_site"
         ]
