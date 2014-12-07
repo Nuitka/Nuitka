@@ -953,7 +953,8 @@ _dispatch_dict = {
     "getattr"    : getattr_extractor,
     "setattr"    : setattr_extractor,
     "isinstance" : isinstance_extractor,
-    "bytearray"  : bytearray_extractor,
+    # TODO: Disabled for now, not handling all cases.
+    # "bytearray"  : bytearray_extractor,
     "slice"      : slice_extractor
 }
 
