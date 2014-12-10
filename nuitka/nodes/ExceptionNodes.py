@@ -74,9 +74,6 @@ class StatementRaiseException(StatementChildrenHavingBase):
     def isStatementReraiseException(self):
         return self.getExceptionType() is None
 
-    # TODO: Rename this
-    isReraiseException = isStatementReraiseException
-
     def isStatementAborting(self):
         return True
 
@@ -188,7 +185,10 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_RAISE_EXCEPTION"
 
-    named_children = ("exception_type", "exception_value")
+    named_children = (
+        "exception_type",
+        "exception_value"
+    )
 
     def __init__(self, exception_type, exception_value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -229,13 +229,15 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         )
 
         return result, "new_raise", """\
-Propgated implict raise expression to raise statement."""
+Propagated implicit raise expression to raise statement."""
 
 
 class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
-    named_children = ("args",)
+    named_children = (
+        "args",
+    )
 
     def __init__(self, exception_name, args, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -249,7 +251,9 @@ class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
         self.exception_name = exception_name
 
     def getDetails(self):
-        return { "exception_name" : self.exception_name }
+        return {
+            "exception_name" : self.exception_name
+        }
 
     def getExceptionName(self):
         return self.exception_name

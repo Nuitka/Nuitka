@@ -262,6 +262,7 @@ def getOwnProcessMemoryUsage():
 
         return counters.PrivateUsage
     else:
+        # Posix only code, pylint: disable=F0401,I0021
         import resource
 
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024

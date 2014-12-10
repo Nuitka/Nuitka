@@ -316,13 +316,6 @@ class NodeBase(NodeMetaClassBase):
             new_node = new_node
         )
 
-    def discard(self):
-        """ The node has become unused. """
-        # print "Discarding", self
-
-        if Options.isExperimental():
-            self.parent = None
-
     def getName(self):
         # Virtual method, pylint: disable=R0201
         return None
@@ -476,16 +469,13 @@ class ChildrenHavingMixin:
     checkers = {}
 
     def __init__(self, values):
-        assert len(self.named_children)
-        assert type(self.named_children) is tuple
+        assert type(self.named_children) is tuple and len(self.named_children)
 
-        for key in values.keys():
-            assert key in self.named_children, key
+        # Check for completeness of given values, everything should be there
+        # but of course, might be put to None.
+        assert set(values.keys()) == set(self.named_children)
 
-        # Default non-given values to None. TODO: Good idea? Better check for
-        # completeness instead.
-        self.child_values = dict.fromkeys(self.named_children)
-        self.child_values.update(values)
+        self.child_values = dict(values)
 
         for key, value in self.child_values.items():
             if key in self.checkers:
@@ -529,15 +519,6 @@ class ChildrenHavingMixin:
         assert old_value is not value, value
 
         self.child_values[name] = value
-
-        # TODO: Enable this
-        if old_value is not None:
-            if type(old_value) is tuple:
-                for val in old_value:
-                    if val not in value:
-                        val.discard()
-            else:
-                old_value.discard()
 
     def getChild(self, name):
         # Only accept legal child names
@@ -785,27 +766,6 @@ class ClosureGiverNodeBase(CodeNodeBase):
         del self.temp_variables[variable.getName()]
 
 
-# TODO: There is long since only one node type that uses it, move to FunctionNodes
-class ParameterHavingNodeBase(ClosureGiverNodeBase):
-    def __init__(self, name, code_prefix, parameters, source_ref):
-        ClosureGiverNodeBase.__init__(
-            self,
-            name        = name,
-            code_prefix = code_prefix,
-            source_ref  = source_ref
-        )
-
-        self.parameters = parameters
-        self.parameters.setOwner(self)
-
-        self.registerProvidedVariables(
-            *self.parameters.getVariables()
-        )
-
-    def getParameters(self):
-        return self.parameters
-
-
 class ClosureTakerMixin:
     """ Mixin for nodes that accept variables from closure givers. """
 
@@ -948,15 +908,14 @@ class ExpressionMixin:
     def getStrValue(self):
         """ Value that "str" or "PyObject_Str" would give, if known.
 
-            Otherwise it is "None" to indicate unknown.
+            Otherwise it is "None" to indicate unknown. Users must not
+            forget to take side effects into account, when replacing a
+            node with its string value.
         """
         string_value = self.getStringValue()
 
         if string_value is not None:
             from .NodeMakingHelpers import makeConstantReplacementNode
-
-            # TODO: Side effects should be considered, getStringValue may be
-            # omitting effects.
 
             return makeConstantReplacementNode(
                 node     = self,

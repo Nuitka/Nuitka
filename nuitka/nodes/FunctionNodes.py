@@ -43,14 +43,14 @@ from .NodeBases import (
     ExpressionChildrenHavingBase,
     ExpressionMixin,
     NodeBase,
-    ParameterHavingNodeBase,
+    ClosureGiverNodeBase,
     SideEffectsFromChildrenMixin
 )
 from .ParameterSpecs import TooManyArguments, matchCall
 
 
 class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
-                             ParameterHavingNodeBase, ExpressionMixin,
+                             ClosureGiverNodeBase, ExpressionMixin,
                              MarkGeneratorIndicator,
                              MarkLocalsDictIndicator,
                              MarkUnoptimizedFunctionIndicator):
@@ -119,18 +119,27 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             early_closure = is_class
         )
 
-        ParameterHavingNodeBase.__init__(
+        ClosureGiverNodeBase.__init__(
             self,
             name        = name,
             code_prefix = code_prefix,
-            parameters  = parameters,
             source_ref  = source_ref
         )
 
         ChildrenHavingMixin.__init__(
             self,
-            values = {}
+            values = {
+                "body" : None # delayed
+            }
         )
+
+        self.parameters = parameters
+        self.parameters.setOwner(self)
+
+        self.registerProvidedVariables(
+            *self.parameters.getVariables()
+        )
+
 
         MarkGeneratorIndicator.__init__(self)
 
@@ -221,6 +230,9 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
     def getDoc(self):
         return self.doc
+
+    def getParameters(self):
+        return self.parameters
 
     def getLocalVariableNames(self):
         return Variables.getNames(self.getLocalVariables())

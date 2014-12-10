@@ -147,15 +147,18 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
             source_ref  = source_ref
         )
 
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {},
-        )
-
         PythonModuleMixin.__init__(
             self,
             name         = name,
             package_name = package_name
+        )
+
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = {
+                "body" : None # delayed
+            },
         )
 
         self.variables = set()

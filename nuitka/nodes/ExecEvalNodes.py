@@ -234,13 +234,15 @@ Exec statement raises implicitly when determining locals argument."""
         str_value = self.getSourceCode().getStrValue()
 
         if False and str_value is not None:
+            # TODO: Don't forget to consider side effects of source code.
+
             # TODO: This needs to be re-done.
             exec_body = None
 
             return (
                 exec_body,
                 "new_statements",
-                "Inlined constant exec statement."
+                "In-lined constant exec statement."
             )
 
         return self, None, None

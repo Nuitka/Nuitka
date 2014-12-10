@@ -230,7 +230,7 @@ if python_version < 300:
                     )
 
                     change_tags = "new_expression"
-                    change_desc = "Predicted str builtin result"
+                    change_desc = "Predicted 'str' built-in result"
 
             return new_node, change_tags, change_desc
 

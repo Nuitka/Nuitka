@@ -249,7 +249,8 @@ def _detectedShlibFile(filename, module_name):
 
 
 def _detectImports(command, is_late):
-    # print(command)
+    # This is pretty complicated stuff, with variants to deal with.
+    # pylint: disable=R0912
 
     # Print statements for stuff to show, the modules loaded.
     if Utils.python_version >= 300:
