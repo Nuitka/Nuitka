@@ -61,7 +61,7 @@ import sys, os, subprocess
 os.chdir(os.path.dirname(os.path.abspath( __file__ )))
 os.chdir("..")
 
-pylint_options = """
+pylint_options = """\
 --rcfile=/dev/null
 --disable=I0011,I0012,W0232,C0326,C0330,C1001,E1120,E1123,E1103,W0632
 --msg-template="{path}:{line} {msg_id} {obj} {msg}"
@@ -72,7 +72,7 @@ pylint_options = """
 --function-rgx=.*
 --variable-rgx=.*
 --argument-rgx=.*
---dummy-variables-rgx=_.*\|constraint_collection
+--dummy-variables-rgx=_.*|constraint_collection
 --const-rgx=.*
 --max-line-length=120
 --no-docstring-rgx=.*
@@ -81,8 +81,7 @@ pylint_options = """
 --max-public-methods=100
 --max-args=10
 --max-parents=10
---enable=useless-suppression
-""".split()
+--enable=useless-suppression""".split("\n")
 
 
 from optparse import OptionParser
@@ -127,17 +126,16 @@ def executePyLint(filename):
 
     global our_exit_code
 
-    command = "pylint %s %s %s" % (
-        " ".join(pylint_options),
-        os.environ.get("PYLINT_EXTRA_OPTIONS", ""),
-        filename
-    )
+    extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
+    if "" in extra_options:
+        extra_options.remove("")
+    command = ["pylint"] + pylint_options + extra_options + [filename]
 
     process = subprocess.Popen(
         args   = command,
         stdout = subprocess.PIPE,
         stderr = subprocess.STDOUT,
-        shell  = True
+        shell  = False
     )
 
     stdout, _stderr = process.communicate()
@@ -145,9 +143,21 @@ def executePyLint(filename):
 
     assert not _stderr
     if stdout:
+        stdout = stdout.replace("\r\n", "\n")
         our_exit_code = 1
 
-        for line in stdout.split(b"\n"):
+        # Remove hard to disable error line given under Windows.
+        lines = stdout.split(b"\n")
+        try:
+            error_line = lines.index(
+                b"No config file found, using default configuration"
+            )
+            del lines[error_line]
+            del lines[error_line]
+        except ValueError:
+            pass
+
+        for line in lines:
             output = line.decode()
 
             print(output)
@@ -157,11 +167,15 @@ def executePyLint(filename):
 if "PYTHONPATH" not in os.environ:
     os.environ["PYTHONPATH"] = "."
 
+# For Windows, add this to the PATH, so pip installed PyLint will be found
+# near the Python executing this script.
+os.environ["PATH"] = os.environ["PATH"] + os.pathsep + \
+                     os.path.join(os.path.dirname(sys.executable),"scripts")
+
 if positional_args:
-    for positional_arg in positional_args:
-        executePyLint(positional_arg)
+    check_filenames = positional_args
 else:
-    executePyLint("bin/nuitka")
+    check_filenames = ["bin/nuitka"]
 
     for dirpath, dirnames, filenames in os.walk("nuitka"):
         dirnames.sort()
@@ -183,9 +197,14 @@ else:
             if filename.startswith(".#"):
                 continue
 
-            if filename not in blacklist:
-                executePyLint(
-                    os.path.join(dirpath, filename)
-                )
+            if filename in blacklist:
+                continue
+
+            check_filenames.append(
+                os.path.join(dirpath, filename)
+            )
+
+for check_filename in check_filenames:
+    executePyLint(check_filename)
 
 sys.exit(our_exit_code)
