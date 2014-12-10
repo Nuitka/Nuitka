@@ -220,13 +220,17 @@ process = subprocess.Popen(
 stdout_cpython, stderr_cpython = process.communicate()
 exit_cpython = process.returncode
 
-def displayCPython():
-    my_print(stdout_cpython, end=' ')
-    if stderr_cpython:
-        my_print(stderr_cpython)
+def displayOutput(stdout, stderr):
+    if type(stdout) is not str:
+        stdout = stdout.decode("utf-8" if os.name != "nt" else "cp850")
+        stderr = stderr.decode("utf-8" if os.name != "nt" else "cp850")
+
+    my_print(stdout, end=' ')
+    if stderr:
+        my_print(stderr)
 
 if not silent_mode:
-    displayCPython()
+    displayOutput(stdout_cpython, stderr_cpython)
 
 if not silent_mode:
     my_print("*" * 80)
@@ -291,10 +295,7 @@ else:
         exit_nuitka = process.returncode
 
 if not silent_mode:
-    my_print(stdout_nuitka, end=' ')
-
-    if stderr_nuitka:
-        my_print(stderr_nuitka)
+    displayOutput(stdout_nuitka, stderr_nuitka)
 
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+")
