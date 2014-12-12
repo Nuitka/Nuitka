@@ -50,8 +50,7 @@ def getYieldFromCode(to_name, value_name, in_handler, emit, context):
     emit(
         "%s = %s( generator, %s );" % (
             to_name,
-            # TODO: Clarify, if the difference as in getYieldCode is needed.
-            "YIELD_FROM" if not in_handler or True else "YIELD_IN_HANDLER",
+            "YIELD_FROM" if not in_handler else "YIELD_FROM_IN_HANDLER",
             value_name
               if context.needsCleanup(value_name) else
             "INCREASE_REFCOUNT( %s )" % value_name

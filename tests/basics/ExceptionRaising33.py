@@ -15,11 +15,24 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-def raisy():
-    raise ValueError() from None
+import sys
 
-try:
-    print("Raising exception in a function 'from None':")
-    raisy()
-except (ValueError,TypeError) as e:
-    print("Caught as", repr(e))
+print("Testing exception changes between generator switches:")
+
+def yieldExceptionInteraction():
+    def yield_raise():
+        try:
+            raise KeyError("caught")
+        except KeyError:
+            yield from sys.exc_info()
+            yield from sys.exc_info()
+        yield from sys.exc_info()
+
+    g = yield_raise()
+    print("Initial yield from catch in generator", next(g))
+    print("Checking from outside of generator", sys.exc_info()[0])
+    print("Second yield from the catch reentered", next(g))
+    print("Checking from outside of generator", sys.exc_info()[0])
+    print("After leaving the catch generator yielded", next(g))
+
+yieldExceptionInteraction()

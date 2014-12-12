@@ -485,7 +485,7 @@ if exit_code:
 
 if expect_success and exit_cpython != 0:
     if silent_mode:
-        displayCPython()
+        displayOutput(stdout_cpython, stderr_cpython)
 
     sys.exit("Unexpected error exit from CPython.")
 
