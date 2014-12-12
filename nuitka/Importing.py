@@ -311,8 +311,8 @@ def _findModule(module_name, parent_package):
 
         return module_filename, package
 
-def _isWhiteListedNotExistingModule(module_name):
-    white_list = (
+def getModuleWhiteList():
+    return (
         "mac", "nt", "os2", "posix", "_emx_link", "riscos", "ce", "riscospath",
         "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256",
         "array", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle",
@@ -440,7 +440,8 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "test_common"
     )
 
-    result = module_name in white_list
+def _isWhiteListedNotExistingModule(module_name):
+    result = module_name in getModuleWhiteList()
 
     if not result and module_name in sys.builtin_module_names:
         warning("""\

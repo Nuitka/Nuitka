@@ -38,6 +38,7 @@ from .NodeBases import (
     NodeBase,
     StatementChildrenHavingBase
 )
+from nuitka.Importing import getModuleWhiteList
 
 
 class ExpressionImportModule(NodeBase, ExpressionMixin):
@@ -149,7 +150,8 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
                 else:
                     module_fullpath = module_package + "." + module_name
 
-                if module_filename not in self._warned_about:
+                if module_filename not in self._warned_about and \
+                   module_fullpath not in getModuleWhiteList():
                     self._warned_about.add(module_filename)
 
                     warning(
