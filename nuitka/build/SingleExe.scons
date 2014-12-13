@@ -220,13 +220,19 @@ if os.name == "nt" and \
         compiler_tools = ["mingw"]
     )
 
+if show_scons_mode:
+    print "Initial CXX:", env.get("CXX", None)
+    print "Initial CXXVERSION:", env.get("CXXVERSION", None)
+
 if clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
     env["CXX"] = "clang"
+    env["CXXVERSION"] = None
 elif "CXX" in os.environ:
     # If the environment variable CXX is set, use that.
     env["CXX"] = os.environ["CXX"]
+    env["CXXVERSION"] = None
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
@@ -513,7 +519,8 @@ if "g++" in env["CXX"]:
             CXXFLAGS = ["-fvisibility-inlines-hidden"]
         )
 
-    if "CXXVERSION" not in env:
+    if env.get("CXXVERSION", None) is None or \
+       env.get("CXXVERSION").count(".") < 2:
         env["CXXVERSION"] = getGccVersion()
 
     # Version dependent options.
