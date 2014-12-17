@@ -1,8 +1,17 @@
-Nuitka Release 0.5.6 (Draft)
+Nuitka Release 0.5.7 (Draft)
 ============================
 
-This release brings bug fixes, newly supported platforms, and important
-compatiblity improvements. It is a maintenance release mostly.
+New Optimization
+----------------
+
+- Added support for ``bytearray`` built-in.
+
+
+Nuitka Release 0.5.6
+====================
+
+This release brings bug fixes, important new optimization, newly supported
+platforms, and important compatiblity improvements. Progress on all fronts.
 
 Bug Fixes
 ---------
@@ -74,15 +83,21 @@ Bug Fixes
            # was C.var, now correctly addressed top level var
            return var
 
+- Fix, setting ``CXX`` environment variable because the installed gcc has too
+  low version, wasn't affecting the version check at all.
+
+- Fix, on Debian/Ubuntu with ``hardening-wrapper`` installed the version check
+  was always failing, because these report a shortened version number to Scons.
+
 New Optimization
 ----------------
 
-- Added support for ``bytearray`` built-in.
+- Local variables that must be assigned also have no side effects, making use
+  of SSA. This allows for a host of optimization to be applied to them as
+  well, often yielding simpler access/assign code, and discovering in more
+  cases that frames are not necessary.
 
 - Micro optimization to ``dict`` built-in for simpler code generation.
-
-- Variables that must be assigned also have no side effects.
-
 
 Organizational
 --------------
@@ -134,10 +149,18 @@ Summary
 -------
 
 The release is mainly the result of consolidation work. While the previous
-release contained many important enhancements, this is only a small step
-towards improved SSA, closing one loop whole (class variables, exec functions),
-before extending its use.
+release contained many important enhancements, this is another important step
+towards full SSA, closing one loop whole (class variables and exec functions),
+as well as applying it to local variables, largely extending its use.
 
+The amount of cleanups is tremendous, in huge part due to infrastructure
+problems that prevented release repeatedly. This reduces the technological
+debt very much.
+
+More importantly, it would appear that now eliminating local and temp variables
+that are not necessary is only a small step away. But as usual, while this may
+be easy to implement now, it will uncover more bugs in existing code, that we
+need to address before we continue.
 
 Nuitka Release 0.5.5
 ====================
