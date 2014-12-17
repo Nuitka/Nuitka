@@ -51,6 +51,8 @@ class StatementPrintValue(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
+        assert value is not None
+
     getDestination = StatementChildrenHavingBase.childGetter(
         "dest"
     )
@@ -76,8 +78,7 @@ class StatementPrintValue(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Known exception raise in print statement destination converted to explicit \
-raise."""
+Exception raise in 'print' statement destination converted to explicit raise."""
 
         constraint_collection.onExpression(
             expression = self.getValue()
@@ -100,8 +101,7 @@ raise."""
                 )
 
             return result, "new_raise", """\
-Known exception raise in print statement arguments converted to explicit \
-raise."""
+Exception raise in 'print' statement arguments converted to explicit raise."""
 
         if dest is None:
             if value.isExpressionSideEffects():
@@ -164,7 +164,6 @@ class StatementPrintNewline(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Known exception raise in print statement destination converted to explicit \
-raise."""
+Exception raise in 'print' statement destination converted to explicit raise."""
 
         return self, None, None
