@@ -257,13 +257,18 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
     def getStrValue(self):
         if type(self.constant) is str:
+            # Nothing to do.
             return self
         else:
-            return ExpressionConstantRef(
-                constant      = str(self.constant),
-                user_provided = self.user_provided,
-                source_ref    = self.getSourceReference(),
-            )
+            try:
+                return ExpressionConstantRef(
+                    constant      = str(self.constant),
+                    user_provided = self.user_provided,
+                    source_ref    = self.getSourceReference(),
+                )
+            except UnicodeEncodeError:
+                # Unicode constants may not be possible to encode.
+                return None
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
         if type(self.constant) in (list, set, frozenset, dict):
