@@ -174,7 +174,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 #if PYTHON_VERSION < 340
     long base_int = PyInt_AsLong( base );
 #else
-    long base_int = PyNumber_AsSsize_t( base, NULL );
+    Py_ssize_t base_int = PyNumber_AsSsize_t( base, NULL );
 #endif
 
     if (unlikely( base_int == -1 ))
@@ -257,7 +257,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 
         return result;
 #else
-        return PyLong_FromUnicodeObject( value, base_int );
+        return PyLong_FromUnicodeObject( value, (int)base_int );
 #endif
     }
     else if ( PyBytes_Check( value ) || PyByteArray_Check( value ) )
@@ -287,7 +287,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
             return NULL;
         }
 
-        return PyInt_FromString( value_str, NULL, base_int );
+        return PyInt_FromString( value_str, NULL, (int)base_int );
     }
     else
     {
@@ -848,8 +848,10 @@ extern PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObjec
 // For built-in setattr() functionality.
 extern PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value );
 
-extern PyObject *const_str_plain___builtins__;
+// For built-in bytearray() functionality.
+extern PyObject *BUILTIN_BYTEARRAY( PyObject *value );
 
+extern PyObject *const_str_plain___builtins__;
 //
 extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals );
 

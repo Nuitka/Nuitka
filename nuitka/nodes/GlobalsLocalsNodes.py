@@ -135,7 +135,7 @@ class StatementSetLocals(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Setting locals already raises implicitely building new locals."""
+Setting locals already raises implicitly building new locals."""
 
         return self, None, None
 

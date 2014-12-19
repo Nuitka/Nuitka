@@ -30,14 +30,14 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
     named_children = (
-        "expression",
+        "source",
     )
 
-    def __init__(self, expression, attribute_name, source_ref):
+    def __init__(self, source, attribute_name, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "expression" : expression
+                "source" : source
             },
             source_ref = source_ref
         )
@@ -51,7 +51,9 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
         self.attribute_name = attribute_name
 
     def getDetails(self):
-        return { "attribute" : self.getAttributeName() }
+        return {
+            "attribute" : self.getAttributeName()
+        }
 
     def getDetail(self):
         return "attribute %s from %s" % (
@@ -60,12 +62,12 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
         )
 
     getLookupSource = ExpressionChildrenHavingBase.childGetter(
-        "expression"
+        "source"
     )
 
     def makeCloneAt(self, source_ref):
         return ExpressionAttributeLookup(
-            expression     = self.getLookupSource().makeCloneAt( source_ref ),
+            source         = self.getLookupSource().makeCloneAt(source_ref),
             attribute_name = self.getAttributeName(),
             source_ref     = source_ref
         )
@@ -73,7 +75,7 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
     def computeExpression(self, constraint_collection):
         lookup_source = self.getLookupSource()
 
-        if lookup_source.willRaiseException( BaseException ):
+        if lookup_source.willRaiseException(BaseException):
             return lookup_source, "new_raise", "Attribute lookup source raises exception."
 
         return lookup_source.computeExpressionAttribute(
@@ -94,7 +96,7 @@ class ExpressionSpecialAttributeLookup(ExpressionAttributeLookup):
     def computeExpression(self, constraint_collection):
         lookup_source = self.getLookupSource()
 
-        if lookup_source.willRaiseException( BaseException ):
+        if lookup_source.willRaiseException(BaseException):
             return lookup_source, "new_raise", "Special attribute lookup source raises exception."
 
         # TODO: Special lookups may reuse "computeExpressionAttribute"
@@ -125,8 +127,6 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         default = self.getDefault()
 
         if default is None:
@@ -170,7 +170,7 @@ attribute '%s' to mere attribute lookup""" % attribute_name
 class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
-    named_children = ( "source", "attribute", "value" )
+    named_children = ("source", "attribute", "value")
 
     # Need to accept 'object' keyword argument, that is just the API of setattr,
     # pylint: disable=W0622
@@ -186,13 +186,11 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
-    getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
-    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
+    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         # Note: Might be possible to predict or downgrade to mere attribute set.
         return self, None, None
 
@@ -200,7 +198,7 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
 class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
-    named_children = ( "source", "attribute" )
+    named_children = ("source", "attribute")
 
     # Need to accept object keyword argument, that is just the API of hasattr,
     # pylint: disable=W0622
@@ -215,12 +213,10 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
-    getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
+    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         # Note: Might be possible to predict or downgrade to mere attribute
         # check.
 

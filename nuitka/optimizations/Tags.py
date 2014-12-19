@@ -44,7 +44,10 @@ allowed_tags = (
     # Detected module variable to be read only.
     "read_only_mvar",
 
-    # New builtin function detected.
+    # New built-in reference detected.
+    "new_builtin_ref",
+
+    # New built-in call detected.
     "new_builtin",
 
     # New raise statement detected.
@@ -69,8 +72,7 @@ class TagSet(set):
 
             if tag in self:
                 return True
-        else:
-            return False
+        return False
 
     def add(self, tag):
         assert tag in allowed_tags, tag

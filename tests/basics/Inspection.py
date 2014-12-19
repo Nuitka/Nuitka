@@ -23,15 +23,15 @@ import inspect, types, sys
 def compiledFunction(a, b):
     pass
 
-assert inspect.isfunction( compiledFunction ) is True
-assert isinstance( compiledFunction, types.FunctionType )
-assert isinstance( compiledFunction, ( int, types.FunctionType ) )
+assert inspect.isfunction(compiledFunction) is True
+assert isinstance(compiledFunction, types.FunctionType)
+assert isinstance(compiledFunction, (int, types.FunctionType))
 
 print("Compiled spec:", inspect.getargspec(compiledFunction))
 print("Compiled args:", inspect.formatargspec(*inspect.getargspec(compiledFunction)))
 
 # Even this works.
-assert type( compiledFunction ) == types.FunctionType
+assert type(compiledFunction) == types.FunctionType
 
 class CompiledClass:
     def __init__(self):
@@ -46,10 +46,10 @@ assert isinstance(CompiledClass, types.FunctionType) is False
 assert inspect.ismethod(compiledFunction) is False
 assert inspect.ismethod(CompiledClass) is False
 
-assert inspect.ismethod(CompiledClass.compiledMethod) == ( sys.version_info < ( 3, ) )
+assert inspect.ismethod(CompiledClass.compiledMethod) == ( sys.version_info < (3, ) )
 assert inspect.ismethod(CompiledClass().compiledMethod) is True
 
-assert bool( type( CompiledClass.compiledMethod ) == types.MethodType ) == ( sys.version_info < ( 3, ) )
+assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == ( sys.version_info < (3, ) )
 
 
 print("Compiled method:", inspect.getargspec(CompiledClass().compiledMethod))
@@ -59,12 +59,12 @@ print("Compiled class:", inspect.formatargspec(*inspect.getargspec(CompiledClass
 def compiledGenerator():
     yield 1
 
-assert inspect.isfunction( compiledGenerator ) is True
-assert inspect.isgeneratorfunction( compiledGenerator ) is True
+assert inspect.isfunction(compiledGenerator) is True
+assert inspect.isgeneratorfunction(compiledGenerator) is True
 
-assert isinstance( compiledGenerator(), types.GeneratorType ) is True
-assert type( compiledGenerator() ) == types.GeneratorType
-assert isinstance( compiledGenerator, types.GeneratorType ) is False
+assert isinstance(compiledGenerator(), types.GeneratorType) is True
+assert type(compiledGenerator()) == types.GeneratorType
+assert isinstance(compiledGenerator, types.GeneratorType) is False
 
 assert inspect.ismethod(compiledGenerator()) is False
 assert inspect.isfunction(compiledGenerator()) is False
@@ -84,7 +84,7 @@ someFunction(2)
 
 class C:
     print("Class frame", sys._getframe().f_code)
-    print("Class locals", str(sys._getframe().f_locals).replace( ", '__locals__': {...}", "" ).replace( "'__qualname__': 'C', ", "" ))
+    print("Class locals", str(sys._getframe().f_locals).replace(", '__locals__': {...}", "").replace("'__qualname__': 'C', ", ""))
     print("Class flags", sys._getframe().f_code.co_flags)
 
 def f():

@@ -20,7 +20,7 @@ x += 2
 
 print "Plain inplace:", x
 
-z = [ 1, 2, 3 ]
+z = [1, 2, 3]
 z[1] += 5
 
 print "List inplace:", z[1]
@@ -37,7 +37,7 @@ B.a += 2
 
 print "Class attribute inplace:", B.a
 
-h = [ 1, 2, 3, 4 ]
+h = [1, 2, 3, 4]
 h[1:2] += (2,3)
 
 print "List sclice inplace [x:y]", h

@@ -45,7 +45,7 @@ def check_output(*popenargs, **kwargs):
         cmd = kwargs.get("args")
         if cmd is None:
             cmd = popenargs[0]
-        raise subprocess.CalledProcessError(retcode, cmd, output=output)
+        raise subprocess.CalledProcessError(retcode, cmd, output = output)
 
     return output
 
@@ -71,7 +71,7 @@ def setup(needs_io_encoding = False, silent = False):
     # Go its own directory, to have it easy with path knowledge.
     os.chdir(
         os.path.dirname(
-            os.path.abspath( sys.modules[ "__main__" ].__file__ )
+            os.path.abspath(sys.modules[ "__main__" ].__file__)
         )
     )
 
@@ -134,7 +134,7 @@ def getTempDir():
         tmp_dir = tempfile.mkdtemp(
             prefix = os.path.basename(
                 os.path.dirname(
-                    os.path.abspath( sys.modules[ "__main__" ].__file__ )
+                    os.path.abspath(sys.modules[ "__main__" ].__file__)
                 )
             ) + "-",
             dir    = tempfile.gettempdir() if
@@ -422,7 +422,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
             dll_filename = line[line.find("]")+2:-1]
             assert os.path.isfile(dll_filename), dll_filename
 
-            # The executable itself is of course excempted.
+            # The executable itself is of course exempted.
             if os.path.normcase(dll_filename) == \
                 os.path.normcase(os.path.abspath(path)):
                 continue
@@ -450,7 +450,12 @@ def hasModule(module_name):
 
     return result == 0
 
+m1 = {}
+m2 = {}
+
 def snapObjRefCntMap(before):
+    import gc
+
     if before:
         global m1
         m = m1
@@ -465,7 +470,7 @@ def snapObjRefCntMap(before):
         if x is m2:
             continue
 
-        m[ str( x ) ] = sys.getrefcount( x )
+        m[ str(x) ] = sys.getrefcount(x)
 
 
 def checkReferenceCount(checked_function, max_rounds = 10):
@@ -563,7 +568,7 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
         # Avoid unraisable output.
         try:
             if number in tests_stderr:
-                sys.stderr = open("/dev/null", "wb")
+                sys.stderr = open(os.devnull, "wb")
         except Exception: # Windows
             if not checkReferenceCount(names[name]):
                 result = False

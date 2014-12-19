@@ -41,4 +41,7 @@ def printLine(*what):
     print(*what)
 
 def printError(message):
-    print(message, file=sys.stderr)
+    print(
+        message,
+        file = sys.stderr
+    )

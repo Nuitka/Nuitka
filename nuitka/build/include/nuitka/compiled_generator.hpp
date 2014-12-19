@@ -205,6 +205,7 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
 
 #if PYTHON_VERSION >= 330
 extern PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value );
+extern PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value );
 #endif
 
 #endif

@@ -32,6 +32,9 @@ from .Namify import namifyConstant
 # Many methods won't use self, but it's the interface. pylint: disable=R0201
 
 class TempMixin:
+    # Lots of details, everything gets to store bits here, to indicate
+    # code generation states, and there are many, pylint: disable=R0902
+
     def __init__(self):
         self.tmp_names = {}
         self.tmp_types = {}
@@ -260,9 +263,6 @@ class CodeObjectsMixin:
 
         return self.code_objects[key]
 
-
-    # False alarms about "hashlib.md5" due to its strange way of defining what
-    # is exported, PyLint won't understand it. pylint: disable=E1101
     if python_version < 300:
         def _calcHash(self, key):
             hash_value = hashlib.md5(
@@ -279,7 +279,6 @@ class CodeObjectsMixin:
             return hash_value.hexdigest()
 
 
-
 class PythonContextBase:
     def __init__(self):
         self.temp_counts = {}
@@ -290,14 +289,14 @@ class PythonContextBase:
         return False
 
     def allocateTempNumber(self, tmp_scope):
-        result = self.temp_counts.get( tmp_scope, 0 ) + 1
+        result = self.temp_counts.get(tmp_scope, 0) + 1
         self.temp_counts[ tmp_scope ] = result
         return result
 
 
 class PythonChildContextBase(PythonContextBase):
     def __init__(self, parent):
-        PythonContextBase.__init__( self )
+        PythonContextBase.__init__(self)
 
         self.parent = parent
 
@@ -311,10 +310,11 @@ class PythonChildContextBase(PythonContextBase):
         return self.parent.getModuleName()
 
     def addHelperCode(self, key, code):
-        self.parent.addHelperCode( key, code )
+        self.parent.addHelperCode(key, code)
 
     def addDeclaration(self, key, code):
-        self.parent.addDeclaration( key, code )
+        self.parent.addDeclaration(key, code)
+
 
 
 def _getConstantDefaultPopulation():
@@ -378,8 +378,14 @@ def _getConstantDefaultPopulation():
 
     if python_version >= 340:
         result += (
-            # YIELD_FROM uses this
+            # YIELD_FROM uses this starting 3.4, with 3.3 other code is used.
             "send",
+        )
+    if python_version >= 330:
+        result += (
+            # YIELD_FROM uses this
+            "throw",
+            "close",
         )
 
 
@@ -500,8 +506,19 @@ class PythonGlobalContext:
         return self.constants
 
 
+class FrameDeclarationsMixin:
+    def __init__(self):
+        self.frame_declarations = []
 
-class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
+    def addFrameDeclaration(self, frame_decl):
+        self.frame_declarations.append(frame_decl)
+
+    def getFrameDeclarations(self):
+        return self.frame_declarations
+
+
+class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
+                          FrameDeclarationsMixin):
     # Plent of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
@@ -511,6 +528,7 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
 
         TempMixin.__init__(self)
         CodeObjectsMixin.__init__(self)
+        FrameDeclarationsMixin.__init__(self)
 
         self.module = module
         self.name = module_name
@@ -615,7 +633,8 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin):
         return self.constants
 
 
-class PythonFunctionContext(PythonChildContextBase, TempMixin):
+class PythonFunctionContext(PythonChildContextBase, TempMixin,
+                            FrameDeclarationsMixin):
     def __init__(self, parent, function):
         PythonChildContextBase.__init__(
             self,
@@ -623,6 +642,7 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin):
         )
 
         TempMixin.__init__(self)
+        FrameDeclarationsMixin.__init__(self)
 
         self.function = function
 
@@ -675,7 +695,7 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin):
         return self.return_release_mode
 
     def mayRecurse(self):
-        # TODO: Determine this at compile time.
+        # TODO: Determine this at compile time for enhanced optimizations.
         return True
 
     def getCodeObjectHandle(self, **kw):
@@ -850,6 +870,9 @@ class PythonStatementCContext(PythonChildContextBase):
 
     def markAsNeedsExceptionVariables(self):
         self.parent.markAsNeedsExceptionVariables()
+
+    def addFrameDeclaration(self, frame_decl):
+        self.parent.addFrameDeclaration(frame_decl)
 
     def mayRecurse(self):
         return self.parent.mayRecurse()

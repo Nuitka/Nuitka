@@ -42,7 +42,7 @@ import os
 import sys
 from logging import warning
 
-from . import Options, Utils
+from . import Utils
 
 _debug_module_finding = False
 
@@ -158,9 +158,9 @@ def _impFindModuleWrapper(module_name, search_path):
     except ImportError:
         if Utils.python_version >= 330:
             for path_element in search_path:
-                candidate = Utils.joinpath( path_element, module_name )
+                candidate = Utils.joinpath(path_element, module_name)
 
-                if Utils.isDir( candidate ):
+                if Utils.isDir(candidate):
                     module_filename = candidate
                     module_fh = None
 
@@ -226,7 +226,7 @@ def _findModuleInPath(module_name, package_name):
             return module_filename, package_name
         except ImportError:
             if _debug_module_finding:
-                print( "_findModuleInPath: imp.find_module failed to locate" )
+                print("_findModuleInPath: imp.find_module failed to locate")
         except SyntaxError:
             # Warn user, as this is kind of unusual.
             warning(
@@ -311,8 +311,8 @@ def _findModule(module_name, parent_package):
 
         return module_filename, package
 
-def _isWhiteListedNotExistingModule(module_name):
-    white_list = (
+def getModuleWhiteList():
+    return (
         "mac", "nt", "os2", "posix", "_emx_link", "riscos", "ce", "riscospath",
         "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256",
         "array", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle",
@@ -440,12 +440,15 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "test_common"
     )
 
-    # TODO: Turn this into a warning that encourages reporting.
-    if False and Options.isDebug():
-        for module_name in sys.builtin_module_names:
-            assert module_name in white_list, module_name
+def _isWhiteListedNotExistingModule(module_name):
+    result = module_name in getModuleWhiteList()
 
-    return module_name in white_list
+    if not result and module_name in sys.builtin_module_names:
+        warning("""\
+Your CPython version has a built-in module '%s', that is not white-listed
+please report this to http://bugs.nuitka.net.""", module_name)
+
+    return result
 
 
 def getStandardLibraryPaths():
@@ -533,9 +536,7 @@ def isStandardLibraryPath(path):
     if "dist-packages" in path or "site-packages" in path:
         return False
 
-
     for candidate in getStandardLibraryPaths():
         if path.startswith(candidate):
             return True
-    else:
-        return False
+    return False

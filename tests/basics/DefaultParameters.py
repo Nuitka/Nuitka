@@ -50,7 +50,7 @@ print defaultValueTest2("also ignored")
 
 print defaultValueTest3("nono not again")
 
-print list( defaultValueTest4("unused") )
+print list(defaultValueTest4("unused"))
 
 print defaultValueTest5("unused")
 

@@ -26,7 +26,7 @@ from .NodeBases import StatementChildrenHavingBase
 class StatementReturn(StatementChildrenHavingBase):
     kind = "STATEMENT_RETURN"
 
-    named_children = ( "expression", )
+    named_children = ("expression",)
 
     def __init__(self, expression, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -50,10 +50,10 @@ class StatementReturn(StatementChildrenHavingBase):
         return self.getExpression().mayRaiseException(exception_type)
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getExpression() )
+        constraint_collection.onExpression(self.getExpression())
         expression = self.getExpression()
 
-        if expression.willRaiseException( BaseException ):
+        if expression.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(

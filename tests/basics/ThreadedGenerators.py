@@ -29,7 +29,7 @@ def run():
             pass
 
 def main():
-    workers = [threading.Thread(target=run) for i in range(5)]
+    workers = [threading.Thread(target = run) for i in range(5)]
     for t in workers:
         t.start()
     for t in workers:

@@ -109,7 +109,7 @@ def dumpTreeXML(tree):
 
 def displayTree(tree):
     # Import only locally so the Qt4 dependency doesn't normally come into play
-    # when it's not strictly needed, pylint: disable=W0404
+    # when it's not strictly needed.
     from .gui import TreeDisplay
 
     TreeDisplay.displayTreeInspector(tree)
@@ -142,7 +142,7 @@ def getResultBasepath(main_module):
 
     if Options.isStandaloneMode():
         return Utils.joinpath(
-            getStandaloneDirectoryPath( main_module ),
+            getStandaloneDirectoryPath(main_module),
             Utils.basename(
                 getTreeFilenameWithSuffix(main_module, "")
             )
@@ -210,7 +210,7 @@ def pickSourceFilenames(source_dir, modules):
 
         # Note: Could detect if the filesystem is cases sensitive in source_dir
         # or not, but that's probably not worth the effort.
-        collision_filename = Utils.normcase( base_filename )
+        collision_filename = Utils.normcase(base_filename)
 
         if collision_filename in seen_filenames:
             collision_filenames.add(collision_filename)
@@ -232,11 +232,11 @@ def pickSourceFilenames(source_dir, modules):
             module.getFullName()
         )
 
-        collision_filename = Utils.normcase( base_filename )
+        collision_filename = Utils.normcase(base_filename)
 
         if collision_filename in collision_filenames:
             collision_counts[ collision_filename ] = \
-              collision_counts.get( collision_filename, 0 ) + 1
+              collision_counts.get(collision_filename, 0) + 1
             hash_suffix = "@%d" % collision_counts[ collision_filename ]
         else:
             hash_suffix = ""
@@ -334,8 +334,8 @@ def makeSourceDirectory(main_module):
                 )
 
             writeSourceCode(
-                filename     = cpp_filename,
-                source_code  = source_code
+                filename    = cpp_filename,
+                source_code = source_code
             )
 
             if Options.isShowInclusion():
@@ -369,7 +369,7 @@ def makeSourceDirectory(main_module):
             assert False, module
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
+        filename    = Utils.joinpath(source_dir, "__constants.cpp"),
         source_code = CodeGeneration.generateConstantsDefinitionCode(
             context = global_context
         )
@@ -378,12 +378,12 @@ def makeSourceDirectory(main_module):
     helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode()
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__helpers.hpp" ),
+        filename    = Utils.joinpath(source_dir, "__helpers.hpp"),
         source_code = helper_decl_code
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__helpers.cpp" ),
+        filename    = Utils.joinpath(source_dir, "__helpers.cpp"),
         source_code = helper_impl_code
     )
 
@@ -392,10 +392,9 @@ def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches, pylint: disable=R0912
 
-    python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
+    python_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
 
     if hasattr(sys, "abiflags"):
-        # The Python3 for some platforms has sys.abiflags pylint: disable=E1101
         if Options.isPythonDebug() or \
            hasattr(sys, "getobjects"):
             if sys.abiflags.startswith("d"):
@@ -513,9 +512,9 @@ def callExec(args, clean_path, add_path):
     sys.stdout.flush()
     sys.stderr.flush()
 
+    # Add the main arguments, previous separated.
     args += Options.getMainArgs()
 
-    # That's the API of execl, pylint: disable=W0142
     Utils.callExec(args)
 
 
@@ -524,7 +523,7 @@ def executeMain(binary_filename, tree, clean_path):
 
     if Options.isStandaloneMode():
         name = binary_filename
-    elif main_filename.endswith( ".py" ):
+    elif main_filename.endswith(".py"):
         name = main_filename[:-3]
     else:
         name = main_filename
@@ -577,7 +576,7 @@ def compileTree(main_module):
             frozen_code = generateBytecodeFrozenCode()
 
             writeSourceCode(
-                filename = Utils.joinpath(
+                filename    = Utils.joinpath(
                     source_dir,
                     "__frozen.cpp"
                 ),
@@ -591,20 +590,20 @@ def compileTree(main_module):
     else:
         source_dir = getSourceDirectoryPath(main_module)
 
-        if not Utils.isFile( Utils.joinpath(source_dir, "__helpers.hpp")):
+        if not Utils.isFile(Utils.joinpath(source_dir, "__helpers.hpp")):
             sys.exit("Error, no previous build directory exists.")
 
     if Options.isShowProgress():
         Tracing.printLine(
             """Total memory usage before running scons: {memory}:""".format(
-                memory      = Utils.getHumanReadableProcessMemoryUsage()
+                memory = Utils.getHumanReadableProcessMemoryUsage()
             )
         )
 
     # Run the Scons to build things.
     result, options = runScons(
-        main_module  = main_module,
-        quiet        = not Options.isShowScons()
+        main_module = main_module,
+        quiet       = not Options.isShowScons()
     )
 
     return result, options
@@ -624,7 +623,7 @@ def main():
     """
 
     # Main has to fullfil many options, leading to many branches and statements
-    # to deal with them.  pylint: disable=R0912,R0915
+    # to deal with them.  pylint: disable=R0912
 
     positional_args = Options.getPositionalArgs()
     assert len(positional_args) > 0

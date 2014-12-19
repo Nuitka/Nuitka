@@ -25,7 +25,7 @@ def closureTest1(some_arg):
 
     return enclosed
 
-print "Call closured function returning function:", closureTest1( some_arg = "ignored" )()
+print "Call closured function returning function:", closureTest1(some_arg = "ignored" )()
 
 def closureTest2(some_arg):
     def enclosed(f = "default_value"):
@@ -35,7 +35,7 @@ def closureTest2(some_arg):
 
     return enclosed
 
-print "Call closured function returning function:", closureTest2( some_arg = "ignored" )()
+print "Call closured function returning function:", closureTest2(some_arg = "ignored" )()
 
 
 def defaultValueTest1(no_default, some_default_constant = 1):
@@ -91,11 +91,11 @@ def defaultValueTest4a( no_default, funced_defaulted = lambda x: x**2):
     c = 1
     d = funced_defaulted(1)
 
-    r = ( i+j+c+d for i, j in zip( range(8), range( 9 ) ) )
+    r = ( i+j+c+d for i, j in zip(range(8), range(9)) )
 
     l = []
     for x in r:
-        l.append( x )
+        l.append(x)
 
     return l
 
@@ -110,7 +110,7 @@ def defaultValueTest4b( no_default, funced_defaulted = lambda x: x**3):
 
     for x in ( (d+j for j in range(4)) for i in range(8) ):
         for y in x:
-            l.append( y )
+            l.append(y)
 
     return l
 
@@ -143,9 +143,9 @@ def local_function(a,z=9):
 
     return a, b, c, d, e, z
 
-print "Call function with many variables calculated and returned", local_function(1,z=5)
+print "Call function with many variables calculated and returned", local_function(1,z = 5)
 
-x = len( "hey" )
+x = len("hey")
 
 def in_test(a):
    # if 7 in a:
@@ -161,7 +161,7 @@ def printing():
 
 def my_deco(function):
     def new_function(c, d):
-        return function( d, c )
+        return function(d, c)
 
     return new_function
 
@@ -172,7 +172,7 @@ def decoriert(a,b):
 
     return 1+subby(b)
 
-print "Function with decoration", decoriert( 3, 9 )
+print "Function with decoration", decoriert(3, 9)
 
 #def var_test(a):
 #   b = len(a)
@@ -203,13 +203,13 @@ def starArgTest(a, b, c):
 
 print "Function called with star arg from tuple"
 
-star_list_arg = ( 11, 44, 77 )
-print starArgTest( *star_list_arg )
+star_list_arg = (11, 44, 77)
+print starArgTest(*star_list_arg)
 
 print "Function called with star arg from list"
 
-star_list_arg = [ 7, 8, 9 ]
-print starArgTest( *star_list_arg )
+star_list_arg = [7, 8, 9]
+print starArgTest(*star_list_arg)
 
 star_dict_arg = {
     "a" : 9, "b" : 3, "c": 8
@@ -217,45 +217,45 @@ star_dict_arg = {
 
 print "Function called with star arg from dict"
 
-print starArgTest( **star_dict_arg )
+print starArgTest(**star_dict_arg)
 
 lambda_func = lambda a, b : a < b
-lambda_args = ( 8, 9 )
+lambda_args = (8, 9)
 
 print "Lambda function called with star args from tuple"
-print lambda_func( *lambda_args )
+print lambda_func(*lambda_args)
 
 print "Lambda function called with star args from list"
-lambda_args = [ 8, 7 ]
-print lambda_func( *lambda_args )
+lambda_args = [8, 7]
+print lambda_func(*lambda_args)
 
 
 print "Function with nested args"
 def nested_args_function((a,b), c):
     return a, b, c
 
-print nested_args_function( ( 1, 2 ), 3 )
+print nested_args_function((1, 2), 3)
 
 try:
-    nested_args_function( ( 1, 2, 3 ), 3 )
+    nested_args_function((1, 2, 3), 3)
 except ValueError, e:
     print "Calling nested with too long tuple gave:", e
 
 try:
-    nested_args_function( ( 1, ), 3 )
+    nested_args_function((1, ), 3)
 except ValueError, e:
     print "Calling nested with too short tuple gave:", e
 
-def deeply_nested_function( ( ( a, ), b, c, ( d, (e,f ) ) )):
+def deeply_nested_function(   ((a, ), b, c,  (d, (e,f)))):
     return a, b, c, d, e, f
 
-print "Deeply nested function", deeply_nested_function( ( ( 1, ), 2, 3, ( 4, ( 5, 6 ) ) ) )
+print "Deeply nested function", deeply_nested_function(((1, ), 2, 3, (4, (5, 6))))
 
 def default_giver():
     class R:
         def __iter__(self):
             print "Giving iter"
-            return iter( range(2) )
+            return iter(range(2))
 
     return R()
 
@@ -270,14 +270,14 @@ print "Generator function without context"
 def generator_without_context_function():
     gen = ( x for x in range(9) )
 
-    return tuple( gen )
+    return tuple(gen)
 
 print generator_without_context_function()
 
 print "Generator function with 2 iterateds"
 
 def generator_with_2_fors():
-    return tuple( ( x, y ) for x in range(2) for y in range(3) )
+    return tuple( (x, y) for x in range(2) for y in range(3) )
 
 print generator_with_2_fors()
 
@@ -291,7 +291,7 @@ def someYieldFunctionUser():
     result = []
 
     for a in someYielder():
-        result.append( a )
+        result.append(a)
 
     return result
 
@@ -307,7 +307,7 @@ def someLoopYieldFunctionUser():
     result = []
 
     for a in someLoopYielder():
-        result.append( a )
+        result.append(a)
 
     return result
 
@@ -328,7 +328,7 @@ def someGeneratorClosureUser():
 
     gen = someGenerator()
 
-    return [ gen.next(), gen.next() ]
+    return [gen.next(), gen.next() ]
 
 print "Function generator that uses a local function accessing its local variables to yield:"
 print someGeneratorClosureUser()
@@ -349,7 +349,7 @@ print "Function call with both star args and named args"
 def someFunction(a, b, c, d):
     print a, b, c, d
 
-someFunction( a = 1, b = 2, **{ "c" : 3, "d" : 4 } )
+someFunction(a = 1, b = 2, **{ "c" : 3, "d" : 4 })
 
 print "Order of evaluation of function and args:"
 
@@ -377,7 +377,7 @@ def getKeywordArg2():
     print "getKeywordArg2",
     return "b"
 
-getFunction()( getPlainArg1(), getPlainArg2(), k = getKeywordArg1(), a = getKeywordArg2() )
+getFunction()(getPlainArg1(), getPlainArg2(), k = getKeywordArg1(), a = getKeywordArg2())
 print
 
 def getListStarArg():
@@ -390,7 +390,7 @@ def getDictStarArg():
 
 print "Same with star args"
 
-getFunction()( getPlainArg1(), a = getKeywordArg1(), *getListStarArg(), **getDictStarArg() )
+getFunction()(getPlainArg1(), a = getKeywordArg1(), *getListStarArg(), **getDictStarArg())
 print
 
 print "Dictionary creation order:"
@@ -417,7 +417,7 @@ gen1 = someGeneratorFunction()
 print "Fresh Generator Function throwing gives",
 
 try:
-    print gen1.throw( ValueError ),
+    print gen1.throw(ValueError),
 except ValueError:
     print "exception indeed"
 
@@ -425,7 +425,7 @@ gen2 = someGeneratorFunction()
 
 print "Used Generator Funtion throwing gives",
 gen2.next()
-print gen2.throw( ValueError ), "indeed"
+print gen2.throw(ValueError), "indeed"
 
 gen3 = someGeneratorFunction()
 
@@ -461,10 +461,10 @@ print "Generator function that receives",
 gen6 = receivingGenerator()
 
 print gen6.next(),
-print gen6.send( 5 ),
-print gen6.send( 6 ),
-print gen6.send( 7 ),
-print gen6.send( 8 )
+print gen6.send(5),
+print gen6.send(6),
+print gen6.send(7),
+print gen6.send(8)
 
 print "Generator function whose generator is copied",
 
@@ -490,12 +490,12 @@ except ImportError:
         pass
 
 print "Function that has keyword argument matching the list star arg name",
-print doubleStarArgs( 1, **UserDict( a = 2 ) )
+print doubleStarArgs(1, **UserDict(a = 2))
 
 def generatorFunctionUnusedArg(a):
     yield 1
 
-generatorFunctionUnusedArg( 3 )
+generatorFunctionUnusedArg(3)
 
 def closureHavingGenerator(arg):
     def gen(x = 1):
@@ -504,7 +504,7 @@ def closureHavingGenerator(arg):
     return gen()
 
 print "Function generator that has a closure and default argument",
-print list( closureHavingGenerator(3) )
+print list(closureHavingGenerator(3))
 
 def comp_args1((a, b)):
     return a,b
@@ -518,15 +518,15 @@ def comp_args3(a, (b, c)):
 def comp_args4(a=2, (b, c)=(3, 4)):
     return a, b, c
 
-print "Complex args functions", comp_args1( (2, 1) ), comp_args2(), comp_args2( (7,9)), comp_args3( 7, (8,9)), comp_args4()
+print "Complex args functions", comp_args1((2, 1)), comp_args2(), comp_args2((7,9)), comp_args3(7, (8,9)), comp_args4()
 
 def functionWithDualStarArgsAndKeywordsOnly(a1, a2, a3, a4, b):
     return a1, a2, a3, a4, b
 
-l = [ 1, 2, 3 ]
+l = [1, 2, 3]
 d = { "b": 8 }
 
-print "Dual star args, but not positional call", functionWithDualStarArgsAndKeywordsOnly( a4 = 1, *l, **d )
+print "Dual star args, but not positional call", functionWithDualStarArgsAndKeywordsOnly(a4 = 1, *l, **d)
 
 def posDoubleStarArgsFunction(a, b, c, *l, **d):
     return a, b, c, l, d
@@ -534,14 +534,14 @@ def posDoubleStarArgsFunction(a, b, c, *l, **d):
 l = [2]
 d = { "other" : 7, "c" : 3 }
 
-print "Dual star args consuming function", posDoubleStarArgsFunction( 1,  *l, **d )
+print "Dual star args consuming function", posDoubleStarArgsFunction(1,  *l, **d)
 
 import inspect, sys
 
-for value in sorted( dir() ):
-    main_value = getattr( sys.modules[ "__main__" ], value )
+for value in sorted(dir()):
+    main_value = getattr(sys.modules[ "__main__" ], value)
 
-    if inspect.isfunction( main_value ):
+    if inspect.isfunction(main_value):
         print main_value, main_value.func_code, main_value.func_code.co_varnames[:main_value.func_code.co_argcount] # inspect.getargs( main_value.func_code )
 
         # TODO: Make this work as well, currently disabled, because of nested arguments not

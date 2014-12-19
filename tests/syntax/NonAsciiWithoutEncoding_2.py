@@ -15,35 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+# No encoding declared, but non-ASCII in that string.
 
-def starImporterFunction():
-    from sys import *
-
-    print "Version", version.split()[0].split( "." )[:-1]
-
-starImporterFunction()
-
-def deepExec():
-    for_closure = 3
-
-    def deeper():
-        for_closure_as_well = 4
-
-        def execFunction():
-            code = "f=2"
-
-            # Can fool it to nest
-            exec code in None, None
-
-            print "Locals now", locals()
-
-            print "Closure one level up was taken", for_closure_as_well
-            print "Closure two levels up was taken", for_closure
-            print "Globals still work", starImporterFunction
-            print "Added local from code", f
-
-        execFunction()
-
-    deeper()
-
-deepExec()
+s = "'\0\"\n\r\t abcd\x85é\U00012fff\uD800\U0001D121xxx."

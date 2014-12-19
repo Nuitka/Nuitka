@@ -30,21 +30,21 @@ class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
     named_children = (
-        "expression",
+        "subscribed",
         "subscript"
     )
 
-    def __init__(self, expression, subscript, source_ref):
+    def __init__(self, subscribed, subscript, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "expression" : expression,
+                "subscribed" : subscribed,
                 "subscript"  : subscript
             },
             source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("expression")
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("subscribed")
     getSubscript = ExpressionChildrenHavingBase.childGetter("subscript")
 
     def computeExpression(self, constraint_collection):

@@ -24,8 +24,6 @@ from nuitka import PythonOperators
 from .NodeBases import ExpressionChildrenHavingBase
 
 
-# Delayed import into multiple branches is not an issue, pylint: disable=W0404
-
 class ExpressionComparison(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_COMPARISON"
 
@@ -37,7 +35,6 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
     def __init__(self, left, right, comparator, source_ref):
         assert left.isExpression()
         assert right.isExpression()
-        assert type( comparator ) is str, comparator
 
         assert comparator in PythonOperators.all_comparison_functions
 
@@ -61,21 +58,21 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
             self.getRight()
         )
 
-    getLeft = ExpressionChildrenHavingBase.childGetter( "left" )
-    getRight = ExpressionChildrenHavingBase.childGetter( "right" )
+    getLeft = ExpressionChildrenHavingBase.childGetter("left")
+    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def getComparator(self):
         return self.comparator
 
     def getDetails(self):
-        return { "comparator" : self.comparator }
+        return {
+            "comparator" : self.comparator
+        }
 
     def getSimulator(self):
         return PythonOperators.all_comparison_functions[self.comparator]
 
     def computeExpression(self, constraint_collection):
-        # Left and right is all we need, pylint: disable=W0613
-
         left, right = self.getOperands()
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
@@ -126,7 +123,7 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
             source_ref = source_ref
         )
 
-        assert comparator in ( "Is", "IsNot" )
+        assert comparator in ("Is", "IsNot")
 
         self.match_value = comparator == "Is"
 
@@ -138,10 +135,13 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
         return self.getLeft().mayRaiseException(exception_type) or \
                self.getRight().mayRaiseException(exception_type)
 
+    def mayRaiseExceptionBool(self, exception_type):
+        return False
+
     def computeExpression(self, constraint_collection):
         left, right = self.getOperands()
 
-        if constraint_collection.mustAlias( left, right ):
+        if constraint_collection.mustAlias(left, right):
             from .NodeMakingHelpers import (
                 makeConstantReplacementNode,
                 wrapExpressionWithSideEffects
@@ -164,7 +164,7 @@ Determined values to alias and therefore result of %s comparison.""" % (
                 self.comparator
             )
 
-        if constraint_collection.mustNotAlias( left, right ):
+        if constraint_collection.mustNotAlias(left, right):
             from .NodeMakingHelpers import (
                 makeConstantReplacementNode,
                 wrapExpressionWithSideEffects

@@ -42,10 +42,10 @@ def checkFromFunction():
         if "__loader__" in d:
             d[ "__loader__" ] = "<loader removed>"
 
-        return repr( d )
+        return repr(d)
 
-    print "Globals", displayDict( frame.f_globals )
-    print "Locals", displayDict( frame.f_locals )
+    print "Globals", displayDict(frame.f_globals)
+    print "Locals", displayDict(frame.f_locals)
     print "Is identical", frame.f_locals is frame.f_globals
 
 checkFromFunction()

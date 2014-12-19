@@ -29,11 +29,11 @@ def raising(doit):
         1 / 0
 
 # Call it without an exception
-raising( False )
+raising(False)
 
 def catcher():
     try:
-        raising( True )
+        raising(True)
     except ZeroDivisionError:
         print "Catching"
 

@@ -52,7 +52,7 @@ def enableDebug():
             return self.value
 
         def __mod__(self, other):
-            assert type( other ) is dict, self.name
+            assert type(other) is dict, self.name
 
             for key in other.keys():
                 if "%%(%s)" % key not in self.value:
@@ -67,7 +67,7 @@ def enableDebug():
             return self.value % other
 
         def split(self, sep):
-            return self.value.split( sep )
+            return self.value.split(sep)
 
     from nuitka.__past__ import iterItems
 

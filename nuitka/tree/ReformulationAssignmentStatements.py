@@ -67,12 +67,12 @@ def buildExtSliceNode(provider, node, source_ref):
     elements = []
 
     for dim in node.slice.dims:
-        dim_kind = getKind( dim )
+        dim_kind = getKind(dim)
 
         if dim_kind == "Slice":
-            lower = buildNode( provider, dim.lower, source_ref, True )
-            upper = buildNode( provider, dim.upper, source_ref, True )
-            step = buildNode( provider, dim.step, source_ref, True )
+            lower = buildNode(provider, dim.lower, source_ref, True)
+            upper = buildNode(provider, dim.upper, source_ref, True)
+            step = buildNode(provider, dim.step, source_ref, True)
 
             element = ExpressionSliceObject(
                 lower      = lower,
@@ -95,7 +95,7 @@ def buildExtSliceNode(provider, node, source_ref):
         else:
             assert False, dim
 
-        elements.append( element )
+        elements.append(element)
 
     return makeSequenceCreationOrConstant(
         sequence_kind = "tuple",
@@ -107,7 +107,8 @@ def buildExtSliceNode(provider, node, source_ref):
 def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                                          source_ref):
     # This is using many variable names on purpose, so as to give names to the
-    # unpacked detail values, pylint: disable=R0914
+    # unpacked detail values, and has many branches due to the many cases
+    # dealt with, pylint: disable=R0912,R0914
 
     if kind == "Name":
         variable_ref = detail
@@ -159,7 +160,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                     variable   = source_iter_var,
                     source_ref = source_ref
                 ),
-                source = ExpressionBuiltinIter1(
+                source       = ExpressionBuiltinIter1(
                     value      = source,
                     source_ref = source_ref
                 ),
@@ -190,7 +191,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                             variable   = element_var,
                             source_ref = source_ref
                         ),
-                        source = ExpressionSpecialUnpack(
+                        source       = ExpressionSpecialUnpack(
                             value      = ExpressionTempVariableRef(
                                 variable   = source_iter_var,
                                 source_ref = source_ref
@@ -210,7 +211,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                             variable   = element_var,
                             source_ref = source_ref
                         ),
-                        source = ExpressionBuiltinList(
+                        source       = ExpressionBuiltinList(
                             value      = ExpressionTempVariableRef(
                                 variable   = source_iter_var,
                                 source_ref = source_ref
@@ -284,7 +285,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             source_ref = source_ref
         )
     else:
-        assert False, ( kind, source_ref, detail )
+        assert False, (kind, source_ref, detail)
 
 
 def buildAssignmentStatements(provider, node, source, source_ref,
@@ -295,6 +296,8 @@ def buildAssignmentStatements(provider, node, source, source_ref,
     if temp_provider is None:
         temp_provider = provider
 
+    # We don't allow None, as we handled that above, and so we know it must
+    # be a tuple, pylint: disable=W0633
     kind, detail = decodeAssignTarget(
         provider   = provider,
         node       = node,
@@ -363,13 +366,13 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
                 )
             else:
                 return "Slice", (
-                    buildNode( provider, node.value, source_ref ),
+                    buildNode(provider, node.value, source_ref),
                     lower,
                     upper
                 )
         elif slice_kind == "ExtSlice":
             return "Subscript", (
-                buildNode( provider, node.value, source_ref ),
+                buildNode(provider, node.value, source_ref),
                 buildExtSliceNode(provider, node, source_ref)
             )
         elif slice_kind == "Ellipsis":
@@ -382,7 +385,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
             )
         else:
             assert False, slice_kind
-    elif kind in ( "Tuple", "List" ):
+    elif kind in ("Tuple", "List"):
         return "Tuple", tuple(
             decodeAssignTarget(
                 provider   = provider,
@@ -401,7 +404,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
             allow_none = False
         )
     else:
-        assert False, ( source_ref, kind )
+        assert False, (source_ref, kind)
 
 
 def buildAssignNode(provider, node, source_ref):
@@ -526,7 +529,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
             source_ref = source_ref
         )
     else:
-        assert False, ( kind, detail, source_ref )
+        assert False, (kind, detail, source_ref)
 
 
 def buildDeleteNode(provider, node, source_ref):
@@ -541,6 +544,8 @@ def buildDeleteNode(provider, node, source_ref):
     statements = []
 
     for target in node.targets:
+        # We don't allow None, cannot happen, and so we know it must
+        # be a tuple, pylint: disable=W0633
         kind, detail = decodeAssignTarget(
             provider   = provider,
             node       = target,
@@ -561,9 +566,8 @@ def buildDeleteNode(provider, node, source_ref):
     )
 
 
-def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
-                                    tmp_variable2, operator, expression,
-                                    source_ref):
+def _buildInplaceAssignVariableNode(variable_ref, tmp_variable1, tmp_variable2,
+                                    operator, expression, source_ref):
     assert variable_ref.isExpressionTargetVariableRef(), variable_ref
 
     # First assign the target value to a temporary variable.
@@ -572,11 +576,11 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
             variable   = tmp_variable1,
             source_ref = source_ref
         ),
-        source     = ExpressionVariableRef(
+        source       = ExpressionVariableRef(
             variable_name = variable_ref.getVariableName(),
             source_ref    = source_ref
         ),
-        source_ref = source_ref
+        source_ref   = source_ref
     )
     # Second assign the inplace result to a temporary variable
     inplace_to_tmp = StatementAssignmentVariable(
@@ -584,7 +588,7 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
             variable   = tmp_variable2,
             source_ref = source_ref
         ),
-        source     = ExpressionOperationBinaryInplace(
+        source       = ExpressionOperationBinaryInplace(
             operator   = operator,
             left       = ExpressionTempVariableRef(
                 variable   = tmp_variable1,
@@ -593,12 +597,12 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
             right      = expression,
             source_ref = source_ref
         ),
-        source_ref = source_ref
+        source_ref   = source_ref
     )
 
     # Third, copy it over, if the reference values change, i.e. IsNot is true.
     copy_back_from_tmp = StatementConditional(
-        condition = ExpressionComparisonIsNOT(
+        condition  = ExpressionComparisonIsNOT(
             left       = ExpressionTempVariableRef(
                 variable   = tmp_variable1,
                 source_ref = source_ref
@@ -612,11 +616,11 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
         yes_branch = makeStatementsSequenceFromStatement(
             statement = StatementAssignmentVariable(
                 variable_ref = variable_ref.makeCloneAt(source_ref),
-                source     = ExpressionTempVariableRef(
+                source       = ExpressionTempVariableRef(
                     variable   = tmp_variable2,
                     source_ref = source_ref
                 ),
-                source_ref = source_ref
+                source_ref   = source_ref
             )
         ),
         no_branch  = None,
@@ -627,11 +631,11 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
         preserve_to_tmp,
         # making sure the above temporary variable is deleted in any case.
         makeTryFinallyStatement(
-            tried = (
+            tried      = (
                 inplace_to_tmp,
                 copy_back_from_tmp
             ),
-            final = (
+            final      = (
                 StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
                         variable   = tmp_variable1,
@@ -654,7 +658,7 @@ def _buildInplaceAssignVariableNode(provider, variable_ref, tmp_variable1,
     )
 
 
-def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
+def _buildInplaceAssignAttributeNode(lookup_source, attribute_name,
                                      tmp_variable1, tmp_variable2, operator,
                                      expression, source_ref):
     # First assign the target value to a temporary variable.
@@ -663,21 +667,21 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
             variable   = tmp_variable1,
             source_ref = source_ref
         ),
-        source     = ExpressionAttributeLookup(
-            expression     = lookup_source.makeCloneAt(source_ref),
+        source       = ExpressionAttributeLookup(
+            source         = lookup_source.makeCloneAt(source_ref),
             attribute_name = attribute_name,
             source_ref     = source_ref
         ),
-        source_ref = source_ref
+        source_ref   = source_ref
     )
 
-    # Second assign the inplace result to a temporary variable
+    # Second assign the in-place result to a temporary variable
     inplace_to_tmp = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
             variable   = tmp_variable2,
             source_ref = source_ref
         ),
-        source     = ExpressionOperationBinaryInplace(
+        source       = ExpressionOperationBinaryInplace(
             operator   = operator,
             left       = ExpressionTempVariableRef(
                 variable   = tmp_variable1,
@@ -686,7 +690,7 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
             right      = expression,
             source_ref = source_ref
         ),
-        source_ref = source_ref
+        source_ref   = source_ref
     )
 
     # Third, copy it over, if the reference values change, i.e. IsNot is true.
@@ -707,8 +711,8 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
                 expression     = lookup_source.makeCloneAt(source_ref),
                 attribute_name = attribute_name,
                 source         = ExpressionTempVariableRef(
-                    variable    = tmp_variable2,
-                    source_ref  = source_ref
+                    variable   = tmp_variable2,
+                    source_ref = source_ref
                 ),
                 source_ref     = source_ref
             )
@@ -718,8 +722,8 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
     )
 
     copy_back_from_tmp = makeTryFinallyStatement(
-        tried = copy_back_from_tmp,
-        final = StatementDelVariable(
+        tried      = copy_back_from_tmp,
+        final      = StatementDelVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_variable2,
                 source_ref = source_ref
@@ -734,11 +738,11 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
         preserve_to_tmp,
         # making sure the above temporary variable is deleted in any case.
         makeTryFinallyStatement(
-            tried = (
+            tried      = (
                 inplace_to_tmp,
                 copy_back_from_tmp,
             ),
-            final = StatementDelVariable(
+            final      = StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_variable1,
                     source_ref = source_ref
@@ -751,17 +755,17 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
     )
 
 
-def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
-                                     tmp_variable1, tmp_variable2, operator,
-                                     expression, source_ref):
-    # First assign the subcribed value to a temporary variable.
+def _buildInplaceAssignSubscriptNode(subscribed, subscript, tmp_variable1,
+                                     tmp_variable2, operator, expression,
+                                     source_ref):
+    # First assign the subscribed value to a temporary variable.
     preserve_to_tmp1 = StatementAssignmentVariable(
         variable_ref = ExpressionTargetTempVariableRef(
             variable   = tmp_variable1,
             source_ref = source_ref
         ),
-        source     = subscribed,
-        source_ref = source_ref
+        source       = subscribed,
+        source_ref   = source_ref
     )
     # Second assign the subscript value to a temporary variable
     preserve_to_tmp2  = StatementAssignmentVariable(
@@ -769,8 +773,8 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
             variable   = tmp_variable2,
             source_ref = source_ref
         ),
-        source     = subscript,
-        source_ref = source_ref
+        source       = subscript,
+        source_ref   = source_ref
     )
 
     execute_in_place = StatementAssignmentSubscript(
@@ -785,7 +789,7 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
         source     = ExpressionOperationBinaryInplace(
             operator   = operator,
             left       = ExpressionSubscriptLookup(
-                expression = ExpressionTempVariableRef(
+                subscribed = ExpressionTempVariableRef(
                     variable   = tmp_variable1,
                     source_ref = source_ref
                 ),
@@ -833,9 +837,13 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
     )
 
 
-def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
-                                 tmp_variable1, tmp_variable2, tmp_variable3,
-                                 operator, expression, source_ref):
+def _buildInplaceAssignSliceNode(lookup_source, lower, upper, tmp_variable1,
+                                 tmp_variable2, tmp_variable3, operator,
+                                 expression, source_ref):
+
+    # Due to the 3 inputs, which we need to also put into temporary variables,
+    # there are too many variables here, but they are needed.
+    # pylint: disable=R0914
 
     # First assign the target value, lower and upper to temporary variables.
     copy_to_tmp = StatementAssignmentVariable(
@@ -901,8 +909,8 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
                     variable   = tmp_variable3,
                     source_ref = source_ref
                 ),
-                source     = upper,
-                source_ref = source_ref
+                source       = upper,
+                source_ref   = source_ref
             )
         )
         final_statements.append(
@@ -971,13 +979,15 @@ def buildInplaceAssignNode(provider, node, source_ref):
     # into names, so we end up with a lot of variables, which is on purpose,
     # pylint: disable=R0914
 
-    operator = getKind( node.op )
+    operator = getKind(node.op)
 
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
     expression = buildNode(provider, node.value, source_ref)
 
+    # We don't allow None, as we handled that above, and so we know it must
+    # be a tuple, pylint: disable=W0633
     kind, detail = decodeAssignTarget(
         provider   = provider,
         node       = node.target,
@@ -998,7 +1008,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
             name       = "inplace_end"
         )
         statements = _buildInplaceAssignVariableNode(
-            provider      = provider,
             variable_ref  = variable_ref,
             tmp_variable1 = tmp_variable1,
             tmp_variable2 = tmp_variable2,
@@ -1019,7 +1028,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
         )
 
         statements = _buildInplaceAssignAttributeNode(
-            provider       = provider,
             lookup_source  = lookup_source,
             attribute_name = attribute_name,
             tmp_variable1  = tmp_variable1,
@@ -1041,7 +1049,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
         )
 
         statements = _buildInplaceAssignSubscriptNode(
-            provider      = provider,
             subscribed    = subscribed,
             subscript     = subscript,
             tmp_variable1 = tmp_variable1,
@@ -1074,7 +1081,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
             tmp_variable3 = None
 
         statements = _buildInplaceAssignSliceNode(
-            provider      = provider,
             lookup_source = lookup_source,
             lower         = lower,
             upper         = upper,

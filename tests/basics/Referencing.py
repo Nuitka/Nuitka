@@ -65,7 +65,7 @@ def simpleFunction4():
 
 def simpleFunction5(a = 1*2):
     c = 1
-    f = [ a, a + c ]
+    f = [a, a + c]
 
 def simpleFunction6():
     for b in range(6):
@@ -121,7 +121,7 @@ def simpleFunction14p(x):
         pass
 
 def simpleFunction14():
-    simpleFunction14p( 3 )
+    simpleFunction14p(3)
 
 def simpleFunction15p(x):
     try:
@@ -136,7 +136,7 @@ def simpleFunction15p(x):
         pass
 
 def simpleFunction15():
-    simpleFunction15p( [ 1 ] )
+    simpleFunction15p([1])
 
 def simpleFunction16():
     class EmptyClass:
@@ -160,7 +160,7 @@ def simpleFunction18():
 
         inside = closured
 
-    return NonEmptyClass( 133, 135 )
+    return NonEmptyClass(133, 135)
 
 def simpleFunction19():
     lam = lambda l : l+1
@@ -200,7 +200,7 @@ def simpleFunction24p(x):
     pass
 
 def simpleFunction24():
-    simpleFunction24p( x = 3 )
+    simpleFunction24p(x = 3)
 
 
 def simpleFunction25():
@@ -210,17 +210,17 @@ def simpleFunction25():
     def inplace_adder(b):
         X.f += b
 
-    return inplace_adder( 6**8 )
+    return inplace_adder(6**8)
 
 
 def simpleFunction26():
     class X:
-        f = [ 5 ]
+        f = [5]
 
     def inplace_adder(b):
         X.f += b
 
-    return inplace_adder( [ 1, 2 ] )
+    return inplace_adder([1, 2])
 
 def simpleFunction27():
     a = { "g": 8 }
@@ -228,15 +228,15 @@ def simpleFunction27():
     def inplace_adder(b):
         a[ "g" ] += b
 
-    return inplace_adder( 3 )
+    return inplace_adder(3)
 
 def simpleFunction28():
-    a = { "g": [ 8 ], "h": 2 }
+    a = { "g": [8], "h": 2 }
 
     def inplace_adder(b):
         a[ "g" ] += b
 
-    return inplace_adder( [ 3, 5 ] )
+    return inplace_adder([3, 5])
 
 
 def simpleFunction29():
@@ -257,10 +257,10 @@ def simpleFunction31():
     a = []
 
     for y in generatorFunction():
-        a.append( y )
+        a.append(y)
 
     for z in generatorFunction():
-        a.append( z )
+        a.append(z)
 
 
 def simpleFunction32():
@@ -279,7 +279,7 @@ def simpleFunction33():
     a = []
 
     for y in generatorFunction():
-        a.append( y )
+        a.append(y)
 
 
 def simpleFunction34():
@@ -302,7 +302,7 @@ def simpleFunction36():
         pass
 
 def simpleFunction37():
-    l = [ 1, 2, 3 ]
+    l = [1, 2, 3]
 
     try:
         a, b = l
@@ -392,14 +392,14 @@ def simpleFunction50():
 
     f = getF()
 
-    for x in range( 2 ):
-        r = list( f() )
+    for x in range(2):
+        r = list(f())
 
 def simpleFunction51():
     g = ( x for x in range(9) )
 
     try:
-        g.throw( ValueError, 9 )
+        g.throw(ValueError, 9)
     except ValueError as e:
         pass
 
@@ -407,7 +407,7 @@ def simpleFunction52():
     g = ( x for x in range(9) )
 
     try:
-        g.throw( ValueError(9) )
+        g.throw(ValueError(9))
     except ValueError as e:
         pass
 
@@ -500,7 +500,7 @@ def simpleFunction63():
 def simpleFunction64():
     x = 2
     y = 3
-    z = eval( "x * y" )
+    z = eval("x * y")
 
 def simpleFunction65():
     import array
@@ -531,7 +531,7 @@ def simpleFunction68():
     x = randrange(18)
 
 def simpleFunction69():
-    pools = [ tuple() ]
+    pools = [tuple() ]
     g = ((len(pool) == 0,) for pool in pools)
     next(g)
 
@@ -561,14 +561,17 @@ def simpleFunction71():
         except Exception:
             pass
 
-def simpleFunction71():
-    for i in range(10):
-        try:
-            undefined
-        finally:
-            break
-
 def simpleFunction72():
+    try:
+        for i in range(10):
+            try:
+                undefined
+            finally:
+                break
+    except Exception:
+        pass
+
+def simpleFunction73():
     for i in range(10):
         try:
             undefined
@@ -576,12 +579,12 @@ def simpleFunction72():
             return 7
 
 
-def simpleFunction73():
+def simpleFunction74():
     import os
 
     return os
 
-def simpleFunction74():
+def simpleFunction75():
     def raising_gen():
         try:
             raise TypeError
@@ -596,7 +599,7 @@ def simpleFunction74():
     except RuntimeError:
         pass
 
-def simpleFunction75():
+def simpleFunction76():
     class MyException(Exception):
         def __init__(self, obj):
             self.obj = obj
@@ -617,7 +620,7 @@ def simpleFunction75():
         except MyException:
             pass
 
-def simpleFunction76():
+def simpleFunction77():
     class weirdstr(str):
         def __getitem__(self, index):
             return weirdstr(str.__getitem__(self, index))
@@ -626,16 +629,21 @@ def simpleFunction76():
     # filter(lambda x: x>="33", weirdstr("1234"))
 
 
-def simpleFunction77():
+def simpleFunction78():
     a = "x = 2"
     exec(a)
 
-def simpleFunction78():
+def simpleFunction79():
     "some doc"
 
-    simpleFunction78.__doc__ = simpleFunction78.__doc__.replace("doc", "dok")
-    simpleFunction78.__doc__ += " and more" + simpleFunction78.__name__
+    simpleFunction79.__doc__ = simpleFunction79.__doc__.replace("doc", "dok")
+    simpleFunction79.__doc__ += " and more" + simpleFunction79.__name__
 
+
+def simpleFunction80():
+    "some doc"
+
+    del simpleFunction80.__doc__
 
 # These need stderr to be wrapped.
 tests_stderr = (63,)
@@ -643,7 +651,7 @@ tests_stderr = (63,)
 # Disabled tests
 tests_skipped = {
    56 : "Functions with closure to themselves are not yet released.",
-   76 : "Functions with closure to themselves are not yet released.",
+   77 : "Functions with closure to themselves are not yet released.",
 }
 
 result = executeReferenceChecked(

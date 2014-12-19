@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.5.3
+Nuitka V0.5.6
 Copyright (C) 2014 Kay Hayen."""
 
 import logging
@@ -218,7 +218,7 @@ in a visible form. Overrides all other options. Can be given multiple times.
 Default empty."""
 )
 
-parser.add_option_group( recurse_group )
+parser.add_option_group(recurse_group)
 
 execute_group = OptionGroup(
     parser,
@@ -247,7 +247,7 @@ PYTHONPATH. When all modules are successfully included, you ought to not need
 PYTHONPATH anymore."""
 )
 
-parser.add_option_group( execute_group )
+parser.add_option_group(execute_group)
 
 dump_group = OptionGroup(
     parser,
@@ -271,7 +271,7 @@ dump_group.add_option(
 Display the final result of optimization in a GUI, then exit."""
 )
 
-parser.add_option_group( dump_group )
+parser.add_option_group(dump_group)
 
 
 codegen_group = OptionGroup(
@@ -292,7 +292,7 @@ are not really incompatible, but different.""",
 
 codegen_group.add_option(
     "--code-gen-no-statement-lines",
-    action  ="store_false",
+    action  = "store_false",
     dest    = "statement_lines",
     default = True,
     help    = """\
@@ -309,7 +309,7 @@ codegen_group.add_option(
 # """Disable all unnecessary optimizations on Python level. Defaults to off."""
 )
 
-parser.add_option_group( codegen_group )
+parser.add_option_group(codegen_group)
 
 outputdir_group = OptionGroup(
     parser,
@@ -318,7 +318,7 @@ outputdir_group = OptionGroup(
 
 outputdir_group.add_option(
     "--output-dir",
-    action  ="store",
+    action  = "store",
     dest    = "output_dir",
     metavar = "DIRECTORY",
     default = "",
@@ -444,7 +444,7 @@ compilers. Defaults to the most recent version."""
 
 cpp_compiler_group.add_option(
     "-j", "--jobs",
-    action  ="store",
+    action  = "store",
     dest    = "jobs",
     metavar = "N",
     default = Utils.getCoreCount(),
@@ -536,7 +536,7 @@ parser.add_option_group(windows_group)
 if is_nuitka_run:
     count = 0
 
-    for count, arg in enumerate( sys.argv ):
+    for count, arg in enumerate(sys.argv):
         if count == 0:
             continue
 
@@ -554,13 +554,13 @@ options, positional_args = parser.parse_args()
 if not positional_args:
     parser.print_help()
 
-    sys.exit( """
-Error, need positional argument with python module or main program.""" )
+    sys.exit("""
+Error, need positional argument with python module or main program.""")
 
 if options.verbose:
-    logging.getLogger().setLevel( logging.DEBUG )
+    logging.getLogger().setLevel(logging.DEBUG)
 else:
-    logging.getLogger().setLevel( logging.INFO )
+    logging.getLogger().setLevel(logging.INFO)
 
 # Standalone mode implies an executable, not importing "site" module, which is
 # only for this machine, recursing to all modules, and even including the
@@ -601,10 +601,10 @@ def shallFollowAllImports():
     return options.recurse_all
 
 def getShallFollowModules():
-    return sum( [ x.split( "," ) for x in options.recurse_modules ], [] )
+    return sum([ x.split(",") for x in options.recurse_modules ], [])
 
 for any_case_module in getShallFollowModules():
-    if any_case_module.startswith( "." ):
+    if any_case_module.startswith("."):
         bad = True
     else:
         for char in "/\\:":
@@ -615,15 +615,15 @@ for any_case_module in getShallFollowModules():
             bad = False
 
     if bad:
-        sys.exit( """
+        sys.exit("""
 Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
-any_case_module )
+any_case_module)
 
 def getShallFollowInNoCase():
-    return sum( [ x.split( "," ) for x in options.recurse_not_modules ], [] )
+    return sum([ x.split(",") for x in options.recurse_not_modules ], [])
 
 for no_case_module in getShallFollowInNoCase():
-    if no_case_module.startswith( "." ):
+    if no_case_module.startswith("."):
         bad = True
     else:
         for char in "/\\:":
@@ -634,13 +634,13 @@ for no_case_module in getShallFollowInNoCase():
             bad = False
 
     if bad:
-        sys.exit( """
+        sys.exit("""
 Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" % \
-no_case_module )
+no_case_module)
 
 
 def getShallFollowExtra():
-    return sum( [ x.split( "," ) for x in options.recurse_extra ], [] )
+    return sum([ x.split(",") for x in options.recurse_extra ], [])
 
 def shallWarnImplicitRaises():
     return options.warn_implicit_exceptions
@@ -659,7 +659,7 @@ def isUnstriped():
 
 def getOutputPath(path):
     if options.output_dir:
-        return Utils.normpath( Utils.joinpath( options.output_dir, path ) )
+        return Utils.normpath(Utils.joinpath(options.output_dir, path))
     else:
         return path
 
@@ -682,7 +682,7 @@ def isShowScons():
     return options.show_scons
 
 def getJobLimit():
-    return int( options.jobs )
+    return int(options.jobs)
 
 def isLto():
     return options.lto
@@ -715,7 +715,7 @@ def getIntendedPythonVersion():
     return options.python_version
 
 def isExperimental():
-    return hasattr( options, "experimental" ) and options.experimental
+    return hasattr(options, "experimental") and options.experimental
 
 def isStandaloneMode():
     return options.is_standalone
@@ -730,7 +730,7 @@ def getPythonFlags():
         if part in ("-S", "nosite", "no_site"):
             result.append("no_site")
         elif part in ("static_hashes", "norandomization", "no_randomization"):
-            result.append( "no_randomization" )
+            result.append("no_randomization")
         elif part in ("-v", "trace_imports", "trace_import"):
             result.append("trace_imports")
         elif part in ("no_warnings", "nowarnings"):

@@ -239,7 +239,7 @@ NUITKA_MAY_BE_UNUSED static bool DEL_SLICE( PyObject *target, Py_ssize_t lower, 
 
 
 // Note: Cannot fail
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *stop, PyObject *step )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ3( PyObject *start, PyObject *stop, PyObject *step )
 {
     assertObject( start );
     assertObject( stop );

@@ -61,7 +61,7 @@ build_nodes_args3 = None
 build_nodes_args2 = None
 build_nodes_args1 = None
 
-def setBuildDispatchers(path_args3, path_args2, path_args1):
+def setBuildingDispatchers(path_args3, path_args2, path_args1):
     # Using global here, as this is really a singleton, in the form of a module,
     # and this is to break the cyclic dependency it has, pylint: disable=W0603
 
@@ -107,13 +107,13 @@ def buildNode(provider, node, source_ref, allow_none = False):
         if result is None and allow_none:
             return None
 
-        assert isinstance( result, NodeBase ), result
+        assert isinstance(result, NodeBase), result
 
         return result
     except SyntaxError:
         raise
     except:
-        warning( "Problem at '%s' with %s." % ( source_ref, ast.dump( node ) ) )
+        warning("Problem at '%s' with %s." % (source_ref, ast.dump(node)))
         raise
 
 
@@ -122,7 +122,7 @@ def buildNodeList(provider, nodes, source_ref, allow_none = False):
         result = []
 
         for node in nodes:
-            if hasattr( node, "lineno" ):
+            if hasattr(node, "lineno"):
                 node_source_ref = source_ref.atLineNumber(node.lineno)
             else:
                 node_source_ref = source_ref
@@ -278,10 +278,25 @@ def makeStatementsSequenceFromStatement(statement):
     )
 
 
+def makeStatementsSequenceFromStatements(*statements):
+    assert statements
+    assert None not in statements
+
+    return StatementsSequence(
+        statements = statements,
+        source_ref = statements[0].getSourceReference()
+    )
+
+
+
 def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # Sequence creation. Tries to avoid creations with only constant
     # elements. Would be caught by optimization, but would be useless churn. For
     # mutable constants we cannot do it though.
+
+    # Due to the many sequence types, there is a lot of cases here
+    # pylint: disable=R0912
+
     for element in elements:
         if not element.isExpressionConstantRef():
             constant = False
@@ -339,7 +354,7 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable.
 
-    assert len( keys ) == len( values )
+    assert len(keys) == len(values)
     for key, value in zip(keys, values):
         if not key.isExpressionConstantRef():
             constant = False

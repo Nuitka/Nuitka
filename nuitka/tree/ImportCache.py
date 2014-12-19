@@ -33,10 +33,9 @@ imported_modules = {}
 imported_by_name = {}
 
 def addImportedModule(module_relpath, imported_module):
-    if ( module_relpath, "__main__" ) in imported_modules:
-        warning( """\
-Re-importing __main__ module via its filename duplicates the module."""
-        )
+    if (module_relpath, "__main__") in imported_modules:
+        warning("""\
+Re-importing __main__ module via its filename duplicates the module.""")
 
     key = module_relpath, imported_module.getFullName()
 
@@ -47,9 +46,9 @@ Re-importing __main__ module via its filename duplicates the module."""
     imported_by_name[ imported_module.getFullName() ] = imported_module
 
 def isImportedModuleByPath(module_relpath):
-    module_name = Utils.basename( module_relpath )
+    module_name = Utils.basename(module_relpath)
 
-    if module_name.endswith( ".py" ):
+    if module_name.endswith(".py"):
         module_name = module_name[:-3]
 
     key = module_relpath, module_name
@@ -63,9 +62,9 @@ def getImportedModuleByName(full_name):
     return imported_by_name[ full_name ]
 
 def getImportedModuleByPath(module_relpath):
-    module_name = Utils.basename( module_relpath )
+    module_name = Utils.basename(module_relpath)
 
-    if module_name.endswith( ".py" ):
+    if module_name.endswith(".py"):
         module_name = module_name[:-3]
 
     key = module_relpath, module_name

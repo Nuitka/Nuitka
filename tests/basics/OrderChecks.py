@@ -47,7 +47,7 @@ def listOrderCheck():
 
         return 22
 
-    print [ value1(), value2() ]
+    print [value1(), value2() ]
 
 def sliceOrderCheck():
     d = range(10)
@@ -237,7 +237,7 @@ def generatorOrderCheck():
         yield b
         yield c
 
-    print list( generator() )
+    print list(generator())
 
 def classOrderCheck():
     print "Checking order of class constructions:"
@@ -282,7 +282,7 @@ def inOrderCheck():
     def container():
         print "container",
 
-        return [ 3 ]
+        return [3]
 
     def searched():
         print "searched",
@@ -323,24 +323,24 @@ def unpackOrderCheck():
 
 def superOrderCheck():
     try:
-        super( zzz, xxx )
+        super(zzz, xxx)
     except Exception as e:
         print "Caught super 2", repr(e)
 
 def isinstanceOrderCheck():
     try:
-        isinstance( zzz, xxx )
+        isinstance(zzz, xxx)
     except Exception as e:
         print "Caught isinstance 2", repr(e)
 
 def rangeOrderCheck():
     try:
-        range( zzz, yyy, xxx )
+        range(zzz, yyy, xxx)
     except Exception as e:
         print "Caught range 3", repr(e)
 
     try:
-        range( zzz, xxx )
+        range(zzz, xxx)
     except Exception as e:
         print "Caught range 2", repr(e)
 
@@ -362,67 +362,67 @@ def importOrderCheck():
 
     try:
         print "__import__ builtin:"
-        __import__( name(), globals(), locals(), fromlist(), level() )
+        __import__(name(), globals(), locals(), fromlist(), level())
     except Exception as e:
         print "Caught __import__", repr(e)
 
 
 def hasattrOrderCheck():
     try:
-        hasattr( zzz, yyy )
+        hasattr(zzz, yyy)
     except Exception as e:
         print "Caught hasattr", repr(e)
 
 def getattrOrderCheck():
     try:
-        getattr( zzz, yyy )
+        getattr(zzz, yyy)
     except Exception as e:
         print "Caught getattr 2", repr(e)
 
     try:
-        getattr( zzz, yyy, xxx )
+        getattr(zzz, yyy, xxx)
     except Exception as e:
         print "Caught getattr 3", repr(e)
 
 def typeOrderCheck():
     try:
-        type( zzz, yyy, xxx )
+        type(zzz, yyy, xxx)
     except Exception as e:
         print "Caught type 3", repr(e)
 
 def iterOrderCheck():
     try:
-        iter( zzz, xxx )
+        iter(zzz, xxx)
     except Exception as e:
         print "Caught iter 2", repr(e)
 
 def openOrderCheck():
     try:
-        open( zzz, yyy, xxx )
+        open(zzz, yyy, xxx)
     except Exception as e:
         print "Caught open 3", repr(e)
 
 def unicodeOrderCheck():
     try:
-        unicode( zzz, yyy, xxx )
+        unicode(zzz, yyy, xxx)
     except Exception as e:
         print "Caught unicode", repr(e)
 
 def longOrderCheck():
     try:
-        long( zzz, xxx )
+        long(zzz, xxx)
     except Exception as e:
         print "Caught long 2", repr(e)
 
 def intOrderCheck():
     try:
-        int( zzz, xxx )
+        int(zzz, xxx)
     except Exception as e:
         print "Caught int", repr(e)
 
 def nextOrderCheck():
     try:
-        next( zzz, xxx )
+        next(zzz, xxx)
     except Exception as e:
         print "Caught next 2", repr(e)
 

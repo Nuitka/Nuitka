@@ -81,7 +81,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     )
     tmp_indicator_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
-        name = "indicator"
+        name       = "indicator"
     )
 
     statements = (
@@ -136,7 +136,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                 source_ref = source_ref
             ),
             source       = attribute_lookup_class(
-                expression     = ExpressionTempVariableRef(
+                source         = ExpressionTempVariableRef(
                     variable   = tmp_source_variable,
                     source_ref = source_ref
                 ),
@@ -151,15 +151,15 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                 source_ref = source_ref
             ),
             source       = ExpressionCallEmpty(
-                called         = attribute_lookup_class(
-                    expression     = ExpressionTempVariableRef(
+                called     = attribute_lookup_class(
+                    source         = ExpressionTempVariableRef(
                         variable   = tmp_source_variable,
                         source_ref = source_ref
                     ),
                     attribute_name = "__enter__",
                     source_ref     = source_ref
                 ),
-                source_ref      = source_ref
+                source_ref = source_ref
             ),
             source_ref   = source_ref
         ),
@@ -200,11 +200,11 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                         ),
                         StatementConditional(
                             condition  = ExpressionCallNoKeywords(
-                                called          = ExpressionTempVariableRef(
+                                called     = ExpressionTempVariableRef(
                                     variable   = tmp_exit_variable,
                                     source_ref = source_ref
                                 ),
-                                args = ExpressionMakeTuple(
+                                args       = ExpressionMakeTuple(
                                     elements   = (
                                         ExpressionCaughtExceptionTypeRef(
                                             source_ref = source_ref
@@ -218,7 +218,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                                     ),
                                     source_ref = source_ref
                                 ),
-                                source_ref      = source_ref
+                                source_ref = source_ref
                             ),
                             no_branch  = makeStatementsSequenceFromStatement(
                                 statement = StatementRaiseException(
@@ -233,19 +233,19 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                             source_ref = source_ref
                         ),
                     ),
-                    source_ref     = source_ref
+                    source_ref = source_ref
                 ),
-                public_exc = Utils.python_version >= 270,
-                source_ref = source_ref
+                public_exc     = Utils.python_version >= 270,
+                source_ref     = source_ref
             ),
             final      = StatementConditional(
-                condition      = ExpressionComparisonIs(
+                condition  = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
                         variable   = tmp_indicator_variable,
                         source_ref = source_ref
                     ),
                     right      = ExpressionConstantRef(
-                        constant    = True,
+                        constant   = True,
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
@@ -263,7 +263,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                             ),
                             source_ref = with_exit_source_ref
                         ),
-                        source_ref     = source_ref
+                        source_ref = source_ref
                     )
                 ),
                 no_branch  = None,
@@ -274,8 +274,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     ]
 
     return makeTryFinallyStatement(
-        tried = statements,
-        final = (
+        tried      = statements,
+        final      = (
             StatementDelVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_source_variable,
@@ -309,7 +309,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                 source_ref   = source_ref
             ),
         ),
-        source_ref  = source_ref
+        source_ref = source_ref
     )
 
 

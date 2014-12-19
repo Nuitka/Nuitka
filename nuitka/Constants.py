@@ -32,52 +32,50 @@ def compareConstants(a, b):
     # Many many cases to deal with, pylint: disable=R0911,R0912
 
     # Supposed fast path for comparison.
-    if type( a ) is not type( b ):
+    if type(a) is not type(b):
         return False
 
     # Now it's either not the same, or it is a container that contains NaN or it
     # is a complex or float that is NaN, the other cases can use == at the end.
-    if type( a ) is complex:
-        return compareConstants( a.imag, b.imag ) and \
-               compareConstants( a.real, b.real )
+    if type(a) is complex:
+        return compareConstants(a.imag, b.imag) and \
+               compareConstants(a.real, b.real)
 
-    if type( a ) is float:
+    if type(a) is float:
         # Check sign first, -0.0 is not 0.0, or -nan is not nan, it has a
         # different sign for a start.
-        if math.copysign( 1.0, a ) != math.copysign( 1.0, b ):
+        if math.copysign(1.0, a) != math.copysign(1.0, b):
             return False
 
-        if math.isnan( a ) and math.isnan( b ):
+        if math.isnan(a) and math.isnan(b):
             return True
 
         return a == b
 
-    if type( a ) in ( tuple, list ):
-        if len( a ) != len( b ):
+    if type(a) in (tuple, list):
+        if len(a) != len(b):
             return False
 
-        for ea, eb in zip( a, b ):
-            if not compareConstants( ea, eb ):
+        for ea, eb in zip(a, b):
+            if not compareConstants(ea, eb):
                 return False
-        else:
-            return True
+        return True
 
-    if type( a ) is dict:
-        if len( a ) != len( b ):
+    if type(a) is dict:
+        if len(a) != len(b):
             return False
 
-        for ea1, ea2 in iterItems( a ):
-            for eb1, eb2 in iterItems( b ):
-                if compareConstants( ea1, eb1 ) and \
-                   compareConstants( ea2, eb2 ):
+        for ea1, ea2 in iterItems(a):
+            for eb1, eb2 in iterItems(b):
+                if compareConstants(ea1, eb1) and \
+                   compareConstants(ea2, eb2):
                     break
             else:
                 return False
-        else:
-            return True
+        return True
 
-    if type( a ) in ( frozenset, set ):
-        if len( a ) != len( b ):
+    if type(a) in (frozenset, set):
+        if len(a) != len(b):
             return False
 
         for ea in a:
@@ -85,23 +83,32 @@ def compareConstants(a, b):
                 # Due to NaN values, we need to compare each set element with
                 # all the other set to be really sure.
                 for eb in b:
-                    if compareConstants( ea, eb ):
+                    if compareConstants(ea, eb):
                         break
                 else:
                     return False
-        else:
-            return True
+        return True
 
-    if type( a ) is range:
-        return str( a ) == str( b )
+    if type(a) is range:
+        return str(a) == str(b)
 
     # The NaN values of float and complex may let this fail, even if the
     # constants are built in the same way.
     return a == b
 
-# These builtin type references are kind of constant too. TODO: The list is
+# These built-in type references are kind of constant too. TODO: The list is
 # totally not complete.
-constant_builtin_types = int, set, str, float, list, tuple, dict, complex
+constant_builtin_types = (
+    int,
+    str,
+    float,
+    list,
+    tuple,
+    set,
+    dict,
+    slice,
+    complex
+)
 
 if python_version >= 300:
     constant_builtin_types += (
@@ -118,7 +125,7 @@ else:
 
 def isConstant(constant):
     # Too many cases and all return, that is how we do it here,
-    # pylint: disable=R0911,R0912
+    # pylint: disable=R0911
 
     constant_type = type(constant)
 
@@ -128,14 +135,12 @@ def isConstant(constant):
                 return False
             if not isConstant(value):
                 return False
-        else:
-            return True
+        return True
     elif constant_type in (tuple, list):
         for element_value in constant:
             if not isConstant(element_value):
                 return False
-        else:
-            return True
+        return True
     elif constant_type in (str, unicode, complex, int, long, bool, float,
                            NoneType, range, bytes, set):
         return True
@@ -143,6 +148,8 @@ def isConstant(constant):
         return True
     elif constant_type is type:
         return constant in constant_builtin_types
+    elif constant_type is slice:
+        return True
     else:
         return False
 
@@ -154,19 +161,18 @@ def isMutable(constant):
         a prime example of mutable, dictionaries are mutable.
     """
 
-    constant_type = type( constant )
+    constant_type = type(constant)
 
-    if constant_type in ( str, unicode, complex, int, long, bool, float,
-                          NoneType, range, bytes ):
+    if constant_type in (str, unicode, complex, int, long, bool, float,
+                         NoneType, range, bytes, slice):
         return False
-    elif constant_type in ( dict, list, set ):
+    elif constant_type in (dict, list, set):
         return True
     elif constant_type is tuple:
         for value in constant:
-            if isMutable( value ):
+            if isMutable(value):
                 return True
-        else:
-            return False
+        return False
     elif constant is Ellipsis:
         return False
     elif constant in constant_builtin_types:
@@ -176,23 +182,23 @@ def isMutable(constant):
 
 
 def isIterableConstant(constant):
-    return type( constant ) in (
+    return type(constant) in (
         str, unicode, list, tuple, set, frozenset, dict, range, bytes
     )
 
 
 def getConstantIterationLength(constant):
-    assert isIterableConstant( constant )
+    assert isIterableConstant(constant)
 
-    return len( constant )
+    return len(constant)
 
 
 def isNumberConstant(constant):
-    return type(constant) in ( int, long, float, bool )
+    return type(constant) in (int, long, float, bool)
 
 
 def isIndexConstant(constant):
-    return type(constant) in ( int, long, bool )
+    return type(constant) in (int, long, bool)
 
 
 def createConstantDict(keys, values, lazy_order):
@@ -210,16 +216,13 @@ def createConstantDict(keys, values, lazy_order):
             None
         )
 
-    for key, value in zip( keys, values ):
+    for key, value in zip(keys, values):
         constant_value[ key ] = value
 
     return constant_value
 
 
 def getConstantWeight(constant):
-    # Too many cases and all return, that is how we do it here,
-    # pylint: disable=R0911,R0912
-
     constant_type = type(constant)
 
     if constant_type is dict:

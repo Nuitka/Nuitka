@@ -17,17 +17,17 @@ This document is the recommended first read if you are interested in using
 Nuitka, understand its use cases, check what you can expect, license,
 requirements, credits, etc.
 
-Nuitka is the Python compiler. It is a good replacement for the Python
-interpreter and compiles **every** construct that CPython 2.6, 2.7, 3.2, 3.3,
-and 3.4 have. It then executed uncompiled code, and compiled code together in
-an extremely compatible manner.
+Nuitka is **the** Python compiler. It is a seamless replacement or extension
+to the Python interpreter and compiles **every** construct that CPython 2.6,
+2.7, 3.2, 3.3, and 3.4 have. It then executed uncompiled code, and compiled
+code together in an extremely compatible manner.
 
 You can use all Python library modules or and all extension modules freely. It
 translates the Python into a C level program that then uses "libpython" to
-execute in the same way as CPython does. Any optimization is aimed at avoiding
+execute in the same way as CPython does. All optimization is aimed at avoiding
 overhead, where it's unnecessary. None is aimed at removing compatibility,
 although there is an "improved" mode, where not every bug of standard Python
-is emulated.
+is emulated, e.g. more complete error messages are given.
 
 
 Usage
@@ -51,7 +51,7 @@ Requirements
 
 - Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4
 
-  You need the standard Python implementation, called CPython, to execute
+  You need the standard Python implementation, called "CPython", to execute
   Nuitka, because it is closely tied to using it.
 
   .. note::
@@ -172,6 +172,14 @@ included in the executable:
    and copy the created ``program.dist`` directory and execute the
    ``program.exe`` put inside.
 
+.. note::
+
+   The resulting filename with be ``program.exe`` on all platforms, that
+   doesn't mean it doesn't run on non-Windows! But if you compile ``program``
+   we wouldn't want to overwrite it, or be unsure which one is the compiled
+   form, and which one is not.
+
+
 Use Case 2 - Extension Module compilation
 -----------------------------------------
 
@@ -225,6 +233,31 @@ Report issues or bugs
 
 Should you encounter any issues, bugs, or ideas, please visit the `Nuitka bug
 tracker <http://bugs.nuitka.net>`__ and report them.
+
+Best practices for reporting bugs:
+
+- Please aways include the following information in your report, for the
+  underlying Python version. You can easily copy&paste this into your
+  report.
+
+  .. code-block:: sh
+
+      nuitka --version
+
+- Try to make your example minimal. That is, try to remove code that does
+  not contribute to the issue as much as possible. Ideally come up with
+  a small reproducing program that illustrates the issue, using ``print``
+  with different results when that programs runs compiled or native.
+
+- If the problem occurs spuriously (i.e. not each time), try to set the
+  environment variable ``PYTHONHASHSEED`` to ``0``, disabling hash
+  randomization. If that makes the problem go away, try increasing in
+  steps of 1 to a hash seed value that makes it happen every time.
+
+- Do not include the created code in your report. Given proper input,
+  it's redundant, and it's not likely that I will look at it without
+  the ability to change the Python or Nuitka source and re-run it.
+
 
 Contact me via email with your questions
 ----------------------------------------
@@ -316,14 +349,17 @@ Constant Folding
 ----------------
 
 The most important form of optimization is the constant folding. This is when an
-operation can be predicted. Currently Nuitka does these for some built-ins (but
-not all yet), and it does it for binary/unary operations and comparisons.
+operation can be fully predicted at compile time. Currently Nuitka does these
+for some built-ins (but not all yet, somebody to look at this more closely will
+be very welcome!), and it does it e.g. for binary/unary operations and
+comparisons.
 
 Constants currently recognized:
 
 .. code-block:: python
 
-    5 + 6     # operations
+    5 + 6     # binary operations
+    not 7     # unary operations
     5 < 6     # comparisons
     range(3)  # built-ins
 
@@ -333,9 +369,12 @@ this one should not be underestimated and a very important step of successful
 optimizations. Every option to produce a constant may impact the generated code
 quality a lot.
 
-Status: The folding of constants is considered implemented, but it might be
-incomplete. Please report it as a bug when you find an operation in Nuitka that
-has only constants are input and is not folded.
+.. admonition:: Status
+
+   The folding of constants is considered implemented, but it might be
+   incomplete in that not all possible cases are caught. Please report it as a
+   bug when you find an operation in Nuitka that has only constants as input
+   and is not folded.
 
 Constant Propagation
 --------------------
@@ -357,10 +396,16 @@ can then be used as input to the constant folding.
       # Your test code might be here
       use_something_not_use_by_program()
 
-From modules attributes, only ``__name__`` is currently actually optimized. Also
-possible would be at least ``__doc__``.
+.. admonition:: Status
 
-Also built-in exception name references are optimized if they are uses as module
+   From modules attributes, only ``__name__`` are currently actually optimized.
+   Also possible would be at least ``__doc__``. In the future, this may improve
+   as SSA is expanded to module variables.
+
+Built-in Name Lookups
+---------------------
+
+Also built-in exception name references are optimized if they are used as module
 level read only variables:
 
 .. code-block:: python
@@ -369,6 +414,11 @@ level read only variables:
       something()
    except ValueError: # The ValueError is a slow global name lookup normally.
       pass
+
+.. admonition:: Status
+
+   This works for all built-in names. When an assignment is done to such a
+   name, or it's even local, then of course it is not done.
 
 Builtin Call Prediction
 -----------------------
@@ -381,14 +431,16 @@ folding or code path folding.
 
 .. code-block:: python
 
-   type( "string" ) # predictable result, builtin type str.
-   len( [ 1, 2 ] )  # predictable result
-   range( 3, 9, 2 ) # predictable result
-   range( 3, 9, 0 ) # predictable exception, range hates that 0.
+   type("string") # predictable result, builtin type str.
+   len([1, 2])    # predictable result
+   range(3, 9, 2) # predictable result
+   range(3, 9, 0) # predictable exception, range raises due to 0.
 
-The builtin call prediction is considered implemented. We can simply during
-compile time emulate the call and use its result or raised exception. But we may
-not cover all the built-ins there are yet.
+.. admonition:: Status
+
+   The builtin call prediction is considered implemented. We can simply during
+   compile time emulate the call and use its result or raised exception. But we
+   may not cover all the built-ins there are yet.
 
 Sometimes the result of a built-in should not be predicted when the result is
 big. A ``range()`` call e.g. may give too big values to include the result in
@@ -398,8 +450,11 @@ the binary. Then it is not done.
 
    range( 100000 ) # We do not want this one to be expanded
 
-Status: This is considered mostly implemented. Please file bugs for built-ins
-that are predictable but are not computed by Nuitka at compile time.
+.. admonition:: Status
+
+   This is considered mostly implemented. Please file bugs for built-ins that
+   are pre-computed, but should not be computed by Nuitka at compile time with
+   specific values.
 
 Conditional Statement Prediction
 --------------------------------
@@ -433,16 +488,18 @@ removed, access patterns may be more friendly. Imagine e.g. that a function is
 only called in a removed branch. It may be possible to remove it entirely, and
 that may have other consequences too.
 
-Status: This is considered implemented, but for the maximum benefit, more
-constants needs to be determined at compile time.
+.. admonition:: Status
+
+   This is considered implemented, but for the maximum benefit, more constants
+   need to be determined at compile time.
 
 Exception Propagation
 ---------------------
 
 For exceptions that are determined at compile time, there is an expression that
-will simply do raise the exception. These can be propagated, collecting
-potentially "side effects", i.e. parts of expressions that must still be
-executed.
+will simply do raise the exception. These can be propagated upwards, collecting
+potentially "side effects", i.e. parts of expressions that were executed before
+it occured, and still have to be executed.
 
 Consider the following code:
 
@@ -456,18 +513,20 @@ which will be propagated through the ``+`` operation. That part is just Constant
 Propagation as normal.
 
 The call to ``side_effect_having`` will have to be retained though, but the
-print statement, can be turned into an explicit raise. The statement sequence
-can then be aborted and as such the ``something_else`` call needs no code
-generation or consideration anymore.
+``print`` statement does and can be turned into an explicit raise. The statement
+sequence can then be aborted and as such the ``something_else`` call needs no
+code generation or consideration anymore.
 
 To that end, Nuitka works with a special node that raises an exception and has
 so called "side_effects" children, yet can be used in generated code as an
 expression.
 
-Status: The propagation of exceptions is implemented on a very basic level. It
-works, but exceptions will not propagate through all different expression and
-statement types. As work progresses or examples arise, the coverage will be
-extended.
+.. admonition:: Status
+
+   The propagation of exceptions is mostly implemented, but needs handling in
+   every kind of operations, and not all of them might do it already. As work
+   progresses or examples arise, the coverage will be extended. Feel free to
+   generate bug reports with non-working examples.
 
 Exception Scope Reduction
 -------------------------
@@ -483,7 +542,7 @@ Consider the following code:
     except ValueError, e:
         print e
 
-The try block is bigger than it needs to be. The statement ``b = 8`` cannot
+The ``try`` block is bigger than it needs to be. The statement ``b = 8`` cannot
 cause a ``ValueError`` to be raised. As such it can be moved to outside the try
 without any risk.
 
@@ -493,11 +552,15 @@ without any risk.
     try:
         print range(3, b, 0)
         print "Will not be executed"
-    except ValueError, e:
+    except ValueError as e:
         print e
 
-Status: Not yet done yet. The infrastructure is in place, but until exception
-block inlining works perfectly, there is not much of a point.
+.. admonition:: Status
+
+   This is considered done. For every kind of operation, we trace if it may
+   raise an exception. We do however *not* track properly yes, what can do
+   a ``ValueError`` and what cannot.
+
 
 Exception Block Inlining
 ------------------------
@@ -528,7 +591,9 @@ making it:
    e = ValueError( "range() step argument must not be zero" )
    print e
 
-Status: This is not implemented yet.
+.. admonition:: Status
+
+   This is not implemented yet.
 
 Empty Branch Removal
 --------------------
@@ -544,6 +609,12 @@ should be possible to remove the whole construct:
 The loop could be removed, at maximum it should be considered an assignment of
 variable ``i`` to ``999`` and no more.
 
+.. admonition:: Status
+
+   This is not implemented yet, as it requires us to track iterators, and their
+   side effects, as well as loop values, and exit conditions. Too much yet, but
+   we will get there.
+
 Another example:
 
 .. code-block:: python
@@ -551,11 +622,15 @@ Another example:
    if side_effect_free:
       pass
 
-The condition should be removed in this case, as its evaluation is not
+The condition check should be removed in this case, as its evaluation is not
 needed. It may be difficult to predict that ``side_effect_free`` has no side
 effects, but many times this might be possible.
 
-Status: This is not implemented yet.
+.. admonition:: Status
+
+   This is considered implemented. The conditional statement nature is removed
+   if both branches are empty, only the condition is evaluated, and checked for
+   truth (in cases that could raise an exception).
 
 Unpacking Prediction
 --------------------
@@ -579,11 +654,14 @@ exception while building the assignment targets.
 We do this now, but only for constants, because we currently have no ability to
 predict if an expression can raise an exception or not.
 
-Status: Not really implemented, and should use ``mayHaveSideEffect()`` to be
-actually good at things.
+.. admonition:: Status
 
-Builtin Type Inference
-----------------------
+   Not implemented yet. Will need us to see through the unpacking of what is
+   an iteration over a tuple, we created ourselves. We are not there yet, but
+   we will get there.
+
+Built-in Type Inference
+-----------------------
 
 When a construct like ``in xrange()`` or ``in range()`` is used, it is possible
 to know what the iteration does and represent that, so that iterator users can
@@ -600,7 +678,9 @@ could translate ``xrange(1000)`` into an object of a special class that does the
 integer looping more efficiently. In case ``i`` is only assigned from there,
 this could be a nice case for a dedicated class.
 
-Status: Future work, not even started.
+.. admonition:: Status
+
+   Future work, not even started.
 
 Quicker Function Calls
 ----------------------
@@ -614,21 +694,20 @@ optimized away. One problem is that the evaluation order can differ.
    def f(a, b, c):
        return a, b, c
 
-   f( c = get1(), b = get2(), a = get3() )
+   f(c = get1(), b = get2(), a = get3())
 
-This will evaluate first get1(), then get2() and then get3() and then make the
-call.
-
-In C++ whatever way the signature is written, its order is fixed.
+This will have to evaluate first ``get1()``, then ``get2()`` and only then
+``get3()`` and then make the function call with these values.
 
 Therefore it will be necessary to have a staging of the parameters before making
-the actual call, to avoid an re-ordering of the calls to get1(), get2() and
-get3().
+the actual call, to avoid an re-ordering of the calls to ``get1()``, ``get2()``,
+and ``get3()``.
 
-To solve this, we may have to create wrapper functions that allow different
-order of parameters to C++.
+.. admonition:: Status
 
-Status: Not even started.
+   Not even started. A re-formulation that avoids the dictionary to call the
+   function, and instead uses temporary variables appears to be relatively
+   straight forward once we do that kind of parameter analysis.
 
 Lowering of iterated Container Types
 ------------------------------------
@@ -640,27 +719,31 @@ Consider that:
 
 .. code-block:: python
 
-   for x in [ 1, 2, 7 ]:
-       something( x )
+   for x in [a, b, c]:
+       something(x)
 
 Can be optimized into this:
 
 .. code-block:: python
 
-   for x in ( 1, 2, 7 ):
-        something( x )
+   for x in (a, b, c):
+        something(x)
 
-This allows for simpler code to be generated, and less checks needed, because
-e.g. the ``tuple`` is clearly immutable, whereas the ``list`` needs a check to
-assert that.
+This allows for simpler, faster code to be generated, and less checks needed,
+because e.g. the ``tuple`` is clearly immutable, whereas the ``list`` needs a
+check to assert that. This is also possible for sets.
 
-Something similar is possible for ``set`` and in theory also for ``dict``. For
-the later it will be non-trivial though to maintain the order of execution
-without temporary values introduced. The same thing is done for pure constants
-of these types, they change to ``tuple`` values when iterated.
+.. admonition:: Status
 
-Status: Implemented, needs other optimization to become generally useful, will
-help others to become possible.
+   Implemented, even works for non-constants. Needs other optimization to
+   become generally useful, and will itself help other optimization to become
+   possible. This allows us to e.g. only treat iteration over tuples, and not
+   care about sets.
+
+In theory something similar is also possible for ``dict``. For the later it will
+be non-trivial though to maintain the order of execution without temporary
+values introduced. The same thing is done for pure constants of these types,
+they change to ``tuple`` values when iterated.
 
 Credits
 =======

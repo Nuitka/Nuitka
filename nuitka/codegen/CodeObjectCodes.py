@@ -26,8 +26,6 @@ from .ConstantCodes import getConstantCode
 
 
 def getCodeObjectsDeclCode(context):
-    # There are many cases for constants of different types.
-    # pylint: disable=R0912
     statements = []
 
     for _code_object_key, code_identifier in context.getCodeObjects():

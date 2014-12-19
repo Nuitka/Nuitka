@@ -44,7 +44,9 @@ class ExpressionOperationBase(ExpressionChildrenHavingBase):
         return self.operator
 
     def getDetails(self):
-        return { "operator" : self.operator }
+        return {
+            "operator" : self.operator
+        }
 
     def getOperator(self):
         return self.operator
@@ -60,10 +62,10 @@ class ExpressionOperationBase(ExpressionChildrenHavingBase):
 class ExpressionOperationBinary(ExpressionOperationBase):
     kind = "EXPRESSION_OPERATION_BINARY"
 
-    named_children = ( "left", "right" )
+    named_children = ("left", "right")
 
     def __init__(self, operator, left, right, source_ref):
-        assert left.isExpression() and right.isExpression, ( left, right )
+        assert left.isExpression() and right.isExpression, (left, right)
 
         ExpressionOperationBase.__init__(
             self,
@@ -85,19 +87,22 @@ class ExpressionOperationBinary(ExpressionOperationBase):
         return self.inplace_suspect
 
     def computeExpression(self, constraint_collection):
+        # This is using many returns based on many conditions,
+        # pylint: disable=R0911,R0912
+
         operator = self.getOperator()
         operands = self.getOperands()
 
         left, right = operands
 
-        if left.willRaiseException( BaseException ):
+        if left.willRaiseException(BaseException):
             return (
                 left,
                 "new_raise",
                 "Left argument of binary operation raises exception"
             )
 
-        if right.willRaiseException( BaseException ):
+        if right.willRaiseException(BaseException):
             from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
             result = wrapExpressionWithNodeSideEffects(
@@ -140,8 +145,8 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                     if iter_length * left_value > 256:
                         return self, None, None
             elif operator == "Add" and \
-                left.isKnownToBeIterable( None ) and \
-                right.isKnownToBeIterable( None ):
+                left.isKnownToBeIterable(None) and \
+                right.isKnownToBeIterable(None):
 
                 iter_length = left.getIterationLength() + \
                               right.getIterationLength()
@@ -163,16 +168,16 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             return self, None, None
 
     def getOperands(self):
-        return ( self.getLeft(), self.getRight() )
+        return (self.getLeft(), self.getRight())
 
-    getLeft = ExpressionChildrenHavingBase.childGetter( "left" )
-    getRight = ExpressionChildrenHavingBase.childGetter( "right" )
+    getLeft = ExpressionChildrenHavingBase.childGetter("left")
+    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
 
 class ExpressionOperationUnary(ExpressionOperationBase):
     kind = "EXPRESSION_OPERATION_UNARY"
 
-    named_children = ( "operand", )
+    named_children = ("operand",)
 
     def __init__(self, operator, operand, source_ref):
         assert operand.isExpression(), operand
@@ -206,12 +211,13 @@ class ExpressionOperationUnary(ExpressionOperationBase):
         else:
             return self, None, None
 
-    getOperand = ExpressionChildrenHavingBase.childGetter( "operand" )
+    getOperand = ExpressionChildrenHavingBase.childGetter("operand")
 
     def getOperands(self):
-        return ( self.getOperand(), )
+        return (self.getOperand(),)
 
-    def isExpressionOperationUnary(self):
+    @staticmethod
+    def isExpressionOperationUnary():
         return True
 
 
@@ -229,7 +235,7 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
     def computeExpression(self, constraint_collection):
         operand = self.getOperand()
 
-        if operand.willRaiseException( BaseException ):
+        if operand.willRaiseException(BaseException):
             return (
                 operand,
                 "new_raise",
@@ -286,7 +292,8 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
             source_ref = source_ref
         )
 
-    def isExpressionOperationBinary(self):
+    @staticmethod
+    def isExpressionOperationBinary():
         return True
 
     def computeExpression(self, constraint_collection):

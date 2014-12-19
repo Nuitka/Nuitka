@@ -58,11 +58,11 @@ binary_operator_codes = {
 }
 
 unary_operator_codes = {
-    "UAdd"   : ( "PyNumber_Positive", 1 ),
-    "USub"   : ( "PyNumber_Negative", 1 ),
-    "Invert" : ( "PyNumber_Invert", 1 ),
-    "Repr"   : ( "PyObject_Repr", 1 ),
-    "Not"    : ( "UNARY_NOT", 0 )
+    "UAdd"   : ("PyNumber_Positive", 1),
+    "USub"   : ("PyNumber_Negative", 1),
+    "Invert" : ("PyNumber_Invert", 1),
+    "Repr"   : ("PyObject_Repr", 1),
+    "Not"    : ("UNARY_NOT", 0)
 }
 
 rich_comparison_codes = {

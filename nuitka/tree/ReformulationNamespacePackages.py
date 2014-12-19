@@ -62,32 +62,32 @@ def createNamespacePackage(package_name, module_relpath):
                         source_ref    = source_ref
                     ),
                     source       = ExpressionCallNoKeywords(
-                        called = ExpressionImportName(
-                            module = ExpressionImportModule(
-                                module_name    = "_frozen_importlib",
-                                import_list    = (),
-                                level          = 0,
-                                source_ref     = source_ref
+                        called     = ExpressionImportName(
+                            module      = ExpressionImportModule(
+                                module_name = "_frozen_importlib",
+                                import_list = (),
+                                level       = 0,
+                                source_ref  = source_ref
                             ),
                             import_name = "_NamespacePath",
                             source_ref  = source_ref
                         ),
-                        args = ExpressionConstantRef(
+                        args       = ExpressionConstantRef(
                             constant   = (
                                 package_name,
-                                [ module_relpath ],
+                                [module_relpath],
                                 None
                             ),
                             source_ref =  source_ref
                         ),
                         source_ref =  source_ref
                     ),
-                    source_ref = source_ref
+                    source_ref   = source_ref
                 )
             )
         )
     )
 
-    completeVariableClosures( package )
+    completeVariableClosures(package)
 
     return source_ref, package

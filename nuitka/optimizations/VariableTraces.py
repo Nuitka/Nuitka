@@ -55,9 +55,6 @@ class VariableTraceBase:
         # Previous trace this is replacing.
         self.previous = previous
 
-    def isNode(self):
-        return False
-
     def getVariable(self):
         return self.variable
 
@@ -99,19 +96,24 @@ class VariableTraceBase:
     def getReleases(self):
         return self.releases
 
-    def isAssignTrace(self):
+    @staticmethod
+    def isAssignTrace():
         return False
 
-    def isUninitTrace(self):
+    @staticmethod
+    def isUninitTrace():
         return False
 
-    def isInitTrace(self):
+    @staticmethod
+    def isInitTrace():
         return False
 
-    def isUnknownTrace(self):
+    @staticmethod
+    def isUnknownTrace():
         return False
 
-    def isMergeTrace(self):
+    @staticmethod
+    def isMergeTrace():
         return False
 
     def mustHaveValue(self):
@@ -154,7 +156,8 @@ class VariableUninitTrace(VariableTraceBase):
             version  = self.version
         )
 
-    def isUninitTrace(self):
+    @staticmethod
+    def isUninitTrace():
         return True
 
     def dump(self):
@@ -183,7 +186,8 @@ class VariableInitTrace(VariableTraceBase):
         VariableTraceBase.__init__(
             self,
             variable = variable,
-            version  = version
+            version  = version,
+            previous = None
         )
 
     def __repr__(self):
@@ -212,7 +216,8 @@ class VariableInitTrace(VariableTraceBase):
         for release in self.releases:
             debug("   Release by %s", release)
 
-    def isInitTrace(self):
+    @staticmethod
+    def isInitTrace():
         return True
 
 
@@ -251,7 +256,8 @@ class VariableUnknownTrace(VariableTraceBase):
         for release in self.releases:
             debug("   Release by %s", release)
 
-    def isUnknownTrace(self):
+    @staticmethod
+    def isUnknownTrace():
         return True
 
 
@@ -263,8 +269,6 @@ class VariableAssignTrace(VariableTraceBase):
             version  = version,
             previous = previous
         )
-
-        assert assign_node.isNode()
 
         self.assign_node = assign_node
 
@@ -279,8 +283,7 @@ class VariableAssignTrace(VariableTraceBase):
     def dump(self):
         debug("Trace of %s %d:",
             self.variable,
-            self.version
-        )
+            self.version)
         debug("  Starts assigned")
 
         for count, usage in enumerate(self.usages):
@@ -295,7 +298,8 @@ class VariableAssignTrace(VariableTraceBase):
         for release in self.releases:
             debug("   Release by %s", release)
 
-    def isAssignTrace(self):
+    @staticmethod
+    def isAssignTrace():
         return True
 
     def getAssignNode(self):
@@ -321,7 +325,8 @@ class VariableMergeTrace(VariableTraceBase):
         trace_yes.addMerge(self)
         trace_no.addMerge(self)
 
-    def isMergeTrace(self):
+    @staticmethod
+    def isMergeTrace():
         return True
 
     def dump(self):

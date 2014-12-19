@@ -34,7 +34,7 @@ def checkSideEffects(value):
         else:
             assert child.isExpression()
 
-            real_value.append( child )
+            real_value.append(child)
 
     return tuple(real_value)
 
@@ -54,7 +54,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
     def __init__(self, side_effects, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "side_effects" : tuple(side_effects),
                 "expression"   : expression
             },
@@ -72,7 +72,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
 
         for side_effect in side_effects:
             if side_effect.mayHaveSideEffects():
-                new_side_effects.append( side_effect )
+                new_side_effects.append(side_effect)
 
         expression = self.getExpression()
 
@@ -81,12 +81,12 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
                 expression.getSideEffects()
             )
 
-            expression.setSideEffects( new_side_effects )
+            expression.setSideEffects(new_side_effects)
 
             return expression, "new_expression", "Remove nested side effects"
 
         if new_side_effects != side_effects:
-            self.setSideEffects( new_side_effects )
+            self.setSideEffects(new_side_effects)
 
         if not new_side_effects:
             return expression, "new_expression", "Removed empty side effects."
@@ -97,8 +97,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
         for child in self.getVisitableNodes():
             if child.willRaiseException(exception_type):
                 return True
-        else:
-            return False
+        return False
 
     def getTruthValue(self):
         return self.getExpression().getTruthValue()

@@ -18,7 +18,7 @@
 """ Loop nodes.
 
 There are for and loop nodes, but both are reduced to loops with break/continue
-statements for it. These reformulations require that optimization of loops has
+statements for it. These re-formulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
@@ -43,11 +43,11 @@ class StatementLoop(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-        # For code generation, so it knows wether to produce the exit target or
-        # not.
+        # For code generation, so it knows if an exit target is needed.
         self.has_break = False
 
     getLoopBody = StatementChildrenHavingBase.childGetter("frame")
+    setLoopBody = StatementChildrenHavingBase.childSetter("frame")
 
     def mayReturn(self):
         loop_body = self.getLoopBody()
@@ -93,7 +93,7 @@ class StatementLoop(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not loop_body:
-                loop_body.replaceWith(result)
+                self.setLoopBody(result)
                 loop_body = result
 
         # Consider trailing "continue" statements, these have no effect, so we
@@ -108,19 +108,17 @@ class StatementLoop(StatementChildrenHavingBase):
             # be discarded.
             last_statement = statements[-1]
             if last_statement.isStatementContinueLoop():
-                # TODO: This is unnecessarily ugly way of doing this, simply
-                # replacing the continue should be good enough.
-                loop_body.removeStatement(last_statement)
-                statements = loop_body.getStatements()
-
-                if not statements:
-                    loop_body.replaceWith(None)
+                if len(statements) == 1:
+                    self.setLoopBody(None)
                     loop_body = None
+                else:
+                    last_statement.replaceWith(None)
 
                 constraint_collection.signalChange(
                     "new_statements",
                     last_statement.getSourceReference(),
-                    "Removed continue as last statement of loop."
+                    """\
+Removed useless terminal 'continue' as last statement of loop."""
                 )
 
         # Consider leading "break" statements, they should be the only, and
@@ -136,7 +134,7 @@ class StatementLoop(StatementChildrenHavingBase):
 
             if len(statements) == 1 and statements[-1].isStatementBreakLoop():
                 return None, "new_statements", """\
-Removed loop immediately broken."""
+Removed useless loop with immediate 'break' statement."""
 
         return self, None, None
 
@@ -145,7 +143,7 @@ class StatementContinueLoop(NodeBase):
     kind = "STATEMENT_CONTINUE_LOOP"
 
     def __init__(self, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
     def isStatementAborting(self):
         return True
@@ -167,7 +165,7 @@ class StatementBreakLoop(NodeBase):
     kind = "STATEMENT_BREAK_LOOP"
 
     def __init__(self, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
     def isStatementAborting(self):
         return True

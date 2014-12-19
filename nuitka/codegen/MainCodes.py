@@ -60,9 +60,9 @@ def getMainCode(main_module, codes, context):
         ),
         "python_sysflag_debug" : sys.flags.debug,
         "python_sysflag_py3k_warning" : ( sys.flags.py3k_warning
-            if hasattr( sys.flags, "py3k_warning" ) else 0 ),
+            if hasattr(sys.flags, "py3k_warning") else 0 ),
         "python_sysflag_division_warning" : ( sys.flags.division_warning
-            if hasattr( sys.flags, "division_warning" ) else 0 ),
+            if hasattr(sys.flags, "division_warning") else 0 ),
         #"python_sysflag_division_new" : sys.flags.division_new, #not supported
         "python_sysflag_inspect" : sys.flags.inspect,
         "python_sysflag_interactive" : sys.flags.interactive,

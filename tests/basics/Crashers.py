@@ -34,7 +34,7 @@ def optimizerCrashIssue13():
 optimizerCrashIssue13()
 
 def codegeneratorCrashIssue15():
-    f = float( "nan" )
+    f = float("nan")
     g = getrandom() # Prevent optimization of nan-constant
 
     return f+g

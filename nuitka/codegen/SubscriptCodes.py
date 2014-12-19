@@ -15,8 +15,30 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Subscript related code generation.
+
+There is special handling for integer indexes, which can be dealt with
+much faster than general subscript lookups.
+"""
 
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+from .Helpers import generateChildExpressionsCode
+
+
+def generateSubscriptLookupCode(to_name, expression, emit, context):
+    subscribed_name, subscript_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    return getSubscriptLookupCode(
+        to_name         = to_name,
+        subscribed_name = subscribed_name,
+        subscript_name  = subscript_name,
+        emit            = emit,
+        context         = context
+    )
 
 
 def getIntegerSubscriptLookupCode(to_name, target_name, subscript_name,
@@ -43,6 +65,7 @@ def getIntegerSubscriptLookupCode(to_name, target_name, subscript_name,
     )
 
     context.addCleanupTempName(to_name)
+
 
 def getSubscriptLookupCode(to_name, subscript_name, subscribed_name, emit,
                            context):
@@ -97,6 +120,7 @@ def getIntegerSubscriptAssignmentCode(subscribed_name, subscript_name,
         emit      = emit,
         context   = context
     )
+
 
 def getSubscriptAssignmentCode(target_name, subscript_name, value_name,
                                emit, context):

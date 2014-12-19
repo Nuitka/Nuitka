@@ -25,8 +25,11 @@ from . import Tracing, Utils
 
 try:
     import lxml.etree
+
+    Element = lxml.etree.Element
 except ImportError:
     lxml = None
+    Element = None
 
 def toString(xml):
     return lxml.etree.tostring(xml, pretty_print = True)

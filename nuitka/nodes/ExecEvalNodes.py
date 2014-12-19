@@ -27,8 +27,6 @@ from nuitka import Utils
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 
-# Delayed import into multiple branches is not an issue, pylint: disable=W0404
-
 class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
@@ -50,7 +48,7 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
         )
 
     getSourceCode = ExpressionChildrenHavingBase.childGetter("source")
-    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals")
+    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
     getLocals = ExpressionChildrenHavingBase.childGetter("locals")
 
     def computeExpression(self, constraint_collection):
@@ -159,7 +157,7 @@ class StatementExec(StatementChildrenHavingBase):
 
             value = convertNoneConstantToNone(value)
 
-        return StatementChildrenHavingBase.setChild( self, name, value )
+        return StatementChildrenHavingBase.setChild(self, name, value)
 
     getSourceCode = StatementChildrenHavingBase.childGetter("source")
     getGlobals = StatementChildrenHavingBase.childGetter("globals")
@@ -181,7 +179,7 @@ class StatementExec(StatementChildrenHavingBase):
                 result,
                 "new_raise",
                 """\
-Exec statement raises implicitely when determining source code argument."""
+Exec statement raises implicitly when determining source code argument."""
             )
 
         constraint_collection.onExpression(
@@ -205,7 +203,7 @@ Exec statement raises implicitely when determining source code argument."""
                 result,
                 "new_raise",
                 """\
-Exec statement raises implicitely when determining globals argument."""
+Exec statement raises implicitly when determining globals argument."""
             )
 
         constraint_collection.onExpression(
@@ -230,22 +228,54 @@ Exec statement raises implicitely when determining globals argument."""
                 result,
                 "new_raise",
                 """\
-Exec statement raises implicitely when determining locals argument."""
+Exec statement raises implicitly when determining locals argument."""
             )
 
         str_value = self.getSourceCode().getStrValue()
 
         if False and str_value is not None:
+            # TODO: Don't forget to consider side effects of source code.
+
             # TODO: This needs to be re-done.
             exec_body = None
 
             return (
                 exec_body,
                 "new_statements",
-                "Inlined constant exec statement."
+                "In-lined constant exec statement."
             )
 
         return self, None, None
+
+
+class StatementLocalsDictSync(StatementChildrenHavingBase):
+    kind = "STATEMENT_LOCALS_DICT_SYNC"
+
+    named_children = (
+        "locals",
+    )
+
+    def __init__(self, locals_arg, source_ref):
+        StatementChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "locals"  : locals_arg,
+            },
+            source_ref = source_ref,
+        )
+
+    def computeStatement(self, constraint_collection):
+        if self.getParentVariableProvider().isPythonModule():
+            return None, "new_statements", "Removed sync back to locals without locals."
+
+        constraint_collection.removeAllKnowledge()
+
+        return self, None, None
+
+    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
+
+    def mayRaiseException(self, exception_type):
+        return False
 
 
 class ExpressionBuiltinCompile(ExpressionChildrenHavingBase):

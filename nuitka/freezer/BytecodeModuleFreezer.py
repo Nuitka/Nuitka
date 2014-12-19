@@ -50,8 +50,7 @@ def isFrozenModule(module_name):
 
         if module_name == frozen_module_name:
             return True
-    else:
-        return False
+    return False
 
 stream_data = ConstantCodes.stream_data
 

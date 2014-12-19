@@ -19,14 +19,23 @@
 
 """
 
-from nuitka import Utils, Variables, Options
+from nuitka import Options, Utils, Variables
 
 from . import CodeTemplates
 from .ConstantCodes import getConstantCode
-from .ErrorCodes import (
-    getErrorFormatExitBoolCode,
-    getErrorFormatExitCode
-)
+from .Emission import SourceCodeCollector
+from .ErrorCodes import getErrorFormatExitBoolCode, getErrorFormatExitCode
+from .Indentation import indented
+
+
+def generateVariableReferenceCode(to_name, expression, emit, context):
+    getVariableAccessCode(
+        to_name     = to_name,
+        variable    = expression.getVariable(),
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
+    )
 
 
 def _getContextAccess(context, force_closure = False):
@@ -87,9 +96,6 @@ def getVariableCode(context, variable):
 
 
 def getLocalVariableInitCode(variable, init_from = None, in_context = False):
-    # This has many cases to deal with, so there need to be a lot of branches.
-    # pylint: disable=R0912
-
     assert not variable.isModuleVariable()
 
     result = variable.getDeclarationTypeCode(in_context)
@@ -124,6 +130,8 @@ def getLocalVariableInitCode(variable, init_from = None, in_context = False):
 
 
 def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
+    # Many different cases, as this must be, pylint: disable=R0912,R0915
+
     assert isinstance(variable, Variables.Variable), variable
 
     # For transfer of ownership.
@@ -220,6 +228,8 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
 
 
 def getVariableAccessCode(to_name, variable, needs_check, emit, context):
+    # Many different cases, as this must be, pylint: disable=R0912
+
     assert isinstance(variable, Variables.Variable), variable
 
     if variable.isModuleVariable():
@@ -254,32 +264,27 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
 
         return
     elif variable.isMaybeLocalVariable():
+        fallback_emit = SourceCodeCollector()
+
+        getVariableAccessCode(
+            to_name     = to_name,
+            variable    = variable.getMaybeVariable(),
+            needs_check = True,
+            emit        = fallback_emit,
+            context     = context
+        )
+
         emit(
             CodeTemplates.template_read_maybe_local_unclear % {
-                "locals_dict"       : "locals_dict",
-                "module_identifier" : context.getModuleCodeName(),
-                "tmp_name"          : to_name,
-                "var_name"          : getConstantCode(
+                "locals_dict" : "locals_dict",
+                "fallback"    : indented(fallback_emit.codes),
+                "tmp_name"    : to_name,
+                "var_name"    : getConstantCode(
                     context  = context,
                     constant = variable.getName()
                 )
             }
         )
-
-        if needs_check:
-            getErrorFormatExitCode(
-                check_name = to_name,
-                exception  = "PyExc_NameError",
-                args       = (
-                    '''name '%s' is not defined''' % (
-                       variable.getName()
-                    ),
-                ),
-                emit       = emit,
-                context    = context
-            )
-        elif Options.isDebug():
-            emit("assertObject(%s);" % to_name)
 
         return
     elif variable.isLocalVariable():
@@ -372,6 +377,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
 
 
 def getVariableDelCode(tolerant, variable, emit, context):
+    # Many different cases, as this must be, pylint: disable=R0912
     assert isinstance(variable, Variables.Variable), variable
 
     if variable.isModuleVariable():
@@ -452,7 +458,7 @@ local variable '%s' referenced before assignment""" % (
                 getErrorFormatExitBoolCode(
                     condition = "%s == false" % res_name,
                     exception = "PyExc_NameError",
-                    args       = ("""\
+                    args      = ("""\
 free variable '%s' referenced before assignment in enclosing scope""" % (
                             variable.getName()
                         ),

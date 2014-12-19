@@ -28,11 +28,13 @@ And releasing of values, as this is what the error case commonly does.
 
 """
 
+from nuitka import Utils
+
 from . import CodeTemplates
 from .ExceptionCodes import getExceptionIdentifier
 from .Indentation import indented
 from .LineNumberCodes import getLineNumberUpdateCode
-from nuitka import Utils
+
 
 def getErrorExitReleaseCode(context):
     return "\n".join(
@@ -117,20 +119,17 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
         ]
 
     emit(
-        indented(
-            CodeTemplates.template_error_format_string_exception % {
-                "condition"        : condition,
-                "exception_exit"   : context.getExceptionEscape(),
-                "set_exception"    : indented(set_exception),
-                "release_temps"    : indented(
-                    getErrorExitReleaseCode(context)
-                ),
-                "line_number_code" : indented(
-                    getLineNumberUpdateCode(context)
-                )
-            },
-            0
-        )
+        CodeTemplates.template_error_format_string_exception % {
+            "condition"        : condition,
+            "exception_exit"   : context.getExceptionEscape(),
+            "set_exception"    : indented(set_exception),
+            "release_temps"    : indented(
+                getErrorExitReleaseCode(context)
+            ),
+            "line_number_code" : indented(
+                getLineNumberUpdateCode(context)
+            )
+        }
     )
 
 

@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Optimizations of builtins to builtin calls.
+""" Optimizations of built-ins to built-in calls.
 
 """
 import math
@@ -34,15 +34,15 @@ class BuiltinParameterSpec(ParameterSpec):
                   dict_star_arg = None):
         ParameterSpec.__init__(
             self,
-            name           = name,
-            normal_args    = arg_names,
-            list_star_arg  = list_star_arg,
-            dict_star_arg  = dict_star_arg,
-            default_count  = default_count,
-            kw_only_args   = ()
+            name          = name,
+            normal_args   = arg_names,
+            list_star_arg = list_star_arg,
+            dict_star_arg = dict_star_arg,
+            default_count = default_count,
+            kw_only_args  = ()
         )
 
-        self.builtin = __builtins__[ name ]
+        self.builtin = __builtins__[name]
 
     def __repr__(self):
         return "<BuiltinParameterSpec %s>" % self.name
@@ -51,11 +51,14 @@ class BuiltinParameterSpec(ParameterSpec):
         return self.name
 
     def isCompileTimeComputable(self, values):
+        # By default, we make this dependent on the ability to compute the
+        # arguments, which is of course a good start for most cases, so this
+        # is for overloads, pylint: disable=R0201
+
         for value in values:
             if value is not None and not value.isCompileTimeConstant():
                 return False
-        else:
-            return True
+        return True
 
     def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really
@@ -135,6 +138,8 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
                 arg_list += [ value.getCompileTimeConstant() for value in given_list_star_arg ]
         except Exception as e:
             print >> sys.stderr, "Fatal error: ",
+            import traceback
+            traceback.print_exc()
             sys.exit(repr(e))
 
         return self.builtin(*arg_list)
@@ -221,6 +226,7 @@ builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ("c",), 0)
 builtin_bin_spec = BuiltinParameterSpecNoKeywords("bin", ("number",), 0)
 builtin_oct_spec = BuiltinParameterSpecNoKeywords("oct", ("number",), 0)
 builtin_hex_spec = BuiltinParameterSpecNoKeywords("hex", ("number",), 0)
+builtin_id_spec = BuiltinParameterSpecNoKeywords("id", ("object",), 0)
 builtin_repr_spec = BuiltinParameterSpecNoKeywords("repr", ("object",), 0)
 
 builtin_dir_spec = BuiltinParameterSpecNoKeywords("dir", ("object",), 1)
@@ -263,14 +269,21 @@ builtin_hasattr_spec = BuiltinParameterSpecNoKeywords("hasattr", ("object", "nam
 builtin_getattr_spec = BuiltinParameterSpecNoKeywords("getattr", ("object", "name", "default"), 1)
 builtin_setattr_spec = BuiltinParameterSpecNoKeywords("setattr", ("object", "name", "value"), 0)
 
-builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "cls"), 0)
+builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "classes"), 0)
 
+builtin_bytearray_spec = BuiltinParameterSpecNoKeywords("bytearray", ("iterable_of_ints",), 1)
+
+# Beware: One argument defines stop, not start.
+builtin_slice_spec = BuiltinParameterSpecNoKeywords("slice", ("start", "stop", "step"), 2)
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def __init__(self, *args):
         BuiltinParameterSpecNoKeywords.__init__(self, *args)
 
     def isCompileTimeComputable(self, values):
+        # For ranges, we need have many cases that can prevent the ability
+        # to pre-compute, pylint: disable=R0911,R0912
+
         result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
             self,
             values = values
@@ -376,8 +389,8 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
 
         return wrapExpressionWithSideEffects(
             new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
-                expression     = node,
-                exception      = e.getRealException()
+                expression = node,
+                exception  = e.getRealException()
             ),
             old_node     = node,
             side_effects = node.extractPreCallSideEffects()

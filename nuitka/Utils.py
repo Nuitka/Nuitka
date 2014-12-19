@@ -26,14 +26,7 @@ import os
 import subprocess
 import sys
 
-
-# TODO: Duplicated with PythonVersions, but too much work to relocate fully.
-def _getPythonVersion():
-    big, major, minor = sys.version_info[0:3]
-
-    return big * 100 + major * 10 + minor
-
-python_version = _getPythonVersion()
+from nuitka.PythonVersions import python_version
 
 
 def getOS():
@@ -43,6 +36,7 @@ def getOS():
         return os.uname()[0]
     else:
         assert False, os.name
+
 
 def getArchitecture():
     if getOS() == "Windows":
@@ -70,7 +64,7 @@ def abspath(path):
 
 
 def joinpath(*parts):
-    return os.path.join( *parts )
+    return os.path.join(*parts)
 
 
 def splitpath(path):
@@ -148,15 +142,12 @@ def getCoreCount():
     # Try to sum up the CPU cores, if the kernel shows them.
     try:
         # Try to get the number of logical processors
-        with open( "/proc/cpuinfo" ) as cpuinfo_file:
-            cpu_count = cpuinfo_file.read().count( "processor\t:" )
+        with open("/proc/cpuinfo") as cpuinfo_file:
+            cpu_count = cpuinfo_file.read().count("processor\t:")
     except IOError:
         pass
 
     if not cpu_count:
-        # false alarm, no re-import, just a function level import to avoid it
-        # unless it is absolutely necessary, pylint: disable=W0404
-
         import multiprocessing
         cpu_count = multiprocessing.cpu_count()
 
@@ -183,6 +174,8 @@ def callExec(args):
                 subprocess.call(args)
             )
         except KeyboardInterrupt:
+            # There was a more relevant stack trace already, so abort this
+            # right here, pylint: disable=W0212
             os._exit(2)
 
 
@@ -195,11 +188,13 @@ def encodeNonAscii(var_name):
     if python_version < 300:
         return var_name
     else:
+        # Using a escaping here, because that makes it safe in terms of not
+        # to occur in the encoding escape sequence for unicode use.
+        var_name = var_name.replace("$$", "$_$")
+
         var_name = var_name.encode("ascii", "xmlcharrefreplace")
         var_name = var_name.decode("ascii")
 
-        # TODO: Is this truly safe of collisions, I think it is not. It might be
-        # necessary to use something that is not allowed otherwise.
         return var_name.replace("&#", "$$").replace(";", "")
 
 
@@ -267,6 +262,7 @@ def getOwnProcessMemoryUsage():
 
         return counters.PrivateUsage
     else:
+        # Posix only code, pylint: disable=F0401,I0021
         import resource
 
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024

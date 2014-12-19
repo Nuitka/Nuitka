@@ -34,9 +34,9 @@ from .ParameterParsing import (
 )
 from .PythonAPICodes import getReferenceExportCode
 from .VariableCodes import (
-    getVariableCodeName,
     getLocalVariableInitCode,
-    getVariableCode
+    getVariableCode,
+    getVariableCodeName
 )
 
 
@@ -104,7 +104,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                          parameters, local_variables, closure_variables,
                          defaults_name, kw_defaults_name, annotations_name,
                          source_ref, function_doc, is_generator, is_optimized,
-                         emit, context):
+                         context):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables
@@ -270,7 +270,7 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
         "%s = MAKE_FUNCTION_%s( %s );" % (
             to_name,
             function_identifier,
-            ", ".join( args )
+            ", ".join(args)
         )
     )
 
@@ -279,7 +279,7 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
     if context.needsCleanup(kw_defaults_name):
         context.removeCleanupTempName(kw_defaults_name)
 
-    # TODO: Error checks
+    # No error checks, this supposedly, cannot fail.
     context.addCleanupTempName(to_name)
 
 
@@ -350,14 +350,13 @@ def getFunctionDirectDecl(function_identifier, closure_variables,
     result = CodeTemplates.template_function_direct_declaration % {
         "file_scope"           : file_scope,
         "function_identifier"  : function_identifier,
-        "direct_call_arg_spec" : ", ".join( parameter_objects_decl ),
+        "direct_call_arg_spec" : ", ".join(parameter_objects_decl),
     }
 
     return result
 
 
-def getFunctionContextDefinitionCode(function_identifier, closure_variables,
-                                     context):
+def getFunctionContextDefinitionCode(function_identifier, closure_variables):
     context_decl = []
 
     # Always empty now, but we may not use C++ destructors for everything in the
@@ -383,6 +382,8 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
                     closure_variables, user_variables, temp_variables,
                     function_codes, function_doc, file_scope,
                     needs_exception_exit):
+
+    # Many arguments, as we need much input transferred, pylint: disable=R0913
 
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=R0912,R0914
@@ -458,6 +459,8 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         context.getTempNameInfos()
     ]
 
+    local_var_inits += context.getFrameDeclarations()
+
     # TODO: Could avoid this unless try/except or try/finally with returns
     # occur.
     if context.hasTempName("return_value"):
@@ -531,6 +534,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         result += entry_point_code
 
     return result
+
 
 def getGeneratorFunctionCode( context, function_name, function_identifier,
                               parameters, closure_variables, user_variables,
@@ -702,6 +706,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         context.getTempNameInfos()
     ]
 
+    function_locals += context.getFrameDeclarations()
+
     # TODO: Could avoid this unless try/except or try/finally with returns
     # occur.
     if context.hasTempName("generator_return"):
@@ -719,9 +725,9 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
 
     result += CodeTemplates.genfunc_yielder_template % {
         "function_identifier" : function_identifier,
-        "function_body"       : indented(function_codes, 1),
-        "function_var_inits"  : indented(function_locals, 1),
-        "context_access"      : indented(context_access_instance, 1),
+        "function_body"       : indented(function_codes),
+        "function_var_inits"  : indented(function_locals),
+        "context_access"      : indented(context_access_instance),
         "generator_exit"      : generator_exit
     }
 

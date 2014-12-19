@@ -133,18 +133,18 @@ def _readSourceCodeFromFilename2(source_filename):
 
                 wrong_byte = re.search(
                     "byte 0x([a-f0-9]{2}) in position",
-                    str( e )
-                ).group( 1 )
+                    str(e)
+                ).group(1)
 
                 SyntaxErrors.raiseSyntaxError(
-                    reason     = """\
+                    reason       = """\
 Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
-see http://www.python.org/peps/pep-0263.html for details""" % (
+see http://python.org/dev/peps/pep-0263/ for details""" % (
                         wrong_byte,
                         source_filename,
                         count+1,
                     ),
-                    source_ref = SourceCodeReferences.fromFilename(
+                    source_ref   = SourceCodeReferences.fromFilename(
                         source_filename,
                         None
                     ).atLineNumber(count+1),

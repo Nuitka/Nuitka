@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Node for constant expressions. Can be any builtin type.
+""" Node for constant expressions. Can be all common built-in types.
 
 """
 
@@ -44,7 +44,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         NodeBase.__init__(self, source_ref = source_ref)
         CompileTimeConstantExpressionMixin.__init__(self)
 
-        assert isConstant(constant), constant
+        assert isConstant(constant), repr(constant)
 
         self.constant = constant
 
@@ -70,8 +70,6 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
             except TypeError:
                 pass
 
-        # TODO: Make this a warning, and cover all constant types.
-        # assert type( constant ) is not str or len( constant ) < 30000
 
     def __repr__(self):
         return "<Node %s value %s at %s %s>" % (
@@ -94,8 +92,6 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         return repr(self.constant)
 
     def computeExpression(self, constraint_collection):
-        # No need to check anything, pylint: disable=W0613
-
         # Cannot compute any further, this is already the best.
         return self, None, None
 
@@ -106,7 +102,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
             new_node     = makeRaiseExceptionReplacementExpression(
                 expression      = self,
                 exception_type  = "TypeError",
-                exception_value = "'%s' object is not callable" % type( self.constant ).__name__
+                exception_value = "'%s' object is not callable" % type(self.constant).__name__
             ),
             old_node     = call_node,
             side_effects = call_node.extractPreCallSideEffects()
@@ -135,8 +131,9 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         return self.constant is None or self.isNumberConstant()
 
     def isKnownToBeIterable(self, count):
-        if isIterableConstant( self.constant ):
-            return count is None or getConstantIterationLength(self.constant) == count
+        if isIterableConstant(self.constant):
+            return count is None or \
+                   getConstantIterationLength(self.constant) == count
         else:
             return False
 
@@ -146,20 +143,24 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         return length is not None and length >= count
 
     def canPredictIterationValues(self):
-        return self.isKnownToBeIterable( None )
+        return self.isKnownToBeIterable(None)
 
     def getIterationValue(self, count):
         assert count < len(self.constant)
 
-        return ExpressionConstantRef( self.constant[ count ], self.source_ref )
+        return ExpressionConstantRef(
+            constant   = self.constant[count],
+            source_ref = self.source_ref
+        )
 
     def getIterationValues(self):
         source_ref = self.getSourceReference()
 
         return tuple(
             ExpressionConstantRef(
-                constant   = value,
-                source_ref = source_ref
+                constant      = value,
+                source_ref    = source_ref,
+                user_provided = self.user_provided
             )
             for value in
             self.constant
@@ -172,10 +173,9 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         assert self.isMapping()
 
         for key in self.constant:
-            if type( key ) not in ( str, unicode ):
+            if type(key) not in (str, unicode):
                 return False
-        else:
-            return True
+        return True
 
     def getMappingPairs(self):
         assert self.isMapping()
@@ -184,7 +184,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
         source_ref = self.getSourceReference()
 
-        for key, value in iterItems( self.constant ):
+        for key, value in iterItems(self.constant):
             pairs.append(
                 ExpressionConstantRef(
                     constant   = key,
@@ -205,7 +205,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
         source_ref = self.getSourceReference()
 
-        for key, value in iterItems( self.constant ):
+        for key, value in iterItems(self.constant):
             pairs.append(
                 (
                     key,
@@ -220,7 +220,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
 
     def isBoolConstant(self):
-        return type( self.constant ) is bool
+        return type(self.constant) is bool
 
     def mayHaveSideEffects(self):
         # Constants have no side effects
@@ -231,14 +231,12 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         return ()
 
     def mayRaiseException(self, exception_type):
-        # Virtual method, pylint: disable=R0201,W0613
-
         # Constants won't raise any kind of exception.
         return False
 
     def getIntegerValue(self):
         if self.isNumberConstant():
-            return int( self.constant )
+            return int(self.constant)
         else:
             return None
 
@@ -249,23 +247,28 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
             return None
 
     def getIterationLength(self):
-        if isIterableConstant( self.constant ):
-            return getConstantIterationLength( self.constant )
+        if isIterableConstant(self.constant):
+            return getConstantIterationLength(self.constant)
         else:
             return None
 
     def isIterableConstant(self):
-        return isIterableConstant( self.constant )
+        return isIterableConstant(self.constant)
 
     def getStrValue(self):
         if type(self.constant) is str:
+            # Nothing to do.
             return self
         else:
-            return ExpressionConstantRef(
-                constant      = str(self.constant),
-                user_provided = self.user_provided,
-                source_ref    = self.getSourceReference(),
-            )
+            try:
+                return ExpressionConstantRef(
+                    constant      = str(self.constant),
+                    user_provided = self.user_provided,
+                    source_ref    = self.getSourceReference(),
+                )
+            except UnicodeEncodeError:
+                # Unicode constants may not be possible to encode.
+                return None
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
         if type(self.constant) in (list, set, frozenset, dict):
@@ -277,7 +280,10 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
             self.replaceWith(result)
 
-            return iter_node, "new_constant", """
+            return (
+                iter_node,
+                "new_constant", """\
 Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
+            )
 
         return iter_node, None, None

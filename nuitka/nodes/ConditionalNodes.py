@@ -22,10 +22,9 @@ statement, 'if a: ... else: ...' and there is no 'elif', because that is
 expressed via nesting of conditional statements.
 """
 
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
+
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
-
-
-# Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 
 class ExpressionConditional(ExpressionChildrenHavingBase):
@@ -66,8 +65,6 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
     )
 
     def computeExpressionRaw(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
         constraint_collection.onExpression(
@@ -79,11 +76,11 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         # not matter at all.
         if condition.willRaiseException(BaseException):
             return condition, "new_raise", """\
-Conditional statements already raises implicitely in condition, removing \
+Conditional statements already raises implicitly in condition, removing \
 branches."""
 
-
-        # If the condition raises, we let that escape.
+        # If the condition raises, we let that escape instead, and the
+        # branches don't matter at all.
         if condition.willRaiseException(BaseException):
             return condition, "new_raise", """\
 Conditional expression raises in condition."""
@@ -165,15 +162,50 @@ Conditional expression raises in condition."""
             return self, None, None
 
     def mayHaveSideEffectsBool(self):
-        condition = self.getCondition()
-
-        if condition.mayHaveSideEffectsBool():
+        if self.getCondition().mayHaveSideEffectsBool():
             return True
 
         if self.getExpressionYes().mayHaveSideEffectsBool():
             return True
 
         if self.getExpressionNo().mayHaveSideEffectsBool():
+            return True
+
+        return False
+
+    def mayRaiseException(self, exception_type):
+        condition = self.getCondition()
+
+        if condition.mayRaiseException(exception_type):
+            return True
+
+        if condition.mayRaiseExceptionBool(exception_type):
+            return True
+
+        yes_branch = self.getExpressionYes()
+
+        # Handle branches that became empty behind our back
+        if yes_branch is not None and \
+           yes_branch.mayRaiseException(exception_type):
+            return True
+
+        no_branch = self.getExpressionNo()
+
+        # Handle branches that became empty behind our back
+        if no_branch is not None and \
+           no_branch.mayRaiseException(exception_type):
+            return True
+
+        return False
+
+    def mayRaiseExceptionBool(self, exception_type):
+        if self.getCondition().mayRaiseExceptionBool():
+            return True
+
+        if self.getExpressionYes().mayRaiseExceptionBool():
+            return True
+
+        if self.getExpressionNo().mayRaiseExceptionBool():
             return True
 
         return False
@@ -199,11 +231,11 @@ class StatementConditional(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getCondition = StatementChildrenHavingBase.childGetter( "condition" )
-    getBranchYes = StatementChildrenHavingBase.childGetter( "yes_branch" )
-    setBranchYes = StatementChildrenHavingBase.childSetter( "yes_branch" )
-    getBranchNo = StatementChildrenHavingBase.childGetter( "no_branch" )
-    setBranchNo = StatementChildrenHavingBase.childSetter( "no_branch" )
+    getCondition = StatementChildrenHavingBase.childGetter("condition")
+    getBranchYes = StatementChildrenHavingBase.childGetter("yes_branch")
+    setBranchYes = StatementChildrenHavingBase.childSetter("yes_branch")
+    getBranchNo = StatementChildrenHavingBase.childGetter("no_branch")
+    setBranchNo = StatementChildrenHavingBase.childSetter("no_branch")
 
     def isStatementAborting(self):
         yes_branch = self.getBranchYes()
@@ -227,6 +259,9 @@ class StatementConditional(StatementChildrenHavingBase):
         if condition.mayRaiseException(exception_type):
             return True
 
+        if condition.mayRaiseExceptionBool(exception_type):
+            return True
+
         yes_branch = self.getBranchYes()
 
         # Handle branches that became empty behind our back
@@ -247,6 +282,9 @@ class StatementConditional(StatementChildrenHavingBase):
         condition = self.getCondition()
 
         if condition.mayRaiseException(BaseException):
+            return True
+
+        if condition.mayRaiseExceptionBool(BaseException):
             return True
 
         yes_branch = self.getBranchYes()
@@ -286,7 +324,7 @@ class StatementConditional(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Conditional statements already raises implicitely in condition, removing \
+Conditional statements already raises implicitly in condition, removing \
 branches."""
 
         from nuitka.optimizations.ConstraintCollections import \
@@ -356,6 +394,12 @@ branches."""
             from .NodeMakingHelpers import \
                 makeStatementExpressionOnlyReplacementNode
 
+            if truth_value is None:
+                condition = ExpressionBuiltinBool(
+                    value      = condition,
+                    source_ref = condition.getSourceReference()
+                )
+
             # With both branches eliminated, the condition remains as a side
             # effect.
             result = makeStatementExpressionOnlyReplacementNode(
@@ -374,7 +418,7 @@ Both branches have no effect, reduced to evaluate condition."""
             from .OperatorNodes import ExpressionOperationNOT
 
             new_statement = StatementConditional(
-                condition = ExpressionOperationNOT(
+                condition  = ExpressionOperationNOT(
                     operand    = condition,
                     source_ref = condition.getSourceReference()
                 ),

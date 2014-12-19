@@ -73,15 +73,15 @@ def getEvalCode(to_name, source_name, filename_name, globals_name, locals_name,
     compiled_name = context.allocateTempName("eval_compiled")
 
     getCompileCode(
-        to_name            = compiled_name,
-        source_name        = source_name,
-        filename_name      = filename_name,
-        mode_name          = mode_name,
-        flags_name         = "NULL",
-        dont_inherit_name  = "NULL",
-        optimize_name      = "NULL",
-        emit               = emit,
-        context            = context
+        to_name           = compiled_name,
+        source_name       = source_name,
+        filename_name     = filename_name,
+        mode_name         = mode_name,
+        flags_name        = "NULL",
+        dont_inherit_name = "NULL",
+        optimize_name     = "NULL",
+        emit              = emit,
+        context           = context
     )
 
     emit(
@@ -109,7 +109,7 @@ def getEvalCode(to_name, source_name, filename_name, globals_name, locals_name,
 
 
 def getExecCode(source_name, globals_name, filename_name, locals_name,
-                store_back, provider, emit, context):
+                emit, context):
     compiled_name = context.allocateTempName("exec_compiled")
 
     getCompileCode(
@@ -158,37 +158,11 @@ def getExecCode(source_name, globals_name, filename_name, locals_name,
         context      = context
     )
 
-    if store_back:
-        locals_source = context.allocateTempName("locals_source", unique = True)
 
-        emit(
-            """\
-if ( %(locals_name)s == locals_dict )
-{
-    %(locals_source)s = %(locals_name)s;
-}
-else if ( %(globals_name)s == locals_dict )
-{
-    %(locals_source)s = %(globals_name)s;
-}
-else
-{
-    %(locals_source)s = NULL;
-}
-
-if ( %(locals_source)s != NULL )
-{""" % {
-                "locals_source" : locals_source,
-                "globals_name"  : globals_name,
-                "locals_name"   : locals_name,
-             }
-        )
-
-        getStoreLocalsCode(
-            locals_name = locals_source,
-            provider    = provider,
-            emit        = emit,
-            context     = context
-        )
-
-        emit("}")
+def getLocalsDictSyncCode(locals_name, provider, emit, context):
+    getStoreLocalsCode(
+        locals_name = locals_name,
+        provider    = provider,
+        emit        = emit,
+        context     = context
+    )

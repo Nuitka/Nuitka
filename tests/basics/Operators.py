@@ -18,7 +18,7 @@
 
 a = 3
 b = 7
-c = [ 7, 8 ]
+c = [7, 8]
 d = 15
 
 print "+", a + b
@@ -51,12 +51,12 @@ print "~", ~ b
 print "-", - b
 print "+", + b
 
-l =  { ( "a", "c" ) : "a,c", "b" : 2, "c" : 3, "d" : 4  }
+l =  {("a", "c") : "a,c", "b" : 2, "c" : 3, "d" : 4  }
 l[ "l", ] = "6"
 
 
 print "Extended slicing:"
-print "Should be a,c:", l[ "a", "c" ]
+print "Should be a,c:", l[ "a", "c"]
 
 print "Short form of extended slicing:"
 
@@ -83,7 +83,7 @@ print repr(L), repr(ss)
 print repr(3L)
 
 print "Slicing on a list:"
-l = [ 1, 3, 5, 7, 11, 13, 17 ]
+l = [1, 3, 5, 7, 11, 13, 17]
 
 print l[None:None]
 

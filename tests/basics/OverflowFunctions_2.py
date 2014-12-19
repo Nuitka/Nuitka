@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
@@ -16,26 +15,35 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print "Hello World from Module main Code"
 
-def printHelloWorld():
-    print "Hello World from Function main Code"
+def starImporterFunction():
+    from sys import *
 
-print printHelloWorld
+    print "Version", version.split()[0].split(".")[:-1]
 
-printHelloWorld()
+starImporterFunction()
 
-def printHelloWorld2(arg):
-    print arg
+def deepExec():
+    for_closure = 3
 
-print printHelloWorld2
+    def deeper():
+        for_closure_as_well = 4
 
-printHelloWorld2("Hello World from Function positional argument")
-printHelloWorld2(arg = "Hello World from Function keyword argument" )
+        def execFunction():
+            code = "f=2"
 
-def printHelloWorld3(arg = "Hello World from Function default argument"):
-    print arg
+            # Can fool it to nest
+            exec code in None, None
 
-print printHelloWorld3
+            print "Locals now", locals()
 
-printHelloWorld3()
+            print "Closure one level up was taken", for_closure_as_well
+            print "Closure two levels up was taken", for_closure
+            print "Globals still work", starImporterFunction
+            print "Added local from code", f
+
+        execFunction()
+
+    deeper()
+
+deepExec()

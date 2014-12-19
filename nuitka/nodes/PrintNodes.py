@@ -27,7 +27,6 @@ cases.
 
 from .NodeBases import StatementChildrenHavingBase
 from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
     wrapStatementWithSideEffects
@@ -51,6 +50,8 @@ class StatementPrintValue(StatementChildrenHavingBase):
             },
             source_ref = source_ref
         )
+
+        assert value is not None
 
     getDestination = StatementChildrenHavingBase.childGetter(
         "dest"
@@ -77,8 +78,7 @@ class StatementPrintValue(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Known exception raise in print statement destination converted to explicit \
-raise."""
+Exception raise in 'print' statement destination converted to explicit raise."""
 
         constraint_collection.onExpression(
             expression = self.getValue()
@@ -101,89 +101,30 @@ raise."""
                 )
 
             return result, "new_raise", """\
-Known exception raise in print statement arguments converted to explicit \
-raise."""
-
-        return self, None, None
-
-        # TODO: Restore this
-
-        printeds = self.getValues()
-
-        for count in range( len( printeds ) - 1 ):
-            if printeds[ count ].isExpressionConstantRef():
-                new_value = printeds[ count ].getConstant()
-
-                # Above code should have replaced this already.
-                assert type( new_value ) is str, self
-
-                stop_count = count + 1
-
-                while True:
-                    candidate = printeds[ stop_count ]
-
-                    if candidate.isExpressionConstantRef() and \
-                       candidate.isStringConstant():
-                        if not new_value.endswith( "\t" ):
-                            new_value += " "
-
-                        new_value += candidate.getConstant()
-
-                        stop_count += 1
-
-                        if stop_count >= len( printeds ):
-                            break
-
-                    else:
-                        break
-
-                if stop_count != count + 1:
-                    new_node = makeConstantReplacementNode(
-                        constant = new_value,
-                        node     = printeds[ count ]
-                    )
-
-                    new_printeds = printeds[ : count ] + \
-                                   ( new_node, ) + \
-                                   printeds[ stop_count: ]
-
-                    self.setValues( new_printeds )
-
-                    constraint_collection.signalChange(
-                        "new_expression",
-                        printeds[ count ].getSourceReference(),
-                        "Combined print string arguments at compile time"
-                    )
-
-                    break
+Exception raise in 'print' statement arguments converted to explicit raise."""
 
         if dest is None:
-            values = self.getValues()
+            if value.isExpressionSideEffects():
+                self.setValue(value.getExpression())
 
-            if values:
-                if values[0].isExpressionSideEffects():
-                    statements = [
-                        makeStatementExpressionOnlyReplacementNode(
-                            side_effect,
-                            self
-                        )
-                        for side_effect in
-                        values[0].getSideEffects()
-                    ]
-
-                    statements.append( self )
-
-                    self.setValues(
-                        ( values[0].getExpression(), ) + values[ 1: ]
+                statements = [
+                    makeStatementExpressionOnlyReplacementNode(
+                        side_effect,
+                        self
                     )
+                    for side_effect in
+                    value.getSideEffects()
+                ]
 
-                    result = makeStatementsSequenceReplacementNode(
-                        statements = statements,
-                        node       = self,
-                    )
+                statements.append(self)
 
-                    return result, "new_statements", """\
-Side effects first printed item promoted to statements."""
+                result = makeStatementsSequenceReplacementNode(
+                    statements = statements,
+                    node       = self,
+                )
+
+                return result, "new_statements", """\
+Side effects printed item promoted to statements."""
 
         return self, None, None
 
@@ -223,7 +164,6 @@ class StatementPrintNewline(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Known exception raise in print statement destination converted to explicit \
-raise."""
+Exception raise in 'print' statement destination converted to explicit raise."""
 
         return self, None, None

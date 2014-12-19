@@ -46,9 +46,9 @@ def getCallCodeNoArgs(to_name, called_name, emit, context):
     )
 
     getErrorExitCode(
-        check_name  = to_name,
-        emit        = emit,
-        context     = context
+        check_name = to_name,
+        emit       = emit,
+        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -56,7 +56,7 @@ def getCallCodeNoArgs(to_name, called_name, emit, context):
 
 
 # Outside helper code relies on some quick call to be present.
-quick_calls_used = set( [ 1, 2, 3 ] )
+quick_calls_used = set([1, 2, 3])
 
 def getCallCodePosArgsQuick(to_name, called_name, arg_names, emit, context):
 
@@ -205,7 +205,7 @@ def getCallsCode():
         CodeTemplates.template_call_cpython_function_fast_impl % {}
     )
 
-    for quick_call_used in sorted( quick_calls_used ):
+    for quick_call_used in sorted(quick_calls_used):
         args_decl = [
             "PyObject *arg%d" % d
             for d in range(1, quick_call_used + 1)

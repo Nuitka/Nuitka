@@ -15,80 +15,108 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 """ Playing around with constants only. """
 
-for value in (0, 0L, 3L, -4L, 17, "hey", (0, ),(0L, ), 0.0, -0.0 ):
-   print value, repr(value)
+from __future__ import print_function
 
-print 1 == 0
+try:
+    long
+except NameError:
+    long = int
 
-print repr(0L), repr(0L) == "0L"
 
-print {} is {}
+print("A bunch of constants and their representation:")
+for value in (0, 3, -4, 17, "hey", (0, ), 0.0, -0.0):
+    print(value, ":", repr(value))
 
-a = ( {}, [] )
+print("Comparing constants, optimizable:")
+print(1 == 0)
+
+print("Repr of long constants:")
+a = long(0)
+print(repr(long(0)), repr(a) == "0L")
+
+print("Identity of empty dictionary constants:")
+print({} is {})
+
+a = ({}, [])
 
 a[0][1] = 2
-a[1].append( 3 )
+a[1].append(3)
 
-print a
+print("Mutable list and dict inside an immutable tuple:")
+print(a)
 
-print ( {}, [] )
+print("Empty list and dict are hopefully unchanged:")
+print(({}, []))
 
 def argChanger(a):
-   a[0][1] = 2
-   a[1].append( 3 )
+    a[0][1] = 2
+    a[1].append(3)
 
-   return a
+    return a
 
-print argChanger( ( {}, [] ) )
+print("Mutable list and dict inside an immutable tuple as arguments:")
+print(argChanger(({}, [])))
 
-print ( {}, [] )
+print("Empty list and dict are hopefully still unchanged:")
+print(({}, []))
 
-print set(['foo'])
-
+print("Set constants:")
+print(set(['foo']))
 
 def mutableConstantChanger():
-    a = ( [ 1, 2 ], [ 3 ] )
-    print a
+    a = ([1, 2], [3])
 
-    a[ 1 ].append( 5 )
-    print a
+    print("Start out with value:")
+    print(a)
 
-    d = { "l": [], "m" : [] }
-    d["l"].append( 7 )
-    print d
+    a[1].append(5)
+    print("Changed to value:")
+    print(a)
 
-    declspec = None
-    spec = dict(qual=[], storage=set(), type=[], function=set(), q = 1)
-    spec[ "type" ].insert( 0, 2 )
-    spec[ "storage" ].add(3)
-    print sorted( spec )
+    d = {
+        "l": [],
+        "m" : []
+    }
+    print("Start out with value:")
+    print(d)
+
+    d["l"].append(7)
+    print("Changed to value:")
+    print(d)
+
+
+    spec = dict(qual = [], storage = set(), type = [], function = set(), q = 1)
+    spec["type"].insert(0, 2)
+    spec["storage"].add(3)
+    print("Dictionary created from dict built-in.")
+    print(sorted(spec))
 
 mutableConstantChanger()
+print("Redo constant changes, to catch corruptions:")
 mutableConstantChanger()
 
 def defaultKeepsIdentity(arg = "str_value"):
-   print arg is "str_value"
+    print("Default constant values are still shared if immutable:")
+    print(arg is "str_value")
 
 defaultKeepsIdentity()
 
-
-# Dictionary creation from call args
+# Dictionary creation from call arguments.
 def dd(**d):
     return d
 def f():
     def one():
-        print "one"
+        print("one")
 
     def two():
-        print "two"
+        print("two")
 
-    a = dd(qual=one(), storage=two(), type=[], function=[])
-    print "f mutable", a
-    a = dd(qual=1, storage=2, type=3, function=4)
-    print "f immutable", a
+    a = dd(qual = one(), storage = two(), type = [], function = [])
+    print("f mutable", a)
+    a = dd(qual = 1, storage = 2, type = 3, function = 4)
+    print("f immutable", a)
 
     # TODO: This exposes a bug in how the star dict argument should populate the
     # dictionary first instead of last, and the called arguments might have to
@@ -107,28 +135,28 @@ x["function"] = []
 x["type"] = []
 x["storage"] = []
 x["qual"] = []
-print "m", x
+print("Manual built dictionary:", x)
 x={}
 x["function"] = 1
 x["type"] = 2
 x["storage"] = 3
 x["qual"] = 4
-print "m", x
+print("Manual built dictionary:", x)
 
 # Constants in the code must be created differently.
 d = { "qual" :  [], "storage" : [], "type2" : [], "function" : [] }
-print "c", d
+print("Mutable values dictionary constant:", d)
 d = { "qual" :  1, "storage" : 2, "type2" : 3, "function" : 4 }
-print "c", d
+print("Immutable values dictionary constant:", d)
 
 # Constants that might be difficult
-min_signed_int = int( -(2**(8*8-1)-1)-1 )
-print "small int", min_signed_int, type(min_signed_int)
-min_signed_int = int( -(2**(8*4-1)-1)-1 )
-print "small int", min_signed_int, type(min_signed_int)
+min_signed_int = int(-(2**(8*8-1)-1)-1)
+print("Small int:", min_signed_int, type(min_signed_int))
+min_signed_int = int(-(2**(8*4-1)-1)-1)
+print("Small int", min_signed_int, type(min_signed_int))
 
 # Constants that might be difficult
-min_signed_long = long( -(2**(8*8-1)-1)-1 )
-print "small long", min_signed_long, type(min_signed_long)
-min_signed_long = long( -(2**(8*4-1)-1)-1 )
-print "small long", min_signed_long, type(min_signed_long)
+min_signed_long = long(-(2**(8*8-1)-1)-1)
+print("Small long", min_signed_long, type(min_signed_long))
+min_signed_long = long(-(2**(8*4-1)-1)-1)
+print("Small long", min_signed_long, type(min_signed_long))

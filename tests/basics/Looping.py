@@ -21,16 +21,16 @@ def cond():
 
 def loopingFunction(a = 1*2):
     c = []
-    f = [ c, a ]
+    f = [c, a]
 
     for a in range(6 or 8):
         for b in range(8):
             if a == b:
-                c.append( (a,b,True) )
+                c.append((a,b,True))
             elif a < b:
-                c.append( (b,a,False) )
+                c.append((b,a,False))
             else:
-                c.append( (a,b,False) )
+                c.append((a,b,False))
 
             if a != b:
                 z = 1
@@ -127,19 +127,19 @@ def loopingFunction(a = 1*2):
     else:
         print "Executed else branch for True condition while loop"
 
-    for x in range( 7 ):
+    for x in range(7):
         pass
     else:
         print "Executed else branch for no break for loop"
 
-    for x in range( 7 ):
+    for x in range(7):
         break
     else:
         print "Executed else branch despite break in for loop"
 
-    x = iter( range(5) )
+    x = iter(range(5))
 
-    while next( x ):
+    while next(x):
         pass
     else:
         print "Executed else branch of while loop without break"

@@ -25,7 +25,10 @@ from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_APPEND"
 
-    named_children = ( "list", "value" )
+    named_children = (
+        "list",
+        "value"
+    )
 
     def __init__(self, liste, value, source_ref):
         assert liste is not None
@@ -40,11 +43,11 @@ class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getList = ExpressionChildrenHavingBase.childGetter( "list" )
-    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
+    getList = ExpressionChildrenHavingBase.childGetter("list")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, constraint_collection):
-        constraint_collection.removeKnowledge( self.getList() )
+        constraint_collection.removeKnowledge(self.getList())
 
         return self, None, None
 
@@ -78,7 +81,7 @@ class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
     )
 
     def computeExpression(self, constraint_collection):
-        constraint_collection.removeKnowledge( self.getSet() )
+        constraint_collection.removeKnowledge(self.getSet())
 
         return self, None, None
 
@@ -86,7 +89,11 @@ class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
 class ExpressionDictOperationSet(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_SET"
 
-    named_children = ( "dict", "key", "value" )
+    named_children = (
+        "dict",
+        "key",
+        "value"
+    )
 
     def __init__(self, dicte, key, value, source_ref):
         assert dicte is not None
@@ -103,12 +110,12 @@ class ExpressionDictOperationSet(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getDict = ExpressionChildrenHavingBase.childGetter( "dict" )
-    getKey = ExpressionChildrenHavingBase.childGetter( "key" )
-    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, constraint_collection):
-        constraint_collection.removeKnowledge( self.getDict() )
+        constraint_collection.removeKnowledge(self.getDict())
 
         return self, None, None
 
@@ -116,7 +123,10 @@ class ExpressionDictOperationSet(ExpressionChildrenHavingBase):
 class StatementDictOperationRemove(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 
-    named_children = ( "dict", "key" )
+    named_children = (
+        "dict",
+        "key"
+    )
 
     def __init__(self, dicte, key, source_ref):
         assert dicte is not None
@@ -131,14 +141,14 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getDict = StatementChildrenHavingBase.childGetter( "dict" )
-    getKey = StatementChildrenHavingBase.childGetter( "key" )
+    getDict = StatementChildrenHavingBase.childGetter("dict")
+    getKey = StatementChildrenHavingBase.childGetter("key")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getDict() )
+        constraint_collection.onExpression(self.getDict())
         dicte = self.getDict()
 
-        if dicte.willRaiseException( BaseException ):
+        if dicte.willRaiseException(BaseException):
             from .NodeMakingHelpers import \
               makeStatementExpressionOnlyReplacementNode
 
@@ -148,12 +158,12 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Dictionary remove already raises implicitely accessing dictionary."""
+Dictionary remove already raises implicitly accessing dictionary."""
 
-        constraint_collection.onExpression( self.getKey() )
+        constraint_collection.onExpression(self.getKey())
         key = self.getKey()
 
-        if key.willRaiseException( BaseException ):
+        if key.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -164,10 +174,10 @@ Dictionary remove already raises implicitely accessing dictionary."""
             )
 
             return result, "new_node", """
-Dictionary remove already raises implicitely building key."""
+Dictionary remove already raises implicitly building key."""
 
         # TODO: Be less lossly about it.
-        constraint_collection.removeKnowledge( dicte )
+        constraint_collection.removeKnowledge(dicte)
 
         return self, None, None
 
@@ -176,7 +186,10 @@ Dictionary remove already raises implicitely building key."""
 class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_GET"
 
-    named_children = ( "dict", "key" )
+    named_children = (
+        "dict",
+        "key"
+    )
 
     def __init__(self, dicte, key, source_ref):
         assert dicte is not None
@@ -191,10 +204,8 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getDict = ExpressionChildrenHavingBase.childGetter( "dict" )
-    getKey = ExpressionChildrenHavingBase.childGetter( "key" )
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         return self, None, None

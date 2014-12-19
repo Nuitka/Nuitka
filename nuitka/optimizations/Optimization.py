@@ -28,7 +28,7 @@ from logging import debug
 from nuitka import ModuleRegistry, Options, Utils
 from nuitka.Tracing import printLine
 
-from .ConstraintCollections import ConstraintCollectionModule
+from . import ConstraintCollections
 from .Tags import TagSet
 
 _progress = Options.isShowProgress()
@@ -61,12 +61,11 @@ def signalChange(tags, source_ref, message):
     )
     tag_set.onSignal(tags)
 
+# Use this globally from there, without cyclic dependency.
+ConstraintCollections.signalChange = signalChange
 
 def _optimizeModulePass(module):
-    module.collection = ConstraintCollectionModule(
-        signal_change = signalChange,
-        module        = module
-    )
+    module.computeModule()
 
     # Pick up parent package if any.
     _attemptRecursion(module)

@@ -58,7 +58,7 @@ def function_torture_is():
 
 function_torture_is()
 
-print("Check if lambda can have expression chains:", end="")
+print("Check if lambda can have expression chains:", end = "")
 
 def function_lambda_with_chain():
 
@@ -82,24 +82,24 @@ print(list(generator_function_with_chain()))
 print("Check if list contractions can have expression chains:", end = "")
 
 def contraction_with_chain():
-    return [ x[0] < x[1] < x[2] for x in [ ( 1, 2, 3 ) ] ]
+    return [ x[0] < x[1] < x[2] for x in [(1, 2, 3) ] ]
 
 print(contraction_with_chain())
 
 print("Check if generator expressions can have expression chains:", end = "")
 
 def genexpr_with_chain():
-    return ( x[0] < x[1] < x[2] for x in [ ( 1, 2, 3 ) ] )
+    return ( x[0] < x[1] < x[2] for x in [(1, 2, 3) ] )
 
 print(list(genexpr_with_chain()))
 
 print("Check if class bodies can have expression chains:", end = "")
 
 class class_with_chain:
-    x = ( 1, 2, 3 )
+    x = (1, 2, 3)
     print(x[0] < x[1] < x[2])
 
-x = ( 1, 2, 3 )
+x = (1, 2, 3)
 print(x[0] < x[1] < x[2])
 
 class CustomOps(int):
@@ -146,7 +146,7 @@ class A(object):
         self.value = value
 
     def __repr__(self):
-        return "<Value %s %d>" % ( self.name, self.value )
+        return "<Value %s %d>" % (self.name, self.value)
 
     def __lt__(self, other):
         print("less than called for:", self, other, self.value, other.value, self.value < other.value)

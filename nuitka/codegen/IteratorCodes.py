@@ -134,9 +134,8 @@ def getUnpackNextCode(to_name, value, count, emit, context):
 
 
 def getUnpackCheckCode(iterator_name, count, emit, context):
-    # TODO: These re-usable variables could be treated different, as they cannot
-    # collide.
-    attempt_name = context.allocateTempName("iterator_attempt")
+    # These variable cannot collide, as it's used very locally.
+    attempt_name = context.allocateTempName("iterator_attempt", unique = True)
 
     release_code = getErrorExitReleaseCode(context)
 

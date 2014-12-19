@@ -43,23 +43,26 @@ from .NodeBases import (
     ExpressionChildrenHavingBase,
     ExpressionMixin,
     NodeBase,
-    ParameterHavingNodeBase,
+    ClosureGiverNodeBase,
     SideEffectsFromChildrenMixin
 )
 from .ParameterSpecs import TooManyArguments, matchCall
 
 
 class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
-                             ParameterHavingNodeBase, ExpressionMixin,
+                             ClosureGiverNodeBase, ExpressionMixin,
                              MarkGeneratorIndicator,
                              MarkLocalsDictIndicator,
                              MarkUnoptimizedFunctionIndicator):
     # We really want these many ancestors, as per design, we add properties via
-    # base class mix-ins a lot, pylint: disable=R0901
+    # base class mix-ins a lot, leading to many instance attributes, and
+    # methods, pylint: disable=R0901,R0902
 
     kind = "EXPRESSION_FUNCTION_BODY"
 
-    named_children = ("body",)
+    named_children = (
+        "body",
+    )
 
     if Utils.python_version >= 340:
         qualname_setup = None
@@ -116,18 +119,27 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             early_closure = is_class
         )
 
-        ParameterHavingNodeBase.__init__(
+        ClosureGiverNodeBase.__init__(
             self,
             name        = name,
             code_prefix = code_prefix,
-            parameters  = parameters,
             source_ref  = source_ref
         )
 
         ChildrenHavingMixin.__init__(
             self,
-            values = {}
+            values = {
+                "body" : None # delayed
+            }
         )
+
+        self.parameters = parameters
+        self.parameters.setOwner(self)
+
+        self.registerProvidedVariables(
+            *self.parameters.getVariables()
+        )
+
 
         MarkGeneratorIndicator.__init__(self)
 
@@ -168,7 +180,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         }
 
     def getDetail(self):
-        return "named %s with %s" % ( self.name, self.parameters )
+        return "named %s with %s" % (self.name, self.parameters)
 
     def getParent(self):
         assert False
@@ -219,6 +231,9 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     def getDoc(self):
         return self.doc
 
+    def getParameters(self):
+        return self.parameters
+
     def getLocalVariableNames(self):
         return Variables.getNames(self.getLocalVariables())
 
@@ -243,7 +258,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         return self.providing.values()
 
     def removeVariable(self, variable):
-        assert variable in self.providing.values(), ( self.providing, variable )
+        assert variable in self.providing.values(), (self.providing, variable)
 
         del self.providing[variable.getName()]
 
@@ -268,21 +283,24 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         if self.hasProvidedVariable(variable_name):
             result = self.getProvidedVariable(variable_name)
         else:
-            # For exec containing/star import containing, get a closure variable
-            # and if it is a module variable, only then make it a maybe local
-            # variable.
             result = self.getClosureVariable(
                 variable_name = variable_name
             )
 
+            # Remember that we need that closure variable for something, so
+            # we don't redo it all the time.
+            if not result.isModuleVariable():
+                self.registerProvidedVariable(result)
+
+            # For exec containing/star import containing, get a closure variable
+            # and if it is a module variable, only then make it a maybe local
+            # variable.
             if self.isUnoptimized() and result.isModuleVariable():
                 result = Variables.MaybeLocalVariable(
-                    owner         = self,
-                    variable_name = variable_name
+                    owner          = self,
+                    maybe_variable = result
                 )
 
-            # Remember that we need that closure for something.
-            if not result.isModuleVariable():
                 self.registerProvidedVariable(result)
 
         return result
@@ -296,7 +314,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         if self.isClassDictCreation():
             if variable_name == "__class__":
                 if Utils.python_version < 300:
-                    return self.provider.getVariableForReference(
+                    return self.provider.getVariableForClosure(
                         variable_name
                     )
                 elif Utils.python_version >= 340 and False: # TODO: Temporarily reverted
@@ -307,7 +325,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
                     return result
             else:
-                return self.provider.getVariableForReference(
+                return self.provider.getVariableForClosure(
                     variable_name
                 )
 
@@ -409,9 +427,9 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             values = []
 
             for positional_arg in call_node.getPositionalArguments():
-                for _arg_name, arg_value in iterItems( args_dict ):
+                for _arg_name, arg_value in iterItems(args_dict):
                     if arg_value is positional_arg:
-                        values.append( arg_value )
+                        values.append(arg_value)
 
             result = ExpressionFunctionCall(
                 function_body = self,
@@ -433,11 +451,11 @@ function call""" % self.getName()
             )
 
             result = wrapExpressionWithSideEffects(
-                new_node = makeRaiseExceptionReplacementExpressionFromInstance(
-                    expression     = call_node,
-                    exception      = e.getRealException()
+                new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
+                    expression = call_node,
+                    exception  = e.getRealException()
                 ),
-                old_node           = call_node,
+                old_node     = call_node,
                 side_effects = call_node.extractPreCallSideEffects()
             )
 

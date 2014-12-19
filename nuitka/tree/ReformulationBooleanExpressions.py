@@ -43,7 +43,7 @@ from .Helpers import (
 
 
 def buildBoolOpNode(provider, node, source_ref):
-    bool_op = getKind( node.op )
+    bool_op = getKind(node.op)
 
     if bool_op == "Or":
         # The "or" may be short circuit and is therefore not a plain operation
@@ -108,11 +108,11 @@ def buildOrNode(provider, values, source_ref):
                     variable   = keeper_variable,
                     source_ref = source_ref
                 ),
-                yes_expression  = ExpressionTempVariableRef(
+                yes_expression = ExpressionTempVariableRef(
                     variable   = keeper_variable,
                     source_ref = source_ref
                 ),
-                no_expression   = makeTryFinallyExpression(
+                no_expression  = makeTryFinallyExpression(
                     expression = result,
                     final      = None,
                     tried      = StatementDelVariable(
@@ -125,7 +125,7 @@ def buildOrNode(provider, values, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                source_ref      = source_ref
+                source_ref     = source_ref
             ),
             source_ref = source_ref
         )
@@ -181,15 +181,15 @@ def buildAndNode(provider, values, source_ref):
             tried      = tried,
             final      = None,
             expression = ExpressionConditional(
-                condition  = ExpressionTempVariableRef(
+                condition      = ExpressionTempVariableRef(
                     variable   = keeper_variable,
                     source_ref = source_ref
                 ),
-                no_expression   = ExpressionTempVariableRef(
+                no_expression  = ExpressionTempVariableRef(
                     variable   = keeper_variable,
                     source_ref = source_ref
                 ),
-                yes_expression  = makeTryFinallyExpression(
+                yes_expression = makeTryFinallyExpression(
                     expression = result,
                     final      = None,
                     tried      = StatementDelVariable(
@@ -202,7 +202,7 @@ def buildAndNode(provider, values, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                source_ref      = source_ref
+                source_ref     = source_ref
             ),
             source_ref = source_ref
         )

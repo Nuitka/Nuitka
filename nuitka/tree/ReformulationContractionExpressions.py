@@ -87,8 +87,8 @@ def buildListContractionNode(provider, node, source_ref):
         )
 
         outer_iter_ref = ExpressionTempVariableRef(
-            variable      = outer_iter_var,
-            source_ref    = source_ref
+            variable   = outer_iter_var,
+            source_ref = source_ref
         )
 
         container_tmp   = provider.allocateTempVariable(
@@ -127,7 +127,7 @@ def buildListContractionNode(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                source_ref  = source_ref
+                source_ref   = source_ref
             )
         )
 
@@ -207,16 +207,16 @@ def buildDictContractionNode(provider, node, source_ref):
     # Dict contractions are dealt with by general code.
 
     return _buildContractionNode(
-        provider         = provider,
-        node             = node,
-        name             = "<dictcontraction>",
-        emit_class       = ExpressionDictOperationSet,
-        start_value      = ExpressionConstantRef(
+        provider        = provider,
+        node            = node,
+        name            = "<dictcontraction>",
+        emit_class      = ExpressionDictOperationSet,
+        start_value     = ExpressionConstantRef(
             constant   = {},
             source_ref = source_ref
         ),
-        assign_provider  = False,
-        source_ref       = source_ref
+        assign_provider = False,
+        source_ref      = source_ref
     )
 
 
@@ -239,7 +239,9 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 def _buildContractionBodyNode(provider, node, emit_class, start_value,
                               container_tmp, outer_iter_ref, temp_scope,
                               assign_provider, source_ref, function_body):
-
+    # This uses lots of variables and branches. There is no good way
+    # around that, and we deal with many cases, due to having generator
+    # expressions sharing this code, pylint: disable=R0912,R0914,R0915
     if start_value is not None:
         statements = [
             StatementAssignmentVariable(
@@ -247,8 +249,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                     variable   = container_tmp,
                     source_ref = source_ref
                 ),
-                source     = start_value,
-                source_ref = source_ref.atInternal()
+                source       = start_value,
+                source_ref   = source_ref.atInternal()
             )
         ]
 
@@ -295,12 +297,12 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 variable   = container_tmp,
                 source_ref = source_ref
             ),
-            key = buildNode(
+            key        = buildNode(
                 provider   = function_body,
                 node       = node.key,
                 source_ref = source_ref,
             ),
-            value = buildNode(
+            value      = buildNode(
                 provider   = function_body,
                 node       = node.value,
                 source_ref = source_ref,
@@ -313,7 +315,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         source_ref = source_ref
     )
 
-    for count, qual in enumerate(reversed( node.generators)):
+    for count, qual in enumerate(reversed(node.generators)):
         tmp_value_variable = function_body.allocateTempVariable(
             temp_scope = temp_scope,
             name       = "iter_value_%d" % count
@@ -324,9 +326,9 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         # The first iterated value is to be calculated outside of the function
         # and will be given as a parameter "_iterated", the others are built
         # inside the function.
+
         if qual is node.generators[0]:
-            def makeIteratorRef():
-                return outer_iter_ref.makeCloneAt(source_ref)
+            iterator_ref = outer_iter_ref.makeCloneAt(source_ref)
 
             tmp_iter_variable = None
 
@@ -355,16 +357,15 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                         variable   = tmp_iter_variable,
                         source_ref = source_ref
                     ),
-                    source     = value_iterator,
-                    source_ref = source_ref
+                    source       = value_iterator,
+                    source_ref   = source_ref
                 )
             ]
 
-            def makeIteratorRef():
-                return ExpressionTempVariableRef(
-                    variable   = tmp_iter_variable,
-                    source_ref = source_ref
-                )
+            iterator_ref = ExpressionTempVariableRef(
+                variable   = tmp_iter_variable,
+                source_ref = source_ref
+            )
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
@@ -374,11 +375,11 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                             variable   = tmp_value_variable,
                             source_ref = source_ref
                         ),
-                        source     = ExpressionBuiltinNext1(
-                            value      = makeIteratorRef(),
+                        source       = ExpressionBuiltinNext1(
+                            value      = iterator_ref,
                             source_ref = source_ref
                         ),
-                        source_ref = source_ref
+                        source_ref   = source_ref
                     )
                 ),
                 exception_name = "StopIteration",
@@ -422,7 +423,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         elif len(conditions) > 1:
             loop_statements.append(
                 StatementConditional(
-                    condition = buildAndNode(
+                    condition  = buildAndNode(
                         provider   = function_body,
                         values     = conditions,
                         source_ref = source_ref
@@ -454,8 +455,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                         variable   = tmp_iter_variable,
                         source_ref = source_ref
                     ),
-                    tolerant   = False,
-                    source_ref = source_ref
+                    tolerant     = False,
+                    source_ref   = source_ref
                 )
             )
 
@@ -483,8 +484,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                     variable   = tmp_variable,
                     source_ref = source_ref
                 ),
-                tolerant   = True,
-                source_ref = source_ref.atInternal()
+                tolerant     = True,
+                source_ref   = source_ref.atInternal()
             )
         )
 
@@ -495,9 +496,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                           assign_provider, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
     # described in the developer manual. They use a lot of temporary names,
-    # nested blocks, etc. and so a lot of variable names. There is no good way
-    # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=R0912,R0914
+    # nested blocks, etc. and so a lot of variable names.
 
     # Note: The assign_provider is only to cover Python2 list contractions,
     # assigning one of the loop variables to the outside scope.

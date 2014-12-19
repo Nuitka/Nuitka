@@ -15,12 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Builtin type nodes tuple/list/float/int etc.
+""" Built-in type nodes tuple/list/float/int etc.
 
 These are all very simple and have predictable properties, because we know their type and
 that should allow some important optimizations.
 """
 
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.Utils import python_version
 
@@ -82,9 +83,13 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
                     old_node = self.getValue()
                 )
 
-                return result, "new_constant", "Predicted truth value of builtin bool argument"
+                return (
+                    result,
+                    "new_constant",
+                    "Predicted truth value of built-in bool argument"
+                )
 
-        return ExpressionBuiltinTypeBase.computeExpression( self, constraint_collection )
+        return ExpressionBuiltinTypeBase.computeExpression(self, constraint_collection)
 
 
 class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
@@ -99,10 +104,13 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
     else:
         base_only_value = True
 
+    # To be overloaded by child classes with int/long.
+    builtin = int
+
     def __init__(self, value, base, source_ref):
         from .NodeMakingHelpers import makeConstantReplacementNode
 
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
         if value is None and self.base_only_value:
             value = makeConstantReplacementNode(
@@ -122,8 +130,6 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
     getBase = ChildrenHavingMixin.childGetter("base")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         value = self.getValue()
         base = self.getBase()
 
@@ -138,7 +144,7 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
                         node        = self,
                         computation = lambda : self.builtin(base = 2),
                         description = """\
-%s builtin call with only base argument""" % self.builtin.__name__
+%s built-in call with only base argument""" % self.builtin.__name__
                     )
 
             given_values = ()
@@ -147,7 +153,9 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
         else:
             given_values = (value, base)
 
-        return self.computeBuiltinSpec(given_values)
+        return self.computeBuiltinSpec(
+            given_values = given_values
+        )
 
 
 class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
@@ -156,12 +164,19 @@ class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
     builtin_spec = BuiltinOptimization.builtin_int_spec
     builtin = int
 
-class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
-                                    ExpressionSpecBasedComputationMixin ):
-    named_children = ( "value", "encoding", "errors" )
+class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
+                                   ExpressionSpecBasedComputationMixin):
+    named_children = (
+        "value",
+        "encoding",
+        "errors"
+    )
 
     def __init__(self, value, encoding, errors, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         ChildrenHavingMixin.__init__(
             self,
@@ -172,13 +187,11 @@ class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
             }
         )
 
-    getValue = ChildrenHavingMixin.childGetter( "value" )
-    getEncoding = ChildrenHavingMixin.childGetter( "encoding" )
-    getErrors = ChildrenHavingMixin.childGetter( "errors" )
+    getValue = ChildrenHavingMixin.childGetter("value")
+    getEncoding = ChildrenHavingMixin.childGetter("encoding")
+    getErrors = ChildrenHavingMixin.childGetter("errors")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         args = [
             self.getValue(),
             self.getEncoding(),
@@ -188,7 +201,9 @@ class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
         while args and args[-1] is None:
             del args[-1]
 
-        return self.computeBuiltinSpec( tuple( args ) )
+        return self.computeBuiltinSpec(
+            given_values = tuple(args)
+        )
 
 
 if python_version < 300:
@@ -215,7 +230,7 @@ if python_version < 300:
                     )
 
                     change_tags = "new_expression"
-                    change_desc = "Predicted str builtin result"
+                    change_desc = "Predicted 'str' built-in result"
 
             return new_node, change_tags, change_desc
 
@@ -235,3 +250,80 @@ else:
         kind = "EXPRESSION_BUILTIN_STR"
 
         builtin_spec = BuiltinOptimization.builtin_str_spec
+
+
+class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
+    kind = "EXPRESSION_BUILTIN_BYTEARRAY"
+
+    builtin_spec = BuiltinOptimization.builtin_bytearray_spec
+
+    def __init__(self, value, source_ref):
+        if value is None:
+            value = ExpressionConstantRef(
+                constant   = b"",
+                source_ref = source_ref
+            )
+
+        ExpressionBuiltinTypeBase.__init__(
+            self,
+            value      = value,
+            source_ref = source_ref
+        )
+
+    def computeExpression(self, constraint_collection):
+        # TODO: Quite impossible as this has a variable result, but we could
+        # look at the arguments at least.
+        return self, None, None
+
+
+class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
+                             ExpressionSpecBasedComputationMixin):
+    kind = "EXPRESSION_BUILTIN_SLICE"
+
+    named_children = (
+        "start",
+        "stop",
+        "step"
+    )
+
+    builtin_spec = BuiltinOptimization.builtin_slice_spec
+
+    def __init__(self, start, step, stop, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = {
+                "start" : start,
+                "stop"  : stop,
+                "step"  : step
+            }
+        )
+
+    def computeExpression(self, constraint_collection):
+        start = self.getStart()
+        stop = self.getStop()
+        step = self.getStep()
+
+        args = (
+            start,
+            stop,
+            step
+        )
+
+        args = tuple(
+            arg or ExpressionConstantRef(constant = None, source_ref = self.getSourceReference())
+            for arg in
+            args
+        )
+
+        return self.computeBuiltinSpec(
+            given_values = args
+        )
+
+    getStart = ChildrenHavingMixin.childGetter("start")
+    getStop = ChildrenHavingMixin.childGetter("stop")
+    getStep = ChildrenHavingMixin.childGetter("step")

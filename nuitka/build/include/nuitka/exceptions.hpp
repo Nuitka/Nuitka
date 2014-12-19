@@ -69,13 +69,13 @@ NUITKA_MAY_BE_UNUSED static void PRINT_EXCEPTION( PyObject *exception_type, PyOb
 }
 
 // Fetch the current error into object variables.
-NUITKA_MAY_BE_UNUSED static void FETCH_ERROR( PyObject **exception_type, PyObject **exception_value, PyObject **exception_traceback)
+NUITKA_MAY_BE_UNUSED static void FETCH_ERROR( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_traceback)
 {
     PyThreadState *tstate = PyThreadState_GET();
 
    *exception_type = tstate->curexc_type;
    *exception_value = tstate->curexc_value;
-   *exception_traceback = tstate->curexc_traceback;
+   *exception_traceback = (PyTracebackObject *)tstate->curexc_traceback;
 
 #if _DEBUG_EXCEPTIONS
    PRINT_STRING("FETCH_ERROR:\n");
@@ -86,6 +86,29 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR( PyObject **exception_type, PyObjec
    tstate->curexc_value = NULL;
    tstate->curexc_traceback = NULL;
 }
+
+NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_traceback)
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+   PyObject *old_exception_type = tstate->curexc_type;
+   PyObject *old_exception_value = tstate->curexc_value;
+   PyObject *old_exception_traceback = tstate->curexc_traceback;
+
+   tstate->curexc_type = exception_type;
+   tstate->curexc_value = exception_value;
+   tstate->curexc_traceback = (PyObject *)exception_traceback;
+
+#if _DEBUG_EXCEPTIONS
+   PRINT_STRING("RESTORE_ERROR:\n");
+   PRINT_EXCEPTION( tstate->curexc_type,  tstate->curexc_value, tstate->curexc_traceback );
+#endif
+
+   Py_XDECREF( old_exception_type );
+   Py_XDECREF( old_exception_value );
+   Py_XDECREF( old_exception_traceback );
+}
+
 
 // Special helper that checks for StopIteration and if so clears it, only
 // indicating if it was set.
@@ -203,7 +226,6 @@ NUITKA_MAY_BE_UNUSED inline void SET_CURRENT_EXCEPTION( PyObject *exception_type
     PRINT_STRING("SET_CURRENT_EXCEPTION:\n");
     PRINT_EXCEPTION( exception_type, exception_value, (PyObject *)exception_tb );
 #endif
-
 
     Py_XDECREF( old_type );
     Py_XDECREF( old_value );

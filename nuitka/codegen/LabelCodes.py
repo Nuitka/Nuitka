@@ -15,7 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" C labels, small helpers.
 
+Much things are handled with "goto" statements in the generated code, error
+exits, finally blocks, etc. this provides just the means to emit a label or
+the goto statement itself.
+"""
 
 def getGotoCode(label, emit):
     assert label is not None

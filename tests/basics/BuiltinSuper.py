@@ -40,12 +40,12 @@ ClassWithUnderClassClosure().g()
 class ClassWithoutUnderClassClosure:
     def g(self):
         __class__ = "Providing __class__ ourselves, then it must be used"
-        print( __class__)
+        print(__class__)
 
         try:
-            print( "ClassWithoutUnderClassClosure: Super", super() )
+            print("ClassWithoutUnderClassClosure: Super", super())
         except Exception as e:
-            print( "ClassWithoutUnderClassClosure: Occured during super call", repr(e) )
+            print("ClassWithoutUnderClassClosure: Occured during super call", repr(e))
 
 
 ClassWithoutUnderClassClosure().g()
@@ -54,7 +54,7 @@ ClassWithoutUnderClassClosure().g()
 __class__ = "Global __class__"
 
 def deco(C):
-    print( "Decorating", repr( C ) )
+    print("Decorating", repr(C))
 
     class D(C):
         pass
@@ -82,8 +82,8 @@ class X:
         print("f4", self)
 
         try:
-            print( "f4", super() )
-            print( "f4", super().__self__ )
+            print("f4", super())
+            print("f4", super().__self__)
         except TypeError:
             import sys
             assert sys.version < (3,)
@@ -92,7 +92,7 @@ class X:
 
     def f6(self_by_another_name):
         try:
-            print( "f6", super() )
+            print("f6", super())
         except TypeError:
             import sys
             assert sys.version < (3,)

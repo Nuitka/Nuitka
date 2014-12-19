@@ -15,10 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Tree nodes for builtin references.
+""" Tree nodes for built-in references.
 
-There is 2 major types of builtin references. One is the values from
-builtins, the other is builtin exceptions. They work differently and
+There is 2 major types of built-in references. One is the values from
+built-ins, the other is built-in exceptions. They work differently and
 mean different things, but they have similar origin, that is, access
 to variables only ever read.
 
@@ -40,8 +40,8 @@ from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     def __init__(self, builtin_name, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
-        CompileTimeConstantExpressionMixin.__init__( self )
+        NodeBase.__init__(self, source_ref = source_ref)
+        CompileTimeConstantExpressionMixin.__init__(self)
 
         self.builtin_name = builtin_name
 
@@ -72,7 +72,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         )
 
     def isCompileTimeConstant(self):
-        # Virtual method, pylint: disable=R0201
         return True
 
     def getCompileTimeConstant(self):
@@ -113,7 +112,7 @@ Builtin constant %s resolved""" % self.builtin_name
         return new_node, tags, message
 
     def getStringValue(self):
-        return repr( self.getCompileTimeConstant() )
+        return repr(self.getCompileTimeConstant())
 
     def isKnownToBeIterable(self, count):
         # TODO: Why yes, some may be, could be told here.
@@ -124,9 +123,8 @@ class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
     kind = "EXPRESSION_BUILTIN_ORIGINAL_REF"
 
     def isCompileTimeConstant(self):
-        # TODO: Actually the base class should not be constant and this one should be.
-
-        # Virtual method, pylint: disable=R0201
+        # TODO: Actually the base class should not be constant and this
+        # one should be.
         return False
 
     def computeExpression(self, constraint_collection):
@@ -148,7 +146,6 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
         )
 
     def isCompileTimeConstant(self):
-        # Virtual method, pylint: disable=R0201
         return True
 
     def getCompileTimeConstant(self):
@@ -158,7 +155,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
         return self, None, None
 
     def getStringValue(self):
-        return repr( self.getCompileTimeConstant() )
+        return repr(self.getCompileTimeConstant())
 
 
 class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
@@ -174,23 +171,23 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         )
 
     def getDetails(self):
-        return { "exception_name" : self.builtin_name }
+        return {
+            "exception_name" : self.builtin_name
+        }
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
     def isCompileTimeConstant(self):
-        # Virtual method, pylint: disable=R0201
         return True
 
     def mayRaiseException(self, exception_type):
         return False
 
     def getCompileTimeConstant(self):
-        return builtin_exception_values[ self.builtin_name ]
+        return builtin_exception_values[self.builtin_name]
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
+        # Not much that can be done here.
         return self, None, None
 
     def computeExpressionCall(self, call_node, constraint_collection):

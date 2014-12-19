@@ -15,6 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Code generation for locals and globals handling.
+
+This also includes writing back to locals for exec statements.
+"""
 
 from nuitka import Utils
 
@@ -155,10 +159,8 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             )
     else:
         if mode == "copy":
-            assert False
-
             emit(
-                "%s = PyDict_Copy( locals_dict )" % (
+                "%s = PyDict_Copy( locals_dict );" % (
                     to_name,
                 )
             )

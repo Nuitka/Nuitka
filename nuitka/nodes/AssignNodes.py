@@ -27,7 +27,6 @@ that should be unified at some point.
 
 from .NodeBases import StatementChildrenHavingBase
 
-# Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class StatementAssignmentVariable(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
@@ -54,6 +53,8 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.variable_trace = None
+
     def getDetail(self):
         variable_ref = self.getTargetVariableRef()
         variable = variable_ref.getVariable()
@@ -69,6 +70,9 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
     getAssignSource = StatementChildrenHavingBase.childGetter(
         "source"
     )
+    setAssignSource = StatementChildrenHavingBase.childSetter(
+        "source"
+    )
 
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
@@ -81,16 +85,90 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
 
     def computeStatement(self, constraint_collection):
         # Assignment source may re-compute here:
-        constraint_collection.onExpression(
-            expression = self.getAssignSource()
+        constraint_collection.onExpression(self.getAssignSource())
+        source = self.getAssignSource()
+
+        from .NodeMakingHelpers import (
+            makeStatementExpressionOnlyReplacementNode,
+            makeStatementsSequenceReplacementNode
         )
+
+        # No assignment will occur, if the assignment source raises, so strip it
+        # away.
+        if source.willRaiseException(BaseException):
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = source,
+                node       = self
+            )
+
+            return result, "new_raise", """\
+Assignment raises exception in assigned value, removed assignment."""
+
+        variable_ref = self.getTargetVariableRef()
+        variable = variable_ref.getVariable()
+
+        # Not allowed anymore at this point.
+        assert variable is not None
+
+        # Assigning from and to the same variable, can be optimized away
+        # immediately, there is no point in doing it. Exceptions are of course
+        # module variables that collide with built-in names.
+        if not variable.isModuleVariable() and \
+             source.isExpressionVariableRef() and \
+             source.getVariable() == variable:
+
+            # A variable access that has a side effect, must be preserved,
+            # otherwise we can be fully removed.
+            if source.mayHaveSideEffects():
+                result = makeStatementExpressionOnlyReplacementNode(
+                    expression = source,
+                    node       = self
+                )
+
+                return result, "new_statements", """\
+Reduced assignment of variable from itself to access of it."""
+            else:
+                return None, "new_statements", """\
+Removed assignment of variable from itself which is known to be defined."""
+
+
+        # If the assignment source has side effects, we can simply evaluate them
+        # beforehand, we have already visited and evaluated them before.
+        if source.isExpressionSideEffects():
+            statements = [
+                makeStatementExpressionOnlyReplacementNode(
+                    side_effect,
+                    self
+                )
+                for side_effect in
+                source.getSideEffects()
+            ]
+
+            statements.append(self)
+
+            result = makeStatementsSequenceReplacementNode(
+                statements = statements,
+                node       = self,
+            )
+
+            # Need to update it.
+            self.setAssignSource(source.getExpression())
+            source = self.getAssignSource()
+
+            result = result, "new_statements", """\
+Side effects of assignments promoted to statements."""
+        else:
+            result = self, None, None
+
+        if variable.isModuleVariable():
+            constraint_collection.onModuleVariableAssigned(variable)
 
         self.variable_trace = constraint_collection.onVariableSet(
             assign_node = self
         )
 
-        # TODO: Remove this, it's old.
-        return constraint_collection._onStatementAssignmentVariable(self)
+        return result
 
     def needsReleaseValue(self):
         previous = self.variable_trace.getPrevious()
@@ -211,7 +289,8 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
         if source.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import \
+                makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
@@ -242,7 +321,7 @@ Subscript assignment raises exception in subscribed, removed assignment."""
         )
         subscript = self.getSubscript()
 
-        if subscript.willRaiseException( BaseException ):
+        if subscript.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -320,7 +399,7 @@ Slice assignment raises exception in assigned value, removed assignment."""
             return result, "new_raise", """\
 Slice assignment raises exception in sliced value, removed assignment."""
 
-        constraint_collection.onExpression( self.getLower(), allow_none = True )
+        constraint_collection.onExpression(self.getLower(), allow_none = True)
         lower = self.getLower()
 
         if lower is not None and lower.willRaiseException(BaseException):
@@ -338,7 +417,7 @@ Slice assignment raises exception in sliced value, removed assignment."""
 Slice assignment raises exception in lower slice boundary value, removed \
 assignment."""
 
-        constraint_collection.onExpression( self.getUpper(), allow_none = True )
+        constraint_collection.onExpression(self.getUpper(), allow_none = True)
         upper = self.getUpper()
 
         if upper is not None and upper.willRaiseException(BaseException):
@@ -380,6 +459,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.variable_trace = None
         self.tolerant = tolerant
 
     def getDetail(self):

@@ -39,6 +39,17 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
                            frame_return_exit, provider, context):
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
+    context.addFrameDeclaration(
+        CodeTemplates.template_frame_guard_cache_decl % {
+            "frame_identifier" : frame_identifier,
+        }
+    )
+    context.addFrameDeclaration(
+        CodeTemplates.template_frame_guard_frame_decl % {
+            "frame_identifier" : frame_identifier,
+        }
+    )
+
     result = CodeTemplates.template_frame_guard_full_block % {
         "frame_identifier"  : frame_identifier,
         "code_identifier"   : code_identifier,
@@ -97,6 +108,12 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
         # TODO: Not using locals, which is only OK for modules
         assert False, locals_code
 
+    context.addFrameDeclaration(
+        CodeTemplates.template_frame_guard_frame_decl % {
+            "frame_identifier" : frame_identifier,
+        }
+    )
+
     return CodeTemplates.template_frame_guard_once % {
         "frame_identifier"      : frame_identifier,
         "code_identifier"       : code_identifier,
@@ -119,6 +136,12 @@ def getFrameGuardLightCode(frame_identifier, code_identifier, codes,
     context.markAsNeedsExceptionVariables()
 
     assert frame_exception_exit is not None
+
+    context.addFrameDeclaration(
+        CodeTemplates.template_frame_guard_frame_decl % {
+            "frame_identifier" : frame_identifier,
+        }
+    )
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
@@ -260,4 +283,4 @@ exception_tb = (PyTracebackObject *)INCREASE_REFCOUNT( PyThreadState_GET()->exc_
     getSetLineNumberCodeRaw("exception_tb->tb_lineno", emit, context)
     getFrameRestoreExceptionCode(emit, context)
 
-    getGotoCode(context.getExceptionEscape(), emit )
+    getGotoCode(context.getExceptionEscape(), emit)

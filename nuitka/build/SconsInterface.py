@@ -64,7 +64,7 @@ def _getPython2ExePathWindows():
     elif os.path.isfile(r"c:\Python26\python.exe"):
         return r"c:\Python26\python.exe"
 
-    # Windows only code, pylint: disable=E0602,F0401
+    # Windows only code, pylint: disable=E0602,F0401,I0021
     try:
         import _winreg as winreg
     except ImportError:

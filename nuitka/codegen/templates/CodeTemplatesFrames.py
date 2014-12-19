@@ -19,11 +19,18 @@
 
 """
 
+template_frame_guard_cache_decl = """\
+static PyFrameObject *cache_%(frame_identifier)s = NULL;
+"""
+
+template_frame_guard_frame_decl = """\
+PyFrameObject *%(frame_identifier)s;
+"""
+
 # Frame in a function
 template_frame_guard_full_block = """\
-static PyFrameObject *cache_%(frame_identifier)s = NULL;
 MAKE_OR_REUSE_FRAME( cache_%(frame_identifier)s, %(code_identifier)s, %(module_identifier)s );
-PyFrameObject *%(frame_identifier)s = cache_%(frame_identifier)s;
+%(frame_identifier)s = cache_%(frame_identifier)s;
 
 // Push the new frame as the currently active one.
 pushFrameStack( %(frame_identifier)s );
@@ -94,13 +101,18 @@ Py_DECREF( %(frame_identifier)s );
 goto %(parent_exception_exit)s;
 """
 
+template_frame_guard_once_decl = """\
+static PyFrameObject *cache_%(frame_identifier)s = NULL;
+"""
+
+
 # Frame for a module. TODO: Use it for functions called only once.
 # TODO: The once guard need not take a reference count in its frame class.
 template_frame_guard_once = """\
 // Frame without reuse.
-PyFrameObject *%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
+%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
 
-// Push the new frame as the currently active one, and we should be exlusively
+// Push the new frame as the currently active one, and we should be exclusively
 // owning it.
 pushFrameStack( %(frame_identifier)s );
 assert( Py_REFCNT( %(frame_identifier)s ) == 1 );
@@ -180,7 +192,7 @@ if ( generator->m_exception_type )
 
 # Frame in a generator
 template_frame_guard_generator = """\
-PyFrameObject *%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
+%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
 
 Py_INCREF( %(frame_identifier)s );
 generator->m_frame = %(frame_identifier)s;

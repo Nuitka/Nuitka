@@ -15,12 +15,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
-from __builtin__ import len as _len
+try:
+    from __builtin__ import len as _len
+except ImportError:
+    from builtins import len as _len
 
 def len(x):
-    print x
+    print("Private built-in called with argument", repr(x))
 
     return _len(x)
 
-print len(range(9))
+print("Calling built-in len", len(range(9)))

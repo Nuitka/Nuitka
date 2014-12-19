@@ -82,10 +82,10 @@ print("Check what try yield finally something does:")
 print(tuple(tryFinallyAfterYield()))
 
 print("Check if yield is executed in finally after return:")
-print(tuple( tryReturnFinallyYield()))
+print(tuple(tryReturnFinallyYield()))
 
 print("Check if yield is executed in except after return:")
-print(tuple( tryReturnExceptYield()))
+print(tuple(tryReturnExceptYield()))
 
 print("Check if yield is executed in except after StopIteration:")
-print(tuple( tryReturnExceptYield()))
+print(tuple(tryReturnExceptYield()))

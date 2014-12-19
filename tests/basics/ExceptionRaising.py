@@ -70,9 +70,9 @@ def raiseNonGlobalError():
     return undefined_value
 
 try:
-   raiseNonGlobalError()
+    raiseNonGlobalError()
 except:
-   print("NameError caught", sys.exc_info())
+    print("NameError caught", sys.exc_info())
 
 print("After catching, sys.exc_info is this", sys.exc_info())
 print("*" * 20)
@@ -135,7 +135,7 @@ def checkTraceback():
 
         print("Check traceback:")
 
-        traceback.print_tb( sys.exc_info()[2], file = sys.stdout )
+        traceback.print_tb(sys.exc_info()[2], file = sys.stdout)
 
         print("End of traceback")
 
@@ -524,3 +524,26 @@ def checkReraiseAfterNestedTryExcept():
         print("Catched", repr(e))
 
 checkReraiseAfterNestedTryExcept()
+
+def checkReraiseByFunction():
+    def reraise():
+        raise
+
+    try:
+
+        try:
+            raise TypeError("outer")
+        except Exception:
+            reraise()
+    except Exception as e:
+        import traceback
+        print("Exception traceback of re-raise:")
+        print("-" * 40)
+        traceback.print_exc()
+        print("-" * 40)
+        print("OK.")
+
+# TODO: Enable this, once the actual traceback of a function
+# re-raise isn't wrong (contains itself) anymore.
+if False:
+    checkReraiseByFunction()

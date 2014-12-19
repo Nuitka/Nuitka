@@ -56,9 +56,9 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
                         source_filename = source_filename,
                         is_main         = False
                     )
-                except ( SyntaxError, IndentationError ) as e:
+                except (SyntaxError, IndentationError) as e:
                     if module_filename not in Importing.warned_about:
-                        Importing.warned_about.add( module_filename )
+                        Importing.warned_about.add(module_filename)
 
                         warning(
                             """\
@@ -79,7 +79,7 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
         else:
             ImportCache.addImportedModule(
                 module_relpath,
-                ImportCache.getImportedModuleByName( module.getFullName() )
+                ImportCache.getImportedModuleByName(module.getFullName())
             )
 
             module = ImportCache.getImportedModuleByName(
@@ -88,16 +88,17 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
 
             is_added = False
 
-        assert not module_relpath.endswith( "/__init__.py" ), module
+        assert not module_relpath.endswith("/__init__.py"), module
 
         return module, is_added
     else:
-        return ImportCache.getImportedModuleByPath( module_relpath ), False
+        return ImportCache.getImportedModuleByPath(module_relpath), False
 
 
 def decideRecursion(module_filename, module_name, module_package,
                     module_kind ):
-    # Many branches, which make decisions immediately, pylint: disable=R0911
+    # Many branches, which make decisions immediately, by returning
+    # pylint: disable=R0911,R0912
 
     if module_kind == "shlib":
         if Options.isStandaloneMode():
@@ -137,7 +138,7 @@ def decideRecursion(module_filename, module_name, module_package,
                 "Module listed explicitely to recurse to."
             )
 
-        if full_name.startswith( any_case_module + "." ):
+        if full_name.startswith(any_case_module + "." ):
             return (
                 True,
                 "Module in package listed explicitely to recurse to."
@@ -172,20 +173,20 @@ def decideRecursion(module_filename, module_name, module_package,
 
 def considerFilename(module_filename, module_package):
     assert module_package is None or \
-           ( type( module_package ) is str and module_package != "" )
+           ( type(module_package) is str and module_package != "" )
 
-    module_filename = Utils.normpath( module_filename )
+    module_filename = Utils.normpath(module_filename)
 
-    if Utils.isDir( module_filename ):
-        module_filename = Utils.abspath( module_filename )
+    if Utils.isDir(module_filename):
+        module_filename = Utils.abspath(module_filename)
 
-        module_name = Utils.basename( module_filename )
-        module_relpath = Utils.relpath( module_filename )
+        module_name = Utils.basename(module_filename)
+        module_relpath = Utils.relpath(module_filename)
 
         return module_filename, module_relpath, module_name
-    elif module_filename.endswith( ".py" ):
-        module_name = Utils.basename( module_filename )[:-3]
-        module_relpath = Utils.relpath( module_filename )
+    elif module_filename.endswith(".py"):
+        module_name = Utils.basename(module_filename)[:-3]
+        module_relpath = Utils.relpath(module_filename)
 
         return module_filename, module_relpath, module_name
     else:
@@ -200,6 +201,8 @@ def isSameModulePath(path1, path2):
     return Utils.abspath(path1) == Utils.abspath(path2)
 
 def _checkPluginPath(plugin_filename, module_package):
+    # Many branches, for the decision is very complex, pylint: disable=R0912
+
     debug(
         "Checking detail plugin path %s %s",
         plugin_filename,
@@ -285,7 +288,7 @@ def _checkPluginPath(plugin_filename, module_package):
                 ModuleRegistry.addRootModule(module)
 
         else:
-            warning( "Failed to include module from '%s'.", plugin_info[0] )
+            warning("Failed to include module from '%s'.", plugin_info[0])
 
 def checkPluginPath(plugin_filename, module_package):
     debug(

@@ -112,13 +112,13 @@ def buildComparisonNode(provider, node, source_ref):
             )
 
             right = makeTryFinallyExpression(
-                tried       = tried,
-                final       = None,
-                expression  = ExpressionTempVariableRef(
+                tried      = tried,
+                final      = None,
+                expression = ExpressionTempVariableRef(
                     variable   = keeper_variable,
                     source_ref = source_ref
                 ),
-                source_ref  = source_ref
+                source_ref = source_ref
             )
 
         comparator = getKind(comparator)

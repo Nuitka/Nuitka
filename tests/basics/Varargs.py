@@ -28,17 +28,17 @@ def plain_dict_args_function(plain, **arg_dict):
 
 
 print "Function with plain arg and varargs dict:"
-plain_dict_args_function( 1, a = 2, b = 3, c = 4 )
-plain_dict_args_function( 1 )
+plain_dict_args_function(1, a = 2, b = 3, c = 4)
+plain_dict_args_function(1)
 
 print "Function with plain arg and varargs list:"
-plain_list_args_function( 1, 2, 3, 4 )
-plain_list_args_function( 1 )
+plain_list_args_function(1, 2, 3, 4)
+plain_list_args_function(1)
 
 print "Function with plain arg, varargs list and varargs dict:"
-plain_list_dict_args_function( 1, 2, z = 3 )
-plain_list_dict_args_function( 1, 2, 3 )
-plain_list_dict_args_function( 1, a = 2, b = 3, c = 4 )
+plain_list_dict_args_function(1, 2, z = 3)
+plain_list_dict_args_function(1, 2, 3)
+plain_list_dict_args_function(1, a = 2, b = 3, c = 4)
 
 def list_dict_args_function(*arg_list, **arg_dict):
     print arg_list, arg_dict
@@ -50,14 +50,14 @@ def dict_args_function(**arg_dict):
     print arg_dict
 
 print "Function with plain arg and varargs dict:"
-dict_args_function( a = 2, b = 3, c = 4 )
+dict_args_function(a = 2, b = 3, c = 4)
 dict_args_function()
 
 print "Function with plain arg and varargs list:"
-list_args_function( 2, 3, 4 )
+list_args_function(2, 3, 4)
 list_args_function()
 
 print "Function with plain arg, varargs list and varargs dict:"
-list_dict_args_function( 2, z = 3 )
-list_dict_args_function( 2, 3 )
-list_dict_args_function( a = 2, b = 3, c = 4 )
+list_dict_args_function(2, z = 3)
+list_dict_args_function(2, 3)
+list_dict_args_function(a = 2, b = 3, c = 4)

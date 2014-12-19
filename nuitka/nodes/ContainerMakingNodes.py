@@ -30,7 +30,9 @@ from .NodeBases import (
 
 class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
                                  ExpressionChildrenHavingBase):
-    named_children = ("elements",)
+    named_children = (
+        "elements",
+    )
 
     def __init__(self, sequence_kind, elements, source_ref):
         assert sequence_kind in ("TUPLE", "LIST", "SET"), sequence_kind
@@ -43,7 +45,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "elements" : tuple( elements ),
+                "elements" : tuple(elements),
             },
             source_ref = source_ref
 
@@ -58,20 +60,18 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     getElements = ExpressionChildrenHavingBase.childGetter("elements")
 
     def getSimulator(self):
-        # Abstract method, pylint: disable=R0201,W0613
+        # Abstract method, pylint: disable=R0201
         return None
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
-
         elements = self.getElements()
 
-        for count, element in enumerate( elements ):
-            if element.willRaiseException( BaseException ):
+        for count, element in enumerate(elements):
+            if element.willRaiseException(BaseException):
                 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
                 result = wrapExpressionWithSideEffects(
-                    side_effects = elements[ : count ],
+                    side_effects = elements[:count],
                     new_node     = element,
                     old_node     = self
                 )
@@ -111,7 +111,8 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     def getIterationLength(self):
         return len(self.getElements())
 
-    def canPredictIterationValues(self):
+    @staticmethod
+    def canPredictIterationValues():
         return True
 
     def getIterationValues(self):
@@ -139,7 +140,6 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
 
         return result, "new_statements", """\
 Removed sequence creation for unused sequence."""
-
 
 
 class ExpressionMakeTuple(ExpressionMakeSequenceBase):
@@ -180,7 +180,7 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
         self.replaceWith(result)
 
         return iter_node, "new_expression", """\
-Iteration of list reduced to tuple."""
+Iteration over list reduced to tuple."""
 
 
 class ExpressionMakeSet(ExpressionMakeSequenceBase):
@@ -206,7 +206,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
         self.replaceWith(result)
 
         return iter_node, "new_expression", """\
-Iteration of set reduced to tuple."""
+Iteration over set reduced to tuple."""
 
 
 class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
@@ -228,11 +228,10 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
             source_ref = source_ref
         )
 
-    getKey = ExpressionChildrenHavingBase.childGetter( "key" )
-    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
         key = self.getKey()
 
         if key.willRaiseException(BaseException):
@@ -251,6 +250,10 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
             return result, "new_raise", "Dictionary value raises exception"
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.getKey().mayRaiseException(exception_type) or \
+               self.getValue().mayRaiseException(exception_type)
 
 
 class ExpressionMakeDict(SideEffectsFromChildrenMixin,
@@ -275,7 +278,6 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
     getPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
     def computeExpression(self, constraint_collection):
-        # Children can tell all we need to know, pylint: disable=W0613
         pairs = self.getPairs()
 
         for count, pair in enumerate(pairs):
@@ -328,14 +330,21 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
         return new_node, "new_constant", """\
 Created dictionary found to be constant."""
 
+    def mayRaiseException(self, exception_type):
+        for pair in self.getPairs():
+            if pair.mayRaiseException(exception_type):
+                return True
+
+        return False
+
     def mayHaveSideEffectsBool(self):
         return False
 
     def isKnownToBeIterable(self, count):
-        return count is None or count == len( self.getPairs() )
+        return count is None or count == len(self.getPairs())
 
     def getIterationLength(self):
-        return len( self.getPairs() )
+        return len(self.getPairs())
 
     def canPredictIterationValues(self):
         # Dictionaries are fully predictable, pylint: disable=R0201
@@ -361,8 +370,7 @@ Created dictionary found to be constant."""
 
             if not key.isExpressionConstantRef() or not key.isStringConstant():
                 return False
-        else:
-            return True
+        return True
 
     def getMappingStringKeyPairs(self):
         return [
@@ -400,3 +408,12 @@ Created dictionary found to be constant."""
 
         return result, "new_statements", """\
 Removed sequence creation for unused sequence."""
+
+    def computeExpressionIter1(self, iter_node, constraint_collection):
+        return self, None, None
+
+        # TODO: This ought to be possible. Only difficulty is to
+        # preserve order of evaluation, by making values a side
+        # effect of the keys.
+        # return iter_node, "new_expression", """\
+# Iteration over dict reduced to tuple."""

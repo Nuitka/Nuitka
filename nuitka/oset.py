@@ -58,7 +58,7 @@ class OrderedSet(collections.MutableSet):
 
     def update(self, values):
         for value in values:
-            self.add( value )
+            self.add(value)
 
     def discard(self, key):
         if key in self.map:

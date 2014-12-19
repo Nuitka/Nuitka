@@ -42,11 +42,11 @@ def _markAsGenerator(provider, node, source_ref):
 
 
 def buildYieldNode(provider, node, source_ref):
-    _markAsGenerator( provider, node, source_ref )
+    _markAsGenerator(provider, node, source_ref)
 
     if node.value is not None:
         return ExpressionYield(
-            expression = buildNode( provider, node.value, source_ref ),
+            expression = buildNode(provider, node.value, source_ref),
             source_ref = source_ref
         )
     else:
@@ -63,10 +63,10 @@ def buildYieldNode(provider, node, source_ref):
 def buildYieldFromNode(provider, node, source_ref):
     assert Utils.python_version >= 330
 
-    _markAsGenerator( provider, node, source_ref )
+    _markAsGenerator(provider, node, source_ref)
 
     iter_arg = ExpressionBuiltinIter1(
-        value      = buildNode( provider, node.value, source_ref ),
+        value      = buildNode(provider, node.value, source_ref),
         source_ref = source_ref
     )
 

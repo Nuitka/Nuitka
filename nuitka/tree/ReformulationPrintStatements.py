@@ -51,15 +51,18 @@ def buildPrintNode(provider, node, source_ref):
 
     def wrapValue(value):
         if value.isExpressionConstantRef():
-            return value.getStrValue()
-        else:
-            return ExpressionBuiltinStr(
-                value      = value,
-                source_ref = value.getSourceReference()
-            )
+            str_value = value.getStrValue()
+
+            if str_value is not None:
+                return str_value
+
+        return ExpressionBuiltinStr(
+            value      = value,
+            source_ref = value.getSourceReference()
+        )
 
     if node.dest is not None:
-        temp_scope = provider.allocateTempScope( "print" )
+        temp_scope = provider.allocateTempScope("print")
 
         tmp_target_variable = provider.allocateTempVariable(
             temp_scope = temp_scope,
@@ -117,6 +120,7 @@ def buildPrintNode(provider, node, source_ref):
         nodes      = node.values,
         source_ref = source_ref
     )
+
     values = [
         wrapValue(value)
         for value in

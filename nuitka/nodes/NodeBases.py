@@ -28,12 +28,12 @@ from nuitka.odict import OrderedDict
 from nuitka.oset import OrderedSet
 from nuitka.VariableRegistry import addVariableUsage
 
-lxml = TreeXML.lxml
 
 class NodeCheckMetaClass(type):
     kinds = set()
 
     def __new__(cls, name, bases, dictionary):
+        # This is in conflict with either PyDev or Pylint, pylint: disable=C0204
         assert len(bases) == len(set(bases))
 
         return type.__new__(cls, name, bases, dictionary)
@@ -68,33 +68,30 @@ class NodeCheckMetaClass(type):
                 return self.kind == kind
 
             if not hasattr(NodeBase, checker_method):
-                setattr( NodeBase, checker_method, checkKind )
+                setattr(NodeBase, checker_method, checkKind)
 
         type.__init__(cls, name, bases, dictionary)
 
 # For every node type, there is a test, and then some more members,
-# pylint: disable=R0904
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
 # used and doesn't require making a choice.
-NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object, ), {})
+NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object,), {})
 
 class NodeBase(NodeMetaClassBase):
     kind = None
 
     def __init__(self, source_ref):
-        # The base class has no __init__ worth calling, pylint: disable=W0231
+        # The base class has no __init__ worth calling.
 
+        # Check source reference to meet basic standards, so we note errors
+        # when they occur.
         assert source_ref is not None
         assert source_ref.line is not None
 
         self.parent = None
 
         self.source_ref = source_ref
-
-    def isNode(self):
-        # Virtual method, pylint: disable=R0201
-        return True
 
     def __repr__(self):
         # This is to avoid crashes, because of bugs in detail.
@@ -107,14 +104,14 @@ class NodeBase(NodeMetaClassBase):
         if not detail:
             return "<Node %s>" % self.getDescription()
         else:
-            return "<Node %s %s>" % ( self.getDescription(), detail )
+            return "<Node %s %s>" % (self.getDescription(), detail)
 
     def getDescription(self):
         """ Description of the node, intented for use in __repr__ and
             graphical display.
 
         """
-        return "%s at %s" % ( self.kind, self.source_ref.getAsString() )
+        return "%s at %s" % (self.kind, self.source_ref.getAsString())
 
     def getDetails(self):
         """ Details of the node, intended for use in __repr__ and dumps.
@@ -128,8 +125,7 @@ class NodeBase(NodeMetaClassBase):
             display.
 
         """
-        # Virtual method, pylint: disable=R0201
-        return str( self.getDetails() )[1:-1]
+        return str(self.getDetails())[1:-1]
 
     def getParent(self):
         """ Parent of the node. Every node except modules have to have a parent.
@@ -137,7 +133,7 @@ class NodeBase(NodeMetaClassBase):
         """
 
         if self.parent is None and not self.isPythonModule():
-            assert False, ( self,  self.source_ref )
+            assert False, (self,  self.source_ref)
 
         return self.parent
 
@@ -151,7 +147,7 @@ class NodeBase(NodeMetaClassBase):
         while True:
             current = current.getParent()
 
-            result.append( current )
+            result.append(current)
 
             if current.isPythonModule() or current.isExpressionFunctionBody():
                 break
@@ -180,9 +176,9 @@ class NodeBase(NodeMetaClassBase):
         parent = self
 
         while not parent.isPythonModule():
-            if hasattr( parent, "provider" ):
-                # After we checked, we can use it, will be much faster,
-                # pylint: disable=E1101
+            if hasattr(parent, "provider"):
+                # After we checked, we can use it, will be much faster route
+                # to take.
                 parent = parent.provider
             else:
                 parent = parent.getParent()
@@ -191,8 +187,7 @@ class NodeBase(NodeMetaClassBase):
 
     def isParentVariableProvider(self):
         # Check if it's a closure giver, in which cases it can provide variables,
-        # pylint: disable=E1101
-        return isinstance( self, ClosureGiverNodeBase )
+        return isinstance(self, ClosureGiverNodeBase)
 
     def getParentVariableProvider(self):
         parent = self.getParent()
@@ -219,30 +214,30 @@ class NodeBase(NodeMetaClassBase):
         return self.source_ref
 
     def asXml(self):
-        result = lxml.etree.Element(
+        result = TreeXML.Element(
             "node",
             kind = self.__class__.__name__,
             line = "%s" % self.getSourceReference().getLineNumber()
         )
 
-        for key, value in iterItems( self.getDetails() ):
-            value = str( value )
+        for key, value in iterItems(self.getDetails()):
+            value = str(value)
 
-            if value.startswith( "<" ) and value.endswith( ">" ):
+            if value.startswith("<") and value.endswith(">"):
                 value = value[1:-1]
 
-            result.set( key, str( value ) )
+            result.set(key, str(value))
 
         for name, children in self.getVisitableNodesNamed():
-            if type( children ) not in ( list, tuple ):
-                children = ( children, )
+            if type(children) not in (list, tuple):
+                children = (children,)
 
-            role = lxml.etree.Element(
+            role = TreeXML.Element(
                 "role",
                 name = name
             )
 
-            result.append( role )
+            result.append(role)
 
             for child in children:
                 if child is not None:
@@ -253,57 +248,62 @@ class NodeBase(NodeMetaClassBase):
         return result
 
     def dump(self, level = 0):
-        Tracing.printIndented( level, self )
-        Tracing.printSeparator( level )
+        Tracing.printIndented(level, self)
+        Tracing.printSeparator(level)
 
         for visitable in self.getVisitableNodes():
-            visitable.dump( level + 1 )
+            visitable.dump(level + 1)
 
-        Tracing.printSeparator( level )
+        Tracing.printSeparator(level)
+
+    @staticmethod
+    def isPythonModule():
+        # For overload by module nodes
+        return False
 
     def isExpression(self):
-        return self.kind.startswith( "EXPRESSION_" )
+        return self.kind.startswith("EXPRESSION_")
 
     def isStatement(self):
-        return self.kind.startswith( "STATEMENT_" )
+        return self.kind.startswith("STATEMENT_")
 
     def isExpressionBuiltin(self):
-        return self.kind.startswith( "EXPRESSION_BUILTIN_" )
+        return self.kind.startswith("EXPRESSION_BUILTIN_")
 
     def isOperation(self):
-        return self.kind.startswith( "EXPRESSION_OPERATION_" )
+        return self.kind.startswith("EXPRESSION_OPERATION_")
 
     def isExpressionOperationBool2(self):
-        return self.kind.startswith( "EXPRESSION_BOOL_" )
+        return self.kind.startswith("EXPRESSION_BOOL_")
 
     def isStatementReraiseException(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def isExpressionMakeSequence(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def isIteratorMaking(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def isNumberConstant(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def isExpressionCall(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def visit(self, context, visitor):
-        visitor( self )
+        visitor(self)
 
         for visitable in self.getVisitableNodes():
-            visitable.visit( context, visitor )
+            visitable.visit(context, visitor)
 
     def getVisitableNodes(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return ()
 
     def getVisitableNodesNamed(self):
@@ -316,20 +316,13 @@ class NodeBase(NodeMetaClassBase):
             new_node = new_node
         )
 
-    def discard(self):
-        """ The node has become unused. """
-        # print "Discarding", self
-
-        if Options.isExperimental():
-            self.parent = None
-
     def getName(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return None
 
     def mayHaveSideEffects(self):
         """ Unless we are told otherwise, everything may have a side effect. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
 
         return True
 
@@ -338,18 +331,23 @@ class NodeBase(NodeMetaClassBase):
 
     def mayHaveSideEffectsBool(self):
         """ Unless we are told otherwise, everything may have a side effect. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
 
         return True
 
     def extractSideEffects(self):
         """ Unless defined otherwise, the expression is the side effect. """
-        # Virtual method, pylint: disable=R0201,W0613
 
-        return ( self, )
+        return (self,)
 
     def mayRaiseException(self, exception_type):
         """ Unless we are told otherwise, everything may raise everything. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
+    def mayRaiseExceptionBool(self, exception_type):
+        """ Unless we are told otherwise, everything may raise being checked. """
         # Virtual method, pylint: disable=R0201,W0613
 
         return True
@@ -358,9 +356,11 @@ class NodeBase(NodeMetaClassBase):
         return "_RETURN" in self.kind
 
     def mayBreak(self):
+        # For overload, pylint: disable=R0201
         return False
 
     def mayContinue(self):
+        # For overload, pylint: disable=R0201
         return False
 
     def needsFrame(self):
@@ -377,13 +377,12 @@ class NodeBase(NodeMetaClassBase):
 
     def isIndexable(self):
         """ Unless we are told otherwise, it's not indexable. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
 
         return False
 
     def isStatementAborting(self):
         """ Is the node aborting, control flow doesn't continue after this node.  """
-        # Virtual method, pylint: disable=R0201
         assert self.isStatement(), self.kind
 
         return False
@@ -391,12 +390,12 @@ class NodeBase(NodeMetaClassBase):
     def needsLocalsDict(self):
         """ Node requires a locals dictionary by provider. """
 
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return False
 
     def getIntegerValue(self):
         """ Node as integer value, if possible."""
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return None
 
 
@@ -404,7 +403,7 @@ class CodeNodeBase(NodeBase):
     def __init__(self, name, code_prefix, source_ref):
         assert name is not None
 
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
         self.name = name
         self.code_prefix = code_prefix
@@ -432,7 +431,7 @@ class CodeNodeBase(NodeBase):
             name = current.getName()
 
             if name is not None:
-                result = "%s__%s" % ( name, result )
+                result = "%s__%s" % (name, result)
 
         assert "<" not in result, result
 
@@ -443,16 +442,16 @@ class CodeNodeBase(NodeBase):
             provider = self.getParentVariableProvider()
             parent_name = provider.getCodeName()
 
-            uid = "_%d" % provider.getChildUID( self )
+            uid = "_%d" % provider.getChildUID(self)
 
-            assert isinstance( self, CodeNodeBase )
+            assert isinstance(self, CodeNodeBase)
 
             if self.name:
                 name = uid + "_" + self.name
             else:
                 name = uid
 
-            self.code_name = "%s%s_of_%s" % ( self.code_prefix, name, parent_name )
+            self.code_name = "%s%s_of_%s" % (self.code_prefix, name, parent_name)
 
         return self.code_name
 
@@ -470,16 +469,13 @@ class ChildrenHavingMixin:
     checkers = {}
 
     def __init__(self, values):
-        assert len(self.named_children)
-        assert type(self.named_children) is tuple
+        assert type(self.named_children) is tuple and len(self.named_children)
 
-        for key in values.keys():
-            assert key in self.named_children, key
+        # Check for completeness of given values, everything should be there
+        # but of course, might be put to None.
+        assert set(values.keys()) == set(self.named_children)
 
-        # Default non-given values to None. TODO: Good idea? Better check for
-        # completeness instead.
-        self.child_values = dict.fromkeys(self.named_children)
-        self.child_values.update(values)
+        self.child_values = dict(values)
 
         for key, value in self.child_values.items():
             if key in self.checkers:
@@ -487,7 +483,7 @@ class ChildrenHavingMixin:
 
             assert type(value) is not list, key
 
-            if type( value ) is tuple:
+            if type(value) is tuple:
                 assert None not in value, key
 
                 for val in value:
@@ -524,15 +520,6 @@ class ChildrenHavingMixin:
 
         self.child_values[name] = value
 
-        # TODO: Enable this
-        if old_value is not None:
-            if type(old_value) is tuple:
-                for val in old_value:
-                    if val not in value:
-                        val.discard()
-            else:
-                old_value.discard()
-
     def getChild(self, name):
         # Only accept legal child names
         assert name in self.child_values, name
@@ -564,17 +551,17 @@ class ChildrenHavingMixin:
 
             if value is None:
                 pass
-            elif type( value ) is tuple:
-                result += list( value )
-            elif isinstance( value, NodeBase ):
-                result.append( value )
+            elif type(value) is tuple:
+                result += list(value)
+            elif isinstance(value, NodeBase):
+                result.append(value)
             else:
                 raise AssertionError(
                     self,
                     "has illegal child", name, value, value.__class__
                 )
 
-        return tuple( result )
+        return tuple(result)
 
     def getVisitableNodesNamed(self):
         result = []
@@ -582,7 +569,7 @@ class ChildrenHavingMixin:
         for name in self.named_children:
             value = self.child_values[ name ]
 
-            result.append( ( name, value ) )
+            result.append((name, value))
 
         return result
 
@@ -627,7 +614,7 @@ class ChildrenHavingMixin:
 
                     return key
             else:
-                assert False, ( key, value, value.__class__ )
+                assert False, (key, value, value.__class__)
 
         raise AssertionError(
             "Didn't find child",
@@ -640,7 +627,7 @@ class ChildrenHavingMixin:
         values = {}
 
         for key, value in self.child_values.items():
-            assert type( value ) is not list, key
+            assert type(value) is not list, key
 
             if value is None:
                 values[key] = None
@@ -662,6 +649,8 @@ class ChildrenHavingMixin:
         )
 
         try:
+            # Using star dict arguments here for generic use,
+            # pylint: disable=W0142
             return self.__class__(
                 source_ref = source_ref,
                 **values
@@ -702,8 +691,8 @@ class ClosureGiverNodeBase(CodeNodeBase):
         return self.providing[variable_name]
 
     def createProvidedVariable(self, variable_name):
-        # Virtual method, pylint: disable=R0201,W0613
-        assert type( variable_name ) is str
+        # Virtual method, pylint: disable=R0201
+        assert type(variable_name) is str
 
         return None
 
@@ -777,27 +766,6 @@ class ClosureGiverNodeBase(CodeNodeBase):
         del self.temp_variables[variable.getName()]
 
 
-# TODO: There is long since only one node type that uses it, move to FunctionNodes
-class ParameterHavingNodeBase(ClosureGiverNodeBase):
-    def __init__(self, name, code_prefix, parameters, source_ref):
-        ClosureGiverNodeBase.__init__(
-            self,
-            name        = name,
-            code_prefix = code_prefix,
-            source_ref  = source_ref
-        )
-
-        self.parameters = parameters
-        self.parameters.setOwner( self )
-
-        self.registerProvidedVariables(
-            *self.parameters.getVariables()
-        )
-
-    def getParameters(self):
-        return self.parameters
-
-
 class ClosureTakerMixin:
     """ Mixin for nodes that accept variables from closure givers. """
 
@@ -823,11 +791,7 @@ class ClosureTakerMixin:
         # There is no maybe with closures. It means, it is closure variable in
         # this case.
         if result.isMaybeLocalVariable():
-            # This mixin is used with nodes only, but doesn't want to inherit
-            # from it, pylint: disable=E1101
-            result = self.getParentModule().getVariableForClosure(
-                variable_name = variable_name
-            )
+            result = result.getMaybeVariable()
 
         if not result.isModuleVariable():
             self.addClosureVariable(result)
@@ -856,15 +820,13 @@ class ClosureTakerMixin:
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return True
-        else:
-            return False
+        return False
 
     def getTakenVariable(self, variable_name):
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return variable
-        else:
-            return None
+        return None
 
     def isEarlyClosure(self):
         """ Early closure taking means immediate binding of references.
@@ -907,6 +869,8 @@ class ExpressionMixin:
         """ Could this evaluate to be "None".
 
             Yes or no. Defaults to pessimistic yes."""
+        # For overload, pylint: disable=R0201
+
         return True
 
     def isKnownToBeIterable(self, count):
@@ -938,21 +902,20 @@ class ExpressionMixin:
 
     def getStringValue(self):
         """ Node as integer value, if possible."""
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return None
 
     def getStrValue(self):
         """ Value that "str" or "PyObject_Str" would give, if known.
 
-            Otherwise it is "None" to indicate unknown.
+            Otherwise it is "None" to indicate unknown. Users must not
+            forget to take side effects into account, when replacing a
+            node with its string value.
         """
         string_value = self.getStringValue()
 
         if string_value is not None:
             from .NodeMakingHelpers import makeConstantReplacementNode
-
-            # TODO: Side effects should be considered, getStringValue may be
-            # omitting effects.
 
             return makeConstantReplacementNode(
                 node     = self,
@@ -990,36 +953,40 @@ class ExpressionMixin:
                                     constraint_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=R0201,W0613
-        constraint_collection.removeKnowledge( lookup_node )
+        constraint_collection.removeKnowledge(lookup_node)
 
         return lookup_node, None, None
 
     def computeExpressionSubscript(self, lookup_node, subscript,
                                    constraint_collection):
         # By default, an subscript may change everything about the lookup
-        # source.
-        constraint_collection.removeKnowledge( lookup_node )
+        # source. Virtual method, pylint: disable=R0201,W0613
+        constraint_collection.removeKnowledge(lookup_node)
 
         return lookup_node, None, None
 
     def computeExpressionSlice(self, lookup_node, lower, upper,
                                constraint_collection):
         # By default, a slicing may change everything about the lookup source.
-        constraint_collection.removeKnowledge( lookup_node )
+        # Virtual method, pylint: disable=R0201,W0613
+        constraint_collection.removeKnowledge(lookup_node)
 
         return lookup_node, None, None
 
     def computeExpressionCall(self, call_node, constraint_collection):
+        # Virtual method, pylint: disable=R0201
         call_node.getCalled().onContentEscapes(constraint_collection)
 
         return call_node, None, None
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
+        # Virtual method, pylint: disable=R0201
         iter_node.getValue().onContentEscapes(constraint_collection)
 
         return iter_node, None, None
 
     def computeExpressionOperationNot(self, not_node, constraint_collection):
+        # Virtual method, pylint: disable=R0201
         constraint_collection.removeKnowledge(not_node)
 
         return not_node, None, None
@@ -1050,13 +1017,14 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
             compile time and e.g. operations or conditions, or even calls may
             be executed against it.
         """
-        # Virtual method, pylint: disable=R0201
         return True
 
     def mayHaveSideEffects(self):
+        # Virtual method, pylint: disable=R0201
         return False
 
     def mayHaveSideEffectsBool(self):
+        # Virtual method, pylint: disable=R0201
         return False
 
     def mayBeNone(self):
@@ -1176,7 +1144,7 @@ class ExpressionSpecBasedComputationMixin(ExpressionMixin):
         return getComputationResult(
             node        = self,
             computation = lambda : self.builtin_spec.simulateCall(given_values),
-            description = "Builtin call to '%s' precomputed." % (
+            description = "Built-in call to '%s' precomputed." % (
                 self.builtin_spec.getName()
             )
         )
@@ -1197,7 +1165,7 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, NodeBase,
 
 class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
     def __init__(self, values, source_ref):
-        NodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__(self, source_ref = source_ref)
 
         ChildrenHavingMixin.__init__(
             self,
@@ -1217,12 +1185,12 @@ class ExpressionBuiltinNoArgBase(NodeBase, ExpressionMixin):
     def computeExpression(self, constraint_collection):
         from .NodeMakingHelpers import getComputationResult
 
-        # The lamba is there for make sure that no argument parsing will reach
-        # the builtin function at all, pylint: disable=W0108
+        # The lambda is there for make sure that no argument parsing will reach
+        # the built-in function at all, pylint: disable=W0108
         return getComputationResult(
             node        = self,
             computation = lambda : self.builtin_function(),
-            description = "No arg %s builtin" % self.builtin_function.__name__
+            description = "No arg %s built-in" % self.builtin_function.__name__
         )
 
 
@@ -1235,7 +1203,7 @@ class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
     def __init__(self, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "value" : value,
             },
             source_ref = source_ref
@@ -1257,7 +1225,7 @@ class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
         else:
             if value.willRaiseException(BaseException):
                 return value, "new_raise", """\
-Builtin call raises exception while building argument."""
+Built-in call raises exception while building argument."""
 
             return self.computeBuiltinSpec(
                 given_values = (value,)
@@ -1269,8 +1237,7 @@ class SideEffectsFromChildrenMixin:
         for child in self.getVisitableNodes():
             if child.mayHaveSideEffects():
                 return True
-        else:
-            return False
+        return False
 
     def extractSideEffects(self):
         # No side effects at all but from the children.

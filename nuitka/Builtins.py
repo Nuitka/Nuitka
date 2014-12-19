@@ -19,10 +19,12 @@
 
 """
 
+import functools
 import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
-from . import Utils
+from nuitka.__past__ import iterItems
+from nuitka.Utils import python_version
 
 
 def _getBuiltinExceptionNames():
@@ -36,7 +38,7 @@ def _getBuiltinExceptionNames():
         else:
             return False
 
-    # Hide Python3 changes for builtin exception names
+    # Hide Python3 changes for built-in exception names
     try:
         import exceptions
 
@@ -121,10 +123,20 @@ assert "sys" not in builtin_names
 
 builtin_all_names = builtin_names + builtin_exception_names + builtin_warnings
 
-def _getAnonBuiltins():
-    # False positive for "__code__" attribute of function,
-    # pylint: disable=E1101
+def getBuiltinTypeNames():
+    result = []
 
+    for builtin_name in builtin_names:
+        if isinstance(__builtins__[builtin_name],type):
+            result.append(builtin_name)
+
+    return tuple(sorted(result))
+
+
+builtin_type_names = getBuiltinTypeNames()
+
+
+def _getAnonBuiltins():
     with open(sys.executable) as any_file:
         anon_names = {
             # Strangely not Python3 types module
@@ -153,7 +165,7 @@ def _getAnonBuiltins():
         "file"                       : "&PyFile_Type"
     }
 
-    if Utils.python_version < 300:
+    if python_version < 300:
         class Temp:
             def __init__(self):
                 pass
@@ -161,15 +173,32 @@ def _getAnonBuiltins():
             def method(self):
                 pass
 
-        anon_names[ "classobj" ] = type(Temp)
-        anon_codes[ "classobj" ] = "&PyClass_Type"
+        anon_names["classobj"] = type(Temp)
+        anon_codes["classobj"] = "&PyClass_Type"
 
-        anon_names[ "instance" ] = type(Temp())
-        anon_codes[ "instance" ] = "&PyInstance_Type"
+        anon_names["instance"] = type(Temp())
+        anon_codes["instance"] = "&PyInstance_Type"
 
-        anon_names[ "instancemethod" ] = type(Temp().method)
-        anon_codes[ "instancemethod" ] = "&PyMethod_Type"
+        anon_names["instancemethod"] = type(Temp().method)
+        anon_codes["instancemethod"] = "&PyMethod_Type"
 
     return anon_names, anon_codes
 
 builtin_anon_names, builtin_anon_codes = _getAnonBuiltins()
+
+def calledWithBuiltinArgumentNamesDecorator(f):
+    # Accepting all arguments for a decorator, pylint: disable=W0142
+
+    @functools.wraps(f)
+    def wrapper(*args, **kw):
+        new_kw = {}
+
+        for key, value in iterItems(kw):
+            if key in builtin_all_names:
+                key = key + "_arg"
+
+            new_kw[key] = value
+
+        return f(*args, **new_kw)
+
+    return wrapper

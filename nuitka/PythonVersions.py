@@ -24,8 +24,6 @@ the numbers, and attempts to give them meaningful names.
 
 import sys
 
-from nuitka.Options import isFullCompat
-
 
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
@@ -42,10 +40,6 @@ def isAtLeastSubVersion(version):
 
 
 def doShowUnknownEncodingName():
-    # It's best to do it.
-    if not isFullCompat():
-        return True
-
     # Python 3.3.3 or higher does it, 3.4 always did.
     if python_version >= 333:
         return True
@@ -77,5 +71,4 @@ def f():
    def nested():
       return closure""")
     except SyntaxError as e:
-        # Falase alarm, pylint: disable=E1101
         return e.message.replace("'f'", "'%s'")

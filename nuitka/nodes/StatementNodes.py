@@ -25,7 +25,7 @@ from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 def checkStatements(value):
-    """ Check that statements list value propert.
+    """ Check that statements list value property.
 
     Must not be None, must not contain None, and of course only statements,
     may be empty.
@@ -67,7 +67,7 @@ class StatementsSequence(StatementChildrenHavingBase):
     def getDetails(self):
         if self.getStatements():
             return {
-                "statement_count" : len( self.getStatements() )
+                "statement_count" : len(self.getStatements())
             }
         else:
             return {
@@ -76,7 +76,7 @@ class StatementsSequence(StatementChildrenHavingBase):
 
     # Overloading name based automatic check, so that derived ones know it too.
     def isStatementsSequence(self):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
 
         return True
 
@@ -119,43 +119,37 @@ class StatementsSequence(StatementChildrenHavingBase):
         for statement in self.getStatements():
             if statement.mayHaveSideEffects():
                 return True
-        else:
-            return False
+        return False
 
     def mayRaiseException(self, exception_type):
         for statement in self.getStatements():
             if statement.mayRaiseException(exception_type):
                 return True
-        else:
-            return False
+        return False
 
     def needsFrame(self):
         for statement in self.getStatements():
             if statement.needsFrame():
                 return True
-        else:
-            return False
+        return False
 
     def mayReturn(self):
         for statement in self.getStatements():
             if statement.mayReturn():
                 return True
-        else:
-            return False
+        return False
 
     def mayBreak(self):
         for statement in self.getStatements():
             if statement.mayBreak():
                 return True
-        else:
-            return False
+        return False
 
     def mayContinue(self):
         for statement in self.getStatements():
             if statement.mayContinue():
                 return True
-        else:
-            return False
+        return False
 
     def mayRaiseExceptionOrAbort(self, exception_type):
         return self.mayRaiseException(exception_type) or \
@@ -168,12 +162,9 @@ class StatementsSequence(StatementChildrenHavingBase):
 
     def computeStatement(self, constraint_collection):
         # Don't want to be called like this.
-        assert False
+        assert False, self
 
     def computeStatementsSequence(self, constraint_collection):
-        # Expect to be overloaded.
-        assert not self.isStatementsFrame(), self
-
         new_statements = []
 
         statements = self.getStatements()
@@ -240,6 +231,8 @@ def checkFrameStatements(value):
 
 
 class StatementsFrame(StatementsSequence):
+    # Frames got many details to store, pylint: disable=R0902
+
     kind = "STATEMENTS_FRAME"
 
     checkers = {
@@ -341,6 +334,10 @@ class StatementsFrame(StatementsSequence):
         )
 
     def computeStatementsSequence(self, constraint_collection):
+        # The extraction of parts of the frame that can be moved before or after
+        # the frame scope, takes it toll to complexity, pylint: disable=R0912
+
+
         new_statements = []
 
         statements = self.getStatements()
@@ -422,7 +419,9 @@ class StatementsFrame(StatementsSequence):
 class StatementExpressionOnly(StatementChildrenHavingBase):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
-    named_children = ("expression",)
+    named_children = (
+        "expression",
+    )
 
     def __init__(self, expression, source_ref):
         assert expression.isExpression()
@@ -440,6 +439,9 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
 
     def mayHaveSideEffects(self):
         return self.getExpression().mayHaveSideEffects()
+
+    def mayRaiseException(self, exception_type):
+        return self.getExpression().mayRaiseException(exception_type)
 
     getExpression = StatementChildrenHavingBase.childGetter(
         "expression"

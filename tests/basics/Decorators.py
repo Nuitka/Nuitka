@@ -61,6 +61,6 @@ print function2()
 def function3():
     return 3
 
-function3 = deco_returner1()( deco_returner2()( function3 ) )
+function3 = deco_returner1()(deco_returner2()(function3))
 
 print function3()

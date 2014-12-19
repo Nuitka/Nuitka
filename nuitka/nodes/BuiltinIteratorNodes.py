@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Builtin iterator nodes.
+""" Built-in iterator nodes.
 
 These play a role in for loops, and in unpacking. They can something be
 predicted to succeed or fail, in which case, code can become less complex.
@@ -61,11 +61,11 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
                 change_desc = "Predicted len argument"
 
                 new_node = wrapExpressionWithNodeSideEffects(
-                    new_node = makeConstantReplacementNode( arg_length, self ),
+                    new_node = makeConstantReplacementNode(arg_length, self),
                     old_node = self.getValue()
                 )
 
-                if new_node.isExpressionSideEffects(): # false alarm pylint: disable=E1103
+                if new_node.isExpressionSideEffects():
                     change_desc += " maintaining side effects"
 
         return new_node, change_tags, change_desc
@@ -104,22 +104,22 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         if self.getValue().isCompileTimeConstant():
             return ()
         else:
-            return ( self, )
+            return (self,)
 
     def mayHaveSideEffects(self):
         if self.getValue().isCompileTimeConstant():
-            return self.getValue().isKnownToBeIterable( None )
+            return self.getValue().isKnownToBeIterable(None)
 
         return True
 
     def isKnownToBeIterableAtMin(self, count):
-        assert type( count ) is int
+        assert type(count) is int
 
         iter_length = self.getValue().getIterationLength()
         return iter_length is not None and iter_length < count
 
     def isKnownToBeIterableAtMax(self, count):
-        assert type( count ) is int
+        assert type(count) is int
 
         iter_length = self.getValue().getIterationLength()
 
@@ -177,7 +177,7 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
         )
 
     def getDetails(self):
-        result = ExpressionBuiltinNext1.getDetails( self )
+        result = ExpressionBuiltinNext1.getDetails(self)
         result[ "element_index" ] = self.getCount()
 
         return result
@@ -212,13 +212,13 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
     def getCount(self):
         return self.count
 
-    getIterator = StatementChildrenHavingBase.childGetter( "iterator" )
+    getIterator = StatementChildrenHavingBase.childGetter("iterator")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getIterator() )
+        constraint_collection.onExpression(self.getIterator())
         iterator = self.getIterator()
 
-        if iterator.willRaiseException( BaseException ):
+        if iterator.willRaiseException(BaseException):
             from .NodeMakingHelpers import \
               makeStatementExpressionOnlyReplacementNode
 
@@ -228,10 +228,10 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Explicit raise already raises implicitely building exception type."""
+Explicit raise already raises implicitly building exception type."""
 
         # Remove the check if it can be decided at compile time.
-        if iterator.isKnownToBeIterableAtMax( 0 ):
+        if iterator.isKnownToBeIterableAtMax(0):
             return None, "new_statements", """\
 Determined iteration end check to be always true."""
 
@@ -252,19 +252,19 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     def __init__(self, callable, sentinel, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "callable" : callable,
                 "sentinel" : sentinel,
             },
             source_ref = source_ref
         )
 
-    getCallable = ExpressionChildrenHavingBase.childGetter( "callable" )
-    getSentinel = ExpressionChildrenHavingBase.childGetter( "sentinel" )
+    getCallable = ExpressionChildrenHavingBase.childGetter("callable")
+    getSentinel = ExpressionChildrenHavingBase.childGetter("sentinel")
 
     def computeExpression(self, constraint_collection):
-        # TODO: The "callable" should be investigated here,
-        # pylint: disable=W0613
+        # TODO: The "callable" should be investigated here, maybe it is not
+        # really callable, or raises an exception.
 
         return self, None, None
 
@@ -275,12 +275,15 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
 class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"
 
-    named_children = ( "iterator", "default", )
+    named_children = (
+        "iterator",
+        "default"
+    )
 
     def __init__(self, iterator, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "iterator" : iterator,
                 "default"  : default,
             },
@@ -291,6 +294,6 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, constraint_collection):
-        # TODO: The "iterator" should be investigated here, pylint: disable=W0613
-
+        # TODO: The "iterator" should be investigated here, if it is iterable,
+        # or if the default is raising.
         return self, None, None

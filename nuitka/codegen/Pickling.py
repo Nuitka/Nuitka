@@ -30,9 +30,7 @@ from nuitka.__past__ import unicode  # pylint: disable=W0622
 try:
     import cPickle as cpickle
 except ImportError:
-    # False alarm, no double import at all, pylint: disable=W0404
     import pickle as cpickle
-
 
 
 if Utils.python_version >= 300:
@@ -49,13 +47,13 @@ def getStreamedConstant(constant_value):
     try:
         saved = cpickle.dumps(
             constant_value,
-            protocol = 0 if type( constant_value ) is unicode else pickle_protocol
+            protocol = 0 if type(constant_value) is unicode else pickle_protocol
         )
     except TypeError:
-        warning( "Problem with persisting constant '%r'." % constant_value )
+        warning("Problem with persisting constant '%r'." % constant_value)
         raise
 
-    saved = pickletools.optimize( saved )
+    saved = pickletools.optimize(saved)
 
     # Check that the constant is restored correctly.
     try:
@@ -63,18 +61,18 @@ def getStreamedConstant(constant_value):
             saved
         )
     except:
-        warning( "Problem with persisting constant '%r'." % constant_value )
+        warning("Problem with persisting constant '%r'." % constant_value)
         raise
 
-    if not Constants.compareConstants( restored, constant_value ):
+    if not Constants.compareConstants(restored, constant_value):
         raise AssertionError(
             "Streaming of constant changed value",
             constant_value,
             "!=",
             restored,
             "types:",
-            type( constant_value ),
-            type( restored )
+            type(constant_value),
+            type(restored)
         )
 
     return saved

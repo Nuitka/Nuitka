@@ -112,11 +112,11 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
         ),
         StatementConditional(
             condition  = ExpressionComparisonIs(
-                left = ExpressionTempVariableRef(
+                left       = ExpressionTempVariableRef(
                     variable   = tmp_handler_indicator_variable,
                     source_ref = source_ref
                 ),
-                right = ExpressionConstantRef(
+                right      = ExpressionConstantRef(
                     constant   = True,
                     source_ref = source_ref
                 ),
@@ -133,8 +133,8 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
             variable   = tmp_handler_indicator_variable,
             source_ref = source_ref.atInternal()
         ),
-        tolerant   = False,
-        source_ref = source_ref.atInternal()
+        tolerant     = False,
+        source_ref   = source_ref.atInternal()
     ),
 
     return StatementsSequence(
@@ -171,7 +171,7 @@ def makeReraiseExceptionStatement(source_ref):
                 source_ref      = source_ref
             ),
         ),
-        source_ref  = source_ref
+        source_ref = source_ref
     )
 
 
@@ -191,11 +191,11 @@ def makeTryExceptSingleHandlerNode(tried, exception_name, handler_body,
 
     statements.append(
         StatementConditional(
-            condition = ExpressionComparisonExceptionMatch(
-                left      = ExpressionCaughtExceptionTypeRef(
-                    source_ref  = source_ref
+            condition  = ExpressionComparisonExceptionMatch(
+                left       = ExpressionCaughtExceptionTypeRef(
+                    source_ref = source_ref
                 ),
-                right     = ExpressionBuiltinExceptionRef(
+                right      = ExpressionBuiltinExceptionRef(
                     exception_name = exception_name,
                     source_ref     = source_ref
                 ),
@@ -237,8 +237,8 @@ def buildTryExceptionNode(provider, node, source_ref):
     # for the "del" as done for Python3. Also catches always work a tuple of
     # exception types and hides away that they may be built or not.
 
-    # Many variables, due to the re-formulation that is going on here, which
-    # just has the complexity, pylint: disable=R0914
+    # Many variables and branches, due to the re-formulation that is going on
+    # here, which just has the complexity, pylint: disable=R0912,R0914
 
     tried = buildStatementsNode(
         provider   = provider,
@@ -286,6 +286,8 @@ def buildTryExceptionNode(provider, node, source_ref):
                 source_ref = source_ref,
             )
 
+            # We didn't allow None, therefore it cannot be None, and
+            # the unpack is safe: pylint: disable=W0633
             kind, detail = target_info
 
             assert kind == "Name", kind
@@ -332,7 +334,7 @@ def buildTryExceptionNode(provider, node, source_ref):
         if exception_types is None:
             if handler is not node.handlers[-1]:
                 SyntaxErrors.raiseSyntaxError(
-                    reason    = "default 'except:' must be last",
+                    reason     = "default 'except:' must be last",
                     source_ref = source_ref.atLineNumber(
                         handler.lineno-1
                           if Options.isFullCompat() else
@@ -349,7 +351,7 @@ def buildTryExceptionNode(provider, node, source_ref):
 
     # Reraise by default
     exception_handling = makeReraiseExceptionStatement(
-        source_ref  = source_ref
+        source_ref = source_ref
     )
 
     for exception_type, handler in reversed(handlers):
@@ -360,9 +362,9 @@ def buildTryExceptionNode(provider, node, source_ref):
             exception_handling = StatementsSequence(
                 statements = (
                     StatementConditional(
-                        condition = ExpressionComparisonExceptionMatch(
+                        condition  = ExpressionComparisonExceptionMatch(
                             left       = ExpressionCaughtExceptionTypeRef(
-                                source_ref  = exception_type.source_ref
+                                source_ref = exception_type.source_ref
                             ),
                             right      = exception_type,
                             source_ref = exception_type.source_ref
@@ -408,8 +410,8 @@ def buildTryExceptionNode(provider, node, source_ref):
             exception_handling = StatementsSequence(
                 statements = prelude + (
                     makeTryFinallyStatement(
-                        tried = exception_handling,
-                        final = StatementRestoreFrameException(
+                        tried      = exception_handling,
+                        final      = StatementRestoreFrameException(
                             source_ref = source_ref.atInternal()
                         ),
                         source_ref = source_ref

@@ -44,8 +44,11 @@ def getExceptionRefCode(to_name, exception_type, emit, context):
 
 
 def getTracebackMakingIdentifier(context):
+    frame_handle = context.getFrameHandle()
+    assert frame_handle is not None
+
     return "MAKE_TRACEBACK( INCREASE_REFCOUNT( %s ) )" % (
-        context.getFrameHandle()
+        frame_handle
     )
 
 
@@ -97,7 +100,7 @@ def getExceptionCaughtTracebackCode(to_name, emit, context):
         emit(
             "%s = exception_tb ? INCREASE_REFCOUNT( (PyObject *)exception_tb ) : (PyObject *)%s;" % (
                 to_name,
-                getTracebackMakingIdentifier( context )
+                getTracebackMakingIdentifier(context)
             )
         )
 
@@ -106,6 +109,6 @@ def getExceptionCaughtTracebackCode(to_name, emit, context):
 
 def getExceptionUnpublishedReleaseCode(emit, context):
     if not context.isExceptionPublished():
-        emit("Py_DECREF( exception_type );" )
-        emit("Py_XDECREF( exception_value );" )
-        emit("Py_XDECREF( exception_tb );" )
+        emit("Py_DECREF( exception_type );")
+        emit("Py_XDECREF( exception_value );")
+        emit("Py_XDECREF( exception_tb );")

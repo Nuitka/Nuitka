@@ -38,6 +38,7 @@ from .NodeBases import (
     NodeBase,
     StatementChildrenHavingBase
 )
+from nuitka.Importing import getModuleWhiteList
 
 
 class ExpressionImportModule(NodeBase, ExpressionMixin):
@@ -149,8 +150,9 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
                 else:
                     module_fullpath = module_package + "." + module_name
 
-                if module_filename not in self._warned_about:
-                    self._warned_about.add( module_filename )
+                if module_filename not in self._warned_about and \
+                   module_fullpath not in getModuleWhiteList():
+                    self._warned_about.add(module_filename)
 
                     warning(
                         """\
@@ -353,7 +355,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 class StatementImportStar(StatementChildrenHavingBase):
     kind = "STATEMENT_IMPORT_STAR"
 
-    named_children = ( "module", )
+    named_children = ("module",)
 
     def __init__(self, module_import, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -364,10 +366,10 @@ class StatementImportStar(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getModule = StatementChildrenHavingBase.childGetter( "module" )
+    getModule = StatementChildrenHavingBase.childGetter("module")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression( self.getModule() )
+        constraint_collection.onExpression(self.getModule())
 
         # Need to invalidate everything, and everything could be assigned to
         # something else now.

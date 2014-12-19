@@ -117,7 +117,7 @@ def buildForLoopNode(provider, node, source_ref):
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            tried         = makeStatementsSequenceFromStatement(
+            tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
                         variable   = tmp_value_variable,
@@ -211,17 +211,17 @@ def buildForLoopNode(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       = ExpressionBuiltinIter1(
-                value       = source,
-                source_ref  = source.getSourceReference()
+                value      = source,
+                source_ref = source.getSourceReference()
             ),
             source_ref   = source_ref
         ),
         makeTryFinallyStatement(
-            tried = StatementLoop(
+            tried      = StatementLoop(
                 body       = loop_body,
                 source_ref = source_ref
             ),
-            final = StatementsSequence(
+            final      = StatementsSequence(
                 statements = cleanup_statements,
                 source_ref = source_ref
             ),
@@ -251,8 +251,8 @@ def buildForLoopNode(provider, node, source_ref):
 
         statements = (
             makeTryFinallyStatement(
-                tried = statements,
-                final = StatementDelVariable(
+                tried      = statements,
+                final      = StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
                         variable   = tmp_break_indicator,
                         source_ref = source_ref
@@ -283,7 +283,7 @@ def buildWhileLoopNode(provider, node, source_ref):
     )
 
     if else_block is not None:
-        temp_scope = provider.allocateTempScope( "while_loop" )
+        temp_scope = provider.allocateTempScope("while_loop")
 
         tmp_break_indicator = provider.allocateTempVariable(
             temp_scope = temp_scope,
@@ -296,11 +296,11 @@ def buildWhileLoopNode(provider, node, source_ref):
                     variable   = tmp_break_indicator,
                     source_ref = source_ref
                 ),
-                source     = ExpressionConstantRef(
+                source       = ExpressionConstantRef(
                     constant   = True,
                     source_ref = source_ref
                 ),
-                source_ref = source_ref
+                source_ref   = source_ref
             ),
             StatementBreakLoop(
                 source_ref = source_ref
@@ -328,8 +328,8 @@ def buildWhileLoopNode(provider, node, source_ref):
     loop_body = makeStatementsSequence(
         statements = (
             StatementConditional(
-                condition = buildNode(provider, node.test, source_ref),
-                no_branch = StatementsSequence(
+                condition  = buildNode(provider, node.test, source_ref),
+                no_branch  = StatementsSequence(
                     statements = statements,
                     source_ref = source_ref
                 ),
@@ -356,7 +356,7 @@ def buildWhileLoopNode(provider, node, source_ref):
                     variable   = tmp_break_indicator,
                     source_ref = source_ref
                 ),
-                source = ExpressionConstantRef(
+                source       = ExpressionConstantRef(
                     constant   = False,
                     source_ref = source_ref
                 ),
@@ -383,8 +383,8 @@ def buildWhileLoopNode(provider, node, source_ref):
 
         statements = (
             makeTryFinallyStatement(
-                tried = statements,
-                final = StatementDelVariable(
+                tried      = statements,
+                final      = StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
                         variable   = tmp_break_indicator,
                         source_ref = source_ref

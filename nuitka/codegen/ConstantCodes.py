@@ -22,6 +22,7 @@
 import ctypes
 import re
 import struct
+from logging import warning
 
 import marshal
 from nuitka.__past__ import iterItems, long, unicode  # pylint: disable=W0622
@@ -35,6 +36,16 @@ from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Pickling import getStreamedConstant
 
+
+def generateConstantReferenceCode(to_name, expression, emit, context):
+    getConstantAccess(
+        to_name  = to_name,
+        constant = expression.getConstant(),
+        emit     = emit,
+        context  = context
+    )
+
+
 stream_data = StreamData()
 
 def getConstantCode(context, constant):
@@ -42,7 +53,7 @@ def getConstantCode(context, constant):
 
 # TODO: The determination of this should already happen in Building or in a
 # helper not during code generation.
-_match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
+_match_attribute_names = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
 
 def getConstantCodeName(context, constant):
     return context.getConstantCode(constant)
@@ -94,6 +105,8 @@ min_signed_long = -(2**(sizeof_long*8-1)-1)
 done = set()
 
 def _getConstantInitValueCode(constant_value, constant_type):
+    # This function is a case driven by returns, pylint: disable=R0911
+
     if constant_type is unicode:
         try:
             encoded = constant_value.encode("utf-8")
@@ -178,9 +191,9 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
     marshal_value = marshal.dumps(constant_value)
     restored = marshal.loads(marshal_value)
 
-    # TODO: This should probably issue a warning, so we could eliminate this
-    # in decideMarshal already.
     if constant_value != restored:
+        warning("Problem with marshal of constant %r", constant_value)
+
         return False
 
     emit(
@@ -196,7 +209,7 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
 def _addConstantInitCode(context, emit, constant_type, constant_value,
                          constant_identifier, module_level):
     # This has many cases, that all return, and do a lot.
-    # pylint: disable=R0911,R0912,R0915
+    # pylint: disable=R0911,R0912,R0915,R0914
 
     if constant_value in constant_builtin_types:
         return
@@ -505,6 +518,46 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
         return
 
+    if constant_type is slice:
+        slice1_name = getConstantCodeName(context, constant_value.start)
+        _addConstantInitCode(
+            emit                = emit,
+            constant_type       = type(constant_value.start),
+            constant_value      = constant_value.start,
+            constant_identifier = slice1_name,
+            module_level        = module_level,
+            context             = context
+        )
+        slice2_name = getConstantCodeName(context, constant_value.stop)
+        _addConstantInitCode(
+            emit                = emit,
+            constant_type       = type(constant_value.stop),
+            constant_value      = constant_value.stop,
+            constant_identifier = slice2_name,
+            module_level        = module_level,
+            context             = context
+        )
+        slice3_name = getConstantCodeName(context, constant_value.step)
+        _addConstantInitCode(
+            emit                = emit,
+            constant_type       = type(constant_value.step),
+            constant_value      = constant_value.step,
+            constant_identifier = slice3_name,
+            module_level        = module_level,
+            context             = context
+        )
+
+        emit(
+             "%s = PySlice_New( %s, %s, %s );" % (
+                constant_identifier,
+                slice1_name,
+                slice2_name,
+                slice3_name
+            )
+        )
+
+        return
+
     if constant_type in (frozenset, complex, unicode, long, range):
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
@@ -513,13 +566,10 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
         return
 
-    assert False, ( type(constant_value), constant_value, constant_identifier )
+    assert False, (type(constant_value), constant_value, constant_identifier)
 
 
 def getConstantsInitCode(context):
-    # There are many cases for constants to be created in the most efficient
-    # way, pylint: disable=R0912
-
     emit = SourceCodeCollector()
 
     sorted_constants = sorted(
@@ -541,8 +591,6 @@ def getConstantsInitCode(context):
 
 
 def getConstantsDeclCode(context):
-    # There are many cases for constants of different types.
-    # pylint: disable=R0912
     statements = []
 
     sorted_constants = sorted(
@@ -571,7 +619,7 @@ def getConstantsDeclCode(context):
 
 def getConstantAccess(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
-    # empty.  pylint: disable=R0911,R0912, R0915
+    # empty.  pylint: disable=R0912,R0915
 
     if type(constant) is dict:
         if constant:
@@ -702,7 +750,7 @@ def getConstantInitCodes(module_context):
         if not constant_identifier.startswith("const_"):
             continue
 
-        if global_context.getConstantUseCount(constant_identifier ) == 1:
+        if global_context.getConstantUseCount(constant_identifier) == 1:
             qualifier = "static "
 
             constant_value = global_context.constants[constant_identifier]
@@ -740,6 +788,10 @@ def allocateNestedConstants(module_context):
             for key, value in iterItems(constant_value):
                 considerForDeferral(key)
                 considerForDeferral(value)
+        elif constant_type is slice:
+            considerForDeferral(constant_value.start)
+            considerForDeferral(constant_value.step)
+            considerForDeferral(constant_value.stop)
 
     for constant_identifier in set(module_context.getConstants()):
         constant_value = module_context.global_context.constants[
@@ -748,5 +800,5 @@ def allocateNestedConstants(module_context):
 
         constant_type = type(constant_value)
 
-        if constant_type in (tuple, dict, list, set, frozenset):
+        if constant_type in (tuple, dict, list, set, frozenset, slice):
             considerForDeferral(constant_value)

@@ -63,7 +63,7 @@ def tryScope3(x):
 print("*" * 20)
 
 tryScope2(1, TypeError)
-tryScope2([ 1 ], TypeError)
+tryScope2([1], TypeError)
 
 print("*" * 20)
 
@@ -83,7 +83,7 @@ def tryScope4(x):
     finally:
         print("finally obeyed")
 
-tryScope4(1 )
+tryScope4(1)
 tryScope4([1])
 
 def tryScope5():

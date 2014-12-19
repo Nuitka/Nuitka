@@ -25,6 +25,8 @@ import re
 import sys
 
 from nuitka import Importing, Utils, Variables
+from nuitka.optimizations. \
+    ConstraintCollections import ConstraintCollectionModule
 from nuitka.oset import OrderedSet
 from nuitka.SourceCodeReferences import SourceCodeReference
 
@@ -37,7 +39,7 @@ class PythonModuleMixin:
         assert type(name) is str, type(name)
         assert "." not in name, name
         assert package_name is None or \
-               (type( package_name ) is str and package_name != "")
+               (type(package_name) is str and package_name != "")
 
         self.name = name
         self.package_name = package_name
@@ -55,10 +57,12 @@ class PythonModuleMixin:
         else:
             return self.getName()
 
-    def isMainModule(self):
+    @staticmethod
+    def isMainModule():
         return False
 
-    def isInternalModule(self):
+    @staticmethod
+    def isInternalModule():
         return False
 
     def attemptRecursion(self):
@@ -106,10 +110,16 @@ class PythonModuleMixin:
 
         return result
 
+    def getCodeName(self):
+        # Abstract method, pylint: disable=R0201
+        return None
+
+
 def checkModuleBody(value):
     assert value is None or value.isStatementsSequence()
 
     return value
+
 
 class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
                    ClosureGiverNodeBase):
@@ -137,15 +147,18 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
             source_ref  = source_ref
         )
 
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {},
-        )
-
         PythonModuleMixin.__init__(
             self,
             name         = name,
             package_name = package_name
+        )
+
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = {
+                "body" : None # delayed
+            },
         )
 
         self.variables = set()
@@ -167,18 +180,18 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         }
 
     def asXml(self):
-        # The class is new style, false alarm: pylint: disable=E1002
-        result = super( PythonModule, self ).asXml()
+        result = super(PythonModule, self).asXml()
 
         for function_body in self.functions:
-            result.append( function_body.asXml() )
+            result.append(function_body.asXml())
 
         return result
 
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
 
-    def isPythonModule(self):
+    @staticmethod
+    def isPythonModule():
         return True
 
     def getParent(self):
@@ -228,13 +241,16 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
             else:
                 return "$$%d$" % ord(c)
 
-        return "module_" + \
-          "".join(re.sub("[^a-zA-Z0-9_]", r ,c) for c in self.getFullName())
+        return "".join(
+            re.sub("[^a-zA-Z0-9_]", r ,c)
+            for c in
+            self.getFullName()
+        )
 
     def addFunction(self, function_body):
         assert function_body not in self.functions
 
-        self.functions.add( function_body )
+        self.functions.add(function_body)
 
     def getFunctions(self):
         return self.functions
@@ -274,8 +290,26 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     # TODO: Can't really use locals for modules, this should probably be made
     # sure to not be used.
-    def getLocalsMode(self):
+    @staticmethod
+    def getLocalsMode():
         return "copy"
+
+    def computeModule(self):
+        self.collection = ConstraintCollectionModule()
+
+        module_body = self.getBody()
+
+        if module_body is not None:
+            result = module_body.computeStatementsSequence(
+                constraint_collection = self.collection
+            )
+
+            if result is not module_body:
+                self.setBody(result)
+
+        self.collection.makeVariableTraceOptimizations(self)
+
+
 
 
 class SingleCreationMixin:
@@ -283,7 +317,7 @@ class SingleCreationMixin:
 
     def __init__(self):
         assert self.__class__ not in self.created
-        self.created.add( self.__class__ )
+        self.created.add(self.__class__)
 
 
 class PythonMainModule(PythonModule, SingleCreationMixin):
@@ -297,11 +331,12 @@ class PythonMainModule(PythonModule, SingleCreationMixin):
             source_ref   = source_ref
         )
 
-        SingleCreationMixin.__init__( self )
+        SingleCreationMixin.__init__(self)
 
         self.main_added = main_added
 
-    def isMainModule(self):
+    @staticmethod
+    def isMainModule():
         return True
 
     def getOutputFilename(self):
@@ -326,9 +361,10 @@ class PythonInternalModule(PythonModule, SingleCreationMixin):
             )
         )
 
-        SingleCreationMixin.__init__( self )
+        SingleCreationMixin.__init__(self)
 
-    def isInternalModule(self):
+    @staticmethod
+    def isInternalModule():
         return True
 
     def getOutputFilename(self):
@@ -349,7 +385,7 @@ class PythonPackage(PythonModule):
         )
 
     def getOutputFilename(self):
-        return Utils.dirname( self.getFilename() )
+        return Utils.dirname(self.getFilename())
 
 
 class PythonShlibModule(PythonModuleMixin, NodeBase):
@@ -401,6 +437,7 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
         elif full_name == "lxml.etree":
             return (
                 ("gzip", None),
+                ("_elementpath", "lxml")
             )
         elif full_name == "gtk._gtk":
             return (

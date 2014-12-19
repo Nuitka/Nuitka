@@ -79,19 +79,19 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
 
     if list_star_arg is None and dict_star_arg is None:
         return ExpressionCall(
-            called  = called,
-            args    = makeSequenceCreationOrConstant(
+            called     = called,
+            args       = makeSequenceCreationOrConstant(
                 sequence_kind = "tuple",
                 elements      = positional_args,
                 source_ref    = source_ref
             ),
-            kw      = makeDictCreationOrConstant(
+            kw         = makeDictCreationOrConstant(
                 keys       = keys,
                 values     = values,
                 lazy_order = True,
                 source_ref = source_ref
             ),
-            source_ref      = source_ref,
+            source_ref = source_ref,
         )
     else:
         # Dispatch to complex helper function for each case. These do
@@ -120,35 +120,35 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
         )
 
         table = {
-            (  True,   True,  True, False ) :
+            (True,   True,  True, False) :
                 getFunctionCallHelperPosKeywordsStarList,
-            (  True,  False,  True, False ) :
+            (True,  False,  True, False) :
                 getFunctionCallHelperPosStarList,
-            ( False,   True,  True, False ) :
+            (False,   True,  True, False) :
                 getFunctionCallHelperKeywordsStarList,
-            ( False,  False,  True, False ) :
+            (False,  False,  True, False) :
                 getFunctionCallHelperStarList,
-            (  True,   True, False,  True ) :
+            (True,   True, False,  True) :
                 getFunctionCallHelperPosKeywordsStarDict,
-            (  True,  False, False,  True ) :
+            (True,  False, False,  True) :
                 getFunctionCallHelperPosStarDict,
-            ( False,   True, False,  True ) :
+            (False,   True, False,  True) :
                 getFunctionCallHelperKeywordsStarDict,
-            ( False,  False, False,  True ) :
+            (False,  False, False,  True) :
                 getFunctionCallHelperStarDict,
-            (  True,   True,  True,  True ) :
+            (True,   True,  True,  True) :
                 getFunctionCallHelperPosKeywordsStarListStarDict,
-            (  True,  False,  True,  True ) :
+            (True,  False,  True,  True) :
                 getFunctionCallHelperPosStarListStarDict,
-            ( False,   True,  True,  True ) :
+            (False,   True,  True,  True) :
                 getFunctionCallHelperKeywordsStarListStarDict,
-            ( False,  False,  True,  True ) :
+            (False,  False,  True,  True) :
                 getFunctionCallHelperStarListStarDict,
         }
 
         get_helper = table[ key ]
 
-        helper_args = [ called ]
+        helper_args = [called]
 
         if positional_args:
             helper_args.append(

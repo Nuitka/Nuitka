@@ -32,7 +32,8 @@ sys.path.insert(
 from test_common import (
     my_print,
     setup,
-    compareWithCPython
+    compareWithCPython,
+    decideFilenameVersionSkip
 )
 
 python_version = setup()
@@ -47,7 +48,10 @@ else:
     active = True
 
 for filename in sorted( os.listdir( "." ) ):
-    if not filename.endswith( ".py" ) or filename == "run_all.py":
+    if not filename.endswith( ".py" ):
+        continue
+
+    if not decideFilenameVersionSkip(filename):
         continue
 
     path = filename
@@ -56,12 +60,7 @@ for filename in sorted( os.listdir( "." ) ):
         active = True
 
     # Some syntax errors are for Python3 only.
-    if filename == "Importing2.py" and python_version < "3":
-        extra_flags = ["remove_output" ]
-    elif filename == "GeneratorReturn2.py" and python_version >= "3.3":
-        extra_flags = ["remove_output"]
-    else:
-        extra_flags = ["expect_failure",  "remove_output"]
+    extra_flags = ["expect_failure", "remove_output"]
 
     if active:
         compareWithCPython(

@@ -179,18 +179,18 @@ def createEnvironment( compiler_tools ):
 
     return Environment(
         # We want the outside environment to be passed through.
-        ENV         = os.environ,
+        ENV          = os.environ,
 
         # Extra tools configuration for scons.
-        tools       = compiler_tools,
+        tools        = compiler_tools,
 
         # The shared libraries should not be named "lib...", because CPython
         # requires the filename "module_name.so" to load it.
-        SHLIBPREFIX = "",
+        SHLIBPREFIX  = "",
 
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
-        TARGET_ARCH = target_arch,
+        TARGET_ARCH  = target_arch,
 
         MSVC_VERSION = msvc_version,
 
@@ -220,13 +220,19 @@ if os.name == "nt" and \
         compiler_tools = ["mingw"]
     )
 
+if show_scons_mode:
+    print "Initial CXX:", env.get("CXX", None)
+    print "Initial CXXVERSION:", env.get("CXXVERSION", None)
+
 if clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
     env["CXX"] = "clang"
+    env["CXXVERSION"] = None
 elif "CXX" in os.environ:
     # If the environment variable CXX is set, use that.
     env["CXX"] = os.environ["CXX"]
+    env["CXXVERSION"] = None
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
@@ -317,7 +323,7 @@ def setupSpawn(env):
             data = "\r\n".join(
                 line
                 for line in
-                data.split( "\r\n" )
+                data.split("\r\n")
                 if "   Creating library" not in line
                 # On localized compilers, the message to ignore is not as clear.
                 if not (module_mode and ".exp" in line)
@@ -341,7 +347,7 @@ def getGccVersion():
 
     pipe = SCons.Action._subproc(
         env,
-        [env["CXX" ], '--version'],
+        [env["CXX"], '--version'],
         stdin  = 'devnull',
         stderr = 'devnull',
         stdout = subprocess.PIPE
@@ -360,7 +366,7 @@ def getClangVersion():
     import SCons
 
     pipe = SCons.Action._subproc(
-        env, [env[ "CXX" ], '--version'],
+        env, [env["CXX"], '--version'],
         stdin  = 'devnull',
         stderr = 'devnull',
         stdout = subprocess.PIPE
@@ -402,7 +408,7 @@ if os.name != "nt" and env["CXX"] is None:
     # be installed.
 
     for candidate in ("g++-4.9", "g++-4.8", "g++-4.7", "g++-4.6", "g++-4.5",
-                      "g++-4.4", "g++44", "clang" ):
+                      "g++-4.4", "g++44", "clang"):
         if os.path.exists(os.path.join("/usr/bin", candidate)):
             env["CXX"] = candidate
             env["CC"] = candidate.replace("++", "cc")
@@ -413,14 +419,14 @@ if os.name != "nt" and env["CXX"] is None:
 
             break
     else:
-        sys.exit( """\
+        sys.exit("""\
 The g++ compiler '%s' (version %s) doesn't have the sufficient \
-version (>= 4.4).""" % ( orig_cxx, orig_cxx_version ) )
+version (>= 4.4).""" % (orig_cxx, orig_cxx_version))
 
 if env["CXX"] is None or \
-   getExecutablePath(env[ "CXX" ], initial = False) is None:
+   getExecutablePath(env["CXX"], initial = False) is None:
     if os.name == "nt":
-        sys.exit( """\
+        sys.exit("""\
 Error, cannot locate suitable C++ compiler. You have the following options:
 
 a) If a suitable Visual Studio version is installed, it not located,
@@ -432,7 +438,7 @@ b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
    PATH.
 
 c) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
-""" % sys.exec_prefix )
+""" % sys.exec_prefix)
     else:
         sys.exit("Error, cannot locate suitable C++ compiler.")
 
@@ -513,7 +519,8 @@ if "g++" in env["CXX"]:
             CXXFLAGS = ["-fvisibility-inlines-hidden"]
         )
 
-    if "CXXVERSION" not in env:
+    if env.get("CXXVERSION", None) is None or \
+       env.get("CXXVERSION").count(".") < 2:
         env["CXXVERSION"] = getGccVersion()
 
     # Version dependent options.
@@ -539,9 +546,9 @@ version (>= 4.4).""" % (env["CXX"], env["CXXVERSION"])
 
     # For LTO mode, the version requirement is even higher, so try that too.
     if lto_mode and gpp_version < 460:
-        sys.exit( """\
+        sys.exit("""\
 The g++ compiler %s (version %s) doesn't have the sufficient \
-version for lto mode (>= 4.6).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
+version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
 
     # For g++ 4.6 there are some new interesting functions.
     if gpp_version >= 460:
@@ -568,7 +575,7 @@ version for lto mode (>= 4.6).""" % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
         # env.Append( CCFLAGS = [ "-Wnoexcept" ] )
 
         if debug_mode:
-            env.Append(LINKFLAGS = [ "-O2" ])
+            env.Append(LINKFLAGS = ["-O2"])
 
         if optimize_mode:
             env.Append(
@@ -689,9 +696,9 @@ if python_debug:
 def detectHostMultiarch():
     import commands
 
-    for line in commands.getoutput( "dpkg-architecture" ).split("\n"):
+    for line in commands.getoutput("dpkg-architecture").split("\n"):
         if line.startswith("DEB_HOST_MULTIARCH="):
-            return line.split( "=", 1 )[1]
+            return line.split("=", 1)[1]
     else:
         return None
 
@@ -775,7 +782,7 @@ not satisfied!""" % (
         )
     )
 
-env.Append( CPPPATH  = [ python_header_path ] )
+env.Append(CPPPATH = [python_header_path])
 
 if win_target:
     # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
@@ -881,8 +888,8 @@ else:
     # Debian and Ubuntu distinguish the system libraries like this.
     if python_debug and \
        python_prefix == "/usr" and \
-       not python_version.startswith( "3" ) and \
-       platform.dist()[0].lower() in ( "debian", "ubuntu" ):
+       not python_version.startswith("3") and \
+       platform.dist()[0].lower() in ("debian", "ubuntu"):
         env.Append(LIBS = ["python" + python_version + "_d"])
     else:
         env.Append(LIBS = ["python" + python_version])

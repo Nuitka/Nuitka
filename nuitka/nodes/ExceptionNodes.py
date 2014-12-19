@@ -74,13 +74,11 @@ class StatementRaiseException(StatementChildrenHavingBase):
     def isStatementReraiseException(self):
         return self.getExceptionType() is None
 
-    # TODO: Rename this
-    isReraiseException = isStatementReraiseException
-
     def isStatementAborting(self):
         return True
 
-    def isImplicit(self):
+    @staticmethod
+    def isImplicit():
         return False
 
     def computeStatement(self, constraint_collection):
@@ -91,7 +89,7 @@ class StatementRaiseException(StatementChildrenHavingBase):
         exception_type = self.getExceptionType()
 
         if exception_type is not None and \
-           exception_type.willRaiseException( BaseException ):
+           exception_type.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
@@ -100,7 +98,7 @@ class StatementRaiseException(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Explicit raise already raises implicitely building exception type."""
+Explicit raise already raises implicitly building exception type."""
 
         constraint_collection.onExpression(
             expression = self.getExceptionValue(),
@@ -108,7 +106,7 @@ Explicit raise already raises implicitely building exception type."""
         )
         exception_value = self.getExceptionValue()
 
-        if exception_value is not None and exception_value.willRaiseException( BaseException ):
+        if exception_value is not None and exception_value.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -119,7 +117,7 @@ Explicit raise already raises implicitely building exception type."""
             )
 
             return result, "new_node", """\
-Explicit raise already raises implicitely building exception value."""
+Explicit raise already raises implicitly building exception value."""
 
         constraint_collection.onExpression(
             expression = self.getExceptionTrace(),
@@ -128,7 +126,7 @@ Explicit raise already raises implicitely building exception value."""
         exception_trace = self.getExceptionTrace()
 
         if exception_trace is not None and \
-           exception_trace.willRaiseException( BaseException ):
+           exception_trace.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -140,7 +138,7 @@ Explicit raise already raises implicitely building exception value."""
             )
 
             return result, "new_raise", """\
-Explicit raise already raises implicitely building exception traceback."""
+Explicit raise already raises implicitly building exception traceback."""
 
         constraint_collection.onExpression(
             expression = self.getExceptionCause(),
@@ -149,7 +147,7 @@ Explicit raise already raises implicitely building exception traceback."""
         exception_cause = self.getExceptionCause()
 
         if exception_cause is not None and \
-           exception_cause.willRaiseException( BaseException ):
+           exception_cause.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
             result = makeStatementOnlyNodesFromExpressions(
@@ -160,7 +158,7 @@ Explicit raise already raises implicitely building exception traceback."""
             )
 
             return result, "new_raise", """
-Explicit raise already raises implicitely building exception cause."""
+Explicit raise already raises implicitly building exception cause."""
 
         return self, None, None
 
@@ -168,10 +166,12 @@ Explicit raise already raises implicitely building exception cause."""
 class StatementRaiseExceptionImplicit(StatementRaiseException):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
 
-    def isStatementRaiseException(self):
+    @staticmethod
+    def isStatementRaiseException():
         return True
 
-    def isImplicit(self):
+    @staticmethod
+    def isImplicit():
         return True
 
 
@@ -185,7 +185,10 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_RAISE_EXCEPTION"
 
-    named_children = ( "exception_type", "exception_value" )
+    named_children = (
+        "exception_type",
+        "exception_value"
+    )
 
     def __init__(self, exception_type, exception_value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -198,8 +201,6 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         )
 
     def willRaiseException(self, exception_type):
-        # Virtual method, pylint: disable=R0201,W0613
-
         # One thing is clear, it will raise. TODO: Match exception_type more
         # closely if it is predictable.
         if exception_type is BaseException:
@@ -228,19 +229,21 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         )
 
         return result, "new_raise", """\
-Propgated implict raise expression to raise statement."""
+Propagated implicit raise expression to raise statement."""
 
 
 class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
-    named_children = ( "args", )
+    named_children = (
+        "args",
+    )
 
     def __init__(self, exception_name, args, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "args" : tuple( args ),
+                "args" : tuple(args),
             },
             source_ref = source_ref
         )
@@ -248,12 +251,14 @@ class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
         self.exception_name = exception_name
 
     def getDetails(self):
-        return { "exception_name" : self.exception_name }
+        return {
+            "exception_name" : self.exception_name
+        }
 
     def getExceptionName(self):
         return self.exception_name
 
-    getArgs = ExpressionChildrenHavingBase.childGetter( "args" )
+    getArgs = ExpressionChildrenHavingBase.childGetter("args")
 
     def computeExpression(self, constraint_collection):
         return self, None, None
@@ -294,7 +299,8 @@ class ExpressionCaughtExceptionValueRef(NodeBase, ExpressionMixin):
         # Referencing the expression type has no side effect
         return False
 
-    def makeCloneAt(self, source_ref):
+    @staticmethod
+    def makeCloneAt(source_ref):
         return ExpressionCaughtExceptionValueRef(
             source_ref = source_ref
         )

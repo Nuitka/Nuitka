@@ -61,7 +61,7 @@ from .ReformulationFunctionStatements import (
 def buildLambdaNode(provider, node, source_ref):
     assert getKind(node) == "Lambda"
 
-    parameters = buildParameterSpec( "<lambda>", node, source_ref )
+    parameters = buildParameterSpec("<lambda>", node, source_ref)
 
     function_body = ExpressionFunctionBody(
         provider   = provider,
@@ -95,16 +95,16 @@ def buildLambdaNode(provider, node, source_ref):
             statements = (
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable = tmp_return_value,
+                        variable   = tmp_return_value,
                         source_ref = source_ref,
                     ),
-                    source     = body,
-                    source_ref = source_ref
+                    source       = body,
+                    source_ref   = source_ref
                 ),
                 StatementConditional(
-                    condition = ExpressionComparisonIsNOT(
+                    condition  = ExpressionComparisonIsNOT(
                         left       = ExpressionTempVariableRef(
-                            variable = tmp_return_value,
+                            variable   = tmp_return_value,
                             source_ref = source_ref,
                         ),
                         right      = ExpressionConstantRef(
@@ -117,7 +117,7 @@ def buildLambdaNode(provider, node, source_ref):
                         statement = StatementExpressionOnly(
                             expression = ExpressionYield(
                                 expression = ExpressionTempVariableRef(
-                                    variable = tmp_return_value,
+                                    variable   = tmp_return_value,
                                     source_ref = source_ref,
                                 ),
                                 source_ref = source_ref
@@ -133,11 +133,11 @@ def buildLambdaNode(provider, node, source_ref):
                 tried      = statements,
                 final      = StatementDelVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
-                        variable = tmp_return_value,
+                        variable   = tmp_return_value,
                         source_ref = source_ref,
                     ),
-                    tolerant   = True,
-                    source_ref = source_ref
+                    tolerant     = True,
+                    source_ref   = source_ref
                 ),
                 source_ref = source_ref
             )

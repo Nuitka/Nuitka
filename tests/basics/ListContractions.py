@@ -56,7 +56,7 @@ def trickyContraction():
       def __iter__(self):
          print "Giving range iter to", self.value
 
-         return iter( range( self.value ))
+         return iter(range(self.value))
 
    def Cond(y):
       print "Checking against", y
@@ -73,7 +73,7 @@ def lambdaWithcontraction(x):
    r = l(x)
    print locals()
 
-lambdaWithcontraction( 3 )
+lambdaWithcontraction(3)
 
 print "Contraction that gets a del on the iterator variable:",
 
@@ -82,4 +82,4 @@ def allowedDelOnIteratorVariable(z):
     del x
     return [ x*z for x in range(z) ]
 
-print allowedDelOnIteratorVariable( 3 )
+print allowedDelOnIteratorVariable(3)

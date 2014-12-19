@@ -75,7 +75,12 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
-from .EvalCodes import getCompileCode, getEvalCode, getExecCode
+from .EvalCodes import (
+    getCompileCode,
+    getEvalCode,
+    getExecCode,
+    getLocalsDictSyncCode
+)
 from .ExceptionCodes import (
     getExceptionCaughtTracebackCode,
     getExceptionCaughtTypeCode,
@@ -135,7 +140,6 @@ from .MainCodes import getMainCode
 from .ModuleCodes import (
     getModuleAccessCode,
     getModuleCode,
-    getModuleIdentifier,
     getModuleMetapathLoaderEntryCode,
     prepareModuleCode
 )
@@ -177,7 +181,7 @@ from .YieldCodes import getYieldCode, getYieldFromCode
 
 def getOperationCode(to_name, operator, arg_names, emit, context):
     # This needs to have one return per operation of Python, and there are many
-    # of these, pylint: disable=R0911
+    # of these.
 
     prefix_args = ()
     ref_count = 1
@@ -261,15 +265,6 @@ def getLoopContinueCode(emit, context):
 def getConditionCheckTrueCode(to_name, value_name, emit):
     emit(
         "%s = CHECK_IF_TRUE( %s );" % (
-            to_name,
-            value_name
-        )
-    )
-
-
-def getConditionCheckFalseCode(to_name, value_name, emit):
-    emit(
-        "%s = CHECK_IF_FALSE( %s );" % (
             to_name,
             value_name
         )
@@ -444,7 +439,7 @@ def getSelectMetaclassCode(to_name, metaclass_name, bases_name, emit, context):
     emit(
         "%s = SELECT_METACLASS( %s );" % (
             to_name,
-            ", ".join( args )
+            ", ".join(args)
         )
     )
 
@@ -473,13 +468,13 @@ def getSelectMetaclassCode(to_name, metaclass_name, bases_name, emit, context):
 
 def getStatementTrace(source_desc, statement_repr):
     return 'puts( "Execute: " %s );' % (
-        CppStrings.encodeString( source_desc + b" " + statement_repr ),
+        CppStrings.encodeString(source_desc + b" " + statement_repr),
     )
 
 
 def getConstantsDefinitionCode(context):
     constant_inits = getConstantsInitCode(
-        context    = context
+        context = context
     )
 
     constant_declarations = getConstantsDeclCode(

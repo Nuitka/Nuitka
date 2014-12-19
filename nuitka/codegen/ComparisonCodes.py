@@ -18,7 +18,7 @@
 """ Comparison related codes.
 
 Rich comparisons, "in", and "not in", also "is", and "is not", and the
-"isinstance" check as used in conditons.
+"isinstance" check as used in conditions.
 """
 
 from . import OperatorCodes
@@ -32,8 +32,6 @@ from .ErrorCodes import (
 
 def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
                                 emit, context):
-    # There is an awful lot of cases, pylint: disable=R0912
-
     if comparator in OperatorCodes.normal_comparison_codes:
         helper = OperatorCodes.normal_comparison_codes[ comparator ]
         assert helper.startswith("SEQUENCE_CONTAINS")
@@ -48,9 +46,9 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
         )
 
         getErrorExitCode(
-            check_name  = to_name,
-            emit        = emit,
-            context     = context
+            check_name = to_name,
+            emit       = emit,
+            context    = context
         )
 
         getReleaseCode(
@@ -153,8 +151,6 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
 
 def getComparisonExpressionBoolCode(comparator, left_name, right_name, emit,
                                     context):
-    # There is an awful lot of cases, pylint: disable=R0912
-
     if comparator in OperatorCodes.normal_comparison_codes:
         operator_res_name = context.allocateTempName("cmp_" + comparator, "int")
 

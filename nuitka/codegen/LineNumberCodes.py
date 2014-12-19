@@ -35,11 +35,13 @@ def getLineNumberUpdateCode(context):
         else:
             return ""
 
+
 def emitLineNumberUpdateCode(context, emit):
     code = getLineNumberUpdateCode(context)
 
     if code:
         emit(code)
+
 
 def getSetLineNumberCodeRaw(to_name, emit, context):
     assert context.getFrameHandle() is not None
@@ -50,14 +52,6 @@ def getSetLineNumberCodeRaw(to_name, emit, context):
             to_name
         )
     )
-
-
-# TODO: The below should probably become unused.
-def getSetLineNumberCode(source_ref, emit, context):
-    if source_ref.shallSetCurrentLine():
-        line_number = source_ref.getLineNumber()
-
-        getSetLineNumberCodeRaw(line_number, emit, context)
 
 
 def getLineNumberCode(to_name, emit, context):

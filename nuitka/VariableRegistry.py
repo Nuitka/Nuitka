@@ -43,6 +43,9 @@ class VariableInformation:
 
 
 def addVariableUsage(variable, user):
+    if variable.isMaybeLocalVariable():
+        addVariableUsage(variable.getMaybeVariable(), user)
+
     if variable not in variable_registry:
         variable_registry[variable] = VariableInformation(variable)
 

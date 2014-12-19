@@ -20,7 +20,7 @@
 Does all the Python parsing and puts it into a tree structure for use in later
 stages of the compilation process.
 
-In the nuitka.tree.Helpers module, the dispatching is happening. One function
+In the "nuitka.tree.Helpers" module, the dispatching is happening. One function
 deals with every node kind as found in the AST. The parsing is centered around
 the module "ast" output.
 
@@ -112,7 +112,7 @@ from .Helpers import (
     makeSequenceCreationOrConstant,
     makeStatementsSequenceOrStatement,
     mergeStatements,
-    setBuildDispatchers
+    setBuildingDispatchers
 )
 from .ImportCache import addImportedModule
 from .ReformulationAssertStatements import buildAssertNode
@@ -191,7 +191,7 @@ def buildConditionNode(provider, node, source_ref):
     # into nested conditional statements.
 
     return StatementConditional(
-        condition  = buildNode( provider, node.test, source_ref ),
+        condition  = buildNode(provider, node.test, source_ref),
         yes_branch = buildStatementsNode(
             provider   = provider,
             nodes      = node.body,
@@ -262,25 +262,25 @@ def buildRaiseNode(provider, node, source_ref):
 
     if Utils.python_version < 300:
         return StatementRaiseException(
-            exception_type  = buildNode( provider, node.type, source_ref, allow_none = True ),
-            exception_value = buildNode( provider, node.inst, source_ref, allow_none = True ),
-            exception_trace = buildNode( provider, node.tback, source_ref, allow_none = True ),
+            exception_type  = buildNode(provider, node.type, source_ref, allow_none = True),
+            exception_value = buildNode(provider, node.inst, source_ref, allow_none = True),
+            exception_trace = buildNode(provider, node.tback, source_ref, allow_none = True),
             exception_cause = None,
             source_ref      = source_ref
         )
     else:
         return StatementRaiseException(
-            exception_type  = buildNode( provider, node.exc, source_ref, allow_none = True ),
+            exception_type  = buildNode(provider, node.exc, source_ref, allow_none = True),
             exception_value = None,
             exception_trace = None,
-            exception_cause = buildNode( provider, node.cause, source_ref, allow_none = True ),
+            exception_cause = buildNode(provider, node.cause, source_ref, allow_none = True),
             source_ref      = source_ref
         )
 
 def buildSubscriptNode(provider, node, source_ref):
     # Subscript expression nodes.
 
-    assert getKind( node.ctx ) == "Load", source_ref
+    assert getKind(node.ctx) == "Load", source_ref
 
     # The subscribt "[]" operator is one of many different things. This is
     # expressed by this kind, there are "slice" lookups (two values, even if one
@@ -290,23 +290,23 @@ def buildSubscriptNode(provider, node, source_ref):
     # two different operations, "subscript" with a single "subscript" object. Or
     # a slice lookup with a lower and higher boundary. These things should
     # behave similar, but they are different slots.
-    kind = getKind( node.slice )
+    kind = getKind(node.slice)
 
     if kind == "Index":
         return ExpressionSubscriptLookup(
-            expression = buildNode( provider, node.value, source_ref ),
-            subscript  = buildNode( provider, node.slice.value, source_ref ),
+            subscribed = buildNode(provider, node.value, source_ref),
+            subscript  = buildNode(provider, node.slice.value, source_ref),
             source_ref = source_ref
         )
     elif kind == "Slice":
-        lower = buildNode( provider, node.slice.lower, source_ref, True )
-        upper = buildNode( provider, node.slice.upper, source_ref, True )
+        lower = buildNode(provider, node.slice.lower, source_ref, True)
+        upper = buildNode(provider, node.slice.upper, source_ref, True)
 
         if node.slice.step is not None:
-            step = buildNode( provider, node.slice.step,  source_ref )
+            step = buildNode(provider, node.slice.step,  source_ref)
 
             return ExpressionSubscriptLookup(
-                expression = buildNode( provider, node.value, source_ref ),
+                subscribed = buildNode(provider, node.value, source_ref),
                 subscript  = ExpressionSliceObject(
                     lower      = lower,
                     upper      = upper,
@@ -317,20 +317,20 @@ def buildSubscriptNode(provider, node, source_ref):
             )
         else:
             return ExpressionSliceLookup(
-                expression = buildNode( provider, node.value, source_ref ),
+                expression = buildNode(provider, node.value, source_ref),
                 lower      = lower,
                 upper      = upper,
                 source_ref = source_ref
             )
     elif kind == "ExtSlice":
         return ExpressionSubscriptLookup(
-            expression = buildNode( provider, node.value, source_ref ),
-            subscript  = buildExtSliceNode( provider, node, source_ref ),
+            subscribed = buildNode(provider, node.value, source_ref),
+            subscript  = buildExtSliceNode(provider, node, source_ref),
             source_ref = source_ref
         )
     elif kind == "Ellipsis":
         return ExpressionSubscriptLookup(
-            expression = buildNode( provider, node.value, source_ref ),
+            subscribed = buildNode(provider, node.value, source_ref),
             subscript  = ExpressionConstantRef(
                 constant   = Ellipsis,
                 source_ref = source_ref
@@ -395,8 +395,8 @@ def buildImportModulesNode(node, source_ref):
                                     module_topname,
                     source_ref    = source_ref
                 ),
-                source     = import_node,
-                source_ref = source_ref
+                source       = import_node,
+                source_ref   = source_ref
             )
         )
 
@@ -424,7 +424,7 @@ def enableFutureFeature(object_name, future_spec, source_ref):
             "not a chance",
             source_ref
         )
-    elif object_name in ( "nested_scopes", "generators", "with_statement" ):
+    elif object_name in ("nested_scopes", "generators", "with_statement"):
         # These are enabled in all cases already.
         pass
     else:
@@ -509,19 +509,19 @@ from __future__ imports must occur at the beginning of the file""",
                 level       = level,
                 source_ref  = source_ref
             ),
-            source_ref  = source_ref
+            source_ref    = source_ref
         )
     else:
         import_nodes = []
 
-        for target_name, import_name in zip( target_names, import_names ):
+        for target_name, import_name in zip(target_names, import_names):
             import_nodes.append(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetVariableRef(
                         variable_name = target_name,
                         source_ref    = source_ref
                     ),
-                    source     = ExpressionImportName(
+                    source       = ExpressionImportName(
                         module      = ExpressionImportModule(
                             module_name = module_name,
                             import_list = tuple(import_names),
@@ -531,7 +531,7 @@ from __future__ imports must occur at the beginning of the file""",
                         import_name = import_name,
                         source_ref  = source_ref
                     ),
-                    source_ref = source_ref
+                    source_ref   = source_ref
                 )
             )
 
@@ -612,9 +612,6 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
 
 def handleNonlocalDeclarationNode(provider, node, source_ref):
-    # The source reference of the nonlocal really doesn't matter.
-    # pylint: disable=W0613
-
     # Need to catch the error of declaring a parameter variable as global
     # ourselves here. The AST parsing doesn't catch it, but we can do it here.
     parameters = provider.getParameters()
@@ -718,7 +715,7 @@ def buildStatementBreakLoop(provider, node, source_ref):
 
 def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
-        expression     = buildNode( provider, node.value, source_ref ),
+        source         = buildNode(provider, node.value, source_ref),
         attribute_name = node.attr,
         source_ref     = source_ref
     )
@@ -748,7 +745,7 @@ def buildReturnNode(provider, node, source_ref):
 
 
     return makeTryFinallyIndicator(
-        statement   = StatementReturn(
+        statement    = StatementReturn(
             expression = expression,
             source_ref = source_ref
         ),
@@ -758,13 +755,13 @@ def buildReturnNode(provider, node, source_ref):
 
 def buildExprOnlyNode(provider, node, source_ref):
     return StatementExpressionOnly(
-        expression = buildNode( provider, node.value, source_ref ),
+        expression = buildNode(provider, node.value, source_ref),
         source_ref = source_ref
     )
 
 
 def buildUnaryOpNode(provider, node, source_ref):
-    if getKind( node.op ) == "Not":
+    if getKind(node.op) == "Not":
         return buildBoolOpNode(
             provider   = provider,
             node       = node,
@@ -772,8 +769,8 @@ def buildUnaryOpNode(provider, node, source_ref):
         )
     else:
         return ExpressionOperationUnary(
-            operator   = getKind( node.op ),
-            operand    = buildNode( provider, node.operand, source_ref ),
+            operator   = getKind(node.op),
+            operand    = buildNode(provider, node.operand, source_ref),
             source_ref = source_ref
         )
 
@@ -809,7 +806,7 @@ def buildConditionalExpressionNode(provider, node, source_ref):
     )
 
 
-setBuildDispatchers(
+setBuildingDispatchers(
     path_args3 = {
         "Name"         : buildVariableReferenceNode,
         "Assign"       : buildAssignNode,
@@ -923,12 +920,12 @@ from __future__ imports must occur at the beginning of the file""",
             statements.append(
                 StatementExpressionOnly(
                     expression = ExpressionImportModule(
-                        module_name    = "site",
-                        import_list    = (),
-                        level          = 0,
-                        source_ref     = source_ref,
+                        module_name = "site",
+                        import_list = (),
+                        level       = 0,
+                        source_ref  = source_ref,
                     ),
-                    source_ref  = source_ref
+                    source_ref = source_ref
                 )
             )
 
@@ -1153,17 +1150,17 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
 
         source_filename = Utils.joinpath(filename, "__init__.py")
 
-        if not Utils.isFile( source_filename ):
+        if not Utils.isFile(source_filename):
             assert Utils.python_version >= 330, source_filename
 
             source_ref, result = createNamespacePackage(
-                package_name = package_name,
+                package_name   = package_name,
                 module_relpath = filename
             )
             source_filename = None
         else:
             source_ref = SourceCodeReferences.fromFilename(
-                filename    = Utils.abspath( source_filename ),
+                filename    = Utils.abspath(source_filename),
                 future_spec = FutureSpec()
             )
 
@@ -1175,11 +1172,11 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (
-                Utils.basename( sys.argv[0] ),
+                Utils.basename(sys.argv[0]),
                 filename
             )
         )
-        sys.exit( 2 )
+        sys.exit(2)
 
     if not Options.shallHaveStatementLines():
         source_ref = source_ref.atInternal()
@@ -1228,7 +1225,7 @@ def buildModuleTree(filename, package, is_top, is_main):
     )
 
     addImportedModule(
-        module_relpath = Utils.relpath(filename),
+        module_relpath  = Utils.relpath(filename),
         imported_module = module
     )
 

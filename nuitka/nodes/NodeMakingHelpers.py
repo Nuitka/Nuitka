@@ -52,7 +52,7 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
                                             exception_value):
     source_ref = expression.getSourceReference()
 
-    assert type( exception_type ) is str
+    assert type(exception_type) is str
 
     if shallWarnImplicitRaises():
         warning(
@@ -78,7 +78,7 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
     assert isinstance(exception, Exception)
 
     args = exception.args
-    if type(args) is tuple and len( args ) == 1:
+    if type(args) is tuple and len(args) == 1:
         value = args[0]
     else:
         assert type(args) is tuple
@@ -92,25 +92,25 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
 
 def isCompileTimeConstantValue(value):
     # This needs to match code in makeCompileTimeConstantReplacementNode
-    if isConstant( value ):
+    if isConstant(value):
         return True
-    elif type( value ) is type:
+    elif type(value) is type:
         return True
     else:
         return False
 
 def makeCompileTimeConstantReplacementNode(value, node):
     # This needs to match code in isCompileTimeConstantValue
-    if isConstant( value ):
+    if isConstant(value):
         return makeConstantReplacementNode(
             constant = value,
             node     = node
         )
-    elif type( value ) is type:
+    elif type(value) is type:
         if value.__name__ in builtin_names:
             return ExpressionBuiltinRef(
                 builtin_name = value.__name__,
-                source_ref    = node.getSourceReference()
+                source_ref   = node.getSourceReference()
             )
         else:
             return node
@@ -141,7 +141,7 @@ def getComputationResult(node, computation, description):
         )
 
         if isDebug():
-            assert new_node is not node, ( node, result )
+            assert new_node is not node, (node, result)
 
         if new_node is not node:
             change_tags = "new_constant"
@@ -158,6 +158,7 @@ def makeStatementExpressionOnlyReplacementNode(expression, node):
         source_ref = node.getSourceReference()
     )
 
+
 def mergeStatements(statements):
     """ Helper function that merges nested statement sequences. """
     merged_statements = []
@@ -171,6 +172,7 @@ def mergeStatements(statements):
             assert False, statement
 
     return merged_statements
+
 
 def makeStatementsSequenceReplacementNode(statements, node):
     return StatementsSequence(
@@ -221,7 +223,7 @@ def wrapStatementWithSideEffects(new_node, old_node, allow_none = False):
 
         if new_node is not None:
             new_node = makeStatementsSequenceReplacementNode(
-                statements = side_effects + ( new_node, ),
+                statements = side_effects + (new_node,),
                 node       = old_node
             )
         else:
@@ -243,7 +245,7 @@ def makeStatementOnlyNodesFromExpressions(expressions):
 
     if not statements:
         return None
-    elif len( statements ) == 1:
+    elif len(statements) == 1:
         return statements[ 0 ]
     else:
         return StatementsSequence(

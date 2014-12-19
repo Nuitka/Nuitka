@@ -31,7 +31,7 @@ from .NodeBases import ExpressionChildrenHavingBase
 class ExpressionYield(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_YIELD"
 
-    named_children = ( "expression", )
+    named_children = ("expression",)
 
     def __init__(self, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -50,12 +50,12 @@ class ExpressionYield(ExpressionChildrenHavingBase):
     def isExceptionPreserving(self):
         return self.exception_preserving
 
-    getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
     def computeExpression(self, constraint_collection):
         value = self.getExpression()
 
-        if value.willRaiseException( BaseException ):
+        if value.willRaiseException(BaseException):
             return value, "new_raise", "The 'yield' argument raises exception"
 
         # Nothing possible really here.
@@ -65,7 +65,7 @@ class ExpressionYield(ExpressionChildrenHavingBase):
 class ExpressionYieldFrom(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_YIELD_FROM"
 
-    named_children = ( "expression", )
+    named_children = ("expression",)
 
     def __init__(self, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -84,12 +84,12 @@ class ExpressionYieldFrom(ExpressionChildrenHavingBase):
     def isExceptionPreserving(self):
         return self.exception_preserving
 
-    getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
     def computeExpression(self, constraint_collection):
         value = self.getExpression()
 
-        if value.willRaiseException( BaseException ):
+        if value.willRaiseException(BaseException):
             return value, "new_raise", """\
 The 'yield from' argument raises exception"""
 
