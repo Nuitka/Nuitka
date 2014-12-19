@@ -1,12 +1,3 @@
-Nuitka Release 0.5.7 (Draft)
-============================
-
-New Optimization
-----------------
-
-- Added support for ``bytearray`` built-in.
-
-
 Nuitka Release 0.5.6
 ====================
 
