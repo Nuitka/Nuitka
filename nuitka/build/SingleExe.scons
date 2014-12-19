@@ -408,17 +408,23 @@ if os.name != "nt" and env["CXX"] is None:
     # be installed.
 
     for candidate in ("g++-4.9", "g++-4.8", "g++-4.7", "g++-4.6", "g++-4.5",
-                      "g++-4.4", "g++44", "clang"):
-        if os.path.exists(os.path.join("/usr/bin", candidate)):
-            env["CXX"] = candidate
-            env["CC"] = candidate.replace("++", "cc")
+                      "g++-4.4", "g++44", "clang", "eg++"):
 
-            if "clang" not in candidate:
-                # Update CXXVERSION in env, after we changed it.
-                env["CXXVERSION"] = getGccVersion()
+        for system_path in ("/usr/bin", "/usr/local/bin"):
+            if os.path.exists(os.path.join(system_path, candidate)):
+                env["CXX"] = candidate
+                env["CC"] = candidate.replace("++", "cc")
 
+                if "clang" not in candidate:
+                    # Update CXXVERSION in env, after we changed it.
+                    env["CXXVERSION"] = getGccVersion()
+
+                break
+
+        if env["CXX"] is not None:
             break
-    else:
+
+    if env["CXX"] is None:
         sys.exit("""\
 The g++ compiler '%s' (version %s) doesn't have the sufficient \
 version (>= 4.4).""" % (orig_cxx, orig_cxx_version))
