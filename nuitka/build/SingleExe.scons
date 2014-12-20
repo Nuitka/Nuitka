@@ -1110,6 +1110,13 @@ def discoverSourceFiles():
 
     if win_target:
         result.append(getStatic("win32_ucontext_src/fibers_win32.cpp"))
+    elif "openbsd" in sys.platform:
+        result.append(getStatic("libcoro_ucontext_src/fibers_coro.cpp"))
+        result.append(getStatic("libcoro_ucontext_src/coro.c"))
+
+        env.Append(
+            CPPDEFINES = ["CORO_SJLJ"]
+        )
     elif target_arch == "x86_64" and "linux" in sys.platform:
         result.append(getStatic("x64_ucontext_src/fibers_x64.cpp"))
         result.append(getStatic("x64_ucontext_src/swapfiber.S"))
