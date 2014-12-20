@@ -64,15 +64,15 @@ Bug Fixes
 
   .. code-block:: python
 
-  var = 1
+      var = 1
 
-  class C:
-     var = 2
+      class C:
+         var = 2
 
-     class D:
-        def f():
-           # was C.var, now correctly addressed top level var
-           return var
+         class D:
+            def f():
+               # was C.var, now correctly addressed top level var
+               return var
 
 - Fix, setting ``CXX`` environment variable because the installed gcc has too
   low version, wasn't affecting the version check at all.
@@ -152,6 +152,7 @@ More importantly, it would appear that now eliminating local and temp variables
 that are not necessary is only a small step away. But as usual, while this may
 be easy to implement now, it will uncover more bugs in existing code, that we
 need to address before we continue.
+
 
 Nuitka Release 0.5.5
 ====================
