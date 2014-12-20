@@ -142,8 +142,8 @@ that is the main program, do it like this:
 
 .. note::
 
-   The is more fine grained control than ``--recurse-all`` available. Consider
-   the output of ``nuitka --help``.
+   There are more fine grained controls than ``--recurse-all`` available.
+   Consider the output of ``nuitka --help``.
 
 In case you have a plugin directory, i.e. one which cannot be found by recursing
 after normal import statements via the ``PYTHONPATH`` (which would be
@@ -174,7 +174,7 @@ included in the executable:
 
 .. note::
 
-   The resulting filename with be ``program.exe`` on all platforms, that
+   The resulting filename will be ``program.exe`` on all platforms, that
    doesn't mean it doesn't run on non-Windows! But if you compile ``program``
    we wouldn't want to overwrite it, or be unsure which one is the compiled
    form, and which one is not.
