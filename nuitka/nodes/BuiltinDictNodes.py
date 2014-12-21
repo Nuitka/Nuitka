@@ -113,3 +113,16 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             )
         else:
             return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        pos_arg = self.getPositionalArgument()
+
+        # TODO: Determining if it's sufficient is not easy but possible.
+        if pos_arg is not None:
+            return True
+
+        for arg_pair in self.getNamedArgumentPairs():
+            if arg_pair.mayRaiseException(exception_type):
+                return True
+
+        return False
