@@ -4,6 +4,16 @@ Nuitka Release 0.5.7 (Draft)
 New Optimization
 ----------------
 
+- Calls to the dict built-in with only keyword arguments are now optimized to
+  mere dictionary creations. This is new for the case of non-constant arguments
+  only of course.
+
+  .. code-block:: python
+
+      dict(a = b, c = d)
+      # equivalent to
+      {"a" : b, "c" : d}
+
 - Added support for ``bytearray`` built-in.
 
 

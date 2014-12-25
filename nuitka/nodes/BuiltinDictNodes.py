@@ -23,7 +23,7 @@ from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 from nuitka.Utils import python_version
 
 from .ConstantRefNodes import ExpressionConstantRef
-from .ContainerMakingNodes import ExpressionKeyValuePair
+from .ContainerMakingNodes import ExpressionMakeDict, ExpressionKeyValuePair
 from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
 
@@ -75,9 +75,9 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
         return True
 
     def computeExpression(self, constraint_collection):
-        if self.hasOnlyConstantArguments():
-            pos_arg = self.getPositionalArgument()
+        pos_arg = self.getPositionalArgument()
 
+        if self.hasOnlyConstantArguments():
             if pos_arg is not None:
                 pos_args = (
                     pos_arg,
@@ -98,7 +98,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                     node     = self
                 )
 
-                return new_node, "new_expression", "Replace 'dict' call with constant arguments."
+                return new_node, "new_expression", "Replace 'dict' built-in call with constant arguments."
             else:
                 pos_args = None
 
@@ -110,6 +110,23 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                     (pos_args, self.getNamedArgumentPairs())
                 ),
                 description = "Replace 'dict' call with constant arguments."
+            )
+        elif pos_arg is None:
+            pairs = self.getNamedArgumentPairs()
+
+            if python_version >= 340 or True:
+                pairs = list(sorted(pairs))
+
+            new_node = ExpressionMakeDict(
+                pairs      = pairs,
+                lazy_order = False,
+                source_ref = self.source_ref
+            )
+
+            return (
+                new_node,
+                "new_expression",
+                "Replace 'dict' built-in call dictionary creation from arguments."
             )
         else:
             return self, None, None
