@@ -237,6 +237,8 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
         if key.willRaiseException(BaseException):
             return key, "new_raise", "Dictionary key raises exception"
 
+        # TODO: Maybe consider isKnownToBeHashable
+
         value = self.getValue()
 
         if value.willRaiseException(BaseException):
@@ -252,7 +254,10 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return self.getKey().mayRaiseException(exception_type) or \
+        key = self.getKey()
+
+        return key.mayRaiseException(exception_type) or \
+               key.isKnownToBeHashable() is not True or \
                self.getValue().mayRaiseException(exception_type)
 
 
@@ -297,8 +302,8 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
         for pair in pairs:
             key = pair.getKey()
 
-            # TODO: Mutable key should cause something problematic.
-            if not key.isExpressionConstantRef() or key.isMutable():
+            # TODO: Mutable key should cause an exception raise to be produced.
+            if not key.isExpressionConstantRef() or not key.isKnownToBeHashable():
                 return self, None, None
 
             value = pair.getValue()

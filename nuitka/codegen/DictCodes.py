@@ -118,7 +118,7 @@ def getDictOperationSetCode(to_name, dict_name, key_name, value_name, emit,
     )
 
     getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
+        condition = "%s != 0" % res_name,
         emit      = emit,
         context   = context
     )

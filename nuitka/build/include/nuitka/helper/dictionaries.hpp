@@ -41,7 +41,7 @@ static PyDictEntry *GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_StringObje
     assert( Nuitka_String_Check( key ) );
 
 #if PYTHON_VERSION < 300
-    long hash = key->ob_shash;
+    Py_hash_t hash = key->ob_shash;
 #else
     Py_hash_t hash = key->hash;
 #endif
@@ -164,7 +164,7 @@ NUITKA_MAY_BE_UNUSED static bool DICT_SET_ITEM( PyObject *dict, PyObject *key, P
 
     int status = PyDict_SetItem( dict, key, value );
 
-    if (unlikely( status == -1 ))
+    if (unlikely( status != 0 ))
     {
         return false;
     }

@@ -109,7 +109,7 @@ PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
     // Set the __builtins__ in globals, it is expected to be present.
     if ( PyDict_GetItem( globals, const_str_plain___builtins__ ) == NULL )
     {
-        if ( PyDict_SetItem( globals, const_str_plain___builtins__, (PyObject *)builtin_module ) == -1 )
+        if ( PyDict_SetItem( globals, const_str_plain___builtins__, (PyObject *)builtin_module ) != 0 )
         {
             return NULL;
         }
@@ -3253,7 +3253,7 @@ PyObject *DEEP_COPY( PyObject *value )
 
                 Py_DECREF( deep_copy );
 
-                if (unlikely( res == -1 ))
+                if (unlikely( res != 0 ))
                 {
                     return NULL;
                 }

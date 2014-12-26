@@ -25,6 +25,7 @@ from nuitka.__past__ import iterItems, unicode  # pylint: disable=W0622
 from nuitka.Constants import (
     getConstantIterationLength,
     isConstant,
+    isHashable,
     isIndexConstant,
     isIterableConstant,
     isMutable,
@@ -117,6 +118,9 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
     def isMutable(self):
         return isMutable(self.constant)
+
+    def isKnownToBeHashable(self):
+        return isHashable(self.constant)
 
     def isNumberConstant(self):
         return isNumberConstant(self.constant)

@@ -314,7 +314,7 @@ static bool SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
             value
         );
 
-        if (unlikely( status == -1 ))
+        if (unlikely( status != 0 ))
         {
             return false;
         }

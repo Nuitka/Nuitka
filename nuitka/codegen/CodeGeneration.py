@@ -33,6 +33,7 @@ from nuitka.codegen.AttributeCodes import generateAttributeLookupCode
 from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
 from .ConditionalCodes import generateConditionCode
 from .ConstantCodes import generateConstantReferenceCode
+from .ErrorCodes import getErrorExitBoolCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 from .SliceCodes import generateBuiltinSliceCode
 from .SubscriptCodes import generateSubscriptLookupCode
@@ -186,8 +187,9 @@ def _generateDictionaryCreationCode340(to_name, pairs, emit, context):
 
     dict_key_names = []
     dict_value_names = []
+    keys = []
 
-    # Strange as it is, CPython evalutes the key/value pairs strictly in order,
+    # Strange as it is, CPython evaluates the key/value pairs strictly in order,
     # but for each pair, the value first.
     for pair in pairs:
         dict_key_name = context.allocateTempName("dict_key")
@@ -210,14 +212,35 @@ def _generateDictionaryCreationCode340(to_name, pairs, emit, context):
         dict_key_names.append(dict_key_name)
         dict_value_names.append(dict_value_name)
 
-    for dict_key_name, dict_value_name in zip(reversed(dict_key_names), reversed(dict_value_names)):
-        emit(
-            "PyDict_SetItem( %s, %s, %s );" % (
-                to_name,
-                dict_key_name,
-                dict_value_name
+        keys.append(pair.getKey())
+
+    for key, dict_key_name, dict_value_name in \
+      zip(reversed(keys), reversed(dict_key_names), reversed(dict_value_names)):
+        if key.isKnownToBeHashable():
+            emit(
+                "PyDict_SetItem( %s, %s, %s );" % (
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
             )
-        )
+        else:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = PyDict_SetItem( %s, %s, %s );" % (
+                    res_name,
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition = "%s != 0" % res_name,
+                emit      = emit,
+                context   = context
+            )
 
         if context.needsCleanup(dict_value_name):
             emit("Py_DECREF( %s );" % dict_value_name)
@@ -251,20 +274,41 @@ def _generateDictionaryCreationCode(to_name, pairs, emit, context):
             context    = context
         )
 
+        key = pair.getKey()
+
         generateExpressionCode(
             to_name    = dict_key_name,
-            expression = pair.getKey(),
+            expression = key,
             emit       = emit,
             context    = context
         )
 
-        emit(
-            "PyDict_SetItem( %s, %s, %s );" % (
-                to_name,
-                dict_key_name,
-                dict_value_name
+
+        if key.isKnownToBeHashable():
+            emit(
+                "PyDict_SetItem( %s, %s, %s );" % (
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
             )
-        )
+        else:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = PyDict_SetItem( %s, %s, %s );" % (
+                    res_name,
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition = "%s != 0" % res_name,
+                emit      = emit,
+                context   = context
+            )
 
         if context.needsCleanup(dict_value_name):
             emit("Py_DECREF( %s );" % dict_value_name)

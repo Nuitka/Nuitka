@@ -924,6 +924,13 @@ class ExpressionMixin:
 
         return None
 
+    def isKnownToBeHashable(self):
+        """ Is the value hashable, i.e. suitable for dictionary/set keying."""
+
+        # Virtual method, pylint: disable=R0201
+        # Unknown by default.
+        return None
+
     def onRelease(self, constraint_collection):
         # print "onRelease", self
         pass

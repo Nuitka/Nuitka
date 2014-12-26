@@ -49,14 +49,15 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
         return self.__class__(self.builtin_name, source_ref)
 
     def getDetails(self):
-        return { "builtin_name" : self.builtin_name }
+        return {
+            "builtin_name" : self.builtin_name
+        }
 
     def getBuiltinName(self):
         return self.builtin_name
 
-    def mayHaveSideEffects(self):
-        # Referencing the builtin name has no side effect
-        return False
+    def isKnownToBeHashable(self):
+        return True
 
 
 class ExpressionBuiltinRef(ExpressionBuiltinRefBase):

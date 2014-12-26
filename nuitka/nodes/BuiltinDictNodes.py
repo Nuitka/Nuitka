@@ -19,11 +19,12 @@
 
 """
 
+from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 from nuitka.Utils import python_version
 
 from .ConstantRefNodes import ExpressionConstantRef
-from .ContainerMakingNodes import ExpressionMakeDict, ExpressionKeyValuePair
+from .ContainerMakingNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
 
@@ -112,15 +113,28 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 description = "Replace 'dict' call with constant arguments."
             )
         elif pos_arg is None:
-            pairs = self.getNamedArgumentPairs()
-
-            if python_version >= 340 or True:
-                pairs = list(sorted(pairs))
-
             new_node = ExpressionMakeDict(
-                pairs      = pairs,
+                pairs      = self.getNamedArgumentPairs(),
                 lazy_order = False,
                 source_ref = self.source_ref
+            )
+
+            return (
+                new_node,
+                "new_expression",
+                "Replace 'dict' built-in call dictionary creation from arguments."
+            )
+        elif pos_arg.getIterationLength() == 0:
+            new_node = ExpressionMakeDict(
+                pairs      = self.getNamedArgumentPairs(),
+                lazy_order = False,
+                source_ref = self.source_ref
+            )
+
+            # Maintain potential side effects from the positional arguments.
+            new_node = wrapExpressionWithNodeSideEffects(
+                old_node = pos_arg,
+                new_node = new_node
             )
 
             return (
