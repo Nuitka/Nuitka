@@ -34,19 +34,14 @@ from test_common import (
     setup,
     decideFilenameVersionSkip,
     compareWithCPython,
-    hasDebugPython
+    hasDebugPython,
+    createSearchMode
 )
 
-python_version = setup(needs_io_encoding = True)
+python_version = setup( needs_io_encoding = True)
 
-search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
 
-start_at = sys.argv[2] if len(sys.argv) > 2 else None
-
-if start_at:
-    active = False
-else:
-    active = True
+search_mode = createSearchMode()
 
 # Create large constants test on the fly, if it's not there, not going to
 # add it to release archives for no good reason.
@@ -68,9 +63,6 @@ for filename in sorted(os.listdir(".")):
         continue
 
     path = filename
-
-    if not active and start_at in (filename, path):
-        active = True
 
     extra_flags = ["expect_success", "remove_output"]
 
@@ -108,6 +100,8 @@ for filename in sorted(os.listdir(".")):
         "Classes34.py",
     )
 
+    active = search_mode.consider(dirname = None, filename = filename)
+
     if active:
         if filename.startswith("Referencing") and not hasDebugPython():
             my_print("Skipped (no debug Python)")
@@ -117,12 +111,12 @@ for filename in sorted(os.listdir(".")):
                      not filename.endswith("32.py") and \
                      not filename.endswith("33.py")
 
+        may_fail = filename in skips_34 and python_version >= "3.4"
+
         compareWithCPython(
             path        = path,
             extra_flags = extra_flags,
-            search_mode = search_mode and not (
-                filename in skips_34 and python_version.startswith("3.4")
-            ),
+            search_mode = search_mode.abortOnFinding() and not may_fail,
             needs_2to3  = needs_2to3
         )
     else:
