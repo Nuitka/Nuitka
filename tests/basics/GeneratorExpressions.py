@@ -221,7 +221,7 @@ functionGenerators()
 def strangeLambdaGeneratorExpression():
     x = ((yield) for i in (1,2) if (yield))
 
-    print "Strange lamba generator expression"
+    print "Strange lambda generator expression"
     print list(x)
 
 strangeLambdaGeneratorExpression()
