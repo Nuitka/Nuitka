@@ -124,10 +124,10 @@ def getSliceObjectCode(to_name, lower_name, upper_name, step_name, emit,
 
 def getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,
                                   value_name, emit, context):
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     emit(
-        """%s = PySequence_SetSlice( %s, %s, %s, %s );""" % (
+        """%s = SET_INDEX_SLICE( %s, %s, %s, %s );""" % (
             res_name,
             target_name,
             lower_name,
@@ -143,7 +143,7 @@ def getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,
     )
 
     getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
+        condition = "%s == false" % res_name,
         emit      = emit,
         context   = context
     )
@@ -176,11 +176,11 @@ def getSliceAssignmentCode(target_name, lower_name, upper_name, value_name,
     )
 
 
-def getSliceDelCode(target_name, lower_name, upper_name, emit, context):
+def getSliceDelIndexesCode(target_name, lower_name, upper_name, emit, context):
     res_name = context.getBoolResName()
 
     emit(
-        "%s = DEL_SLICE( %s, %s, %s );" % (
+        """%s = DEL_INDEX_SLICE( %s, %s, %s );""" % (
             res_name,
             target_name,
             lower_name,
@@ -192,6 +192,31 @@ def getSliceDelCode(target_name, lower_name, upper_name, emit, context):
         release_name = target_name,
         emit         = emit,
         context      = context
+    )
+
+    getErrorExitBoolCode(
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
+    )
+
+
+def getSliceDelCode(target_name, lower_name, upper_name, emit, context):
+    res_name = context.getBoolResName()
+
+    emit(
+        "%s = DEL_SLICE( %s, %s, %s );" % (
+            res_name,
+            target_name,
+            lower_name if lower_name is not None else "Py_None",
+            upper_name if upper_name is not None else "Py_None"
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (target_name, lower_name, upper_name),
+        emit          = emit,
+        context       = context
     )
 
     getErrorExitBoolCode(

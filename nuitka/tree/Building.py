@@ -26,7 +26,7 @@ the module "ast" output.
 
 Many higher level language features and translated into lower level ones.
 
-Inplace assignments, for loops, while loops, classes, complex calls, with
+In-place assignments, for loops, while loops, classes, complex calls, with
 statements, and even or/and etc. are all translated to simpler constructs.
 
 The output of this module is a node tree, which contains only relatively low
@@ -88,12 +88,10 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationUnary
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.SliceNodes import ExpressionSliceLookup, ExpressionSliceObject
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
 )
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetVariableRef,
     ExpressionVariableRef
@@ -119,7 +117,6 @@ from .ReformulationAssertStatements import buildAssertNode
 from .ReformulationAssignmentStatements import (
     buildAssignNode,
     buildDeleteNode,
-    buildExtSliceNode,
     buildInplaceAssignNode
 )
 from .ReformulationBooleanExpressions import buildBoolOpNode
@@ -138,6 +135,7 @@ from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationLoopStatements import buildForLoopNode, buildWhileLoopNode
 from .ReformulationNamespacePackages import createNamespacePackage
 from .ReformulationPrintStatements import buildPrintNode
+from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import (
     buildTryFinallyNode,
@@ -276,69 +274,6 @@ def buildRaiseNode(provider, node, source_ref):
             exception_cause = buildNode(provider, node.cause, source_ref, allow_none = True),
             source_ref      = source_ref
         )
-
-def buildSubscriptNode(provider, node, source_ref):
-    # Subscript expression nodes.
-
-    assert getKind(node.ctx) == "Load", source_ref
-
-    # The subscribt "[]" operator is one of many different things. This is
-    # expressed by this kind, there are "slice" lookups (two values, even if one
-    # is using default), and then "index" lookups. The form with three argument
-    # is really an "index" lookup, with a slice object. And the "..." lookup is
-    # also an index loopup, with it as the argument. So this splits things into
-    # two different operations, "subscript" with a single "subscript" object. Or
-    # a slice lookup with a lower and higher boundary. These things should
-    # behave similar, but they are different slots.
-    kind = getKind(node.slice)
-
-    if kind == "Index":
-        return ExpressionSubscriptLookup(
-            subscribed = buildNode(provider, node.value, source_ref),
-            subscript  = buildNode(provider, node.slice.value, source_ref),
-            source_ref = source_ref
-        )
-    elif kind == "Slice":
-        lower = buildNode(provider, node.slice.lower, source_ref, True)
-        upper = buildNode(provider, node.slice.upper, source_ref, True)
-
-        if node.slice.step is not None:
-            step = buildNode(provider, node.slice.step,  source_ref)
-
-            return ExpressionSubscriptLookup(
-                subscribed = buildNode(provider, node.value, source_ref),
-                subscript  = ExpressionSliceObject(
-                    lower      = lower,
-                    upper      = upper,
-                    step       = step,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            )
-        else:
-            return ExpressionSliceLookup(
-                expression = buildNode(provider, node.value, source_ref),
-                lower      = lower,
-                upper      = upper,
-                source_ref = source_ref
-            )
-    elif kind == "ExtSlice":
-        return ExpressionSubscriptLookup(
-            subscribed = buildNode(provider, node.value, source_ref),
-            subscript  = buildExtSliceNode(provider, node, source_ref),
-            source_ref = source_ref
-        )
-    elif kind == "Ellipsis":
-        return ExpressionSubscriptLookup(
-            subscribed = buildNode(provider, node.value, source_ref),
-            subscript  = ExpressionConstantRef(
-                constant   = Ellipsis,
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
-        )
-    else:
-        assert False, kind
 
 def buildImportModulesNode(node, source_ref):
     # Import modules statement. As described in the developer manual, these

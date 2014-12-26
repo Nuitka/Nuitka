@@ -112,7 +112,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INDEX_SLICE( PyObject *source, Py_s
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static bool SET_SLICE(PyObject *target, PyObject *lower, PyObject *upper, PyObject *value)
+NUITKA_MAY_BE_UNUSED static bool SET_SLICE( PyObject *target, PyObject *lower, PyObject *upper, PyObject *value )
 {
     assertObject( target );
     assertObject( lower );
@@ -180,21 +180,108 @@ NUITKA_MAY_BE_UNUSED static bool SET_INDEX_SLICE( PyObject *target, Py_ssize_t l
     assertObject( target );
     assertObject( value );
 
-    int status = PySequence_SetSlice( target, lower, upper, value );
+    PySequenceMethods *tp_as_sequence = Py_TYPE( target )->tp_as_sequence;
 
-    if (unlikely( status == -1 ))
+    if ( tp_as_sequence && tp_as_sequence->sq_ass_slice )
     {
-        return false;
+        int status = PySequence_SetSlice( target, lower, upper, value );
+
+        if (unlikely( status == -1 ))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        PyObject *slice = _PySlice_FromIndices( lower, upper );
+
+        if (unlikely( slice == NULL ))
+        {
+            return false;
+        }
+
+        int status = PyObject_SetItem( target, slice, value );
+
+        Py_DECREF( slice );
+
+        if (unlikely( status == -1 ))
+        {
+            return false;
+        }
     }
 
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static bool DEL_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper )
+NUITKA_MAY_BE_UNUSED static bool DEL_SLICE( PyObject *target, PyObject *lower, PyObject *upper )
+{
+    assertObject( target );
+    assertObject( lower );
+    assertObject( upper );
+
+    PySequenceMethods *tp_as_sequence = Py_TYPE( target )->tp_as_sequence;
+
+    if ( tp_as_sequence && tp_as_sequence->sq_ass_slice && IS_INDEXABLE( lower ) && IS_INDEXABLE( upper ) )
+    {
+        Py_ssize_t lower_int = 0;
+
+        if ( lower != Py_None )
+        {
+            lower_int = CONVERT_TO_INDEX( lower );
+
+            if ( lower_int == -1 && ERROR_OCCURED() )
+            {
+                return false;
+            }
+        }
+
+        Py_ssize_t upper_int = PY_SSIZE_T_MAX;
+
+        if ( upper != Py_None )
+        {
+            upper_int = CONVERT_TO_INDEX( upper );
+
+            if ( upper_int == -1 && ERROR_OCCURED() )
+            {
+                return false;
+            }
+        }
+
+        int status = PySequence_DelSlice( target, lower_int, upper_int );
+
+        if (unlikely( status == -1 ))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        PyObject *slice = PySlice_New( lower, upper, NULL );
+
+        if (unlikely( slice == NULL ))
+        {
+            return false;
+        }
+
+        int status = PyObject_DelItem( target, slice );
+        Py_DECREF( slice );
+
+        if (unlikely( status == -1 ))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool DEL_INDEX_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper )
 {
     assertObject( target );
 
-    if ( Py_TYPE( target )->tp_as_sequence && Py_TYPE( target )->tp_as_sequence->sq_ass_slice )
+    PySequenceMethods *tp_as_sequence = Py_TYPE( target )->tp_as_sequence;
+
+    if ( tp_as_sequence && tp_as_sequence->sq_ass_slice )
     {
         int status = PySequence_DelSlice( target, lower, upper );
 
@@ -205,17 +292,7 @@ NUITKA_MAY_BE_UNUSED static bool DEL_SLICE( PyObject *target, Py_ssize_t lower, 
     }
     else
     {
-        PyObject *lower_obj = PyInt_FromSsize_t( lower );
-        PyObject *upper_obj = PyInt_FromSsize_t( upper );
-
-        PyObject *slice = PySlice_New(
-            lower_obj,
-            upper_obj,
-            NULL
-        );
-
-        Py_DECREF( lower_obj );
-        Py_DECREF( upper_obj );
+        PyObject *slice = _PySlice_FromIndices( lower, upper );
 
         if (unlikely( slice == NULL ))
         {

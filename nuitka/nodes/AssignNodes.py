@@ -25,6 +25,8 @@ that should be unified at some point.
 
 """
 
+from nuitka import Utils
+
 from .NodeBases import StatementChildrenHavingBase
 
 
@@ -350,6 +352,8 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
     )
 
     def __init__(self, expression, lower, upper, source, source_ref):
+        assert Utils.python_version < 300
+
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
