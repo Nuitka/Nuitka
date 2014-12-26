@@ -54,6 +54,7 @@ trace_command      = hasArg("trace_command")
 remove_output      = hasArg("remove_output")
 standalone_mode    = hasArg("standalone")
 no_site            = hasArg("no_site")
+recurse_none       = hasArg("recurse_none")
 
 assert not standalone_mode or not module_mode
 
@@ -152,6 +153,9 @@ if binary_python_path:
 
 if keep_python_path or binary_python_path:
     extra_options += " --keep-pythonpath"
+
+if recurse_none:
+    extra_options += " --recurse-none"
 
 if not two_step_execution:
     if module_mode:
