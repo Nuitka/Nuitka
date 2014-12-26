@@ -140,12 +140,29 @@ def generateSetCreationCode(to_name, elements, emit, context):
             context    = context
         )
 
-        emit(
-            "PySet_Add( %s, %s );" % (
-                to_name,
-                element_name
+        if element.isKnownToBeHashable():
+            emit(
+                "PySet_Add( %s, %s );" % (
+                    to_name,
+                    element_name
+                )
             )
-        )
+        else:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = PySet_Add( %s, %s );" % (
+                    res_name,
+                    to_name,
+                    element_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition = "%s != 0" % res_name,
+                emit      = emit,
+                context   = context
+            )
 
         if context.needsCleanup(element_name):
             emit("Py_DECREF( %s );" % element_name)

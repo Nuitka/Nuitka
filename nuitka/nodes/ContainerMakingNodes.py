@@ -197,6 +197,16 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
     def getSimulator(self):
         return set
 
+    def mayRaiseException(self, exception_type):
+        for element in self.getElements():
+            if not element.isKnownToBeHashable():
+                return True
+
+            if element.mayRaiseException(exception_type):
+                return True
+
+        return False
+
     def computeExpressionIter1(self, iter_node, constraint_collection):
         result = ExpressionMakeTuple(
             elements   = self.getElements(),
