@@ -43,8 +43,8 @@ from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinBin,
     ExpressionBuiltinHex,
-    ExpressionBuiltinOct,
-    ExpressionBuiltinId
+    ExpressionBuiltinId,
+    ExpressionBuiltinOct
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,

@@ -191,8 +191,10 @@ int main( int argc, char *argv[] )
             if ( simplefilter != NULL )
             {
                 PyObject *result1 = PyObject_CallFunctionObjArgs( simplefilter, const_str_plain_ignore, PyExc_UserWarning, NULL );
+                assert( result1 );
                 Py_XDECREF( result1 );
                 PyObject *result2 = PyObject_CallFunctionObjArgs( simplefilter, const_str_plain_ignore, PyExc_DeprecationWarning, NULL );
+                assert( result2 );
                 Py_XDECREF( result2 );
             }
         }

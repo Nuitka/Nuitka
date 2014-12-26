@@ -30,6 +30,7 @@ compile time constant.
 from logging import warning
 
 from nuitka import Importing, Utils
+from nuitka.Importing import getModuleWhiteList
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import (
@@ -38,7 +39,6 @@ from .NodeBases import (
     NodeBase,
     StatementChildrenHavingBase
 )
-from nuitka.Importing import getModuleWhiteList
 
 
 class ExpressionImportModule(NodeBase, ExpressionMixin):

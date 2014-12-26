@@ -385,6 +385,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # test_emails.py
         "email.test.test_email", "email.test.test_email_renamed",
+        "email.test.test_codecs",
 
         # test_imageop.py
         "imgfile",
