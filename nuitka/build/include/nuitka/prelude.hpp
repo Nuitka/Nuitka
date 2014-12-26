@@ -161,6 +161,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 
 #endif
 
+#if PYTHON_VERSION < 300
+typedef long Py_hash_t;
+#endif
+
 // These two express if a directly called function should be exported (C++
 // level) or if it can be local to the file.
 #define NUITKA_CROSS_MODULE

@@ -3398,3 +3398,107 @@ PyObject *DEEP_COPY( PyObject *value )
         return NULL;
     }
 }
+
+#ifndef __NUITKA_NO_ASSERT__
+
+static Py_hash_t DEEP_HASH_INIT( PyObject *value )
+{
+    Py_hash_t result = (Py_hash_t)value;
+
+    result ^= DEEP_HASH( (PyObject *)Py_TYPE( value ) );
+
+    return result;
+}
+
+// Hash function that actually verifies things done to the bit level. Can be
+// used to detect corruption.
+Py_hash_t DEEP_HASH( PyObject *value )
+{
+    if ( PyType_Check( value ) )
+    {
+        return (Py_hash_t)((PyTypeObject *)value)->tp_name;
+    }
+    else if ( PyDict_Check( value ) )
+    {
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        Py_ssize_t ppos = 0;
+        PyObject *key, *value;
+
+        while( PyDict_Next( value, &ppos, &key, &value ) )
+        {
+            if ( key != NULL && value != NULL )
+            {
+                result ^= DEEP_HASH( key );
+                result ^= DEEP_HASH( value );
+            }
+        }
+
+        return result;
+    }
+    else if ( PyTuple_Check( value ) )
+    {
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        Py_ssize_t n = PyTuple_Size( value );
+
+        for( Py_ssize_t i = 0; i < n; i++ )
+        {
+            result ^= DEEP_HASH( PyTuple_GET_ITEM( value, i ) );
+        }
+
+        return result;
+    }
+    else if ( PyList_Check( value ) )
+    {
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        Py_ssize_t n = PyList_GET_SIZE( value );
+
+        for( Py_ssize_t i = 0; i < n; i++ )
+        {
+            result ^= DEEP_HASH( PyList_GET_ITEM( value, i ) );
+        }
+
+        return result;
+    }
+    else if ( PySet_Check( value ) )
+    {
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        // TODO: How to iterate set elements.
+        return result;
+    }
+    else if (
+#if PYTHON_VERSION < 300
+        PyString_Check( value )  ||
+#endif
+        PyUnicode_Check( value ) ||
+#if PYTHON_VERSION < 300
+        PyInt_Check( value )     ||
+#endif
+        PyLong_Check( value )    ||
+        value == Py_None         ||
+        PyBool_Check( value )    ||
+        PyFloat_Check( value )   ||
+        PyBytes_Check( value )   ||
+#if PYTHON_VERSION >= 300
+        PyRange_Check( value )   ||
+#endif
+        PyType_Check( value )    ||
+        PySlice_Check( value )   ||
+        PyComplex_Check( value )
+        )
+    {
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        return result;
+    }
+    else
+    {
+        assert( false );
+
+        return -1;
+    }
+}
+#endif

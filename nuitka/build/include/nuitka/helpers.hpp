@@ -99,6 +99,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
     return object;
 }
 
+// For checking values if they changed or not.
+#ifndef __NUITKA_NO_ASSERT__
+extern Py_hash_t DEEP_HASH( PyObject *value );
+#endif
+
 #include "printing.hpp"
 
 #include "nuitka/helper/boolean.hpp"
