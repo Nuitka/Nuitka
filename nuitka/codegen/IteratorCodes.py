@@ -73,7 +73,7 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
         """\
 if (%s == NULL)
 {
-    if ( !ERROR_OCCURED() || HAS_STOP_ITERATION_OCCURED() )
+    if ( !ERROR_OCCURRED() || HAS_STOP_ITERATION_OCCURRED() )
     {
 """ % to_name
     )

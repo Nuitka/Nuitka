@@ -152,7 +152,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
         {
             Py_ssize_t index = PyNumber_AsSsize_t( subscript, NULL );
 
-            if ( index == -1 && ERROR_OCCURED() )
+            if ( index == -1 && ERROR_OCCURRED() )
             {
                 return NULL;
             }
@@ -262,7 +262,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST( PyObject *target, PyObject
 
             if ( key_value == -1 )
             {
-                if ( ERROR_OCCURED() )
+                if ( ERROR_OCCURRED() )
                 {
                     return false;
                 }
@@ -328,7 +328,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT( PyObject *target, PyObject *subs
 
             if ( key_value == -1 )
             {
-                if ( ERROR_OCCURED() )
+                if ( ERROR_OCCURRED() )
                 {
                     return false;
                 }

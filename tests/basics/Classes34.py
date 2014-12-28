@@ -27,7 +27,7 @@ try:
 
         print("not allowed to get here")
 except Exception as e:
-    print("Occured", e)
+    print("Occurred", e)
 
 print("Class variable that conflicts with closure variable:")
 def testClassNamespaceOverridesClosure():

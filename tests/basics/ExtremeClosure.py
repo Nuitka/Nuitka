@@ -30,4 +30,4 @@ someClass()
 try:
     someFunction()
 except UnboundLocalError:
-    print "Expected unbound local error occured."
+    print "Expected unbound local error occurred."

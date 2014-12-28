@@ -29,7 +29,7 @@ assertObject( %(iterator_name)s ); assert( PyIter_Check( %(iterator_name)s ) );
 if (likely( %(attempt_name)s == NULL ))
 {
     // TODO: Could first fetch, then check, should be faster.
-    if ( !ERROR_OCCURED() )
+    if ( !ERROR_OCCURRED() )
     {
     }
     else if ( PyErr_ExceptionMatches( PyExc_StopIteration ))

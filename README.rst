@@ -499,7 +499,7 @@ Exception Propagation
 For exceptions that are determined at compile time, there is an expression that
 will simply do raise the exception. These can be propagated upwards, collecting
 potentially "side effects", i.e. parts of expressions that were executed before
-it occured, and still have to be executed.
+it occurred, and still have to be executed.
 
 Consider the following code:
 

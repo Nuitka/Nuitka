@@ -39,7 +39,7 @@ a = "partial print"
 try:
     print a, b
 except Exception, e:
-    print "then occured", repr(e)
+    print "then occurred", repr(e)
 
 print "No newline at the end",
 

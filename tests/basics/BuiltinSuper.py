@@ -31,7 +31,7 @@ class ClassWithUnderClassClosure:
         try:
             print("ClassWithUnderClassClosure: Super in ClassWithUnderClassClosure is", super())
         except Exception as e:
-            print("ClassWithUnderClassClosure: Occured during super call", repr(e))
+            print("ClassWithUnderClassClosure: Occurred during super call", repr(e))
 
 
 print("Class with a method that has a local function accessing __class__:")
@@ -45,7 +45,7 @@ class ClassWithoutUnderClassClosure:
         try:
             print("ClassWithoutUnderClassClosure: Super", super())
         except Exception as e:
-            print("ClassWithoutUnderClassClosure: Occured during super call", repr(e))
+            print("ClassWithoutUnderClassClosure: Occurred during super call", repr(e))
 
 
 ClassWithoutUnderClassClosure().g()

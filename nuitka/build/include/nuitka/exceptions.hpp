@@ -21,15 +21,15 @@
 // Exception helpers for generated code and compiled code helpers.
 
 // Did an error occur.
-NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURED( void )
+NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED( void )
 {
     PyThreadState *tstate = PyThreadState_GET();
 
     return tstate->curexc_type != NULL;
 }
 
-// Get the error occured.
-NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURED( void )
+// Get the error occurred.
+NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED( void )
 {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -112,7 +112,7 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR( PyObject *exception_type, PyObje
 
 // Special helper that checks for StopIteration and if so clears it, only
 // indicating if it was set.
-NUITKA_MAY_BE_UNUSED static bool HAS_STOP_ITERATION_OCCURED( void )
+NUITKA_MAY_BE_UNUSED static bool HAS_STOP_ITERATION_OCCURRED( void )
 {
     if ( PyErr_ExceptionMatches( PyExc_StopIteration ) )
     {

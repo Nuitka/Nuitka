@@ -204,7 +204,7 @@ int main( int argc, char *argv[] )
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
 
-    if ( ERROR_OCCURED() )
+    if ( ERROR_OCCURRED() )
     {
         // Cleanup code may need a frame, so put one back.
         PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, module___main__ );

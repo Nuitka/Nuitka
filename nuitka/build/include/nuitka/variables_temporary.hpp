@@ -33,7 +33,7 @@ public:
 
         // TODO: We ought to be able to do this, but e.g. conditional
         // expressions still do not "del" in a try/finally handler.
-        assert(!this->object);
+        assert( !this->object );
 
         Py_XDECREF( this->object );
     }

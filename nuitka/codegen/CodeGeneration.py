@@ -2727,10 +2727,10 @@ def generateTryExceptCode(statement, emit, context):
     # raise, must already be reduced.
     assert tried_block.mayRaiseException(BaseException)
 
-    old_ok = context.getExceptionNotOccured()
+    old_ok = context.getExceptionNotOccurred()
 
     no_exception = context.allocateLabel("try_except_end")
-    context.setExceptionNotOccured(no_exception)
+    context.setExceptionNotOccurred(no_exception)
 
     old_escape = context.getExceptionEscape()
     context.setExceptionEscape(context.allocateLabel("try_except_handler"))
@@ -2743,13 +2743,13 @@ def generateTryExceptCode(statement, emit, context):
         context            = context,
     )
 
-    Generator.getGotoCode(context.getExceptionNotOccured(), emit)
+    Generator.getGotoCode(context.getExceptionNotOccurred(), emit)
     Generator.getLabelCode(context.getExceptionEscape(),emit)
 
     # Inside the exception handler, we need to error exit to the outside
     # handler.
     context.setExceptionEscape(old_escape)
-    context.setExceptionNotOccured(old_ok)
+    context.setExceptionNotOccurred(old_ok)
 
     old_published = context.isExceptionPublished()
     context.setExceptionPublished(statement.needsExceptionPublish())

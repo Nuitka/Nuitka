@@ -50,7 +50,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, PyObject *
         {
             ilow = CONVERT_TO_INDEX( lower );
 
-            if ( ilow == -1 && ERROR_OCCURED() )
+            if ( ilow == -1 && ERROR_OCCURRED() )
             {
                 return NULL;
             }
@@ -62,7 +62,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, PyObject *
         {
             ihigh = CONVERT_TO_INDEX( upper );
 
-            if ( ihigh == -1 && ERROR_OCCURED() )
+            if ( ihigh == -1 && ERROR_OCCURRED() )
             {
                 return NULL;
             }
@@ -129,7 +129,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SLICE( PyObject *target, PyObject *lower, P
         {
             lower_int = CONVERT_TO_INDEX( lower );
 
-            if ( lower_int == -1 && ERROR_OCCURED() )
+            if ( lower_int == -1 && ERROR_OCCURRED() )
             {
                 return false;
             }
@@ -141,7 +141,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SLICE( PyObject *target, PyObject *lower, P
         {
             upper_int = CONVERT_TO_INDEX( upper );
 
-            if ( upper_int == -1 && ERROR_OCCURED() )
+            if ( upper_int == -1 && ERROR_OCCURRED() )
             {
                 return false;
             }
@@ -229,7 +229,7 @@ NUITKA_MAY_BE_UNUSED static bool DEL_SLICE( PyObject *target, PyObject *lower, P
         {
             lower_int = CONVERT_TO_INDEX( lower );
 
-            if ( lower_int == -1 && ERROR_OCCURED() )
+            if ( lower_int == -1 && ERROR_OCCURRED() )
             {
                 return false;
             }
@@ -241,7 +241,7 @@ NUITKA_MAY_BE_UNUSED static bool DEL_SLICE( PyObject *target, PyObject *lower, P
         {
             upper_int = CONVERT_TO_INDEX( upper );
 
-            if ( upper_int == -1 && ERROR_OCCURED() )
+            if ( upper_int == -1 && ERROR_OCCURRED() )
             {
                 return false;
             }

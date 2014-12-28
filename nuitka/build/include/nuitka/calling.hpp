@@ -52,7 +52,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, 
 
     if ( result == NULL )
     {
-        if (unlikely( !ERROR_OCCURED() ))
+        if (unlikely( !ERROR_OCCURRED() ))
         {
             PyErr_Format(
                 PyExc_SystemError,

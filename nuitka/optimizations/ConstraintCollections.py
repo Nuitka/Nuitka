@@ -406,7 +406,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         new_node, change_tags, change_desc = r
 
         if change_tags is not None:
-            # This is mostly for tracing and indication that a change occured
+            # This is mostly for tracing and indication that a change occurred
             # and it may be interesting to look again.
             self.signalChange(
                 change_tags,

@@ -580,7 +580,7 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
 
     long start = PyInt_AsLong( boundary_temp );
 
-    if ( start == -1 && ERROR_OCCURED() )
+    if ( start == -1 && ERROR_OCCURRED() )
     {
         PyErr_Clear();
 
@@ -626,7 +626,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
     long start = PyInt_AsLong( low_temp );
 
-    if (unlikely( start == -1 && ERROR_OCCURED() ))
+    if (unlikely( start == -1 && ERROR_OCCURRED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -634,7 +634,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
     long end = PyInt_AsLong( high_temp );
 
-    if (unlikely( end == -1 && ERROR_OCCURED() ))
+    if (unlikely( end == -1 && ERROR_OCCURRED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -709,7 +709,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     long start = PyInt_AsLong( low_temp );
 
-    if (unlikely( start == -1 && ERROR_OCCURED() ))
+    if (unlikely( start == -1 && ERROR_OCCURRED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -717,7 +717,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     long end = PyInt_AsLong( high_temp );
 
-    if (unlikely( end == -1 && ERROR_OCCURED() ))
+    if (unlikely( end == -1 && ERROR_OCCURRED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -725,7 +725,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     long step_long = PyInt_AsLong( step_temp );
 
-    if (unlikely( step_long == -1 && ERROR_OCCURED() ))
+    if (unlikely( step_long == -1 && ERROR_OCCURRED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -818,7 +818,7 @@ PyObject *BUILTIN_LEN( PyObject *value )
 
     Py_ssize_t res = PyObject_Size( value );
 
-    if (unlikely( res < 0 && ERROR_OCCURED() ))
+    if (unlikely( res < 0 && ERROR_OCCURRED() ))
     {
         return NULL;
     }
@@ -925,7 +925,7 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 
     Py_DECREF( iter );
 
-    return !ERROR_OCCURED();
+    return !ERROR_OCCURRED();
 }
 
 // Helper functions for print. Need to play nice with Python softspace
@@ -1227,7 +1227,7 @@ PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size )
 {
     PyObject *result = PyUnicode_FromStringAndSize( (char const  *)buffer, size );
 
-    assert( !ERROR_OCCURED() );
+    assert( !ERROR_OCCURRED() );
     assertObject( result );
 
     return result;
@@ -1242,7 +1242,7 @@ PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool in
     PyObject *result = PyUnicode_FromStringAndSize( (char const  *)buffer, size );
 #endif
 
-    assert( !ERROR_OCCURED() );
+    assert( !ERROR_OCCURRED() );
     assertObject( result );
     assert( Nuitka_String_Check( result ) );
 
@@ -1275,7 +1275,7 @@ PyObject *UNSTREAM_CHAR( unsigned char value, bool intern )
     PyObject *result = PyUnicode_FromStringAndSize( (char const  *)&value, 1 );
 #endif
 
-    assert( !ERROR_OCCURED() );
+    assert( !ERROR_OCCURRED() );
     assertObject( result );
     assert( Nuitka_String_Check( result ) );
 
@@ -1317,7 +1317,7 @@ PyObject *UNSTREAM_FLOAT( unsigned char const *buffer )
 PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size )
 {
     PyObject *result = PyBytes_FromStringAndSize( (char const  *)buffer, size );
-    assert( !ERROR_OCCURED() );
+    assert( !ERROR_OCCURRED() );
     assertObject( result );
 
     assert( PyBytes_GET_SIZE( result ) == size );
@@ -2229,7 +2229,7 @@ void setEarlyFrozenModulesFileAttribute( void )
         }
     }
 
-    assert(!ERROR_OCCURED());
+    assert( !ERROR_OCCURRED() );
 }
 #endif
 

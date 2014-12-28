@@ -136,10 +136,10 @@ class TempMixin:
     def setExceptionEscape(self, label):
         self.exception_escape = label
 
-    def getExceptionNotOccured(self):
+    def getExceptionNotOccurred(self):
         return self.exception_ok
 
-    def setExceptionNotOccured(self, label):
+    def setExceptionNotOccurred(self, label):
         self.exception_ok = label
 
     def isExceptionPublished(self):
@@ -781,11 +781,11 @@ class PythonStatementCContext(PythonChildContextBase):
     def setExceptionEscape(self, label):
         self.parent.setExceptionEscape(label)
 
-    def getExceptionNotOccured(self):
-        return self.parent.getExceptionNotOccured()
+    def getExceptionNotOccurred(self):
+        return self.parent.getExceptionNotOccurred()
 
-    def setExceptionNotOccured(self, label):
-        self.parent.setExceptionNotOccured(label)
+    def setExceptionNotOccurred(self, label):
+        self.parent.setExceptionNotOccurred(label)
 
     def isExceptionPublished(self):
         return self.parent.isExceptionPublished()
