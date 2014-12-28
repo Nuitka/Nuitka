@@ -110,6 +110,7 @@ extern Py_hash_t DEEP_HASH( PyObject *value );
 
 #include "nuitka/helper/dictionaries.hpp"
 
+#include "nuitka/helper/rangeobjects.hpp"
 
 #if PYTHON_VERSION >= 300
 static char *_PyUnicode_AS_STRING( PyObject *unicode )
