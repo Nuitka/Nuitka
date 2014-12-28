@@ -123,6 +123,8 @@ function_exception_exit:
 %(function_cleanup)s\
     assert( exception_type );
     PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+
+    assert( ERROR_OCCURRED() );
     return NULL;
 """
 
@@ -135,6 +137,8 @@ template_function_noexception_exit = """\
 template_function_return_exit = """\
 function_return_exit:
 %(function_cleanup)s\
+    assertObject( tmp_return_value );
+    assert( !ERROR_OCCURRED() );
     return tmp_return_value;
 """
 
