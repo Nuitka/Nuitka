@@ -144,7 +144,8 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
-    if filename not in ("PySideUsing.py", "PyQtUsing.py", "GtkUsing.py", "LxmlUsing.py"):
+    if filename not in ("PySideUsing.py", "PyQtUsing.py", "GtkUsing.py",
+                        "LxmlUsing.py", "Win32ComUsing.py"):
         extra_flags += [
             "no_site"
         ]
