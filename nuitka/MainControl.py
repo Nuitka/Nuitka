@@ -415,7 +415,7 @@ def runScons(main_module, quiet):
         "source_dir"     : getSourceDirectoryPath(main_module),
         "debug_mode"     : asBoolStr(Options.isDebug()),
         "python_debug"   : asBoolStr(Options.isPythonDebug()),
-        "unstriped_mode" : asBoolStr(Options.isUnstriped()),
+        "unstripped_mode" : asBoolStr(Options.isUnstripped()),
         "module_mode"    : asBoolStr(Options.shallMakeModule()),
         "optimize_mode"  : asBoolStr(Options.isOptimize()),
         "full_compat"    : asBoolStr(Options.isFullCompat()),

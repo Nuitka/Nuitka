@@ -372,9 +372,9 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     # Note: This would happen in optimization instead, but lets just do it
     # immediately to save some time.
     if constant:
-        # Unless tolder otherwise, create the dictionary in its full size, so
+        # Unless told otherwise, create the dictionary in its full size, so
         # that no growing occurs and the constant becomes as similar as possible
-        # before being marshalled.
+        # before being marshaled.
         return ExpressionConstantRef(
             constant      = Constants.createConstantDict(
                 lazy_order = not lazy_order,

@@ -40,7 +40,7 @@ os.system(
     "%s --exe --python-flag=-S --output-dir=%s %s %s %s" % (
         nuitka_binary,
         tempdir,
-        "" if "number" in sys.argv else "--unstriped",
+        "" if "number" in sys.argv else "--unstripped",
         os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
         input_file
     )
