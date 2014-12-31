@@ -90,12 +90,14 @@ class FinalizeMarkups(FinalizationVisitorBase):
                     search = search.getParent()
 
                     if search.isStatementTryFinally() and \
-                       last_search == search.getBlockTry():
+                       last_search == search.getBlockTry() and \
+                       search.needsExceptionPublish():
                         node.markAsExceptionPreserving()
                         break
 
                     if search.isStatementTryExcept() and \
-                       search.getExceptionHandling() is last_search:
+                       search.getExceptionHandling() is last_search and \
+                       search.needsExceptionPublish():
                         node.markAsExceptionPreserving()
                         break
 
