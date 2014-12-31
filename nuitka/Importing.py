@@ -339,6 +339,9 @@ def getModuleWhiteList():
         # test_frozen.py
         "__hello__", "__phello__", "__phello__.spam", "__phello__.foo",
 
+        # test_imp.py
+        "importlib.test.import_", "pep3147.foo",
+
         # test_import.py
         "RAnDoM", "infinite_reload", "test_trailing_slash",
 
@@ -385,7 +388,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # test_emails.py
         "email.test.test_email", "email.test.test_email_renamed",
-        "email.test.test_codecs",
+        "email.test.test_email_codecs",
 
         # test_imageop.py
         "imgfile",
