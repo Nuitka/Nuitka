@@ -965,6 +965,12 @@ if debug_mode or unstripped_mode:
             LINKFLAGS = ["/DEBUG"]
         )
 
+if not unstripped_mode:
+    if gcc_mode:
+        env.Append(
+            LINKFLAGS = ["-s"]
+        )
+
 # When debugging, optimize less than when optimizing, when not remove
 # assertions.
 if debug_mode:
