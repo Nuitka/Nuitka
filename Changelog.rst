@@ -1,5 +1,5 @@
-Nuitka Release 0.5.7 (Draft)
-============================
+Nuitka Release 0.5.7
+====================
 
 This release is brings a newly supported platform, bug fixes, and again lots
 of cleanups.
@@ -19,9 +19,9 @@ Bug Fixes
 New Optimization
 ----------------
 
-- Calls to the dict built-in with only keyword arguments are now optimized to
-  mere dictionary creations. This is new for the case of non-constant arguments
-  only of course.
+- Calls to the ``dict`` built-in with only keyword arguments are now optimized
+  to mere dictionary creations. This is new for the case of non-constant
+  arguments only of course.
 
   .. code-block:: python
 
@@ -762,7 +762,7 @@ Organizational
 - Using "README.rst" instead of "README.txt" to make it look better on web
   pages.
 
-- More complete white-listing of missing imports in standard library. These
+- More complete whitelisting of missing imports in standard library. These
   should give no warnings anymore.
 
 - Updated the Nuitka GUI to the latest version, with enhanced features.
