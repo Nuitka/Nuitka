@@ -55,6 +55,7 @@ remove_output      = hasArg("remove_output")
 standalone_mode    = hasArg("standalone")
 no_site            = hasArg("no_site")
 recurse_none       = hasArg("recurse_none")
+timing             = hasArg("timing")
 
 assert not standalone_mode or not module_mode
 
@@ -215,6 +216,8 @@ else:
 if trace_command:
     my_print("CPython command:", *cpython_cmd)
 
+start_time = time.clock()
+
 process = subprocess.Popen(
     args   = cpython_cmd,
     stdout = subprocess.PIPE,
@@ -223,6 +226,8 @@ process = subprocess.Popen(
 
 stdout_cpython, stderr_cpython = process.communicate()
 exit_cpython = process.returncode
+
+cpython_time = time.clock() - start_time
 
 def displayOutput(stdout, stderr):
     if type(stdout) is not str:
@@ -255,6 +260,8 @@ if two_step_execution:
 
     if trace_command:
         my_print("Going to output directory", os.getcwd())
+
+start_time = time.clock()
 
 if not two_step_execution:
     if trace_command:
@@ -297,6 +304,8 @@ else:
         stdout_nuitka = stdout_nuitka1 + stdout_nuitka2
         stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
         exit_nuitka = process.returncode
+
+nuitka_time = time.clock() - start_time
 
 if not silent_mode:
     displayOutput(stdout_nuitka, stderr_nuitka)
@@ -527,6 +536,14 @@ if remove_output:
         if os.path.exists(module_filename):
             os.unlink(module_filename)
 
+
+if timing:
+    my_print(
+        "CPython took %.1fs vs %0.1fs Nuitka." % (
+            cpython_time,
+            nuitka_time
+        )
+    )
 
 if not silent_mode:
     my_print("OK, same outputs.")
