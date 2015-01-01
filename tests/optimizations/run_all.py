@@ -154,7 +154,7 @@ for filename in sorted(os.listdir( ".")):
         if python_version.startswith("3"):
             path, changed = convertUsing2to3(path)
         else:
-            changed = True
+            changed = False
 
         my_print("Consider", path, end = " ")
 
