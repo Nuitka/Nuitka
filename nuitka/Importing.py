@@ -140,10 +140,11 @@ def findModule(source_ref, module_name, parent_package, level, warn):
 def _impFindModuleWrapper(module_name, search_path):
     """ This wraps imp.find_module because Python3.3 bugs.
 
-    Python3.3 accepts imports on directory names in PYTHONPATH, but does not
-    return them from imp.find_module, which it also deprecated, but would be
-    asking us to use the many variants in importlib manually. So this only
-    fixes up the one issue it has, that it won't accept these namespace dirs.
+    Python3.3 accepts imports on directory names in "PYTHONPATH", but does not
+    return them from "imp.find_module", which it also deprecated, but would be
+    asking us to use the many variants in "importlib" manually. So this only
+    fixes up the one issue it has, that it won't accept these namespace
+    directories.
 
     TODO: That probably is not sufficient to cover actual namespace packages,
     where multiple such directories are to be logically joined.
@@ -265,7 +266,7 @@ def _findModule(module_name, parent_package):
     if _debug_module_finding:
         print("_findModule: Enter", module_name, "in", parent_package)
 
-    # The os.path is strangely hacked into the os module, dispatching per
+    # The os.path is strangely hacked into the "os" module, dispatching per
     # platform, we either cannot look into it, or we require that we resolve it
     # here correctly.
     if module_name == "os.path" and parent_package is None:
@@ -336,8 +337,21 @@ def getModuleWhiteList():
         # CPython3 does these:
         "builtins", "UserDict", "os.path", "StringIO",
 
+        # test_applesingle.py
+        "applesingle",
+
+        # test_compile.py
+        "__package__.module", "__mangled_mod",
+
         # test_dbm.py
         "dbm.dumb",
+
+        # test_distutils.py
+        "distutils.tests", "distutils.mwerkscompiler",
+
+        # test_emails.py
+        "email.test.test_email", "email.test.test_email_renamed",
+        "email.test.test_email_codecs",
 
         # test/test_dbm_ndbm.py
         "dbm.ndbm",
@@ -349,7 +363,8 @@ def getModuleWhiteList():
         "importlib.test.import_", "pep3147.foo", "pep3147",
 
         # test_import.py
-        "RAnDoM", "infinite_reload", "test_trailing_slash",
+        "RAnDoM", "infinite_reload", "test_trailing_slash", "nonexistent_xyzzy",
+        "_parent_foo.bar", "_parent_foo", "test_unc_path",
 
         # test_importhooks.py
         "hooktestmodule", "hooktestpackage", "hooktestpackage.sub",
@@ -360,18 +375,39 @@ def getModuleWhiteList():
         # test_inspect.py
         "inspect_fodder3",
 
+        # test_imageop.py
+        "imgfile",
+
+        # test_json.py
+        "json.tests",
+
+        # test_lib2to3.py
+        "lib2to3.tests",
+
+        # test_logging.py
+        "win32evtlog", "win32evtlogutil",
+
+        # test_macostools.py
+        "macostools",
+
+        # test_namespace_pkgs.py
+        "foo.one", "foo.two", "parent.child.one", "parent.child.two",
+        "parent.child.three", "bar.two", "a_test",
+
         # test_new.py
         "Spam",
-
-        # test_pkg.py
-        "t1", "t2", "t2.sub", "t2.sub.subsub", "t3.sub.subsub", "t5", "t6",
-        "t7", "t7.sub", "t7.sub.subsub",
-
-        # test_pkgutil.py
-        "foo", "zipimport",
+        # est_ossaudiodev.py
+        "ossaudiodev",
 
         # test_platform.py
         "gestalt",
+
+        # test_pkg.py
+        "t1", "t2", "t2.sub", "t2.sub.subsub", "t3.sub.subsub", "t5", "t6",
+        "t7", "t7.sub", "t7.sub.subsub", "t8",
+
+        # test_pkgutil.py
+        "foo", "zipimport",
 
         # test_repr.py
         """areallylongpackageandmodulenametotestreprtruncation.\
@@ -389,39 +425,17 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test_strop.py
         "strop",
 
-        # test_applesingle.py
-        "applesingle",
-
-        # test_compile.py
-        "__package__.module", "__mangled_mod",
-
-        # test_distutils.py
-        "distutils.tests", "distutils.mwerkscompiler",
-
-        # test_emails.py
-        "email.test.test_email", "email.test.test_email_renamed",
-        "email.test.test_email_codecs",
-
-        # test_imageop.py
-        "imgfile",
-
-        # test_json.py
-        "json.tests",
-
-        # test_lib2to3.py
-        "lib2to3.tests",
-
-        # test_macostools.py
-        "macostools",
-
-        # test_pkg.py
-        "t8",
-
         # test_tk.py
         "runtktests",
 
+        # test_tools.py
+        "analyze_dxp", "test_unparse",
+
         # test_traceback.py
         "test_bug737473",
+
+        # test_xml_etree.py
+        "xml.parsers.expat.errors",
 
         # test_zipimport_support.py
         "test_zipped_doctest", "zip_pkg",
