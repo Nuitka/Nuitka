@@ -128,7 +128,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         if ( generator->m_yielded == NULL )
         {
-            assert( ERROR_OCCURED() );
+            assert( ERROR_OCCURRED() );
 
             generator->m_status = status_Finished;
 
@@ -143,7 +143,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
                 generator->m_context = NULL;
             }
 
-            assert( ERROR_OCCURED() );
+            assert( ERROR_OCCURRED() );
 
 #if PYTHON_VERSION < 300
             Py_XDECREF( saved_exception_type );
@@ -201,7 +201,7 @@ PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *a
         }
         else
         {
-            assert( ERROR_OCCURED() );
+            assert( ERROR_OCCURRED() );
 
             return NULL;
         }
@@ -811,7 +811,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
             }
             else
             {
-                assert( ERROR_OCCURED() );
+                assert( ERROR_OCCURRED() );
 
                 Py_CLEAR( generator->m_exception_type );
                 Py_CLEAR( generator->m_exception_value );
@@ -843,7 +843,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
         // Check the sub-generator result
         if ( retval == NULL )
         {
-            if ( !ERROR_OCCURED() )
+            if ( !ERROR_OCCURRED() )
             {
                 return INCREASE_REFCOUNT( Py_None ) ;
             }
@@ -951,7 +951,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
             }
             else
             {
-                assert( ERROR_OCCURED() );
+                assert( ERROR_OCCURRED() );
 
                 Py_CLEAR( generator->m_exception_type );
                 Py_CLEAR( generator->m_exception_value );
@@ -983,7 +983,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
         // Check the sub-generator result
         if ( retval == NULL )
         {
-            if ( !ERROR_OCCURED() )
+            if ( !ERROR_OCCURRED() )
             {
                 return INCREASE_REFCOUNT( Py_None ) ;
             }

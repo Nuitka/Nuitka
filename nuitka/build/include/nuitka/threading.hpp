@@ -35,7 +35,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING( void )
 
         int res = Py_MakePendingCalls();
 
-        if (unlikely( res < 0 && ERROR_OCCURED() ))
+        if (unlikely( res < 0 && ERROR_OCCURRED() ))
         {
             return false;
         }

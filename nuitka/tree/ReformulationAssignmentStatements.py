@@ -22,6 +22,7 @@ source code comments with developer manual sections.
 
 """
 
+from nuitka import Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentAttribute,
     StatementAssignmentSlice,
@@ -139,13 +140,32 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
     elif kind == "Slice":
         lookup_source, lower, upper = detail
 
-        return StatementAssignmentSlice(
-            expression = lookup_source,
-            lower      = lower,
-            upper      = upper,
-            source     = source,
-            source_ref = source_ref
-        )
+        # For Python3 there is no slicing operation, this is always done
+        # with subscript using a slice object. For Python2, it is only done
+        # if no "step" is provided.
+        use_sliceobj = Utils.python_version >= 300
+
+        if use_sliceobj:
+            return StatementAssignmentSubscript(
+                expression = lookup_source,
+                source     = source,
+                subscript  = ExpressionSliceObject(
+                    lower      = lower,
+                    upper      = upper,
+                    step       = None,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+
+        else:
+            return StatementAssignmentSlice(
+                expression = lookup_source,
+                lower      = lower,
+                upper      = upper,
+                source     = source,
+                source_ref = source_ref
+            )
     elif kind == "Tuple":
         temp_scope = provider.allocateTempScope("tuple_unpack")
 
@@ -506,12 +526,26 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
     elif kind == "Slice":
         lookup_source, lower, upper = detail
 
-        return StatementDelSlice(
-            expression = lookup_source,
-            lower      = lower,
-            upper      = upper,
-            source_ref = source_ref
-        )
+        use_sliceobj = Utils.python_version >= 300
+
+        if use_sliceobj:
+            return StatementDelSubscript(
+                expression = lookup_source,
+                subscript  = ExpressionSliceObject(
+                    lower      = lower,
+                    upper      = upper,
+                    step       = None,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        else:
+            return StatementDelSlice(
+                expression = lookup_source,
+                lower      = lower,
+                upper      = upper,
+                source_ref = source_ref
+            )
     elif kind == "Tuple":
         result = []
 
@@ -937,32 +971,69 @@ def _buildInplaceAssignSliceNode(lookup_source, lower, upper, tmp_variable1,
 
         upper_ref1 = upper_ref2 = None
 
-    # Second assign the inplace result over the original value.
-    statements.append(
-        StatementAssignmentSlice(
-            expression = ExpressionTempVariableRef(
-                variable   = tmp_variable1,
-                source_ref = source_ref
-            ),
-            lower      = lower_ref1,
-            upper      = upper_ref1,
-            source     = ExpressionOperationBinaryInplace(
-                operator   = operator,
-                left       = ExpressionSliceLookup(
-                    expression = ExpressionTempVariableRef(
-                        variable   = tmp_variable1,
-                        source_ref = source_ref
-                    ),
-                    lower      = lower_ref2,
-                    upper      = upper_ref2,
+    use_sliceobj = Utils.python_version >= 300
+
+        # Second assign the in-place result over the original value.
+    if use_sliceobj:
+        statements.append(
+            StatementAssignmentSubscript(
+                expression = ExpressionTempVariableRef(
+                    variable   = tmp_variable1,
                     source_ref = source_ref
                 ),
-                right      = expression,
+                subscript  = ExpressionSliceObject(
+                    lower      = lower_ref1,
+                    upper      = upper_ref1,
+                    step       = None,
+                    source_ref = source_ref
+                ),
+                source     = ExpressionOperationBinaryInplace(
+                    operator   = operator,
+                    left       = ExpressionSubscriptLookup(
+                        subscribed = ExpressionTempVariableRef(
+                            variable   = tmp_variable1,
+                            source_ref = source_ref
+                        ),
+                        subscript  = ExpressionSliceObject(
+                            lower      = lower_ref2,
+                            upper      = upper_ref2,
+                            step       = None,
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+                    ),
+                    right      = expression,
+                    source_ref = source_ref
+                ),
                 source_ref = source_ref
-            ),
-            source_ref = source_ref
+            )
         )
-    )
+    else:
+        statements.append(
+            StatementAssignmentSlice(
+                expression = ExpressionTempVariableRef(
+                    variable   = tmp_variable1,
+                    source_ref = source_ref
+                ),
+                lower      = lower_ref1,
+                upper      = upper_ref1,
+                source     = ExpressionOperationBinaryInplace(
+                    operator   = operator,
+                    left       = ExpressionSliceLookup(
+                        expression = ExpressionTempVariableRef(
+                            variable   = tmp_variable1,
+                            source_ref = source_ref
+                        ),
+                        lower      = lower_ref2,
+                        upper      = upper_ref2,
+                        source_ref = source_ref
+                    ),
+                    right      = expression,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
 
     return (
         copy_to_tmp,

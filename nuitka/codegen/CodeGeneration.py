@@ -33,6 +33,7 @@ from nuitka.codegen.AttributeCodes import generateAttributeLookupCode
 from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
 from .ConditionalCodes import generateConditionCode
 from .ConstantCodes import generateConstantReferenceCode
+from .ErrorCodes import getErrorExitBoolCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 from .SliceCodes import generateBuiltinSliceCode
 from .SubscriptCodes import generateSubscriptLookupCode
@@ -139,12 +140,29 @@ def generateSetCreationCode(to_name, elements, emit, context):
             context    = context
         )
 
-        emit(
-            "PySet_Add( %s, %s );" % (
-                to_name,
-                element_name
+        if element.isKnownToBeHashable():
+            emit(
+                "PySet_Add( %s, %s );" % (
+                    to_name,
+                    element_name
+                )
             )
-        )
+        else:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = PySet_Add( %s, %s );" % (
+                    res_name,
+                    to_name,
+                    element_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition = "%s != 0" % res_name,
+                emit      = emit,
+                context   = context
+            )
 
         if context.needsCleanup(element_name):
             emit("Py_DECREF( %s );" % element_name)
@@ -186,8 +204,9 @@ def _generateDictionaryCreationCode340(to_name, pairs, emit, context):
 
     dict_key_names = []
     dict_value_names = []
+    keys = []
 
-    # Strange as it is, CPython evalutes the key/value pairs strictly in order,
+    # Strange as it is, CPython evaluates the key/value pairs strictly in order,
     # but for each pair, the value first.
     for pair in pairs:
         dict_key_name = context.allocateTempName("dict_key")
@@ -210,14 +229,35 @@ def _generateDictionaryCreationCode340(to_name, pairs, emit, context):
         dict_key_names.append(dict_key_name)
         dict_value_names.append(dict_value_name)
 
-    for dict_key_name, dict_value_name in zip(reversed(dict_key_names), reversed(dict_value_names)):
-        emit(
-            "PyDict_SetItem( %s, %s, %s );" % (
-                to_name,
-                dict_key_name,
-                dict_value_name
+        keys.append(pair.getKey())
+
+    for key, dict_key_name, dict_value_name in \
+      zip(reversed(keys), reversed(dict_key_names), reversed(dict_value_names)):
+        if key.isKnownToBeHashable():
+            emit(
+                "PyDict_SetItem( %s, %s, %s );" % (
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
             )
-        )
+        else:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = PyDict_SetItem( %s, %s, %s );" % (
+                    res_name,
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition = "%s != 0" % res_name,
+                emit      = emit,
+                context   = context
+            )
 
         if context.needsCleanup(dict_value_name):
             emit("Py_DECREF( %s );" % dict_value_name)
@@ -251,20 +291,41 @@ def _generateDictionaryCreationCode(to_name, pairs, emit, context):
             context    = context
         )
 
+        key = pair.getKey()
+
         generateExpressionCode(
             to_name    = dict_key_name,
-            expression = pair.getKey(),
+            expression = key,
             emit       = emit,
             context    = context
         )
 
-        emit(
-            "PyDict_SetItem( %s, %s, %s );" % (
-                to_name,
-                dict_key_name,
-                dict_value_name
+
+        if key.isKnownToBeHashable():
+            emit(
+                "PyDict_SetItem( %s, %s, %s );" % (
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
             )
-        )
+        else:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = PyDict_SetItem( %s, %s, %s );" % (
+                    res_name,
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition = "%s != 0" % res_name,
+                emit      = emit,
+                context   = context
+            )
 
         if context.needsCleanup(dict_value_name):
             emit("Py_DECREF( %s );" % dict_value_name)
@@ -615,19 +676,18 @@ def generateSliceRangeIdentifier(lower, upper, scope, emit, context):
 
     return lower_name, upper_name
 
-_slicing_available = Utils.python_version < 300
-
-def decideSlicing(lower, upper):
-    return _slicing_available and                       \
-           (lower is None or lower.isIndexable()) and \
+def _decideSlicing(lower, upper):
+    return (lower is None or lower.isIndexable()) and \
            (upper is None or upper.isIndexable())
 
 
 def generateSliceLookupCode(to_name, expression, emit, context):
+    assert Utils.python_version < 300
+
     lower = expression.getLower()
     upper = expression.getUpper()
 
-    if decideSlicing(lower, upper):
+    if _decideSlicing(lower, upper):
         lower_name, upper_name = generateSliceRangeIdentifier(
             lower   = lower,
             upper   = upper,
@@ -654,60 +714,25 @@ def generateSliceLookupCode(to_name, expression, emit, context):
             context     = context
         )
     else:
-        if _slicing_available:
-            source_name, lower_name, upper_name = generateExpressionsCode(
-                names       = ("slice_source", "slice_lower", "slice_upper"),
-                expressions = (
-                    expression.getLookupSource(),
-                    expression.getLower(),
-                    expression.getUpper()
-                ),
-                emit        = emit,
-                context     = context
-            )
+        source_name, lower_name, upper_name = generateExpressionsCode(
+            names       = ("slice_source", "slice_lower", "slice_upper"),
+            expressions = (
+                expression.getLookupSource(),
+                expression.getLower(),
+                expression.getUpper()
+            ),
+            emit        = emit,
+            context     = context
+        )
 
-            Generator.getSliceLookupCode(
-                to_name     = to_name,
-                source_name = source_name,
-                lower_name  = lower_name,
-                upper_name  = upper_name,
-                emit        = emit,
-                context     = context
-            )
-        else:
-            subscript_name = context.allocateTempName("slice_subscript")
-
-            subscribed_name, lower_name, upper_name = generateExpressionsCode(
-                names       = (
-                    "slice_target", "slice_lower", "slice_upper"
-                ),
-                expressions = (
-                    expression.getLookupSource(),
-                    expression.getLower(),
-                    expression.getUpper()
-                ),
-                emit        = emit,
-                context     = context
-            )
-
-            # TODO: The decision should be done during optimization, so
-            # _slicing_available should play no role at all.
-            Generator.getSliceObjectCode(
-                to_name    = subscript_name,
-                lower_name = lower_name,
-                upper_name = upper_name,
-                step_name  = None,
-                emit       = emit,
-                context    = context
-            )
-
-            return Generator.getSubscriptLookupCode(
-                to_name         = to_name,
-                subscribed_name = subscribed_name,
-                subscript_name  = subscript_name,
-                emit            = emit,
-                context         = context
-            )
+        Generator.getSliceLookupCode(
+            to_name     = to_name,
+            source_name = source_name,
+            lower_name  = lower_name,
+            upper_name  = upper_name,
+            emit        = emit,
+            context     = context
+        )
 
 
 def generateCallCode(to_name, call_node, emit, context):
@@ -2224,6 +2249,8 @@ def generateAssignmentSubscriptCode(statement, emit, context):
 
 
 def generateAssignmentSliceCode(statement, emit, context):
+    assert Utils.python_version < 300
+
     lookup_source = statement.getLookupSource()
     lower         = statement.getLower()
     upper         = statement.getUpper()
@@ -2238,16 +2265,17 @@ def generateAssignmentSliceCode(statement, emit, context):
         context    = context
     )
 
-    if decideSlicing(lower, upper):
-        target_name = context.allocateTempName("sliceass_target")
+    target_name = context.allocateTempName("sliceass_target")
 
-        generateExpressionCode(
-            to_name    = target_name,
-            expression = lookup_source,
-            emit       = emit,
-            context    = context
-        )
+    generateExpressionCode(
+        to_name    = target_name,
+        expression = lookup_source,
+        emit       = emit,
+        context    = context
+    )
 
+
+    if _decideSlicing(lower, upper):
         lower_name, upper_name = generateSliceRangeIdentifier(
             lower   = lower,
             upper   = upper,
@@ -2273,12 +2301,11 @@ def generateAssignmentSliceCode(statement, emit, context):
 
         context.setCurrentSourceCodeReference(old_source_ref)
     else:
-        target_name, lower_name, upper_name = generateExpressionsCode(
+        lower_name, upper_name = generateExpressionsCode(
             names       = (
-                "sliceass_target", "sliceass_lower", "sliceass_upper"
+                "sliceass_lower", "sliceass_upper"
             ),
             expressions = (
-                lookup_source,
                 lower,
                 upper
             ),
@@ -2286,52 +2313,22 @@ def generateAssignmentSliceCode(statement, emit, context):
             context     = context
         )
 
-        if _slicing_available:
-            old_source_ref = context.setCurrentSourceCodeReference(
-                value.getSourceReference()
-                   if Options.isFullCompat() else
-                statement.getSourceReference()
-            )
+        old_source_ref = context.setCurrentSourceCodeReference(
+            value.getSourceReference()
+               if Options.isFullCompat() else
+            statement.getSourceReference()
+        )
 
-            Generator.getSliceAssignmentCode(
-                target_name = target_name,
-                upper_name  = upper_name,
-                lower_name  = lower_name,
-                value_name  = value_name,
-                emit        = emit,
-                context     = context
-            )
+        Generator.getSliceAssignmentCode(
+            target_name = target_name,
+            upper_name  = upper_name,
+            lower_name  = lower_name,
+            value_name  = value_name,
+            emit        = emit,
+            context     = context
+        )
 
-            context.setCurrentSourceCodeReference(old_source_ref)
-        else:
-            subscript_name = context.allocateTempName("sliceass_subscript")
-
-            old_source_ref = context.setCurrentSourceCodeReference(
-                value.getSourceReference()
-                   if Options.isFullCompat() else
-                statement.getSourceReference()
-            )
-
-            # TODO: The decision should be done during optimization, so
-            # _slicing_available should play no role at all.
-            Generator.getSliceObjectCode(
-                to_name    = subscript_name,
-                lower_name = lower_name,
-                upper_name = upper_name,
-                step_name  = None,
-                emit       = emit,
-                context    = context
-            )
-
-            Generator.getSubscriptAssignmentCode(
-                target_name    = target_name,
-                subscript_name = subscript_name,
-                value_name     = value_name,
-                emit           = emit,
-                context        = context
-            )
-
-            context.setCurrentSourceCodeReference(old_source_ref)
+        context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def generateVariableDelCode(statement, emit, context):
@@ -2375,20 +2372,22 @@ def generateDelSubscriptCode(statement, emit, context):
 
 
 def generateDelSliceCode(statement, emit, context):
+    assert Utils.python_version < 300
+
     target  = statement.getLookupSource()
     lower   = statement.getLower()
     upper   = statement.getUpper()
 
-    if decideSlicing(lower, upper):
-        target_name = context.allocateTempName("slicedel_target")
+    target_name = context.allocateTempName("slicedel_target")
 
-        generateExpressionCode(
-            to_name    = target_name,
-            expression = target,
-            emit       = emit,
-            context    = context
-        )
+    generateExpressionCode(
+        to_name    = target_name,
+        expression = target,
+        emit       = emit,
+        context    = context
+    )
 
+    if _decideSlicing(lower, upper):
         lower_name, upper_name = generateSliceRangeIdentifier(
             lower   = lower,
             upper   = upper,
@@ -2403,7 +2402,7 @@ def generateDelSliceCode(statement, emit, context):
             statement.getSourceReference()
         )
 
-        Generator.getSliceDelCode(
+        Generator.getSliceDelIndexesCode(
             target_name = target_name,
             lower_name  = lower_name,
             upper_name  = upper_name,
@@ -2413,15 +2412,11 @@ def generateDelSliceCode(statement, emit, context):
 
         context.setCurrentSourceCodeReference(old_source_ref)
     else:
-        subscript_name = context.allocateTempName("sliceass_subscript")
-
-        # We know that 3 expressions are created, pylint: disable=W0632
-        target_name, lower_name, upper_name = generateExpressionsCode(
+        lower_name, upper_name = generateExpressionsCode(
             names       = (
-                "slicedel_target", "slicedel_lower", "slicedel_upper"
+                "slicedel_lower", "slicedel_upper"
             ),
             expressions = (
-                target,
                 lower,
                 upper
             ),
@@ -2435,20 +2430,12 @@ def generateDelSliceCode(statement, emit, context):
             statement.getSourceReference()
         )
 
-        Generator.getSliceObjectCode(
-            to_name    = subscript_name,
-            lower_name = lower_name,
-            upper_name = upper_name,
-            step_name  = None,
-            emit       = emit,
-            context    = context
-        )
-
-        Generator.getSubscriptDelCode(
-            target_name    = target_name,
-            subscript_name = subscript_name,
-            emit           = emit,
-            context        = context
+        Generator.getSliceDelCode(
+            target_name = target_name,
+            lower_name  = lower_name,
+            upper_name  = upper_name,
+            emit        = emit,
+            context     = context
         )
 
         context.setCurrentSourceCodeReference(old_source_ref)
@@ -2740,10 +2727,10 @@ def generateTryExceptCode(statement, emit, context):
     # raise, must already be reduced.
     assert tried_block.mayRaiseException(BaseException)
 
-    old_ok = context.getExceptionNotOccured()
+    old_ok = context.getExceptionNotOccurred()
 
     no_exception = context.allocateLabel("try_except_end")
-    context.setExceptionNotOccured(no_exception)
+    context.setExceptionNotOccurred(no_exception)
 
     old_escape = context.getExceptionEscape()
     context.setExceptionEscape(context.allocateLabel("try_except_handler"))
@@ -2756,13 +2743,13 @@ def generateTryExceptCode(statement, emit, context):
         context            = context,
     )
 
-    Generator.getGotoCode(context.getExceptionNotOccured(), emit)
+    Generator.getGotoCode(context.getExceptionNotOccurred(), emit)
     Generator.getLabelCode(context.getExceptionEscape(),emit)
 
     # Inside the exception handler, we need to error exit to the outside
     # handler.
     context.setExceptionEscape(old_escape)
-    context.setExceptionNotOccured(old_ok)
+    context.setExceptionNotOccurred(old_ok)
 
     old_published = context.isExceptionPublished()
     context.setExceptionPublished(statement.needsExceptionPublish())

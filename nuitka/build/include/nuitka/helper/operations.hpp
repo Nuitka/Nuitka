@@ -310,7 +310,7 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
 
     if (unlikely( count == -1 )) // Note: -1 is an unlikely repetition count
     {
-        PyObject *exception = GET_ERROR_OCCURED();
+        PyObject *exception = GET_ERROR_OCCURRED();
 
         if (unlikely(  exception ))
         {

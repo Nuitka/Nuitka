@@ -34,7 +34,7 @@ else if ( exception_tb->tb_frame != %(frame_identifier)s || exception_tb->tb_lin
 template_error_catch_quick_exception = """\
 if ( %(condition)s )
 {
-    if ( !ERROR_OCCURED() )
+    if ( !ERROR_OCCURRED() )
     {
         exception_type = INCREASE_REFCOUNT( %(quick_exception)s );
         exception_value = NULL;
@@ -53,7 +53,7 @@ if ( %(condition)s )
 template_error_catch_exception = """\
 if ( %(condition)s )
 {
-    assert( ERROR_OCCURED() );
+    assert( ERROR_OCCURRED() );
 
     PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
 %(release_temps)s
@@ -75,7 +75,7 @@ if ( %(condition)s )
 
 
 template_final_handler_start = """\
-// Tried block ends with no exception occured, note that.
+// Tried block ends with no exception occurred, note that.
 exception_type = NULL;
 exception_value = NULL;
 exception_tb = NULL;
@@ -89,7 +89,7 @@ exception_tb = NULL;
 """
 
 template_final_handler_start_python3 = """\
-// Tried block ends with no exception occured, note that.
+// Tried block ends with no exception occurred, note that.
 exception_type = NULL;
 exception_value = NULL;
 exception_tb = NULL;

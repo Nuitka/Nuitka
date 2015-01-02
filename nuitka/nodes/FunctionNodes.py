@@ -38,12 +38,12 @@ from .IndicatorMixins import (
 )
 from .NodeBases import (
     ChildrenHavingMixin,
+    ClosureGiverNodeBase,
     ClosureTakerMixin,
     CompileTimeConstantExpressionMixin,
     ExpressionChildrenHavingBase,
     ExpressionMixin,
     NodeBase,
-    ClosureGiverNodeBase,
     SideEffectsFromChildrenMixin
 )
 from .ParameterSpecs import TooManyArguments, matchCall

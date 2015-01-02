@@ -47,7 +47,7 @@ def getIndexCode(to_name, value_name, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition = "%s == -1 && ERROR_OCCURED()" % to_name,
+        condition = "%s == -1 && ERROR_OCCURRED()" % to_name,
         emit      = emit,
         context   = context
     )

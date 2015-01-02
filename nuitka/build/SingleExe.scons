@@ -87,7 +87,7 @@ win_target = getBoolOption("win_target", os.name == "nt")
 win_disable_console = getBoolOption("win_disable_console", False)
 
 # Unstriped mode: Do not remove debug symbols.
-unstriped_mode = getBoolOption("unstriped_mode", False)
+unstripped_mode = getBoolOption("unstripped_mode", False)
 
 # Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
@@ -408,17 +408,23 @@ if os.name != "nt" and env["CXX"] is None:
     # be installed.
 
     for candidate in ("g++-4.9", "g++-4.8", "g++-4.7", "g++-4.6", "g++-4.5",
-                      "g++-4.4", "g++44", "clang"):
-        if os.path.exists(os.path.join("/usr/bin", candidate)):
-            env["CXX"] = candidate
-            env["CC"] = candidate.replace("++", "cc")
+                      "g++-4.4", "g++44", "clang", "eg++"):
 
-            if "clang" not in candidate:
-                # Update CXXVERSION in env, after we changed it.
-                env["CXXVERSION"] = getGccVersion()
+        for system_path in ("/usr/bin", "/usr/local/bin"):
+            if os.path.exists(os.path.join(system_path, candidate)):
+                env["CXX"] = candidate
+                env["CC"] = candidate.replace("++", "cc")
 
+                if "clang" not in candidate:
+                    # Update CXXVERSION in env, after we changed it.
+                    env["CXXVERSION"] = getGccVersion()
+
+                break
+
+        if env["CXX"] is not None:
             break
-    else:
+
+    if env["CXX"] is None:
         sys.exit("""\
 The g++ compiler '%s' (version %s) doesn't have the sufficient \
 version (>= 4.4).""" % (orig_cxx, orig_cxx_version))
@@ -930,7 +936,7 @@ env.Append(
     ]
 )
 
-if debug_mode or unstriped_mode:
+if debug_mode or unstripped_mode:
     # Use debug format, so we get good tracebacks from it.
     if gcc_mode:
         env.Append(
@@ -957,6 +963,12 @@ if debug_mode or unstriped_mode:
 
         env.Append(
             LINKFLAGS = ["/DEBUG"]
+        )
+
+if not unstripped_mode:
+    if gcc_mode:
+        env.Append(
+            LINKFLAGS = ["-s"]
         )
 
 # When debugging, optimize less than when optimizing, when not remove
@@ -1104,6 +1116,13 @@ def discoverSourceFiles():
 
     if win_target:
         result.append(getStatic("win32_ucontext_src/fibers_win32.cpp"))
+    elif "openbsd" in sys.platform:
+        result.append(getStatic("libcoro_ucontext_src/fibers_coro.cpp"))
+        result.append(getStatic("libcoro_ucontext_src/coro.c"))
+
+        env.Append(
+            CPPDEFINES = ["CORO_SJLJ"]
+        )
     elif target_arch == "x86_64" and "linux" in sys.platform:
         result.append(getStatic("x64_ucontext_src/fibers_x64.cpp"))
         result.append(getStatic("x64_ucontext_src/swapfiber.S"))

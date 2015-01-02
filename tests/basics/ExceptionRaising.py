@@ -547,3 +547,73 @@ def checkReraiseByFunction():
 # re-raise isn't wrong (contains itself) anymore.
 if False:
     checkReraiseByFunction()
+
+def checkNoRaiseExceptionDictBuilding(arg):
+    a = {
+         () : arg
+    }
+
+    b = {
+         None : arg
+    }
+
+    c = {
+         Ellipsis : arg
+    }
+
+    d = {
+         1.0j : arg
+    }
+
+    e = {
+         1.0 : arg
+    }
+
+    f = {
+         long(0) : arg
+    }
+
+    g = {
+         0 : arg
+    }
+
+    h = {
+         type : arg
+    }
+
+checkNoRaiseExceptionDictBuilding(1)
+
+def checkRaiseExceptionDictBuildingRange(arg):
+    try:
+        i = {
+             range(10) : arg
+        }
+    except Exception as e:
+        print("Raised", repr(e))
+    else:
+        print("No exception, OK for Python2")
+
+print("Check if range raises:")
+checkRaiseExceptionDictBuildingRange(2)
+
+def checkRaiseExceptionDictBuildingTuple(arg):
+    try:
+        i = {
+             (2, []) : arg
+        }
+    except Exception as e:
+        print("Raised", repr(e))
+
+print("Check if mutable tuple raises:")
+checkRaiseExceptionDictBuildingTuple(3)
+
+def checkRaiseExceptionDictBuildingList(arg):
+    try:
+        i = {
+             [2, ()] : arg
+        }
+    except Exception as e:
+        print("Raised", repr(e))
+
+print("Check if list raises:")
+checkRaiseExceptionDictBuildingList(4)

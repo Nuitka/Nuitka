@@ -198,7 +198,7 @@ else
 
                 int res = PyDict_SetItem( _python_par_%(dict_star_parameter_name)s, entry->me_key, entry->me_value );
 
-                if (unlikely( res == -1 ))
+                if (unlikely( res != 0 ))
                 {
                     goto error_exit;
                 }
@@ -271,7 +271,7 @@ else
 
                 int res = PyDict_SetItem( _python_par_%(dict_star_parameter_name)s, entry->me_key, value );
 
-                if (unlikely( res == -1 ))
+                if (unlikely( res != 0 ))
                 {
                     goto error_exit;
                 }

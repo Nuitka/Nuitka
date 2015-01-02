@@ -20,7 +20,7 @@ import sys
 
 class X:
     def __del__(self):
-        print "X.__del__ occured"
+        print "X.__del__ occurred"
 
 def raising(doit):
     x = X()

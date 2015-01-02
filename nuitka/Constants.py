@@ -181,6 +181,38 @@ def isMutable(constant):
         assert False, constant_type
 
 
+def isHashable(constant):
+    """ Is a constant hashable
+
+        That means a user of a reference to it, can use it for dicts and set
+        keys. This is distinct from mutable, there is one types that is not
+        mutable, and still not hashable: slices.
+    """
+    # Too many cases and all return, that is how we do it here,
+    # pylint: disable=R0911
+
+    constant_type = type(constant)
+
+    if constant_type in (str, unicode, complex, int, long, bool, float,
+                         NoneType, range, bytes):
+        return True
+    elif constant_type in (dict, list, set):
+        return False
+    elif constant_type is tuple:
+        for value in constant:
+            if not isHashable(value):
+                return False
+        return True
+    elif constant is Ellipsis:
+        return True
+    elif constant in constant_builtin_types:
+        return True
+    elif constant_type is slice:
+        return False
+    else:
+        assert False, constant_type
+
+
 def isIterableConstant(constant):
     return type(constant) in (
         str, unicode, list, tuple, set, frozenset, dict, range, bytes

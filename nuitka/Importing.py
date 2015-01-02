@@ -336,8 +336,17 @@ def getModuleWhiteList():
         # CPython3 does these:
         "builtins", "UserDict", "os.path", "StringIO",
 
+        # test_dbm.py
+        "dbm.dumb",
+
+        # test/test_dbm_ndbm.py
+        "dbm.ndbm",
+
         # test_frozen.py
         "__hello__", "__phello__", "__phello__.spam", "__phello__.foo",
+
+        # test_imp.py
+        "importlib.test.import_", "pep3147.foo", "pep3147",
 
         # test_import.py
         "RAnDoM", "infinite_reload", "test_trailing_slash",
@@ -347,6 +356,9 @@ def getModuleWhiteList():
         "reloadmodule", "hooktestpackage.sub.subber", "hooktestpackage.oldabs",
         "hooktestpackage.newrel", "hooktestpackage.sub.subber.subest",
         "hooktestpackage.futrel", "sub", "hooktestpackage.newabs",
+
+        # test_inspect.py
+        "inspect_fodder3",
 
         # test_new.py
         "Spam",
@@ -364,6 +376,9 @@ def getModuleWhiteList():
         # test_repr.py
         """areallylongpackageandmodulenametotestreprtruncation.\
 areallylongpackageandmodulenametotestreprtruncation""",
+
+        # test_robotparser.py
+        "urllib.error",
 
         # test_runpy.py
         "test.script_helper",
@@ -385,6 +400,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # test_emails.py
         "email.test.test_email", "email.test.test_email_renamed",
+        "email.test.test_email_codecs",
 
         # test_imageop.py
         "imgfile",
@@ -445,7 +461,7 @@ def _isWhiteListedNotExistingModule(module_name):
 
     if not result and module_name in sys.builtin_module_names:
         warning("""\
-Your CPython version has a built-in module '%s', that is not white-listed
+Your CPython version has a built-in module '%s', that is not whitelisted
 please report this to http://bugs.nuitka.net.""", module_name)
 
     return result

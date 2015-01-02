@@ -20,6 +20,10 @@
 
 #if defined( _WIN32 )
 #include <windows.h>
+#elif defined( __OpenBSD__ )
+extern "C" {
+#include "coro.h"
+}
 #else
 #include <ucontext.h>
 #endif
@@ -28,6 +32,9 @@ typedef struct _Fiber
 {
 #if defined( _WIN32 )
     LPVOID fiber;
+#elif defined( __OpenBSD__ )
+    struct coro_context coro_ctx;
+    void *sptr;
 #else
     ucontext_t f_context;
     void *start_stack;

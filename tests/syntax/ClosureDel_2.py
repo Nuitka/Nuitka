@@ -26,6 +26,6 @@ def deletingClosure():
     try:
         x = closureTaker()
     except Exception as e:
-        print "Occured %r" % e
+        print "Occurred %r" % e
 
 deletingClosure()

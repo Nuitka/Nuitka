@@ -94,7 +94,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
             return INCREASE_REFCOUNT( result );
         }
     }
-    else if ( ERROR_OCCURED() )
+    else if ( ERROR_OCCURRED() )
     {
         if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
         {
@@ -314,7 +314,7 @@ static bool SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
             value
         );
 
-        if (unlikely( status == -1 ))
+        if (unlikely( status != 0 ))
         {
             return false;
         }

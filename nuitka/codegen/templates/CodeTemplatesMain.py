@@ -191,8 +191,10 @@ int main( int argc, char *argv[] )
             if ( simplefilter != NULL )
             {
                 PyObject *result1 = PyObject_CallFunctionObjArgs( simplefilter, const_str_plain_ignore, PyExc_UserWarning, NULL );
+                assert( result1 );
                 Py_XDECREF( result1 );
                 PyObject *result2 = PyObject_CallFunctionObjArgs( simplefilter, const_str_plain_ignore, PyExc_DeprecationWarning, NULL );
+                assert( result2 );
                 Py_XDECREF( result2 );
             }
         }
@@ -202,7 +204,7 @@ int main( int argc, char *argv[] )
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
 
-    if ( ERROR_OCCURED() )
+    if ( ERROR_OCCURRED() )
     {
         // Cleanup code may need a frame, so put one back.
         PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, module___main__ );

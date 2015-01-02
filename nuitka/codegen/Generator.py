@@ -157,6 +157,7 @@ from .SliceCodes import (
     getSliceAssignmentCode,
     getSliceAssignmentIndexesCode,
     getSliceDelCode,
+    getSliceDelIndexesCode,
     getSliceLookupCode,
     getSliceLookupIndexesCode,
     getSliceObjectCode

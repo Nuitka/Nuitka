@@ -179,6 +179,8 @@ if sys.version_info >= (3,):
 
         real_byte_compile( py_files, *args, **kw)
 
+    util.byte_compile = byte_compile
+
 
 from distutils.core import setup
 

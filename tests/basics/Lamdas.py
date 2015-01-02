@@ -43,10 +43,10 @@ def lamdaContainer(x):
 
 lamdaContainer("b")
 
-def lambaGenerator():
+def lambdaGenerator():
     x = lambda : (yield 3)
 
     gen = x()
     print "Lambda generator gives", gen.next()
 
-lambaGenerator()
+lambdaGenerator()

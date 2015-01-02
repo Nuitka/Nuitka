@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.6.1
+Nuitka V0.5.7
 Copyright (C) 2014 Kay Hayen."""
 
 import logging
@@ -285,7 +285,7 @@ codegen_group.add_option(
     dest    = "improved",
     default = False,
     help    = """\
-Allow minor devitations from CPython behaviour, e.g. better tracebacks, which
+Allow minor deviations from CPython behavior, e.g. better tracebacks, which
 are not really incompatible, but different.""",
 )
 
@@ -295,9 +295,10 @@ codegen_group.add_option(
     action  = "store_false",
     dest    = "statement_lines",
     default = True,
-    help    = """\
-Statements shall have their line numbers set. Disable this for less precise
-exceptions and slightly faster code. Not recommended. Defaults to off."""
+    help    = SUPPRESS_HELP,
+#     help    = """\
+# Statements shall have their line numbers set. Disable this for less precise
+# exceptions and slightly faster code. Not recommended. Defaults to off."""
 )
 
 codegen_group.add_option(
@@ -365,10 +366,10 @@ production. Defaults to off."""
 debug_group.add_option(
     "--unstripped", "--no-strip", "--unstriped",
     action  = "store_true",
-    dest    = "unstriped",
+    dest    = "unstripped",
     default = False,
     help    = """\
-Keep debug info in the resulting object file for better gdb interaction.
+Keep debug info in the resulting object file for better debugger interaction.
 Defaults to off."""
 )
 
@@ -504,7 +505,7 @@ tracing_group.add_option(
     dest    = "verbose",
     default = False,
     help    = """\
-Output details of actions take, esp. in optimizations. Can become a lot.
+Output details of actions taken, esp. in optimizations. Can become a lot.
 Defaults to off."""
 )
 
@@ -516,7 +517,7 @@ windows_group.add_option(
     dest    = "win_disable_console",
     default = False,
     help    = """\
-When compiling for windows, disable the console window. Defaults to off."""
+When compiling for Windows, disable the console window. Defaults to off."""
 )
 
 windows_group.add_option(
@@ -525,13 +526,13 @@ windows_group.add_option(
     dest    = "icon_path",
     metavar = "ICON_PATH",
     default = None,
-    help    = """Add executable icon (windows only).""",
+    help    = """Add executable icon (Windows only).""",
 )
 
 parser.add_option_group(windows_group)
 
 
-# First, isolate the first non-option arguments. TODO: Should repect "--"
+# First, isolate the first non-option arguments. TODO: Should respect "--"
 # as a terminator to options.
 if is_nuitka_run:
     count = 0
@@ -654,8 +655,8 @@ def isPythonDebug():
 def isOptimize():
     return not options.no_optimize
 
-def isUnstriped():
-    return options.unstriped
+def isUnstripped():
+    return options.unstripped
 
 def getOutputPath(path):
     if options.output_dir:

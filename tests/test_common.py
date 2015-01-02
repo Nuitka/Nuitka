@@ -243,6 +243,7 @@ def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
         path,
         "silent"
     ]
+
     command += extra_flags
 
     try:
@@ -251,6 +252,13 @@ def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
         )
     except KeyboardInterrupt:
         result = 2
+
+    # Cleanup, some tests apparently forget that.
+    if os.path.exists("@test"):
+        shutil.rmtree("@test", ignore_errors = True)
+
+    if type(search_mode) is not bool:
+        search_mode = search_mode.abortOnFinding()
 
     if result != 0 and result != 2 and search_mode:
         my_print("Error exit!", result)
@@ -282,6 +290,7 @@ def hasDebugPython():
     # Otherwise no.
     return False
 
+
 def getArchitecture():
     if os.name == "nt":
         if "AMD64" in sys.version:
@@ -290,6 +299,7 @@ def getArchitecture():
             return "x86"
     else:
         return os.uname()[4]
+
 
 def getDependsExePath():
     if "APPDATA" not in os.environ:
@@ -437,6 +447,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
 
     return result
 
+
 def hasModule(module_name):
     result = subprocess.call(
         (
@@ -449,6 +460,7 @@ def hasModule(module_name):
     )
 
     return result == 0
+
 
 m1 = {}
 m2 = {}
@@ -537,6 +549,61 @@ def checkReferenceCount(checked_function, max_rounds = 10):
     sys.stdout.flush()
 
     return result
+
+
+def createSearchMode():
+    search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
+    start_at = sys.argv[2] if len( sys.argv ) > 2 else None
+
+    if search_mode and start_at:
+        start_at = start_at.replace("/", os.path.sep)
+
+        class SearchModeByPattern:
+            def __init__( self ):
+                self.active = False
+
+            def consider(self, dirname, filename):
+                if self.active:
+                    return True
+
+                parts = [dirname, filename]
+
+                while None in parts:
+                    parts.remove(None)
+                assert parts
+
+                path = os.path.join(*parts)
+
+                self.active = start_at in (
+                    dirname,
+                    filename,
+                    filename.replace(".py", ""),
+                    path,
+                    path.replace(".py", "")
+                )
+                return self.active
+
+            def finish(self):
+                assert self.active
+
+            def abortOnFinding(self):
+                return True
+
+        return SearchModeByPattern()
+
+    else:
+        class SearchModeImmediate:
+            def consider(self, dirname, filename):
+                return True
+
+            def finish(self):
+                pass
+
+            def abortOnFinding(self):
+                return search_mode
+
+        return SearchModeImmediate()
+
 
 
 def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):

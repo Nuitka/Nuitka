@@ -34,9 +34,9 @@ def tryScope1(x):
             finally:
                 print("Deep Nested finally is executed")
     except:
-        print("Exception occured")
+        print("Exception occurred")
     else:
-        print("No exception occured")
+        print("No exception occurred")
 
 tryScope1(1)
 print("*" * 20)
@@ -46,16 +46,16 @@ def tryScope2(x, someExceptionClass):
     try:
         x += 1
     except someExceptionClass as e:
-        print("Exception class from argument occured:", someExceptionClass, repr(e))
+        print("Exception class from argument occurred:", someExceptionClass, repr(e))
     else:
-        print("No exception occured")
+        print("No exception occurred")
 
 def tryScope3(x):
     if x:
         try:
             x += 1
         except TypeError:
-            print("TypeError occured")
+            print("TypeError occurred")
     else:
         print("Not taken")
 
@@ -77,9 +77,9 @@ def tryScope4(x):
     try:
         x += 1
     except:
-        print("exception occured")
+        print("exception occurred")
     else:
-        print("no exception occured")
+        print("no exception occurred")
     finally:
         print("finally obeyed")
 
