@@ -205,34 +205,46 @@ def pickSourceFilenames(source_dir, modules):
     collision_filenames = set()
     seen_filenames = set()
 
-    for module in sorted(modules, key = lambda x : x.getFullName()):
-        base_filename = Utils.joinpath(source_dir, module.getFullName())
-
-        # Note: Could detect if the filesystem is cases sensitive in source_dir
-        # or not, but that's probably not worth the effort.
-        collision_filename = Utils.normcase(base_filename)
-
-        if collision_filename in seen_filenames:
-            collision_filenames.add(collision_filename)
-
-        seen_filenames.add(collision_filename)
-
-    collision_counts = {}
-
+    # Our output.
     module_filenames = {}
 
-    for module in sorted(modules, key = lambda x : x.getFullName()):
-        if module.isPythonShlibModule():
-            continue
-
-        base_filename = Utils.joinpath(
+    def getFilenames(module):
+        base_filename =  Utils.joinpath(
             source_dir,
             "module." + module.getFullName()
               if not module.isInternalModule() else
             module.getFullName()
         )
 
+        # Note: Could detect if the file system is cases sensitive in source_dir
+        # or not, but that's probably not worth the effort. False positives do
+        # no harm at all.
         collision_filename = Utils.normcase(base_filename)
+
+        return base_filename, collision_filename
+
+    # First pass, check for collisions.
+    for module in modules:
+        if module.isPythonShlibModule():
+            continue
+
+        base_filename = base_filename, collision_filename = getFilenames(module)
+
+        if collision_filename in seen_filenames:
+            collision_filenames.add(collision_filename)
+
+        seen_filenames.add(collision_filename)
+
+    # Count up for colliding filenames.
+    collision_counts = {}
+
+    # Second pass, this time sorted, so we get determistic results. We will
+    # apply an @1/@2 to disambiguate the filenames.
+    for module in sorted(modules, key = lambda x : x.getFullName()):
+        if module.isPythonShlibModule():
+            continue
+
+        base_filename = base_filename, collision_filename = getFilenames(module)
 
         if collision_filename in collision_filenames:
             collision_counts[ collision_filename ] = \
