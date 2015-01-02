@@ -4290,13 +4290,6 @@ def generateMainCode(main_module, codes, context):
         codes       = codes
     )
 
-
-def generateConstantsDefinitionCode(context):
-    return Generator.getConstantsDefinitionCode(
-        context = context
-    )
-
-
 def generateHelpersCode():
     header_code = Generator.getCallsDecls()
 

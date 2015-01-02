@@ -382,7 +382,7 @@ def makeSourceDirectory(main_module):
 
     writeSourceCode(
         filename    = Utils.joinpath(source_dir, "__constants.cpp"),
-        source_code = CodeGeneration.generateConstantsDefinitionCode(
+        source_code = ConstantCodes.getConstantsDefinitionCode(
             context = global_context
         )
     )
