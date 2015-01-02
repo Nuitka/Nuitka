@@ -87,7 +87,7 @@ win_target = getBoolOption("win_target", os.name == "nt")
 win_disable_console = getBoolOption("win_disable_console", False)
 
 # Unstriped mode: Do not remove debug symbols.
-unstriped_mode = getBoolOption("unstriped_mode", False)
+unstripped_mode = getBoolOption("unstripped_mode", False)
 
 # Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
@@ -936,7 +936,7 @@ env.Append(
     ]
 )
 
-if debug_mode or unstriped_mode:
+if debug_mode or unstripped_mode:
     # Use debug format, so we get good tracebacks from it.
     if gcc_mode:
         env.Append(

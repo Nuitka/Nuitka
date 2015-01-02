@@ -686,7 +686,7 @@ def detectBinaryDLLs(binary_filename, package_name):
             package_name    = package_name
         )
     elif Utils.getOS() == "Darwin":
-        return _detectBinaryPathDLLsLinuxBSD(
+        return _detectBinaryPathDLLsMacOS(
             binary_filename = binary_filename
         )
     else:

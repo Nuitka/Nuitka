@@ -574,7 +574,13 @@ def createSearchMode():
 
                 path = os.path.join(*parts)
 
-                self.active = start_at in (dirname, filename, path)
+                self.active = start_at in (
+                    dirname,
+                    filename,
+                    filename.replace(".py", ""),
+                    path,
+                    path.replace(".py", "")
+                )
                 return self.active
 
             def finish(self):

@@ -539,7 +539,7 @@ if remove_output:
 
 if timing:
     my_print(
-        "CPython took %.1fs vs %0.1fs Nuitka." % (
+        "CPython took %.2fs vs %0.2fs Nuitka." % (
             cpython_time,
             nuitka_time
         )

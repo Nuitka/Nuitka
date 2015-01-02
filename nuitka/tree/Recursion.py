@@ -120,13 +120,13 @@ def decideRecursion(module_filename, module_name, module_package,
         if full_name == no_case_module:
             return (
                 False,
-                "Module listed explicitely to not recurse to."
+                "Module listed explicitly to not recurse to."
             )
 
         if full_name.startswith(no_case_module + "."):
             return (
                 False,
-                "Module in package listed explicitely to not recurse to."
+                "Module in package listed explicitly to not recurse to."
             )
 
     any_case_modules = Options.getShallFollowModules()
@@ -135,13 +135,13 @@ def decideRecursion(module_filename, module_name, module_package,
         if full_name == any_case_module:
             return (
                 True,
-                "Module listed explicitely to recurse to."
+                "Module listed explicitly to recurse to."
             )
 
         if full_name.startswith(any_case_module + "." ):
             return (
                 True,
-                "Module in package listed explicitely to recurse to."
+                "Module in package listed explicitly to recurse to."
             )
 
     if Options.shallFollowNoImports():
@@ -167,7 +167,7 @@ def decideRecursion(module_filename, module_name, module_package,
     # Means, we were not given instructions how to handle things.
     return (
         None,
-        "Default behaviour, not recursing without request."
+        "Default behavior, not recursing without request."
     )
 
 
@@ -204,7 +204,7 @@ def _checkPluginPath(plugin_filename, module_package):
     # Many branches, for the decision is very complex, pylint: disable=R0912
 
     debug(
-        "Checking detail plugin path %s %s",
+        "Checking detail plug-in path %s %s",
         plugin_filename,
         module_package
     )
@@ -220,7 +220,7 @@ def _checkPluginPath(plugin_filename, module_package):
             module_relpath  = plugin_info[1],
             module_package  = module_package,
             module_kind     = "py",
-            reason          = "Lives in plugin directory."
+            reason          = "Lives in plug-in directory."
         )
 
         if module:
@@ -292,7 +292,7 @@ def _checkPluginPath(plugin_filename, module_package):
 
 def checkPluginPath(plugin_filename, module_package):
     debug(
-        "Checking top level plugin path %s %s",
+        "Checking top level plug-in path %s %s",
         plugin_filename,
         module_package
     )
