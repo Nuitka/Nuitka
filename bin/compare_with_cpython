@@ -398,6 +398,10 @@ def makeDiffable(output):
             "compiled_function object is not an iterator",
             "function object is not an iterator"
         )
+        line = line.replace(
+            "AttributeError: 'compiled_frame' object has no attribute 'clear'",
+            "AttributeError: 'frame' object has no attribute 'clear'",
+        )
 
         # This URL is updated, and Nuitka outputs the new one, but we test
         # against versions that don't have that.
