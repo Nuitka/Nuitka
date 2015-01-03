@@ -23,7 +23,7 @@
 import ast
 from logging import warning
 
-from nuitka import Constants, Options, Tracing
+from nuitka import Constants, Tracing
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionKeyValuePair,
@@ -306,9 +306,6 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
 
     sequence_kind = sequence_kind.upper()
 
-    if Options.isFullCompat() and elements:
-        source_ref = elements[-1].getSourceReference()
-
     # Note: This would happen in optimization instead, but lets just do it
     # immediately to save some time.
     if constant:
@@ -321,7 +318,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
         else:
             assert False, sequence_kind
 
-        return ExpressionConstantRef(
+        result = ExpressionConstantRef(
             constant      = const_type(
                 element.getConstant()
                 for element in
@@ -332,22 +329,29 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
         )
     else:
         if sequence_kind == "TUPLE":
-            return ExpressionMakeTuple(
+            result = ExpressionMakeTuple(
                 elements   = elements,
                 source_ref = source_ref
             )
         elif sequence_kind == "LIST":
-            return ExpressionMakeList(
+            result = ExpressionMakeList(
                 elements   = elements,
                 source_ref = source_ref
             )
         elif sequence_kind == "SET":
-            return ExpressionMakeSet(
+            result = ExpressionMakeSet(
                 elements   = elements,
                 source_ref = source_ref
             )
         else:
             assert False, sequence_kind
+
+    if elements:
+        result.setCompatibleSourceReference(
+            source_ref = elements[-1].getCompatibleSourceReference()
+        )
+
+    return result
 
 
 def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
@@ -366,16 +370,13 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     else:
         constant = True
 
-    if Options.isFullCompat() and values:
-        source_ref = values[-1].getSourceReference()
-
     # Note: This would happen in optimization instead, but lets just do it
     # immediately to save some time.
     if constant:
         # Unless told otherwise, create the dictionary in its full size, so
         # that no growing occurs and the constant becomes as similar as possible
         # before being marshaled.
-        return ExpressionConstantRef(
+        result = ExpressionConstantRef(
             constant      = Constants.createConstantDict(
                 lazy_order = not lazy_order,
                 keys       = [
@@ -393,7 +394,7 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
             user_provided = True
         )
     else:
-        return ExpressionMakeDict(
+        result = ExpressionMakeDict(
             pairs      = [
                 ExpressionKeyValuePair(
                     key        = key,
@@ -406,6 +407,13 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
             lazy_order = lazy_order,
             source_ref = source_ref
         )
+
+    if values:
+        result.setCompatibleSourceReference(
+            source_ref = values[-1].getCompatibleSourceReference()
+        )
+
+    return result
 
 
 def makeTryFinallyStatement(tried, final, source_ref):

@@ -259,21 +259,42 @@ def buildRaiseNode(provider, node, source_ref):
     # attached, for Python3, you can only give type (actually value) and cause.
 
     if Utils.python_version < 300:
-        return StatementRaiseException(
-            exception_type  = buildNode(provider, node.type, source_ref, allow_none = True),
-            exception_value = buildNode(provider, node.inst, source_ref, allow_none = True),
-            exception_trace = buildNode(provider, node.tback, source_ref, allow_none = True),
-            exception_cause = None,
-            source_ref      = source_ref
-        )
+        exception_type  = buildNode(provider, node.type, source_ref, allow_none = True)
+        exception_value = buildNode(provider, node.inst, source_ref, allow_none = True)
+        exception_trace = buildNode(provider, node.tback, source_ref, allow_none = True)
+        exception_cause = None
     else:
-        return StatementRaiseException(
-            exception_type  = buildNode(provider, node.exc, source_ref, allow_none = True),
-            exception_value = None,
-            exception_trace = None,
-            exception_cause = buildNode(provider, node.cause, source_ref, allow_none = True),
-            source_ref      = source_ref
+        exception_type  = buildNode(provider, node.exc, source_ref, allow_none = True)
+        exception_value = None
+        exception_trace = None
+        exception_cause = buildNode(provider, node.cause, source_ref, allow_none = True)
+
+    result = StatementRaiseException(
+        exception_type  = exception_type,
+        exception_value = exception_value,
+        exception_trace = exception_trace,
+        exception_cause = exception_cause,
+        source_ref      = source_ref
+    )
+
+    if exception_cause is not None:
+        result.setCompatibleSourceReference(
+            source_ref = exception_cause.getCompatibleSourceReference()
         )
+    elif exception_trace is not None:
+        result.setCompatibleSourceReference(
+            source_ref = exception_trace.getCompatibleSourceReference()
+        )
+    elif exception_value is not None:
+        result.setCompatibleSourceReference(
+            source_ref = exception_value.getCompatibleSourceReference()
+        )
+    elif exception_type is not None:
+        result.setCompatibleSourceReference(
+            source_ref = exception_type.getCompatibleSourceReference()
+        )
+
+    return result
 
 def buildImportModulesNode(node, source_ref):
     # Import modules statement. As described in the developer manual, these
@@ -716,12 +737,21 @@ def buildBinaryOpNode(provider, node, source_ref):
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
-    return ExpressionOperationBinary(
+    left       = buildNode(provider, node.left, source_ref)
+    right      = buildNode(provider, node.right, source_ref)
+
+    result = ExpressionOperationBinary(
         operator   = operator,
-        left       = buildNode(provider, node.left, source_ref),
-        right      = buildNode(provider, node.right, source_ref),
+        left       = left,
+        right      = right,
         source_ref = source_ref
     )
+
+    result.setCompatibleSourceReference(
+        source_ref = right.getCompatibleSourceReference()
+    )
+
+    return result
 
 
 def buildReprNode(provider, node, source_ref):

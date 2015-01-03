@@ -22,7 +22,7 @@ These classes provide the generic base classes available for nodes.
 """
 
 
-from nuitka import Tracing, TreeXML, Variables
+from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.odict import OrderedDict
 from nuitka.oset import OrderedSet
@@ -157,6 +157,19 @@ class NodeBase(NodeMetaClassBase):
         result.reverse()
         return result
 
+    def getChildName(self):
+        """ Return the role in the current parent, subject to changes.
+
+        """
+        parent = self.getParent()
+
+        for key, value in parent.child_values.items():
+            if self is value:
+                return key
+
+        # TODO: Not checking tuples yet
+        return None
+
     def getParentFunction(self):
         """ Return the parent that is a function.
 
@@ -209,16 +222,51 @@ class NodeBase(NodeMetaClassBase):
 
             current = current.getParent()
 
-
     def getSourceReference(self):
         return self.source_ref
 
+    def setCompatibleSourceReference(self, source_ref):
+        """ Bug compatible line numbers information.
+
+            As CPython outputs the last bit of bytecode executed, and not the
+            line of the operation. For example calls, output the line of the
+            last argument, as opposed to the line of the operation start.
+
+            For tests, we wants to be compatible. In improved more, we are
+            not being fully compatible, and just drop it altogether.
+        """
+
+        # Getting the same source reference can be dealt with quickly, so do
+        # this first.
+        if self.source_ref is not source_ref and \
+           Options.isFullCompat() and \
+           self.source_ref != source_ref:
+            # An attribute outside of "__init__", so we save one memory for the
+            # most cases. Very few cases involve splitting across lines.
+            # pylint: disable=W0201
+            self.effective_source_ref = source_ref
+
+
+    def getCompatibleSourceReference(self):
+        """ Bug compatible line numbers information.
+
+            See above.
+        """
+        return getattr(self, "effective_source_ref", self.source_ref)
+
     def asXml(self):
+        line = self.getSourceReference().getLineNumber()
+
         result = TreeXML.Element(
             "node",
             kind = self.__class__.__name__,
-            line = "%s" % self.getSourceReference().getLineNumber()
+            line = "%s" % line
         )
+
+        compat_line = self.getCompatibleSourceReference().getLineNumber()
+
+        if compat_line != line:
+            result.attrib["compat_line"] = str(compat_line)
 
         for key, value in iterItems(self.getDetails()):
             value = str(value)
@@ -462,6 +510,7 @@ class CodeNodeBase(NodeBase):
         self.uids[ node.kind ] += 1
 
         return self.uids[ node.kind ]
+
 
 class ChildrenHavingMixin:
     named_children = ()

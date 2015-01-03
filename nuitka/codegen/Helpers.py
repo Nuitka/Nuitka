@@ -44,6 +44,7 @@ def generateExpressionCode(to_name, expression, emit, context):
     else:
         return False
 
+
 def generateChildExpressionsCode(expression, emit, context):
     value_names = []
 
@@ -72,3 +73,25 @@ def generateChildExpressionsCode(expression, emit, context):
 
 
     return value_names
+
+
+def generateChildExpressionCode(expression, emit, context, child_name = None):
+    assert expression is not None
+
+    if child_name is None:
+        child_name = expression.getChildName()
+
+    # Allocate anyway, so names are aligned.
+    value_name = context.allocateTempName(child_name + "_name")
+
+    # TODO: This will move to local module, # pylint: disable=W0621
+    from .CodeGeneration import generateExpressionCode
+
+    generateExpressionCode(
+        to_name    = value_name,
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    return value_name

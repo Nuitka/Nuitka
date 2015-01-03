@@ -253,23 +253,30 @@ def makeStatementOnlyNodesFromExpressions(expressions):
             source_ref = statements[0].getSourceReference()
         )
 
+
 def makeComparisonNode(left, right, comparator, source_ref):
     if comparator == "Is":
-        return ExpressionComparisonIs(
+        result = ExpressionComparisonIs(
             left       = left,
             right      = right,
             source_ref = source_ref
         )
     elif comparator == "IsNot":
-        return ExpressionComparisonIsNOT(
+        result = ExpressionComparisonIsNOT(
                 left       = left,
                 right      = right,
                 source_ref = source_ref
             )
     else:
-        return ExpressionComparison(
+        result = ExpressionComparison(
             left       = left,
             right      = right,
             comparator = comparator,
             source_ref = source_ref
         )
+
+    result.setCompatibleSourceReference(
+        source_ref = right.getCompatibleSourceReference()
+    )
+
+    return result

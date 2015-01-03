@@ -29,6 +29,7 @@ language syntax.
 from nuitka import Constants, Options, Tracing, Utils
 from nuitka.__past__ import iterItems
 from nuitka.codegen.AttributeCodes import generateAttributeLookupCode
+from nuitka.codegen.CallCodes import generateCallCode
 
 from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
 from .ConditionalCodes import generateConditionCode
@@ -357,6 +358,10 @@ def generateFunctionCallCode(to_name, call_node, emit, context):
         )
 
         arg_names.append(arg_name)
+
+    context.setCurrentSourceCodeReference(
+        call_node.getCompatibleSourceReference()
+    )
 
     Generator.getDirectFunctionCallCode(
         to_name             = to_name,
@@ -733,169 +738,6 @@ def generateSliceLookupCode(to_name, expression, emit, context):
             emit        = emit,
             context     = context
         )
-
-
-def generateCallCode(to_name, call_node, emit, context):
-    # There is a whole lot of different cases, for each of which, we create
-    # optimized code, constant, with and without positional or keyword args
-    # each, so there is lots of branches here, pylint: disable=R0912
-
-    called_name = context.allocateTempName("called")
-
-    generateExpressionCode(
-        to_name    = called_name,
-        expression = call_node.getCalled(),
-        emit       = emit,
-        context    = context
-    )
-
-    call_args = call_node.getCallArgs()
-    call_kw = call_node.getCallKw()
-
-    if call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}:
-        if call_args.isExpressionMakeTuple():
-            call_arg_names = []
-
-            for call_arg_element in call_args.getElements():
-                call_arg_name = context.allocateTempName("call_arg_element")
-
-                generateExpressionCode(
-                    to_name    = call_arg_name,
-                    expression = call_arg_element,
-                    emit       = emit,
-                    context    = context,
-                )
-
-                call_arg_names.append(call_arg_name)
-
-            assert call_arg_names
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(
-                    call_args.getElements()[-1].getSourceReference()
-                )
-
-            Generator.getCallCodePosArgsQuick(
-                to_name     = to_name,
-                called_name = called_name,
-                arg_names   = call_arg_names,
-                emit        = emit,
-                context     = context
-            )
-        elif call_args.isExpressionConstantRef():
-            call_args_value = call_args.getConstant()
-            assert type(call_args_value) is tuple
-
-            call_arg_names = []
-
-            for call_arg_element in call_args_value:
-                call_arg_name = context.allocateTempName("call_arg_element")
-
-                Generator.getConstantAccess(
-                    to_name  = call_arg_name,
-                    constant = call_arg_element,
-                    emit     = emit,
-                    context  = context,
-                )
-
-                call_arg_names.append(call_arg_name)
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(
-                    call_args.getSourceReference()
-                )
-
-            if call_arg_names:
-                Generator.getCallCodePosArgsQuick(
-                    to_name     = to_name,
-                    called_name = called_name,
-                    arg_names   = call_arg_names,
-                    emit        = emit,
-                    context     = context
-                )
-            else:
-                Generator.getCallCodeNoArgs(
-                    to_name     = to_name,
-                    called_name = called_name,
-                    emit        = emit,
-                    context     = context
-                )
-        else:
-            args_name = context.allocateTempName("call_pos")
-
-            generateExpressionCode(
-                to_name    = args_name,
-                expression = call_args,
-                emit       = emit,
-                context    = context
-            )
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(call_args.getSourceReference())
-
-            Generator.getCallCodePosArgs(
-                to_name     = to_name,
-                called_name = called_name,
-                args_name   = args_name,
-                emit        = emit,
-                context     = context
-            )
-    else:
-        if call_args.isExpressionConstantRef() and \
-           call_args.getConstant() == ():
-            call_kw_name = context.allocateTempName("call_kw")
-
-            generateExpressionCode(
-                to_name    = call_kw_name,
-                expression = call_kw,
-                emit       = emit,
-                context    = context
-            )
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(
-                    call_kw.getSourceReference()
-                )
-
-            Generator.getCallCodeKeywordArgs(
-                to_name      = to_name,
-                called_name  = called_name,
-                call_kw_name = call_kw_name,
-                emit         = emit,
-                context      = context
-            )
-        else:
-            call_args_name = context.allocateTempName("call_pos")
-
-            generateExpressionCode(
-                to_name    = call_args_name,
-                expression = call_args,
-                emit       = emit,
-                context    = context
-            )
-
-            call_kw_name = context.allocateTempName("call_kw")
-
-            generateExpressionCode(
-                to_name    = call_kw_name,
-                expression = call_kw,
-                emit       = emit,
-                context    = context
-            )
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(
-                    call_kw.getSourceReference()
-                )
-
-            Generator.getCallCodePosKeywordArgs(
-                to_name        = to_name,
-                called_name    = called_name,
-                call_args_name = call_args_name,
-                call_kw_name   = call_kw_name,
-                emit           = emit,
-                context        = context
-            )
 
 
 def generateBuiltinLocalsCode(to_name, locals_node, emit, context):
@@ -3004,7 +2846,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
 
     context.setReturnReleaseMode(old_return_value_release)
 
-    emit("// Re-reraise as necessary after finally was executed.")
+    emit("// Re-raise as necessary after finally was executed.")
 
     if tried_block_may_raise and not statement.needsExceptionPublish():
         emit(
@@ -3257,6 +3099,10 @@ def generateRaiseCode(statement, emit, context):
         )
 
         old_source_ref = context.setCurrentSourceCodeReference(exception_value.getSourceReference())
+
+        context.setCurrentSourceCodeReference(
+            statement.getCompatibleSourceReference()
+        )
 
         Generator.getRaiseExceptionWithValueCode(
             raise_type_name  = raise_type_name,
@@ -4323,6 +4169,7 @@ Helpers.setExpressionDispatchDict(
         "ATTRIBUTE_LOOKUP"  : generateAttributeLookupCode,
         "SUBSCRIPT_LOOKUP"  : generateSubscriptLookupCode,
         "BUILTIN_SLICE"     : generateBuiltinSliceCode,
-        "BUILTIN_ID"        : generateBuiltinIdCode
+        "BUILTIN_ID"        : generateBuiltinIdCode,
+        "EXPRESSION_CALL"   : generateCallCode
     }
 )

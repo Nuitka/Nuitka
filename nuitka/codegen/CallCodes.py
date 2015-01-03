@@ -24,9 +24,152 @@ able to execute them without creating the argument dictionary at all.
 """
 
 from . import CodeTemplates
+from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 from .ExceptionCodes import getExceptionIdentifier
+from .Helpers import generateChildExpressionCode
 from .LineNumberCodes import emitLineNumberUpdateCode
+
+
+def generateCallCode(to_name, call_node, emit, context):
+    # There is a whole lot of different cases, for each of which, we create
+    # optimized code, constant, with and without positional or keyword arguments
+    # each, so there is lots of branches here.
+
+    called_name = generateChildExpressionCode(
+        expression = call_node.getCalled(),
+        emit       = emit,
+        context    = context
+    )
+
+    call_args = call_node.getCallArgs()
+    call_kw = call_node.getCallKw()
+
+    if call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}:
+        if call_args.isExpressionMakeTuple():
+            call_arg_names = []
+
+            for call_arg_element in call_args.getElements():
+                call_arg_name = generateChildExpressionCode(
+                    child_name = call_args.getChildName() + "_element",
+                    expression = call_arg_element,
+                    emit       = emit,
+                    context    = context,
+                )
+
+                call_arg_names.append(call_arg_name)
+
+            context.setCurrentSourceCodeReference(
+                call_node.getCompatibleSourceReference()
+            )
+
+            getCallCodePosArgsQuick(
+                to_name     = to_name,
+                called_name = called_name,
+                arg_names   = call_arg_names,
+                emit        = emit,
+                context     = context
+            )
+        elif call_args.isExpressionConstantRef():
+            call_args_value = call_args.getConstant()
+            assert type(call_args_value) is tuple
+
+            call_arg_names = []
+
+            for call_arg_element in call_args_value:
+                call_arg_name = context.allocateTempName("call_arg_element")
+
+                getConstantAccess(
+                    to_name  = call_arg_name,
+                    constant = call_arg_element,
+                    emit     = emit,
+                    context  = context,
+                )
+
+                call_arg_names.append(call_arg_name)
+
+            context.setCurrentSourceCodeReference(
+                call_node.getCompatibleSourceReference()
+            )
+
+            if call_arg_names:
+                getCallCodePosArgsQuick(
+                    to_name     = to_name,
+                    called_name = called_name,
+                    arg_names   = call_arg_names,
+                    emit        = emit,
+                    context     = context
+                )
+            else:
+                getCallCodeNoArgs(
+                    to_name     = to_name,
+                    called_name = called_name,
+                    emit        = emit,
+                    context     = context
+                )
+        else:
+            args_name = generateChildExpressionCode(
+                expression = call_args,
+                emit       = emit,
+                context    = context
+            )
+
+            context.setCurrentSourceCodeReference(
+                call_node.getCompatibleSourceReference()
+            )
+
+            getCallCodePosArgs(
+                to_name     = to_name,
+                called_name = called_name,
+                args_name   = args_name,
+                emit        = emit,
+                context     = context
+            )
+    else:
+        if call_args.isExpressionConstantRef() and \
+           call_args.getConstant() == ():
+            call_kw_name = generateChildExpressionCode(
+                expression = call_kw,
+                emit       = emit,
+                context    = context
+            )
+
+            context.setCurrentSourceCodeReference(
+                call_node.getCompatibleSourceReference()
+            )
+
+            getCallCodeKeywordArgs(
+                to_name      = to_name,
+                called_name  = called_name,
+                call_kw_name = call_kw_name,
+                emit         = emit,
+                context      = context
+            )
+        else:
+            call_args_name = generateChildExpressionCode(
+                expression = call_args,
+                emit       = emit,
+                context    = context
+            )
+
+            call_kw_name = generateChildExpressionCode(
+                expression = call_kw,
+                emit       = emit,
+                context    = context
+            )
+
+            context.setCurrentSourceCodeReference(
+                call_node.getCompatibleSourceReference()
+            )
+
+            getCallCodePosKeywordArgs(
+                to_name        = to_name,
+                called_name    = called_name,
+                call_args_name = call_args_name,
+                call_kw_name   = call_kw_name,
+                emit           = emit,
+                context        = context
+            )
 
 
 def getCallCodeNoArgs(to_name, called_name, emit, context):
@@ -226,6 +369,7 @@ def getCallsCode():
     return "\n".join(result)
 
 
+# TODO: Why is this here, not really related.
 def getMakeBuiltinExceptionCode(to_name, exception_type, arg_names, emit,
                                 context):
     if arg_names:
