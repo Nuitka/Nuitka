@@ -15,22 +15,22 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" The virtue of importing modules and packages.
+""" Locating modules and package source on disk.
 
-The actual import of a module may already execute code that changes things.
+The actual import of a module would already execute code that changes things.
 Imagine a module that does "os.system()", it will be done. People often connect
 to databases, and these kind of things, at import time. Not a good style, but
 it's being done.
 
 Therefore CPython exhibits the interfaces in an "imp" module in standard
 library, which one can use those to know ahead of time, what file import would
-load. For us unfortunately there is nothing in CPython that is easily accessible
-and gives us this functionality for packages and search paths exactly like
-CPython does, so we implement here a multi step search process that is
+load. For us unfortunately there is nothing in CPython that gives the fully
+compatible functionality we need for packages and search paths exactly like
+CPython does, so we implement here a multiple step search process that is
 compatible.
 
 This approach is much safer of course and there is no loss. To determine if it's
-from the standard library, one can abuse the attribute "__file__" of the "os"
+from the standard library, we can abuse the attribute "__file__" of the "os"
 module like it's done in "isStandardLibraryPath" of this module.
 
 """
@@ -42,7 +42,7 @@ import os
 import sys
 from logging import warning
 
-from . import Utils
+from . import Utils, oset
 
 _debug_module_finding = False
 
@@ -52,12 +52,22 @@ warned_about = set()
 main_path = None
 
 def setMainScriptDirectory(main_dir):
+    """ Initialize the main script directory.
+
+        We use this as part of the search path for modules.
+    """
     # We need to set this from the outside, pylint: disable=W0603
 
     global main_path
     main_path = main_dir
 
 def isPackageDir(dirname):
+    """ Decide if a directory is a package.
+
+        Before Python3.3 it's required to have a "__init__.py" file, but then
+        it became impossible to decide.
+    """
+
     return Utils.isDir(dirname) and \
            (
                Utils.python_version >= 330 or
@@ -65,6 +75,15 @@ def isPackageDir(dirname):
            )
 
 def findModule(source_ref, module_name, parent_package, level, warn):
+    """ Find a module with given package name as parent.
+
+        The package name can be None of course. Level is the same
+        as with "__import__" built-in. Warnings are optional.
+
+        Returns a triple of package name the module is in, module name
+        and filename of it, which can be a directory.
+    """
+
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
 
@@ -137,45 +156,90 @@ def findModule(source_ref, module_name, parent_package, level, warn):
 
     return module_package_name, module_name, module_filename
 
-def _impFindModuleWrapper(module_name, search_path):
-    """ This wraps imp.find_module because Python3.3 bugs.
+# Some platforms are case insensitive.
+case_sensitive = not sys.platform.startswith(("win", "cygwin", "darwin"))
 
-    Python3.3 accepts imports on directory names in "PYTHONPATH", but does not
-    return them from "imp.find_module", which it also deprecated, but would be
-    asking us to use the many variants in "importlib" manually. So this only
-    fixes up the one issue it has, that it won't accept these namespace
-    directories.
+def _findModuleInPath2(module_name, search_path):
+    """ This is out own module finding low level implementation.
 
-    TODO: That probably is not sufficient to cover actual namespace packages,
-    where multiple such directories are to be logically joined.
+        Just the full module name and search path are given. This is then
+        tasked to raise ImportError or return a path if it finds it, or
+        None, if it is a built-in.
     """
-    try:
-        # Does not accept keyword arguments, another thing this wrapper gives
-        # us then.
-        module_fh, module_filename, _module_desc = imp.find_module(
-            module_name,
-            search_path
-        )
-    except ImportError:
-        if Utils.python_version >= 330:
-            for path_element in search_path:
-                candidate = Utils.joinpath(path_element, module_name)
+    # We have many branches here, because there are a lot of cases to try.
+    # pylint: disable=R0912
 
-                if Utils.isDir(candidate):
-                    module_filename = candidate
-                    module_fh = None
+    if imp.is_builtin(module_name):
+        return None
 
+    # We may have to decide between package and module, therefore build
+    # a list of candidates.
+    candidates = oset.OrderedSet()
+
+    for entry in search_path:
+        package_directory = os.path.join(entry, module_name)
+
+        # First, check for a package with an init file, that would be the
+        # first choice.
+        if Utils.isDir(package_directory):
+            for suffix in ('.py', ".pyc"):
+                package_file_name = '__init__' + suffix
+
+                file_path = os.path.join(package_directory, package_file_name)
+
+                if Utils.isFile(file_path):
+                    candidates.add(
+                        (entry, 1, package_directory)
+                    )
                     break
             else:
-                raise
+                if Utils.python_version >= 330:
+                    candidates.add(
+                        (entry, 2, package_directory)
+                    )
+
+        # Then, check out suffixes of all kinds.
+        for suffix, _mode, _type in imp.get_suffixes():
+            file_path = Utils.joinpath(entry, module_name + suffix)
+            if Utils.isFile(file_path):
+                candidates.add(
+                    (entry, 1, file_path)
+                )
+                break
+
+    # On case sensitive systems, no resolution needed.
+    if candidates:
+        # Ignore lower priority matches, package directories without init.
+        min_prio = min(candidate[1] for candidate in candidates)
+        candidates = [
+            candidate
+            for candidate in
+            candidates
+            if candidate[1] == min_prio
+        ]
+
+        if case_sensitive:
+            return candidates[0][2]
         else:
-            raise
+            if len(candidates) == 1:
+                # Just one finding, good.
+                return candidates[0][2]
+            else:
+                for candidate in candidates:
+                    dir_listing = os.listdir(candidate[0])
 
-    # Close the file handle, we won't use it.
-    if module_fh is not None:
-        module_fh.close()
+                    for filename in dir_listing:
+                        if Utils.joinpath(candidate[0], filename) == candidate[2]:
+                            return candidate[2]
 
-    return module_filename
+                # Please report this, but you may uncomment and have luck.
+                assert False, candidates
+
+                # If no case matches, just pick the first.
+                return candidates[0][2]
+
+    # Nothing found.
+    raise ImportError
 
 
 def _findModuleInPath(module_name, package_name):
@@ -189,7 +253,7 @@ def _findModuleInPath(module_name, package_name):
     extra_paths = [os.getcwd(), main_path]
 
     if package_name is not None:
-        # Work around imp.find_module bug on at least Windows. Won't handle
+        # Work around _findModuleInPath2 bug on at least Windows. Won't handle
         # module name empty in find_module. And thinking of it, how could it
         # anyway.
         if module_name == "":
@@ -212,14 +276,14 @@ def _findModuleInPath(module_name, package_name):
             print("_findModuleInPath: Package, using extended path", ext_path)
 
         try:
-            module_filename = _impFindModuleWrapper(
+            module_filename = _findModuleInPath2(
                 module_name = module_name,
                 search_path = ext_path
             )
 
             if _debug_module_finding:
                 print(
-                    "_findModuleInPath: imp.find_module worked",
+                    "_findModuleInPath: _findModuleInPath2 worked",
                     module_filename,
                     package_name
                 )
@@ -227,7 +291,7 @@ def _findModuleInPath(module_name, package_name):
             return module_filename, package_name
         except ImportError:
             if _debug_module_finding:
-                print("_findModuleInPath: imp.find_module failed to locate")
+                print("_findModuleInPath: _findModuleInPath2 failed to locate")
         except SyntaxError:
             # Warn user, as this is kind of unusual.
             warning(
@@ -243,7 +307,7 @@ def _findModuleInPath(module_name, package_name):
         print("_findModuleInPath: Non-package, using extended path", ext_path)
 
     try:
-        module_filename = _impFindModuleWrapper(
+        module_filename = _findModuleInPath2(
             module_name = module_name,
             search_path = ext_path
         )
@@ -257,7 +321,7 @@ def _findModuleInPath(module_name, package_name):
         return None, None
 
     if _debug_module_finding:
-        print("_findModuleInPath: imp.find_module gave", module_filename)
+        print("_findModuleInPath: _findModuleInPath2 gave", module_filename)
 
     return module_filename, None
 
@@ -460,11 +524,11 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "comtypes.server.inprocserver", "_tkinter", "_scproxy", "EasyDialogs",
         "SOCKS", "rourl2path", "_winapi", "win32api", "win32con", "_gestalt",
         "java.lang", "vms_lib", "ic", "readline", "termios", "_sysconfigdata",
-        "al", "AL", "sunaudiodev", "SUNAUDIODEV", "Audio_mac",
+        "al", "AL", "sunaudiodev", "SUNAUDIODEV", "Audio_mac", "nis",
         "test.test_MimeWriter", "dos", "win32pipe", "Carbon", "Carbon.Files",
         "sgi", "ctypes.macholib.dyld", "bsddb3", "_pybsddb", "_xmlrpclib",
         "netbios", "win32wnet", "email.Parser", "elementree.cElementTree",
-        "elementree.ElementTree", "_gbdm",
+        "elementree.ElementTree", "_gbdm", "resource", "crypt", "bz2", "dbm",
 
         # Nuitka tests
         "test_common"
@@ -482,6 +546,9 @@ please report this to http://bugs.nuitka.net.""", module_name)
 
 
 def getStandardLibraryPaths():
+    """ Get the standard library paths.
+
+    """
 
     # Using the function object to cache its result, avoiding global variable
     # usage.
@@ -555,6 +622,10 @@ def getStandardLibraryPaths():
 
 
 def isStandardLibraryPath(path):
+    """ Check if a path is in the standard library.
+
+    """
+
     path = Utils.normcase(path)
 
     # In virtualenv, the "site.py" lives in a place that suggests it is not in
