@@ -32,7 +32,6 @@ from . import (
     Importing,
     ModuleRegistry,
     Options,
-    PythonVersions,
     SyntaxErrors,
     Tracing,
     TreeXML,
@@ -671,22 +670,7 @@ def main():
             filename = filename
         )
     except (SyntaxError, IndentationError) as e:
-        if Options.isFullCompat() and \
-           (e.args[0].startswith("unknown encoding:") or \
-            e.args[0].startswith("encoding problem:")):
-            if PythonVersions.doShowUnknownEncodingName():
-                complaint = e.args[0].split(":",2)[1]
-            else:
-                complaint = " with BOM"
-
-            e.args = (
-                "encoding problem:%s" % complaint,
-                (e.args[1][0], 1, None, None)
-            )
-
-            if hasattr(e, "msg"):
-                e.msg = e.args[0]
-
+        # Syntax or indentation errors, output them to the user and abort.
         sys.exit(
             SyntaxErrors.formatOutput(e)
         )
