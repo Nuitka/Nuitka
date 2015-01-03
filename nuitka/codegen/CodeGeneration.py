@@ -3070,7 +3070,9 @@ def generateRaiseCode(statement, emit, context):
             context    = context
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(exception_type.getSourceReference())
+        old_source_ref = context.setCurrentSourceCodeReference(
+            value = exception_type.getCompatibleSourceReference()
+        )
 
         Generator.getRaiseExceptionWithTypeCode(
             raise_type_name = raise_type_name,

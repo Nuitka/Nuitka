@@ -409,7 +409,10 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
 
     # Using list reference for passing the arguments without names,
     # pylint: disable=W0142
-    return builtin_class(
+    result = builtin_class(
         *args_list,
         source_ref = node.getSourceReference()
     )
+    result.setCompatibleSourceReference(node.getCompatibleSourceReference())
+
+    return result
