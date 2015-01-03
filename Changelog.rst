@@ -19,8 +19,6 @@ Bug Fixes
 
      {[]: None} # This is now a TypeError
 
-- Fix, the ``dict`` built-in could also
-
 New Optimization
 ----------------
 
