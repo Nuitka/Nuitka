@@ -15,5 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print ('Importing unicode BOM file:')
+print('Importing unicode BOM file:')
 import unicode_bom
+print("OK.")
