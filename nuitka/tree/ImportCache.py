@@ -20,7 +20,7 @@
 This is not about caching the search of modules in the file system, but about
 maintaining a cache of module trees built.
 
-It can happen that modules become unused, and then droped from active modules,
+It can happen that modules become unused, and then dropped from active modules,
 and then later active again, via another import, and in this case, we should
 not start anew.
 """

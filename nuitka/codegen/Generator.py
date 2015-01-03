@@ -60,7 +60,6 @@ from .ConstantCodes import (
     getConstantCode,
     getConstantsDeclCode,
     getConstantsInitCode,
-    needsPickleInit,
     stream_data
 )
 from .DictCodes import (

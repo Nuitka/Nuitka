@@ -206,7 +206,7 @@ if python_version < 300:
 builtin_bool_spec = BuiltinParameterSpec("bool", ("x",), 1)
 builtin_float_spec = BuiltinParameterSpec("float", ("x",), 1)
 
-# This builtin have variable parameters for Python2/3
+# This built-in have variable parameters for Python2/3
 if python_version < 300:
     builtin_str_spec = BuiltinParameterSpec("str", ("object",), 1)
 else:

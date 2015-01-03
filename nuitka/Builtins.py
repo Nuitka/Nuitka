@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Builtins module. Information about builtins of the currently running Python.
+""" Built-ins module. Information about built-ins of the running Python.
 
 """
 

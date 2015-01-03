@@ -340,7 +340,7 @@ python_win_lib_re            = re.compile(
 def makeDiffable(output):
     result = []
 
-    # fix import readline cause output sometimes startswith \x1b[?1034h
+    # Fix import "readline" because output sometimes starts with "\x1b[?1034h"
     m = re.match(b'\\x1b\\[[^h]+h', output)
     if m:
         output = output[len(m.group()):]
@@ -383,7 +383,7 @@ def makeDiffable(output):
         line = line.replace("'compiled_function'", "'function'")
         line = non_ascii_error_rt.sub(r"\1 xxxx", line)
 
-        # Windows has a different os.path, update according to it.
+        # Windows has a different "os.path", update according to it.
         line = line.replace("ntpath", "posixpath")
 
         line = line.replace(
@@ -421,7 +421,7 @@ def makeDiffable(output):
         if line == "/usr/bin/ld: warning: .init_array section has zero size":
             continue
 
-        # This is for NetBSD and OpenBSD, which seems to build libpython so
+        # This is for NetBSD and OpenBSD, which seems to build "libpython" so
         # that it gives such warnings.
         if "() possibly used unsafely" in line or \
            "() is almost always misused" in line:
@@ -433,7 +433,7 @@ def makeDiffable(output):
             continue
 
         # This is for self compiled Python with default options, gives this
-        # harmless option for every time we link to libpython.
+        # harmless option for every time we link to "libpython".
         if "is dangerous, better use `mkstemp'" in line or \
            "In function `posix_tempnam'" in line or \
            "In function `posix_tmpnam'" in line:
@@ -510,8 +510,8 @@ if remove_output:
     if not module_mode:
         if os.path.exists(nuitka_cmd2[0]):
             if os.name == "nt":
-                # It appears there is a tiny lock race that we randonly cause,
-                # likely because --execute spawns a subprocess that might still
+                # It appears there is a tiny lock race that we randomly cause,
+                # likely because --run spawns a subprocess that might still
                 # be doing the cleanup work.
                 os.rename(nuitka_cmd2[0], nuitka_cmd2[0]+".away")
                 for i in range(10):

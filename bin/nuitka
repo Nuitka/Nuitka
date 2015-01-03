@@ -17,7 +17,6 @@
 #     limitations under the License.
 #
 
-
 """
 
 This is the main program of Nuitka, it checks the options and then translates
@@ -39,7 +38,7 @@ libdir = '@LIBDIR@'
 
 # Two cases:
 if libdir != '@' 'LIBDIR' '@':
-    # Changed by our distutils hook, then use the given path.
+    # Changed by our "distutils" hook, then use the given path.
 
     if not os.path.isabs(libdir):
         libdir = os.path.join(
