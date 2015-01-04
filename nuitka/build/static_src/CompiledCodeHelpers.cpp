@@ -3424,14 +3424,14 @@ Py_hash_t DEEP_HASH( PyObject *value )
         Py_hash_t result = DEEP_HASH_INIT( value );
 
         Py_ssize_t ppos = 0;
-        PyObject *key, *value;
+        PyObject *key, *dict_value;
 
-        while( PyDict_Next( value, &ppos, &key, &value ) )
+        while( PyDict_Next( value, &ppos, &key, &dict_value ) )
         {
             if ( key != NULL && value != NULL )
             {
                 result ^= DEEP_HASH( key );
-                result ^= DEEP_HASH( value );
+                result ^= DEEP_HASH( dict_value );
             }
         }
 
