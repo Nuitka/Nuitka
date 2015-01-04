@@ -201,8 +201,8 @@ def encodeNonAscii(var_name):
 def isExecutableCommand(command):
     path = os.environ["PATH"]
 
-    suffixes = (".exe",) if os.name == "nt" else ("",)
-    path_sep = ";" if os.name == "nt" else ":"
+    suffixes = (".exe",) if getOS() == "Windows" else ("",)
+    path_sep = ";" if getOS() == "Windows" else ":"
 
     for part in path.split(path_sep):
         if not part:
@@ -220,7 +220,7 @@ def getOwnProcessMemoryUsage():
 
     """
 
-    if os.name == "nt":
+    if getOS() == "Windows":
         # adapted from http://code.activestate.com/recipes/578513
         import ctypes
         from ctypes import wintypes
@@ -265,7 +265,14 @@ def getOwnProcessMemoryUsage():
         # Posix only code, pylint: disable=F0401,I0021
         import resource
 
-        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+        # The value is from "getrusage", which has OS dependent scaling, at least
+        # MacOS and Linux different
+        if getOS() == "Darwin":
+            factor = 1
+        else:
+            factor = 1024
+
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * factor
 
 
 def getHumanReadableProcessMemoryUsage(value = None):
