@@ -20,6 +20,18 @@ import shutil, sys, os, subprocess
 if os.path.isdir("dist"):
     shutil.rmtree("dist")
 
+branch_name = subprocess.check_output(
+    "git name-rev --name-only HEAD".split()
+).strip()
+
+print("Building for branch '%s'." % branch_name)
+
+assert branch_name in (
+    b"master",
+    b"develop",
+    b"factory",
+), branch_name
+
 assert 0 == subprocess.call(
     (
         sys.executable,
@@ -51,6 +63,9 @@ parts = [
 ]
 
 new_filename = ".".join(parts)
+
+if branch_name == b"factory":
+    new_filename = "Nuitka-factory." + new_filename[new_filename.find("win"):]
 
 os.rename(os.path.join("dist",filename),os.path.join("dist",new_filename))
 
