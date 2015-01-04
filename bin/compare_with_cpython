@@ -216,7 +216,7 @@ else:
 if trace_command:
     my_print("CPython command:", *cpython_cmd)
 
-start_time = time.clock()
+start_time = time.time()
 
 process = subprocess.Popen(
     args   = cpython_cmd,
@@ -227,7 +227,7 @@ process = subprocess.Popen(
 stdout_cpython, stderr_cpython = process.communicate()
 exit_cpython = process.returncode
 
-cpython_time = time.clock() - start_time
+cpython_time = time.time() - start_time
 
 def displayOutput(stdout, stderr):
     if type(stdout) is not str:
@@ -261,7 +261,7 @@ if two_step_execution:
     if trace_command:
         my_print("Going to output directory", os.getcwd())
 
-start_time = time.clock()
+start_time = time.time()
 
 if not two_step_execution:
     if trace_command:
@@ -305,7 +305,7 @@ else:
         stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
         exit_nuitka = process.returncode
 
-nuitka_time = time.clock() - start_time
+nuitka_time = time.time() - start_time
 
 if not silent_mode:
     displayOutput(stdout_nuitka, stderr_nuitka)
