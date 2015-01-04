@@ -40,7 +40,6 @@ from test_common import (
 
 python_version = setup( needs_io_encoding = True)
 
-
 search_mode = createSearchMode()
 
 # Create large constants test on the fly, if it's not there, not going to

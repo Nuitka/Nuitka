@@ -574,7 +574,7 @@ def getStandardLibraryPaths():
         if Utils.isFile(orig_prefix_filename):
             # Scan upwards, until we find a "bin" folder, with "activate" to
             # locate the structural path to be added. We do not know for sure
-            # if there is a subdirectory under lib to use or not. So we try
+            # if there is a sub-directory under "lib" to use or not. So we try
             # to detect it.
             search = os_path
             lib_part = ""
