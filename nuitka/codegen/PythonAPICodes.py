@@ -28,8 +28,8 @@ from .ErrorCodes import (
 )
 
 
-def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, ref_count, emit,
-                                 context, none_null = False):
+def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, ref_count, source_ref,
+                                 emit, context, none_null = False):
     arg_names = []
 
     # TODO: This will move to Helpers module, but not yet done.
@@ -50,6 +50,8 @@ def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, ref_count, emit,
 
             arg_names.append(arg_name)
 
+    context.setCurrentSourceCodeReference(source_ref)
+
     getCAPIObjectCode(
         to_name   = to_name,
         capi      = capi,
@@ -60,29 +62,31 @@ def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, ref_count, emit,
     )
 
 
-def generateCAPIObjectCode(to_name, capi, arg_desc, emit, context,
+def generateCAPIObjectCode(to_name, capi, arg_desc, source_ref, emit, context,
                            none_null = False):
     generateCAPIObjectCodeCommon(
-        to_name   = to_name,
-        capi      = capi,
-        arg_desc  = arg_desc,
-        ref_count = 1,
-        emit      = emit,
-        context   = context,
-        none_null = none_null
+        to_name    = to_name,
+        capi       = capi,
+        arg_desc   = arg_desc,
+        ref_count  = 1,
+        source_ref = source_ref,
+        emit       = emit,
+        context    = context,
+        none_null  = none_null
     )
 
 
-def generateCAPIObjectCode0(to_name, capi, arg_desc, emit, context,
+def generateCAPIObjectCode0(to_name, capi, arg_desc, source_ref, emit, context,
                             none_null = False):
     generateCAPIObjectCodeCommon(
-        to_name   = to_name,
-        capi      = capi,
-        arg_desc  = arg_desc,
-        ref_count = 0,
-        emit      = emit,
-        context   = context,
-        none_null = none_null
+        to_name    = to_name,
+        capi       = capi,
+        arg_desc   = arg_desc,
+        ref_count  = 0,
+        source_ref = source_ref,
+        emit       = emit,
+        context    = context,
+        none_null  = none_null
     )
 
 
