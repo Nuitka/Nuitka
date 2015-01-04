@@ -423,7 +423,7 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
     def getImplicitImports(self):
         full_name = self.getFullName()
 
-        if full_name == "PyQt4.QtCore":
+        if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
             if Utils.python_version < 300:
                 return (
                     ("atexit", None),
@@ -433,7 +433,6 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                 return (
                     ("sip", None),
                 )
-
         elif full_name == "lxml.etree":
             return (
                 ("gzip", None),
