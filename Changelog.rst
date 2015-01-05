@@ -1,7 +1,49 @@
 Nuitka Release 0.5.8 (Draft)
 ============================
 
-Release not done yet.
+Bug Fixes
+---------
+
+- Fix Importing on case insensitive systems (Windows, MacOS).
+
+  It was not always working properly, if there was both a package ``Something``
+  and ``something``, by merit of having files ``Something/__init__.py`` and
+  ``something.py``.
+
+New Features
+------------
+
+- The filenames of source files as found in the ``__file__`` attribute are
+  now made relative.
+
+- Added standalone mode support for PyQt5. At least headless mode should be
+  working, plugins are not yet copied.
+
+Cleanup
+-------
+
+- No longer using ``imp.find_module`` anymore. To solve the casing issues
+  we needed to make our own module finding implementation finally.
+
+
+Organizational
+--------------
+
+- No more packages for openSUSE 12.1/12.2/12.3 and Fedora 17/18/19 as requested
+  by the openSUSE Build service.
+
+* Added RPM packages for Fedora 21.
+
+Tests
+-----
+
+- Lots of test refinements for the CPython test suites to be run continously
+  in Buildbot for both Windows and Linux.
+
+Summary
+-------
+
+This release is a maintenance release to support.
 
 Nuitka Release 0.5.7
 ====================
