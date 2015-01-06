@@ -25,9 +25,9 @@ from . import CodeTemplates
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import (
     allocateNestedConstants,
-    getConstantAccess,
     getConstantCode,
-    getConstantInitCodes
+    getConstantInitCodes,
+    getModuleConstantCode
 )
 from .Indentation import indented
 from .VariableCodes import getLocalVariableInitCode
@@ -65,7 +65,7 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=R0913,R0914
 
-    # Temp local variable initializations
+    # Temporary variable initializations
     local_var_inits = [
         getLocalVariableInitCode(
             variable = variable
@@ -186,9 +186,13 @@ def getModuleCode(module_context, template_values):
 def generateModuleFileAttributeCode(to_name, expression, emit, context):
     constant = expression.getRunTimeFilename()
 
-    getConstantAccess(
-        to_name  = to_name,
+    constant_code = getModuleConstantCode(
         constant = constant,
-        emit     = emit,
-        context  = context
+    )
+
+    emit(
+        """%s = MAKE_BINARY_RELATIVE( %s );""" % (
+            to_name,
+            constant_code
+        )
     )

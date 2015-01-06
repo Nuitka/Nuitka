@@ -2166,11 +2166,13 @@ char *getBinaryDirectory()
         abort();
     }
 
-    // On MacOS, dirname creates a separate internal string, we can safely
-    // copy back.
+    // On MacOS, the "dirname" call creates a separate internal string, we can
+    // safely copy back.
     strncpy(binary_directory, dirname(binary_directory), PATH_MAX + 1);
 
 #elif defined( __FreeBSD__ )
+    // Not all of FreeBSD has /proc file system, so use the appropiate
+    // "sysctl" instead.
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC;
@@ -2179,9 +2181,11 @@ char *getBinaryDirectory()
     size_t cb = sizeof(binary_directory);
     sysctl(mib, 4, binary_directory, &cb, NULL, 0);
 #else
-    // Readlink does not terminate result.
+    // The remaining platforms, mostly Linux.
+    // The "readlink" does not terminate result, so fill zeros there, then
+    // it is a proper C string right away.
     memset( binary_directory, 0, PATH_MAX + 1 );
-    ssize_t res = readlink( "/proc/self/exe", binary_directory, PATH_MAX + 1 );
+    ssize_t res = readlink( "/proc/self/exe", binary_directory, PATH_MAX );
 
     if (unlikely( res == -1 ))
     {
@@ -2233,12 +2237,12 @@ void setEarlyFrozenModulesFileAttribute( void )
 }
 #endif
 
-static char *orignal_home;
-static char *orignal_path;
+static char *original_home;
+static char *original_path;
 
 void prepareStandaloneEnvironment()
 {
-    // Tell the CPython library to use our precompiled modules as frozen
+    // Tell the CPython library to use our pre-compiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
     // compiled.
@@ -2273,11 +2277,11 @@ void prepareStandaloneEnvironment()
     SetDllDirectory( getBinaryDirectory() );
 #endif
 
-    // get orignal value
-    orignal_home = getenv( "PYTHONHOME" );
-    orignal_path = getenv( "PYTHONPATH" );
-    size_t orignal_home_size = ( orignal_home ) ? strlen( orignal_home ) : 0;
-    size_t orignal_path_size = ( orignal_path ) ? strlen( orignal_path ) : 0;
+    // get original value
+    original_home = getenv( "PYTHONHOME" );
+    original_path = getenv( "PYTHONPATH" );
+    size_t original_home_size = ( original_home ) ? strlen( original_home ) : 0;
+    size_t original_path_size = ( original_path ) ? strlen( original_path ) : 0;
 
     // get insert value
     size_t insert_size = strlen( binary_directory ) * 2 + 50;
@@ -2293,18 +2297,18 @@ void prepareStandaloneEnvironment()
     snprintf( insert_path, insert_size, env_string, binary_directory );
 
     // set environment
-    size_t python_home_size = orignal_home_size + insert_size;
-    size_t python_path_size = orignal_path_size + insert_size;
+    size_t python_home_size = original_home_size + insert_size;
+    size_t python_path_size = original_path_size + insert_size;
     char *python_home = (char *) malloc( python_home_size );
     char *python_path = (char *) malloc( python_path_size );
     memset( python_home, 0, python_home_size );
     memset( python_path, 0, python_path_size );
     snprintf( python_home, python_home_size, "%s%s",
-        insert_path, orignal_home ? orignal_home : "" );
+        insert_path, original_home ? original_home : "" );
     snprintf( python_path, python_path_size, "%s%s",
-        insert_path, orignal_path ? orignal_path : "" );
+        insert_path, original_path ? original_path : "" );
 
-    if ( !( orignal_home && strstr( orignal_home, insert_path ) ) )
+    if ( !( original_home && strstr( original_home, insert_path ) ) )
     {
 #if defined( _WIN32 )
         SetEnvironmentVariable( "PYTHONHOME", python_home );
@@ -2312,7 +2316,7 @@ void prepareStandaloneEnvironment()
         setenv( "PYTHONHOME", python_home, 1 );
 #endif
     }
-    if ( !( orignal_path && strstr( orignal_path, insert_path ) ) )
+    if ( !( original_path && strstr( original_path, insert_path ) ) )
     {
 #if defined( _WIN32 )
         SetEnvironmentVariable( "PYTHONPATH", python_path );
@@ -2329,33 +2333,67 @@ void prepareStandaloneEnvironment()
 void restoreStandaloneEnvironment()
 {
 #if defined( _WIN32 )
-    SetEnvironmentVariable( "PYTHONHOME", orignal_home );
+    SetEnvironmentVariable( "PYTHONHOME", original_home );
 #else
-    if (orignal_home == NULL)
+    if (original_home == NULL)
     {
         unsetenv( "PYTHONHOME" );
     }
     else
     {
-        setenv( "PYTHONHOME", orignal_home, 1 );
+        setenv( "PYTHONHOME", original_home, 1 );
     }
 #endif
 
 #if defined( _WIN32 )
-    SetEnvironmentVariable( "PYTHONHOME", orignal_path );
+    SetEnvironmentVariable( "PYTHONHOME", original_path );
 #else
-    if ( orignal_path == NULL )
+    if ( original_path == NULL )
     {
         unsetenv( "PYTHONHOME" );
     }
     else
     {
-        setenv( "PYTHONHOME", orignal_path, 1 );
+        setenv( "PYTHONHOME", original_path, 1 );
     }
 #endif
 }
 
 #endif
+
+#ifdef _NUITKA_STANDALONE
+
+static PyObject *binary_path_object = NULL;
+
+PyObject *MAKE_BINARY_RELATIVE(PyObject *relative)
+{
+    if (binary_path_object == NULL)
+    {
+        binary_path_object = PyUnicode_FromString(getBinaryDirectory());
+    }
+
+    PyObject *os_path = PyImport_ImportModule("os.path");
+    assertObject(os_path);
+
+    PyObject *os_path_join = PyObject_GetAttrString(os_path, "join");
+
+    PyObject *result = PyObject_CallFunctionObjArgs( os_path_join, binary_path_object, relative, NULL );
+
+    if (unlikely( result == NULL ))
+    {
+        PyErr_PrintEx(1);
+        abort();
+    }
+
+    Py_DECREF(os_path);
+    Py_DECREF(os_path_join);
+
+    Py_DECREF( relative );
+
+    return result;
+}
+#endif
+
 
 #ifdef _NUITKA_EXE
 

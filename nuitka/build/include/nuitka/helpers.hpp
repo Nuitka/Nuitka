@@ -1016,6 +1016,7 @@ extern char *getBinaryDirectory();
 
 #if _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute( void );
+extern PyObject *MAKE_BINARY_RELATIVE(PyObject *relative);
 #endif
 
 #include <nuitka/threading.hpp>
