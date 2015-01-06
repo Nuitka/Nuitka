@@ -15,11 +15,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
+# Very minimal class example, to be used for debugging.
 
 a = 1
 
 class B:
-   b = a
+    b = a
 
-print B.b
+print(B.b)
