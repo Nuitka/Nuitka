@@ -25,6 +25,7 @@ from . import CodeTemplates
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import (
     allocateNestedConstants,
+    getConstantAccess,
     getConstantCode,
     getConstantInitCodes
 )
@@ -180,3 +181,14 @@ def getModuleCode(module_context, template_values):
     )
 
     return header + CodeTemplates.module_body_template % template_values
+
+
+def generateModuleFileAttributeCode(to_name, expression, emit, context):
+    constant = expression.getRunTimeFilename()
+
+    getConstantAccess(
+        to_name  = to_name,
+        constant = constant,
+        emit     = emit,
+        context  = context
+    )

@@ -35,6 +35,7 @@ from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
 from .ConditionalCodes import generateConditionCode
 from .ConstantCodes import generateConstantReferenceCode
 from .ErrorCodes import getErrorExitBoolCode
+from .ModuleCodes import generateModuleFileAttributeCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 from .SliceCodes import generateBuiltinSliceCode
 from .SubscriptCodes import generateSubscriptLookupCode
@@ -820,13 +821,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             step_name  = step_name,
             emit       = emit,
             context    = context
-        )
-    elif expression.isExpressionCall():
-        generateCallCode(
-            to_name   = to_name,
-            call_node = expression,
-            emit      = emit,
-            context   = context
         )
     elif expression.isExpressionFunctionCall():
         generateFunctionCallCode(
@@ -4198,13 +4192,17 @@ def generateBuiltinIdCode(to_name, expression, emit, context):
 
 Helpers.setExpressionDispatchDict(
     {
-        "VARIABLE_REF"      : generateVariableReferenceCode,
-        "TEMP_VARIABLE_REF" : generateVariableReferenceCode,
-        "CONSTANT_REF"      : generateConstantReferenceCode,
-        "ATTRIBUTE_LOOKUP"  : generateAttributeLookupCode,
-        "SUBSCRIPT_LOOKUP"  : generateSubscriptLookupCode,
-        "BUILTIN_SLICE"     : generateBuiltinSliceCode,
-        "BUILTIN_ID"        : generateBuiltinIdCode,
-        "EXPRESSION_CALL"   : generateCallCode
+        "VARIABLE_REF"              : generateVariableReferenceCode,
+        "TEMP_VARIABLE_REF"         : generateVariableReferenceCode,
+        "CONSTANT_REF"              : generateConstantReferenceCode,
+        "ATTRIBUTE_LOOKUP"          : generateAttributeLookupCode,
+        "SUBSCRIPT_LOOKUP"          : generateSubscriptLookupCode,
+        "BUILTIN_SLICE"             : generateBuiltinSliceCode,
+        "BUILTIN_ID"                : generateBuiltinIdCode,
+        "CALL_EMPTY"                : generateCallCode,
+        "CALL_KEYWORDS_ONLY"        : generateCallCode,
+        "CALL_NO_KEYWORDS"          : generateCallCode,
+        "CALL"                      : generateCallCode,
+        "MODULE_FILE_ATTRIBUTE_REF" : generateModuleFileAttributeCode
     }
 )

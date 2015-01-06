@@ -56,9 +56,9 @@ import sys
 from nuitka import (
     Importing,
     Options,
+    PythonVersions,
     SourceCodeReferences,
     SyntaxErrors,
-    PythonVersions,
     Tracing,
     Utils
 )
@@ -79,6 +79,7 @@ from nuitka.nodes.ImportNodes import (
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
 from nuitka.nodes.ModuleNodes import (
+    ExpressionModuleFileAttributeRef,
     PythonMainModule,
     PythonModule,
     PythonPackage,
@@ -943,10 +944,8 @@ from __future__ imports must occur at the beginning of the file""",
                     variable_name = "__file__",
                     source_ref    = internal_source_ref
                 ),
-                source       = ExpressionConstantRef(
-                    constant      = source_ref.getFilename(),
-                    source_ref    = internal_source_ref,
-                    user_provided = True
+                source       = ExpressionModuleFileAttributeRef(
+                    source_ref = internal_source_ref,
                 ),
                 source_ref   = internal_source_ref
             )

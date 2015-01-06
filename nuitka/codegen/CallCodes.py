@@ -31,19 +31,19 @@ from .Helpers import generateChildExpressionCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 
 
-def generateCallCode(to_name, call_node, emit, context):
+def generateCallCode(to_name, expression, emit, context):
     # There is a whole lot of different cases, for each of which, we create
     # optimized code, constant, with and without positional or keyword arguments
     # each, so there is lots of branches here.
 
     called_name = generateChildExpressionCode(
-        expression = call_node.getCalled(),
+        expression = expression.getCalled(),
         emit       = emit,
         context    = context
     )
 
-    call_args = call_node.getCallArgs()
-    call_kw = call_node.getCallKw()
+    call_args = expression.getCallArgs()
+    call_kw = expression.getCallKw()
 
     if call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}:
         if call_args.isExpressionMakeTuple():
@@ -60,7 +60,7 @@ def generateCallCode(to_name, call_node, emit, context):
                 call_arg_names.append(call_arg_name)
 
             context.setCurrentSourceCodeReference(
-                call_node.getCompatibleSourceReference()
+                expression.getCompatibleSourceReference()
             )
 
             getCallCodePosArgsQuick(
@@ -89,7 +89,7 @@ def generateCallCode(to_name, call_node, emit, context):
                 call_arg_names.append(call_arg_name)
 
             context.setCurrentSourceCodeReference(
-                call_node.getCompatibleSourceReference()
+                expression.getCompatibleSourceReference()
             )
 
             if call_arg_names:
@@ -115,7 +115,7 @@ def generateCallCode(to_name, call_node, emit, context):
             )
 
             context.setCurrentSourceCodeReference(
-                call_node.getCompatibleSourceReference()
+                expression.getCompatibleSourceReference()
             )
 
             getCallCodePosArgs(
@@ -135,7 +135,7 @@ def generateCallCode(to_name, call_node, emit, context):
             )
 
             context.setCurrentSourceCodeReference(
-                call_node.getCompatibleSourceReference()
+                expression.getCompatibleSourceReference()
             )
 
             getCallCodeKeywordArgs(
@@ -159,7 +159,7 @@ def generateCallCode(to_name, call_node, emit, context):
             )
 
             context.setCurrentSourceCodeReference(
-                call_node.getCompatibleSourceReference()
+                expression.getCompatibleSourceReference()
             )
 
             getCallCodePosKeywordArgs(

@@ -24,14 +24,20 @@ together and cross-module optimizations are the most difficult to tackle.
 import re
 import sys
 
-from nuitka import Importing, Utils, Variables
+from nuitka import Importing, Options, Utils, Variables
 from nuitka.optimizations. \
     ConstraintCollections import ConstraintCollectionModule
 from nuitka.oset import OrderedSet
 from nuitka.SourceCodeReferences import SourceCodeReference
 
+from .ConstantRefNodes import ExpressionConstantRef
 from .FutureSpecs import FutureSpec
-from .NodeBases import ChildrenHavingMixin, ClosureGiverNodeBase, NodeBase
+from .NodeBases import (
+    ChildrenHavingMixin,
+    ClosureGiverNodeBase,
+    ExpressionMixin,
+    NodeBase
+)
 
 
 class PythonModuleMixin:
@@ -126,7 +132,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     """ Module
 
         The module is the only possible root of a tree. When there are many
-        modules they form a forrest.
+        modules they form a forest.
     """
 
     kind = "PYTHON_MODULE"
@@ -509,3 +515,46 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                         imported_module.getSourceReference(),
                         "Recursed to module."
                     )
+
+
+class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
+    kind = "EXPRESSION_MODULE_FILE_ATTRIBUTE_REF"
+
+    def __init__(self, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+    def computeExpression(self, constraint_collection):
+        if Options.isStandaloneMode():
+            return self, None, None
+        else:
+            result = ExpressionConstantRef(
+                constant      = self.getCompileTimeFilename(),
+                user_provided = True,
+                source_ref    = self.getSourceReference()
+            )
+
+            return result, None, None
+
+    def getCompileTimeFilename(self):
+        return self.getParentModule().getSourceReference().getFilename()
+
+    def getRunTimeFilename(self):
+        filename = self.getCompileTimeFilename()
+
+        full_name = self.getParentModule().getFullName()
+
+        result = Utils.basename(filename)
+        current = filename
+
+        for _i in range(full_name.count(".")):
+            current = Utils.dirname(current)
+            result = Utils.joinpath(Utils.basename(current), result)
+
+
+        return result
