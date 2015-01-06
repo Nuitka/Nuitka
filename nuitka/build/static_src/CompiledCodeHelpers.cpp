@@ -3382,7 +3382,8 @@ PyObject *DEEP_COPY( PyObject *value )
 #endif
         PyType_Check( value )    ||
         PySlice_Check( value )   ||
-        PyComplex_Check( value )
+        PyComplex_Check( value ) ||
+        value == Py_Ellipsis
         )
     {
         return INCREASE_REFCOUNT( value );
