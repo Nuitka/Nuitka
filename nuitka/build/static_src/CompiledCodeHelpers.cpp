@@ -3488,7 +3488,8 @@ Py_hash_t DEEP_HASH( PyObject *value )
 #endif
         PyType_Check( value )    ||
         PySlice_Check( value )   ||
-        PyComplex_Check( value )
+        PyComplex_Check( value ) ||
+        value == Py_Ellipsis
         )
     {
         Py_hash_t result = DEEP_HASH_INIT( value );
