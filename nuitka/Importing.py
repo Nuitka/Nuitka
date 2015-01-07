@@ -176,7 +176,15 @@ def _findModuleInPath2(module_name, search_path):
     # a list of candidates.
     candidates = oset.OrderedSet()
 
+    considered = set()
+
     for entry in search_path:
+        # Don't try again, just with an entry of different casing or complete
+        # duplicate.
+        if Utils.normcase(entry) in considered:
+            continue
+        considered.add(Utils.normcase(entry))
+
         package_directory = os.path.join(entry, module_name)
 
         # First, check for a package with an init file, that would be the
@@ -207,7 +215,6 @@ def _findModuleInPath2(module_name, search_path):
                 )
                 break
 
-    # On case sensitive systems, no resolution needed.
     if candidates:
         # Ignore lower priority matches, package directories without init.
         min_prio = min(candidate[1] for candidate in candidates)
@@ -218,6 +225,7 @@ def _findModuleInPath2(module_name, search_path):
             if candidate[1] == min_prio
         ]
 
+        # On case sensitive systems, no resolution needed.
         if case_sensitive:
             return candidates[0][2]
         else:
