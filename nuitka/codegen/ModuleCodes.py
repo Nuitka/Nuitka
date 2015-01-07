@@ -26,8 +26,7 @@ from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import (
     allocateNestedConstants,
     getConstantCode,
-    getConstantInitCodes,
-    getModuleConstantCode
+    getConstantInitCodes
 )
 from .Indentation import indented
 from .VariableCodes import getLocalVariableInitCode
@@ -187,15 +186,11 @@ def generateModuleFileAttributeCode(to_name, expression, emit, context):
     # We don't use context to create the constant, as it's one shot only,
     # and that doesn't use it, pylint: disable=W0613
 
-    constant = expression.getRunTimeFilename()
-
-    constant_code = getModuleConstantCode(
-        constant = constant,
-    )
-
     emit(
         """%s = MAKE_BINARY_RELATIVE( %s );""" % (
             to_name,
-            constant_code
+            context.getConstantCode(
+                constant = expression.getRunTimeFilename()
+            )
         )
     )

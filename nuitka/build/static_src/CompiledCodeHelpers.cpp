@@ -2369,8 +2369,13 @@ PyObject *MAKE_BINARY_RELATIVE(PyObject *relative)
 {
     if (binary_path_object == NULL)
     {
+#if PYTHON_VERSION >= 300
         binary_path_object = PyUnicode_FromString(getBinaryDirectory());
+#else
+        binary_path_object = PyString_FromString(getBinaryDirectory());
+#endif
     }
+    assertObject( binary_path_object );
 
     PyObject *os_path = PyImport_ImportModule("os.path");
     assertObject(os_path);
@@ -2387,8 +2392,6 @@ PyObject *MAKE_BINARY_RELATIVE(PyObject *relative)
 
     Py_DECREF(os_path);
     Py_DECREF(os_path_join);
-
-    Py_DECREF( relative );
 
     return result;
 }

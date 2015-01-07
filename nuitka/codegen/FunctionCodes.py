@@ -101,39 +101,13 @@ def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
 
 
 def getFunctionMakerCode(function_name, function_qualname, function_identifier,
-                         parameters, local_variables, closure_variables,
+                         code_identifier, parameters, closure_variables,
                          defaults_name, kw_defaults_name, annotations_name,
-                         source_ref, function_doc, is_generator, is_optimized,
-                         context):
+                         function_doc, is_generator, context):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables
     # pylint: disable=R0914
-    var_names = parameters.getCoArgNames()
-
-    # Add names of local variables too.
-    var_names += [
-        local_variable.getName()
-        for local_variable in
-        local_variables
-        if not local_variable.isParameterVariable()
-    ]
-
-    code_identifier = context.getCodeObjectHandle(
-        filename      = source_ref.getFilename(),
-        var_names     = var_names,
-        arg_count     = parameters.getArgumentCount(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        line_number   = source_ref.getLineNumber(),
-        code_name     = function_name,
-        is_generator  = is_generator,
-        is_optimized  = is_optimized,
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-        has_closure   = closure_variables != (),
-        future_flags  = source_ref.getFutureSpec().asFlags()
-    )
-
     function_creation_args = _getFunctionCreationArgs(
         defaults_name     = defaults_name,
         kw_defaults_name  = kw_defaults_name,
@@ -536,11 +510,12 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     return result
 
 
-def getGeneratorFunctionCode( context, function_name, function_identifier,
-                              parameters, closure_variables, user_variables,
-                              temp_variables, function_codes, source_ref,
-                              function_doc, needs_exception_exit,
-                              needs_generator_return):
+def getGeneratorFunctionCode(context, function_name, function_identifier,
+                             code_identifier, parameters, closure_variables,
+                             user_variables,
+                             temp_variables, function_codes,
+                             function_doc, needs_exception_exit,
+                             needs_generator_return):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables, with many
@@ -730,21 +705,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         "context_access"      : indented(context_access_instance),
         "generator_exit"      : generator_exit
     }
-
-    code_identifier = context.getCodeObjectHandle(
-        filename      = source_ref.getFilename(),
-        var_names     = parameters.getCoArgNames(),
-        arg_count     = parameters.getArgumentCount(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        line_number   = source_ref.getLineNumber(),
-        code_name     = function_name,
-        is_generator  = True,
-        is_optimized  = not context.hasLocalsDict(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-        has_closure   = closure_variables != (),
-        future_flags  = source_ref.getFutureSpec().asFlags()
-    )
 
     if context_decl or instance_context_decl:
         if context_decl:

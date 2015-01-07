@@ -311,7 +311,7 @@ class StatementsFrame(StatementsSequence):
 
         # TODO: Why do this accessing a node, do this outside.
         return context.getCodeObjectHandle(
-            filename      = self.source_ref.getFilename(),
+            filename      = self.getParentModule().getRunTimeFilename(),
             var_names     = self.getVarNames(),
             arg_count     = self.getArgumentCount(),
             kw_only_count = self.getKwOnlyParameterCount(),

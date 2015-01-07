@@ -120,6 +120,28 @@ class PythonModuleMixin:
         # Abstract method, pylint: disable=R0201
         return None
 
+    def getCompileTimeFilename(self):
+        return self.getSourceReference().getFilename()
+
+    def getRunTimeFilename(self):
+        if Options.isStandaloneMode():
+            filename = self.getCompileTimeFilename()
+
+            full_name = self.getFullName()
+
+            result = Utils.basename(filename)
+            current = filename
+
+            for _i in range(full_name.count(".")):
+                current = Utils.dirname(current)
+                result = Utils.joinpath(Utils.basename(current), result)
+
+            return result
+        else:
+            return self.getCompileTimeFilename()
+
+
+
 
 def checkModuleBody(value):
     assert value is None or value.isStatementsSequence()
@@ -546,19 +568,7 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
             return result, None, None
 
     def getCompileTimeFilename(self):
-        return self.getParentModule().getSourceReference().getFilename()
+        return self.getParentModule().getCompileTimeFilename()
 
     def getRunTimeFilename(self):
-        filename = self.getCompileTimeFilename()
-
-        full_name = self.getParentModule().getFullName()
-
-        result = Utils.basename(filename)
-        current = filename
-
-        for _i in range(full_name.count(".")):
-            current = Utils.dirname(current)
-            result = Utils.joinpath(Utils.basename(current), result)
-
-
-        return result
+        return self.getParentModule().getRunTimeFilename()

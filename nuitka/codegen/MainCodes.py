@@ -39,7 +39,7 @@ def getMainCode(main_module, codes, context):
         code_identifier = "NULL"
     else:
         code_identifier = context.getCodeObjectHandle(
-            filename      = context.getFilename(),
+            filename      = main_module.getRunTimeFilename(),
             var_names     = (),
             arg_count     = 0,
             kw_only_count = 0,

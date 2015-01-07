@@ -438,22 +438,45 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
     else:
         annotations_name = None
 
+    var_names = parameters.getCoArgNames()
+
+    # Add names of local variables too.
+    var_names += [
+        local_variable.getName()
+        for local_variable in
+        function_body.getLocalVariables()
+        if not local_variable.isParameterVariable()
+    ]
+
+    code_identifier = context.getCodeObjectHandle(
+        filename      = function_body.getParentModule().getRunTimeFilename(),
+        var_names     = var_names,
+        arg_count     = parameters.getArgumentCount(),
+        kw_only_count = parameters.getKwOnlyParameterCount(),
+        line_number   = function_body.getSourceReference().getLineNumber(),
+        code_name     = function_body.getFunctionName(),
+        is_generator  = function_body.isGenerator(),
+        is_optimized  = not function_body.needsLocalsDict(),
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None,
+        has_closure   = function_body.getClosureVariables() != (),
+        future_flags  = function_body.getSourceReference().getFutureSpec().asFlags()
+    )
+
     function_identifier = function_body.getCodeName()
 
     maker_code = Generator.getFunctionMakerCode(
         function_name       = function_body.getFunctionName(),
         function_qualname   = function_body.getFunctionQualname(),
         function_identifier = function_identifier,
+        code_identifier     = code_identifier,
         parameters          = parameters,
-        local_variables     = function_body.getLocalVariables(),
         closure_variables   = function_body.getClosureVariables(),
         defaults_name       = defaults_name,
         kw_defaults_name    = kw_defaults_name,
         annotations_name    = annotations_name,
-        source_ref          = function_body.getSourceReference(),
         function_doc        = function_body.getDoc(),
         is_generator        = function_body.isGenerator(),
-        is_optimized        = not function_body.needsLocalsDict(),
         context             = context
     )
 
@@ -534,15 +557,32 @@ def generateFunctionBodyCode(function_body, context):
     needs_generator_return = function_body.needsGeneratorReturnExit()
 
     if function_body.isGenerator():
+        source_ref = function_body.getSourceReference()
+
+        code_identifier = context.getCodeObjectHandle(
+            filename      = function_body.getParentModule().getRunTimeFilename(),
+            var_names     = parameters.getCoArgNames(),
+            arg_count     = parameters.getArgumentCount(),
+            kw_only_count = parameters.getKwOnlyParameterCount(),
+            line_number   = source_ref.getLineNumber(),
+            code_name     = function_body.getFunctionName(),
+            is_generator  = True,
+            is_optimized  = not context.hasLocalsDict(),
+            has_starlist  = parameters.getStarListArgumentName() is not None,
+            has_stardict  = parameters.getStarDictArgumentName() is not None,
+            has_closure   = function_body.getClosureVariables() != (),
+            future_flags  = source_ref.getFutureSpec().asFlags()
+        )
+
         function_code = Generator.getGeneratorFunctionCode(
             context                = function_context,
             function_name          = function_body.getFunctionName(),
             function_identifier    = function_identifier,
+            code_identifier        = code_identifier,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
-            source_ref             = function_body.getSourceReference(),
             function_codes         = function_codes,
             function_doc           = function_body.getDoc(),
             needs_exception_exit   = needs_exception_exit,

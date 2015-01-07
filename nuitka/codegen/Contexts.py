@@ -519,7 +519,7 @@ class FrameDeclarationsMixin:
 
 class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
                           FrameDeclarationsMixin):
-    # Plent of attributes, because it's storing so many different things.
+    # Plenty of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
     def __init__(self, module, module_name, code_name, filename, is_empty,
