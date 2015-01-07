@@ -16,6 +16,8 @@
 #     limitations under the License.
 #
 
+from __future__ import print_function
+
 a = 1
 b = 1
 
@@ -29,5 +31,21 @@ someClass()
 
 try:
     someFunction()
-except UnboundLocalError:
-    print "Expected unbound local error occurred."
+except UnboundLocalError as e:
+    print("Expected unbound local error occurred:", repr(e))
+try:
+    class anotherClass():
+        b = c
+except NameError as e:
+    print("Expected name error occurred:", repr(e))
+
+# TODO: This is not passing yet.
+if False:
+    try:
+        class yetanotherClass():
+            b = 1
+            del b
+            print(b)
+
+    except NameError as e:
+        print("Expected name error occurred:", repr(e))

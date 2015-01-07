@@ -85,15 +85,9 @@ for filename in sorted(os.listdir(".")):
         # The "__class__" doesn't work as expected.
         "BuiltinSuper.py",
 
-        # Dictionary order changes from star argument usages
-        "Constants.py",
-
         # Too little attributes for generator objects, "__del__" is missing it
         # seems.
         "GeneratorExpressions.py",
-
-        # Order change for dictionary contraction"
-        "ListContractions.py",
 
         # Prepared dictionaries of "enum.Enums" are not used early enough
         "Classes34.py",
