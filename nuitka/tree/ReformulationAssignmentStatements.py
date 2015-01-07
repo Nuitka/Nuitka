@@ -60,7 +60,8 @@ from .Helpers import (
     makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
-    makeTryFinallyStatement
+    makeTryFinallyStatement,
+    mangleName
 )
 
 
@@ -347,12 +348,12 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
 
     if type(node) is str:
         return "Name", ExpressionTargetVariableRef(
-            variable_name = node,
+            variable_name = mangleName(node, provider),
             source_ref    = source_ref
         )
     elif kind == "Name":
         return kind, ExpressionTargetVariableRef(
-            variable_name = node.id,
+            variable_name = mangleName(node.id, provider),
             source_ref    = source_ref
         )
     elif kind == "Attribute":

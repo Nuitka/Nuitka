@@ -111,6 +111,7 @@ from .Helpers import (
     makeModuleFrame,
     makeSequenceCreationOrConstant,
     makeStatementsSequenceOrStatement,
+    mangleName,
     mergeStatements,
     setBuildingDispatchers
 )
@@ -158,7 +159,7 @@ def buildVariableReferenceNode(provider, node, source_ref):
         provider.markAsClassClosureTaker()
 
     return ExpressionVariableRef(
-        variable_name = node.id,
+        variable_name = mangleName(node.id, provider),
         source_ref    = source_ref
     )
 
@@ -298,7 +299,7 @@ def buildRaiseNode(provider, node, source_ref):
 
     return result
 
-def buildImportModulesNode(node, source_ref):
+def buildImportModulesNode(provider, node, source_ref):
     # Import modules statement. As described in the developer manual, these
     # statements can be treated as several ones.
 
@@ -348,9 +349,12 @@ def buildImportModulesNode(node, source_ref):
         import_nodes.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
-                    variable_name = local_name
-                                      if local_name is not None else
-                                    module_topname,
+                    variable_name = mangleName(
+                                      local_name
+                                        if local_name is not None else
+                                      module_topname,
+                                      provider
+                    ),
                     source_ref    = source_ref
                 ),
                 source       = import_node,
@@ -476,7 +480,7 @@ from __future__ imports must occur at the beginning of the file""",
             import_nodes.append(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetVariableRef(
-                        variable_name = target_name,
+                        variable_name = mangleName(target_name, provider),
                         source_ref    = source_ref
                     ),
                     source       = ExpressionImportName(
@@ -797,6 +801,7 @@ setBuildingDispatchers(
         "TryFinally"   : _buildTryFinallyNode,
         "Try"          : buildTryNode,
         "Raise"        : buildRaiseNode,
+        "Import"       : buildImportModulesNode,
         "ImportFrom"   : buildImportFromNode,
         "Assert"       : buildAssertNode,
         "Exec"         : buildExecNode,
@@ -821,7 +826,6 @@ setBuildingDispatchers(
     },
     path_args2 = {
         "NameConstant" : buildNamedConstantNode,
-        "Import"       : buildImportModulesNode,
         "Str"          : buildStringNode,
         "Num"          : buildNumberNode,
         "Bytes"        : buildBytesNode,

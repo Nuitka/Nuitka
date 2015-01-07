@@ -119,7 +119,7 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
             "PyObject_SetItem",
             dict_name,
             getConstantCode(
-                constant = variable.getMangledName(),
+                constant = variable.getName(),
                 context  = context
             ),
             access_code

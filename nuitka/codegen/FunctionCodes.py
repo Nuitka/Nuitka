@@ -111,9 +111,9 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
     # pylint: disable=R0914
     var_names = parameters.getCoArgNames()
 
-    # Apply mangled names of local variables too.
+    # Add names of local variables too.
     var_names += [
-        local_variable.getMangledName()
+        local_variable.getName()
         for local_variable in
         local_variables
         if not local_variable.isParameterVariable()

@@ -133,13 +133,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             }
         )
 
-        self.parameters = parameters
-        self.parameters.setOwner(self)
-
-        self.registerProvidedVariables(
-            *self.parameters.getVariables()
-        )
-
 
         MarkGeneratorIndicator.__init__(self)
 
@@ -169,6 +162,14 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         # Python3.4: Might be overridden by global statement on the class name.
         if Utils.python_version >= 340:
             self.qualname_provider = provider
+
+        self.parameters = parameters
+        self.parameters.setOwner(self)
+
+        self.registerProvidedVariables(
+            *self.parameters.getVariables()
+        )
+
 
     def getDetails(self):
         return {
@@ -338,19 +339,13 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         # print("createProvidedVariable", self, variable_name)
 
         if self.local_locals:
-            if self.isClassDictCreation():
-                return Variables.ClassVariable(
-                    owner         = self,
-                    variable_name = variable_name
-                )
-            else:
-                return Variables.LocalVariable(
-                    owner         = self,
-                    variable_name = variable_name
-                )
+            return Variables.LocalVariable(
+                owner         = self,
+                variable_name = variable_name
+            )
         else:
             # Make sure the provider knows it has to provide a variable of this
-            # name for the assigment.
+            # name for the assignment.
             self.provider.getVariableForAssignment(
                 variable_name = variable_name
             )

@@ -465,6 +465,24 @@ def makeTryFinallyExpression(expression, tried, final, source_ref):
         source_ref = source_ref
     )
 
+
+def mangleName(variable_name, owner):
+    if not variable_name.startswith("__") or variable_name.endswith("__"):
+        return variable_name
+    else:
+        # The mangling of function variable names depends on being inside a
+        # class.
+        class_container = owner.getContainingClassDictCreation()
+
+        if class_container is None:
+            return variable_name
+        else:
+            return "_%s%s" % (
+                class_container.getName().lstrip("_"),
+                variable_name
+            )
+
+
 build_contexts = [None]
 
 def pushBuildContext(value):

@@ -234,6 +234,10 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         return result
 
+    @staticmethod
+    def getContainingClassDictCreation():
+        return None
+
     def isEarlyClosure(self):
         # Modules should immediately closure variables on use.
         # pylint: disable=R0201
