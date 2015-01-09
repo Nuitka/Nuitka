@@ -537,17 +537,15 @@ def _detectBinaryPathDLLsMacOS(binary_filename):
     return result
 
 
-def _detectBinaryPathDLLsWindows(binary_filename, package_name):
-    result = set()
-
-    depends_exe = getDependsExePath()
-
-    # Put the PYTHONPATH into the system PATH, DLLs frequently live in
+def _makeBinaryPathPathDLLSearchEnv(package_name):
+    # Put the PYTHONPATH into the system "PATH", DLLs frequently live in
     # the package directories.
     env = os.environ.copy()
     path = env.get("PATH","").split(";")
 
-    path += sys.path
+    # Put the "Python.exe" first. At least for WinPython, they put the DLLs
+    # there.
+    path = [ sys.prefix ] + sys.path + path
 
     if package_name is not None:
         for element in sys.path:
@@ -559,17 +557,41 @@ def _detectBinaryPathDLLsWindows(binary_filename, package_name):
 
     env["PATH"] = ";".join(path)
 
+    return env
+
+
+def _detectBinaryPathDLLsWindows(binary_filename, package_name):
+    result = set()
+
+    depends_exe = getDependsExePath()
+
+    # The search order by default prefers the system directory, where a
+    # wrong "PythonXX.dll" might be living.
+    with open(binary_filename + ".dwp", "w" ) as dwp_file:
+        dwp_file.write("""\
+KnownDLLs
+SysPath
+AppDir
+32BitSysDir
+16BitSysDir
+OSDir
+AppPath
+SxS
+"""
+        )
+
     subprocess.call(
         (
             depends_exe,
             "-c",
             "-ot%s" % binary_filename + ".depends",
+            "-d:%s" % binary_filename + ".dwp",
             "-f1",
             "-pa1",
             "-ps1",
             binary_filename
         ),
-        env = env,
+        env = _makeBinaryPathPathDLLSearchEnv(package_name),
     )
 
     inside = False
@@ -663,6 +685,7 @@ def _detectBinaryPathDLLsWindows(binary_filename, package_name):
         )
 
     Utils.deleteFile(binary_filename + ".depends", must_exist = True)
+    Utils.deleteFile(binary_filename + ".dwp", must_exist = True)
 
     return result
 
