@@ -537,6 +537,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "sgi", "ctypes.macholib.dyld", "bsddb3", "_pybsddb", "_xmlrpclib",
         "netbios", "win32wnet", "email.Parser", "elementree.cElementTree",
         "elementree.ElementTree", "_gbdm", "resource", "crypt", "bz2", "dbm",
+        "mmap",
 
         # Nuitka tests
         "test_common"
