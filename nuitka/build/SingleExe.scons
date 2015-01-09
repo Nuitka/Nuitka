@@ -964,8 +964,7 @@ if debug_mode or unstripped_mode:
         env.Append(
             LINKFLAGS = ["/DEBUG"]
         )
-
-if not unstripped_mode:
+else:
     if gcc_mode:
         env.Append(
             LINKFLAGS = ["-s"]
