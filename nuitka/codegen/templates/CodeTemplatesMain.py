@@ -231,7 +231,7 @@ module_body_template = """
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
 
-// Note: For full compatability with CPython, every module variable access
+// Note: For full compatibility with CPython, every module variable access
 // needs to go through it except for cases where the module cannot possibly
 // have changed in the mean time.
 

@@ -23,6 +23,8 @@ and objects and classes.
 There will be a method "computeExpressionAttribute" to aid predicting them.
 """
 
+from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
+
 from .NodeBases import ExpressionChildrenHavingBase
 
 
@@ -108,14 +110,12 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
 
     named_children = ("source", "attribute", "default")
 
-    # Need to accept 'object' keyword argument, that is just the API of getattr,
-    # pylint: disable=W0622
-
-    def __init__(self, object, name, default, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, object_arg, name, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"    : object,
+                "source"    : object_arg,
                 "attribute" : name,
                 "default"   : default
             },
@@ -172,14 +172,12 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
 
     named_children = ("source", "attribute", "value")
 
-    # Need to accept 'object' keyword argument, that is just the API of
-    # "setattr" # pylint: disable=W0622
-
-    def __init__(self, object, name, value, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, object_arg, name, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"    : object,
+                "source"    : object_arg,
                 "attribute" : name,
                 "value"     : value
             },
@@ -200,14 +198,12 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
 
     named_children = ("source", "attribute")
 
-    # Need to accept object keyword argument, that is just the API of hasattr,
-    # pylint: disable=W0622
-
-    def __init__(self, object, name, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, object_arg, name, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"    : object,
+                "source"    : object_arg,
                 "attribute" : name,
             },
             source_ref = source_ref

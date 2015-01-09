@@ -40,7 +40,7 @@ static_src = os.path.join(source_dir, "static")
 # inside that directory which need not be writable.
 VariantDir(static_src, os.path.join(nuitka_src, "static_src"), 0)
 
-# The name of executable or loadable module that we produce.
+# The name of executable or extension module that we produce.
 result_basepath = ARGUMENTS["result_name"]
 
 def getBoolOption(option_name, default):
@@ -61,7 +61,7 @@ debug_mode = getBoolOption("debug_mode", False)
 # Python version to target.
 python_version = ARGUMENTS["python_version"]
 
-# Python debug mode: refcount checking, assertions in CPython core.
+# Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getBoolOption("python_debug", False)
 
 # Optimization mode: Optimize as much as currently possible.
@@ -69,7 +69,7 @@ optimize_mode = getBoolOption("optimize_mode", True)
 
 # Full compatibility, even where it's stupid, i.e. do not provide information,
 # even if available, in order to assert maximum compatibility. Intended to
-# control level of compatability to absurd.
+# control level of compatibility to absurd.
 full_compat_mode = getBoolOption("full_compat", False)
 
 # Experimental mode. Do things that are not yet safe to do.
@@ -111,8 +111,8 @@ standalone_mode = getBoolOption("standalone_mode", False)
 # Show scons mode, output information about Scons operation
 show_scons_mode = getBoolOption("show_scons", False)
 
-# Home of Python to be compiled against, used to find include files and libs
-# to link against.
+# Home of Python to be compiled against, used to find include files and
+# libraries to link against.
 python_prefix = ARGUMENTS["python_prefix"]
 
 # Target arch, uses for compiler choice and quick linking of constants binary
@@ -263,7 +263,7 @@ def setupSpawn(env):
         cmdline = cmd + " " + newargs
         startupinfo = subprocess.STARTUPINFO()
 
-        # Remove useless quoted include directories to windres, which does not
+        # Remove useless quoted include directories to "windres", which does not
         # handle them properly in its command line parsing, while they are not
         # used at all.
         if cmd == "windres":

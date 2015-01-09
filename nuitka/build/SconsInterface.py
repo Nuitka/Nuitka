@@ -134,7 +134,7 @@ def runScons(options, quiet):
         "--jobs",
         str(Options.getJobLimit()),
 
-        # Do not warn about deprecations of Scons
+        # Do not warn about deprecation from Scons
         "--warn=no-deprecated",
 
         # Don't load "site_scons" at all.
@@ -144,7 +144,7 @@ def runScons(options, quiet):
     if Options.isShowScons():
         scons_command.append("--debug=explain")
 
-    # Option values to provide to scons.
+    # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
         scons_command += [key + "=" + value]
 

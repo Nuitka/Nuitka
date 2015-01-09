@@ -54,13 +54,13 @@ def getDependsExePath():
     if "APPDATA" not in os.environ:
         sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
 
-    nuitka_app_dir = os.path.join(os.environ["APPDATA"], "nuitka")
+    nuitka_app_dir = Utils.joinpath(os.environ["APPDATA"], "nuitka")
     if not Utils.isDir(nuitka_app_dir):
-        os.makedirs(nuitka_app_dir)
+        Utils.makePath(nuitka_app_dir)
 
-    nuitka_depends_zip = os.path.join(
+    nuitka_depends_zip = Utils.joinpath(
         nuitka_app_dir,
-        os.path.basename(depends_url)
+        Utils.basename(depends_url)
     )
 
     if not Utils.isFile(nuitka_depends_zip):
@@ -81,7 +81,7 @@ and put it in APPDATA (no installer needed, cached, one time question).""")
             nuitka_depends_zip
         )
 
-    nuitka_depends_dir = os.path.join(
+    nuitka_depends_dir = Utils.joinpath(
         nuitka_app_dir,
         Utils.getArchitecture()
     )
@@ -130,7 +130,7 @@ module_names = set()
 
 def _detectedPrecompiledFile(filename, module_name, result, is_late):
     if filename.endswith(b".pyc"):
-        if os.path.exists(filename[:-1]):
+        if Utils.isFile(filename[:-1]):
             return _detectedSourceFile(
                 filename    = filename[:-1],
                 module_name = module_name,
@@ -186,7 +186,7 @@ def _detectedSourceFile(filename, module_name, result, is_late):
         source_code = """\
 __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
             os.path.sep,
-            os.path.basename(filename),
+            Utils.basename(filename),
             source_code
         )
 
@@ -370,7 +370,7 @@ ignore_modules = [
     "__init__.py",
     "antigravity.py",
 ]
-if os.name != "nt":
+if Utils.getOS() != "Windows":
     ignore_modules.append("wintypes.py")
     ignore_modules.append("cp65001.py")
 
@@ -662,14 +662,14 @@ def _detectBinaryPathDLLsWindows(binary_filename, package_name):
             Utils.normcase(Utils.abspath(dll_filename))
         )
 
-    os.unlink(binary_filename + ".depends")
+    Utils.deleteFile(binary_filename + ".depends", must_exist = True)
 
     return result
 
 def detectBinaryDLLs(binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 
-        Using ldd (Linux), depends.exe (Windows), or otool (MacOS) the list
+        Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (MacOS) the list
         of used DLLs is retrieved.
     """
 
