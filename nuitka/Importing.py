@@ -497,6 +497,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test_strop.py
         "strop",
 
+        # test_sundry.py
+        "distutils.emxccompiler", "os2emxpath",
+
         # test_tk.py
         "runtktests",
 

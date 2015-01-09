@@ -545,7 +545,7 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
 
     # Put the "Python.exe" first. At least for WinPython, they put the DLLs
     # there.
-    path = [ sys.prefix ] + sys.path + path
+    path = [sys.prefix] + sys.path + path
 
     if package_name is not None:
         for element in sys.path:
@@ -567,7 +567,7 @@ def _detectBinaryPathDLLsWindows(binary_filename, package_name):
 
     # The search order by default prefers the system directory, where a
     # wrong "PythonXX.dll" might be living.
-    with open(binary_filename + ".dwp", "w" ) as dwp_file:
+    with open(binary_filename + ".dwp", "w") as dwp_file:
         dwp_file.write("""\
 KnownDLLs
 SysPath
@@ -577,8 +577,7 @@ AppDir
 OSDir
 AppPath
 SxS
-"""
-        )
+""")
 
     subprocess.call(
         (

@@ -545,8 +545,8 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         closure_variable = None
 
         # Re-use already taken global variables, in order to avoid creating yet
-        # another instance, esp. as the markups could then potentially not be
-        # shared.
+        # another instance, esp. as the indications could then potentially not
+        # be shared.
         if provider.hasTakenVariable(variable_name):
             closure_variable = provider.getTakenVariable(variable_name)
 
@@ -1015,7 +1015,7 @@ from __future__ imports must occur at the beginning of the file""",
       (Utils.python_version >= 330 and Utils.python_version < 340)
 
     if needs__initializing__:
-        # Set initialzing at the beginning to True
+        # Set "__initializing__" at the beginning to True
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
@@ -1038,7 +1038,7 @@ from __future__ imports must occur at the beginning of the file""",
         )
 
     if needs__initializing__:
-        # Set initialzing at the beginning to True
+        # Set "__initializing__" at the end to False
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
@@ -1053,7 +1053,6 @@ from __future__ imports must occur at the beginning of the file""",
                 source_ref   = internal_source_ref
             )
         )
-
 
 
     if is_module:

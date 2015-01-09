@@ -152,6 +152,7 @@ def getComputationResult(node, computation, description):
 
     return new_node, change_tags, change_desc
 
+
 def makeStatementExpressionOnlyReplacementNode(expression, node):
     return StatementExpressionOnly(
         expression = expression,

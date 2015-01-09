@@ -107,8 +107,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     node.qualname_provider = node.getParentModule()
 
             # TODO: Actually for nested global classes, this approach
-            # may not work, as their qualnames will be wrong. In that
-            # case a dedicated node for qualname references might be
+            # may not work, as their "qualname" will be wrong. In that
+            # case a dedicated node for "qualname" references might be
             # needed.
 
             node.qualname_setup = None
