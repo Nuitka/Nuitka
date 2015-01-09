@@ -566,6 +566,14 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
         assert closure_variable.isModuleVariable()
 
+        if Utils.python_version < 340 and \
+           provider.isClassDictCreation() and \
+           closure_variable.getName() == "__class__":
+            SyntaxErrors.raiseSyntaxError(
+                reason     = "cannot make __class__ global",
+                source_ref = source_ref
+            )
+
         provider.registerProvidedVariable(
             variable = closure_variable
         )
