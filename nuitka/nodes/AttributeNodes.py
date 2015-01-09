@@ -136,7 +136,7 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
 
             if attribute_name is not None:
                 source = self.getLookupSource()
-                # If source has sideeffects, it must be evaluated, before the
+                # If source has side effects, they must be evaluated, before the
                 # lookup, meaning, a temporary variable should be assigned. For
                 # now, we give up in this case. TODO: Replace source with a
                 # temporary variable assignment as a side effect.
@@ -145,7 +145,7 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
 
                 if not side_effects:
                     result = ExpressionAttributeLookup(
-                        expression     = source,
+                        source         = source,
                         attribute_name = attribute_name,
                         source_ref     = self.source_ref
                     )
@@ -172,8 +172,8 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
 
     named_children = ("source", "attribute", "value")
 
-    # Need to accept 'object' keyword argument, that is just the API of setattr,
-    # pylint: disable=W0622
+    # Need to accept 'object' keyword argument, that is just the API of
+    # "setattr" # pylint: disable=W0622
 
     def __init__(self, object, name, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
