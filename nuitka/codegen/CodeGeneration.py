@@ -1889,6 +1889,10 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         else:
             optimize_name = "NULL"
 
+        context.setCurrentSourceCodeReference(
+            expression.getCompatibleSourceReference()
+        )
+
         Generator.getCompileCode(
             to_name           = to_name,
             source_name       = source_name,
