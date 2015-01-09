@@ -52,7 +52,8 @@ Requirements
 - Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4
 
   You need the standard Python implementation, called "CPython", to execute
-  Nuitka, because it is closely tied to using it.
+  Nuitka, because it is closely tied to using it. On Windows, the so called
+  "WinPython" distribution is also supported.
 
   .. note::
 
