@@ -388,7 +388,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     def computeExpression(self, constraint_collection):
         assert False
 
-        # Function body is quite irreplacable.
+        # Function body is quite irreplaceable.
         return self, None, None
 
     def getLocalsMode(self):
@@ -403,64 +403,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         # TODO: Until we have something to re-order the arguments, we need to
         # skip this. For the immediate need, we avoid this complexity, as a
         # re-ordering will be needed.
-        if call_node.getNamedArgumentPairs():
-            return call_node, None, None
 
-        call_spec = self.getParameters()
-
-        try:
-            args_dict = matchCall(
-                func_name     = self.getName(),
-                args          = call_spec.getArgumentNames(),
-                star_list_arg = call_spec.getStarListArgumentName(),
-                star_dict_arg = call_spec.getStarDictArgumentName(),
-                num_defaults  = call_spec.getDefaultCount(),
-                positional    = call_node.getPositionalArguments(),
-                pairs         = ()
-            )
-
-            values = []
-
-            for positional_arg in call_node.getPositionalArguments():
-                for _arg_name, arg_value in iterItems(args_dict):
-                    if arg_value is positional_arg:
-                        values.append(arg_value)
-
-            result = ExpressionFunctionCall(
-                function_body = self,
-                values        = values,
-                source_ref    = call_node.getSourceReference()
-            )
-
-            return (
-                result,
-                "new_statements", # TODO: More appropriate tag maybe.
-                """Replaced call to created function body '%s' with direct \
-function call""" % self.getName()
-            )
-
-        except TooManyArguments as e:
-            from .NodeMakingHelpers import (
-                makeRaiseExceptionReplacementExpressionFromInstance,
-                wrapExpressionWithSideEffects
-            )
-
-            result = wrapExpressionWithSideEffects(
-                new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
-                    expression = call_node,
-                    exception  = e.getRealException()
-                ),
-                old_node     = call_node,
-                side_effects = call_node.extractPreCallSideEffects()
-            )
-
-            return (
-                result,
-                "new_statements,new_raise", # TODO: More appropriate tag maybe.
-                """Replaced call to created function body '%s' to argument \
-error""" % self.getName()
-            )
-
+        assert False, self
 
     def isCompileTimeConstant(self):
         # TODO: It's actually pretty much compile time accessible maybe.
@@ -569,6 +513,74 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
     def mayRaiseException(self, exception_type):
         return True
+
+    def computeExpressionCall(self, call_node, constraint_collection):
+        call_kw = call_node.getCallKw()
+
+        # TODO: Until we have something to re-order the arguments, we need to
+        # skip this. For the immediate need, we avoid this complexity, as a
+        # re-ordering will be needed.
+        if call_kw:
+            return call_node, None, None
+
+        # TODO: Actually the above disables it entirely, as it is at least
+        # the empty dictionary node in any case. We will need some enhanced
+        # interfaces for "matchCall" to work on.
+
+        call_spec = self.getFunctionRef().getFunctionBody().getParameters()
+
+        try:
+            args_dict = matchCall(
+                func_name     = self.getName(),
+                args          = call_spec.getArgumentNames(),
+                star_list_arg = call_spec.getStarListArgumentName(),
+                star_dict_arg = call_spec.getStarDictArgumentName(),
+                num_defaults  = call_spec.getDefaultCount(),
+                positional    = call_node.getCallArgsTuple(),
+                pairs         = ()
+            )
+
+            values = []
+
+            for positional_arg in call_node.getCallArgs():
+                for _arg_name, arg_value in iterItems(args_dict):
+                    if arg_value is positional_arg:
+                        values.append(arg_value)
+
+            result = ExpressionFunctionCall(
+                function   = self,
+                values     = values,
+                source_ref = call_node.getSourceReference()
+            )
+
+            return (
+                result,
+                "new_statements", # TODO: More appropriate tag maybe.
+                """Replaced call to created function body '%s' with direct \
+function call""" % self.getName()
+            )
+
+        except TooManyArguments as e:
+            from .NodeMakingHelpers import (
+                makeRaiseExceptionReplacementExpressionFromInstance,
+                wrapExpressionWithSideEffects
+            )
+
+            result = wrapExpressionWithSideEffects(
+                new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
+                    expression = call_node,
+                    exception  = e.getRealException()
+                ),
+                old_node     = call_node,
+                side_effects = call_node.extractPreCallSideEffects()
+            )
+
+            return (
+                result,
+                "new_statements,new_raise", # TODO: More appropriate tag maybe.
+                """Replaced call to created function body '%s' to argument \
+error""" % self.getName()
+            )
 
 
 class ExpressionFunctionRef(NodeBase, ExpressionMixin):

@@ -495,7 +495,7 @@ def _buildClassNode3(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       = ExpressionConditional(
-                condition      = ExpressionBuiltinHasattr(
+                condition      = ExpressionBuiltinHasattr( # pylint: disable=E1123,E1120
                     object     = ExpressionTempVariableRef(
                         variable   = tmp_metaclass,
                         source_ref = source_ref
