@@ -386,7 +386,7 @@ def getClangVersion():
     else:
         return None
 
-# Some versions of Scons have unset or None, make it explicit.
+# Some versions of Scons have "CXX" not set or None, make it explicit.
 if env.get("CXX", None) is None:
     env["CXX"] = None
 
@@ -395,7 +395,7 @@ orig_cxx_version = env.get("CXXVERSION", None)
 
 # Remove "g++" as the compiler, in case it's not really existing or not high
 # enough version.
-if "g++" in (env["CXX"] or ""):
+if "g++" in (env["CXX"] or "") and "clang" not in (env["CXX"] or ""):
     gpp_version = getGccVersion()
 
     if gpp_version is None or int(gpp_version.replace(".", "")) < 440:
@@ -514,9 +514,7 @@ if "clang" in env["CXX"]:
     clang_version = getClangVersion()
     clang_version = int(clang_version.replace(".", "") + "0")
 
-# Support for g++.
-if "g++" in env["CXX"]:
-    # Don't export anything by default, this should create smaller executables.
+if gcc_mode:
     if not win_target:
         env.Append(
             CCFLAGS = ["-fvisibility=hidden"]
@@ -524,6 +522,10 @@ if "g++" in env["CXX"]:
         env.Append(
             CXXFLAGS = ["-fvisibility-inlines-hidden"]
         )
+
+# Support details for real g++, not clang++.
+if "g++" in env["CXX"] and "clang" not in env["CXX"]:
+    # Don't export anything by default, this should create smaller executables.
 
     if env.get("CXXVERSION", None) is None or \
        env.get("CXXVERSION").count(".") < 2:
@@ -905,7 +907,7 @@ else:
             LIBS = ["dl", "pthread", "util", "m"]
         )
 
-        if gcc_mode:
+        if gcc_mode and "clang" not in env["CXX"]:
             env.Append(
                 LINKFLAGS = ["-export-dynamic"]
             )
