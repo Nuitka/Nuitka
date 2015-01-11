@@ -543,7 +543,10 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "mmap",
 
         # Nuitka tests
-        "test_common"
+        "test_common",
+
+        # Mercurial test
+        "statprof", "email.Generator", "email.Utils",
     )
 
 def _isWhiteListedNotExistingModule(module_name):
