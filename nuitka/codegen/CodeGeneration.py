@@ -935,6 +935,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             to_name     = to_name,
             module_name = expression.getModuleName(),
             import_name = expression.getImportName(),
+            needs_check = expression.mayRaiseException(BaseException),
             emit        = emit,
             context     = context
         )

@@ -65,21 +65,30 @@ def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
     context.addCleanupTempName(to_name)
 
 
-def getImportModuleHardCode(to_name, module_name, import_name, emit, context):
-    assert module_name == "sys"
-
-    emit(
-        '%s = PySys_GetObject( (char *)"%s" );' % (
-            to_name,
-            import_name
+def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
+                            emit, context):
+    if module_name == "sys":
+        emit(
+            """%s = PySys_GetObject( (char *)"%s" );""" % (
+                to_name,
+                import_name
+            )
         )
-    )
+    elif module_name == "__future__":
+        emit(
+             """%s = PyObject_GetAttrString(PyImport_ImportModule("__future__"), "%s");""" % (
+                to_name,
+                import_name
+            )
+        )
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
+
+    if needs_check:
+        getErrorExitCode(
+            check_name = to_name,
+            emit       = emit,
+            context    = context
+        )
 
 
 def getImportFromStarCode(module_name, emit, context):
