@@ -18,6 +18,9 @@
 #     limitations under the License.
 #
 
-print( (1).imag )
-print( int.__name__ )
-print( (1).__class__ )
+print((1).imag)
+print(int.__name__)
+print((1).__class__)
+
+print(getattr(1, "real"))
+print(hasattr(1, "real"))

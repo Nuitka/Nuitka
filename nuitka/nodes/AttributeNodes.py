@@ -213,7 +213,44 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
     def computeExpression(self, constraint_collection):
-        # Note: Might be possible to predict or downgrade to mere attribute
-        # check.
+        # We do at least for compile time constants optimization here, but more
+        # could be done, were we to know shapes.
+        source = self.getLookupSource()
+
+        if source.isCompileTimeConstant():
+            attribute = self.getAttribute()
+
+            attribute_name = attribute.getStringValue()
+
+            if attribute_name is not None:
+
+                # If source has side effects, they must be evaluated, before the
+                # lookup, meaning, a temporary variable should be assigned. For
+                # now, we give up in this case. TODO: Replace source with a
+                # temporary variable assignment as a side effect.
+
+                from .NodeMakingHelpers import getComputationResult
+
+                result, tags, change_desc = getComputationResult(
+                    node        = self,
+                    computation = lambda : hasattr(
+                        source.getCompileTimeConstant(),
+                        attribute_name
+                    ),
+                    description = "Call to 'hasattr' pre-computed."
+                )
+
+                from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = result,
+                    old_node = attribute
+                )
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = result,
+                    old_node = source
+                )
+
+                return result, tags, change_desc
 
         return self, None, None
