@@ -1,14 +1,34 @@
 Nuitka Release 0.5.8 (Draft)
 ============================
 
+This release has mainly a focus on cleanups and compatibility improvements. It
+also advances standalone support, and a few optimization improvements, but it
+mostly is a maintenance release, attacking long standing issues.
+
 Bug Fixes
 ---------
 
-- Fix Importing on case insensitive systems (Windows, MacOS).
+- Fix importing on case insensitive systems (Windows, MacOS).
 
   It was not always working properly, if there was both a package ``Something``
   and ``something``, by merit of having files ``Something/__init__.py`` and
   ``something.py``.
+
+- Standalone: The search path was preferring system directories and therefore
+  could have conflicting DLLs. `Issue#144 <http://bugs.nuitka.net/issue144>`__.
+
+- Fix, the optimization of ``getattr`` with predictable result was crashing the
+  compilation. This was a regression, fixed in 0.5.7.1 already.
+
+- Fix, the name mangling inside classes also needs to be applied to global
+  variables.
+
+- Fix, proving ``clang++`` for ``CXX`` was mistakingly thinking of it as a
+  ``g++`` and making version checks on it.
+
+- Python3: Declaring ``__class__`` global is now a ``SyntaxError`` before
+  Python3.4.
+
 
 New Features
 ------------
@@ -16,8 +36,9 @@ New Features
 - The filenames of source files as found in the ``__file__`` attribute are
   now made relative.
 
-- Added standalone mode support for PyQt5. At least headless mode should be
-  working, plugins are not yet copied.
+- Added experimental standalone mode support for PyQt5. At least headless mode
+  should be working, plug-ins (needed for anything graphical) are not yet
+  copied and will need more work.
 
 Cleanup
 -------
@@ -25,6 +46,12 @@ Cleanup
 - No longer using ``imp.find_module`` anymore. To solve the casing issues
   we needed to make our own module finding implementation finally.
 
+- The name mangling was handled during code generation only. Moved to tree
+  building instead.
+
+- More code generation cleanups. The compatible line numbers are now attached
+  during tree building and therefore better preserved, as well as that code
+  no longer polluting code generation as much.
 
 Organizational
 --------------
@@ -32,18 +59,34 @@ Organizational
 - No more packages for openSUSE 12.1/12.2/12.3 and Fedora 17/18/19 as requested
   by the openSUSE Build service.
 
-* Added RPM packages for Fedora 21.
+- Added RPM packages for Fedora 21 and CentOS 7.
 
 Tests
 -----
 
-- Lots of test refinements for the CPython test suites to be run continously
+- Lots of test refinements for the CPython test suites to be run continuously
   in Buildbot for both Windows and Linux.
 
 Summary
 -------
 
-This release is a maintenance release to support.
+This release brings about two major changes, earch with the risk to break
+things.
+
+One is that we finally started to have our own import logic, which has the risk
+to cause breakage, but apparently currently rather improved compatibility. The
+case issues were not fixable with standard library code.
+
+The second one is that the ``__file__`` attributes for standalone mode is now no
+longer pointing to the original install and therefore will expose missing stuff
+sooner. This will have to be followed up with code to scan for missing "data"
+files later on.
+
+For SSA based optimization, there are cleanups in here, esp. the one removing
+the name mangling, allowing to remove special code for class variables. This
+makes the SSA tree more reliable. Hope is that the big step (forward propagation
+through variables) can be made in one of the next releases.
+
 
 Nuitka Release 0.5.7
 ====================
@@ -119,7 +162,7 @@ Nuitka Release 0.5.6
 ====================
 
 This release brings bug fixes, important new optimization, newly supported
-platforms, and important compatiblity improvements. Progress on all fronts.
+platforms, and important compatibility improvements. Progress on all fronts.
 
 Bug Fixes
 ---------
@@ -432,7 +475,7 @@ Cleanups
 Organizational
 --------------
 
-- The Python version 3.4 is now offically supported. There are a few problems
+- The Python version 3.4 is now officially supported. There are a few problems
   open, that will be addressed in future releases, none of which will affect
   normal people though.
 
@@ -441,7 +484,7 @@ Organizational
    - Windows specific stuff is now in a dedicated option group. This includes
      options for icon, disabling console, etc.
 
-   - There is now a dedicated group for controling backend compiler choices
+   - There is now a dedicated group for controlling backend compiler choices
      and options.
 
 - Also pickup ``g++44`` automatically, which makes using Nuitka on CentOS5
@@ -489,7 +532,7 @@ Bug Fixes
   loader.
 
 - Python3.4: Added ``find_spec`` implementation to the meta path based loader
-  for increased compatiblity.
+  for increased compatibility.
 
 - Python3: Corrections for ``--debug`` to work with Python3 and MSVC compiler
   more often.
@@ -497,7 +540,7 @@ Bug Fixes
 - Fixed crash with ``--show-scons`` when no compiler was found. Fixed in 0.5.3.5
   already.
 
-- Standalone: Need to blacklist ``lib2to3`` from standard libary as well. Fixed
+- Standalone: Need to blacklist ``lib2to3`` from standard library as well. Fixed
   in 0.5.3.4 already.
 
 - Python3: Adapted to changes in ``SyntaxError`` on newer Python releases, there
@@ -645,7 +688,7 @@ Organizational
 Summary
 -------
 
-This release brings about structural simplification that is both a followup to
+This release brings about structural simplification that is both a follow-up to
 C-ish, as well as results from a failed attempt to remove static "variable
 references" and be fully SSA based. It incorporates changes aimed at making this
 next step in Nuitka evolution smaller.
@@ -789,7 +832,7 @@ Bug Fixes
 Organizational
 --------------
 
-- Replying to emails of the `issue tracker <http://bugs.nuitka.net>`__ works
+- Replying to email from the `issue tracker <http://bugs.nuitka.net>`__ works
   now.
 
 - Added option name alias ``--xml`` for ``--dump-xml``.
@@ -819,8 +862,9 @@ Organizational
 Cleanups
 --------
 
-- Temp keeper variables and the nodes to handle them are now unified with normal
-  temporary variables, greatly simplifying variable handling on that level.
+- Temporary keeper variables and the nodes to handle them are now unified with
+  normal temporary variables, greatly simplifying variable handling on that
+  level.
 
 - Less code is coming from templates, more is actually derived from the node
   tree instead.
