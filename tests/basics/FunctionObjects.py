@@ -22,9 +22,9 @@ def func(arg1, arg2, arg3, **star):
 
     pass
 
-print( "Starting out: func, __name__:", func, func.__name__)
+print("Starting out: func, __name__:", func, func.__name__)
 
-print( "Changing its name:")
+print("Changing its name:")
 func.__name__ = "renamed"
 
 print("With new name: func, __name__:", func, func.__name__)

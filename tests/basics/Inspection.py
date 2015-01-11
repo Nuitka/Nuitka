@@ -46,10 +46,10 @@ assert isinstance(CompiledClass, types.FunctionType) is False
 assert inspect.ismethod(compiledFunction) is False
 assert inspect.ismethod(CompiledClass) is False
 
-assert inspect.ismethod(CompiledClass.compiledMethod) == ( sys.version_info < (3, ) )
+assert inspect.ismethod(CompiledClass.compiledMethod) == ( sys.version_info < (3,) )
 assert inspect.ismethod(CompiledClass().compiledMethod) is True
 
-assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == ( sys.version_info < (3, ) )
+assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == ( sys.version_info < (3,) )
 
 
 print("Compiled method:", inspect.getargspec(CompiledClass().compiledMethod))

@@ -32,7 +32,7 @@ sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname( os.path.abspath( __file__ ) ),
+            os.path.dirname(os.path.abspath(__file__)),
             ".."
         )
     )
@@ -51,9 +51,9 @@ if not hasModule("lxml.etree"):
     print("Warning, no 'lxml' module installed, cannot run XML based tests.")
     sys.exit(0)
 
-search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
+search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
 
-start_at = sys.argv[2] if len( sys.argv ) > 2 else None
+start_at = sys.argv[2] if len(sys.argv) > 2 else None
 
 if start_at:
     active = False
@@ -63,9 +63,9 @@ else:
 def getKind( node ):
     result = node.attrib[ "kind" ]
 
-    result = result.replace( "Statements", "" )
-    result = result.replace( "Statement", "" )
-    result = result.replace( "Expression", "" )
+    result = result.replace("Statements", "")
+    result = result.replace("Statement", "")
+    result = result.replace("Expression", "")
 
     return result
 
@@ -107,7 +107,7 @@ def checkSequence(statements):
         if kind == "Only":
             only_expression = getRole(statement, "expression")[0]
 
-            if getKind( only_expression ) == "Call":
+            if getKind(only_expression) == "Call":
                 called_expression = getRole(only_expression, "called")[0]
 
                 if getKind(called_expression) == "BuiltinRef":
@@ -120,12 +120,12 @@ def checkSequence(statements):
             continue
 
         if kind == "AssignmentVariable":
-            assign_source, = getRole( statement, "source" )
+            assign_source, = getRole(statement, "source")
 
             source_kind = getKind(assign_source)
 
             if source_kind not in("ConstantRef", "ImportModuleHard"):
-                sys.exit( "Error, assignment from of non-constant %s." % source_kind )
+                sys.exit("Error, assignment from of non-constant %s." % source_kind)
             continue
 
         print(lxml.etree.tostring(statement, pretty_print = True))
@@ -133,8 +133,8 @@ def checkSequence(statements):
         sys.exit("Error, non-print statement of unknown kind '%s'." % kind)
 
 
-for filename in sorted(os.listdir( ".")):
-    if not filename.endswith(".py" ) or filename.startswith("run_"):
+for filename in sorted(os.listdir(".")):
+    if not filename.endswith(".py") or filename.startswith("run_"):
         continue
 
     # Skip tests that require Python 2.7 at least.

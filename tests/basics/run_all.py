@@ -38,7 +38,7 @@ from test_common import (
     createSearchMode
 )
 
-python_version = setup( needs_io_encoding = True)
+python_version = setup(needs_io_encoding = True)
 
 search_mode = createSearchMode()
 

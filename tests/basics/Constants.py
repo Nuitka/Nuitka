@@ -32,7 +32,7 @@ def displayDict(d):
     result += "}"
 
 print("A bunch of constants and their representation:")
-for value in (0, 3, -4, 17, "hey", (0, ), 0.0, -0.0):
+for value in (0, 3, -4, 17, "hey", (0,), 0.0, -0.0):
     print(value, ":", repr(value))
 
 print("Comparing constants, optimizable:")

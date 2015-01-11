@@ -44,14 +44,14 @@ except ValueError, e:
     print("Calling nested with too long tuple gave:", e)
 
 try:
-    nested_args_function((1, ), 3)
+    nested_args_function((1,), 3)
 except ValueError, e:
     print("Calling nested with too short tuple gave:", e)
 
-def deeply_nested_function(   ((a, ), b, c,  (d, (e,f)))):
+def deeply_nested_function(   ((a,), b, c,  (d, (e,f)))):
     return a, b, c, d, e, f
 
-print("Deeply nested function", deeply_nested_function(((1, ), 2, 3, (4, (5, 6)))))
+print("Deeply nested function", deeply_nested_function(((1,), 2, 3, (4, (5, 6)))))
 
 print("Function with nested args that have defaults:")
 
