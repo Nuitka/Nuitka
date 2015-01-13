@@ -127,7 +127,7 @@ def getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,
     res_name = context.getBoolResName()
 
     emit(
-        """%s = SET_INDEX_SLICE( %s, %s, %s, %s );""" % (
+        "%s = SET_INDEX_SLICE( %s, %s, %s, %s );" % (
             res_name,
             target_name,
             lower_name,
@@ -180,7 +180,7 @@ def getSliceDelIndexesCode(target_name, lower_name, upper_name, emit, context):
     res_name = context.getBoolResName()
 
     emit(
-        """%s = DEL_INDEX_SLICE( %s, %s, %s );""" % (
+        "%s = DEL_INDEX_SLICE( %s, %s, %s );" % (
             res_name,
             target_name,
             lower_name,

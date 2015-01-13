@@ -19,7 +19,7 @@
 def starImporterFunction():
     from sys import *
 
-    print "Version", version.split()[0].split(".")[:-1]
+    print "Version", version.split()[0].split('.')[:-1]
 
 starImporterFunction()
 

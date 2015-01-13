@@ -148,7 +148,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
                 if module_package is None:
                     module_fullpath = module_name
                 else:
-                    module_fullpath = module_package + "." + module_name
+                    module_fullpath = module_package + '.' + module_name
 
                 if module_filename not in self._warned_about and \
                    module_fullpath not in getModuleWhiteList():

@@ -41,7 +41,7 @@ def lamdaContainer(x):
 
     print "Lambda defaulted gives", z()
 
-lamdaContainer("b")
+lamdaContainer('b')
 
 def lambdaGenerator():
     x = lambda : (yield 3)

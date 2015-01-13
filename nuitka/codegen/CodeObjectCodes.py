@@ -65,7 +65,7 @@ def getCodeObjectsInitCode(context):
         if Options.isStandaloneMode():
             # TODO: Make an actual difference, and have this become local
             # to the binary.
-            filename_code = """MAKE_BINARY_RELATIVE( %s )""" % (
+            filename_code = "MAKE_BINARY_RELATIVE( %s )" % (
                 context.getConstantCode(
                     constant = code_object_key[0]
                 )
@@ -90,7 +90,7 @@ def getCodeObjectsInitCode(context):
                     context  = context
                 ),
                 code_object_key[4],
-                " | ".join(co_flags) or "0",
+                " | ".join(co_flags) or '0',
             )
         else:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
@@ -107,7 +107,7 @@ def getCodeObjectsInitCode(context):
                 ),
                 code_object_key[4],
                 code_object_key[5],
-                " | ".join(co_flags) or  "0",
+                " | ".join(co_flags) or  '0',
             )
 
         statements.append(code)

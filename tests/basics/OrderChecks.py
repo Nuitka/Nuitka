@@ -180,16 +180,16 @@ def compareOrderCheck():
     print "<=", lvalue() <= rvalue()
     print ">=", lvalue() >= rvalue()
     print "!=", lvalue() != rvalue()
-    print ">", lvalue() > rvalue()
-    print "<", lvalue() < rvalue()
+    print '>', lvalue() > rvalue()
+    print '<', lvalue() < rvalue()
 
     print "Comparison used in bool context:"
     print "==", "yes" if lvalue() == rvalue() else "no"
     print "<=", "yes" if lvalue() <= rvalue() else "no"
     print ">=", "yes" if lvalue() >= rvalue() else "no"
     print "!=", "yes" if lvalue() != rvalue() else "no"
-    print ">", "yes" if lvalue() > rvalue() else "no"
-    print "<", "yes" if lvalue() < rvalue() else "no"
+    print '>', "yes" if lvalue() > rvalue() else "no"
+    print '<', "yes" if lvalue() < rvalue() else "no"
 
 
 def operatorOrderCheck():
@@ -209,11 +209,11 @@ def operatorOrderCheck():
         return 2
 
     print "Operations:"
-    print "+", left() + middle() + right()
-    print "-", left() - middle() - right()
-    print "*", left() * middle() * right()
-    print "/", left() / middle() / right()
-    print "%", left() % middle() % right()
+    print '+', left() + middle() + right()
+    print '-', left() - middle() - right()
+    print '*', left() * middle() * right()
+    print '/', left() / middle() / right()
+    print '%', left() % middle() % right()
     print "**", left() ** middle() ** right()
 
 def generatorOrderCheck():

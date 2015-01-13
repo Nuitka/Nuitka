@@ -242,7 +242,7 @@ class InspectNodeTreeDialog(QtGui.QDialog):
         line = 1
 
         for char in code:
-            if char == "\n":
+            if char == '\n':
                 line += 1
 
         # print "Line", line

@@ -26,14 +26,14 @@ except NameError:
 
 
 def displayDict(d):
-    result = "{"
+    result = '{'
     for key, value in sorted(d.items()):
         result += "%s: %s" % (key, value)
-    result += "}"
+    result += '}'
 
 print("A bunch of constants and their representation:")
 for value in (0, 3, -4, 17, "hey", (0,), 0.0, -0.0):
-    print(value, ":", repr(value))
+    print(value, ':', repr(value))
 
 print("Comparing constants, optimizable:")
 print(1 == 0)
@@ -69,7 +69,7 @@ print("Empty list and dict are hopefully still unchanged:")
 print(({}, []))
 
 print("Set constants:")
-print(set(['foo']))
+print(set(["foo"]))
 
 def mutableConstantChanger():
     a = ([1, 2], [3])
@@ -82,13 +82,13 @@ def mutableConstantChanger():
     print(a)
 
     d = {
-        "l": [],
-        "m" : []
+        'l': [],
+        'm' : []
     }
     print("Start out with value:")
     print(d)
 
-    d["l"].append(7)
+    d['l'].append(7)
     print("Changed to value:")
     print(d)
 

@@ -128,7 +128,7 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
 
     # TODO: Use branch C codes to achieve proper indentation
     emit(
-        "}"
+        '}'
     )
 
 
@@ -240,7 +240,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
 
             emit("PyErr_Clear();")
             emit("if (%s != NULL)" % value_name)
-            emit("{")
+            emit('{')
 
             context.addCleanupTempName(value_name)
             getVariableAssignmentCode(
@@ -251,4 +251,4 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
                 context       = context
             )
 
-            emit("}")
+            emit('}')

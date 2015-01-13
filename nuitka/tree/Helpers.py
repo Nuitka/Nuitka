@@ -46,7 +46,7 @@ def dump(node):
 
 
 def getKind(node):
-    return node.__class__.__name__.split(".")[-1]
+    return node.__class__.__name__.split('.')[-1]
 
 
 def extractDocFromBody(node):
@@ -478,7 +478,7 @@ def mangleName(variable_name, owner):
             return variable_name
         else:
             return "_%s%s" % (
-                class_container.getName().lstrip("_"),
+                class_container.getName().lstrip('_'),
                 variable_name
             )
 

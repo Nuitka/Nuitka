@@ -92,7 +92,7 @@ z = 1
 """)
 
     if sys.version_info[0] < 3:
-        return z, locals().keys() == ["z"]
+        return z, locals().keys() == ['z']
     else:
         return locals().keys() == []
 

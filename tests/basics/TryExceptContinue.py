@@ -31,10 +31,10 @@ def tryWhileExceptContinueTest():
             if x % 2 == 1:
                 undefined
         except:
-            print(x, end = " ")
+            print(x, end = ' ')
             continue
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -46,10 +46,10 @@ def tryForExceptContinueTest():
             if x % 2 == 1:
                 undefined
         except:
-            print(x, end = " ")
+            print(x, end = ' ')
             continue
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -65,10 +65,10 @@ def tryWhileExceptBreakTest():
             if x == 5:
                 undefined
         except:
-            print(x, end = " ")
+            print(x, end = ' ')
             break
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -80,10 +80,10 @@ def tryForExceptBreakTest():
             if x == 5:
                 undefined
         except:
-            print(x, end = " ")
+            print(x, end = ' ')
             break
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 

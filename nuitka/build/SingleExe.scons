@@ -47,7 +47,7 @@ def getBoolOption(option_name, default):
     """ Small helper for boolean mode flags."""
     value = ARGUMENTS.get(option_name, "True" if default else "False")
 
-    return value.lower() in ("yes", "true", "1")
+    return value.lower() in ("yes", "true", '1')
 
 # The directory to use for cache directory.
 cache_mode = getBoolOption("cache_mode", False)
@@ -126,14 +126,14 @@ icon_path = ARGUMENTS.get("icon_path", None)
 msvc_version = ARGUMENTS.get("msvc_version", None)
 
 # Amount of jobs to use.
-job_count = GetOption('num_jobs')
+job_count = GetOption("num_jobs")
 
 def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
 
     # Variable substitution from environment is needed, because this can contain
     # "$CC" which should be looked up too.
-    while filename.startswith("$"):
+    while filename.startswith('$'):
         filename = env[filename[1:]]
 
     # Append ".exe" suffix  on Windows if not already present.
@@ -142,9 +142,9 @@ def getExecutablePath(filename, initial):
 
     # Search in "PATH" environment for a file named like it.
     if os.name == "nt":
-        separator = ";"
+        separator = ';'
     else:
-        separator = ":"
+        separator = ':'
 
     # Either look at the initial "PATH" as given from the outside or look at the
     # current environment.
@@ -260,7 +260,7 @@ def setupSpawn(env):
             for arg in
             args[1:]
         )
-        cmdline = cmd + " " + newargs
+        cmdline = cmd + ' ' + newargs
         startupinfo = subprocess.STARTUPINFO()
 
         # Remove useless quoted include directories to "windres", which does not
@@ -313,10 +313,10 @@ def setupSpawn(env):
         elif cmd == "rc":
             data = data[data.find("reserved.\r") + 13:]
 
-            data = "\n".join(
+            data = '\n'.join(
                 line
                 for line in
-                data.split("\n")
+                data.split('\n')
                 if not "identifier truncated to"
             )
         elif cmd == "link" and module_mode:
@@ -347,9 +347,9 @@ def getGccVersion():
 
     pipe = SCons.Action._subproc(
         env,
-        [env["CXX"], '--version'],
-        stdin  = 'devnull',
-        stderr = 'devnull',
+        [env["CXX"], "--version"],
+        stdin  = "devnull",
+        stderr = "devnull",
         stdout = subprocess.PIPE
     )
 
@@ -366,9 +366,9 @@ def getClangVersion():
     import SCons
 
     pipe = SCons.Action._subproc(
-        env, [env["CXX"], '--version'],
-        stdin  = 'devnull',
-        stderr = 'devnull',
+        env, [env["CXX"], "--version"],
+        stdin  = "devnull",
+        stderr = "devnull",
         stdout = subprocess.PIPE
     )
 
@@ -398,7 +398,7 @@ orig_cxx_version = env.get("CXXVERSION", None)
 if "g++" in (env["CXX"] or "") and "clang" not in (env["CXX"] or ""):
     gpp_version = getGccVersion()
 
-    if gpp_version is None or int(gpp_version.replace(".", "")) < 440:
+    if gpp_version is None or int(gpp_version.replace('.', "")) < 440:
         env["CXX"] = None
 
 # Detect compiler to be used from supported ones, if there is no usable g++
@@ -479,7 +479,7 @@ if os.name == "nt":
 env["BUILD_DIR"] = source_dir
 
 # Store the file signatures database with the rest of the source files
-sconsign_dir = os.path.abspath(os.path.join(source_dir, '.sconsign'))
+sconsign_dir = os.path.abspath(os.path.join(source_dir, ".sconsign"))
 
 if not os.path.exists(sconsign_dir):
     os.makedirs(sconsign_dir)
@@ -512,7 +512,7 @@ if "clang" in env["CXX"]:
         )
 
     clang_version = getClangVersion()
-    clang_version = int(clang_version.replace(".", "") + "0")
+    clang_version = int(clang_version.replace('.', "") + '0')
 
 if gcc_mode:
     if not win_target:
@@ -528,11 +528,11 @@ if "g++" in env["CXX"] and "clang" not in env["CXX"]:
     # Don't export anything by default, this should create smaller executables.
 
     if env.get("CXXVERSION", None) is None or \
-       env.get("CXXVERSION").count(".") < 2:
+       env.get("CXXVERSION").count('.') < 2:
         env["CXXVERSION"] = getGccVersion()
 
     # Version dependent options.
-    gpp_version = int(env["CXXVERSION"].replace(".", ""))
+    gpp_version = int(env["CXXVERSION"].replace('.', ""))
 
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
@@ -704,9 +704,9 @@ if python_debug:
 def detectHostMultiarch():
     import commands
 
-    for line in commands.getoutput("dpkg-architecture").split("\n"):
+    for line in commands.getoutput("dpkg-architecture").split('\n'):
         if line.startswith("DEB_HOST_MULTIARCH="):
-            return line.split("=", 1)[1]
+            return line.split('=', 1)[1]
     else:
         return None
 
@@ -804,16 +804,16 @@ if win_target:
         import commands, shutil
         command = r"gendef - %s\SysWOW64\python%s.dll" % (
                 os.environ["WINDIR"],
-                python_version.replace(".", "")
+                python_version.replace('.', "")
             )
 
         defs_filename = os.path.join(
             new_win_lib_path,
-            "python%s.defs" % python_version.replace(".", "")
+            "python%s.defs" % python_version.replace('.', "")
         )
         defs_file = open(
             defs_filename,
-            "w"
+            'w'
         )
 
         startupinfo = subprocess.STARTUPINFO()
@@ -843,13 +843,13 @@ if win_target:
         defs_file.close()
         defs_file = open(
             defs_filename,
-            "r"
+            'r'
         )
         defs = defs_file.read()
         defs_file.close()
         defs_file = open(
             defs_filename,
-            "w"
+            'w'
         )
         defs_file.write(defs.replace("Py_InitModule4", "Py_InitModule4_64"))
         defs_file.close()
@@ -857,14 +857,14 @@ if win_target:
         shutil.copy(
             r"%s\SysWOW64\python%s.dll" % (
                 os.environ["WINDIR"],
-                python_version.replace(".", "")
+                python_version.replace('.', "")
             ),
             new_win_lib_path
         )
 
         lib_filename = os.path.join(
             new_win_lib_path,
-            "libpython%s.a" % python_version.replace(".", "")
+            "libpython%s.a" % python_version.replace('.', "")
         )
 
         dll_tool = os.path.join(
@@ -891,12 +891,12 @@ if win_target:
         win_lib_path = new_win_lib_path
 
     env.Append(LIBPATH = [win_lib_path])
-    env.Append(LIBS = ["python" + python_version.replace(".", "")])
+    env.Append(LIBS = ["python" + python_version.replace('.', "")])
 else:
     # Debian and Ubuntu distinguish the system libraries like this.
     if python_debug and \
        python_prefix == "/usr" and \
-       not python_version.startswith("3") and \
+       not python_version.startswith('3') and \
        platform.dist()[0].lower() in ("debian", "ubuntu"):
         env.Append(LIBS = ["python" + python_version + "_d"])
     else:
@@ -904,7 +904,7 @@ else:
 
     if python_prefix != "/usr" and "linux" in sys.platform:
         env.Append(
-            LIBS = ["dl", "pthread", "util", "m"]
+            LIBS = ["dl", "pthread", "util", 'm']
         )
 
         if gcc_mode and "clang" not in env["CXX"]:
@@ -1040,8 +1040,8 @@ elif gcc_mode and getLinkerArch() is not None:
             "-Wl,-b", "-Wl,%s" % getLinkerArch(),
             "-Wl,-defsym",
             "-Wl,%sconstant_bin=_binary_%s___constants_bin_start" % (
-                "_" if mingw_mode else "",
-                "".join(re.sub("[^a-zA-Z0-9_]","_",c) for c in source_dir)
+                '_' if mingw_mode else "",
+                "".join(re.sub("[^a-zA-Z0-9_]",'_',c) for c in source_dir)
             )
         ]
     )
@@ -1053,15 +1053,15 @@ else:
         "__constants_data.c"
     )
 
-    with open(constants_generated_filename, "w") as output:
-        output.write("""const unsigned char constant_bin[] =\n{\n""")
+    with open(constants_generated_filename, 'w') as output:
+        output.write("const unsigned char constant_bin[] =\n{\n")
 
         for count, stream_byte in enumerate(
                 open(constants_bin_filename, "rb").read()
             ):
             if count % 16 == 0:
                 if count > 0:
-                    output.write("\n")
+                    output.write('\n')
 
                 output.write("   ")
 
@@ -1106,7 +1106,7 @@ def discoverSourceFiles():
     result = []
 
     def getStatic(sub_path):
-       return os.path.join(static_src, sub_path.replace("/", os.path.sep))
+       return os.path.join(static_src, sub_path.replace('/', os.path.sep))
 
     result.append(getStatic("CompiledFunctionType.cpp"))
     result.append(getStatic("CompiledGeneratorType.cpp"))
@@ -1162,7 +1162,7 @@ if win_target:
     if not module_mode:
 
         rc_content.append(
-            '3 RCDATA "%s"' % constants_bin_filename.replace("\\", "/")
+            '3 RCDATA "%s"' % constants_bin_filename.replace('\\', '/')
         )
 
         rc_file_dependencies.append(constants_bin_filename)
@@ -1211,7 +1211,7 @@ if win_target:
                 # Need to reduce to what we use, and remove the quoting of the
                 # actual manifest. We created a full "rc" file, but that we do
                 # not have use for.
-                manifest_file = open(manifest_filename, "r")
+                manifest_file = open(manifest_filename, 'r')
                 inside = False
                 contents = []
                 for line in manifest_file:
@@ -1229,7 +1229,7 @@ if win_target:
                         line[line.find('"')+1:line.rfind('"')]
                     )
 
-                manifest_file = open(manifest_filename, "w")
+                manifest_file = open(manifest_filename, 'w')
                 manifest_file.write("".join(contents[1:-1]))
                 manifest_file.close()
 
@@ -1242,7 +1242,7 @@ if win_target:
         if icon_path:
             rc_content.append(
                 '2 ICON MOVEABLE PURE LOADONCALL DISCARDABLE "%s"' % (
-                    icon_path.replace("\\", "/")
+                    icon_path.replace('\\', '/')
                 )
             )
 
@@ -1250,13 +1250,13 @@ if win_target:
 
     rc_filename = os.path.join(source_dir, "resources.rc")
 
-    rc_file = open(rc_filename, "w")
+    rc_file = open(rc_filename, 'w')
 
     rc_content.insert(
         0,
         '#include "winuser.h"'
     )
-    rc_file.write("\n".join(rc_content))
+    rc_file.write('\n'.join(rc_content))
     rc_file.close()
 
     res_target = env.RES(rc_filename)

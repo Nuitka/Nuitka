@@ -55,7 +55,7 @@ class NodeCheckMetaClass(type):
                     return value.title()
 
             kind_to_name_part = "".join(
-                [convert(x) for x in kind.split("_")]
+                [convert(x) for x in kind.split('_')]
             )
             assert name.endswith(kind_to_name_part), \
               (name, kind_to_name_part)
@@ -271,7 +271,7 @@ class NodeBase(NodeMetaClassBase):
         for key, value in iterItems(self.getDetails()):
             value = str(value)
 
-            if value.startswith("<") and value.endswith(">"):
+            if value.startswith('<') and value.endswith('>'):
                 value = value[1:-1]
 
             result.set(key, str(value))
@@ -481,7 +481,7 @@ class CodeNodeBase(NodeBase):
             if name is not None:
                 result = "%s__%s" % (name, result)
 
-        assert "<" not in result, result
+        assert '<' not in result, result
 
         return result
 
@@ -495,7 +495,7 @@ class CodeNodeBase(NodeBase):
             assert isinstance(self, CodeNodeBase)
 
             if self.name:
-                name = uid + "_" + self.name
+                name = uid + '_' + self.name
             else:
                 name = uid
 

@@ -24,7 +24,7 @@ def someFunctionWritingLocals():
     y = 2
 
     # This adds z to the locals, but only that.
-    r[ "z" ] = 3
+    r[ 'z' ] = 3
     del x
 
     try:
@@ -42,7 +42,7 @@ def someFunctionWritingLocalsContainingExec():
     y = 2
 
     # This adds z to the locals, but only that.
-    r[ "z" ] = 3
+    r[ 'z' ] = 3
 
     try:
         z
@@ -137,10 +137,10 @@ print "Tuple from iterable", tuple("cda"), tuple()
 print "Tuple from sequence", tuple(sequence = (0, 1, 2))
 
 print "Dictionary from iterable and keywords", dict(("ab", (1, 2)), f = 1, g = 1)
-print "More constant dictionaries", {'two': 2, 'one': 1}, {}, dict()
-g = {'two': 2, 'one': 1}
+print "More constant dictionaries", {"two": 2, "one": 1}, {}, dict()
+g = {"two": 2, "one": 1}
 print "Variable dictionary", dict(g)
-print "Found during optimization", dict(dict({'le': 2, 'la': 1}), fu = 3), dict(named = dict({'le': 2, 'la': 1}))
+print "Found during optimization", dict(dict({"le": 2, "la": 1}), fu = 3), dict(named = dict({"le": 2, "la": 1}))
 
 print "Floats from constants", float("3.0"), float(x = 9.0), float()
 print "Found during optimization", float(float("3.2")), float(x = float(11.0))
@@ -151,11 +151,11 @@ print "Found during optimization", str(float("3.3")), str(object = float(12.0))
 print "Bools from constants", bool("3.3"), bool(x = 9.1), bool(0), bool()
 print "Found during optimization", bool(float("3.3")), bool(x = float(0.0))
 
-print "Ints from constants", int("3"), int(x = "9" ), int("f", 16), int(x = "e", base = 16), int("0101", base = 2), int(0), int()
-print "Found ints during optimization", int(int("3")), int(x = int(0.0))
+print "Ints from constants", int('3'), int(x = '9' ), int('f', 16), int(x = 'e', base = 16), int("0101", base = 2), int(0), int()
+print "Found ints during optimization", int(int('3')), int(x = int(0.0))
 
-print "Longs from constants", long("3"), long(x = "9"), long("f", 16), long(x = "e", base = 16), long("0101", base = 2), long(0), long()
-print "Found longs during optimization", long(long("3")), long(x = long(0.0))
+print "Longs from constants", long('3'), long(x = '9'), long('f', 16), long(x = 'e', base = 16), long("0101", base = 2), long(0), long()
+print "Found longs during optimization", long(long('3')), long(x = long(0.0))
 
 try:
     print "Int with only base", int(base = 2),
@@ -180,14 +180,14 @@ else:
 
 
 print "Oct from constants", oct(467), oct(0)
-print "Found during optimization", oct(int("3"))
+print "Found during optimization", oct(int('3'))
 
 print "Hex from constants", hex(467), hex(0)
-print "Found during optimization", hex(int("3"))
+print "Found during optimization", hex(int('3'))
 
 
 print "Bin from constants", bin(467), bin(0)
-print "Found during optimization", bin(int("3"))
+print "Found during optimization", bin(int('3'))
 
 try:
     int(1,2,3)
@@ -200,9 +200,9 @@ except Exception as e:
     print "Wrong arg", repr(e)
 
 f = 3
-print "Unoptimized call of int", int("0" * f, base = 16)
+print "Unoptimized call of int", int('0' * f, base = 16)
 
-d = { "x" : "12", "base" : 8 }
+d = { 'x' : "12", "base" : 8 }
 print "Dict call of int", int(**d)
 
 
@@ -246,7 +246,7 @@ except Exception as e:
     print "Too many args, some keywords", repr(e)
 
 try:
-    print str("1", offer = 2)
+    print str('1', offer = 2)
 except Exception as e:
     print "Too many args, some keywords", repr(e)
 
@@ -258,7 +258,7 @@ print "Can optimize the empty star list arg away", int(*tuple()),
 print "Can optimize the empty star dict arg away", long(**dict())
 
 print "Dict building with keyword arguments", dict(), dict(a = f)
-print "Dictionary entirely from constant args", dict(q = 'Guido', w = 'van', e = 'Rossum', r = 'invented', t = 'Python', y = '')
+print "Dictionary entirely from constant args", dict(q = "Guido", w = "van", e = "Rossum", r = "invented", t = "Python", y = "")
 
 a = 5
 print "Instance check recognises", isinstance(a, int)
@@ -288,8 +288,8 @@ print( [dict(type = int)] )
 
 print "nan and -nan sign checks:"
 from math import copysign
-print copysign(1.0, float('nan'))
-print copysign(1.0, float('-nan'))
+print copysign(1.0, float("nan"))
+print copysign(1.0, float("-nan"))
 
 print "Using != to detect nan floats:"
 a = float("nan")
@@ -305,7 +305,7 @@ class CustomByteArray(bytearray): pass
 values = [
     b'100',
     bytearray(b'100'),
-    CustomStr('100'),
+    CustomStr("100"),
     CustomBytes(b'100'),
     CustomByteArray(b'100')
 ]

@@ -35,7 +35,7 @@ def printIndented(level, *what):
     print("    " * level, *what)
 
 def printSeparator(level = 0):
-    print("    " * level, "*" * 10)
+    print("    " * level, '*' * 10)
 
 def printLine(*what):
     print(*what)

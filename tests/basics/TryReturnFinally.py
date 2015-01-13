@@ -32,11 +32,11 @@ def returnInTried():
     try:
         return eight()
     finally:
-        print("returnInTried", end = " ")
+        print("returnInTried", end = ' ')
 
 def returnInFinally():
     try:
-        print("returnInFinally tried", end = " ")
+        print("returnInFinally tried", end = ' ')
     finally:
         return nine()
 

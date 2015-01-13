@@ -202,7 +202,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         if seen_function:
                             node.setAttributeName(
                                 "_%s%s" % (
-                                    current.getName().lstrip("_"),
+                                    current.getName().lstrip('_'),
                                     attribute_name
                                 )
                             )

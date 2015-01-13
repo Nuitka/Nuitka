@@ -24,7 +24,7 @@ def tryContinueFinallyTest():
         finally:
             yield x
 
-        yield "-"
+        yield '-'
 
 
 def tryBreakFinallyTest():
@@ -35,7 +35,7 @@ def tryBreakFinallyTest():
         finally:
             yield x
 
-        yield "-"
+        yield '-'
 
 def tryFinallyAfterYield():
     try:

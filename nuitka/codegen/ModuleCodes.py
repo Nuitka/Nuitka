@@ -105,7 +105,7 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
     local_var_inits += [
         "%s%s%s;" % (
             tmp_type,
-            " " if not tmp_type.endswith("*") else "",
+            ' ' if not tmp_type.endswith('*') else "",
             tmp_name
         )
         for tmp_name, tmp_type in
@@ -184,7 +184,7 @@ def getModuleCode(module_context, template_values):
 
 def generateModuleFileAttributeCode(to_name, expression, emit, context):
     emit(
-        """%s = MAKE_BINARY_RELATIVE( %s );""" % (
+        "%s = MAKE_BINARY_RELATIVE( %s );" % (
             to_name,
             context.getConstantCode(
                 constant = expression.getRunTimeFilename()

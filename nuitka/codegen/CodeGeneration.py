@@ -491,7 +491,7 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
     )
 
     if function_body.getClosureVariables() and not function_body.isGenerator():
-        function_decl += "\n"
+        function_decl += '\n'
 
         function_decl += Generator.getFunctionContextDefinitionCode(
             function_identifier = function_body.getCodeName(),
@@ -2967,7 +2967,7 @@ if ( %(continue_name)s )
         else:
             Generator.getGotoCode(old_continue_target, emit)
 
-        emit("}")
+        emit('}')
     if statement.needsBreakHandling():
         emit(
             """\
@@ -2985,7 +2985,7 @@ if ( %(break_name)s )
         else:
             Generator.getGotoCode(old_break_target, emit)
 
-        emit("}")
+        emit('}')
 
     final_end_target = context.allocateLabel("finally_end")
     Generator.getGotoCode(final_end_target, emit)
@@ -3859,7 +3859,7 @@ def _generateStatementCode(statement, emit, context):
         )
         if Utils.python_version >= 300:
             emit(
-                """PyException_SetTraceback( exception_value, (PyObject *)exception_tb );"""
+                "PyException_SetTraceback( exception_value, (PyObject *)exception_tb );"
             )
 
         emit(
@@ -4003,13 +4003,13 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             frame_return_exit     = frame_return_exit,
             provider              = provider,
             context               = context
-        ).split("\n")
+        ).split('\n')
     elif guard_mode == "pass_through":
         assert provider.isExpressionFunctionBody()
 
         # This case does not care about "needs_preserve", as for that kind
         # of frame, it is an empty code stub anyway.
-        codes = "\n".join(local_emit.codes),
+        codes = '\n'.join(local_emit.codes),
     elif guard_mode == "full":
         assert provider.isExpressionFunctionBody()
 
@@ -4026,7 +4026,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             needs_preserve        = needs_preserve,
             provider              = provider,
             context               = context
-        ).split("\n")
+        ).split('\n')
     elif guard_mode == "once":
         codes = Generator.getFrameGuardOnceCode(
             frame_identifier      = context.getFrameHandle(),
@@ -4041,7 +4041,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             needs_preserve        = needs_preserve,
             provider              = provider,
             context               = context
-        ).split("\n")
+        ).split('\n')
     else:
         assert False, guard_mode
 

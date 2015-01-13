@@ -71,7 +71,7 @@ print "exec in function without and with locals() provided:", functionExec1(), f
 
 tmp_filename = tempfile.gettempdir() + "/execfile.py"
 
-f = open(tmp_filename, "w")
+f = open(tmp_filename, 'w')
 f.write("e=7\nf=8\n")
 f.close()
 
@@ -136,7 +136,7 @@ print "Global value is untouched", f
 def functionEvalNones2():
     f = 11
 
-    code = "f"
+    code = 'f'
     g = None
     l = None
 

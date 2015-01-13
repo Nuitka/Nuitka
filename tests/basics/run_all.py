@@ -45,7 +45,7 @@ search_mode = createSearchMode()
 # Create large constants test on the fly, if it's not there, not going to
 # add it to release archives for no good reason.
 if not os.path.exists("BigConstants.py"):
-    with open("BigConstants.py", "w") as output:
+    with open("BigConstants.py", 'w') as output:
         output.write(
             "# Automatically generated test, not part of releases or git.\n\n"
         )
@@ -54,7 +54,7 @@ if not os.path.exists("BigConstants.py"):
         )
 
 # Now run all the tests in this directory.
-for filename in sorted(os.listdir(".")):
+for filename in sorted(os.listdir('.')):
     if not filename.endswith(".py"):
         continue
 
@@ -100,7 +100,7 @@ for filename in sorted(os.listdir(".")):
             my_print("Skipped (no debug Python)")
             continue
 
-        needs_2to3 = python_version.startswith("3") and \
+        needs_2to3 = python_version.startswith('3') and \
                      not filename.endswith("32.py") and \
                      not filename.endswith("33.py")
 

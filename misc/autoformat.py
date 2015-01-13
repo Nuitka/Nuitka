@@ -84,6 +84,38 @@ def updateTuple(tuple_node):
             if argument.type in ("string", "binary_string", "raw_string"):
                 argument.second_formatting = ""
 
+def updateString(string_node):
+    # Skip doc strings for now.
+    if string_node.parent.type in ("class", "def", None):
+        return
+
+    value = string_node.value
+
+    def isQuotedWith(quote):
+        return value.startswith(quote) and value.endswith(quote)
+
+    for quote in "'''", '"""', "'", '"':
+        if isQuotedWith(quote):
+            break
+    else:
+        assert False, value
+
+    real_value = value[len(quote):-len(quote)]
+    assert quote + real_value + quote == value
+
+    if "\n" not in real_value:
+        # Single characters, should be quoted with "'"
+        if len(eval(value)) == 1:
+            if real_value != "'":
+                string_node.value = "'" + real_value + "'"
+        else:
+            if '"' not in real_value:
+                string_node.value = '"' + real_value + '"'
+
+
+
+
+
 
 for node in red.find_all("CallNode"):
     try:
@@ -108,6 +140,15 @@ for node in red.find_all("ListNode"):
         print("Problem with", node)
         node.help(deep = True, with_formatting = True)
         raise
+
+for node in red.find_all("StringNode"):
+    try:
+        updateString(node)
+    except Exception:
+        print("Problem with", node)
+        node.help(deep = True, with_formatting = True)
+        raise
+
 
 with open(sys.argv[1], "w") as source_code:
     source_code.write(red.dumps())

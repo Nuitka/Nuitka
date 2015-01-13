@@ -189,7 +189,7 @@ class ParameterSpec(ParameterSpecTuple):
             parts.append("**%s" % self.dict_star_variable)
 
         if parts:
-            return "<ParameterSpec '%s'>" % ",".join(parts)
+            return "<ParameterSpec '%s'>" % ','.join(parts)
         else:
             return "<NoParameters>"
 

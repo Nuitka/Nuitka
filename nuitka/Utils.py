@@ -195,14 +195,14 @@ def encodeNonAscii(var_name):
         var_name = var_name.encode("ascii", "xmlcharrefreplace")
         var_name = var_name.decode("ascii")
 
-        return var_name.replace("&#", "$$").replace(";", "")
+        return var_name.replace("&#", "$$").replace(';', "")
 
 
 def isExecutableCommand(command):
     path = os.environ["PATH"]
 
     suffixes = (".exe",) if getOS() == "Windows" else ("",)
-    path_sep = ";" if getOS() == "Windows" else ":"
+    path_sep = ';' if getOS() == "Windows" else ':'
 
     for part in path.split(path_sep):
         if not part:
@@ -229,17 +229,17 @@ def getOwnProcessMemoryUsage():
         # pylint: disable=C0103
         class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
             _fields_ = [
-                ('cb', wintypes.DWORD),
-                ('PageFaultCount', wintypes.DWORD),
-                ('PeakWorkingSetSize', ctypes.c_size_t),
-                ('WorkingSetSize', ctypes.c_size_t),
-                ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
-                ('QuotaPagedPoolUsage', ctypes.c_size_t),
-                ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
-                ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
-                ('PagefileUsage', ctypes.c_size_t),
-                ('PeakPagefileUsage', ctypes.c_size_t),
-                ('PrivateUsage', ctypes.c_size_t),
+                ("cb", wintypes.DWORD),
+                ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+                ("PrivateUsage", ctypes.c_size_t),
             ]
 
         GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo

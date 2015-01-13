@@ -18,10 +18,10 @@
 from __future__ import print_function
 
 def displayDict(d):
-    result = "{"
+    result = '{'
     for key, value in sorted(d.items()):
         result += "%s: %s" % (key, value)
-    result += "}"
+    result += '}'
 
 print("List contraction on the module level:")
 x = [(u if u%2==0 else 0) for u in range(10)]

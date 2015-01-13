@@ -71,7 +71,7 @@ and put it in APPDATA (no installer needed, cached, one time question).""")
 
         reply = raw_input("Proceed and download? [Yes]/No ")
 
-        if reply.lower() in ("no", "n"):
+        if reply.lower() in ("no", 'n'):
             sys.exit("Nuitka does not work in --standalone on Windows without.")
 
         info("Downloading '%s'" % depends_url)
@@ -219,12 +219,12 @@ def _detectedShlibFile(filename, module_name):
     if module_name == "__main__":
         return
 
-    parts = module_name.split(".")
+    parts = module_name.split('.')
     if len(parts) == 1:
         package_name = None
         name = module_name
     else:
-        package_name = ".".join(parts[:-1])
+        package_name = '.'.join(parts[:-1])
         name = parts[-1]
 
     from nuitka.nodes.FutureSpecs import FutureSpec
@@ -267,7 +267,7 @@ def _detectImports(command, is_late):
 
     try:
         if Utils.python_version >= 300:
-            command = command.encode('ascii')
+            command = command.encode("ascii")
         os.write(tmp_file, command)
         os.close(tmp_file)
 
@@ -379,28 +379,28 @@ def scanStandardLibraryPath(stdlib_dir):
     # is many of them, but that's acceptable, pylint: disable=R0912
 
     for root, dirs, filenames in os.walk(stdlib_dir):
-        import_path = root[len(stdlib_dir):].strip('/\\')
-        import_path = import_path.replace("\\", ".").replace("/",".")
+        import_path = root[len(stdlib_dir):].strip("/\\")
+        import_path = import_path.replace('\\', '.').replace('/','.')
 
-        if import_path == '':
-            if 'site-packages' in dirs:
-                dirs.remove('site-packages')
-            if 'dist-packages' in dirs:
-                dirs.remove('dist-packages')
-            if 'test' in dirs:
-                dirs.remove('test')
-            if 'idlelib' in dirs:
-                dirs.remove('idlelib')
-            if 'turtledemo' in dirs:
-                dirs.remove('turtledemo')
+        if import_path == "":
+            if "site-packages" in dirs:
+                dirs.remove("site-packages")
+            if "dist-packages" in dirs:
+                dirs.remove("dist-packages")
+            if "test" in dirs:
+                dirs.remove("test")
+            if "idlelib" in dirs:
+                dirs.remove("idlelib")
+            if "turtledemo" in dirs:
+                dirs.remove("turtledemo")
 
-        if import_path in ('tkinter', 'importlib', 'ctypes'):
-            if 'test' in dirs:
-                dirs.remove('test')
+        if import_path in ("tkinter", "importlib", "ctypes"):
+            if "test" in dirs:
+                dirs.remove("test")
 
         if import_path == "lib2to3":
-            if 'tests' in dirs:
-                dirs.remove('tests')
+            if "tests" in dirs:
+                dirs.remove("tests")
 
         if Utils.python_version >= 340 and Utils.getOS() == "Windows":
             if import_path == "multiprocessing":
@@ -409,19 +409,19 @@ def scanStandardLibraryPath(stdlib_dir):
                 filenames.remove("popen_spawn_posix.py")
 
         for filename in filenames:
-            if filename.endswith('.py') and filename not in ignore_modules:
+            if filename.endswith(".py") and filename not in ignore_modules:
                 module_name = filename[:-3]
-                if import_path == '':
+                if import_path == "":
                     yield module_name
                 else:
                     yield import_path + '.' + module_name
 
         if Utils.python_version >= 300:
-            if '__pycache__' in dirs:
-                dirs.remove('__pycache__')
+            if "__pycache__" in dirs:
+                dirs.remove("__pycache__")
 
         for dirname in dirs:
-            if import_path == '':
+            if import_path == "":
                 yield dirname
             else:
                 yield import_path + '.' + dirname
@@ -436,12 +436,12 @@ def detectEarlyImports():
             for module_name in scanStandardLibraryPath(stdlib_dir):
                 stdlib_modules.add(module_name)
 
-        import_code = 'imports = ' + repr(sorted(stdlib_modules)) + '\n'\
-                      'for imp in imports:\n' \
-                      '    try:\n' \
-                      '        __import__(imp)\n' \
-                      '    except ImportError:\n' \
-                      '        pass\n'
+        import_code = "imports = " + repr(sorted(stdlib_modules)) + '\n'\
+                      "for imp in imports:\n" \
+                      "    try:\n" \
+                      "        __import__(imp)\n" \
+                      "    except ImportError:\n" \
+                      "        pass\n"
     else:
         # TODO: Should recursively include all of encodings module.
         import_code = "import encodings.utf_8;import encodings.ascii;import encodings.idna;"
@@ -541,7 +541,7 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
     # Put the PYTHONPATH into the system "PATH", DLLs frequently live in
     # the package directories.
     env = os.environ.copy()
-    path = env.get("PATH","").split(";")
+    path = env.get("PATH","").split(';')
 
     # Put the "Python.exe" first. At least for WinPython, they put the DLLs
     # there.
@@ -555,7 +555,7 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
                 path.append(candidate)
 
 
-    env["PATH"] = ";".join(path)
+    env["PATH"] = ';'.join(path)
 
     return env
 
@@ -567,7 +567,7 @@ def _detectBinaryPathDLLsWindows(binary_filename, package_name):
 
     # The search order by default prefers the system directory, where a
     # wrong "PythonXX.dll" might be living.
-    with open(binary_filename + ".dwp", "w") as dwp_file:
+    with open(binary_filename + ".dwp", 'w') as dwp_file:
         dwp_file.write("""\
 KnownDLLs
 SysPath
@@ -605,14 +605,14 @@ SxS
         if "| Module List |" in line:
             break
 
-        if "]" not in line:
+        if ']' not in line:
             continue
 
         # Skip missing DLLs, apparently not needed anyway.
-        if "?" in line[:line.find("]")]:
+        if '?' in line[:line.find(']')]:
             continue
 
-        dll_filename = line[line.find("]")+2:-1]
+        dll_filename = line[line.find(']')+2:-1]
         assert Utils.isFile(dll_filename), dll_filename
 
         # The executable itself is of course exempted.

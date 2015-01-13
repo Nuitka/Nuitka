@@ -39,7 +39,7 @@ def tryScope1(x):
         print("No exception occurred")
 
 tryScope1(1)
-print("*" * 20)
+print('*' * 20)
 tryScope1([1])
 
 def tryScope2(x, someExceptionClass):
@@ -60,18 +60,18 @@ def tryScope3(x):
         print("Not taken")
 
 
-print("*" * 20)
+print('*' * 20)
 
 tryScope2(1, TypeError)
 tryScope2([1], TypeError)
 
-print("*" * 20)
+print('*' * 20)
 
 tryScope3(1)
 tryScope3([1])
 tryScope3([])
 
-print("*" * 20)
+print('*' * 20)
 
 def tryScope4(x):
     try:

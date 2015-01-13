@@ -31,7 +31,7 @@ except Exception as e:
     print("Inside handler, sys.exc_info is this", sys.exc_info())
 
 print("After catching, sys.exc_info is this", sys.exc_info())
-print("*" * 20)
+print('*' * 20)
 
 print("Raising an exception instance in a function:")
 
@@ -45,7 +45,7 @@ except Exception as f:
     print("Inside handler, sys.exc_info is this", sys.exc_info())
 
 print("After catching, sys.exc_info is this", sys.exc_info())
-print("*" * 20)
+print('*' * 20)
 
 print("Raising an exception, then catch it to re-raise it:")
 
@@ -62,7 +62,7 @@ except:
     print("Catched reraised", sys.exc_info())
 
 print("After catching, sys.exc_info is this", sys.exc_info())
-print("*" * 20)
+print('*' * 20)
 
 print("Access an undefined global variable in a function:")
 
@@ -75,7 +75,7 @@ except:
     print("NameError caught", sys.exc_info())
 
 print("After catching, sys.exc_info is this", sys.exc_info())
-print("*" * 20)
+print('*' * 20)
 
 print("Raise a new style class as an exception, should be rejected:")
 
@@ -94,7 +94,7 @@ except:
     assert False, "Error, new style class exception was not rejected"
 
 print("After catching, sys.exc_info is this", sys.exc_info())
-print("*" * 20)
+print('*' * 20)
 
 print("Raise an old-style class, version dependent outcome:")
 
@@ -119,7 +119,7 @@ else:
     print("Classic exception catching was considered fine.")
 
 print("After catching, sys.exc_info is this", sys.exc_info())
-print("*" * 20)
+print('*' * 20)
 
 print("Checking tracebacks:")
 
@@ -144,7 +144,7 @@ def checkTraceback():
 
 checkTraceback()
 
-print("*" * 20)
+print('*' * 20)
 
 print("Check lazy exception creation:")
 
@@ -161,7 +161,7 @@ def checkExceptionConversion():
 
 
 checkExceptionConversion()
-print("*" * 20)
+print('*' * 20)
 
 print("Check exc_info scope:")
 
@@ -229,7 +229,7 @@ if sys.version_info[0] < 3:
 
 checkExcInfoScope()
 
-print("*" * 20)
+print('*' * 20)
 
 # Check that the sys.exc_info is cleared again, after being set inside the
 # function checkExcInfoScope, it should now be clear again.
@@ -266,7 +266,7 @@ def checkDerivedCatch():
 
 checkDerivedCatch()
 
-print("*" * 20)
+print('*' * 20)
 
 
 def checkNonCatch1():
@@ -280,7 +280,7 @@ def checkNonCatch1():
         print("Executed else branch correctly")
 
 checkNonCatch1()
-print("*" * 20)
+print('*' * 20)
 
 def checkNonCatch2():
     try:
@@ -292,7 +292,7 @@ def checkNonCatch2():
 
 
 checkNonCatch2()
-print("*" * 20)
+print('*' * 20)
 
 print("Checking raise that with exception arguments that raise error themselves.")
 
@@ -320,7 +320,7 @@ def checkRaisingRaise():
 
 
 checkRaisingRaise()
-print("*" * 20)
+print('*' * 20)
 
 print("Checking a re-raise that isn't one:")
 
@@ -332,7 +332,7 @@ try:
 except Exception as e:
     print("Without existing exception, re-raise gives:", e)
 
-print("*" * 20)
+print('*' * 20)
 
 print("Raising an exception in an exception handler gives:")
 
@@ -347,7 +347,7 @@ try:
 except Exception as e:
     print("Nested exception gives", e)
 
-print("*" * 20)
+print('*' * 20)
 
 print("Checking unpacking from an exception as a sequence:")
 
@@ -360,7 +360,7 @@ def unpackingCatcher():
 unpackingCatcher()
 print("Afterwards, exception info is", sys.exc_info())
 
-print("*" * 20)
+print('*' * 20)
 
 print("Testing exception that escapes __del__ and therefore cannot be raised")
 
@@ -375,7 +375,7 @@ def unraisableExceptionInDel():
     f()
 
 unraisableExceptionInDel()
-print("*" * 20)
+print('*' * 20)
 
 print("Testing exception changes between generator switches:")
 
@@ -396,7 +396,7 @@ def yieldExceptionInteraction():
     print("After leaving the catch generator yielded", next(g))
 
 yieldExceptionInteraction()
-print("*" * 20)
+print('*' * 20)
 
 print("Testing exception change between generator switches while handling an own exception")
 
@@ -424,7 +424,7 @@ def yieldExceptionInteraction2():
         print("After leaving the catch generator yielded", next(g))
 
 yieldExceptionInteraction2()
-print("*" * 20)
+print('*' * 20)
 
 print("Check what happens if a function attempts to clear the exception in a handler")
 
@@ -445,7 +445,7 @@ def clearingException():
         print("After clearing, it's", sys.exc_info())
 
 clearingException()
-print("*" * 20)
+print('*' * 20)
 
 print("Check that multiple exceptions can be caught in a handler through a variable:")
 
@@ -538,9 +538,9 @@ def checkReraiseByFunction():
     except Exception as e:
         import traceback
         print("Exception traceback of re-raise:")
-        print("-" * 40)
+        print('-' * 40)
         traceback.print_exc()
-        print("-" * 40)
+        print('-' * 40)
         print("OK.")
 
 # TODO: Enable this, once the actual traceback of a function

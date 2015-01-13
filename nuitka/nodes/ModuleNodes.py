@@ -43,7 +43,7 @@ from .NodeBases import (
 class PythonModuleMixin:
     def __init__(self, name, package_name):
         assert type(name) is str, type(name)
-        assert "." not in name, name
+        assert '.' not in name, name
         assert package_name is None or \
                (type(package_name) is str and package_name != "")
 
@@ -59,7 +59,7 @@ class PythonModuleMixin:
 
     def getFullName(self):
         if self.package_name:
-            return self.package_name + "." + self.getName()
+            return self.package_name + '.' + self.getName()
         else:
             return self.getName()
 
@@ -132,7 +132,7 @@ class PythonModuleMixin:
             result = Utils.basename(filename)
             current = filename
 
-            for _i in range(full_name.count(".")):
+            for _i in range(full_name.count('.')):
                 current = Utils.dirname(current)
                 result = Utils.joinpath(Utils.basename(current), result)
 
@@ -269,7 +269,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         def r(match):
             c = match.group()
             if c == '.':
-                return "$"
+                return '$'
             else:
                 return "$$%d$" % ord(c)
 
@@ -318,7 +318,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         # There are some characters that somehow are passed to shell, by
         # Scons or unknown, so lets avoid them for now.
-        return result.replace(")","").replace("(","")
+        return result.replace(')',"").replace('(',"")
 
     # TODO: Can't really use locals for modules, this should probably be made
     # sure to not be used.

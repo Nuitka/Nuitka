@@ -333,7 +333,7 @@ def getCallsDecls():
 
     return CodeTemplates.template_header_guard % {
         "header_guard_name" : "__NUITKA_CALLS_H__",
-        "header_body"       : "\n".join(result)
+        "header_body"       : '\n'.join(result)
     }
 
 
@@ -366,7 +366,7 @@ def getCallsCode():
             }
         )
 
-    return "\n".join(result)
+    return '\n'.join(result)
 
 
 # TODO: Why is this here, not really related.

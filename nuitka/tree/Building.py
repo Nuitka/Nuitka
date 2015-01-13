@@ -317,7 +317,7 @@ def buildImportModulesNode(provider, node, source_ref):
     for import_desc in import_names:
         module_name, local_name = import_desc
 
-        module_topname = module_name.split(".")[0]
+        module_topname = module_name.split('.')[0]
 
         # Note: The "level" of import is influenced by the future absolute
         # imports.
@@ -331,7 +331,7 @@ def buildImportModulesNode(provider, node, source_ref):
                 source_ref  = source_ref
             )
 
-            for import_name in module_name.split(".")[1:]:
+            for import_name in module_name.split('.')[1:]:
                 import_node = ExpressionImportName(
                     module      = import_node,
                     import_name = import_name,
@@ -720,7 +720,7 @@ def _makeSyntaxErrorCompatible(e):
        (e.args[0].startswith("unknown encoding:") or \
         e.args[0].startswith("encoding problem:")):
         if PythonVersions.doShowUnknownEncodingName():
-            complaint = e.args[0].split(":",2)[1]
+            complaint = e.args[0].split(':',2)[1]
         else:
             complaint = " with BOM"
 
@@ -740,8 +740,8 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
-    if not source_code.endswith("\n"):
-        source_code = source_code + "\n"
+    if not source_code.endswith('\n'):
+        source_code = source_code + '\n'
 
     try:
         body = ast.parse(source_code, source_ref.getFilename())
@@ -971,9 +971,9 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 module_name = module_name[:-3]
 
             if is_shlib:
-                module_name = module_name.split(".")[0]
+                module_name = module_name.split('.')[0]
 
-            if "." in module_name:
+            if '.' in module_name:
                 sys.stderr.write(
                     "Error, '%s' is not a proper python module name.\n" % (
                         module_name

@@ -100,7 +100,7 @@ def _readSourceCodeFromFilename2(source_filename):
             try:
                 _source_code = source_code.decode(encoding)
             except UnicodeDecodeError as e:
-                lines = source_code.split("\n")
+                lines = source_code.split('\n')
                 so_far = 0
 
                 for count, line in enumerate(lines):

@@ -252,7 +252,7 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
         return False
 
     emit(
-        """%s = PyMarshal_ReadObjectFromString( (char *)%s );""" % (
+        "%s = PyMarshal_ReadObjectFromString( (char *)%s );" % (
             constant_identifier,
             stream_data.getStreamDataCode(marshal_value)
         )
@@ -903,7 +903,7 @@ def getConstantInitCodes(module_context):
         decls.append(
             "%s PyObject *%s;" % (
                 qualifier,
-                constant_identifier + ";"
+                constant_identifier + ';'
             )
         )
 
@@ -911,7 +911,7 @@ def getConstantInitCodes(module_context):
             decls.append(
                 "%s Py_hash_t hash_%s;" % (
                     qualifier,
-                    constant_identifier + ";"
+                    constant_identifier + ';'
                 )
             )
 
@@ -966,6 +966,6 @@ def getConstantsDefinitionCode(context):
     )
 
     return CodeTemplates.template_constants_reading % {
-        "constant_declarations" : "\n".join(constant_declarations),
+        "constant_declarations" : '\n'.join(constant_declarations),
         "constant_inits"        : indented(constant_inits),
     }

@@ -37,7 +37,7 @@ from .VariableClosure import completeVariableClosures
 
 
 def createNamespacePackage(package_name, module_relpath):
-    parts = package_name.split(".")
+    parts = package_name.split('.')
 
     source_ref = SourceCodeReference.fromFilenameAndLine(
         filename    = module_relpath,
@@ -46,7 +46,7 @@ def createNamespacePackage(package_name, module_relpath):
     )
     source_ref = source_ref.atInternal()
 
-    package_package_name = ".".join(parts[:-1]) or None
+    package_package_name = '.'.join(parts[:-1]) or None
     package = PythonPackage(
         name         = parts[-1],
         package_name = package_package_name,

@@ -100,7 +100,7 @@ from __future__ imports must occur at the beginning of the file""",
     for import_desc in node.names:
         object_name, local_name = import_desc.name, import_desc.asname
 
-        if object_name == "*":
+        if object_name == '*':
             target_names.append(None)
         else:
             target_names.append(
@@ -129,7 +129,7 @@ from __future__ imports must occur at the beginning of the file""",
         return StatementImportStar(
             module_import = ExpressionImportModule(
                 module_name = module_name,
-                import_list = ("*",),
+                import_list = ('*',),
                 level       = level,
                 source_ref  = source_ref
             ),

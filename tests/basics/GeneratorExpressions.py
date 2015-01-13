@@ -56,7 +56,7 @@ def iteratorCreationTiming():
     res = tuple(gen)
     print res
 
-    print "*" * 20
+    print '*' * 20
 
     try:
         gen.next()

@@ -282,7 +282,7 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
 
     def __init__(self, operator, left, right, source_ref):
-        operator = "I" + operator
+        operator = 'I' + operator
 
         ExpressionOperationBinary.__init__(
             self,

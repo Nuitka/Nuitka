@@ -426,7 +426,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     local_var_inits += [
         "%s%s%s;" % (
             tmp_type,
-            " " if not tmp_type.endswith("*") else "",
+            ' ' if not tmp_type.endswith('*') else "",
             tmp_name
         )
         for tmp_name, tmp_type in
@@ -448,7 +448,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     function_locals = []
 
     if context.hasLocalsDict():
-        function_locals += CodeTemplates.function_dict_setup.split("\n")
+        function_locals += CodeTemplates.function_dict_setup.split('\n')
         function_cleanup = "Py_DECREF( locals_dict );\n"
     else:
         function_cleanup = ""
@@ -638,7 +638,7 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
     function_locals = []
 
     if context.hasLocalsDict():
-        function_locals += CodeTemplates.function_dict_setup.split("\n")
+        function_locals += CodeTemplates.function_dict_setup.split('\n')
 
     function_locals += function_var_inits
 
@@ -674,7 +674,7 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
     function_locals += [
         "%s%s%s;" % (
             tmp_type,
-            " " if not tmp_type.endswith("*") else "",
+            ' ' if not tmp_type.endswith('*') else "",
             tmp_name
         )
         for tmp_name, tmp_type in
@@ -716,7 +716,7 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
                 "function_identifier" : function_identifier,
             }
 
-        context_making = context_making.split("\n")
+        context_making = context_making.split('\n')
 
         if context.isForDirectCall():
             context_making += context_copy

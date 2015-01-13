@@ -29,9 +29,9 @@ def tryWhileContinueFinallyTest():
             if x % 2 == 1:
                 continue
         finally:
-            print(x, end = " ")
+            print(x, end = ' ')
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -43,9 +43,9 @@ def tryForContinueFinallyTest():
             if x % 2 == 1:
                 continue
         finally:
-            print(x, end = " ")
+            print(x, end = ' ')
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -61,9 +61,9 @@ def tryWhileBreakFinallyTest():
             if x == 5:
                 break
         finally:
-            print(x, end = " ")
+            print(x, end = ' ')
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -75,9 +75,9 @@ def tryForBreakFinallyTest():
             if x == 5:
                 break
         finally:
-            print(x, end = " ")
+            print(x, end = ' ')
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 

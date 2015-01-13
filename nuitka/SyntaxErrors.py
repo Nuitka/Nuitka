@@ -51,7 +51,7 @@ def formatOutput(e):
             filename,
             lineno,
             message.strip(),
-            " " * (colno-1) if colno is not None else "",
+            ' ' * (colno-1) if colno is not None else "",
             e.__class__.__name__,
             reason
          )

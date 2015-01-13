@@ -177,13 +177,13 @@ def makeBuiltinParameterSpec(exception_name):
         default_count  = 0
     )
 
-builtin_int_spec = BuiltinParameterSpec("int", ("x", "base"), 2)
+builtin_int_spec = BuiltinParameterSpec("int", ('x', "base"), 2)
 
 # These builtins are only available for Python2
 if python_version < 300:
     builtin_long_spec = BuiltinParameterSpec(
         "long",
-        ("x", "base"),
+        ('x', "base"),
         2
     )
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
@@ -203,8 +203,8 @@ if python_version < 300:
     )
 
 
-builtin_bool_spec = BuiltinParameterSpec("bool", ("x",), 1)
-builtin_float_spec = BuiltinParameterSpec("float", ("x",), 1)
+builtin_bool_spec = BuiltinParameterSpec("bool", ('x',), 1)
+builtin_float_spec = BuiltinParameterSpec("float", ('x',), 1)
 
 # This built-in have variable parameters for Python2/3
 if python_version < 300:
@@ -221,8 +221,8 @@ builtin_set_spec = BuiltinParameterSpecNoKeywords("set", ("iterable",), 1)
 
 builtin_import_spec = BuiltinParameterSpec("__import__", ("name", "globals", "locals", "fromlist", "level"), 4)
 builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering"), 3)
-builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ("i",), 0)
-builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ("c",), 0)
+builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ('i',), 0)
+builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ('c',), 0)
 builtin_bin_spec = BuiltinParameterSpecNoKeywords("bin", ("number",), 0)
 builtin_oct_spec = BuiltinParameterSpecNoKeywords("oct", ("number",), 0)
 builtin_hex_spec = BuiltinParameterSpecNoKeywords("hex", ("number",), 0)

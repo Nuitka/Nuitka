@@ -355,7 +355,7 @@ def makeSourceDirectory(main_module):
         elif module.isPythonShlibModule():
             target_filename = Utils.joinpath(
                 getStandaloneDirectoryPath(main_module),
-                *module.getFullName().split(".")
+                *module.getFullName().split('.')
             )
 
             if Utils.getOS() == "Windows":
@@ -408,10 +408,10 @@ def runScons(main_module, quiet):
     if hasattr(sys, "abiflags"):
         if Options.isPythonDebug() or \
            hasattr(sys, "getobjects"):
-            if sys.abiflags.startswith("d"):
+            if sys.abiflags.startswith('d'):
                 python_version += sys.abiflags
             else:
-                python_version += "d" + sys.abiflags
+                python_version += 'd' + sys.abiflags
         else:
             python_version += sys.abiflags
 
@@ -469,7 +469,7 @@ def runScons(main_module, quiet):
         msvc_version = Options.getMsvcVersion()
 
         msvc_version = msvc_version.replace("exp", "Exp")
-        if "." not in msvc_version:
+        if '.' not in msvc_version:
             msvc_version += ".0"
 
         options["msvc_version"] = msvc_version
@@ -492,7 +492,7 @@ def writeSourceCode(filename, source_code):
         with open(filename, "wb") as output_file:
             output_file.write(source_code.encode("latin1"))
     else:
-        with open(filename, "w") as output_file:
+        with open(filename, 'w') as output_file:
             output_file.write(source_code)
 
 
@@ -515,7 +515,7 @@ def callExec(args, clean_path, add_path):
 
     if add_path:
         if "PYTHONPATH" in os.environ:
-            os.environ["PYTHONPATH"] += ":" + Options.getOutputDir()
+            os.environ["PYTHONPATH"] += ':' + Options.getOutputDir()
         else:
             os.environ["PYTHONPATH"] = Options.getOutputDir()
 
@@ -606,7 +606,7 @@ def compileTree(main_module):
 
     if Options.isShowProgress():
         Tracing.printLine(
-            """Total memory usage before running scons: {memory}:""".format(
+            "Total memory usage before running scons: {memory}:".format(
                 memory = Utils.getHumanReadableProcessMemoryUsage()
             )
         )

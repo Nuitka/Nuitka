@@ -30,7 +30,7 @@ def simple_comparisons(x, y):
 
 print("Simple comparisons:")
 
-simple_comparisons("c", "d")
+simple_comparisons('c', 'd')
 
 def side_effect():
     print("<side_effect>")
@@ -54,7 +54,7 @@ def function_torture_is():
     for x in a:
         for y in a:
             for z in a:
-                print(x, y, z, ":", x is y is z, x is not y is not z)
+                print(x, y, z, ':', x is y is z, x is not y is not z)
 
 function_torture_is()
 
@@ -158,15 +158,15 @@ class A(object):
             print("bad")
             return 0
 
-a = A("a",1)
-b = A("b",2)
-c = A("c",0)
+a = A('a',1)
+b = A('b',2)
+c = A('c',0)
 
 print(a < b < c)
-print("*" * 80)
+print('*' * 80)
 
-a = A("a",2)
-b = A("b",1)
-c = A("c",0)
+a = A('a',2)
+b = A('b',1)
+c = A('c',0)
 
 print(a < b < c)

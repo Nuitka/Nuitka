@@ -25,10 +25,10 @@ z[1] += 5
 
 print "List inplace:", z[1]
 
-h = { "a" : 3 }
-h["a"] += 2
+h = { 'a' : 3 }
+h['a'] += 2
 
-print "Dict inplace:", h["a"]
+print "Dict inplace:", h['a']
 
 class B:
     a = 1

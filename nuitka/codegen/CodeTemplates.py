@@ -74,7 +74,7 @@ def enableDebug():
     for template_name, template_value in iterItems(templates):
         # Ignore internal attribute like "__name__" that the module will also
         # have of course.
-        if template_name.startswith("_"):
+        if template_name.startswith('_'):
             continue
 
         if type(template_value) is str:

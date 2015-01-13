@@ -23,7 +23,7 @@ def defaultValueTest1(no_default, some_default_constant = 1):
     return some_default_constant
 
 def defaultValueTest2(no_default, some_default_computed = module_level*2):
-    local_var = no_default = "1"
+    local_var = no_default = '1'
     return local_var, some_default_computed
 
 def defaultValueTest3( no_default, func_defaulted = defaultValueTest1(module_level)):

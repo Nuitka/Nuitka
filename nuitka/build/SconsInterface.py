@@ -81,7 +81,7 @@ def _getPython2ExePathWindows():
                 )
 
                 return Utils.joinpath(
-                    winreg.QueryValue(key, ''),
+                    winreg.QueryValue(key, ""),
                     "python.exe"
                 )
             except WindowsError:  # lint:ok
@@ -146,9 +146,9 @@ def runScons(options, quiet):
 
     # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
-        scons_command += [key + "=" + value]
+        scons_command += [key + '=' + value]
 
     if Options.isShowScons():
-        Tracing.printLine("Scons command:", " ".join(scons_command))
+        Tracing.printLine("Scons command:", ' '.join(scons_command))
 
     return 0 == subprocess.call(scons_command, shell = False)

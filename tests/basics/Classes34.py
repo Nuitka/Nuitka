@@ -34,7 +34,7 @@ def testClassNamespaceOverridesClosure():
         # See #17853.
         x = 42
         class X:
-            locals()["x"] = 43
+            locals()['x'] = 43
             y = x
         print("should be 43:", X.y)
 

@@ -22,7 +22,7 @@ def local_function(a,z=9):
 
     c = (a,b,a**32,a+a)
 
-    d = long("0")
+    d = long('0')
     e = int("77")
 
     d= long(b)

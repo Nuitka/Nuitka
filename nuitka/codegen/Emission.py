@@ -31,5 +31,5 @@ class SourceCodeCollector:
         self.emit(code)
 
     def emit(self,code):
-        for line in code.split("\n"):
+        for line in code.split('\n'):
             self.codes.append(line)

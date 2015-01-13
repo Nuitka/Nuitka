@@ -88,7 +88,7 @@ def findModule(source_ref, module_name, parent_package, level, warn):
     # pylint: disable=R0912
 
     if level > 1 and parent_package is not None:
-        parent_package = ".".join(parent_package.split(".")[:-level+1])
+        parent_package = '.'.join(parent_package.split('.')[:-level+1])
 
         if parent_package == "":
             parent_package = None
@@ -132,15 +132,15 @@ def findModule(source_ref, module_name, parent_package, level, warn):
                         )
 
 
-            if "." in module_name:
-                module_package_name = module_name[:module_name.rfind(".")]
+            if '.' in module_name:
+                module_package_name = module_name[:module_name.rfind('.')]
             else:
                 module_package_name = None
 
             module_filename = None
     else:
-        if "." in module_name:
-            module_package_name = module_name[:module_name.rfind(".")]
+        if '.' in module_name:
+            module_package_name = module_name[:module_name.rfind('.')]
         else:
             module_package_name = None
 
@@ -190,8 +190,8 @@ def _findModuleInPath2(module_name, search_path):
         # First, check for a package with an init file, that would be the
         # first choice.
         if Utils.isDir(package_directory):
-            for suffix in ('.py', ".pyc"):
-                package_file_name = '__init__' + suffix
+            for suffix in (".py", ".pyc"):
+                package_file_name = "__init__" + suffix
 
                 file_path = os.path.join(package_directory, package_file_name)
 
@@ -265,11 +265,11 @@ def _findModuleInPath(module_name, package_name):
         # module name empty in find_module. And thinking of it, how could it
         # anyway.
         if module_name == "":
-            module_name = package_name.split(".")[-1]
-            package_name = ".".join(package_name.split(".")[:-1])
+            module_name = package_name.split('.')[-1]
+            package_name = '.'.join(package_name.split('.')[:-1])
 
         def getPackageDirnames(element):
-            yield Utils.joinpath(element,*package_name.split(".")), False
+            yield Utils.joinpath(element,*package_name.split('.')), False
 
             if package_name == "win32com":
                 yield Utils.joinpath(element,"win32comext"), True
@@ -354,16 +354,16 @@ def _findModule(module_name, parent_package):
     if module_name in sys.builtin_module_names and parent_package is None:
         return None, None
 
-    if "." in module_name:
-        package_part = module_name[ : module_name.rfind(".") ]
-        module_name = module_name[ module_name.rfind(".") + 1 : ]
+    if '.' in module_name:
+        package_part = module_name[ : module_name.rfind('.') ]
+        module_name = module_name[ module_name.rfind('.') + 1 : ]
 
         # Relative import
         if parent_package is not None:
             try:
                 return _findModule(
                     module_name    = module_name,
-                    parent_package = parent_package + "." + package_part
+                    parent_package = parent_package + '.' + package_part
                 )
             except ImportError:
                 pass

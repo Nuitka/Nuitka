@@ -114,7 +114,7 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
 
         if value is None and self.base_only_value:
             value = makeConstantReplacementNode(
-                constant = "0",
+                constant = '0',
                 node     = self
             )
 

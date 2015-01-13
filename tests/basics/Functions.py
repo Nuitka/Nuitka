@@ -200,7 +200,7 @@ star_list_arg = [7, 8, 9]
 print(starArgTest(*star_list_arg))
 
 star_dict_arg = {
-    "a" : 9, "b" : 3, "c": 8
+    'a' : 9, 'b' : 3, 'c': 8
 }
 
 print("Function called with star arg from dict")
@@ -301,7 +301,7 @@ print("Function call with both star args and named args:")
 def someFunction(a, b, c, d):
     print(a, b, c, d)
 
-someFunction(a = 1, b = 2, **{ "c" : 3, "d" : 4 })
+someFunction(a = 1, b = 2, **{ 'c' : 3, 'd' : 4 })
 
 print("Order of evaluation of function and args:")
 
@@ -323,11 +323,11 @@ def getPlainArg2():
 
 def getKeywordArg1():
     print("getKeywordArg1", end = "")
-    return "a"
+    return 'a'
 
 def getKeywordArg2():
     print("getKeywordArg2", end = "")
-    return "b"
+    return 'b'
 
 getFunction()(getPlainArg1(), getPlainArg2(), k = getKeywordArg1(), a = getKeywordArg2())
 print()
@@ -338,7 +338,7 @@ def getListStarArg():
 
 def getDictStarArg():
     print("getDictStarArg", end = "")
-    return { "k" : 9 }
+    return { 'k' : 9 }
 
 print("Same with star args:")
 
@@ -463,7 +463,7 @@ def functionWithDualStarArgsAndKeywordsOnly(a1, a2, a3, a4, b):
     return a1, a2, a3, a4, b
 
 l = [1, 2, 3]
-d = {"b": 8}
+d = {'b': 8}
 
 print("Dual star args, but not positional call", functionWithDualStarArgsAndKeywordsOnly(a4 = 1, *l, **d))
 
@@ -471,7 +471,7 @@ def posDoubleStarArgsFunction(a, b, c, *l, **d):
     return a, b, c, l, d
 
 l = [2]
-d = { "other" : 7, "c" : 3 }
+d = { "other" : 7, 'c' : 3 }
 
 print("Dual star args consuming function", posDoubleStarArgsFunction(1,  *l, **d))
 
