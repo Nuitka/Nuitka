@@ -972,6 +972,11 @@ else:
             LINKFLAGS = ["-s"]
         )
 
+        if sys.platform == "darwin":
+            env.Append(
+                LINKFLAGS = ["-Wno-deprecated-declarations"]
+            )
+
 # When debugging, optimize less than when optimizing, when not remove
 # assertions.
 if debug_mode:
