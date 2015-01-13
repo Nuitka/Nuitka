@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -164,7 +164,8 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
 def getModuleCode(module_context, template_values):
     header = CodeTemplates.global_copyright % {
         "name"    : module_context.getName(),
-        "version" : Options.getVersion()
+        "version" : Options.getVersion(),
+        "year"    : Options.getYear()
     }
 
     decls, inits = getConstantInitCodes(module_context)

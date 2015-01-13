@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,7 +19,7 @@
 
 version_string = """\
 Nuitka V0.5.8pre3
-Copyright (C) 2014 Kay Hayen."""
+Copyright (C) 2015 Kay Hayen."""
 
 import logging
 import re
@@ -34,6 +34,9 @@ is_nuitka_run = Utils.basename(sys.argv[0]).lower().startswith("nuitka-run")
 
 def getVersion():
     return version_string.split()[1][1:]
+
+def getYear():
+    return int(version_string.split()[4])
 
 if not is_nuitka_run:
     usage = "usage: %prog [--module] [--execute] [options] main_module.py"
