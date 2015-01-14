@@ -212,7 +212,7 @@ checkAtHome()
 
 assert os.path.exists( "dist/deb_dist" )
 
-# Check with pylint in pedantic mode and don't procede if there were any
+# Check with pylint in pedantic mode and don't proceed if there were any
 # warnings given. Nuitka is lintian clean and shall remain that way.
 assert 0 == os.system(
     "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes"
