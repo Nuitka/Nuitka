@@ -34,10 +34,10 @@ assert "pre" not in nuitka_version
 # Need to remove the contents from the Rest, or else PyPI will not render
 # it. Stupid but true.
 contents = open("README.rst", "rb").read()
-contents.replace(b".. contents::", b"")
+contents = contents.replace(b".. contents::", b"")
 open("README.rst", "wb").write(contents)
 contents = open("README.rst", "rb").read()
-assert ".. contents" not in contents
+assert b".. contents" not in contents
 
 assert 0 == os.system("misc/make-doc.py")
 assert 0 == os.system("python setup.py sdist upload")
