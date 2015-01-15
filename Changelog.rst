@@ -8,7 +8,7 @@ mostly is a maintenance release, attacking long standing issues.
 Bug Fixes
 ---------
 
-- Fix importing on case insensitive systems (Windows, MacOS).
+- Compatibility Windows MacOS: Fix importing on case insensitive systems.
 
   It was not always working properly, if there was both a package ``Something``
   and ``something``, by merit of having files ``Something/__init__.py`` and
@@ -20,8 +20,8 @@ Bug Fixes
 - Fix, the optimization of ``getattr`` with predictable result was crashing the
   compilation. This was a regression, fixed in 0.5.7.1 already.
 
-- Fix, the name mangling inside classes also needs to be applied to global
-  variables.
+- Compatibility: The name mangling inside classes also needs to be applied to
+  global variables.
 
 - Fix, proving ``clang++`` for ``CXX`` was mistakingly thinking of it as a
   ``g++`` and making version checks on it.
@@ -29,12 +29,19 @@ Bug Fixes
 - Python3: Declaring ``__class__`` global is now a ``SyntaxError`` before
   Python3.4.
 
+- Standalone Python3: Making use of module state in extension modules was not
+  working properly.
+
 
 New Features
 ------------
 
 - The filenames of source files as found in the ``__file__`` attribute are
   now made relative.
+
+  This should make it more apparent if things outside of the distribution
+  folder are used, at the cost of tracebacks. Expect the default ability
+  to copy the source code along in an upcoming release.
 
 - Added experimental standalone mode support for PyQt5. At least headless mode
   should be working, plug-ins (needed for anything graphical) are not yet
@@ -57,9 +64,9 @@ Organizational
 --------------
 
 - No more packages for openSUSE 12.1/12.2/12.3 and Fedora 17/18/19 as requested
-  by the openSUSE Build service.
+  by the openSUSE Build Service.
 
-- Added RPM packages for Fedora 21 and CentOS 7.
+- Added RPM packages for Fedora 21 and CentOS 7 on openSUSE Build Service.
 
 Tests
 -----
