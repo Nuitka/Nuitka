@@ -1,5 +1,5 @@
-Nuitka Release 0.5.8 (Draft)
-============================
+Nuitka Release 0.5.8
+====================
 
 This release has mainly a focus on cleanups and compatibility improvements. It
 also advances standalone support, and a few optimization improvements, but it
