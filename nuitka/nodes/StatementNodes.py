@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -311,7 +311,7 @@ class StatementsFrame(StatementsSequence):
 
         # TODO: Why do this accessing a node, do this outside.
         return context.getCodeObjectHandle(
-            filename      = self.source_ref.getFilename(),
+            filename      = self.getParentModule().getRunTimeFilename(),
             var_names     = self.getVarNames(),
             arg_count     = self.getArgumentCount(),
             kw_only_count = self.getKwOnlyParameterCount(),

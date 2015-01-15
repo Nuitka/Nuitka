@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -107,8 +107,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     node.qualname_provider = node.getParentModule()
 
             # TODO: Actually for nested global classes, this approach
-            # may not work, as their qualnames will be wrong. In that
-            # case a dedicated node for qualname references might be
+            # may not work, as their "qualname" will be wrong. In that
+            # case a dedicated node for "qualname" references might be
             # needed.
 
             node.qualname_setup = None
@@ -202,7 +202,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         if seen_function:
                             node.setAttributeName(
                                 "_%s%s" % (
-                                    current.getName().lstrip("_"),
+                                    current.getName().lstrip('_'),
                                     attribute_name
                                 )
                             )

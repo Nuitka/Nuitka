@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -19,4 +19,4 @@ from __future__ import barry_as_FLUFL
 
 print( eval("1 <> 2") )
 print( eval('"a"<>"b"') )
-print( eval('range(7) <> range(7)') )
+print( eval("range(7) <> range(7)") )

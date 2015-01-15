@@ -72,11 +72,11 @@ except ImportError:
             return d
 
         def __getstate__(self):
-            return {'items': dict(self), 'keys': self._keys}
+            return {"items": dict(self), "keys": self._keys}
 
         def __setstate__(self, d):
-            self._keys = d['keys']
-            dict.update(d['items'])
+            self._keys = d["keys"]
+            dict.update(d["items"])
 
         def __reversed__(self):
             return reversed(self._keys)
@@ -141,12 +141,12 @@ except ImportError:
         def update(self, *args, **kwargs):
             sources = []
             if len(args) == 1:
-                if hasattr(args[0], 'iteritems'):
+                if hasattr(args[0], "iteritems"):
                     sources.append(args[0].iteritems())
                 else:
                     sources.append(iter(args[0]))
             elif args:
-                raise TypeError('expected at most one positional argument')
+                raise TypeError("expected at most one positional argument")
             if kwargs:
                 sources.append(kwargs.iteritems())
             for iterable in sources:
@@ -173,7 +173,7 @@ except ImportError:
             self._keys.sort(*args, **kwargs)
 
         def __repr__(self):
-            return 'OrderedDict(%r)' % self.items()
+            return "OrderedDict(%r)" % self.items()
 
         __copy__ = copy
         __iter__ = iterkeys

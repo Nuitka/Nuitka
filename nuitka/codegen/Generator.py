@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -60,7 +60,6 @@ from .ConstantCodes import (
     getConstantCode,
     getConstantsDeclCode,
     getConstantsInitCode,
-    needsPickleInit,
     stream_data
 )
 from .DictCodes import (
@@ -121,7 +120,6 @@ from .ImportCodes import (
     getImportModuleHardCode,
     getImportNameCode
 )
-from .Indentation import indented
 from .IndexCodes import (
     getIndexCode,
     getIndexValueCode,
@@ -471,18 +469,3 @@ def getStatementTrace(source_desc, statement_repr):
     return 'puts( "Execute: " %s );' % (
         CppStrings.encodeString(source_desc + b" " + statement_repr),
     )
-
-
-def getConstantsDefinitionCode(context):
-    constant_inits = getConstantsInitCode(
-        context = context
-    )
-
-    constant_declarations = getConstantsDeclCode(
-        context = context
-    )
-
-    return CodeTemplates.template_constants_reading % {
-        "constant_declarations" : "\n".join(constant_declarations),
-        "constant_inits"        : indented(constant_inits),
-    }

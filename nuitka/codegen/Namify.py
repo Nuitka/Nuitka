@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -87,13 +87,13 @@ def namifyConstant(constant):
                 "minus" if math.copysign(1, constant) < 0 else "plus"
             )
 
-        return "float_%s" % repr(constant).replace(".", "_").\
-          replace("-", "_minus_").replace("+", "")
+        return "float_%s" % repr(constant).replace('.', '_').\
+          replace('-', "_minus_").replace('+', "")
     elif type(constant) is complex:
-        value = str(constant).replace("+", "p").replace("-", "m").\
-          replace(".", "_")
+        value = str(constant).replace('+', 'p').replace('-', 'm').\
+          replace('.', '_')
 
-        if value.startswith("(") and value.endswith(")"):
+        if value.startswith('(') and value.endswith(')'):
             value = value[1:-1]
 
         return "complex_%s" % value
@@ -117,7 +117,7 @@ def namifyConstant(constant):
             return "tuple_empty"
         else:
             try:
-                result = "_".join(
+                result = '_'.join(
                     namifyConstant(value)
                     for value in
                     constant
@@ -136,7 +136,7 @@ def namifyConstant(constant):
             return "list_empty"
         else:
             try:
-                result = "_".join(
+                result = '_'.join(
                     namifyConstant(value)
                     for value in
                     constant
@@ -153,7 +153,7 @@ def namifyConstant(constant):
     elif type(constant) is range:
         # Python3 type only.
         return "range_%s" % (
-            str(constant)[6:-1].replace(" ", "").replace(",", "_")
+            str(constant)[6:-1].replace(' ', "").replace(',', '_')
         )
     elif type(constant) is slice:
         return "slice_%s_%s_%s" % (
@@ -172,22 +172,22 @@ def _namifyString(string):
 
     if string in ("", b""):
         return "empty"
-    elif string == " ":
+    elif string == ' ':
         return "space"
-    elif string == ".":
+    elif string == '.':
         return "dot"
-    elif string == "\n":
+    elif string == '\n':
         return "newline"
     elif type(string) is str and \
          _re_str_needs_no_digest.match(string) and \
-         "\n" not in string:
+         '\n' not in string:
         # Some strings can be left intact for source code readability.
         return "plain_" + string
     elif len(string) == 1:
         return "chr_%d" % ord(string)
-    elif len(string) > 2 and string[0] == "<" and string[-1] == ">" and \
+    elif len(string) > 2 and string[0] == '<' and string[-1] == '>' and \
          _re_str_needs_no_digest.match(string[1:-1]) and \
-         "\n" not in string:
+         '\n' not in string:
         return "angle_" + string[1:-1]
     else:
         # Others are better digested to not cause compiler trouble

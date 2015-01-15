@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -78,7 +78,7 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
     # pylint: disable=R0914
 
     if list_star_arg is None and dict_star_arg is None:
-        return ExpressionCall(
+        result = ExpressionCall(
             called     = called,
             args       = makeSequenceCreationOrConstant(
                 sequence_kind = "tuple",
@@ -93,6 +93,17 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
             ),
             source_ref = source_ref,
         )
+
+        if values:
+            result.setCompatibleSourceReference(
+                source_ref = values[-1].getCompatibleSourceReference()
+            )
+        elif positional_args:
+            result.setCompatibleSourceReference(
+                source_ref = positional_args[-1].getCompatibleSourceReference()
+            )
+
+        return result
     else:
         # Dispatch to complex helper function for each case. These do
         # re-formulation of complex calls according to developer manual.
@@ -175,7 +186,7 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
         if dict_star_arg is not None:
             helper_args.append(dict_star_arg)
 
-        return ExpressionFunctionCall(
+        result = ExpressionFunctionCall(
             function   = ExpressionFunctionCreation(
                 function_ref = ExpressionFunctionRef(
                     function_body = get_helper(),
@@ -189,3 +200,9 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
             values     = helper_args,
             source_ref = source_ref,
         )
+
+        result.setCompatibleSourceReference(
+            source_ref = helper_args[-1].getCompatibleSourceReference()
+        )
+
+        return result

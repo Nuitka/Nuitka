@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,36 +15,38 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
+
 def func(arg1, arg2, arg3, **star):
-   """ Some documentation. """
+    """ Some documentation. """
 
-   pass
+    pass
 
-print "Starting out: func, func_name:", func, func.func_name
+print("Starting out: func, __name__:", func, func.__name__)
 
-print "Changing its name:"
-func.func_name = "renamed"
+print("Changing its name:")
+func.__name__ = "renamed"
 
-print "With new name: func, func_name:", func, func.func_name
+print("With new name: func, __name__:", func, func.__name__)
 
-print "Documentation initially:",  func.__doc__
+print("Documentation initially:",  func.__doc__)
 
-print "Changing its doc:"
+print("Changing its doc:")
 func.__doc__ = "changed doc" + chr(0) + " with 0 character"
 
-print "Documentation updated:",  repr(func.__doc__)
+print("Documentation updated:",  repr(func.__doc__))
 
-print "Setting its dict"
+print("Setting its dict")
 func.my_value = "attached value"
-print "Reading its dict", func.my_value
+print("Reading its dict", func.my_value)
 
-print "func_code", func.func_code, func.func_code.co_argcount
-print dir(func.func_code)
+print("__code__", func.__code__, func.__code__.co_argcount)
+print(dir(func.__code__))
 
 def func2(arg1, arg2 = "default_arg2", arg3 = "default_arg3"):
    x = 1
    return x
 
-print "func_defaults", func2.__defaults__, func2.func_defaults
+print("func __defaults__", func2.__defaults__)
 
-print "function varnames", func2.__code__.co_varnames
+print("function varnames", func2.__code__.co_varnames)

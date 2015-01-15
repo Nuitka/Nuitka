@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -31,10 +31,10 @@ def tryWhileExceptContinueTest():
             if x % 2 == 1:
                 undefined
         except:
-            print(x, end = " ")
+            print(x, end = ' ')
             continue
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -46,10 +46,10 @@ def tryForExceptContinueTest():
             if x % 2 == 1:
                 undefined
         except:
-            print(x, end = " ")
+            print(x, end = ' ')
             continue
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -65,10 +65,10 @@ def tryWhileExceptBreakTest():
             if x == 5:
                 undefined
         except:
-            print(x, end = " ")
+            print(x, end = ' ')
             break
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -80,10 +80,10 @@ def tryForExceptBreakTest():
             if x == 5:
                 undefined
         except:
-            print(x, end = " ")
+            print(x, end = ' ')
             break
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 

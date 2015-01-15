@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,20 +24,26 @@ together and cross-module optimizations are the most difficult to tackle.
 import re
 import sys
 
-from nuitka import Importing, Utils, Variables
+from nuitka import Importing, Options, Utils, Variables
 from nuitka.optimizations. \
     ConstraintCollections import ConstraintCollectionModule
 from nuitka.oset import OrderedSet
 from nuitka.SourceCodeReferences import SourceCodeReference
 
+from .ConstantRefNodes import ExpressionConstantRef
 from .FutureSpecs import FutureSpec
-from .NodeBases import ChildrenHavingMixin, ClosureGiverNodeBase, NodeBase
+from .NodeBases import (
+    ChildrenHavingMixin,
+    ClosureGiverNodeBase,
+    ExpressionMixin,
+    NodeBase
+)
 
 
 class PythonModuleMixin:
     def __init__(self, name, package_name):
         assert type(name) is str, type(name)
-        assert "." not in name, name
+        assert '.' not in name, name
         assert package_name is None or \
                (type(package_name) is str and package_name != "")
 
@@ -53,7 +59,7 @@ class PythonModuleMixin:
 
     def getFullName(self):
         if self.package_name:
-            return self.package_name + "." + self.getName()
+            return self.package_name + '.' + self.getName()
         else:
             return self.getName()
 
@@ -114,6 +120,28 @@ class PythonModuleMixin:
         # Abstract method, pylint: disable=R0201
         return None
 
+    def getCompileTimeFilename(self):
+        return self.getSourceReference().getFilename()
+
+    def getRunTimeFilename(self):
+        if Options.isStandaloneMode():
+            filename = self.getCompileTimeFilename()
+
+            full_name = self.getFullName()
+
+            result = Utils.basename(filename)
+            current = filename
+
+            for _i in range(full_name.count('.')):
+                current = Utils.dirname(current)
+                result = Utils.joinpath(Utils.basename(current), result)
+
+            return result
+        else:
+            return self.getCompileTimeFilename()
+
+
+
 
 def checkModuleBody(value):
     assert value is None or value.isStatementsSequence()
@@ -126,7 +154,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     """ Module
 
         The module is the only possible root of a tree. When there are many
-        modules they form a forrest.
+        modules they form a forest.
     """
 
     kind = "PYTHON_MODULE"
@@ -228,6 +256,10 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         return result
 
+    @staticmethod
+    def getContainingClassDictCreation():
+        return None
+
     def isEarlyClosure(self):
         # Modules should immediately closure variables on use.
         # pylint: disable=R0201
@@ -237,7 +269,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         def r(match):
             c = match.group()
             if c == '.':
-                return "$"
+                return '$'
             else:
                 return "$$%d$" % ord(c)
 
@@ -286,7 +318,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         # There are some characters that somehow are passed to shell, by
         # Scons or unknown, so lets avoid them for now.
-        return result.replace(")","").replace("(","")
+        return result.replace(')',"").replace('(',"")
 
     # TODO: Can't really use locals for modules, this should probably be made
     # sure to not be used.
@@ -423,7 +455,7 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
     def getImplicitImports(self):
         full_name = self.getFullName()
 
-        if full_name == "PyQt4.QtCore":
+        if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
             if Utils.python_version < 300:
                 return (
                     ("atexit", None),
@@ -433,7 +465,6 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                 return (
                     ("sip", None),
                 )
-
         elif full_name == "lxml.etree":
             return (
                 ("gzip", None),
@@ -510,3 +541,34 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
                         imported_module.getSourceReference(),
                         "Recursed to module."
                     )
+
+
+class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
+    kind = "EXPRESSION_MODULE_FILE_ATTRIBUTE_REF"
+
+    def __init__(self, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+    def computeExpression(self, constraint_collection):
+        if Options.isStandaloneMode():
+            return self, None, None
+        else:
+            result = ExpressionConstantRef(
+                constant      = self.getCompileTimeFilename(),
+                user_provided = True,
+                source_ref    = self.getSourceReference()
+            )
+
+            return result, None, None
+
+    def getCompileTimeFilename(self):
+        return self.getParentModule().getCompileTimeFilename()
+
+    def getRunTimeFilename(self):
+        return self.getParentModule().getRunTimeFilename()

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -495,7 +495,7 @@ def _buildClassNode3(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       = ExpressionConditional(
-                condition      = ExpressionBuiltinHasattr(
+                condition      = ExpressionBuiltinHasattr( # pylint: disable=E1123,E1120
                     object     = ExpressionTempVariableRef(
                         variable   = tmp_metaclass,
                         source_ref = source_ref
@@ -899,6 +899,12 @@ def buildClassNode(provider, node, source_ref):
     pushIndicatorVariable(Ellipsis)
 
     try:
+        # There appears to be a inconsistency with the top level line number
+        # not being the one really the class has, if there are bases, and a
+        # decorator.
+        if node.bases:
+            source_ref = source_ref.atLineNumber(node.bases[-1].lineno)
+
         if Utils.python_version >= 300:
             return _buildClassNode3(provider, node, source_ref)
         else:

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,4 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import some_package.some_module
+print("Importing Something/__init__.py")

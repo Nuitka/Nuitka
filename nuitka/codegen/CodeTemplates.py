@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -74,7 +74,7 @@ def enableDebug():
     for template_name, template_value in iterItems(templates):
         # Ignore internal attribute like "__name__" that the module will also
         # have of course.
-        if template_name.startswith("_"):
+        if template_name.startswith('_'):
             continue
 
         if type(template_value) is str:

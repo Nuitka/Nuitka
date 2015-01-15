@@ -651,7 +651,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
   Full compatibility, even where it's stupid, i.e. do not provide information,
   even if available, in order to assert maximum compatibility. Intended to
-  control level of compatability to absurd.
+  control level of compatibility to absurd.
 
 * ``experimental_mode``
 

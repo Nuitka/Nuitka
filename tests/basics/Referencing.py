@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -223,24 +223,24 @@ def simpleFunction26():
     return inplace_adder([1, 2])
 
 def simpleFunction27():
-    a = { "g": 8 }
+    a = { 'g': 8 }
 
     def inplace_adder(b):
-        a[ "g" ] += b
+        a[ 'g' ] += b
 
     return inplace_adder(3)
 
 def simpleFunction28():
-    a = { "g": [8], "h": 2 }
+    a = { 'g': [8], 'h': 2 }
 
     def inplace_adder(b):
-        a[ "g" ] += b
+        a[ 'g' ] += b
 
     return inplace_adder([3, 5])
 
 
 def simpleFunction29():
-    return "3" in "7"
+    return '3' in '7'
 
 def simpleFunction30():
     def generatorFunction():
@@ -505,12 +505,12 @@ def simpleFunction64():
 def simpleFunction65():
     import array
 
-    a = array.array("b", b"")
+    a = array.array('b', b"")
     assert a == eval(repr(a), {"array": array.array})
 
     d = {
-        "x" : 2,
-        "y" : 3
+        'x' : 2,
+        'y' : 3
     }
     z = eval(repr(d), d)
 

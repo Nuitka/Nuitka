@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -260,7 +260,7 @@ except TypeError, e:
 
 print "Call object with name as both keyword and in star dict argument:"
 try:
-    a = {"a" : 3}
+    a = {'a' : 3}
 
     None(a = 2, **a)
 except TypeError, e:

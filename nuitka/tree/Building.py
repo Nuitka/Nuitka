@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -56,6 +56,7 @@ import sys
 from nuitka import (
     Importing,
     Options,
+    PythonVersions,
     SourceCodeReferences,
     SyntaxErrors,
     Tracing,
@@ -73,11 +74,11 @@ from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
-    ExpressionImportName,
-    StatementImportStar
+    ExpressionImportName
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
 from nuitka.nodes.ModuleNodes import (
+    ExpressionModuleFileAttributeRef,
     PythonMainModule,
     PythonModule,
     PythonPackage,
@@ -109,6 +110,7 @@ from .Helpers import (
     makeModuleFrame,
     makeSequenceCreationOrConstant,
     makeStatementsSequenceOrStatement,
+    mangleName,
     mergeStatements,
     setBuildingDispatchers
 )
@@ -131,6 +133,10 @@ from .ReformulationContractionExpressions import (
 )
 from .ReformulationExecStatements import buildExecNode
 from .ReformulationFunctionStatements import buildFunctionNode
+from .ReformulationImportStatements import (
+    buildImportFromNode,
+    checkFutureImportsOnlyAtStart
+)
 from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationLoopStatements import buildForLoopNode, buildWhileLoopNode
 from .ReformulationNamespacePackages import createNamespacePackage
@@ -156,7 +162,7 @@ def buildVariableReferenceNode(provider, node, source_ref):
         provider.markAsClassClosureTaker()
 
     return ExpressionVariableRef(
-        variable_name = node.id,
+        variable_name = mangleName(node.id, provider),
         source_ref    = source_ref
     )
 
@@ -259,23 +265,44 @@ def buildRaiseNode(provider, node, source_ref):
     # attached, for Python3, you can only give type (actually value) and cause.
 
     if Utils.python_version < 300:
-        return StatementRaiseException(
-            exception_type  = buildNode(provider, node.type, source_ref, allow_none = True),
-            exception_value = buildNode(provider, node.inst, source_ref, allow_none = True),
-            exception_trace = buildNode(provider, node.tback, source_ref, allow_none = True),
-            exception_cause = None,
-            source_ref      = source_ref
-        )
+        exception_type  = buildNode(provider, node.type, source_ref, allow_none = True)
+        exception_value = buildNode(provider, node.inst, source_ref, allow_none = True)
+        exception_trace = buildNode(provider, node.tback, source_ref, allow_none = True)
+        exception_cause = None
     else:
-        return StatementRaiseException(
-            exception_type  = buildNode(provider, node.exc, source_ref, allow_none = True),
-            exception_value = None,
-            exception_trace = None,
-            exception_cause = buildNode(provider, node.cause, source_ref, allow_none = True),
-            source_ref      = source_ref
+        exception_type  = buildNode(provider, node.exc, source_ref, allow_none = True)
+        exception_value = None
+        exception_trace = None
+        exception_cause = buildNode(provider, node.cause, source_ref, allow_none = True)
+
+    result = StatementRaiseException(
+        exception_type  = exception_type,
+        exception_value = exception_value,
+        exception_trace = exception_trace,
+        exception_cause = exception_cause,
+        source_ref      = source_ref
+    )
+
+    if exception_cause is not None:
+        result.setCompatibleSourceReference(
+            source_ref = exception_cause.getCompatibleSourceReference()
+        )
+    elif exception_trace is not None:
+        result.setCompatibleSourceReference(
+            source_ref = exception_trace.getCompatibleSourceReference()
+        )
+    elif exception_value is not None:
+        result.setCompatibleSourceReference(
+            source_ref = exception_value.getCompatibleSourceReference()
+        )
+    elif exception_type is not None:
+        result.setCompatibleSourceReference(
+            source_ref = exception_type.getCompatibleSourceReference()
         )
 
-def buildImportModulesNode(node, source_ref):
+    return result
+
+def buildImportModulesNode(provider, node, source_ref):
     # Import modules statement. As described in the developer manual, these
     # statements can be treated as several ones.
 
@@ -290,7 +317,7 @@ def buildImportModulesNode(node, source_ref):
     for import_desc in import_names:
         module_name, local_name = import_desc
 
-        module_topname = module_name.split(".")[0]
+        module_topname = module_name.split('.')[0]
 
         # Note: The "level" of import is influenced by the future absolute
         # imports.
@@ -304,7 +331,7 @@ def buildImportModulesNode(node, source_ref):
                 source_ref  = source_ref
             )
 
-            for import_name in module_name.split(".")[1:]:
+            for import_name in module_name.split('.')[1:]:
                 import_node = ExpressionImportName(
                     module      = import_node,
                     import_name = import_name,
@@ -325,9 +352,12 @@ def buildImportModulesNode(node, source_ref):
         import_nodes.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
-                    variable_name = local_name
-                                      if local_name is not None else
-                                    module_topname,
+                    variable_name = mangleName(
+                                      local_name
+                                        if local_name is not None else
+                                      module_topname,
+                                      provider
+                    ),
                     source_ref    = source_ref
                 ),
                 source       = import_node,
@@ -342,141 +372,6 @@ def buildImportModulesNode(node, source_ref):
         statements = import_nodes,
         source_ref = source_ref
     )
-
-def enableFutureFeature(object_name, future_spec, source_ref):
-    if object_name == "unicode_literals":
-        future_spec.enableUnicodeLiterals()
-    elif object_name == "absolute_import":
-        future_spec.enableAbsoluteImport()
-    elif object_name == "division":
-        future_spec.enableFutureDivision()
-    elif object_name == "print_function":
-        future_spec.enableFuturePrint()
-    elif object_name == "barry_as_FLUFL" and Utils.python_version >= 300:
-        future_spec.enableBarry()
-    elif object_name == "braces":
-        SyntaxErrors.raiseSyntaxError(
-            "not a chance",
-            source_ref
-        )
-    elif object_name in ("nested_scopes", "generators", "with_statement"):
-        # These are enabled in all cases already.
-        pass
-    else:
-        SyntaxErrors.raiseSyntaxError(
-            "future feature %s is not defined" % object_name,
-            source_ref
-        )
-
-# For checking afterwards, if it was at the beginning of the file.
-_future_import_nodes = []
-
-def buildImportFromNode(provider, node, source_ref):
-    # "from .. import .." statements. This may trigger a star import, or
-    # multiple names being looked up from the given module variable name.
-
-    module_name = node.module if node.module is not None else ""
-    level = node.level
-
-    # Importing from "__future__" module may enable flags.
-    if module_name == "__future__":
-        if not provider.isPythonModule():
-            SyntaxErrors.raiseSyntaxError(
-                reason     = """\
-from __future__ imports must occur at the beginning of the file""",
-                col_offset = 8
-                  if Utils.python_version >= 300 or \
-                  not Options.isFullCompat()
-                else None,
-                source_ref = source_ref
-            )
-
-
-        for import_desc in node.names:
-            object_name, _local_name = import_desc.name, import_desc.asname
-
-            enableFutureFeature(
-                object_name = object_name,
-                future_spec = source_ref.getFutureSpec(),
-                source_ref  = source_ref
-            )
-
-        # Remember it for checks to be applied once module is complete.
-        node.source_ref = source_ref
-        _future_import_nodes.append(node)
-
-    target_names = []
-    import_names = []
-
-    for import_desc in node.names:
-        object_name, local_name = import_desc.name, import_desc.asname
-
-        if object_name == "*":
-            target_names.append(None)
-        else:
-            target_names.append(
-                local_name
-                  if local_name is not None else
-                object_name
-            )
-
-        import_names.append(object_name)
-
-    if None in target_names:
-        # More than "*" is a syntax error in Python, need not care about this at
-        # all, it's only allowed value for import list in  this case.
-        assert target_names == [None]
-
-        # Python3 made this a syntax error unfortunately.
-        if not provider.isPythonModule() and Utils.python_version >= 300:
-            SyntaxErrors.raiseSyntaxError(
-                "import * only allowed at module level",
-                provider.getSourceReference()
-            )
-
-        if provider.isExpressionFunctionBody():
-            provider.markAsStarImportContaining()
-
-        return StatementImportStar(
-            module_import = ExpressionImportModule(
-                module_name = module_name,
-                import_list = ("*",),
-                level       = level,
-                source_ref  = source_ref
-            ),
-            source_ref    = source_ref
-        )
-    else:
-        import_nodes = []
-
-        for target_name, import_name in zip(target_names, import_names):
-            import_nodes.append(
-                StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetVariableRef(
-                        variable_name = target_name,
-                        source_ref    = source_ref
-                    ),
-                    source       = ExpressionImportName(
-                        module      = ExpressionImportModule(
-                            module_name = module_name,
-                            import_list = tuple(import_names),
-                            level       = level,
-                            source_ref  = source_ref
-                        ),
-                        import_name = import_name,
-                        source_ref  = source_ref
-                    ),
-                    source_ref   = source_ref
-                )
-            )
-
-        # Note: Each import is sequential. It can succeed, and the failure of a
-        # later one is not changing one. We can therefore have a sequence of
-        # imports that only import one thing therefore.
-        return StatementsSequence(
-            statements = import_nodes,
-            source_ref = source_ref
-        )
 
 
 def handleGlobalDeclarationNode(provider, node, source_ref):
@@ -518,8 +413,8 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         closure_variable = None
 
         # Re-use already taken global variables, in order to avoid creating yet
-        # another instance, esp. as the markups could then potentially not be
-        # shared.
+        # another instance, esp. as the indications could then potentially not
+        # be shared.
         if provider.hasTakenVariable(variable_name):
             closure_variable = provider.getTakenVariable(variable_name)
 
@@ -538,6 +433,14 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
             )
 
         assert closure_variable.isModuleVariable()
+
+        if Utils.python_version < 340 and \
+           provider.isClassDictCreation() and \
+           closure_variable.getName() == "__class__":
+            SyntaxErrors.raiseSyntaxError(
+                reason     = "cannot make __class__ global",
+                source_ref = source_ref
+            )
 
         provider.registerProvidedVariable(
             variable = closure_variable
@@ -716,12 +619,21 @@ def buildBinaryOpNode(provider, node, source_ref):
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
-    return ExpressionOperationBinary(
+    left       = buildNode(provider, node.left, source_ref)
+    right      = buildNode(provider, node.right, source_ref)
+
+    result = ExpressionOperationBinary(
         operator   = operator,
-        left       = buildNode(provider, node.left, source_ref),
-        right      = buildNode(provider, node.right, source_ref),
+        left       = left,
+        right      = right,
         source_ref = source_ref
     )
+
+    result.setCompatibleSourceReference(
+        source_ref = right.getCompatibleSourceReference()
+    )
+
+    return result
 
 
 def buildReprNode(provider, node, source_ref):
@@ -765,6 +677,7 @@ setBuildingDispatchers(
         "TryFinally"   : _buildTryFinallyNode,
         "Try"          : buildTryNode,
         "Raise"        : buildRaiseNode,
+        "Import"       : buildImportModulesNode,
         "ImportFrom"   : buildImportFromNode,
         "Assert"       : buildAssertNode,
         "Exec"         : buildExecNode,
@@ -789,7 +702,6 @@ setBuildingDispatchers(
     },
     path_args2 = {
         "NameConstant" : buildNamedConstantNode,
-        "Import"       : buildImportModulesNode,
         "Str"          : buildStringNode,
         "Num"          : buildNumberNode,
         "Bytes"        : buildBytesNode,
@@ -800,16 +712,43 @@ setBuildingDispatchers(
     }
 )
 
+
+def _makeSyntaxErrorCompatible(e):
+    # Encoding problems for Python happen here, for Python3, this was
+    # already done when we read the source code.
+    if Options.isFullCompat() and \
+       (e.args[0].startswith("unknown encoding:") or \
+        e.args[0].startswith("encoding problem:")):
+        if PythonVersions.doShowUnknownEncodingName():
+            complaint = e.args[0].split(':',2)[1]
+        else:
+            complaint = " with BOM"
+
+        e.args = (
+            "encoding problem:%s" % complaint,
+            (e.args[1][0], 1, None, None)
+        )
+
+        if hasattr(e, "msg"):
+            e.msg = e.args[0]
+
+
+
 def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # There are a bunch of branches here, mostly to deal with version
     # differences for module default variables. pylint: disable=R0912
 
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
-    if not source_code.endswith("\n"):
-        source_code = source_code + "\n"
+    if not source_code.endswith('\n'):
+        source_code = source_code + '\n'
 
-    body = ast.parse(source_code, source_ref.getFilename())
+    try:
+        body = ast.parse(source_code, source_ref.getFilename())
+    except SyntaxError as e:
+        _makeSyntaxErrorCompatible(e)
+
+        raise e
 
     assert getKind(body) == "Module"
 
@@ -828,21 +767,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         source_ref = source_ref
     )
 
-    # Check if a __future__ imports really were at the beginning of the file.
-    for node in body:
-        if node in _future_import_nodes:
-            _future_import_nodes.remove(node)
-        else:
-            if _future_import_nodes:
-                SyntaxErrors.raiseSyntaxError(
-                    reason     = """\
-from __future__ imports must occur at the beginning of the file""",
-                    col_offset = 1
-                      if Utils.python_version >= 300 or \
-                      not Options.isFullCompat() else
-                    None,
-                    source_ref = _future_import_nodes[0].source_ref
-                )
+    checkFutureImportsOnlyAtStart(body)
 
     internal_source_ref = source_ref.atInternal()
 
@@ -885,10 +810,8 @@ from __future__ imports must occur at the beginning of the file""",
                     variable_name = "__file__",
                     source_ref    = internal_source_ref
                 ),
-                source       = ExpressionConstantRef(
-                    constant      = source_ref.getFilename(),
-                    source_ref    = internal_source_ref,
-                    user_provided = True
+                source       = ExpressionModuleFileAttributeRef(
+                    source_ref = internal_source_ref,
                 ),
                 source_ref   = internal_source_ref
             )
@@ -954,7 +877,7 @@ from __future__ imports must occur at the beginning of the file""",
       (Utils.python_version >= 330 and Utils.python_version < 340)
 
     if needs__initializing__:
-        # Set initialzing at the beginning to True
+        # Set "__initializing__" at the beginning to True
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
@@ -977,7 +900,7 @@ from __future__ imports must occur at the beginning of the file""",
         )
 
     if needs__initializing__:
-        # Set initialzing at the beginning to True
+        # Set "__initializing__" at the end to False
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
@@ -992,7 +915,6 @@ from __future__ imports must occur at the beginning of the file""",
                 source_ref   = internal_source_ref
             )
         )
-
 
 
     if is_module:
@@ -1049,9 +971,9 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 module_name = module_name[:-3]
 
             if is_shlib:
-                module_name = module_name.split(".")[0]
+                module_name = module_name.split('.')[0]
 
-            if "." in module_name:
+            if '.' in module_name:
                 sys.stderr.write(
                     "Error, '%s' is not a proper python module name.\n" % (
                         module_name

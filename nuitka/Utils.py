@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -195,14 +195,14 @@ def encodeNonAscii(var_name):
         var_name = var_name.encode("ascii", "xmlcharrefreplace")
         var_name = var_name.decode("ascii")
 
-        return var_name.replace("&#", "$$").replace(";", "")
+        return var_name.replace("&#", "$$").replace(';', "")
 
 
 def isExecutableCommand(command):
     path = os.environ["PATH"]
 
-    suffixes = (".exe",) if os.name == "nt" else ("",)
-    path_sep = ";" if os.name == "nt" else ":"
+    suffixes = (".exe",) if getOS() == "Windows" else ("",)
+    path_sep = ';' if getOS() == "Windows" else ':'
 
     for part in path.split(path_sep):
         if not part:
@@ -220,7 +220,7 @@ def getOwnProcessMemoryUsage():
 
     """
 
-    if os.name == "nt":
+    if getOS() == "Windows":
         # adapted from http://code.activestate.com/recipes/578513
         import ctypes
         from ctypes import wintypes
@@ -229,17 +229,17 @@ def getOwnProcessMemoryUsage():
         # pylint: disable=C0103
         class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
             _fields_ = [
-                ('cb', wintypes.DWORD),
-                ('PageFaultCount', wintypes.DWORD),
-                ('PeakWorkingSetSize', ctypes.c_size_t),
-                ('WorkingSetSize', ctypes.c_size_t),
-                ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
-                ('QuotaPagedPoolUsage', ctypes.c_size_t),
-                ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
-                ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
-                ('PagefileUsage', ctypes.c_size_t),
-                ('PeakPagefileUsage', ctypes.c_size_t),
-                ('PrivateUsage', ctypes.c_size_t),
+                ("cb", wintypes.DWORD),
+                ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+                ("PrivateUsage", ctypes.c_size_t),
             ]
 
         GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo
@@ -265,7 +265,14 @@ def getOwnProcessMemoryUsage():
         # Posix only code, pylint: disable=F0401,I0021
         import resource
 
-        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+        # The value is from "getrusage", which has OS dependent scaling, at least
+        # MacOS and Linux different
+        if getOS() == "Darwin":
+            factor = 1
+        else:
+            factor = 1024
+
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * factor
 
 
 def getHumanReadableProcessMemoryUsage(value = None):

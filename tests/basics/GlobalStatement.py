@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -92,7 +92,7 @@ z = 1
 """)
 
     if sys.version_info[0] < 3:
-        return z, locals().keys() == ["z"]
+        return z, locals().keys() == ['z']
     else:
         return locals().keys() == []
 

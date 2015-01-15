@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,8 +18,8 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.7.1
-Copyright (C) 2014 Kay Hayen."""
+Nuitka V0.5.8
+Copyright (C) 2015 Kay Hayen."""
 
 import logging
 import re
@@ -34,6 +34,9 @@ is_nuitka_run = Utils.basename(sys.argv[0]).lower().startswith("nuitka-run")
 
 def getVersion():
     return version_string.split()[1][1:]
+
+def getYear():
+    return int(version_string.split()[4])
 
 if not is_nuitka_run:
     usage = "usage: %prog [--module] [--execute] [options] main_module.py"
@@ -259,7 +262,7 @@ dump_group.add_option(
     action  = "store_true",
     dest    = "dump_xml",
     default = False,
-    help    = """Dump the final result of optimization as XML, then exit."""
+    help    = "Dump the final result of optimization as XML, then exit."
 )
 
 dump_group.add_option(
@@ -447,7 +450,7 @@ cpp_compiler_group.add_option(
     "-j", "--jobs",
     action  = "store",
     dest    = "jobs",
-    metavar = "N",
+    metavar = 'N',
     default = Utils.getCoreCount(),
     help    = """\
 Specify the allowed number of parallel C++ compiler jobs. Defaults to the
@@ -526,7 +529,7 @@ windows_group.add_option(
     dest    = "icon_path",
     metavar = "ICON_PATH",
     default = None,
-    help    = """Add executable icon (Windows only).""",
+    help    = "Add executable icon (Windows only).",
 )
 
 parser.add_option_group(windows_group)
@@ -541,7 +544,7 @@ if is_nuitka_run:
         if count == 0:
             continue
 
-        if arg[0] != "-":
+        if arg[0] != '-':
             break
 
     if count > 0:
@@ -602,10 +605,10 @@ def shallFollowAllImports():
     return options.recurse_all
 
 def getShallFollowModules():
-    return sum([ x.split(",") for x in options.recurse_modules ], [])
+    return sum([ x.split(',') for x in options.recurse_modules ], [])
 
 for any_case_module in getShallFollowModules():
-    if any_case_module.startswith("."):
+    if any_case_module.startswith('.'):
         bad = True
     else:
         for char in "/\\:":
@@ -621,10 +624,10 @@ Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
 any_case_module)
 
 def getShallFollowInNoCase():
-    return sum([ x.split(",") for x in options.recurse_not_modules ], [])
+    return sum([ x.split(',') for x in options.recurse_not_modules ], [])
 
 for no_case_module in getShallFollowInNoCase():
-    if no_case_module.startswith("."):
+    if no_case_module.startswith('.'):
         bad = True
     else:
         for char in "/\\:":
@@ -641,7 +644,7 @@ no_case_module)
 
 
 def getShallFollowExtra():
-    return sum([ x.split(",") for x in options.recurse_extra ], [])
+    return sum([ x.split(',') for x in options.recurse_extra ], [])
 
 def shallWarnImplicitRaises():
     return options.warn_implicit_exceptions
@@ -665,7 +668,7 @@ def getOutputPath(path):
         return path
 
 def getOutputDir():
-    return options.output_dir if options.output_dir else "."
+    return options.output_dir if options.output_dir else '.'
 
 def getPositionalArgs():
     return tuple(positional_args)

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,6 +17,14 @@
 #
 """ Low level constant code generation.
 
+This deals with constants, there creation, there access, and some checks about
+them. Even mutable constants should not change during the course of the
+program.
+
+There are shared constants, which are created for multiple modules to use, you
+can think of them as globals. And there are module local constants, which are
+for a single module only.
+
 """
 
 import ctypes
@@ -25,6 +33,7 @@ import struct
 from logging import warning
 
 import marshal
+from nuitka import Options
 from nuitka.__past__ import iterItems, long, unicode  # pylint: disable=W0622
 from nuitka.Constants import (
     constant_builtin_types,
@@ -32,12 +41,16 @@ from nuitka.Constants import (
     isMutable
 )
 
+from . import CodeTemplates
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
+from .Indentation import indented
 from .Pickling import getStreamedConstant
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
+    """ Assign the constant behind the expression to to_name."""
+
     getConstantAccess(
         to_name  = to_name,
         constant = expression.getConstant(),
@@ -45,25 +58,27 @@ def generateConstantReferenceCode(to_name, expression, emit, context):
         context  = context
     )
 
-
+# One global stream of constant information. In the future it might make
+# sense to have per module ones, for better locality of indexes within it,
+# but we don't do this yet.
 stream_data = StreamData()
 
+# TODO: This is deprecated, and should be removed.
 def getConstantCode(context, constant):
+    return context.getConstantCode(constant)
+
+def getConstantCodeName(context, constant):
     return context.getConstantCode(constant)
 
 # TODO: The determination of this should already happen in Building or in a
 # helper not during code generation.
 _match_attribute_names = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
 
-def getConstantCodeName(context, constant):
-    return context.getConstantCode(constant)
-
-
 def _isAttributeName(value):
     return _match_attribute_names.match(value)
 
-
-# Indicator to standalone mode code, if we need pickling module early on.
+# Indicator to standalone mode code, if we need pickling module early on, which
+# we try to avoid, but can happen with things we cannot create directly.
 _needs_pickle = False
 
 def needsPickleInit():
@@ -85,14 +100,16 @@ def _getUnstreamCode2(constant_value):
 
 
 def _getUnstreamCode(constant_value, constant_identifier):
+    """ Get code to assign given constant value to an identifier from a stream.
+
+        This uses pickle, and usage should be minimized.
+    """
+
     return "%s = UNSTREAM_CONSTANT( %s );" % (
         constant_identifier,
         _getUnstreamCode2(constant_value)
     )
 
-
-def _packFloat(value):
-    return struct.pack("<d", value)
 
 sizeof_long = ctypes.sizeof(ctypes.c_long)
 
@@ -105,6 +122,13 @@ min_signed_long = -(2**(sizeof_long*8-1)-1)
 done = set()
 
 def _getConstantInitValueCode(constant_value, constant_type):
+    """ Return code, if possible, to create a constant.
+
+        It's only used for module local constants, like error messages, and
+        provides no caching of the values. When it returns "None", it is in
+        error.
+    """
+
     # This function is a case driven by returns, pylint: disable=R0911
 
     if constant_type is unicode:
@@ -122,6 +146,7 @@ def _getConstantInitValueCode(constant_value, constant_type):
                     1 if _isAttributeName(constant_value) else 0
                 )
         except UnicodeEncodeError:
+            # TODO: try and use "surrogateescape" for this
             return None
     elif constant_type is str:
         # Python3: Strings that can be encoded as UTF-8 are done more or less
@@ -150,13 +175,20 @@ def _getConstantInitValueCode(constant_value, constant_type):
 
 
 def decideMarshal(constant_value):
+    """ Decide of a constant can be created using "marshal" module methods.
+
+        This is not the case for everything. A prominent exception is types,
+        they are constants, but the "marshal" module refuses to work with
+        them.
+    """
+
     constant_type = type(constant_value)
 
     if constant_type is type:
-        # Types cannot be marshalled, there is no choice about it.
+        # Types cannot be marshaled, there is no choice about it.
         return False
     elif constant_type is dict:
-        # Look at all the keys an values, if one of it cannot be marshalled,
+        # Look at all the keys an values, if one of it cannot be marshaled,
         # or should not, that is it.
         for key, value in iterItems(constant_value):
             if not decideMarshal(key):
@@ -172,6 +204,21 @@ def decideMarshal(constant_value):
 
 
 def isMarshalConstant(constant_value):
+    """ Decide if we want to use marshal to create a constant.
+
+        The reason we do this, is because creating dictionaries with 700
+        elements creates a lot of C code, while gaining usually no performance
+        at all. The MSVC compiler is especially notorious about hanging like
+        forever with this active, due to its optimizer not scaling.
+
+        Therefore we use a constant "weight" (how expensive it is), and apply
+        that to decide.
+
+        If marshal is not possible, or constant "weight" is too large, we
+        don't do it. Also, for some constants, marshal can fail, and return
+        other values. Check that too. In that case, we have to create it.
+    """
+
     if not decideMarshal(constant_value):
         return False
 
@@ -181,23 +228,31 @@ def isMarshalConstant(constant_value):
     marshal_value = marshal.dumps(constant_value)
     restored = marshal.loads(marshal_value)
 
+    # TODO: Potentially warn about these.
     return constant_value == restored
 
 
 def attemptToMarshal(constant_identifier, constant_value, emit):
+    """ Try and marshal a value, if so decided. Indicate with return value.
+
+        See above for why marshal is only used in problematic cases.
+    """
+
     if not isMarshalConstant(constant_value):
         return False
 
     marshal_value = marshal.dumps(constant_value)
     restored = marshal.loads(marshal_value)
 
+    # TODO: The check in isMarshalConstant is currently preventing this from
+    # happening.
     if constant_value != restored:
         warning("Problem with marshal of constant %r", constant_value)
 
         return False
 
     emit(
-        """%s = PyMarshal_ReadObjectFromString( (char *)%s );""" % (
+        "%s = PyMarshal_ReadObjectFromString( (char *)%s );" % (
             constant_identifier,
             stream_data.getStreamDataCode(marshal_value)
         )
@@ -205,12 +260,16 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
 
     return True
 
-
 def _addConstantInitCode(context, emit, constant_type, constant_value,
                          constant_identifier, module_level):
-    # This has many cases, that all return, and do a lot.
-    # pylint: disable=R0911,R0912,R0915,R0914
+    """ Emit code for a specific constant to be prepared during init.
 
+        This may be module or global init. Code makes sure that nested
+        constants belong into the same scope.
+    """
+
+    # This is just a wrapper to make sure that hash values become initialized
+    # for every constant too.
     if constant_value in constant_builtin_types:
         return
     if constant_value is None:
@@ -221,9 +280,36 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
     if constant_value is Ellipsis:
         return
+
+    # Do not repeat ourselves.
     if constant_identifier in done:
         return
 
+    # Then it's a real named constant not yet created.
+    __addConstantInitCode(context, emit, constant_type, constant_value,
+                          constant_identifier, module_level)
+
+    if Options.isDebug():
+        emit(
+             """\
+hash_%(constant_identifier)s = DEEP_HASH( %(constant_identifier)s );""" % {
+                 "constant_identifier" : constant_identifier
+             }
+        )
+
+
+def __addConstantInitCode(context, emit, constant_type, constant_value,
+                          constant_identifier, module_level):
+    """ Emit code for a specific constant to be prepared during init.
+
+        This may be module or global init. Code makes sure that nested
+        constants belong into the same scope.
+    """
+    # This has many cases, that all return, and do a lot.
+    # pylint: disable=R0911,R0912,R0915,R0914
+
+    # For the module level, we only mean to create constants that are used only
+    # inside of it. For the global level, it must must be single use.
     if module_level:
         if context.global_context.getConstantUseCount(constant_identifier) != 1:
             return
@@ -231,12 +317,14 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         if context.getConstantUseCount(constant_identifier) == 1:
             return
 
+    # Adding it to "done". We cannot have recursive constants, so this is OK
+    # to be done now.
     done.add(constant_identifier)
 
     # Use shortest code for ints and longs.
     if constant_type is long:
         # See above, same for long values. Note: These are of course not
-        # existant with Python3 which would have covered it before.
+        # existent with Python3 which would have covered it before.
         if constant_value >= 0 and constant_value <= max_unsigned_long:
             emit (
                 "%s = PyLong_FromUnsignedLong( %sul );" % (
@@ -256,8 +344,12 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
             return
         elif constant_value == min_signed_long-1:
+            # There are compilers out there, that give warnings for the literal
+            # MININT when used. We work around that warning here.
             emit(
-                "%s = PyLong_FromLong( %sl ); %s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );" % (
+                """\
+%s = PyLong_FromLong( %sl ); // To be corrected in next line.
+%s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );""" % (
                     constant_identifier,
                     min_signed_long,
                     constant_identifier,
@@ -266,7 +358,11 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
             )
 
             return
-
+        else:
+            # Note, other longs cannot be handled like that yet. We might create
+            # code that does it better in the future, abusing e.g. internal
+            # representation of "long" integer values.
+            pass
     elif constant_type is int:
         if constant_value >= min_signed_long:
             emit(
@@ -278,10 +374,14 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
             return
         else:
+            # There are compilers out there, that give warnings for the literal
+            # MININT when used. We work around that warning here.
             assert constant_value == min_signed_long-1
 
             emit(
-                "%s = PyInt_FromLong( %sl ); %s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );" % (
+                """\
+%s = PyInt_FromLong( %sl );  // To be corrected in next line.
+%s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );""" % (
                     constant_identifier,
                     min_signed_long,
                     constant_identifier,
@@ -292,6 +392,9 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
             return
 
     if constant_type is unicode:
+        # Attempting to marshal is OK, but esp. Python2 cannot do it for all
+        # "unicode" values.
+
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
@@ -343,6 +446,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
         return
     elif constant_type is bytes:
+        # Python3 only, for Python2, bytes do not happen.
         assert str is unicode
 
         emit(
@@ -359,7 +463,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
             "%s = UNSTREAM_FLOAT( %s );" % (
                 constant_identifier,
                 stream_data.getStreamDataCode(
-                    value      = _packFloat(constant_value),
+                    value      = struct.pack("<d", constant_value),
                     fixed_size = True
                 )
             )
@@ -368,6 +472,9 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     if constant_type is dict:
+        # Not all dictionaries can or should be marshaled. For small ones,
+        # or ones with strange values, like "{1:type}", we have to do it.
+
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
@@ -399,6 +506,7 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
                 context             = context
             )
 
+            # TODO: Error checking for debug.
             emit(
                 "PyDict_SetItem( %s, %s, %s );" % (
                     constant_identifier,
@@ -407,9 +515,15 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
                 )
             )
 
+        # TODO: Check dictionary size, in case we have overlapping keys or
+        # bugs.
+
         return
 
     if constant_type is tuple:
+        # Not all tuples can or should be marshaled. For small ones,
+        # or ones with strange values, like "(type,)", we have to do it.
+
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
@@ -451,6 +565,9 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     if constant_type is list:
+        # Not all lists can or should be marshaled. For small ones,
+        # or ones with strange values, like "[type]", we have to do it.
+
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
@@ -489,9 +606,12 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     if constant_type is set:
+        # Not all sets can or should be marshaled. For small ones,
+        # or ones with strange values, like "{type}", we have to do it.
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
+        # TODO: Hinting size is really not possible?
         emit("%s = PySet_New( NULL );" % constant_identifier)
 
         for element_value in constant_value:
@@ -516,6 +636,8 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
                 )
             )
 
+        # TODO: Check set size, in case we have overlapping keys or
+        # bugs.
         return
 
     if constant_type is slice:
@@ -558,20 +680,28 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
 
         return
 
+    # TODO: Ranges could very well be created for Python3. And "frozenset" and
+    # set, are to be examined.
+
     if constant_type in (frozenset, complex, unicode, long, range):
+        # Lets attempt marshal these.
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
-        emit(_getUnstreamCode(constant_value, constant_identifier))
+        emit(
+            _getUnstreamCode(constant_value, constant_identifier)
+        )
 
         return
 
+    # Must not reach this, if we did, it's in error, and we need to know.
     assert False, (type(constant_value), constant_value, constant_identifier)
 
 
 def getConstantsInitCode(context):
     emit = SourceCodeCollector()
 
+    # Sort items by length and name, so we are determistic and pretty.
     sorted_constants = sorted(
         iterItems(context.getConstants()),
         key = lambda k: (len(k), k )
@@ -593,6 +723,7 @@ def getConstantsInitCode(context):
 def getConstantsDeclCode(context):
     statements = []
 
+    # Sort items by length and name, so we are determistic and pretty.
     sorted_constants = sorted(
         iterItems(context.getConstants()),
         key = lambda k: (len(k), k )
@@ -613,6 +744,9 @@ def getConstantsDeclCode(context):
 
         if context.getConstantUseCount(constant_identifier) != 1:
             statements.append("PyObject *%s;" % constant_identifier)
+
+            if Options.isDebug():
+                statements.append("Py_hash_t hash_%s;" % constant_identifier)
 
     return statements
 
@@ -741,7 +875,7 @@ def getConstantInitCodes(module_context):
 
     sorted_constants = sorted(
         module_context.getConstants(),
-        key = lambda k: (len(k), k )
+        key = lambda k: (len(k), k)
     )
 
     global_context = module_context.global_context
@@ -751,7 +885,7 @@ def getConstantInitCodes(module_context):
             continue
 
         if global_context.getConstantUseCount(constant_identifier) == 1:
-            qualifier = "static "
+            qualifier = "static"
 
             constant_value = global_context.constants[constant_identifier]
 
@@ -764,10 +898,22 @@ def getConstantInitCodes(module_context):
                 context             = module_context
             )
         else:
-            qualifier = "extern "
+            qualifier = "extern"
 
-        decls.append(qualifier + "PyObject *" + constant_identifier + ";")
+        decls.append(
+            "%s PyObject *%s;" % (
+                qualifier,
+                constant_identifier + ';'
+            )
+        )
 
+        if Options.isDebug():
+            decls.append(
+                "%s Py_hash_t hash_%s;" % (
+                    qualifier,
+                    constant_identifier + ';'
+                )
+            )
 
     return decls, inits
 
@@ -802,3 +948,24 @@ def allocateNestedConstants(module_context):
 
         if constant_type in (tuple, dict, list, set, frozenset, slice):
             considerForDeferral(constant_value)
+
+
+def getConstantsDefinitionCode(context):
+    """ Create the code code "__constants.cpp" file.
+
+        This needs to create code to make all global constants (used in more
+        than one module) and create them.
+
+    """
+    constant_inits = getConstantsInitCode(
+        context = context
+    )
+
+    constant_declarations = getConstantsDeclCode(
+        context = context
+    )
+
+    return CodeTemplates.template_constants_reading % {
+        "constant_declarations" : '\n'.join(constant_declarations),
+        "constant_inits"        : indented(constant_inits),
+    }

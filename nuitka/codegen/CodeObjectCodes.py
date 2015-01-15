@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,7 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from nuitka.Utils import python_version
+from nuitka import Options, Utils
 
 from .ConstantCodes import getConstantCode
 
@@ -42,7 +42,7 @@ def getCodeObjectsInitCode(context):
         co_flags = []
 
         if code_object_key[2] != 0 and \
-           (code_object_key[7] or python_version < 340):
+           (code_object_key[7] or Utils.python_version < 340):
             co_flags.append("CO_NEWLOCALS")
 
         if code_object_key[6]:
@@ -62,13 +62,24 @@ def getCodeObjectsInitCode(context):
 
         co_flags.extend(code_object_key[11])
 
-        if python_version < 300:
+        if Options.isStandaloneMode():
+            # TODO: Make an actual difference, and have this become local
+            # to the binary.
+            filename_code = "MAKE_BINARY_RELATIVE( %s )" % (
+                context.getConstantCode(
+                    constant = code_object_key[0]
+                )
+            )
+        else:
+            filename_code = getConstantCode(
+                constant = code_object_key[0],
+                context  = context
+            )
+
+        if Utils.python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
                 code_identifier,
-                getConstantCode(
-                    constant = code_object_key[0],
-                    context  = context
-                ),
+                filename_code,
                 getConstantCode(
                     constant = code_object_key[1],
                     context  = context
@@ -79,15 +90,12 @@ def getCodeObjectsInitCode(context):
                     context  = context
                 ),
                 code_object_key[4],
-                " | ".join(co_flags) or "0",
+                " | ".join(co_flags) or '0',
             )
         else:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
                 code_identifier,
-                getConstantCode(
-                    constant = code_object_key[0],
-                    context  = context
-                ),
+                filename_code,
                 getConstantCode(
                     constant = code_object_key[1],
                     context  = context
@@ -99,7 +107,7 @@ def getCodeObjectsInitCode(context):
                 ),
                 code_object_key[4],
                 code_object_key[5],
-                " | ".join(co_flags) or  "0",
+                " | ".join(co_flags) or  '0',
             )
 
         statements.append(code)

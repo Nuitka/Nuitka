@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Softwar where
@@ -17,3 +17,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+try:
+    print("__loader__ present:", __loader__ is not None)
+except NameError:
+    print("No __loader__ found, OK for Python2")

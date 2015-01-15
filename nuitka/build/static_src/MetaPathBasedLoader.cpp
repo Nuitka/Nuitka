@@ -1,4 +1,4 @@
-//     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -238,6 +238,18 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 
 #if PYTHON_VERSION >= 300
     struct PyModuleDef *def = PyModule_GetDef( module );
+
+    if (unlikely( def == NULL ))
+    {
+        PyErr_Format(
+            PyExc_SystemError,
+            "initialization of %s did not return an extension module",
+            filename
+        );
+
+        return NULL;
+    }
+
     def->m_base.m_init = entrypoint;
 #endif
 
@@ -249,8 +261,42 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
         PyErr_Clear();
     }
 
-#if PYTHON_VERSION >= 300
-    PyDict_SetItemString( PyImport_GetModuleDict(), full_name, module );
+    // Call the standard import fix-ups for extension modules. Their interface
+    // changed over releases.
+#if PYTHON_VERSION < 300
+    PyObject *res2 = _PyImport_FixupExtension( (char *)full_name, (char *)filename );
+
+    if (unlikely( res2 == NULL ))
+    {
+        return NULL;
+    }
+#elif PYTHON_VERSION < 330
+    PyObject *filename_obj = PyUnicode_FromString( filename );
+    assertObject( filename_obj );
+
+    res = _PyImport_FixupExtensionUnicode( module, (char *)full_name, filename_obj );
+
+    Py_DECREF( filename_obj );
+
+    if (unlikely( res == -1 ))
+    {
+        return NULL;
+    }
+#else
+    PyObject *full_name_obj = PyUnicode_FromString( full_name );
+    assertObject( full_name_obj );
+    PyObject *filename_obj = PyUnicode_FromString( filename );
+    assertObject( filename_obj );
+
+    res = _PyImport_FixupExtensionObject( module, full_name_obj, filename_obj );
+
+    Py_DECREF( full_name_obj );
+    Py_DECREF( filename_obj );
+
+    if (unlikely( res == -1 ))
+    {
+        return NULL;
+    }
 #endif
 
     return module;

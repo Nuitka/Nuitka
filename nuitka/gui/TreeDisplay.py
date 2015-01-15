@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -242,7 +242,7 @@ class InspectNodeTreeDialog(QtGui.QDialog):
         line = 1
 
         for char in code:
-            if char == "\n":
+            if char == '\n':
                 line += 1
 
         # print "Line", line

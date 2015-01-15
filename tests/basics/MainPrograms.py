@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,25 +15,26 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
-
-print "Module name is", __name__
+print("Module name is", __name__)
 
 class SomeClass:
     pass
 
-print "Class inside names it as", repr(SomeClass.__module__)
+print("Class inside main module names its module as", repr(SomeClass.__module__))
 
 if __name__ == "__main__":
-    print "Executed as __main__"
+    print("Executed as __main__:")
 
     import sys, os
 
-    # The sys.argv[0] might contain .exe, .py or no suffix at all. Remove it, so the diff
-    # is more acceptable.
+    # The sys.argv[0] might contain ".exe", ".py" or no suffix at all.
+    # Remove it, so the "diff" output is more acceptable.
     args = sys.argv[:]
     args[0] = os.path.basename(args[0]).replace(".exe", ".py").replace(".py", "")
 
-    print "Arguments were", args
+    print("Arguments were (stripped argv[0] suffix):", repr(args))
 
-    print "Flags are", sys.flags
+    # Output the flags, so we can test if we are compatible with these too.
+    print("The sys.flags are:", sys.flags)

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -130,8 +130,8 @@ def anotherFunction():
     print("Assignment to dictionary with comma subscript:", end = "")
     # d[ "f" ] = 3
 
-    d["a", "b"] = 6
-    d["c", "b"] = 9
+    d['a', 'b'] = 6
+    d['c', 'b'] = 9
 
     print(sorted(d.items()))
 

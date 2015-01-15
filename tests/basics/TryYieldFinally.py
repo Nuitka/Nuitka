@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -24,7 +24,7 @@ def tryContinueFinallyTest():
         finally:
             yield x
 
-        yield "-"
+        yield '-'
 
 
 def tryBreakFinallyTest():
@@ -35,7 +35,7 @@ def tryBreakFinallyTest():
         finally:
             yield x
 
-        yield "-"
+        yield '-'
 
 def tryFinallyAfterYield():
     try:

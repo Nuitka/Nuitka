@@ -1,4 +1,4 @@
-//     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -110,6 +110,7 @@ extern Py_hash_t DEEP_HASH( PyObject *value );
 
 #include "nuitka/helper/dictionaries.hpp"
 
+#include "nuitka/helper/rangeobjects.hpp"
 
 #if PYTHON_VERSION >= 300
 static char *_PyUnicode_AS_STRING( PyObject *unicode )
@@ -1015,6 +1016,7 @@ extern char *getBinaryDirectory();
 
 #if _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute( void );
+extern PyObject *MAKE_BINARY_RELATIVE(PyObject *relative);
 #endif
 
 #include <nuitka/threading.hpp>

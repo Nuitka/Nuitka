@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -212,7 +212,7 @@ checkAtHome()
 
 assert os.path.exists( "dist/deb_dist" )
 
-# Check with pylint in pedantic mode and don't procede if there were any
+# Check with pylint in pedantic mode and don't proceed if there were any
 # warnings given. Nuitka is lintian clean and shall remain that way.
 assert 0 == os.system(
     "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes"

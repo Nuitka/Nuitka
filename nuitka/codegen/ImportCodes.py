@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,16 +28,14 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
-from .LineNumberCodes import getLineNumberUpdateCode
+from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 
 
 def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
                          import_list_name, level_name, emit, context):
 
-    emit(
-        getLineNumberUpdateCode(context)
-    )
+    emitLineNumberUpdateCode(context, emit)
 
     emit(
         "%s = IMPORT_MODULE( %s, %s, %s, %s, %s );" % (
@@ -67,21 +65,30 @@ def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
     context.addCleanupTempName(to_name)
 
 
-def getImportModuleHardCode(to_name, module_name, import_name, emit, context):
-    assert module_name == "sys"
-
-    emit(
-        '%s = PySys_GetObject( (char *)"%s" );' % (
-            to_name,
-            import_name
+def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
+                            emit, context):
+    if module_name == "sys":
+        emit(
+            """%s = PySys_GetObject( (char *)"%s" );""" % (
+                to_name,
+                import_name
+            )
         )
-    )
+    elif module_name == "__future__":
+        emit(
+             """%s = PyObject_GetAttrString(PyImport_ImportModule("__future__"), "%s");""" % (
+                to_name,
+                import_name
+            )
+        )
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
+
+    if needs_check:
+        getErrorExitCode(
+            check_name = to_name,
+            emit       = emit,
+            context    = context
+        )
 
 
 def getImportFromStarCode(module_name, emit, context):

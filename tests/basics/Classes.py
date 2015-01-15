@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 class SimpleClass:
-    """ The class documentation."""
+    " The class documentation."
 
 
     # TODO: Doesn't work with Python3, because we don't yet make our own dict
@@ -124,7 +124,7 @@ print "Class that updates its locals:",
 class DictUpdating:
     a = 1
 
-    locals().update({ "b" : 2 })
+    locals().update({ 'b' : 2 })
 
     for f in range(6):
         locals()[ "test_%s" % f ] = f

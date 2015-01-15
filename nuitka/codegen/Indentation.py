@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,15 +23,15 @@ to be the same as in templates.
 """
 
 def _indentedCode(codes, count):
-    return "\n".join(
-        " " * count + line
-          if (line and not line.startswith("#")) else
+    return '\n'.join(
+        ' ' * count + line
+          if (line and not line.startswith('#')) else
         line for line in codes
     )
 
 def indented(codes, level = 1, vert_block = False):
     if type(codes) is str:
-        codes = codes.split("\n")
+        codes = codes.split('\n')
 
     if vert_block and codes != [""]:
         codes.insert(0, "")

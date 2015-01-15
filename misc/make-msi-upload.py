@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,6 +19,18 @@ import shutil, sys, os, subprocess
 
 if os.path.isdir("dist"):
     shutil.rmtree("dist")
+
+branch_name = subprocess.check_output(
+    "git name-rev --name-only HEAD".split()
+).strip()
+
+print("Building for branch '%s'." % branch_name)
+
+assert branch_name in (
+    b"master",
+    b"develop",
+    b"factory",
+), branch_name
 
 assert 0 == subprocess.call(
     (
@@ -51,6 +63,9 @@ parts = [
 ]
 
 new_filename = ".".join(parts)
+
+if branch_name == b"factory":
+    new_filename = "Nuitka-factory." + new_filename[new_filename.find("win"):]
 
 os.rename(os.path.join("dist",filename),os.path.join("dist",new_filename))
 

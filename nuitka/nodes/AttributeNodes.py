@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,6 +22,8 @@ and objects and classes.
 
 There will be a method "computeExpressionAttribute" to aid predicting them.
 """
+
+from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
 from .NodeBases import ExpressionChildrenHavingBase
 
@@ -108,14 +110,12 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
 
     named_children = ("source", "attribute", "default")
 
-    # Need to accept 'object' keyword argument, that is just the API of getattr,
-    # pylint: disable=W0622
-
-    def __init__(self, object, name, default, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, object_arg, name, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"    : object,
+                "source"    : object_arg,
                 "attribute" : name,
                 "default"   : default
             },
@@ -172,14 +172,12 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
 
     named_children = ("source", "attribute", "value")
 
-    # Need to accept 'object' keyword argument, that is just the API of
-    # "setattr" # pylint: disable=W0622
-
-    def __init__(self, object, name, value, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, object_arg, name, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"    : object,
+                "source"    : object_arg,
                 "attribute" : name,
                 "value"     : value
             },
@@ -200,14 +198,12 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
 
     named_children = ("source", "attribute")
 
-    # Need to accept object keyword argument, that is just the API of hasattr,
-    # pylint: disable=W0622
-
-    def __init__(self, object, name, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, object_arg, name, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"    : object,
+                "source"    : object_arg,
                 "attribute" : name,
             },
             source_ref = source_ref
@@ -217,7 +213,44 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
     def computeExpression(self, constraint_collection):
-        # Note: Might be possible to predict or downgrade to mere attribute
-        # check.
+        # We do at least for compile time constants optimization here, but more
+        # could be done, were we to know shapes.
+        source = self.getLookupSource()
+
+        if source.isCompileTimeConstant():
+            attribute = self.getAttribute()
+
+            attribute_name = attribute.getStringValue()
+
+            if attribute_name is not None:
+
+                # If source has side effects, they must be evaluated, before the
+                # lookup, meaning, a temporary variable should be assigned. For
+                # now, we give up in this case. TODO: Replace source with a
+                # temporary variable assignment as a side effect.
+
+                from .NodeMakingHelpers import getComputationResult
+
+                result, tags, change_desc = getComputationResult(
+                    node        = self,
+                    computation = lambda : hasattr(
+                        source.getCompileTimeConstant(),
+                        attribute_name
+                    ),
+                    description = "Call to 'hasattr' pre-computed."
+                )
+
+                from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = result,
+                    old_node = attribute
+                )
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = result,
+                    old_node = source
+                )
+
+                return result, tags, change_desc
 
         return self, None, None

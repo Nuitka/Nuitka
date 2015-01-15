@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -25,14 +25,20 @@ except NameError:
     long = int
 
 
+def displayDict(d):
+    result = '{'
+    for key, value in sorted(d.items()):
+        result += "%s: %s" % (key, value)
+    result += '}'
+
 print("A bunch of constants and their representation:")
-for value in (0, 3, -4, 17, "hey", (0, ), 0.0, -0.0):
-    print(value, ":", repr(value))
+for value in (0, 3, -4, 17, "hey", (0,), 0.0, -0.0):
+    print(value, ':', repr(value))
 
 print("Comparing constants, optimizable:")
 print(1 == 0)
 
-print("Repr of long constants:")
+print("Representation of long constants:")
 a = long(0)
 print(repr(long(0)), repr(a) == "0L")
 
@@ -63,7 +69,7 @@ print("Empty list and dict are hopefully still unchanged:")
 print(({}, []))
 
 print("Set constants:")
-print(set(['foo']))
+print(set(["foo"]))
 
 def mutableConstantChanger():
     a = ([1, 2], [3])
@@ -76,13 +82,13 @@ def mutableConstantChanger():
     print(a)
 
     d = {
-        "l": [],
-        "m" : []
+        'l': [],
+        'm' : []
     }
     print("Start out with value:")
     print(d)
 
-    d["l"].append(7)
+    d['l'].append(7)
     print("Changed to value:")
     print(d)
 
@@ -116,7 +122,7 @@ def f():
     a = dd(qual = one(), storage = two(), type = [], function = [])
     print("f mutable", a)
     a = dd(qual = 1, storage = 2, type = 3, function = 4)
-    print("f immutable", a)
+    print("f immutable", displayDict(a))
 
     # TODO: This exposes a bug in how the star dict argument should populate the
     # dictionary first instead of last, and the called arguments might have to
@@ -145,9 +151,9 @@ print("Manual built dictionary:", x)
 
 # Constants in the code must be created differently.
 d = { "qual" :  [], "storage" : [], "type2" : [], "function" : [] }
-print("Mutable values dictionary constant:", d)
+print("Mutable values dictionary constant:", displayDict(d))
 d = { "qual" :  1, "storage" : 2, "type2" : 3, "function" : 4 }
-print("Immutable values dictionary constant:", d)
+print("Immutable values dictionary constant:", displayDict(d))
 
 # Constants that might be difficult
 min_signed_int = int(-(2**(8*8-1)-1)-1)

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -109,7 +109,7 @@ def decideRecursion(module_filename, module_name, module_package,
     if module_package is None:
         full_name = module_name
     else:
-        full_name = module_package + "." + module_name
+        full_name = module_package + '.' + module_name
 
     if isFrozenModule(full_name):
         return False, "Module is frozen."
@@ -123,7 +123,7 @@ def decideRecursion(module_filename, module_name, module_package,
                 "Module listed explicitly to not recurse to."
             )
 
-        if full_name.startswith(no_case_module + "."):
+        if full_name.startswith(no_case_module + '.'):
             return (
                 False,
                 "Module in package listed explicitly to not recurse to."
@@ -138,7 +138,7 @@ def decideRecursion(module_filename, module_name, module_package,
                 "Module listed explicitly to recurse to."
             )
 
-        if full_name.startswith(any_case_module + "." ):
+        if full_name.startswith(any_case_module + '.' ):
             return (
                 True,
                 "Module in package listed explicitly to recurse to."

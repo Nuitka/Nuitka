@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,7 @@ These classes provide the generic base classes available for nodes.
 """
 
 
-from nuitka import Tracing, TreeXML, Variables
+from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.odict import OrderedDict
 from nuitka.oset import OrderedSet
@@ -55,7 +55,7 @@ class NodeCheckMetaClass(type):
                     return value.title()
 
             kind_to_name_part = "".join(
-                [convert(x) for x in kind.split("_")]
+                [convert(x) for x in kind.split('_')]
             )
             assert name.endswith(kind_to_name_part), \
               (name, kind_to_name_part)
@@ -157,6 +157,19 @@ class NodeBase(NodeMetaClassBase):
         result.reverse()
         return result
 
+    def getChildName(self):
+        """ Return the role in the current parent, subject to changes.
+
+        """
+        parent = self.getParent()
+
+        for key, value in parent.child_values.items():
+            if self is value:
+                return key
+
+        # TODO: Not checking tuples yet
+        return None
+
     def getParentFunction(self):
         """ Return the parent that is a function.
 
@@ -209,21 +222,56 @@ class NodeBase(NodeMetaClassBase):
 
             current = current.getParent()
 
-
     def getSourceReference(self):
         return self.source_ref
 
+    def setCompatibleSourceReference(self, source_ref):
+        """ Bug compatible line numbers information.
+
+            As CPython outputs the last bit of bytecode executed, and not the
+            line of the operation. For example calls, output the line of the
+            last argument, as opposed to the line of the operation start.
+
+            For tests, we wants to be compatible. In improved more, we are
+            not being fully compatible, and just drop it altogether.
+        """
+
+        # Getting the same source reference can be dealt with quickly, so do
+        # this first.
+        if self.source_ref is not source_ref and \
+           Options.isFullCompat() and \
+           self.source_ref != source_ref:
+            # An attribute outside of "__init__", so we save one memory for the
+            # most cases. Very few cases involve splitting across lines.
+            # pylint: disable=W0201
+            self.effective_source_ref = source_ref
+
+
+    def getCompatibleSourceReference(self):
+        """ Bug compatible line numbers information.
+
+            See above.
+        """
+        return getattr(self, "effective_source_ref", self.source_ref)
+
     def asXml(self):
+        line = self.getSourceReference().getLineNumber()
+
         result = TreeXML.Element(
             "node",
             kind = self.__class__.__name__,
-            line = "%s" % self.getSourceReference().getLineNumber()
+            line = "%s" % line
         )
+
+        compat_line = self.getCompatibleSourceReference().getLineNumber()
+
+        if compat_line != line:
+            result.attrib["compat_line"] = str(compat_line)
 
         for key, value in iterItems(self.getDetails()):
             value = str(value)
 
-            if value.startswith("<") and value.endswith(">"):
+            if value.startswith('<') and value.endswith('>'):
                 value = value[1:-1]
 
             result.set(key, str(value))
@@ -433,7 +481,7 @@ class CodeNodeBase(NodeBase):
             if name is not None:
                 result = "%s__%s" % (name, result)
 
-        assert "<" not in result, result
+        assert '<' not in result, result
 
         return result
 
@@ -447,7 +495,7 @@ class CodeNodeBase(NodeBase):
             assert isinstance(self, CodeNodeBase)
 
             if self.name:
-                name = uid + "_" + self.name
+                name = uid + '_' + self.name
             else:
                 name = uid
 
@@ -462,6 +510,7 @@ class CodeNodeBase(NodeBase):
         self.uids[ node.kind ] += 1
 
         return self.uids[ node.kind ]
+
 
 class ChildrenHavingMixin:
     named_children = ()
@@ -649,8 +698,8 @@ class ChildrenHavingMixin:
         )
 
         try:
-            # Using star dict arguments here for generic use,
-            # pylint: disable=W0142
+            # Using star dictionary arguments here for generic use,
+            # pylint: disable=W0142,E1123
             return self.__class__(
                 source_ref = source_ref,
                 **values
@@ -1151,7 +1200,7 @@ class ExpressionSpecBasedComputationMixin(ExpressionMixin):
         return getComputationResult(
             node        = self,
             computation = lambda : self.builtin_spec.simulateCall(given_values),
-            description = "Built-in call to '%s' precomputed." % (
+            description = "Built-in call to '%s' pre-computed." % (
                 self.builtin_spec.getName()
             )
         )

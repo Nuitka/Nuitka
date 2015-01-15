@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -177,13 +177,13 @@ def makeBuiltinParameterSpec(exception_name):
         default_count  = 0
     )
 
-builtin_int_spec = BuiltinParameterSpec("int", ("x", "base"), 2)
+builtin_int_spec = BuiltinParameterSpec("int", ('x', "base"), 2)
 
 # These builtins are only available for Python2
 if python_version < 300:
     builtin_long_spec = BuiltinParameterSpec(
         "long",
-        ("x", "base"),
+        ('x', "base"),
         2
     )
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
@@ -203,10 +203,10 @@ if python_version < 300:
     )
 
 
-builtin_bool_spec = BuiltinParameterSpec("bool", ("x",), 1)
-builtin_float_spec = BuiltinParameterSpec("float", ("x",), 1)
+builtin_bool_spec = BuiltinParameterSpec("bool", ('x',), 1)
+builtin_float_spec = BuiltinParameterSpec("float", ('x',), 1)
 
-# This builtin have variable parameters for Python2/3
+# This built-in have variable parameters for Python2/3
 if python_version < 300:
     builtin_str_spec = BuiltinParameterSpec("str", ("object",), 1)
 else:
@@ -221,8 +221,8 @@ builtin_set_spec = BuiltinParameterSpecNoKeywords("set", ("iterable",), 1)
 
 builtin_import_spec = BuiltinParameterSpec("__import__", ("name", "globals", "locals", "fromlist", "level"), 4)
 builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering"), 3)
-builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ("i",), 0)
-builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ("c",), 0)
+builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ('i',), 0)
+builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ('c',), 0)
 builtin_bin_spec = BuiltinParameterSpecNoKeywords("bin", ("number",), 0)
 builtin_oct_spec = BuiltinParameterSpecNoKeywords("oct", ("number",), 0)
 builtin_hex_spec = BuiltinParameterSpecNoKeywords("hex", ("number",), 0)
@@ -409,7 +409,10 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
 
     # Using list reference for passing the arguments without names,
     # pylint: disable=W0142
-    return builtin_class(
+    result = builtin_class(
         *args_list,
         source_ref = node.getSourceReference()
     )
+    result.setCompatibleSourceReference(node.getCompatibleSourceReference())
+
+    return result

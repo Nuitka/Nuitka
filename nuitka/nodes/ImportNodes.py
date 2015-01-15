@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -148,7 +148,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
                 if module_package is None:
                     module_fullpath = module_name
                 else:
-                    module_fullpath = module_package + "." + module_name
+                    module_fullpath = module_package + '.' + module_name
 
                 if module_filename not in self._warned_about and \
                    module_fullpath not in getModuleWhiteList():
@@ -258,6 +258,12 @@ class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
         self.module_name = module_name
         self.import_name = import_name
 
+    def getDetails(self):
+        return {
+            "module_name" : self.module_name,
+            "import_name" : self.import_name
+        }
+
     def getModuleName(self):
         return self.module_name
 
@@ -270,15 +276,15 @@ class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
         return self, None, None
 
     def mayHaveSideEffects(self):
-        assert False, (self.module_name, self.import_name)
-
         if self.module_name == "sys" and self.import_name == "stdout":
+            return False
+        elif self.module_name == "__future__":
             return False
         else:
             return True
 
     def mayRaiseException(self, exception_type):
-        return True
+        return self.mayHaveSideEffects()
 
 
 class ExpressionBuiltinImport(ExpressionChildrenHavingBase):

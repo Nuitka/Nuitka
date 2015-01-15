@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,11 +15,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
+# Very minimal class example, to be used for debugging.
 
 a = 1
 
 class B:
-   b = a
+    b = a
 
-print B.b
+print(B.b)

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -80,36 +80,9 @@ class Variable:
         from nuitka.VariableRegistry import isSharedTechnically
         return isSharedTechnically(self)
 
-    def getMangledName(self):
-        """ Get the mangled name of the variable.
-
-            By default no mangling is applied.
-        """
-
-        return self.getName()
-
     def getDeclarationTypeCode(self, in_context):
         # Abstract method, pylint: disable=R0201,W0613
         assert False
-
-
-
-
-def mangleName(variable_name, owner):
-    if not variable_name.startswith("__") or variable_name.endswith("__"):
-        return variable_name
-    else:
-        # The mangling of function variable names depends on being inside a
-        # class.
-        class_container = owner.getContainingClassDictCreation()
-
-        if class_container is None:
-            return variable_name
-        else:
-            return "_%s%s" % (
-                class_container.getName().lstrip("_"),
-                variable_name
-            )
 
 
 class LocalVariable(Variable):
@@ -119,10 +92,6 @@ class LocalVariable(Variable):
             owner         = owner,
             variable_name = variable_name
         )
-
-        assert not owner.isExpressionFunctionBody() or \
-               owner.local_locals or \
-               self.__class__ is not LocalVariable
 
     def __repr__(self):
         return "<%s '%s' of '%s'>" % (
@@ -139,27 +108,6 @@ class LocalVariable(Variable):
             return "PyObjectSharedLocalVariable"
         else:
             return "PyObjectLocalVariable"
-
-    def getMangledName(self):
-        return mangleName(self.variable_name, self.owner)
-
-
-class ClassVariable(LocalVariable):
-
-    def getMangledName(self):
-        """ Get the mangled name of the variable.
-
-            In classes, names like "__name__" are not mangled, only "__name"
-            would be.
-        """
-        if not self.variable_name.startswith("__") or \
-           self.variable_name.endswith("__"):
-            return self.variable_name
-        else:
-            return "_%s%s" % (
-                self.getOwner().getName().lstrip("_"),
-                self.variable_name
-            )
 
 
 class MaybeLocalVariable(Variable):

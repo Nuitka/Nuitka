@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -16,6 +16,8 @@
 #     limitations under the License.
 #
 
+from __future__ import print_function
+
 a = 1
 b = 1
 
@@ -29,5 +31,21 @@ someClass()
 
 try:
     someFunction()
-except UnboundLocalError:
-    print "Expected unbound local error occurred."
+except UnboundLocalError as e:
+    print("Expected unbound local error occurred:", repr(e))
+try:
+    class anotherClass():
+        b = c
+except NameError as e:
+    print("Expected name error occurred:", repr(e))
+
+# TODO: This is not passing yet.
+if False:
+    try:
+        class yetanotherClass():
+            b = 1
+            del b
+            print(b)
+
+    except NameError as e:
+        print("Expected name error occurred:", repr(e))

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -56,7 +56,7 @@ def _encodeString(value):
 
             octal = True
 
-    result = result.replace('" "\\', "\\")
+    result = result.replace('" "\\', '\\')
 
     return '"%s"' % result
 
@@ -70,7 +70,7 @@ def encodeString(value):
     value = value[16000:]
 
     while len(value) > 0:
-        result += " "
+        result += ' '
         result += _encodeString(value[:16000 ])
         value = value[16000:]
 

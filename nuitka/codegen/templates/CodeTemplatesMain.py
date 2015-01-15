@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,7 @@ global_copyright = """\
 // Generated code for Python source for module '%(name)s'
 // created by Nuitka version %(version)s
 
-// This code is in part copyright 2014 Kay Hayen.
+// This code is in part copyright %(year)s Kay Hayen.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -231,7 +231,7 @@ module_body_template = """
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
 
-// Note: For full compatability with CPython, every module variable access
+// Note: For full compatibility with CPython, every module variable access
 // needs to go through it except for cases where the module cannot possibly
 // have changed in the mean time.
 

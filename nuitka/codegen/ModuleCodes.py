@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -64,7 +64,7 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=R0913,R0914
 
-    # Temp local variable initializations
+    # Temporary variable initializations
     local_var_inits = [
         getLocalVariableInitCode(
             variable = variable
@@ -105,7 +105,7 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
     local_var_inits += [
         "%s%s%s;" % (
             tmp_type,
-            " " if not tmp_type.endswith("*") else "",
+            ' ' if not tmp_type.endswith('*') else "",
             tmp_name
         )
         for tmp_name, tmp_type in
@@ -164,7 +164,8 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
 def getModuleCode(module_context, template_values):
     header = CodeTemplates.global_copyright % {
         "name"    : module_context.getName(),
-        "version" : Options.getVersion()
+        "version" : Options.getVersion(),
+        "year"    : Options.getYear()
     }
 
     decls, inits = getConstantInitCodes(module_context)
@@ -180,3 +181,14 @@ def getModuleCode(module_context, template_values):
     )
 
     return header + CodeTemplates.module_body_template % template_values
+
+
+def generateModuleFileAttributeCode(to_name, expression, emit, context):
+    emit(
+        "%s = MAKE_BINARY_RELATIVE( %s );" % (
+            to_name,
+            context.getConstantCode(
+                constant = expression.getRunTimeFilename()
+            )
+        )
+    )

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -51,7 +51,7 @@ def formatOutput(e):
             filename,
             lineno,
             message.strip(),
-            " " * (colno-1) if colno is not None else "",
+            ' ' * (colno-1) if colno is not None else "",
             e.__class__.__name__,
             reason
          )

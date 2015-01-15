@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -119,7 +119,7 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
             "PyObject_SetItem",
             dict_name,
             getConstantCode(
-                constant = variable.getMangledName(),
+                constant = variable.getName(),
                 context  = context
             ),
             access_code
@@ -128,7 +128,7 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
 
     # TODO: Use branch C codes to achieve proper indentation
     emit(
-        "}"
+        '}'
     )
 
 
@@ -240,7 +240,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
 
             emit("PyErr_Clear();")
             emit("if (%s != NULL)" % value_name)
-            emit("{")
+            emit('{')
 
             context.addCleanupTempName(value_name)
             getVariableAssignmentCode(
@@ -251,4 +251,4 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
                 context       = context
             )
 
-            emit("}")
+            emit('}')

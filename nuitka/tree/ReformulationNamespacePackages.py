@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,7 +37,7 @@ from .VariableClosure import completeVariableClosures
 
 
 def createNamespacePackage(package_name, module_relpath):
-    parts = package_name.split(".")
+    parts = package_name.split('.')
 
     source_ref = SourceCodeReference.fromFilenameAndLine(
         filename    = module_relpath,
@@ -46,7 +46,7 @@ def createNamespacePackage(package_name, module_relpath):
     )
     source_ref = source_ref.atInternal()
 
-    package_package_name = ".".join(parts[:-1]) or None
+    package_package_name = '.'.join(parts[:-1]) or None
     package = PythonPackage(
         name         = parts[-1],
         package_name = package_package_name,

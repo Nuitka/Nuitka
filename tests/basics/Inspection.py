@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -46,10 +46,10 @@ assert isinstance(CompiledClass, types.FunctionType) is False
 assert inspect.ismethod(compiledFunction) is False
 assert inspect.ismethod(CompiledClass) is False
 
-assert inspect.ismethod(CompiledClass.compiledMethod) == ( sys.version_info < (3, ) )
+assert inspect.ismethod(CompiledClass.compiledMethod) == ( sys.version_info < (3,) )
 assert inspect.ismethod(CompiledClass().compiledMethod) is True
 
-assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == ( sys.version_info < (3, ) )
+assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == ( sys.version_info < (3,) )
 
 
 print("Compiled method:", inspect.getargspec(CompiledClass().compiledMethod))

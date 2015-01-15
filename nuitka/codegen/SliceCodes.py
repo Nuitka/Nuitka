@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -127,7 +127,7 @@ def getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,
     res_name = context.getBoolResName()
 
     emit(
-        """%s = SET_INDEX_SLICE( %s, %s, %s, %s );""" % (
+        "%s = SET_INDEX_SLICE( %s, %s, %s, %s );" % (
             res_name,
             target_name,
             lower_name,
@@ -180,7 +180,7 @@ def getSliceDelIndexesCode(target_name, lower_name, upper_name, emit, context):
     res_name = context.getBoolResName()
 
     emit(
-        """%s = DEL_INDEX_SLICE( %s, %s, %s );""" % (
+        "%s = DEL_INDEX_SLICE( %s, %s, %s );" % (
             res_name,
             target_name,
             lower_name,

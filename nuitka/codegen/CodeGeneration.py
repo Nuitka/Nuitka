@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,11 +29,13 @@ language syntax.
 from nuitka import Constants, Options, Tracing, Utils
 from nuitka.__past__ import iterItems
 from nuitka.codegen.AttributeCodes import generateAttributeLookupCode
+from nuitka.codegen.CallCodes import generateCallCode
 
 from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
 from .ConditionalCodes import generateConditionCode
 from .ConstantCodes import generateConstantReferenceCode
 from .ErrorCodes import getErrorExitBoolCode
+from .ModuleCodes import generateModuleFileAttributeCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 from .SliceCodes import generateBuiltinSliceCode
 from .SubscriptCodes import generateSubscriptLookupCode
@@ -358,6 +360,10 @@ def generateFunctionCallCode(to_name, call_node, emit, context):
 
         arg_names.append(arg_name)
 
+    context.setCurrentSourceCodeReference(
+        call_node.getCompatibleSourceReference()
+    )
+
     Generator.getDirectFunctionCallCode(
         to_name             = to_name,
         function_identifier = function_identifier,
@@ -432,22 +438,45 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
     else:
         annotations_name = None
 
+    var_names = parameters.getCoArgNames()
+
+    # Add names of local variables too.
+    var_names += [
+        local_variable.getName()
+        for local_variable in
+        function_body.getLocalVariables()
+        if not local_variable.isParameterVariable()
+    ]
+
+    code_identifier = context.getCodeObjectHandle(
+        filename      = function_body.getParentModule().getRunTimeFilename(),
+        var_names     = var_names,
+        arg_count     = parameters.getArgumentCount(),
+        kw_only_count = parameters.getKwOnlyParameterCount(),
+        line_number   = function_body.getSourceReference().getLineNumber(),
+        code_name     = function_body.getFunctionName(),
+        is_generator  = function_body.isGenerator(),
+        is_optimized  = not function_body.needsLocalsDict(),
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None,
+        has_closure   = function_body.getClosureVariables() != (),
+        future_flags  = function_body.getSourceReference().getFutureSpec().asFlags()
+    )
+
     function_identifier = function_body.getCodeName()
 
     maker_code = Generator.getFunctionMakerCode(
         function_name       = function_body.getFunctionName(),
         function_qualname   = function_body.getFunctionQualname(),
         function_identifier = function_identifier,
+        code_identifier     = code_identifier,
         parameters          = parameters,
-        local_variables     = function_body.getLocalVariables(),
         closure_variables   = function_body.getClosureVariables(),
         defaults_name       = defaults_name,
         kw_defaults_name    = kw_defaults_name,
         annotations_name    = annotations_name,
-        source_ref          = function_body.getSourceReference(),
         function_doc        = function_body.getDoc(),
         is_generator        = function_body.isGenerator(),
-        is_optimized        = not function_body.needsLocalsDict(),
         context             = context
     )
 
@@ -462,7 +491,7 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
     )
 
     if function_body.getClosureVariables() and not function_body.isGenerator():
-        function_decl += "\n"
+        function_decl += '\n'
 
         function_decl += Generator.getFunctionContextDefinitionCode(
             function_identifier = function_body.getCodeName(),
@@ -528,15 +557,32 @@ def generateFunctionBodyCode(function_body, context):
     needs_generator_return = function_body.needsGeneratorReturnExit()
 
     if function_body.isGenerator():
+        source_ref = function_body.getSourceReference()
+
+        code_identifier = context.getCodeObjectHandle(
+            filename      = function_body.getParentModule().getRunTimeFilename(),
+            var_names     = parameters.getCoArgNames(),
+            arg_count     = parameters.getArgumentCount(),
+            kw_only_count = parameters.getKwOnlyParameterCount(),
+            line_number   = source_ref.getLineNumber(),
+            code_name     = function_body.getFunctionName(),
+            is_generator  = True,
+            is_optimized  = not context.hasLocalsDict(),
+            has_starlist  = parameters.getStarListArgumentName() is not None,
+            has_stardict  = parameters.getStarDictArgumentName() is not None,
+            has_closure   = function_body.getClosureVariables() != (),
+            future_flags  = source_ref.getFutureSpec().asFlags()
+        )
+
         function_code = Generator.getGeneratorFunctionCode(
             context                = function_context,
             function_name          = function_body.getFunctionName(),
             function_identifier    = function_identifier,
+            code_identifier        = code_identifier,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
-            source_ref             = function_body.getSourceReference(),
             function_codes         = function_codes,
             function_doc           = function_body.getDoc(),
             needs_exception_exit   = needs_exception_exit,
@@ -735,169 +781,6 @@ def generateSliceLookupCode(to_name, expression, emit, context):
         )
 
 
-def generateCallCode(to_name, call_node, emit, context):
-    # There is a whole lot of different cases, for each of which, we create
-    # optimized code, constant, with and without positional or keyword args
-    # each, so there is lots of branches here, pylint: disable=R0912
-
-    called_name = context.allocateTempName("called")
-
-    generateExpressionCode(
-        to_name    = called_name,
-        expression = call_node.getCalled(),
-        emit       = emit,
-        context    = context
-    )
-
-    call_args = call_node.getCallArgs()
-    call_kw = call_node.getCallKw()
-
-    if call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}:
-        if call_args.isExpressionMakeTuple():
-            call_arg_names = []
-
-            for call_arg_element in call_args.getElements():
-                call_arg_name = context.allocateTempName("call_arg_element")
-
-                generateExpressionCode(
-                    to_name    = call_arg_name,
-                    expression = call_arg_element,
-                    emit       = emit,
-                    context    = context,
-                )
-
-                call_arg_names.append(call_arg_name)
-
-            assert call_arg_names
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(
-                    call_args.getElements()[-1].getSourceReference()
-                )
-
-            Generator.getCallCodePosArgsQuick(
-                to_name     = to_name,
-                called_name = called_name,
-                arg_names   = call_arg_names,
-                emit        = emit,
-                context     = context
-            )
-        elif call_args.isExpressionConstantRef():
-            call_args_value = call_args.getConstant()
-            assert type(call_args_value) is tuple
-
-            call_arg_names = []
-
-            for call_arg_element in call_args_value:
-                call_arg_name = context.allocateTempName("call_arg_element")
-
-                Generator.getConstantAccess(
-                    to_name  = call_arg_name,
-                    constant = call_arg_element,
-                    emit     = emit,
-                    context  = context,
-                )
-
-                call_arg_names.append(call_arg_name)
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(
-                    call_args.getSourceReference()
-                )
-
-            if call_arg_names:
-                Generator.getCallCodePosArgsQuick(
-                    to_name     = to_name,
-                    called_name = called_name,
-                    arg_names   = call_arg_names,
-                    emit        = emit,
-                    context     = context
-                )
-            else:
-                Generator.getCallCodeNoArgs(
-                    to_name     = to_name,
-                    called_name = called_name,
-                    emit        = emit,
-                    context     = context
-                )
-        else:
-            args_name = context.allocateTempName("call_pos")
-
-            generateExpressionCode(
-                to_name    = args_name,
-                expression = call_args,
-                emit       = emit,
-                context    = context
-            )
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(call_args.getSourceReference())
-
-            Generator.getCallCodePosArgs(
-                to_name     = to_name,
-                called_name = called_name,
-                args_name   = args_name,
-                emit        = emit,
-                context     = context
-            )
-    else:
-        if call_args.isExpressionConstantRef() and \
-           call_args.getConstant() == ():
-            call_kw_name = context.allocateTempName("call_kw")
-
-            generateExpressionCode(
-                to_name    = call_kw_name,
-                expression = call_kw,
-                emit       = emit,
-                context    = context
-            )
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(
-                    call_kw.getSourceReference()
-                )
-
-            Generator.getCallCodeKeywordArgs(
-                to_name      = to_name,
-                called_name  = called_name,
-                call_kw_name = call_kw_name,
-                emit         = emit,
-                context      = context
-            )
-        else:
-            call_args_name = context.allocateTempName("call_pos")
-
-            generateExpressionCode(
-                to_name    = call_args_name,
-                expression = call_args,
-                emit       = emit,
-                context    = context
-            )
-
-            call_kw_name = context.allocateTempName("call_kw")
-
-            generateExpressionCode(
-                to_name    = call_kw_name,
-                expression = call_kw,
-                emit       = emit,
-                context    = context
-            )
-
-            if Options.isFullCompat():
-                context.setCurrentSourceCodeReference(
-                    call_kw.getSourceReference()
-                )
-
-            Generator.getCallCodePosKeywordArgs(
-                to_name        = to_name,
-                called_name    = called_name,
-                call_args_name = call_args_name,
-                call_kw_name   = call_kw_name,
-                emit           = emit,
-                context        = context
-            )
-
-
 def generateBuiltinLocalsCode(to_name, locals_node, emit, context):
     provider = locals_node.getParentVariableProvider()
 
@@ -979,13 +862,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             emit       = emit,
             context    = context
         )
-    elif expression.isExpressionCall():
-        generateCallCode(
-            to_name   = to_name,
-            call_node = expression,
-            emit      = emit,
-            context   = context
-        )
     elif expression.isExpressionFunctionCall():
         generateFunctionCallCode(
             to_name   = to_name,
@@ -1009,14 +885,15 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         )
     elif expression.isExpressionBuiltinNext2():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_NEXT2",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_NEXT2",
+            arg_desc   = (
                 ("next_arg", expression.getIterator()),
                 ("next_default", expression.getDefault()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionSpecialUnpack():
         value_name = context.allocateTempName("unpack")
@@ -1058,6 +935,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             to_name     = to_name,
             module_name = expression.getModuleName(),
             import_name = expression.getImportName(),
+            needs_check = expression.mayRaiseException(BaseException),
             emit        = emit,
             context     = context
         )
@@ -1167,13 +1045,14 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         )
     elif Utils.python_version < 300 and expression.isExpressionBuiltinStr():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "PyObject_Str",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "PyObject_Str",
+            arg_desc   = (
                 ("str_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif (
            Utils.python_version < 300 and \
@@ -1187,73 +1066,79 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
 
         if encoding is None and errors is None:
             generateCAPIObjectCode(
-                to_name  = to_name,
-                capi     = "PyObject_Unicode",
-                arg_desc = (
+                to_name    = to_name,
+                capi       = "PyObject_Unicode",
+                arg_desc   = (
                     (
                         "str_arg" if Utils.python_version < 300 \
                           else "unicode_arg",
                         expression.getValue()
                     ),
                 ),
-                emit     = emit,
-                context  = context
+                source_ref = expression.getCompatibleSourceReference(),
+                emit       = emit,
+                context    = context
             )
         else:
             generateCAPIObjectCode(
-                to_name   = to_name,
-                capi      = "TO_UNICODE3",
-                arg_desc  = (
+                to_name    = to_name,
+                capi       = "TO_UNICODE3",
+                arg_desc   = (
                     ("unicode_arg", expression.getValue()),
                     ("unicode_encoding", encoding),
                     ("unicode_errors", errors),
                 ),
-                emit      = emit,
-                none_null = True,
-                context   = context
+                source_ref = expression.getCompatibleSourceReference(),
+                none_null  = True,
+                emit       = emit,
+                context    = context,
             )
 
     elif expression.isExpressionBuiltinIter1():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "MAKE_ITERATOR",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "MAKE_ITERATOR",
+            arg_desc   = (
                 ("iter_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinIter2():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_ITER2",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_ITER2",
+            arg_desc   = (
                 ("iter_callable", expression.getCallable()),
                 ("iter_sentinel", expression.getSentinel()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinType1():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_TYPE1",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_TYPE1",
+            arg_desc   = (
                 ("type_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinIsinstance():
         generateCAPIObjectCode0(
-            to_name  = to_name,
-            capi     = "BUILTIN_ISINSTANCE",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_ISINSTANCE",
+            arg_desc   = (
                 ("isinstance_inst", expression.getInstance()),
                 ("isinstance_cls", expression.getCls()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionSpecialAttributeLookup():
         source_name = context.allocateTempName("attr_source")
@@ -1276,39 +1161,42 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         )
     elif expression.isExpressionBuiltinHasattr():
         generateCAPIObjectCode0(
-            to_name  = to_name,
-            capi     = "BUILTIN_HASATTR",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_HASATTR",
+            arg_desc   = (
                 ("hasattr_value", expression.getLookupSource()),
                 ("hasattr_attr", expression.getAttribute()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinGetattr():
         generateCAPIObjectCode(
-            to_name   = to_name,
-            capi      = "BUILTIN_GETATTR",
-            arg_desc  = (
+            to_name    = to_name,
+            capi       = "BUILTIN_GETATTR",
+            arg_desc   = (
                 ("getattr_target", expression.getLookupSource()),
                 ("getattr_attr", expression.getAttribute()),
                 ("getattr_default", expression.getDefault()),
             ),
-            emit      = emit,
-            none_null = True,
-            context   = context
+            source_ref = expression.getCompatibleSourceReference(),
+            none_null  = True,
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinSetattr():
         generateCAPIObjectCode0(
-            to_name  = to_name,
-            capi     = "BUILTIN_SETATTR",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_SETATTR",
+            arg_desc   = (
                 ("setattr_target", expression.getLookupSource()),
                 ("setattr_attr", expression.getAttribute()),
                 ("setattr_value", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context,
         )
     elif expression.isExpressionBuiltinRef():
         Generator.getBuiltinRefCode(
@@ -1360,13 +1248,14 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
 
         if base is None:
             generateCAPIObjectCode(
-                to_name  = to_name,
-                capi     = "PyNumber_Int",
-                arg_desc = (
+                to_name    = to_name,
+                capi       = "PyNumber_Int",
+                arg_desc   = (
                     ("int_arg", value),
                 ),
-                emit     = emit,
-                context  = context
+                source_ref = expression.getCompatibleSourceReference(),
+                emit       = emit,
+                context    = context,
             )
         else:
             value_name = context.allocateTempName("int_value")
@@ -1398,13 +1287,14 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
 
         if base is None:
             generateCAPIObjectCode(
-                to_name  = to_name,
-                capi     = "PyNumber_Long",
-                arg_desc = (
+                to_name    = to_name,
+                capi       = "PyNumber_Long",
+                arg_desc   = (
                     ("long_arg", value),
                 ),
-                emit     = emit,
-                context  = context
+                source_ref = expression.getCompatibleSourceReference(),
+                emit       = emit,
+                context    = context
             )
         else:
             value_name = context.allocateTempName("long_value")
@@ -1620,182 +1510,199 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         )
     elif expression.isExpressionBuiltinDir1():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "PyObject_Dir",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "PyObject_Dir",
+            arg_desc   = (
                 ("dir_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinVars():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "LOOKUP_VARS",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "LOOKUP_VARS",
+            arg_desc   = (
                 ("vars_arg", expression.getSource()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinOpen():
         generateCAPIObjectCode(
-            to_name   = to_name,
-            capi      = "BUILTIN_OPEN",
-            arg_desc  = (
+            to_name    = to_name,
+            capi       = "BUILTIN_OPEN",
+            arg_desc   = (
                 ("open_filename", expression.getFilename()),
                 ("open_mode", expression.getMode()),
                 ("open_buffering", expression.getBuffering()),
             ),
-            none_null = True,
-            emit      = emit,
-            context   = context
+            none_null  = True,
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinRange1():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_RANGE",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_RANGE",
+            arg_desc   = (
                 ("range_arg", expression.getLow()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinRange2():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_RANGE2",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_RANGE2",
+            arg_desc   = (
                 ("range2_low", expression.getLow()),
                 ("range2_high", expression.getHigh()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinRange3():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_RANGE3",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_RANGE3",
+            arg_desc   = (
                 ("range3_low", expression.getLow()),
                 ("range3_high", expression.getHigh()),
                 ("range3_step", expression.getStep()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinXrange():
         generateCAPIObjectCode(
-            to_name   = to_name,
-            capi      = "BUILTIN_XRANGE",
-            arg_desc  = (
+            to_name    = to_name,
+            capi       = "BUILTIN_XRANGE",
+            arg_desc   = (
                 ("xrange_low", expression.getLow()),
                 ("xrange_high", expression.getHigh()),
                 ("xrange_step", expression.getStep()),
             ),
-            emit      = emit,
-            none_null = True,
-            context   = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context,
+            none_null  = True,
         )
     elif expression.isExpressionBuiltinFloat():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "TO_FLOAT",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "TO_FLOAT",
+            arg_desc   = (
                 ("float_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinBool():
         generateCAPIObjectCode0(
-            to_name  = to_name,
-            capi     = "TO_BOOL",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "TO_BOOL",
+            arg_desc   = (
                 ("bool_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinChr():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_CHR",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_CHR",
+            arg_desc   = (
                 ("chr_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinOrd():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_ORD",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_ORD",
+            arg_desc   = (
                 ("ord_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinBin():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_BIN",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_BIN",
+            arg_desc   = (
                 ("bin_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinOct():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_OCT",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_OCT",
+            arg_desc   = (
                 ("oct_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinHex():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_HEX",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_HEX",
+            arg_desc   = (
                 ("hex_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinLen():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_LEN",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_LEN",
+            arg_desc   = (
                 ("len_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinTuple():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "PySequence_Tuple",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "PySequence_Tuple",
+            arg_desc   = (
                 ("tuple_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinList():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "PySequence_List",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "PySequence_List",
+            arg_desc   = (
                 ("list_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinDict():
         if expression.getPositionalArgument():
@@ -1844,13 +1751,14 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             )
     elif expression.isExpressionBuiltinSet():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "PySet_New",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "PySet_New",
+            arg_desc   = (
                 ("set_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinType3():
         type_name = context.allocateTempName("type_name")
@@ -1880,13 +1788,14 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         )
     elif expression.isExpressionBuiltinBytearray():
         generateCAPIObjectCode(
-            to_name  = to_name,
-            capi     = "BUILTIN_BYTEARRAY",
-            arg_desc = (
+            to_name    = to_name,
+            capi       = "BUILTIN_BYTEARRAY",
+            arg_desc   = (
                 ("bytearray_arg", expression.getValue()),
             ),
-            emit     = emit,
-            context  = context
+            source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
         )
     elif expression.isExpressionBuiltinSuper():
         type_name, object_name = generateExpressionsCode(
@@ -1966,7 +1875,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         )
     elif Utils.python_version >= 300 and \
          expression.isExpressionBuiltinExec():
-        # exec builtin of Python3, as opposed to Python2 statement
+        # "exec" built-in of Python3, as opposed to Python2 statement
         generateEvalCode(
             to_name   = to_name,
             eval_node = expression,
@@ -2020,6 +1929,10 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             )
         else:
             optimize_name = "NULL"
+
+        context.setCurrentSourceCodeReference(
+            expression.getCompatibleSourceReference()
+        )
 
         Generator.getCompileCode(
             to_name           = to_name,
@@ -3004,7 +2917,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
 
     context.setReturnReleaseMode(old_return_value_release)
 
-    emit("// Re-reraise as necessary after finally was executed.")
+    emit("// Re-raise as necessary after finally was executed.")
 
     if tried_block_may_raise and not statement.needsExceptionPublish():
         emit(
@@ -3054,7 +2967,7 @@ if ( %(continue_name)s )
         else:
             Generator.getGotoCode(old_continue_target, emit)
 
-        emit("}")
+        emit('}')
     if statement.needsBreakHandling():
         emit(
             """\
@@ -3072,7 +2985,7 @@ if ( %(break_name)s )
         else:
             Generator.getGotoCode(old_break_target, emit)
 
-        emit("}")
+        emit('}')
 
     final_end_target = context.allocateLabel("finally_end")
     Generator.getGotoCode(final_end_target, emit)
@@ -3228,7 +3141,9 @@ def generateRaiseCode(statement, emit, context):
             context    = context
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(exception_type.getSourceReference())
+        old_source_ref = context.setCurrentSourceCodeReference(
+            value = exception_type.getCompatibleSourceReference()
+        )
 
         Generator.getRaiseExceptionWithTypeCode(
             raise_type_name = raise_type_name,
@@ -3257,6 +3172,10 @@ def generateRaiseCode(statement, emit, context):
         )
 
         old_source_ref = context.setCurrentSourceCodeReference(exception_value.getSourceReference())
+
+        context.setCurrentSourceCodeReference(
+            statement.getCompatibleSourceReference()
+        )
 
         Generator.getRaiseExceptionWithValueCode(
             raise_type_name  = raise_type_name,
@@ -3940,7 +3859,7 @@ def _generateStatementCode(statement, emit, context):
         )
         if Utils.python_version >= 300:
             emit(
-                """PyException_SetTraceback( exception_value, (PyObject *)exception_tb );"""
+                "PyException_SetTraceback( exception_value, (PyObject *)exception_tb );"
             )
 
         emit(
@@ -4084,13 +4003,13 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             frame_return_exit     = frame_return_exit,
             provider              = provider,
             context               = context
-        ).split("\n")
+        ).split('\n')
     elif guard_mode == "pass_through":
         assert provider.isExpressionFunctionBody()
 
         # This case does not care about "needs_preserve", as for that kind
         # of frame, it is an empty code stub anyway.
-        codes = "\n".join(local_emit.codes),
+        codes = '\n'.join(local_emit.codes),
     elif guard_mode == "full":
         assert provider.isExpressionFunctionBody()
 
@@ -4107,7 +4026,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             needs_preserve        = needs_preserve,
             provider              = provider,
             context               = context
-        ).split("\n")
+        ).split('\n')
     elif guard_mode == "once":
         codes = Generator.getFrameGuardOnceCode(
             frame_identifier      = context.getFrameHandle(),
@@ -4122,7 +4041,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             needs_preserve        = needs_preserve,
             provider              = provider,
             context               = context
-        ).split("\n")
+        ).split('\n')
     else:
         assert False, guard_mode
 
@@ -4290,13 +4209,6 @@ def generateMainCode(main_module, codes, context):
         codes       = codes
     )
 
-
-def generateConstantsDefinitionCode(context):
-    return Generator.getConstantsDefinitionCode(
-        context = context
-    )
-
-
 def generateHelpersCode():
     header_code = Generator.getCallsDecls()
 
@@ -4312,24 +4224,30 @@ def makeGlobalContext():
 # TODO: Find a proper home for this code
 def generateBuiltinIdCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name  = to_name,
-        capi     = "PyLong_FromVoidPtr",
-        arg_desc = (
+        to_name    = to_name,
+        capi       = "PyLong_FromVoidPtr",
+        arg_desc   = (
             ("id_arg", expression.getValue()),
         ),
-        emit     = emit,
-        context  = context
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
     )
 
 
 Helpers.setExpressionDispatchDict(
     {
-        "VARIABLE_REF"      : generateVariableReferenceCode,
-        "TEMP_VARIABLE_REF" : generateVariableReferenceCode,
-        "CONSTANT_REF"      : generateConstantReferenceCode,
-        "ATTRIBUTE_LOOKUP"  : generateAttributeLookupCode,
-        "SUBSCRIPT_LOOKUP"  : generateSubscriptLookupCode,
-        "BUILTIN_SLICE"     : generateBuiltinSliceCode,
-        "BUILTIN_ID"        : generateBuiltinIdCode
+        "VARIABLE_REF"              : generateVariableReferenceCode,
+        "TEMP_VARIABLE_REF"         : generateVariableReferenceCode,
+        "CONSTANT_REF"              : generateConstantReferenceCode,
+        "ATTRIBUTE_LOOKUP"          : generateAttributeLookupCode,
+        "SUBSCRIPT_LOOKUP"          : generateSubscriptLookupCode,
+        "BUILTIN_SLICE"             : generateBuiltinSliceCode,
+        "BUILTIN_ID"                : generateBuiltinIdCode,
+        "CALL_EMPTY"                : generateCallCode,
+        "CALL_KEYWORDS_ONLY"        : generateCallCode,
+        "CALL_NO_KEYWORDS"          : generateCallCode,
+        "CALL"                      : generateCallCode,
+        "MODULE_FILE_ATTRIBUTE_REF" : generateModuleFileAttributeCode
     }
 )

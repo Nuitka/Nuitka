@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -25,10 +25,10 @@ z[1] += 5
 
 print "List inplace:", z[1]
 
-h = { "a" : 3 }
-h["a"] += 2
+h = { 'a' : 3 }
+h['a'] += 2
 
-print "Dict inplace:", h["a"]
+print "Dict inplace:", h['a']
 
 class B:
     a = 1

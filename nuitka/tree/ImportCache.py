@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,7 @@
 This is not about caching the search of modules in the file system, but about
 maintaining a cache of module trees built.
 
-It can happen that modules become unused, and then droped from active modules,
+It can happen that modules become unused, and then dropped from active modules,
 and then later active again, via another import, and in this case, we should
 not start anew.
 """

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -101,39 +101,13 @@ def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
 
 
 def getFunctionMakerCode(function_name, function_qualname, function_identifier,
-                         parameters, local_variables, closure_variables,
+                         code_identifier, parameters, closure_variables,
                          defaults_name, kw_defaults_name, annotations_name,
-                         source_ref, function_doc, is_generator, is_optimized,
-                         context):
+                         function_doc, is_generator, context):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables
     # pylint: disable=R0914
-    var_names = parameters.getCoArgNames()
-
-    # Apply mangled names of local variables too.
-    var_names += [
-        local_variable.getMangledName()
-        for local_variable in
-        local_variables
-        if not local_variable.isParameterVariable()
-    ]
-
-    code_identifier = context.getCodeObjectHandle(
-        filename      = source_ref.getFilename(),
-        var_names     = var_names,
-        arg_count     = parameters.getArgumentCount(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        line_number   = source_ref.getLineNumber(),
-        code_name     = function_name,
-        is_generator  = is_generator,
-        is_optimized  = is_optimized,
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-        has_closure   = closure_variables != (),
-        future_flags  = source_ref.getFutureSpec().asFlags()
-    )
-
     function_creation_args = _getFunctionCreationArgs(
         defaults_name     = defaults_name,
         kw_defaults_name  = kw_defaults_name,
@@ -452,7 +426,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     local_var_inits += [
         "%s%s%s;" % (
             tmp_type,
-            " " if not tmp_type.endswith("*") else "",
+            ' ' if not tmp_type.endswith('*') else "",
             tmp_name
         )
         for tmp_name, tmp_type in
@@ -474,7 +448,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     function_locals = []
 
     if context.hasLocalsDict():
-        function_locals += CodeTemplates.function_dict_setup.split("\n")
+        function_locals += CodeTemplates.function_dict_setup.split('\n')
         function_cleanup = "Py_DECREF( locals_dict );\n"
     else:
         function_cleanup = ""
@@ -536,11 +510,12 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     return result
 
 
-def getGeneratorFunctionCode( context, function_name, function_identifier,
-                              parameters, closure_variables, user_variables,
-                              temp_variables, function_codes, source_ref,
-                              function_doc, needs_exception_exit,
-                              needs_generator_return):
+def getGeneratorFunctionCode(context, function_name, function_identifier,
+                             code_identifier, parameters, closure_variables,
+                             user_variables,
+                             temp_variables, function_codes,
+                             function_doc, needs_exception_exit,
+                             needs_generator_return):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables, with many
@@ -663,7 +638,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     function_locals = []
 
     if context.hasLocalsDict():
-        function_locals += CodeTemplates.function_dict_setup.split("\n")
+        function_locals += CodeTemplates.function_dict_setup.split('\n')
 
     function_locals += function_var_inits
 
@@ -699,7 +674,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
     function_locals += [
         "%s%s%s;" % (
             tmp_type,
-            " " if not tmp_type.endswith("*") else "",
+            ' ' if not tmp_type.endswith('*') else "",
             tmp_name
         )
         for tmp_name, tmp_type in
@@ -731,21 +706,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
         "generator_exit"      : generator_exit
     }
 
-    code_identifier = context.getCodeObjectHandle(
-        filename      = source_ref.getFilename(),
-        var_names     = parameters.getCoArgNames(),
-        arg_count     = parameters.getArgumentCount(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        line_number   = source_ref.getLineNumber(),
-        code_name     = function_name,
-        is_generator  = True,
-        is_optimized  = not context.hasLocalsDict(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-        has_closure   = closure_variables != (),
-        future_flags  = source_ref.getFutureSpec().asFlags()
-    )
-
     if context_decl or instance_context_decl:
         if context_decl:
             context_making = CodeTemplates.genfunc_common_context_use_template % {
@@ -756,7 +716,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier,
                 "function_identifier" : function_identifier,
             }
 
-        context_making = context_making.split("\n")
+        context_making = context_making.split('\n')
 
         if context.isForDirectCall():
             context_making += context_copy

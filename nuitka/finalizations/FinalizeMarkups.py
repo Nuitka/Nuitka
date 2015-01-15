@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -90,12 +90,14 @@ class FinalizeMarkups(FinalizationVisitorBase):
                     search = search.getParent()
 
                     if search.isStatementTryFinally() and \
-                       last_search == search.getBlockTry():
+                       last_search == search.getBlockTry() and \
+                       search.needsExceptionPublish():
                         node.markAsExceptionPreserving()
                         break
 
                     if search.isStatementTryExcept() and \
-                       search.getExceptionHandling() is last_search:
+                       search.getExceptionHandling() is last_search and \
+                       search.needsExceptionPublish():
                         node.markAsExceptionPreserving()
                         break
 

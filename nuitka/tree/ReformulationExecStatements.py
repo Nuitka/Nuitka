@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Reformulation of exec statements
+""" Reformulation of "exec" statements
 
 Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
@@ -62,9 +62,9 @@ from .Helpers import (
 
 def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                              temp_scope, source_ref):
-    """ Wrap the locals and globals arguments for eval and exec.
+    """ Wrap the locals and globals arguments for "eval".
 
-        For eval, this is called from the outside, and when the node tree
+        This is called from the outside, and when the node tree
         already exists.
     """
 
@@ -122,7 +122,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         )
     ]
 
-    # The locals default is dependant on exec_mode, globals or locals.
+    # The locals default is dependent on exec_mode, globals or locals.
     locals_default = ExpressionConditional(
         condition      = ExpressionComparisonIs(
             left       = ExpressionTempVariableRef(

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -101,8 +101,8 @@ def getLocalVariableInitCode(variable, init_from = None, in_context = False):
     result = variable.getDeclarationTypeCode(in_context)
 
     # For pointer types, we don't have to separate with spaces.
-    if not result.endswith("*"):
-        result += " "
+    if not result.endswith('*'):
+        result += ' '
 
     code_name = getVariableCodeName(
         in_context = in_context,
@@ -124,7 +124,7 @@ def getLocalVariableInitCode(variable, init_from = None, in_context = False):
                 else:
                     result += "; %s.object = %s" % (code_name, init_from)
 
-    result += ";"
+    result += ';'
 
     return result
 
@@ -246,9 +246,9 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
 
         if needs_check:
             if Utils.python_version < 340 and not context.isPythonModule():
-                error_message = '''global name '%s' is not defined'''
+                error_message = "global name '%s' is not defined"
             else:
-                error_message = '''name '%s' is not defined'''
+                error_message = "name '%s' is not defined"
 
             getErrorFormatExitCode(
                 check_name = to_name,
@@ -308,7 +308,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 check_name = to_name,
                 exception  = "PyExc_UnboundLocalError",
                 args       = (
-'''local variable '%s' referenced before assignment''' % (
+"local variable '%s' referenced before assignment" % (
                        variable.getName()
                     ),
                 ),
@@ -361,7 +361,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     check_name = to_name,
                     exception  = "PyExc_UnboundLocalError",
                     args       = (
-    '''local variable '%s' referenced before assignment''' % (
+    "local variable '%s' referenced before assignment" % (
                            variable.getName()
                         ),
                     ),
@@ -401,7 +401,7 @@ def getVariableDelCode(tolerant, variable, emit, context):
                 condition = "%s == -1" % res_name,
                 exception = "PyExc_NameError",
                 args      = (
-                    '''%sname '%s' is not defined''' % (
+                    "%sname '%s' is not defined" % (
                         "global " if not context.isPythonModule() else "",
                         variable.getName()
                     ),
@@ -502,7 +502,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
             )
 
             emit(
-                """assert( %s != false );""" % res_name
+                "assert( %s != false );" % res_name
             )
     else:
         assert False, variable

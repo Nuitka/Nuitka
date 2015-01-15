@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Softwar where
@@ -17,14 +17,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
-print( len( range(266) ) )
-print( len( range(266,9999) ) )
-print( len( range(266,9999,3) ) )
-print( len( range(266,9999,-3) ) )
-print( len( range(22266,9999,-3) ) )
-print( len( range(22266,9998,-3) ) )
-print( len( range(22266,9997,-3) ) )
-print( len( range(22266,9996,-3) ) )
-print( len( range(0,3,3) ) )
-print( len( iter( ( 1, 2 ) ) ) )
+print(len(range(266)))
+print(len(range(266,9999)))
+print(len(range(266,9999,3)))
+print(len(range(266,9999,-3)))
+print(len(range(22266,9999,-3)))
+print(len(range(22266,9998,-3)))
+print(len(range(22266,9997,-3)))
+print(len(range(22266,9996,-3)))
+print(len(range(0,3,3)))
+print(len(iter((1, 2))))

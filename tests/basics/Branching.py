@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -158,7 +158,7 @@ def dontOptimizeSideEffects():
         print("function 'returnFalse' should not have beeen called")
         return False
 
-    if (returnTrue() or returnFalse(), ):
+    if (returnTrue() or returnFalse(),):
         print("Taken branch as expected.")
     else:
         print("Bad branch taken.")

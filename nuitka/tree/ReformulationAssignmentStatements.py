@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -60,7 +60,8 @@ from .Helpers import (
     makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
-    makeTryFinallyStatement
+    makeTryFinallyStatement,
+    mangleName
 )
 
 
@@ -347,12 +348,12 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
 
     if type(node) is str:
         return "Name", ExpressionTargetVariableRef(
-            variable_name = node,
+            variable_name = mangleName(node, provider),
             source_ref    = source_ref
         )
     elif kind == "Name":
         return kind, ExpressionTargetVariableRef(
-            variable_name = node.id,
+            variable_name = mangleName(node.id, provider),
             source_ref    = source_ref
         )
     elif kind == "Attribute":
@@ -567,13 +568,12 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
 
 
 def buildDeleteNode(provider, node, source_ref):
-    # Build del statements.
+    # Build "del" statements.
 
     # Note: Each delete is sequential. It can succeed, and the failure of a
     # later one does not prevent the former to succeed. We can therefore have a
-    # simple sequence of del statements that each only delete one thing
-    # therefore. In output tree for optimization "del" therefore only ever has
-    # single arguments.
+    # simple sequence of "del" statements that each only delete one thing
+    # therefore. In output tree "del" therefore only ever has single arguments.
 
     statements = []
 

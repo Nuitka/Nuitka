@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 
-print( "This must be Python3.3, which no longer needs __init__.py to accept a package." )
+print( "This must be Python3.3 or higher, which no longer needs __init__.py to accept a package." )
 
 import sys
 print( "The parent path is", sys.modules[ "some_package"].__path__ )

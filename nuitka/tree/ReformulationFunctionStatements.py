@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import SyntaxErrors, Utils, Variables
+from nuitka import SyntaxErrors, Utils
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
@@ -45,6 +45,7 @@ from .Helpers import (
     getKind,
     makeDictCreationOrConstant,
     makeStatementsSequenceFromStatement,
+    mangleName,
     popIndicatorVariable,
     pushIndicatorVariable
 )
@@ -59,7 +60,7 @@ def buildFunctionNode(provider, node, source_ref):
         provider   = provider,
         name       = node.name,
         doc        = function_doc,
-        parameters = buildParameterSpec(node.name, node, source_ref),
+        parameters = buildParameterSpec(provider, node.name, node, source_ref),
         source_ref = source_ref
     )
 
@@ -165,7 +166,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     result = StatementAssignmentVariable(
         variable_ref = ExpressionTargetVariableRef(
-            variable_name = node.name,
+            variable_name = mangleName(node.name, provider),
             source_ref    = source_ref
         ),
         source       = decorated_function,
@@ -224,13 +225,12 @@ def buildParameterAnnotations(provider, node, source_ref):
         return None
 
 
-    # Strange as it is, startin with Python 3.4, the names of parameters are
-    # mangled in annotations too.
+    # Starting with Python 3.4, the names of parameters are mangled in
+    # annotations as well.
     if Utils.python_version < 340:
         mangle = lambda variable_name: variable_name
     else:
-        def mangle(variable_name):
-            return Variables.mangleName(variable_name, provider)
+        mangle = lambda variable_name: mangleName(variable_name, provider)
 
     keys = []
     values = []
@@ -307,20 +307,27 @@ def buildParameterAnnotations(provider, node, source_ref):
     else:
         return None
 
-def buildParameterSpec(name, node, source_ref):
+
+def buildParameterSpec(provider, name, node, source_ref):
     kind = getKind(node)
 
     assert kind in ("FunctionDef", "Lambda"), "unsupported for kind " + kind
 
     def extractArg(arg):
-        if type(arg) is str or arg is None:
-            return arg
+        if arg is None:
+            return None
+        elif type(arg) is str:
+            return mangleName(arg, provider)
         elif getKind(arg) == "Name":
-            return arg.id
+            return mangleName(arg.id, provider)
         elif getKind(arg) == "arg":
-            return arg.arg
+            return mangleName(arg.arg, provider)
         elif getKind(arg) == "Tuple":
-            return tuple( extractArg(arg) for arg in arg.elts )
+            return tuple(
+                extractArg(arg)
+                for arg in
+                arg.elts
+            )
         else:
             assert False, getKind(arg)
 

@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -34,7 +34,7 @@ def testClassNamespaceOverridesClosure():
         # See #17853.
         x = 42
         class X:
-            locals()["x"] = 43
+            locals()['x'] = 43
             y = x
         print("should be 43:", X.y)
 

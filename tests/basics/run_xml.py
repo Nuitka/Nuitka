@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -36,8 +36,8 @@ else:
 def check_output(*popenargs, **kwargs):
     from subprocess import Popen, PIPE, CalledProcessError
 
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
+    if "stdout" in kwargs:
+        raise ValueError("stdout argument not allowed, it will be overridden.")
     process = Popen(stdout = PIPE, *popenargs, **kwargs)
     output, unused_err = process.communicate()
     retcode = process.poll()
@@ -69,13 +69,13 @@ for filename in sorted(os.listdir(my_dir)):
 
             # On Windows, we cannot rely on 2to3 to be in the path.
             if os.name == "nt":
-                command = sys.executable + " " + os.path.join(os.path.dirname(sys.executable), "Tools/Scripts/2to3.py")
+                command = sys.executable + ' ' + os.path.join(os.path.dirname(sys.executable), "Tools/Scripts/2to3.py")
             else:
                 command = "2to3"
 
             result = subprocess.call(
                 command + " -w -n --no-diffs " + path,
-                stderr = open(os.devnull, "w"),
+                stderr = open(os.devnull, 'w'),
                 shell  = True
             )
 

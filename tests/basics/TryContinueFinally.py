@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -29,9 +29,9 @@ def tryWhileContinueFinallyTest():
             if x % 2 == 1:
                 continue
         finally:
-            print(x, end = " ")
+            print(x, end = ' ')
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -43,9 +43,9 @@ def tryForContinueFinallyTest():
             if x % 2 == 1:
                 continue
         finally:
-            print(x, end = " ")
+            print(x, end = ' ')
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -61,9 +61,9 @@ def tryWhileBreakFinallyTest():
             if x == 5:
                 break
         finally:
-            print(x, end = " ")
+            print(x, end = ' ')
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 
@@ -75,9 +75,9 @@ def tryForBreakFinallyTest():
             if x == 5:
                 break
         finally:
-            print(x, end = " ")
+            print(x, end = ' ')
 
-        print("-", end = " ")
+        print('-', end = ' ')
 
     print()
 

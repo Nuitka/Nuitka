@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,7 +37,7 @@ from .LineNumberCodes import getLineNumberUpdateCode
 
 
 def getErrorExitReleaseCode(context):
-    return "\n".join(
+    return '\n'.join(
         "Py_DECREF( %s );" % tmp_name
         for tmp_name in
         context.getCleanupTempnames()
@@ -46,7 +46,7 @@ def getErrorExitReleaseCode(context):
 
 
 def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
-    assert not condition.endswith(";")
+    assert not condition.endswith(';')
 
     context.markAsNeedsExceptionVariables()
 
@@ -95,7 +95,7 @@ def getErrorExitCode(check_name, emit, context, quick_exception = None):
 
 
 def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
-    assert not condition.endswith(";")
+    assert not condition.endswith(';')
 
     context.markAsNeedsExceptionVariables()
 
@@ -103,11 +103,11 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
         from .ConstantCodes import getModuleConstantCode
 
         set_exception = [
-            """exception_type = INCREASE_REFCOUNT( %s );""" % exception,
-            """exception_value = %s;""" % getModuleConstantCode(
+            "exception_type = INCREASE_REFCOUNT( %s );" % exception,
+            "exception_value = %s;" % getModuleConstantCode(
                 constant = args[0],
             ),
-            """exception_tb = NULL;"""
+            "exception_tb = NULL;"
         ]
     else:
         assert False, args

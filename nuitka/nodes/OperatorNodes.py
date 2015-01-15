@@ -1,4 +1,4 @@
-#     Copyright 2014, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -282,7 +282,7 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
 
     def __init__(self, operator, left, right, source_ref):
-        operator = "I" + operator
+        operator = 'I' + operator
 
         ExpressionOperationBinary.__init__(
             self,
