@@ -435,16 +435,18 @@ if env["CXX"] is None or \
         sys.exit("""\
 Error, cannot locate suitable C++ compiler. You have the following options:
 
-a) If a suitable Visual Studio version is installed, it not located,
+a) If a suitable Visual Studio version is installed, it will not be located,
    automatically unless you install pywin32 for the Python installation
    below "%s".
 
 b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
    Command Prompt' or "vcvarsall.bat". That will add Visual Studio to the
-   PATH.
+   PATH. And it will be detected.
 
-c) Install MinGW to 'C:\\MinGW' then it is automatically picked up.
-""" % sys.exec_prefix)
+c) Install MinGW to 'C:\\MinGW' then it is automatically picked up. But be
+   sure to pick the proper variant (32/64 bits, your Python arch is '%s'). If
+   you have it installed, using the matching Python will help.
+""" % (sys.exec_prefix, target_arch))
     else:
         sys.exit("Error, cannot locate suitable C++ compiler.")
 
