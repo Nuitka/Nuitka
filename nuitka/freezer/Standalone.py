@@ -802,11 +802,11 @@ libraries that need to be removed."""
             assert retcode == 0, filename
 
 
-def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
+def copyUsedDLLs(dist_dir, standalone_entry_points):
     # This is terribly complex, because we check the list of used DLLs
     # trying to avoid duplicates, and detecting errors with them not
     # being binary identical, so we can report them. And then of course
-    # we also need to handle OS specifics, pylint: disable=R0912,R0914
+    # we also need to handle OS specifics, pylint: disable=R0912
 
     dll_map = []
 
@@ -884,12 +884,17 @@ def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
             )
 
     if Utils.getOS() == "Darwin":
-        # For MacOS, the binary needs to be changed to reflect the DLL
-        # location in the dist folder.
-        fixupBinaryDLLPaths(binary_filename, dll_map)
+        # For MacOS, the binary and the DLLs needs to be changed to reflect
+        # the relative DLL location in the ".dist" folder.
+        for standalone_entry_point in standalone_entry_points:
+            fixupBinaryDLLPaths(standalone_entry_point[0], dll_map)
+
+        for _original_path, dll_filename in dll_map:
+            fixupBinaryDLLPaths(dll_filename, dll_map)
 
     if Utils.getOS() == "Linux":
-        # For Linux, the rpath of libraries may be an issue.
+        # For Linux, the "rpath" of libraries may be an issue and must be
+        # removed.
         for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(
                 Utils.joinpath(dist_dir, dll_filename)

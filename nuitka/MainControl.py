@@ -710,7 +710,6 @@ def main():
                 dist_dir                = getStandaloneDirectoryPath(
                     main_module
                 ),
-                binary_filename         = binary_filename,
                 standalone_entry_points = standalone_entry_points
             )
 
