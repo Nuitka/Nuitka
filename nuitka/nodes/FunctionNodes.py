@@ -69,9 +69,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
     def __init__(self, provider, name, doc, parameters, source_ref,
                  is_class = False):
-        # Register ourselves immediately with the module.
-        provider.getParentModule().addFunction(self)
-
         if is_class:
             code_prefix = "class"
         else:
@@ -165,6 +162,9 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
         self.parameters = parameters
         self.parameters.setOwner(self)
+
+        # Register ourselves immediately with the module.
+        provider.getParentModule().addFunction(self)
 
         self.registerProvidedVariables(
             *self.parameters.getVariables()
