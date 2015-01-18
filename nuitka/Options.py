@@ -407,6 +407,17 @@ Use features declared as 'experimental'. May have no effect if no experimental
 features are present in the code. Defaults to off."""
 )
 
+# This is for testing framework, "coverage.py" hates to loose the process. And
+# we can use it to make sure it's not done unknowingly.
+parser.add_option(
+    "--must-not-re-execute",
+    action  = "store_false",
+    dest    = "allow_reexecute",
+    default = True,
+    help    = SUPPRESS_HELP
+)
+
+
 parser.add_option_group(debug_group)
 
 cpp_compiler_group = OptionGroup(
@@ -606,6 +617,9 @@ def shallFollowAllImports():
 
 def getShallFollowModules():
     return sum([ x.split(',') for x in options.recurse_modules ], [])
+
+def isAllowedToReexecute():
+    return options.allow_reexecute
 
 for any_case_module in getShallFollowModules():
     if any_case_module.startswith('.'):
