@@ -33,30 +33,23 @@ from test_common import (
     my_print,
     setup,
     convertUsing2to3,
+    createSearchMode,
     compareWithCPython
 )
 
-python_version = setup()
+python_version = setup(needs_io_encoding = True)
 
-search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
-
-start_at = sys.argv[2] if len( sys.argv ) > 2 else None
-
-if start_at:
-    active = False
-else:
-    active = True
+search_mode = createSearchMode()
 
 extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS","")
 
 for filename in sorted(os.listdir( "." )):
-    if not os.path.isdir(filename) or filename.endswith(".build"):
+    if not os.path.isdir(filename) or \
+       filename.endswith(".build") or \
+       filename.endswith(".dist"):
         continue
 
-    path = os.path.relpath( filename )
-
-    if not active and start_at in ( filename, path ):
-        active = True
+    filename = os.path.relpath( filename )
 
     expected_errors = [
         "module_exits", "main_raises", "main_raises2",
@@ -95,8 +88,13 @@ for filename in sorted(os.listdir( "." )):
     else:
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = extra_options + " --recurse-all"
 
+    active = search_mode.consider(
+        dirname  = None,
+        filename = filename
+    )
+
     if active:
-        my_print( "Consider output of recursively compiled program:", path )
+        my_print( "Consider output of recursively compiled program:", filename )
 
         for filename_main in os.listdir( filename ):
             if filename_main.endswith( "Main.py" ):
@@ -113,10 +111,13 @@ Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case.""" % (
             )
 
         compareWithCPython(
-            path        = os.path.join( filename, filename_main ),
+            dirname     = filename,
+            filename    = filename_main,
             extra_flags = extra_flags,
             search_mode = search_mode,
             needs_2to3  = False
         )
     else:
         my_print( "Skipping", filename )
+
+search_mode.finish()

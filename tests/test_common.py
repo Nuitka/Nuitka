@@ -117,8 +117,15 @@ print(("x86_64" if "AMD64" in sys.version else "x86") if os.name=="nt" else os.u
     if not silent:
         my_print("Using concrete python", python_version, "on", python_arch)
 
-    assert type(python_version) is str
-    assert type(python_arch) is str
+    assert type(python_version) is str, repr(python_version)
+    assert type(python_arch) is str, repr(python_arch)
+
+    if "COVERAGE_FILE" not in os.environ:
+        os.environ["COVERAGE_FILE"] = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            ".coverage"
+        )
 
     return python_version
 
@@ -230,7 +237,12 @@ def decideFilenameVersionSkip(filename):
     return True
 
 
-def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
+def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
+    if dirname is None:
+        path = filename
+    else:
+        path = os.path.join(dirname, filename)
+
     # Apply 2to3 conversion if necessary.
     if needs_2to3:
         path, converted = convertUsing2to3(path)
@@ -246,6 +258,8 @@ def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
 
     command += extra_flags
 
+    command += search_mode.getExtraFlags(dirname, filename)
+
     try:
         result = subprocess.call(
             command
@@ -257,10 +271,9 @@ def compareWithCPython(path, extra_flags, search_mode, needs_2to3):
     if os.path.exists("@test"):
         shutil.rmtree("@test", ignore_errors = True)
 
-    if type(search_mode) is not bool:
-        search_mode = search_mode.abortOnFinding()
-
-    if result != 0 and result != 2 and search_mode:
+    if result != 0 and \
+       result != 2 and \
+       search_mode.abortOnFinding(dirname, filename):
         my_print("Error exit!", result)
         sys.exit(result)
 
@@ -554,57 +567,86 @@ def checkReferenceCount(checked_function, max_rounds = 10):
 def createSearchMode():
     search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
     start_at = sys.argv[2] if len( sys.argv ) > 2 else None
+    coverage_mode = len( sys.argv ) > 1 and sys.argv[1] == "coverage"
 
-    if search_mode and start_at:
+    class SearchModeBase:
+        def __init__(self):
+            self.may_fail = []
+
+        def consider(self, dirname, filename):
+            return True
+
+        def finish(self):
+            pass
+
+        def abortOnFinding(self, dirname, filename):
+            for candidate in self.may_fail:
+                if self._match(dirname, filename, candidate):
+                    return False
+
+            return True
+
+        def getExtraFlags(self, dirname, filename):
+            return []
+
+        def mayFailFor(self, *names):
+            self.may_fail += names
+
+        def _match(self, dirname, filename, candidate):
+            parts = [dirname, filename]
+
+            while None in parts:
+                parts.remove(None)
+            assert parts
+
+            path = os.path.join(*parts)
+
+            return candidate in (
+                dirname,
+                filename,
+                filename.replace(".py", ""),
+                path,
+                path.replace(".py", "")
+            )
+
+    if coverage_mode:
+        class SearchModeCoverage(SearchModeBase):
+            def getExtraFlags(self, dirname, filename):
+                return ["coverage"]
+
+        return SearchModeCoverage()
+    elif search_mode and start_at:
         start_at = start_at.replace("/", os.path.sep)
 
-        class SearchModeByPattern:
+        class SearchModeByPattern(SearchModeBase):
             def __init__( self ):
+                SearchModeBase.__init__(self)
+
                 self.active = False
 
             def consider(self, dirname, filename):
                 if self.active:
                     return True
 
-                parts = [dirname, filename]
-
-                while None in parts:
-                    parts.remove(None)
-                assert parts
-
-                path = os.path.join(*parts)
-
-                self.active = start_at in (
-                    dirname,
-                    filename,
-                    filename.replace(".py", ""),
-                    path,
-                    path.replace(".py", "")
-                )
+                self.active = self._match(dirname, filename, start_at)
                 return self.active
 
             def finish(self):
-                assert self.active
+                if not self.active:
+                    sys.exit("Error, became never active.")
 
-            def abortOnFinding(self):
-                return True
 
         return SearchModeByPattern()
-
     else:
-        class SearchModeImmediate:
-            def consider(self, dirname, filename):
-                return True
-
-            def finish(self):
-                pass
-
-            def abortOnFinding(self):
-                return search_mode
+        class SearchModeImmediate(SearchModeBase):
+            def abortOnFinding(self, dirname, filename):
+                return search_mode and \
+                       SearchModeBase.abortOnFinding(self, dirname, filename)
 
         return SearchModeImmediate()
 
-
+def reportSkip(reason, dirname, filename):
+    my_print("Skipped, %s (%s)." % (os.path.join(dirname, filename), reason))
 
 def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
     import gc

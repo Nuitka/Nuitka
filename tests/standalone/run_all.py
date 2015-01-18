@@ -46,6 +46,12 @@ python_version = setup( needs_io_encoding = True)
 
 search_mode = createSearchMode()
 
+search_mode.mayFailFor(
+    # Do not expect PySide to work yet, because it has that bug still
+    # where it won't call compiled functions as slots.
+    "PySideUsing.py"
+)
+
 for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py"):
         continue
@@ -170,15 +176,14 @@ for filename in sorted(os.listdir(".")):
 
     # First compare so we know the program behaves identical.
     compareWithCPython(
-        path        = filename,
+        dirname     = None,
+        filename    = filename,
         extra_flags = extra_flags,
-        # Do not expect PySide to work yet, because it has that bug still
-        # where it won't call compiled functions as slots.
-        search_mode = search_mode and not filename == "PySideUsing.py",
+        search_mode = search_mode,
         needs_2to3  = False
     )
 
-    # Second use strace on the result.
+    # Second use "strace" on the result.
     loaded_filenames = getRuntimeTraceOfLoadedFiles(
         path = os.path.join(
             filename[:-3] + ".dist",
@@ -375,3 +380,5 @@ for filename in sorted(os.listdir(".")):
         sys.exit(1)
 
     shutil.rmtree(filename[:-3] + ".dist")
+
+search_mode.finish()

@@ -33,19 +33,13 @@ from test_common import (
     my_print,
     setup,
     compareWithCPython,
+    createSearchMode,
     decideFilenameVersionSkip
 )
 
-python_version = setup()
+python_version = setup(needs_io_encoding = True)
 
-search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
-
-start_at = sys.argv[2] if len( sys.argv ) > 2 else None
-
-if start_at:
-    active = False
-else:
-    active = True
+search_mode = createSearchMode()
 
 for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ):
@@ -54,20 +48,22 @@ for filename in sorted( os.listdir( "." ) ):
     if not decideFilenameVersionSkip(filename):
         continue
 
-    path = filename
-
-    if not active and start_at in ( filename, path ):
-        active = True
-
-    # Some syntax errors are for Python3 only.
-    extra_flags = ["expect_failure", "remove_output"]
+    active = search_mode.consider(
+        dirname  = None,
+        filename = filename
+    )
 
     if active:
+        extra_flags = ["expect_failure", "remove_output"]
+
         compareWithCPython(
-            path        = path,
+            dirname     = None,
+            filename    = filename,
             extra_flags = extra_flags,
             search_mode = search_mode,
             needs_2to3  = False
         )
     else:
         my_print("Skipping", filename)
+
+search_mode.finish()
