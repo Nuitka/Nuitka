@@ -3,6 +3,46 @@ Nuitka Release 0.5.9 (Draft)
 
 This release is not yet finished.
 
+Optimization
+------------
+
+- The closure variables no longer use C++ objects to share storage, but proper
+  ``PyCellObject`` for improved compatibility, and to approach a more C-ish
+  status.
+
+New Features
+------------
+
+- Added the option ``--generate-c++-only`` to only generate the C++ source code
+  without starting the compiler.
+
+  Mostly used for debugging and testing coverage. In the later case we do not
+  want the C++ compiler to create any binary, but only to measure what would
+  have been used.
+
+Organizational
+--------------
+
+- Renamed the debug option ``--c++-only`` to ``--recompile-c++-only`` to make
+  its purpose more clear.
+
+Tests
+-----
+
+- Added support for taking coverage of Nuitka in a test run on a given input
+  file.
+
+- Added support for taking coverage for all Nuitka test runners, migrating them
+  all to common code for searching.
+
+- More uniform way of reporting skipped tests.
+
+Summary
+-------
+
+This release is not finished yet.
+
+
 Nuitka Release 0.5.8
 ====================
 
