@@ -387,15 +387,28 @@ Defaults to off."""
 )
 
 debug_group.add_option(
-    "--c++-only",
+    "--recompile-c++-only",
     action  = "store_true",
-    dest    = "cpp_only",
+    dest    = "recompile_cpp_only",
     default = False,
     help    = """\
-Compile the would-be regenerated source file. Allows compiling edited C++ files
+Take existing files and compile them again.Allows compiling edited C++ files
 with the C++ compiler for quick debugging changes to the generated source.
-Defaults to off."""
+Defaults to off. Depends on compiling Python source to determine which files it
+should look at."""
 )
+
+debug_group.add_option(
+    "--generate-c++-only",
+    action  = "store_true",
+    dest    = "generate_cpp_only",
+    default = False,
+    help    = """\
+Generate only C++ source code, and do not compile it to binary or module. This
+is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
+off."""
+)
+
 
 debug_group.add_option(
     "--experimental",
@@ -598,7 +611,10 @@ def shallDisplayBuiltTree():
     return options.display_tree
 
 def shallOnlyExecCppCall():
-    return options.cpp_only
+    return options.recompile_cpp_only
+
+def shallNotDoExecCppCall():
+    return options.generate_cpp_only
 
 def shallHaveStatementLines():
     return options.statement_lines
@@ -727,7 +743,7 @@ def isShowInclusion():
     return options.show_inclusion
 
 def isRemoveBuildDir():
-    return options.remove_build
+    return options.remove_build and not options.generate_cpp_only
 
 def getIntendedPythonVersion():
     return options.python_version
