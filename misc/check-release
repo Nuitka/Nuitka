@@ -21,9 +21,9 @@ from __future__ import print_function
 
 import os, sys, tempfile, subprocess
 
-if "nocheck" in os.environ.get( "DEB_BUILD_OPTIONS", "" ).split():
-    print( "Skiped all tests as per DEB_BUILD_OPTIONS environment." )
-    sys.exit( 0 )
+if "nocheck" in os.environ.get("DEB_BUILD_OPTIONS", "").split():
+    print("Skiped all tests as per DEB_BUILD_OPTIONS environment.")
+    sys.exit(0)
 
 from optparse import OptionParser
 
@@ -192,13 +192,13 @@ options, positional_args = parser.parse_args()
 if positional_args:
     parser.print_help()
 
-    sys.exit( "\nError, no positional argument allowed." )
+    sys.exit("\nError, no positional argument allowed.")
 
 # Go its own directory, to have it easy with path knowledge.
-os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
-os.chdir( ".." )
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+os.chdir("..")
 
-path_sep = ";" if os.name == "nt" else ":"
+path_sep = ';' if os.name == "nt" else ':'
 
 # Add the local bin directory to search path start.
 os.environ[ "PATH" ] = \
@@ -238,14 +238,14 @@ def checkExecutableCommand( command ):
 
     path = os.environ[ "PATH" ]
 
-    suffixes = ( ".exe", ) if os.name == "nt" else ( "", )
+    suffixes = (".exe",) if os.name == "nt" else ("",)
 
-    for part in path.split( path_sep ):
+    for part in path.split(path_sep):
         if not part:
             continue
 
         for suffix in suffixes:
-            if os.path.exists( os.path.join( part, command + suffix ) ):
+            if os.path.exists(os.path.join(part, command + suffix)):
                 return True
     else:
         return False
@@ -255,13 +255,13 @@ def setExtraFlags( where, name, flags ):
         tmp_dir = tempfile.gettempdir()
 
         # Try to avoid RAM disk /tmp and use the disk one instead.
-        if tmp_dir == "/tmp" and os.path.exists( "/var/tmp" ):
+        if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
             tmp_dir = "/var/tmp"
 
-        where = os.path.join( tmp_dir, name, where )
+        where = os.path.join(tmp_dir, name, where)
 
-        if not os.path.exists( where ):
-            os.makedirs( where )
+        if not os.path.exists(where):
+            os.makedirs(where)
 
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = flags + " --output-dir=" + where
     else:
@@ -269,19 +269,19 @@ def setExtraFlags( where, name, flags ):
 
 def executeSubTest( command, hide_stderror = False ):
     parts = command.split()
-    parts[0] = parts[0].replace( "/", os.path.sep )
+    parts[0] = parts[0].replace('/', os.path.sep)
 
     # On Windows, we need to specify Python ourselves.
     if os.name == "nt":
-        parts.insert( 0, sys.executable )
+        parts.insert(0, sys.executable)
 
-    print( "Run '%s' in '%s'." % ( " ".join( parts ), os.getcwd() ) )
+    print("Run '%s' in '%s'." % (' '.join(parts), os.getcwd()))
 
     sys.stdout.flush()
-    result = subprocess.call( parts )
+    result = subprocess.call(parts)
 
     if result != 0:
-        sys.exit( result )
+        sys.exit(result)
 
 def execute_tests( where, use_python, flags ):
     print(
@@ -294,27 +294,27 @@ def execute_tests( where, use_python, flags ):
 
     if os.name == "nt":
         if use_python == "python2.6":
-            if sys.version.startswith( "2.6"):
+            if sys.version.startswith("2.6"):
                 os.environ[ "PYTHON" ] = sys.executable
             else:
                 os.environ[ "PYTHON" ] = r"C:\Python26\python.exe"
         elif use_python == "python2.7":
-            if sys.version.startswith( "2.7"):
+            if sys.version.startswith("2.7"):
                 os.environ[ "PYTHON" ] = sys.executable
             else:
                 os.environ[ "PYTHON" ] = r"C:\Python27\python.exe"
         elif use_python == "python3.2":
-            if sys.version.startswith( "3.2"):
+            if sys.version.startswith("3.2"):
                 os.environ[ "PYTHON" ] = sys.executable
             else:
                 os.environ[ "PYTHON" ] = r"C:\Python32\python.exe"
         elif use_python == "python3.3":
-            if sys.version.startswith( "3.3"):
+            if sys.version.startswith("3.3"):
                 os.environ[ "PYTHON" ] = sys.executable
             else:
                 os.environ[ "PYTHON" ] = r"C:\Python33\python.exe"
         elif use_python == "python3.4":
-            if sys.version.startswith( "3.4"):
+            if sys.version.startswith("3.4"):
                 os.environ[ "PYTHON" ] = sys.executable
             else:
                 os.environ[ "PYTHON" ] = r"C:\Python34\python.exe"
@@ -324,140 +324,140 @@ def execute_tests( where, use_python, flags ):
         os.environ[ "PYTHON" ] = use_python
 
     if options.basic_tests:
-        print( "Running the basic tests with options '%s' with %s:"  % ( flags, use_python ) )
-        setExtraFlags( where, "basics", flags )
-        executeSubTest( "./tests/basics/run_all.py search" )
+        print("Running the basic tests with options '%s' with %s:"  % (flags, use_python))
+        setExtraFlags(where, "basics", flags)
+        executeSubTest("./tests/basics/run_all.py search")
 
     if options.syntax_tests:
-        print( "Running the syntax tests with options '%s' with %s:"  % ( flags, use_python ) )
-        setExtraFlags( where, "syntax", flags )
-        executeSubTest( "./tests/syntax/run_all.py search" )
+        print("Running the syntax tests with options '%s' with %s:"  % (flags, use_python))
+        setExtraFlags(where, "syntax", flags)
+        executeSubTest("./tests/syntax/run_all.py search")
 
     if options.program_tests:
-        print( "Running the program tests with options '%s' with %s:" % ( flags, use_python ) )
-        setExtraFlags( where, "programs", flags )
-        executeSubTest( "./tests/programs/run_all.py search" )
+        print("Running the program tests with options '%s' with %s:" % (flags, use_python))
+        setExtraFlags(where, "programs", flags)
+        executeSubTest("./tests/programs/run_all.py search")
 
     if options.package_tests:
-        print( "Running the package tests with options '%s' with %s:" % ( flags, use_python ) )
-        setExtraFlags( where, "packages", flags )
-        executeSubTest( "./tests/packages/run_all.py search" )
+        print("Running the package tests with options '%s' with %s:" % (flags, use_python))
+        setExtraFlags(where, "packages", flags)
+        executeSubTest("./tests/packages/run_all.py search")
 
     # At least one Debian Jessie, these versions won't have lxml installed, so
     # don't run them there. Also these won't be very version dependent in their
     # results.
     if use_python != "python2.6" and use_python != "python3.2":
         if options.optimization_tests:
-            print( "Running the optimizations tests with options '%s' with %s:" % ( flags, use_python ) )
-            setExtraFlags( where, "optimizations", flags )
-            executeSubTest( "./tests/optimizations/run_all.py search" )
+            print("Running the optimizations tests with options '%s' with %s:" % (flags, use_python))
+            setExtraFlags(where, "optimizations", flags)
+            executeSubTest("./tests/optimizations/run_all.py search")
 
     if options.standalone_tests:
-        print( "Running the standalone tests with options '%s' with %s:" % ( flags, use_python ) )
-        setExtraFlags( None, "standalone", flags )
-        executeSubTest( "./tests/standalone/run_all.py search" )
+        print("Running the standalone tests with options '%s' with %s:" % (flags, use_python))
+        setExtraFlags(None, "standalone", flags)
+        executeSubTest("./tests/standalone/run_all.py search")
 
     if options.reflection_test:
-        print( "Running the reflection test with options '%s' with %s:" % ( flags, use_python ) )
-        setExtraFlags( None, "reflected", flags )
-        executeSubTest( "./tests/reflected/compile_itself.py search" )
+        print("Running the reflection test with options '%s' with %s:" % (flags, use_python))
+        setExtraFlags(None, "reflected", flags)
+        executeSubTest("./tests/reflected/compile_itself.py search")
 
-    if not use_python.startswith( "python3" ):
-        if os.path.exists( "./tests/CPython26/run_all.py" ):
+    if not use_python.startswith("python3"):
+        if os.path.exists("./tests/CPython26/run_all.py"):
             if options.cpython26:
-                print( "Running the CPython 2.6 tests with options '%s' with %s:" % ( flags, use_python ) )
+                print("Running the CPython 2.6 tests with options '%s' with %s:" % (flags, use_python))
 
-                setExtraFlags( where, "26tests", flags )
-                executeSubTest( "./tests/CPython26/run_all.py search" )
+                setExtraFlags(where, "26tests", flags)
+                executeSubTest("./tests/CPython26/run_all.py search")
         else:
-            print( "The CPython2.6 tests are not present, not run." )
+            print("The CPython2.6 tests are not present, not run.")
 
         # Running the Python 2.7 test suite with CPython 2.6 gives little
         # insight, because "importlib" will not be there and that's it.
         if use_python != "python2.6":
-            if os.path.exists( "./tests/CPython27/run_all.py" ):
+            if os.path.exists("./tests/CPython27/run_all.py"):
                 if options.cpython27:
-                    print( "Running the CPython 2.7 tests with options '%s' with %s:" % ( flags, use_python ) )
-                    setExtraFlags( where, "27tests", flags )
-                    executeSubTest( "./tests/CPython27/run_all.py search" )
+                    print("Running the CPython 2.7 tests with options '%s' with %s:" % (flags, use_python))
+                    setExtraFlags(where, "27tests", flags)
+                    executeSubTest("./tests/CPython27/run_all.py search")
             else:
-                print( "The CPython2.7 tests are not present, not run." )
+                print("The CPython2.7 tests are not present, not run.")
 
     if "--debug" not in flags:
         # Not running the Python 3.2 test suite with CPython2.6, as that's about
         # the same as CPython2.7 and won't have any new insights.
         if use_python != "python2.6":
-            if os.path.exists( "./tests/CPython32/run_all.py" ):
+            if os.path.exists("./tests/CPython32/run_all.py"):
                 if options.cpython32:
-                    setExtraFlags( where, "32tests", flags )
-                    executeSubTest( "./tests/CPython32/run_all.py search" )
+                    setExtraFlags(where, "32tests", flags)
+                    executeSubTest("./tests/CPython32/run_all.py search")
             else:
-                print( "The CPython3.2 tests are not present, not run." )
+                print("The CPython3.2 tests are not present, not run.")
 
         # Running the Python 3.3 test suite only with CPython2.x.
-        if not use_python.startswith( "python2" ):
-            if os.path.exists( "./tests/CPython33/run_all.py" ):
+        if not use_python.startswith("python2"):
+            if os.path.exists("./tests/CPython33/run_all.py"):
                 if options.cpython33:
-                    setExtraFlags( where, "33tests", flags )
-                    executeSubTest( "./tests/CPython33/run_all.py search" )
+                    setExtraFlags(where, "33tests", flags)
+                    executeSubTest("./tests/CPython33/run_all.py search")
             else:
-                print( "The CPython3.3 tests are not present, not run." )
+                print("The CPython3.3 tests are not present, not run.")
 
     if "NUITKA_EXTRA_OPTIONS" in os.environ:
         del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
 
-assert checkExecutableCommand( "python2.6" ) or checkExecutableCommand( "python2.7" ) or checkExecutableCommand( "python3.2" ) or checkExecutableCommand( "python3.3" ) or checkExecutableCommand( "python3.4" )
+assert checkExecutableCommand("python2.6") or checkExecutableCommand("python2.7") or checkExecutableCommand("python3.2") or checkExecutableCommand("python3.3") or checkExecutableCommand("python3.4")
 
 # Just the quick syntax test, full tests are run later.
-if checkExecutableCommand( "python3.2" ):
+if checkExecutableCommand("python3.2"):
     executeSubTest(
         "bin/nuitka --python-version=3.2 --version",
         hide_stderror = True
     )
 
-if checkExecutableCommand( "python2.6" ):
-    execute_tests( "python2.6-debug", "python2.6", "--debug" )
+if checkExecutableCommand("python2.6"):
+    execute_tests("python2.6-debug", "python2.6", "--debug")
 else:
-    print( "Cannot execute tests with Python 2.6, disabled or not installed." )
+    print("Cannot execute tests with Python 2.6, disabled or not installed.")
 
-if checkExecutableCommand( "python2.7" ):
-    execute_tests( "python2.7-debug", "python2.7", "--debug" )
+if checkExecutableCommand("python2.7"):
+    execute_tests("python2.7-debug", "python2.7", "--debug")
 else:
-    print( "Cannot execute tests with Python 2.7, disabled or not installed." )
+    print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
 # Temporary measure, the nodebug tests pass, debug doesn't for the CPython3.2
 # test suite without unused closure variable removal.
-if False and checkExecutableCommand( "python3.2" ):
-    execute_tests( "python3.2-debug", "python3.2", "--debug" )
+if False and checkExecutableCommand("python3.2"):
+    execute_tests("python3.2-debug", "python3.2", "--debug")
 else:
-    print( "Cannot execute tests with Python 3.2, disabled or not installed." )
+    print("Cannot execute tests with Python 3.2, disabled or not installed.")
 
-if checkExecutableCommand( "python2.6" ):
-    execute_tests( "python2.6-nodebug", "python2.6", "" )
+if checkExecutableCommand("python2.6"):
+    execute_tests("python2.6-nodebug", "python2.6", "")
 else:
-    print( "Cannot execute tests with Python 2.6, disabled or not installed." )
+    print("Cannot execute tests with Python 2.6, disabled or not installed.")
 
-if checkExecutableCommand( "python2.7" ):
-    execute_tests( "python2.7-nodebug", "python2.7", "" )
+if checkExecutableCommand("python2.7"):
+    execute_tests("python2.7-nodebug", "python2.7", "")
 else:
-    print( "Cannot execute tests with Python 2.7, disabled or not installed." )
+    print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
-if checkExecutableCommand( "python3.2" ):
-    execute_tests( "python3.2-nodebug", "python3.2", "" )
+if checkExecutableCommand("python3.2"):
+    execute_tests("python3.2-nodebug", "python3.2", "")
 else:
-    print( "Cannot execute tests with Python 3.2, disabled or not installed." )
+    print("Cannot execute tests with Python 3.2, disabled or not installed.")
 
-if checkExecutableCommand( "python3.3" ):
-    execute_tests( "python3.2-nodebug", "python3.3", "" )
+if checkExecutableCommand("python3.3"):
+    execute_tests("python3.2-nodebug", "python3.3", "")
 else:
-    print( "Cannot execute tests with Python 3.3, disabled or not installed." )
+    print("Cannot execute tests with Python 3.3, disabled or not installed.")
 
-if checkExecutableCommand( "python3.4" ):
-    execute_tests( "python3.2-nodebug", "python3.4", "" )
+if checkExecutableCommand("python3.4"):
+    execute_tests("python3.2-nodebug", "python3.4", "")
 else:
-    print( "Cannot execute tests with Python 3.4, disabled or not installed." )
+    print("Cannot execute tests with Python 3.4, disabled or not installed.")
 
-if checkExecutableCommand( "cppcheck" ):
+if checkExecutableCommand("cppcheck"):
     command = [
         "cppcheck",
         "-q",
@@ -469,9 +469,9 @@ if checkExecutableCommand( "cppcheck" ):
     ]
 
     sys.stdout.flush()
-    result = subprocess.call( command )
+    result = subprocess.call(command)
 
     if result != 0:
-        sys.exit( result )
+        sys.exit(result)
 
-print( "OK." )
+print("OK.")
