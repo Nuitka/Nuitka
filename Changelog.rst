@@ -13,6 +13,8 @@ Optimization
 New Features
 ------------
 
+- Added the option ``--recurse-pattern`` to include modules per filename.
+
 - Added the option ``--generate-c++-only`` to only generate the C++ source code
   without starting the compiler.
 
