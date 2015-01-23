@@ -55,6 +55,7 @@ remove_output      = hasArg("remove_output")
 standalone_mode    = hasArg("standalone")
 no_site            = hasArg("no_site")
 recurse_none       = hasArg("recurse_none")
+recurse_all        = hasArg("recurse_all")
 timing             = hasArg("timing")
 coverage_mode      = hasArg("coverage")
 
@@ -70,6 +71,7 @@ if coverage_mode:
 comparison_mode = not coverage_mode
 
 assert not standalone_mode or not module_mode
+assert not recurse_all or not recurse_none
 
 if "PYTHONHASHSEED" not in os.environ:
     os.environ["PYTHONHASHSEED"] = "0"
@@ -159,6 +161,8 @@ else:
             os.path.abspath(os.path.join(os.path.dirname(__file__), "nuitka"))
         ]
     else:
+        assert coverage_mode
+
         nuitka_call = [
             os.environ["PYTHON"],
             "-m",
@@ -192,6 +196,9 @@ if keep_python_path or binary_python_path:
 
 if recurse_none:
     extra_options.append("--recurse-none")
+
+if recurse_all:
+    extra_options.append("--recurse-all")
 
 if coverage_mode:
     extra_options.append("--must-not-re-execute")
