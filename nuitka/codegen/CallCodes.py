@@ -344,6 +344,7 @@ def getCallsCode():
         CodeTemplates.template_helper_impl_decl % {}
     )
 
+    # TODO: If no variables used, move that code to helpers.
     result.append(
         CodeTemplates.template_call_cpython_function_fast_impl % {}
     )

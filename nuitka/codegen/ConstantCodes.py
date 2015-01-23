@@ -903,7 +903,7 @@ def getConstantInitCodes(module_context):
         decls.append(
             "%s PyObject *%s;" % (
                 qualifier,
-                constant_identifier + ';'
+                constant_identifier
             )
         )
 
@@ -911,7 +911,7 @@ def getConstantInitCodes(module_context):
             decls.append(
                 "%s Py_hash_t hash_%s;" % (
                     qualifier,
-                    constant_identifier + ';'
+                    constant_identifier
                 )
             )
 
