@@ -336,8 +336,6 @@ class StatementsFrame(StatementsSequence):
     def computeStatementsSequence(self, constraint_collection):
         # The extraction of parts of the frame that can be moved before or after
         # the frame scope, takes it toll to complexity, pylint: disable=R0912
-
-
         new_statements = []
 
         statements = self.getStatements()
@@ -372,6 +370,13 @@ class StatementsFrame(StatementsSequence):
 
         if not new_statements:
             return None
+
+        # If our statements changed just now, they are not immediately usable,
+        # so do this in two steps. Next time we can reduce the frame scope just
+        # as well.
+        if statements != tuple(new_statements):
+            self.setStatements(new_statements)
+            return self
 
         # Determine statements inside the frame, that need not be in a frame,
         # because they wouldn't raise an exception.
