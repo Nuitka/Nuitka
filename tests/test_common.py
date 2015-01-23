@@ -609,10 +609,16 @@ def createSearchMode():
                 path.replace(".py", "")
             )
 
+        def isCoverage(self):
+            return False
+
     if coverage_mode:
         class SearchModeCoverage(SearchModeBase):
             def getExtraFlags(self, dirname, filename):
                 return ["coverage"]
+
+            def isCoverage(self):
+                return True
 
         return SearchModeCoverage()
     elif search_mode and start_at:
