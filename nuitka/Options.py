@@ -217,9 +217,21 @@ recurse_group.add_option(
     default = [],
     help    = """\
 Recurse into that directory, no matter if it's used by the given main program
-in a visible form. Overrides all other options. Can be given multiple times.
-Default empty."""
+in a visible form. Overrides all other recursion options. Can be given multiple
+times. Default empty."""
 )
+
+recurse_group.add_option(
+    "--recurse-files", "--recurse-pattern",
+    action  = "append",
+    dest    = "recurse_extra_files",
+    metavar = "PATTERN",
+    default = [],
+    help    = """\
+Recurse into files matching the PATTERN. Overrides all recursion other options.
+Can be given multiple times. Default empty."""
+)
+
 
 parser.add_option_group(recurse_group)
 
@@ -675,6 +687,9 @@ no_case_module)
 
 def getShallFollowExtra():
     return sum([ x.split(',') for x in options.recurse_extra ], [])
+
+def getShallFollowExtraFilePatterns():
+    return sum([ x.split(',') for x in options.recurse_extra_files ], [])
 
 def shallWarnImplicitRaises():
     return options.warn_implicit_exceptions

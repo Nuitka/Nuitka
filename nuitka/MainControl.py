@@ -97,6 +97,12 @@ def createNodeTree(filename):
             module_package  = None
         )
 
+    for pattern in Options.getShallFollowExtraFilePatterns():
+        Recursion.checkPluginFilenamePattern(
+            pattern = pattern
+        )
+
+
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize()
 
