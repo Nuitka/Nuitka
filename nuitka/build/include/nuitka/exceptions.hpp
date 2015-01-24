@@ -28,6 +28,26 @@ NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED( void )
     return tstate->curexc_type != NULL;
 }
 
+NUITKA_MAY_BE_UNUSED static inline void DROP_ERROR_OCCURRED( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if ( tstate->curexc_type != NULL )
+    {
+        PyObject *old_type  = tstate->curexc_type;
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb    = tstate->curexc_traceback;
+
+        tstate->curexc_type = NULL;
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_DECREF( old_type );
+        Py_XDECREF( old_value );
+        Py_XDECREF( old_tb );
+    }
+}
+
 // Get the error occurred.
 NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED( void )
 {
