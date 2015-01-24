@@ -181,6 +181,10 @@ def getFrameGuardLightCode(frame_identifier, code_identifier, codes,
 def getFrameLocalsUpdateCode(provider, context):
     locals_codes = Emission.SourceCodeCollector()
 
+    context.setCurrentSourceCodeReference(
+        provider.getSourceReference()
+    )
+
     frame_locals_name = context.allocateTempName(
         "frame_locals",
         unique = True

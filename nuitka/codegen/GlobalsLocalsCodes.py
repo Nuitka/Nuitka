@@ -75,7 +75,7 @@ def _getLocalVariableList(provider):
     ]
 
 
-def _getVariableDictUpdateCode(dict_name, variable, emit, context):
+def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
     # TODO: Variable could known to be set here, get a hand at that
     # information.
 
@@ -106,25 +106,52 @@ def _getVariableDictUpdateCode(dict_name, variable, emit, context):
             access_code += ".object"
 
 
-    emit(
-        """\
-    %s(
-        %s,
-        %s,
-        %s
-    );
+    if is_dict:
+        emit(
+            """\
+%s = PyDict_SetItem(
+    %s,
+    %s,
+    %s
+);
+assert( %s != -1 );
 """ % (
-            "PyDict_SetItem"
-              if Utils.python_version < 300 else
-            "PyObject_SetItem",
-            dict_name,
-            getConstantCode(
-                constant = variable.getName(),
-                context  = context
-            ),
-            access_code
+                context.getIntResName(),
+                dict_name,
+                getConstantCode(
+                    constant = variable.getName(),
+                    context  = context
+                ),
+                access_code,
+                context.getIntResName(),
+            )
         )
-    )
+    else:
+        res_name = context.getIntResName()
+
+        emit(
+            """\
+%s = PyObject_SetItem(
+    %s,
+    %s,
+    %s
+);
+""" % (
+                res_name,
+                dict_name,
+                getConstantCode(
+                    constant = variable.getName(),
+                    context  = context
+                ),
+                access_code,
+            )
+        )
+
+        getErrorExitBoolCode(
+            condition = "%s == -1" % res_name,
+            emit      = emit,
+            context   = context
+        )
 
     # TODO: Use branch C codes to achieve proper indentation
     emit(
@@ -154,6 +181,7 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             _getVariableDictUpdateCode(
                 dict_name = to_name,
                 variable  = local_var,
+                is_dict   = True,
                 emit      = emit,
                 context   = context
             )
@@ -181,6 +209,8 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
                 _getVariableDictUpdateCode(
                     dict_name = to_name,
                     variable  = local_var,
+                    is_dict   = Utils.python_version < 300 or \
+                                not context.getFunction().isClassDictCreation(),
                     emit      = emit,
                     context   = context
                 )

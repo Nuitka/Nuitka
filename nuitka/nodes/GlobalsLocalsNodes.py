@@ -15,14 +15,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Globals/locals/dir0/dir1 nodes
+""" Globals/locals/dir1 nodes
 
 These nodes give access to variables, highly problematic, because using them,
 the code may change or access anything about them, so nothing can be trusted
 anymore, if we start to not know where their value goes.
 
+The "dir()" call without arguments is reformulated to locals or globals calls.
 """
 
+from nuitka import Utils
 
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
@@ -84,10 +86,18 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
                not self.getParent().isStatementReturn()
 
     def mayHaveSideEffects(self):
-        return False
+        if Utils.python_version < 300:
+            return False
+
+        provider = self.getParentVariableProvider()
+
+        if provider.isPythonModule():
+            return False
+
+        return self.getParentVariableProvider().isClassDictCreation()
 
     def mayRaiseException(self, exception_type):
-        return False
+        return self.mayHaveSideEffects()
 
     def mayBeNone(self):
         return None
