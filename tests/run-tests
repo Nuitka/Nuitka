@@ -187,6 +187,16 @@ parser.add_option(
 Do not use Python3.4 even if available on the system. Default is %default."""
 )
 
+parser.add_option(
+    "--coverage",
+    action  = "store_true",
+    dest    = "coverage",
+    default = False,
+    help    = """\
+Make a coverage analysis, that does not really check. Default is %default."""
+)
+
+
 options, positional_args = parser.parse_args()
 
 if positional_args:
@@ -198,15 +208,16 @@ if positional_args:
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 os.chdir("..")
 
-path_sep = ';' if os.name == "nt" else ':'
+if options.coverage and os.path.exists(".coverage"):
+    os.unlink(".coverage")
 
 # Add the local bin directory to search path start.
-os.environ[ "PATH" ] = \
+os.environ["PATH"] = \
   os.path.join(
     os.getcwd(),
     "bin" ) + \
-  path_sep + \
-  os.environ[ "PATH" ]
+  os.pathsep + \
+  os.environ["PATH"]
 
 def checkExecutableCommand( command ):
     """ Check if a command is executable. """
@@ -240,7 +251,7 @@ def checkExecutableCommand( command ):
 
     suffixes = (".exe",) if os.name == "nt" else ("",)
 
-    for part in path.split(path_sep):
+    for part in path.split(os.pathsep):
         if not part:
             continue
 
@@ -268,6 +279,9 @@ def setExtraFlags( where, name, flags ):
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = flags
 
 def executeSubTest( command, hide_stderror = False ):
+    if options.coverage and "search" in command:
+        command = command.replace("search", "coverage")
+
     parts = command.split()
     parts[0] = parts[0].replace('/', os.path.sep)
 
@@ -352,12 +366,12 @@ def execute_tests( where, use_python, flags ):
             setExtraFlags(where, "optimizations", flags)
             executeSubTest("./tests/optimizations/run_all.py search")
 
-    if options.standalone_tests:
+    if options.standalone_tests and not options.coverage:
         print("Running the standalone tests with options '%s' with %s:" % (flags, use_python))
         setExtraFlags(None, "standalone", flags)
         executeSubTest("./tests/standalone/run_all.py search")
 
-    if options.reflection_test:
+    if options.reflection_test and not options.coverage:
         print("Running the reflection test with options '%s' with %s:" % (flags, use_python))
         setExtraFlags(None, "reflected", flags)
         executeSubTest("./tests/reflected/compile_itself.py search")

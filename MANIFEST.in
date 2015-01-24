@@ -11,7 +11,7 @@ include bin/compare_with_xml
 include misc/*.sh
 include misc/*.bat
 include misc/check-with-pylint
-include misc/check-release
+include tests/run-tests
 
 # Logo with source
 include misc/Logo/Nuitka-Logo-Symbol.svg
