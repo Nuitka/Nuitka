@@ -15,220 +15,227 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
+
 def dictOrderCheck():
     def key1():
-        print "key1 called"
+        print("key1 called")
 
         return 1
     def key2():
-        print "key2 called"
+        print("key2 called")
 
         return 2
     def value1():
-        print "value1 called"
+        print("value1 called")
 
         return 11
     def value2():
-        print "value2 called"
+        print("value2 called")
 
         return 22
 
-    print "Checking order of calls in dictionary creation from callables:"
+    print("Checking order of calls in dictionary creation from callables:")
 
-    print { key1() : value1(), key2() : value2() }
+    print(
+        {
+            key1() : value1(),
+            key2() : value2()
+        }
+    )
 
 def listOrderCheck():
     def value1():
-        print "value1 called"
+        print("value1 called")
 
         return 11
     def value2():
-        print "value2 called"
+        print("value2 called")
 
         return 22
 
-    print [value1(), value2() ]
+    print([value1(), value2() ])
 
 def sliceOrderCheck():
-    d = range(10)
+    d = list(range(10))
 
     def lvalue():
-        print "lvalue",
+        print("lvalue", end = " ")
 
         return d
 
     def rvalue():
-        print "rvalue",
+        print("rvalue", end = " ")
 
         return range(2)
 
     def rvalue4():
-        print "rvalue",
+        print("rvalue", end = " ")
 
         return range(4)
 
     def low():
-        print "low",
+        print("low", end = " ")
 
         return 0
 
     def high():
-        print "high",
+        print("high", end = " ")
 
         return 4
 
     def step():
-        print "step",
+        print("step", end = " ")
 
         return 2
 
-    print "Complex slice lookup:", lvalue()[ low() : high() : step() ]
+    print("Complex slice lookup:", lvalue()[ low() : high() : step() ])
 
-    print "Complex slice assignment:",
+    print("Complex slice assignment:", end = " ")
     lvalue()[ low() : high() : step() ] = rvalue()
-    print d
+    print(d)
 
-    print "Complex slice del:",
+    print("Complex slice del:", end = " ")
     del lvalue()[ low() : high() : step() ]
-    print d
+    print(d)
 
-    print "Complex inplace slice operation",
+    print("Complex inplace slice operation", end = " ")
     # TODO: This gives an error in CPython, but not in Nuitka.
     # lvalue()[ low() : high() : step() ] += rvalue()
-    print d
+    print(d)
 
-    d = range(10)
+    d = list(range(10))
 
-    print "Simple slice lookup", lvalue()[ low() : high() ]
+    print("Simple slice lookup", lvalue()[ low() : high() ])
 
-    print "Simple slice assignment",
+    print("Simple slice assignment", end = " ")
     lvalue()[ 3 + low() : 3 + high() ] = rvalue()
-    print d
+    print(d)
 
-    print "Simple slice del",
+    print("Simple slice del", end = " ")
     del lvalue()[ 3 + low() : 3 + high() ]
-    print d
+    print(d)
 
-    print "Simple inplace slice operation",
+    print("Simple inplace slice operation", end = " ")
     lvalue()[ low() : high() ] += rvalue4()
-    print d
+    print(d)
 
 
 def subscriptOrderCheck():
     d={}
 
     def lvalue():
-        print "lvalue",
+        print("lvalue", end = " ")
 
         return d
 
     def rvalue():
-        print "rvalue",
+        print("rvalue", end = " ")
 
         return 2
 
     def subscript():
-        print "subscript",
+        print("subscript", end = " ")
 
         return 1
 
-    print "Assigning subscript:"
+    print("Assigning subscript:")
     lvalue()[ subscript() ] = rvalue()
-    print d
+    print(d)
 
-    print "Lookup subscript:"
-    print lvalue()[ subscript() ]
+    print("Lookup subscript:")
+    print(lvalue()[ subscript() ])
 
-    print "Deleting subscript:"
+    print("Deleting subscript:")
     del lvalue()[ subscript() ]
-    print d
+    print(d)
 
 def attributeOrderCheck():
     def lvalue():
-        print "lvalue",
+        print("lvalue", end = " ")
 
         return lvalue
 
     def rvalue():
-        print "rvalue",
+        print("rvalue", end = " ")
 
         return 2
 
-    print "Attribute assigment order:"
+    print("Attribute assigment order:")
 
     lvalue().xxx = rvalue()
-    print lvalue.xxx
+    print(lvalue.xxx)
 
     try:
         zzz.xxx = yyy
     except Exception as e:
-        print "Caught", repr(e)
+        print("Caught", repr(e))
 
 def compareOrderCheck():
     def lvalue():
-        print "lvalue",
+        print("lvalue", end = " ")
 
         return 1
 
     def rvalue():
-        print "rvalue",
+        print("rvalue", end = " ")
 
         return 2
 
-    print "Comparisons:"
-    print "==", lvalue() == rvalue()
-    print "<=", lvalue() <= rvalue()
-    print ">=", lvalue() >= rvalue()
-    print "!=", lvalue() != rvalue()
-    print '>', lvalue() > rvalue()
-    print '<', lvalue() < rvalue()
+    print("Comparisons:")
+    print("==", lvalue() == rvalue())
+    print("<=", lvalue() <= rvalue())
+    print(">=", lvalue() >= rvalue())
+    print("!=", lvalue() != rvalue())
+    print('>', lvalue() > rvalue())
+    print('<', lvalue() < rvalue())
 
-    print "Comparison used in bool context:"
-    print "==", "yes" if lvalue() == rvalue() else "no"
-    print "<=", "yes" if lvalue() <= rvalue() else "no"
-    print ">=", "yes" if lvalue() >= rvalue() else "no"
-    print "!=", "yes" if lvalue() != rvalue() else "no"
-    print '>', "yes" if lvalue() > rvalue() else "no"
-    print '<', "yes" if lvalue() < rvalue() else "no"
+    print("Comparison used in bool context:")
+    print("==", "yes" if lvalue() == rvalue() else "no")
+    print("<=", "yes" if lvalue() <= rvalue() else "no")
+    print(">=", "yes" if lvalue() >= rvalue() else "no")
+    print("!=", "yes" if lvalue() != rvalue() else "no")
+    print('>', "yes" if lvalue() > rvalue() else "no")
+    print('<', "yes" if lvalue() < rvalue() else "no")
 
 
 def operatorOrderCheck():
     def left():
-        print "left",
+        print("left", end = " ")
 
         return 1
 
     def middle():
-        print "middle",
+        print("middle", end = " ")
 
         return 3
 
     def right():
-        print "right",
+        print("right", end = " ")
 
         return 2
 
-    print "Operations:"
-    print '+', left() + middle() + right()
-    print '-', left() - middle() - right()
-    print '*', left() * middle() * right()
-    print '/', left() / middle() / right()
-    print '%', left() % middle() % right()
-    print "**", left() ** middle() ** right()
+    print("Operations:")
+    print('+', left() + middle() + right())
+    print('-', left() - middle() - right())
+    print('*', left() * middle() * right())
+    print('/', left() / middle() / right())
+    print('%', left() % middle() % right())
+    print("**", left() ** middle() ** right())
 
 def generatorOrderCheck():
     def default1():
-        print "default1",
+        print("default1", end = " ")
 
         return 1
 
     def default2():
-        print "default2",
+        print("default2", end = " ")
 
         return 2
 
     def default3():
-        print "default3",
+        print("default3", end = " ")
 
         return 3
 
@@ -237,10 +244,10 @@ def generatorOrderCheck():
         yield b
         yield c
 
-    print list(generator())
+    print(list(generator()))
 
 def classOrderCheck():
-    print "Checking order of class constructions:"
+    print("Checking order of class constructions:")
 
     class B1:
         pass
@@ -249,22 +256,22 @@ def classOrderCheck():
         pass
 
     def base1():
-        print "base1",
+        print("base1", end = " ")
 
         return B1
 
     def base2():
-        print "base2",
+        print("base2", end = " ")
 
         return B2
 
     def deco1(cls):
-        print "deco1",
+        print("deco1", end = " ")
 
         return cls
 
     def deco2(cls):
-        print "deco2",
+        print("deco2", end = " ")
 
         return B2
 
@@ -272,25 +279,25 @@ def classOrderCheck():
     @deco2
     @deco1
     class X(base1(), base2()):
-        print "class body",
+        print("class body", end = " ")
 
     print
 
 def inOrderCheck():
-    print "Checking order of in operator:"
+    print("Checking order of in operator:")
 
     def container():
-        print "container",
+        print("container", end = " ")
 
         return [3]
 
     def searched():
-        print "searched",
+        print("searched", end = " ")
 
         return 3
 
-    print searched() in container()
-    print searched() not in container()
+    print("in:", searched() in container())
+    print("not in:", searched() not in container())
 
 def unpackOrderCheck():
     class Iterable:
@@ -301,10 +308,10 @@ def unpackOrderCheck():
             return Iterable()
 
         def __del__(self):
-            print "Deleted with", self.consumed
+            print("Deleted with", self.consumed)
 
         def next(self):
-            print "Next with", self.consumed
+            print("Next with", self.consumed)
 
             if self.consumed:
                 self.consumed -=1
@@ -318,159 +325,124 @@ def unpackOrderCheck():
     try:
         x, y = a, b = Iterable()
     except Exception as e:
-        print "Caught", repr(e)
+        print("Caught", repr(e))
 
 
 def superOrderCheck():
     try:
         super(zzz, xxx)
     except Exception as e:
-        print "Caught super 2", repr(e)
+        print("Caught super 2", repr(e))
 
 def isinstanceOrderCheck():
     try:
         isinstance(zzz, xxx)
     except Exception as e:
-        print "Caught isinstance 2", repr(e)
+        print("Caught isinstance 2", repr(e))
 
 def rangeOrderCheck():
     try:
         range(zzz, yyy, xxx)
     except Exception as e:
-        print "Caught range 3", repr(e)
+        print("Caught range 3", repr(e))
 
     try:
         range(zzz, xxx)
     except Exception as e:
-        print "Caught range 2", repr(e)
+        print("Caught range 2", repr(e))
 
 def importOrderCheck():
     def name():
-        print "name",
+        print("name", end = " ")
 
     def globals():
-        print "globals",
+        print("globals", end = " ")
 
     def locals():
-        print "locals",
+        print("locals", end = " ")
 
     def fromlist():
-        print "fromlist",
+        print("fromlist", end = " ")
 
     def level():
-        print "level",
+        print("level", end = " ")
 
     try:
-        print "__import__ builtin:"
+        print("__import__ builtin:")
         __import__(name(), globals(), locals(), fromlist(), level())
     except Exception as e:
-        print "Caught __import__", repr(e)
+        print("Caught __import__", repr(e))
 
 
 def hasattrOrderCheck():
     try:
         hasattr(zzz, yyy)
     except Exception as e:
-        print "Caught hasattr", repr(e)
+        print("Caught hasattr", repr(e))
 
 def getattrOrderCheck():
     try:
         getattr(zzz, yyy)
     except Exception as e:
-        print "Caught getattr 2", repr(e)
+        print("Caught getattr 2", repr(e))
 
     try:
         getattr(zzz, yyy, xxx)
     except Exception as e:
-        print "Caught getattr 3", repr(e)
+        print("Caught getattr 3", repr(e))
 
 def typeOrderCheck():
     try:
         type(zzz, yyy, xxx)
     except Exception as e:
-        print "Caught type 3", repr(e)
+        print("Caught type 3", repr(e))
 
 def iterOrderCheck():
     try:
         iter(zzz, xxx)
     except Exception as e:
-        print "Caught iter 2", repr(e)
+        print("Caught iter 2", repr(e))
 
 def openOrderCheck():
     try:
         open(zzz, yyy, xxx)
     except Exception as e:
-        print "Caught open 3", repr(e)
+        print("Caught open 3", repr(e))
 
 def unicodeOrderCheck():
     try:
         unicode(zzz, yyy, xxx)
     except Exception as e:
-        print "Caught unicode", repr(e)
+        print("Caught unicode", repr(e))
 
 def longOrderCheck():
     try:
         long(zzz, xxx)
     except Exception as e:
-        print "Caught long 2", repr(e)
+        print("Caught long 2", repr(e))
 
 def intOrderCheck():
     try:
         int(zzz, xxx)
     except Exception as e:
-        print "Caught int", repr(e)
+        print("Caught int", repr(e))
 
 def nextOrderCheck():
     try:
         next(zzz, xxx)
     except Exception as e:
-        print "Caught next 2", repr(e)
-
-def raiseOrderCheck():
-    print "Checking order of raises:"
-    def exception_type():
-        print "exception_type",
-
-        return ValueError
-
-    def exception_value():
-        print "exception_value",
-
-        return 1
-
-    def exception_tb():
-        print "exception_value",
-
-        return None
-
-    print "3 args",
-    try:
-        raise exception_type(), exception_value(), exception_tb()
-    except Exception as e:
-        print "caught", repr(e)
-
-    print "2 args",
-    try:
-        raise exception_type(), exception_value()
-    except Exception as e:
-        print "caught", repr(e)
-
-    print "1 args",
-    try:
-        raise exception_type()
-    except Exception as e:
-        print "caught", repr(e)
+        print("Caught next 2", repr(e))
 
 def callOrderCheck():
     print("Checking order of nested call arguments:")
 
     class A:
         def __del__(self):
-            print "Doing del A()"
+            print("Doing del A()")
     def check(obj):
-        print "Outer function"
+        print("Outer function")
     def p(obj):
-        print "Inner function"
+        print("Inner function")
 
     check(p(A()))
 
@@ -587,7 +559,6 @@ unicodeOrderCheck()
 nextOrderCheck()
 longOrderCheck()
 intOrderCheck()
-raiseOrderCheck()
 callOrderCheck()
 boolOrderCheck()
 comparisonChainOrderCheck()
