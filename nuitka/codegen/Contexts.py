@@ -345,6 +345,7 @@ def _getConstantDefaultPopulation():
         "__builtins__",
         "__all__",
         "__cmp__",
+        "__iter__",
 
         # Patched module name.
         "inspect",
