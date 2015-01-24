@@ -43,33 +43,39 @@ search_mode = createSearchMode()
 
 extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS","")
 
-for filename in sorted(os.listdir( "." )):
+for filename in sorted(os.listdir('.')):
     if not os.path.isdir(filename) or \
        filename.endswith(".build") or \
        filename.endswith(".dist"):
         continue
 
-    filename = os.path.relpath( filename )
+    filename = os.path.relpath(filename)
 
+    # For these, we expect that they will fail.
     expected_errors = [
-        "module_exits", "main_raises", "main_raises2",
+        "module_exits",
+        "main_raises",
+        "main_raises2",
         "package_contains_main"
     ]
 
     # Allowed after Python3, packages need no more "__init__.py"
 
     if python_version < "3.3":
-        expected_errors.append( "package_missing_init" )
+        expected_errors.append("package_missing_init")
 
     if filename not in expected_errors:
-        extra_flags = [ "expect_success" ]
+        extra_flags = ["expect_success"]
     else:
-        extra_flags = [ "expect_failure" ]
+        extra_flags = ["expect_failure"]
 
-    if filename in ( "package_missing_init", "dash_import", "reimport_main" ):
-        extra_flags.append( "ignore_stderr" )
+    if filename in ("reimport_main_static", "package_missing_init",
+                    "dash_import"):
+        extra_flags.append("ignore_warnings")
 
-    extra_flags.append( "remove_output" )
+    extra_flags.append("remove_output")
+
+    extra_flags.append("recurse_all")
 
     # Cannot include the files with syntax errors, these would then become
     # ImportError, but that's not the test. In all other cases, use two
@@ -81,12 +87,25 @@ for filename in sorted(os.listdir( "." )):
         extra_flags.append("binary_python_path")
 
     if filename == "plugin_import":
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = extra_options + \
-          " --recurse-all --recurse-directory=%s/some_package" % (
-              os.path.abspath( filename )
+        os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
+          " --recurse-directory=%s/some_package" % (
+              os.path.abspath(filename)
           )
+    elif filename == "reimport_main_dynamic":
+        if python_version < "3":
+            os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
+              " --recurse-directory=%s" % (
+                  os.path.abspath(filename)
+              )
+        else:
+            os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
+              " --recurse-pattern=%s/*.py" % (
+                  os.path.abspath(filename)
+              )
+
+        extra_flags.append("ignore_warnings")
     else:
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = extra_options + " --recurse-all"
+        os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
 
     active = search_mode.consider(
         dirname  = None,
@@ -94,13 +113,13 @@ for filename in sorted(os.listdir( "." )):
     )
 
     if active:
-        my_print( "Consider output of recursively compiled program:", filename )
+        my_print("Consider output of recursively compiled program:", filename)
 
-        for filename_main in os.listdir( filename ):
-            if filename_main.endswith( "Main.py" ):
+        for filename_main in os.listdir(filename):
+            if filename_main.endswith("Main.py"):
                 break
 
-            if filename_main.endswith( "Main" ):
+            if filename_main.endswith("Main"):
                 break
         else:
             sys.exit(
@@ -118,6 +137,6 @@ Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case.""" % (
             needs_2to3  = False
         )
     else:
-        my_print( "Skipping", filename )
+        my_print("Skipping", filename)
 
 search_mode.finish()
