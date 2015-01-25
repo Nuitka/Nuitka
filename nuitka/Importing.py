@@ -421,6 +421,9 @@ def getModuleWhiteList():
         # test_distutils.py
         "distutils.tests", "distutils.mwerkscompiler",
 
+        # test_docxmlrpc.py
+        "xmlrpc.server",
+
         # test_emails.py
         "email.test.test_email", "email.test.test_email_renamed",
         "email.test.test_email_codecs",
