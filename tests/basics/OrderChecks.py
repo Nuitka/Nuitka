@@ -17,6 +17,9 @@
 #
 from __future__ import print_function
 
+def separator():
+    print("*" * 80)
+
 def dictOrderCheck():
     def key1():
         print("key1 called")
@@ -57,6 +60,7 @@ def listOrderCheck():
     print([value1(), value2() ])
 
 def sliceOrderCheck():
+    print("Slices:")
     d = list(range(10))
 
     def lvalue():
@@ -89,7 +93,8 @@ def sliceOrderCheck():
 
         return 2
 
-    print("Complex slice lookup:", lvalue()[ low() : high() : step() ])
+    print("Complex slice lookup:", end = " ")
+    print(lvalue()[ low() : high() : step() ])
 
     print("Complex slice assignment:", end = " ")
     lvalue()[ low() : high() : step() ] = rvalue()
@@ -106,7 +111,8 @@ def sliceOrderCheck():
 
     d = list(range(10))
 
-    print("Simple slice lookup", lvalue()[ low() : high() ])
+    print("Simple slice lookup", end = " ")
+    print(lvalue()[ low() : high() ])
 
     print("Simple slice assignment", end = " ")
     lvalue()[ 3 + low() : 3 + high() ] = rvalue()
@@ -122,6 +128,7 @@ def sliceOrderCheck():
 
 
 def subscriptOrderCheck():
+    print("Subscripts:")
     d={}
 
     def lvalue():
@@ -161,15 +168,18 @@ def attributeOrderCheck():
 
         return 2
 
-    print("Attribute assigment order:")
+    print("Attribute assignment order:")
 
     lvalue().xxx = rvalue()
-    print(lvalue.xxx)
+    print("Assigned was indeed:", lvalue.xxx)
 
+    print("Checking attribute assignment to unassigned value from unassigned:")
     try:
         zzz.xxx = yyy
     except Exception as e:
-        print("Caught", repr(e))
+        print("Expected exception caught:", repr(e))
+    else:
+        assert False
 
 def compareOrderCheck():
     def lvalue():
@@ -201,17 +211,17 @@ def compareOrderCheck():
 
 def operatorOrderCheck():
     def left():
-        print("left", end = " ")
+        print("left operand", end = " ")
 
         return 1
 
     def middle():
-        print("middle", end = " ")
+        print("middle operand", end = " ")
 
         return 3
 
     def right():
-        print("right", end = " ")
+        print("right operand", end = " ")
 
         return 2
 
@@ -224,6 +234,7 @@ def operatorOrderCheck():
     print("**", left() ** middle() ** right())
 
 def generatorOrderCheck():
+    print("Generators:")
     def default1():
         print("default1", end = " ")
 
@@ -239,12 +250,19 @@ def generatorOrderCheck():
 
         return 3
 
-    def generator(a = default1(), b = default2(), c = default3()):
-        yield a
-        yield b
-        yield c
+    def value(x):
+        print("value", x, end = " ")
+        return x
 
-    print(list(generator()))
+    def generator(a = default1(), b = default2(), c = default3()):
+        print("generator entry")
+        yield value(a)
+        yield value(b)
+        yield value(c)
+        print("generator exit")
+
+    result = list(generator())
+    print("Result", result)
 
 def classOrderCheck():
     print("Checking order of class constructions:")
@@ -271,7 +289,7 @@ def classOrderCheck():
         return cls
 
     def deco2(cls):
-        print("deco2", end = " ")
+        print("deco2")
 
         return B2
 
@@ -300,6 +318,7 @@ def inOrderCheck():
     print("not in:", searched() not in container())
 
 def unpackOrderCheck():
+    print("Unpacking values:")
     class Iterable:
         def __init__(self):
             self.consumed = 2
@@ -320,6 +339,8 @@ def unpackOrderCheck():
 
             return self.consumed
 
+        __next__ = next
+
     iterable = Iterable()
 
     try:
@@ -329,29 +350,34 @@ def unpackOrderCheck():
 
 
 def superOrderCheck():
+    print("Built-in super:")
     try:
         super(zzz, xxx)
     except Exception as e:
-        print("Caught super 2", repr(e))
+        print("Expected exception caught super 2", repr(e))
 
 def isinstanceOrderCheck():
+    print("Built-in isinstance:")
     try:
         isinstance(zzz, xxx)
     except Exception as e:
-        print("Caught isinstance 2", repr(e))
+        print("Expected exception caught isinstance 2", repr(e))
 
 def rangeOrderCheck():
+    print("Built-in range:")
     try:
         range(zzz, yyy, xxx)
     except Exception as e:
-        print("Caught range 3", repr(e))
+        print("Expected exception caught range 3", repr(e))
 
     try:
         range(zzz, xxx)
     except Exception as e:
-        print("Caught range 2", repr(e))
+        print("Expected exception caught range 2", repr(e))
 
 def importOrderCheck():
+    print("Built-in __import__:")
+
     def name():
         print("name", end = " ")
 
@@ -365,80 +391,94 @@ def importOrderCheck():
         print("fromlist", end = " ")
 
     def level():
-        print("level", end = " ")
+        print("level")
 
     try:
-        print("__import__ builtin:")
         __import__(name(), globals(), locals(), fromlist(), level())
     except Exception as e:
-        print("Caught __import__", repr(e))
+        print("Expected exception caught __import__ 5", repr(e))
 
 
 def hasattrOrderCheck():
+    print("Built-in hasattr:")
     try:
         hasattr(zzz, yyy)
     except Exception as e:
-        print("Caught hasattr", repr(e))
+        print("Expected exception caught hasattr", repr(e))
 
 def getattrOrderCheck():
+    print("Built-in getattr:")
     try:
         getattr(zzz, yyy)
     except Exception as e:
-        print("Caught getattr 2", repr(e))
+        print("Expected exception caught getattr 2", repr(e))
 
     try:
         getattr(zzz, yyy, xxx)
     except Exception as e:
-        print("Caught getattr 3", repr(e))
+        print("Expected exception caught getattr 3", repr(e))
+
+    def default():
+        print("default used")
+
+    print("Default side effects:", end = " ")
+    print(getattr(1, "real", default()))
 
 def typeOrderCheck():
+    print("Built-in type:")
     try:
         type(zzz, yyy, xxx)
     except Exception as e:
-        print("Caught type 3", repr(e))
+        print("Expected exception caught type 3", repr(e))
 
 def iterOrderCheck():
+    print("Built-in iter:")
     try:
         iter(zzz, xxx)
     except Exception as e:
-        print("Caught iter 2", repr(e))
+        print("Expected exception caught iter 2", repr(e))
 
 def openOrderCheck():
+    print("Built-in open:")
     try:
         open(zzz, yyy, xxx)
     except Exception as e:
-        print("Caught open 3", repr(e))
+        print("Expected exception caught open 3", repr(e))
 
 def unicodeOrderCheck():
+    print("Built-in unicode:")
     try:
         unicode(zzz, yyy, xxx)
     except Exception as e:
-        print("Caught unicode", repr(e))
+        print("Expected exception caught unicode", repr(e))
 
 def longOrderCheck():
+    print("Built-in long:")
     try:
         long(zzz, xxx)
     except Exception as e:
-        print("Caught long 2", repr(e))
+        print("Expected exception caught long 2", repr(e))
 
 def intOrderCheck():
+    print("Built-in int:")
     try:
         int(zzz, xxx)
     except Exception as e:
-        print("Caught int", repr(e))
+        print("Expected exception caught int", repr(e))
 
 def nextOrderCheck():
+    print("Built-in next:")
     try:
         next(zzz, xxx)
     except Exception as e:
-        print("Caught next 2", repr(e))
+        print("Expected exception caught next 2", repr(e))
 
 def callOrderCheck():
-    print("Checking order of nested call arguments:")
+    print("Checking nested call arguments:")
 
     class A:
         def __del__(self):
-            print("Doing del A()")
+            print("Doing del inner object")
     def check(obj):
         print("Outer function")
     def p(obj):
@@ -535,30 +575,57 @@ def comparisonChainOrderCheck():
                     del r
 
 
+
 dictOrderCheck()
+separator()
 listOrderCheck()
+separator()
 subscriptOrderCheck()
+separator()
 attributeOrderCheck()
+separator()
 operatorOrderCheck()
+separator()
 compareOrderCheck()
+separator()
 sliceOrderCheck()
+separator()
 generatorOrderCheck()
+separator()
 classOrderCheck()
+separator()
 inOrderCheck()
+separator()
 unpackOrderCheck()
+separator()
 superOrderCheck()
+separator()
 isinstanceOrderCheck()
+separator()
 rangeOrderCheck()
+separator()
 importOrderCheck()
+separator()
 hasattrOrderCheck()
+separator()
 getattrOrderCheck()
+separator()
 typeOrderCheck()
+separator()
 iterOrderCheck()
+separator()
 openOrderCheck()
+separator()
 unicodeOrderCheck()
+separator()
 nextOrderCheck()
+separator()
 longOrderCheck()
+separator()
 intOrderCheck()
+separator()
 callOrderCheck()
+separator()
 boolOrderCheck()
+separator()
 comparisonChainOrderCheck()
