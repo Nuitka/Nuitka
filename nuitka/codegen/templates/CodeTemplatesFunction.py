@@ -104,6 +104,11 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 template_function_body = """\
 static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 {
+    // Preserve error status for checks
+#ifndef __NUITKA_NO_ASSERT__
+    NUITKA_MAY_BE_UNUSED bool had_error = ERROR_OCCURRED();
+#endif
+
 %(context_access_function_impl)s
 
     // Local variable declarations.
@@ -138,13 +143,18 @@ template_function_return_exit = """\
 function_return_exit:
 %(function_cleanup)s\
     assertObject( tmp_return_value );
-    assert( !ERROR_OCCURRED() );
+    assert( had_error || !ERROR_OCCURRED() );
     return tmp_return_value;
 """
 
 function_direct_body_template = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s )
 {
+#ifndef __NUITKA_NO_ASSERT__
+    NUITKA_MAY_BE_UNUSED bool had_error = ERROR_OCCURRED();
+    assert(!had_error); // Do not enter inlined functions with error set.
+#endif
+
 %(context_access_function_impl)s
 
     // Local variable declarations.
