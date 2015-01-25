@@ -23,4 +23,5 @@ print(int.__name__)
 print((1).__class__)
 
 print(getattr(1, "real"))
+print(getattr(1, "real", None))
 print(hasattr(1, "real"))

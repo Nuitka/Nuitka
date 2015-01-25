@@ -127,42 +127,47 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, constraint_collection):
-        default = self.getDefault()
+        attribute = self.getAttribute()
 
-        if default is None:
-            attribute = self.getAttribute()
+        attribute_name = attribute.getStringValue()
 
-            attribute_name = attribute.getStringValue()
+        if attribute_name is not None:
+            source = self.getLookupSource()
+            # If source has side effects, they must be evaluated, before the
+            # lookup, meaning, a temporary variable should be assigned. For
+            # now, we give up in this case. TODO: Replace source with a
+            # temporary variable assignment as a side effect.
 
-            if attribute_name is not None:
-                source = self.getLookupSource()
-                # If source has side effects, they must be evaluated, before the
-                # lookup, meaning, a temporary variable should be assigned. For
-                # now, we give up in this case. TODO: Replace source with a
-                # temporary variable assignment as a side effect.
+            side_effects = source.extractSideEffects()
 
-                side_effects = source.extractSideEffects()
+            if not side_effects:
+                result = ExpressionAttributeLookup(
+                    source         = source,
+                    attribute_name = attribute_name,
+                    source_ref     = self.source_ref
+                )
 
-                if not side_effects:
-                    result = ExpressionAttributeLookup(
-                        source         = source,
-                        attribute_name = attribute_name,
-                        source_ref     = self.source_ref
-                    )
+                from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
-                    from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = result,
+                    old_node = attribute
+                )
 
+                default = self.getDefault()
+
+                if default is not None:
                     result = wrapExpressionWithNodeSideEffects(
                         new_node = result,
-                        old_node = attribute
+                        old_node = default
                     )
 
-                    return (
-                        result,
-                        "new_expression",
-                        """Replaced call to built-in 'getattr' with constant \
+                return (
+                    result,
+                    "new_expression",
+                    """Replaced call to built-in 'getattr' with constant \
 attribute '%s' to mere attribute lookup""" % attribute_name
-                    )
+                )
 
         return self, None, None
 

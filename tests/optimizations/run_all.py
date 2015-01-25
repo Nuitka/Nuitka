@@ -193,3 +193,5 @@ for filename in sorted(os.listdir(".")):
         my_print("OK.")
     else:
         my_print("Skipping", filename)
+
+search_mode.finish()
