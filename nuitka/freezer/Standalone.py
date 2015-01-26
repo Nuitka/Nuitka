@@ -791,6 +791,7 @@ Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
 libraries that need to be removed."""
                 )
 
+            os.chmod(filename, int("644", 8))
             process = subprocess.Popen(
                 ["chrpath", "-d", filename],
                 stdout = subprocess.PIPE,
@@ -799,6 +800,7 @@ libraries that need to be removed."""
             )
             process.communicate()
             retcode = process.poll()
+            os.chmod(filename, int("444", 8))
 
             assert retcode == 0, filename
 
