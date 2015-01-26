@@ -734,7 +734,7 @@ def detectUsedDLLs(standalone_entry_points):
     return result
 
 
-def fixupBinaryDLLPaths(binary_filename, dll_map):
+def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map):
     """ For MacOS, the binary needs to be told to use relative DLL paths """
 
     # There may be nothing to do, in case there are no DLLs.
@@ -752,14 +752,15 @@ def fixupBinaryDLLPaths(binary_filename, dll_map):
             "@executable_path/" + dist_path,
         ]
 
+    os.chmod(binary_filename, int("644", 8))
     command.append(binary_filename)
-
     process = subprocess.Popen(
         args   = command,
         stdout = subprocess.PIPE,
         stderr = subprocess.PIPE,
     )
     _stdout, stderr = process.communicate()
+    os.chmod(binary_filename, int("755" if is_exe else "444", 8))
 
     # Don't let errors here go unnoticed.
     assert process.returncode == 0, stderr
@@ -889,6 +890,7 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
         for standalone_entry_point in standalone_entry_points:
             fixupBinaryDLLPaths(
                 binary_filename = standalone_entry_point[0],
+                is_exe          = standalone_entry_point is standalone_entry_points[0],
                 dll_map         = dll_map
             )
 
@@ -898,6 +900,7 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
                     dist_dir,
                     dll_filename
                 ),
+                is_exe          = False,
                 dll_map         = dll_map
             )
 
