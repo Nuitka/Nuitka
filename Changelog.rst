@@ -3,6 +3,39 @@ Nuitka Release 0.5.9 (Draft)
 
 This release is not yet finished.
 
+Bug Fixes
+---------
+
+- Compatibility: Checks for iterators were using ``PyIter_Check`` which is
+  buggy when running outside of Python core, because it's comparing pointers
+  we don't see. Replaced with ``HAS_ITERNEXT`` helper which compares against
+  the pointer as extracting for a real non-iterator object.
+
+  .. code-block:: python
+
+    class Iterable:
+        def __init__(self):
+            self.consumed = 2
+
+        def __iter__(self):
+            return Iterable()
+
+    iter(Iterable()) # This is suppose to raise, but didn't with Nuitka
+
+- Python3: Errors when creating class dictionaries raised by the ``__prepare__``
+  dictionary (e.g. ``enum`` classes with wrong identifiers) were not immediately
+  raised, but only by the ``type`` call. This was not observable, but hight have
+  caused issues potentially.
+
+- Standalone MacOS: Shared libraries and extension modules didn't have their
+  DLL load paths updated, but only the main binary. This is not sufficient for
+  more complex programs.
+
+- Standalone Linux: Shared libraries copied into the ``.dist`` folder were
+  read-only and executing ``chrpath`` could potentially then fail. This has
+  not been observed, but is a conclusion of MacOS fix.
+
+
 Optimization
 ------------
 
