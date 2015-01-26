@@ -25,6 +25,7 @@ extern iternextfunc default_iternext;
 extern void _initSlotIternext( void );
 #endif
 
+// This is like "PyIter_Check" but without bugs due to shared library pointers.
 NUITKA_MAY_BE_UNUSED static inline bool HAS_ITERNEXT( PyObject *value )
 {
 #if PYTHON_VERSION < 300
@@ -231,7 +232,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
 
 NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 {
-    assertObject( iterator ); assert( PyIter_Check( iterator ) );
+    assertObject( iterator ); assert( HAS_ITERNEXT( iterator ) );
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
@@ -264,7 +265,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
 NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *iterator, int seq_size_so_far )
 {
     assertObject( iterator );
-    assert( PyIter_Check( iterator ) );
+    assert( HAS_ITERNEXT( iterator ) );
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
@@ -297,7 +298,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
 NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObject *iterator )
 {
     assertObject( iterator );
-    assert( PyIter_Check( iterator ) );
+    assert( HAS_ITERNEXT( iterator ) );
 
     PyObject *attempt = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 

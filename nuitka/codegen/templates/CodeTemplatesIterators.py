@@ -22,7 +22,7 @@
 
 template_iterator_check = """\
 // Check if iterator has left-over elements.
-assertObject( %(iterator_name)s ); assert( PyIter_Check( %(iterator_name)s ) );
+assertObject( %(iterator_name)s ); assert( HAS_ITERNEXT( %(iterator_name)s ) );
 
 %(attempt_name)s = (*Py_TYPE( %(iterator_name)s )->tp_iternext)( %(iterator_name)s );
 
