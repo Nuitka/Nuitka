@@ -258,9 +258,25 @@ def _detectImports(command, is_late):
                    'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
                    'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it
 
+    reduced_path = list(sys.path)
+
+    reduced_path = [
+        path_element
+        for path_element in
+        sys.path
+        if not Utils.areSamePaths(
+            path_element,
+            "."
+        )
+        if not Utils.areSamePaths(
+            path_element,
+            Utils.dirname(sys.modules["__main__"].__file__)
+        )
+    ]
+
     # Make sure the right import path (the one Nuitka binary is running with)
     # is used.
-    command = ("import sys; sys.path = %s;" % repr(sys.path)) + command
+    command = ("import sys; sys.path = %s;" % repr(reduced_path)) + command
 
     import tempfile
     tmp_file, tmp_filename = tempfile.mkstemp()
