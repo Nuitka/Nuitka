@@ -23,19 +23,19 @@ def getrandom():
 
 def optimizerCrashIssue13():
     try:
-        print "Something with side effects that might raise."
-    except Exception,x:
-        print "Caught it"
+        print("Something with side effects that might raise.")
+    except Exception as x:
+        print("Caught it")
         raise
-        print "Should not reach this"
+        print("Should not reach this")
         raise
 
-# Just so it won't be optimized away entirely.
+# Just so it won't be optimized away entirely, the run time has no issue.
 optimizerCrashIssue13()
 
 def codegeneratorCrashIssue15():
     f = float("nan")
-    g = getrandom() # Prevent optimization of nan-constant
+    g = getrandom() # Prevent optimization of "nan"-constant
 
     return f+g
 
@@ -46,3 +46,19 @@ def codegeneratorCrashIssue30():
     f = getrandom()  # Prevent optimization
 
     f   # Will be optimized way in later versions of Nuitka.
+    # TODO: May already be the case.
+
+
+def runtimeCrashIssue():
+    # Some C functions don't set an exception when called.
+    from itertools import count
+    import sys
+
+    try:
+        # This will set an error and return a value for at least Python3.2
+        count(1, sys.maxsize+5)
+    except TypeError:
+        # For Python2.6, the two arguments variant didn't exist yet.
+        assert sys.version_info < (2,7)
+
+runtimeCrashIssue()

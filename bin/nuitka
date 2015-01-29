@@ -114,6 +114,9 @@ if os.environ.get("PYTHONHASHSEED", "-1") != "0":
 
 # In case we need to re-execute.
 if needs_reexec:
+    if not Options.isAllowedToReexecute():
+        sys.exit("Error, not allowed to re-execute, but that would be needed.")
+
     # Execute with full path as the process name, so it can find itself and its
     # libraries.
     args = [

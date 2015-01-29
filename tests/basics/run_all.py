@@ -42,6 +42,22 @@ python_version = setup(needs_io_encoding = True)
 
 search_mode = createSearchMode()
 
+if python_version >= "3.4":
+    # These tests don't work with 3.4 yet, and the list is considered the major
+    # TODO for 3.4 support.
+    search_mode.mayFailFor(
+        # The "__class__" doesn't work as expected.
+        "BuiltinSuper.py",
+
+        # Too little attributes for generator objects, "__del__" is missing it
+        # seems.
+        "GeneratorExpressions.py",
+
+        # Prepared dictionaries of "enum.Enums" are not used early enough
+        "Classes34.py",
+    )
+
+
 # Create large constants test on the fly, if it's not there, not going to
 # add it to release archives for no good reason.
 if not os.path.exists("BigConstants.py"):
@@ -61,8 +77,6 @@ for filename in sorted(os.listdir('.')):
     if not decideFilenameVersionSkip(filename):
         continue
 
-    path = filename
-
     extra_flags = ["expect_success", "remove_output"]
 
     # This test should be run with the debug Python, and makes outputs to
@@ -79,21 +93,10 @@ for filename in sorted(os.listdir('.')):
     if filename == "YieldFrom33.py":
         extra_flags.append("ignore_stderr")
 
-    # These tests don't work with 3.4 yet, and the list is considered the major
-    # TODO for 3.4 support.
-    skips_34 = (
-        # The "__class__" doesn't work as expected.
-        "BuiltinSuper.py",
-
-        # Too little attributes for generator objects, "__del__" is missing it
-        # seems.
-        "GeneratorExpressions.py",
-
-        # Prepared dictionaries of "enum.Enums" are not used early enough
-        "Classes34.py",
+    active = search_mode.consider(
+        dirname  = None,
+        filename = filename
     )
-
-    active = search_mode.consider(dirname = None, filename = filename)
 
     if active:
         if filename.startswith("Referencing") and not hasDebugPython():
@@ -104,13 +107,14 @@ for filename in sorted(os.listdir('.')):
                      not filename.endswith("32.py") and \
                      not filename.endswith("33.py")
 
-        may_fail = filename in skips_34 and python_version >= "3.4"
-
         compareWithCPython(
-            path        = path,
+            dirname     = None,
+            filename    = filename,
             extra_flags = extra_flags,
-            search_mode = search_mode.abortOnFinding() and not may_fail,
+            search_mode = search_mode,
             needs_2to3  = needs_2to3
         )
     else:
         my_print("Skipping", filename)
+
+search_mode.finish()

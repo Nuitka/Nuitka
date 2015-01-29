@@ -108,6 +108,13 @@ def isLink(path):
     return os.path.islink(path)
 
 
+def areSamePaths(path1, path2):
+    path1 = normcase(abspath(normpath(path1)))
+    path2 = normcase(abspath(normpath(path2)))
+
+    return path1 == path2
+
+
 def readLink(path):
     return os.readlink(path)
 

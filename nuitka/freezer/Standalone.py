@@ -250,7 +250,7 @@ def _detectedShlibFile(filename, module_name):
 
 def _detectImports(command, is_late):
     # This is pretty complicated stuff, with variants to deal with.
-    # pylint: disable=R0912
+    # pylint: disable=R0912,R0194
 
     # Print statements for stuff to show, the modules loaded.
     if Utils.python_version >= 300:
@@ -258,9 +258,25 @@ def _detectImports(command, is_late):
                    'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
                    'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it
 
+    reduced_path = list(sys.path)
+
+    reduced_path = [
+        path_element
+        for path_element in
+        sys.path
+        if not Utils.areSamePaths(
+            path_element,
+            "."
+        )
+        if not Utils.areSamePaths(
+            path_element,
+            Utils.dirname(sys.modules["__main__"].__file__)
+        )
+    ]
+
     # Make sure the right import path (the one Nuitka binary is running with)
     # is used.
-    command = ("import sys; sys.path = %s;" % repr(sys.path)) + command
+    command = ("import sys; sys.path = %s;" % repr(reduced_path)) + command
 
     import tempfile
     tmp_file, tmp_filename = tempfile.mkstemp()
@@ -734,7 +750,7 @@ def detectUsedDLLs(standalone_entry_points):
     return result
 
 
-def fixupBinaryDLLPaths(binary_filename, dll_map):
+def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map):
     """ For MacOS, the binary needs to be told to use relative DLL paths """
 
     # There may be nothing to do, in case there are no DLLs.
@@ -752,14 +768,15 @@ def fixupBinaryDLLPaths(binary_filename, dll_map):
             "@executable_path/" + dist_path,
         ]
 
+    os.chmod(binary_filename, int("644", 8))
     command.append(binary_filename)
-
     process = subprocess.Popen(
         args   = command,
         stdout = subprocess.PIPE,
         stderr = subprocess.PIPE,
     )
     _stdout, stderr = process.communicate()
+    os.chmod(binary_filename, int("755" if is_exe else "444", 8))
 
     # Don't let errors here go unnoticed.
     assert process.returncode == 0, stderr
@@ -790,6 +807,7 @@ Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
 libraries that need to be removed."""
                 )
 
+            os.chmod(filename, int("644", 8))
             process = subprocess.Popen(
                 ["chrpath", "-d", filename],
                 stdout = subprocess.PIPE,
@@ -798,15 +816,16 @@ libraries that need to be removed."""
             )
             process.communicate()
             retcode = process.poll()
+            os.chmod(filename, int("444", 8))
 
             assert retcode == 0, filename
 
 
-def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
+def copyUsedDLLs(dist_dir, standalone_entry_points):
     # This is terribly complex, because we check the list of used DLLs
     # trying to avoid duplicates, and detecting errors with them not
     # being binary identical, so we can report them. And then of course
-    # we also need to handle OS specifics, pylint: disable=R0912,R0914
+    # we also need to handle OS specifics, pylint: disable=R0912
 
     dll_map = []
 
@@ -884,12 +903,28 @@ def copyUsedDLLs(dist_dir, binary_filename, standalone_entry_points):
             )
 
     if Utils.getOS() == "Darwin":
-        # For MacOS, the binary needs to be changed to reflect the DLL
-        # location in the dist folder.
-        fixupBinaryDLLPaths(binary_filename, dll_map)
+        # For MacOS, the binary and the DLLs needs to be changed to reflect
+        # the relative DLL location in the ".dist" folder.
+        for standalone_entry_point in standalone_entry_points:
+            fixupBinaryDLLPaths(
+                binary_filename = standalone_entry_point[0],
+                is_exe          = standalone_entry_point is standalone_entry_points[0],
+                dll_map         = dll_map
+            )
+
+        for _original_path, dll_filename in dll_map:
+            fixupBinaryDLLPaths(
+                binary_filename = Utils.joinpath(
+                    dist_dir,
+                    dll_filename
+                ),
+                is_exe          = False,
+                dll_map         = dll_map
+            )
 
     if Utils.getOS() == "Linux":
-        # For Linux, the rpath of libraries may be an issue.
+        # For Linux, the "rpath" of libraries may be an issue and must be
+        # removed.
         for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(
                 Utils.joinpath(dist_dir, dll_filename)

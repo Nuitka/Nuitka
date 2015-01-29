@@ -28,6 +28,26 @@ NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED( void )
     return tstate->curexc_type != NULL;
 }
 
+NUITKA_MAY_BE_UNUSED static inline void DROP_ERROR_OCCURRED( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if ( tstate->curexc_type != NULL )
+    {
+        PyObject *old_type  = tstate->curexc_type;
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb    = tstate->curexc_traceback;
+
+        tstate->curexc_type = NULL;
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_DECREF( old_type );
+        Py_XDECREF( old_value );
+        Py_XDECREF( old_tb );
+    }
+}
+
 // Get the error occurred.
 NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED( void )
 {
@@ -73,40 +93,40 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR( PyObject **exception_type, PyObjec
 {
     PyThreadState *tstate = PyThreadState_GET();
 
-   *exception_type = tstate->curexc_type;
-   *exception_value = tstate->curexc_value;
-   *exception_traceback = (PyTracebackObject *)tstate->curexc_traceback;
+    *exception_type = tstate->curexc_type;
+    *exception_value = tstate->curexc_value;
+    *exception_traceback = (PyTracebackObject *)tstate->curexc_traceback;
 
 #if _DEBUG_EXCEPTIONS
-   PRINT_STRING("FETCH_ERROR:\n");
-   PRINT_EXCEPTION( tstate->curexc_type,  tstate->curexc_value, tstate->curexc_traceback );
+    PRINT_STRING("FETCH_ERROR:\n");
+    PRINT_EXCEPTION( tstate->curexc_type,  tstate->curexc_value, tstate->curexc_traceback );
 #endif
 
-   tstate->curexc_type = NULL;
-   tstate->curexc_value = NULL;
-   tstate->curexc_traceback = NULL;
+    tstate->curexc_type = NULL;
+    tstate->curexc_value = NULL;
+    tstate->curexc_traceback = NULL;
 }
 
 NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_traceback)
 {
     PyThreadState *tstate = PyThreadState_GET();
 
-   PyObject *old_exception_type = tstate->curexc_type;
-   PyObject *old_exception_value = tstate->curexc_value;
-   PyObject *old_exception_traceback = tstate->curexc_traceback;
+    PyObject *old_exception_type = tstate->curexc_type;
+    PyObject *old_exception_value = tstate->curexc_value;
+    PyObject *old_exception_traceback = tstate->curexc_traceback;
 
-   tstate->curexc_type = exception_type;
-   tstate->curexc_value = exception_value;
-   tstate->curexc_traceback = (PyObject *)exception_traceback;
+    tstate->curexc_type = exception_type;
+    tstate->curexc_value = exception_value;
+    tstate->curexc_traceback = (PyObject *)exception_traceback;
 
 #if _DEBUG_EXCEPTIONS
-   PRINT_STRING("RESTORE_ERROR:\n");
-   PRINT_EXCEPTION( tstate->curexc_type,  tstate->curexc_value, tstate->curexc_traceback );
+    PRINT_STRING("RESTORE_ERROR:\n");
+    PRINT_EXCEPTION( tstate->curexc_type,  tstate->curexc_value, tstate->curexc_traceback );
 #endif
 
-   Py_XDECREF( old_exception_type );
-   Py_XDECREF( old_exception_value );
-   Py_XDECREF( old_exception_traceback );
+    Py_XDECREF( old_exception_type );
+    Py_XDECREF( old_exception_value );
+    Py_XDECREF( old_exception_traceback );
 }
 
 

@@ -23,8 +23,8 @@
 # changes are not improvements, use the original source instead, not this
 # file.
 
-""" This module is only an abstraction of OrderedSet as present in 2.7 and 3.1
-but not in 2.6.
+""" This module is only an abstraction of OrderedSet which is not present in
+Python at all.
 
 It was originally downloaded from http://code.activestate.com/recipes/576694/
 """
@@ -33,14 +33,12 @@ It was originally downloaded from http://code.activestate.com/recipes/576694/
 
 import collections
 
-KEY, PREV, NEXT = range(3)
-
 class OrderedSet(collections.MutableSet):
 
     def __init__(self, iterable=None):
         self.end = end = []
-        end += [None, end, end]
-        self.map = {}
+        end += [None, end, end]         # sentinel node for doubly linked list
+        self.map = {}                   # key --> [key, prev, next]
         if iterable is not None:
             self |= iterable
 
@@ -53,37 +51,33 @@ class OrderedSet(collections.MutableSet):
     def add(self, key):
         if key not in self.map:
             end = self.end
-            curr = end[PREV]
-            curr[NEXT] = end[PREV] = self.map[key] = [key, curr, end]
-
-    def update(self, values):
-        for value in values:
-            self.add(value)
+            curr = end[1]
+            curr[2] = end[1] = self.map[key] = [key, curr, end]
 
     def discard(self, key):
         if key in self.map:
             key, prev, next = self.map.pop(key)
-            prev[NEXT] = next
-            next[PREV] = prev
+            prev[2] = next
+            next[1] = prev
 
     def __iter__(self):
         end = self.end
-        curr = end[NEXT]
+        curr = end[2]
         while curr is not end:
-            yield curr[KEY]
-            curr = curr[NEXT]
+            yield curr[0]
+            curr = curr[2]
 
     def __reversed__(self):
         end = self.end
-        curr = end[PREV]
+        curr = end[1]
         while curr is not end:
-            yield curr[KEY]
-            curr = curr[PREV]
+            yield curr[0]
+            curr = curr[1]
 
     def pop(self, last=True):
         if not self:
             raise KeyError("set is empty")
-        key = next(reversed(self)) if last else next(iter(self))
+        key = self.end[1][0] if last else self.end[2][0]
         self.discard(key)
         return key
 
@@ -96,6 +90,3 @@ class OrderedSet(collections.MutableSet):
         if isinstance(other, OrderedSet):
             return len(self) == len(other) and list(self) == list(other)
         return set(self) == set(other)
-
-    def __del__(self):
-        self.clear()

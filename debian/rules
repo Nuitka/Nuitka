@@ -13,4 +13,4 @@ override_dh_auto_build:
 	cp Developer_Manual.rst Developer_Manual.txt
 
 override_dh_auto_test:
-	./misc/check-release
+	./tests/run-tests

@@ -204,7 +204,7 @@ def _checkPluginPath(plugin_filename, module_package):
     # Many branches, for the decision is very complex, pylint: disable=R0912
 
     debug(
-        "Checking detail plug-in path %s %s",
+        "Checking detail plug-in path '%s' '%s':",
         plugin_filename,
         module_package
     )
@@ -290,6 +290,7 @@ def _checkPluginPath(plugin_filename, module_package):
         else:
             warning("Failed to include module from '%s'.", plugin_info[0])
 
+
 def checkPluginPath(plugin_filename, module_package):
     debug(
         "Checking top level plug-in path %s %s",
@@ -318,3 +319,30 @@ def checkPluginPath(plugin_filename, module_package):
             warning("Failed to include module from '%s'.", plugin_info[0])
     else:
         warning("Failed to recurse to directory '%s'.", plugin_filename)
+
+
+def checkPluginFilenamePattern(pattern):
+    import sys, glob
+
+    debug(
+        "Checking plug-in pattern '%s':",
+        pattern,
+    )
+
+    if Utils.isDir(pattern):
+        sys.exit("Error, pattern cannot be a directory name.")
+
+    found = False
+
+    for filename in glob.iglob(pattern):
+        if filename.endswith(".pyc"):
+            continue
+
+        if not Utils.isFile(filename):
+            continue
+
+        found = True
+        _checkPluginPath(filename, None)
+
+    if not found:
+        warning("Didn't match any files against pattern '%s'." % pattern)

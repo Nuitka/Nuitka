@@ -62,6 +62,7 @@ def find(env):
     # If that doesn't work try default location for mingw
     save_path=env['ENV']['PATH']
     env.AppendENVPath('PATH',r'c:\MinGW\bin')
+    env.AppendENVPath('PATH',r'\MinGW\bin')
     path =env.WhereIs(key_program)
     if not path:
         env['ENV']['PATH']=save_path

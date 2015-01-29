@@ -36,7 +36,7 @@ used in the same way as pure Python objects.
 %{__python} setup.py build
 
 %check
-./misc/check-release
+./tests/run-tests
 
 %install
 rm -rf %{buildroot}

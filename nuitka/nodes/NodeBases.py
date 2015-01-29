@@ -539,6 +539,10 @@ class ChildrenHavingMixin:
                     val.parent = self
             elif value is not None:
                 value.parent = self
+            elif value is None:
+                pass
+            else:
+                assert False, type(value)
 
     def setChild(self, name, value):
         """ Set a child value.

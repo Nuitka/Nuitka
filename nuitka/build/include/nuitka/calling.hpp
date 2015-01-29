@@ -24,6 +24,8 @@ extern PyObject *const_tuple_empty;
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, PyObject *positional_args, PyObject *named_args )
 {
+    assert( !ERROR_OCCURRED() );
+
     assertObject( function_object );
     assertObject( positional_args );
     assert( named_args == NULL || Py_REFCNT( named_args ) > 0 );
@@ -64,6 +66,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, 
     }
     else
     {
+        // Some buggy C functions do this, and Nuitka inner workings can get
+        // upset from it.
+        DROP_ERROR_OCCURRED();
+
         return result;
     }
 }

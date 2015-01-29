@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.8
+Nuitka V0.5.9
 Copyright (C) 2015 Kay Hayen."""
 
 import logging
@@ -217,9 +217,21 @@ recurse_group.add_option(
     default = [],
     help    = """\
 Recurse into that directory, no matter if it's used by the given main program
-in a visible form. Overrides all other options. Can be given multiple times.
-Default empty."""
+in a visible form. Overrides all other recursion options. Can be given multiple
+times. Default empty."""
 )
+
+recurse_group.add_option(
+    "--recurse-files", "--recurse-pattern",
+    action  = "append",
+    dest    = "recurse_extra_files",
+    metavar = "PATTERN",
+    default = [],
+    help    = """\
+Recurse into files matching the PATTERN. Overrides all recursion other options.
+Can be given multiple times. Default empty."""
+)
+
 
 parser.add_option_group(recurse_group)
 
@@ -387,15 +399,28 @@ Defaults to off."""
 )
 
 debug_group.add_option(
-    "--c++-only",
+    "--recompile-c++-only",
     action  = "store_true",
-    dest    = "cpp_only",
+    dest    = "recompile_cpp_only",
     default = False,
     help    = """\
-Compile the would-be regenerated source file. Allows compiling edited C++ files
+Take existing files and compile them again.Allows compiling edited C++ files
 with the C++ compiler for quick debugging changes to the generated source.
-Defaults to off."""
+Defaults to off. Depends on compiling Python source to determine which files it
+should look at."""
 )
+
+debug_group.add_option(
+    "--generate-c++-only",
+    action  = "store_true",
+    dest    = "generate_cpp_only",
+    default = False,
+    help    = """\
+Generate only C++ source code, and do not compile it to binary or module. This
+is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
+off."""
+)
+
 
 debug_group.add_option(
     "--experimental",
@@ -406,6 +431,17 @@ debug_group.add_option(
 Use features declared as 'experimental'. May have no effect if no experimental
 features are present in the code. Defaults to off."""
 )
+
+# This is for testing framework, "coverage.py" hates to loose the process. And
+# we can use it to make sure it's not done unknowingly.
+parser.add_option(
+    "--must-not-re-execute",
+    action  = "store_false",
+    dest    = "allow_reexecute",
+    default = True,
+    help    = SUPPRESS_HELP
+)
+
 
 parser.add_option_group(debug_group)
 
@@ -587,7 +623,10 @@ def shallDisplayBuiltTree():
     return options.display_tree
 
 def shallOnlyExecCppCall():
-    return options.cpp_only
+    return options.recompile_cpp_only
+
+def shallNotDoExecCppCall():
+    return options.generate_cpp_only
 
 def shallHaveStatementLines():
     return options.statement_lines
@@ -606,6 +645,9 @@ def shallFollowAllImports():
 
 def getShallFollowModules():
     return sum([ x.split(',') for x in options.recurse_modules ], [])
+
+def isAllowedToReexecute():
+    return options.allow_reexecute
 
 for any_case_module in getShallFollowModules():
     if any_case_module.startswith('.'):
@@ -645,6 +687,9 @@ no_case_module)
 
 def getShallFollowExtra():
     return sum([ x.split(',') for x in options.recurse_extra ], [])
+
+def getShallFollowExtraFilePatterns():
+    return sum([ x.split(',') for x in options.recurse_extra_files ], [])
 
 def shallWarnImplicitRaises():
     return options.warn_implicit_exceptions
@@ -713,7 +758,7 @@ def isShowInclusion():
     return options.show_inclusion
 
 def isRemoveBuildDir():
-    return options.remove_build
+    return options.remove_build and not options.generate_cpp_only
 
 def getIntendedPythonVersion():
     return options.python_version

@@ -19,8 +19,9 @@
 #     limitations under the License.
 #
 
-import os, sys, subprocess, tempfile, shutil
+import os, sys
 
+# The test runner needs "lxml" itself.
 try:
     import lxml.etree
 except ImportError:
@@ -41,24 +42,19 @@ from test_common import (
     my_print,
     setup,
     convertUsing2to3,
+    createSearchMode,
     hasModule,
     check_output
 )
 
 python_version = setup()
 
+# The Python version used by Nuitka needs "lxml" too.
 if not hasModule("lxml.etree"):
     print("Warning, no 'lxml' module installed, cannot run XML based tests.")
     sys.exit(0)
 
-search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
-
-start_at = sys.argv[2] if len(sys.argv) > 2 else None
-
-if start_at:
-    active = False
-else:
-    active = True
+search_mode = createSearchMode()
 
 def getKind( node ):
     result = node.attrib[ "kind" ]
@@ -137,34 +133,45 @@ for filename in sorted(os.listdir(".")):
     if not filename.endswith(".py") or filename.startswith("run_"):
         continue
 
-    # Skip tests that require Python 2.7 at least.
-    if filename.endswith("27.py") and python_version.startswith("2.6"):
-        continue
-
-    path = filename
-
-    if not active and start_at in (filename, path):
-        active = True
-
+    active = search_mode.consider(
+        dirname  = None,
+        filename = filename
+    )
 
     extra_flags = ["expect_success"]
 
     if active:
         # Apply 2to3 conversion if necessary.
         if python_version.startswith("3"):
-            path, changed = convertUsing2to3(path)
+            filename, changed = convertUsing2to3(filename)
         else:
             changed = False
 
-        my_print("Consider", path, end = " ")
+        my_print("Consider", filename, end = " ")
 
         command = [
             os.environ["PYTHON"],
-            os.path.join("..", "..", "bin", "nuitka"),
+            os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
             "--dump-xml",
             "--module",
-            path
+            filename
         ]
+
+
+        if search_mode.isCoverage():
+            # To avoid re-execution, which is not acceptable to coverage.
+            if "PYTHONHASHSEED" not in os.environ:
+                os.environ["PYTHONHASHSEED"] = "0"
+
+            command.insert(2, "--must-not-re-execute")
+
+            command = command[0:1] + [
+                "-m",
+                "coverage",
+                "run",
+                "--rcfile", os.devnull,
+                "-a",
+            ] + command[1:]
 
         result = check_output(
             command
@@ -181,8 +188,10 @@ for filename in sorted(os.listdir(".")):
         checkSequence(module_statements)
 
         if changed:
-            os.unlink(path)
+            os.unlink(filename)
 
         my_print("OK.")
     else:
         my_print("Skipping", filename)
+
+search_mode.finish()

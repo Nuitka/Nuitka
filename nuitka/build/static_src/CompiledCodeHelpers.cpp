@@ -2440,12 +2440,54 @@ static int const swapped_op[] =
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE
 };
 
+#if PYTHON_VERSION >= 270
+iternextfunc default_iternext;
+
+extern PyObject *const_str_plain___iter__;
+
+void _initSlotIternext()
+{
+    PyObject *pos_args = PyTuple_New(1);
+    PyTuple_SET_ITEM(
+        pos_args,
+        0,
+        INCREASE_REFCOUNT( (PyObject *)&PyBaseObject_Type )
+    );
+
+    PyObject *kw_args = PyDict_New();
+    PyDict_SetItem( kw_args, const_str_plain___iter__, Py_True );
+
+    PyObject *c = PyObject_CallFunctionObjArgs(
+        (PyObject *)&PyType_Type,
+        const_str_plain___iter__,
+        pos_args,
+        kw_args,
+        NULL
+    );
+    Py_DECREF( pos_args );
+    Py_DECREF( kw_args );
+
+    PyObject *r = PyObject_CallFunctionObjArgs(
+        c,
+        NULL
+    );
+    Py_DECREF( c );
+
+    assertObject( r );
+    assert( Py_TYPE( r )->tp_iternext );
+
+    default_iternext = Py_TYPE(r)->tp_iternext;
+
+    Py_DECREF( r );
+}
+#endif
+
 #if PYTHON_VERSION < 300
 
 extern PyObject *const_str_plain___cmp__;
-cmpfunc default_tp_compare;
+static cmpfunc default_tp_compare;
 
-void initSlotCompare()
+void _initSlotCompare()
 {
     // Create a class with "__cmp__" attribute, to get a hand at the default
     // implementation of tp_compare. It's not part of the API and with shared

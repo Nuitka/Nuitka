@@ -77,7 +77,8 @@ def createNodeTree(filename):
     # harm.
     source_dir = getSourceDirectoryPath(main_module)
 
-    if not Options.shallOnlyExecCppCall():
+    if not Options.shallOnlyExecCppCall() and \
+       not Options.shallNotDoExecCppCall():
         cleanSourceDirectory(source_dir)
 
     if Options.isStandaloneMode():
@@ -95,6 +96,12 @@ def createNodeTree(filename):
             plugin_filename = plugin_filename,
             module_package  = None
         )
+
+    for pattern in Options.getShallFollowExtraFilePatterns():
+        Recursion.checkPluginFilenamePattern(
+            pattern = pattern
+        )
+
 
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize()
@@ -611,6 +618,9 @@ def compileTree(main_module):
             )
         )
 
+    if Options.shallNotDoExecCppCall():
+        return None, {}
+
     # Run the Scons to build things.
     result, options = runScons(
         main_module = main_module,
@@ -689,6 +699,9 @@ def main():
         if not result:
             sys.exit(1)
 
+        if Options.shallNotDoExecCppCall():
+            sys.exit(0)
+
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
             shutil.rmtree(
@@ -710,7 +723,6 @@ def main():
                 dist_dir                = getStandaloneDirectoryPath(
                     main_module
                 ),
-                binary_filename         = binary_filename,
                 standalone_entry_points = standalone_entry_points
             )
 

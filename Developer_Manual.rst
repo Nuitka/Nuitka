@@ -355,7 +355,7 @@ The top level access to the tests is as simple as this:
 
 .. code-block:: sh
 
-   ./misc/check-release
+   ./tests/run-tests
 
 For fine grained control, it has the following options::
 
@@ -386,7 +386,7 @@ You will only run the CPython test suites, if you have the submodules of the
 Nuitka git repository checked out. Otherwise, these will be skipped
 automatically with a warning that they are not available.
 
-The policy is generally, that ``./misc/check-release`` running and passing all
+The policy is generally, that ``./test/run-tests`` running and passing all
 the tests on Linux and Windows shall be considered sufficient for a release.
 
 Basic Tests

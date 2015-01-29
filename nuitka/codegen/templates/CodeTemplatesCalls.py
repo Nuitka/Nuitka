@@ -188,6 +188,123 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
             return result;
         }
     }
+    else if ( PyCFunction_Check( called ) )
+    {
+        // Try to be fast about wrapping the arguments.
+        int flags = PyCFunction_GET_FLAGS( called );
+
+        if ( flags & METH_NOARGS )
+        {
+#if %(args_count)d == 0
+            PyCFunction method = PyCFunction_GET_FUNCTION( called );
+            PyObject *self = PyCFunction_GET_SELF( called );
+
+            // Recursion guard is not strictly necessary, as we already have
+            // one on our way to here.
+#ifdef _NUITKA_FULL_COMPAT
+            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
+            {
+                return NULL;
+            }
+#endif
+
+            PyObject *result = (*method)( self, NULL );
+
+#ifdef _NUITKA_FULL_COMPAT
+            Py_LeaveRecursiveCall();
+#endif
+
+            // Some buggy C functions do this, and Nuitka inner workings can get
+            // upset from it.
+            if (result != NULL) DROP_ERROR_OCCURRED();
+
+            return result;
+#else
+            PyErr_Format(
+                PyExc_TypeError,
+                "%%s() takes no arguments (%(args_count)d given)",
+                ((PyCFunctionObject *)called)->m_ml->ml_name
+            );
+            return NULL;
+#endif
+        }
+        else if ( flags & METH_O )
+        {
+#if %(args_count)d == 1
+            PyCFunction method = PyCFunction_GET_FUNCTION( called );
+            PyObject *self = PyCFunction_GET_SELF( called );
+
+            // Recursion guard is not strictly necessary, as we already have
+            // one on our way to here.
+#ifdef _NUITKA_FULL_COMPAT
+            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
+            {
+                return NULL;
+            }
+#endif
+
+            PyObject *result = (*method)( self, %(args_list)s );
+
+#ifdef _NUITKA_FULL_COMPAT
+            Py_LeaveRecursiveCall();
+#endif
+
+            // Some buggy C functions do this, and Nuitka inner workings can get
+            // upset from it.
+            if ( result != NULL ) DROP_ERROR_OCCURRED();
+
+            return result;
+#else
+            PyErr_Format(PyExc_TypeError,
+                "%%s() takes exactly one argument (%(args_count)d given)",
+                 ((PyCFunctionObject *)called)->m_ml->ml_name
+            );
+            return NULL;
+#endif
+        }
+        else
+        {
+            PyCFunction method = PyCFunction_GET_FUNCTION( called );
+            PyObject *self = PyCFunction_GET_SELF( called );
+
+            PyObject *args[] = { %(args_list)s };
+            PyObject *pos_args = MAKE_TUPLE( args, sizeof( args ) / sizeof( PyObject * ) );
+
+            PyObject *result;
+
+            assert( flags && METH_VARARGS );
+
+            // Recursion guard is not strictly necessary, as we already have
+            // one on our way to here.
+#ifdef _NUITKA_FULL_COMPAT
+            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
+            {
+                return NULL;
+            }
+#endif
+
+            if ( flags && METH_KEYWORDS )
+            {
+                result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
+            }
+            else
+            {
+                result = (*method)( self, pos_args );
+            }
+
+#ifdef _NUITKA_FULL_COMPAT
+            Py_LeaveRecursiveCall();
+#endif
+
+            // Some buggy C functions do this, and Nuitka inner workings can get
+            // upset from it.
+            if ( result != NULL ) DROP_ERROR_OCCURRED();
+
+            Py_DECREF( pos_args );
+
+            return result;
+        }
+    }
     else if ( PyFunction_Check( called ) )
     {
         PyObject *args[] = { %(args_list)s };

@@ -139,6 +139,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
         if node.isExpressionBuiltinImport() and \
            not Options.getShallFollowExtra() and \
+           not Options.getShallFollowExtraFilePatterns() and \
            not Options.shallFollowNoImports() and \
            not isWhiteListedImport(node):
             warning("""Unresolved '__import__' call at '%s' may require use \

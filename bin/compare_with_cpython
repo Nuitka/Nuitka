@@ -55,12 +55,23 @@ remove_output      = hasArg("remove_output")
 standalone_mode    = hasArg("standalone")
 no_site            = hasArg("no_site")
 recurse_none       = hasArg("recurse_none")
+recurse_all        = hasArg("recurse_all")
 timing             = hasArg("timing")
-
-assert not standalone_mode or not module_mode
+coverage_mode      = hasArg("coverage")
 
 if args:
     sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
+
+# In coverage mode, we don't want to execute, and to do this only in one mode,
+# we enable two step execution, which splits running the binary from the actual
+# compilation:
+if coverage_mode:
+    two_step_execution = True
+
+comparison_mode = not coverage_mode
+
+assert not standalone_mode or not module_mode
+assert not recurse_all or not recurse_none
 
 if "PYTHONHASHSEED" not in os.environ:
     os.environ["PYTHONHASHSEED"] = "0"
@@ -70,7 +81,7 @@ os.environ["PYTHONWARNINGS"] = "ignore"
 if "PYTHON" not in os.environ:
     os.environ["PYTHON"] = sys.executable
 
-extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
+extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
 if "--python-debug" in extra_options:
     python_debug = True
@@ -89,17 +100,29 @@ def my_print(*args, **kwargs):
 
     sys.stdout.flush()
 
-my_print(
-    """\
+if comparison_mode:
+    my_print(
+        """\
 Comparing output of '{filename}' using '{python}' with flags {args} ...""".
-format(
-        filename = filename,
-        python   = os.environ["PYTHON"],
-        args     = ", ".join(arguments)
+        format(
+            filename = filename,
+            python   = os.environ["PYTHON"],
+            args     = ", ".join(arguments)
+        )
     )
-)
+else:
+    my_print(
+        """\
+Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
+        format(
+            filename = filename,
+            python   = os.environ["PYTHON"],
+            args     = ", ".join(arguments)
+        )
+    )
 
-if not silent_mode:
+
+if comparison_mode and not silent_mode:
     my_print("*" * 80)
     my_print("CPython:")
     my_print("*" * 80)
@@ -127,18 +150,34 @@ if no_site:
     cpython_cmd.insert(1, "-S")
 
 if "NUITKA" in os.environ:
+    # Would need to extract which "python" this is going to use.
+    assert not coverage_mode, "Not implemented for binaries."
+
     nuitka_call = [os.environ["NUITKA"]]
 else:
-    nuitka_call = [
-        os.environ["PYTHON"],
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "nuitka"))
-    ]
+    if comparison_mode:
+        nuitka_call = [
+            os.environ["PYTHON"],
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "nuitka"))
+        ]
+    else:
+        assert coverage_mode
+
+        nuitka_call = [
+            os.environ["PYTHON"],
+            "-m",
+            "coverage",
+            "run",
+            "--rcfile", os.devnull,
+            "-a",
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "nuitka"))
+        ]
 
 if python_debug:
-    extra_options += " --python-debug"
+    extra_options.append("--python-debug")
 
 if remove_output:
-    extra_options += " --remove-output"
+    extra_options.append("--remove-output")
 
 if binary_python_path:
     if os.name == "nt":
@@ -153,20 +192,28 @@ if binary_python_path:
     )
 
 if keep_python_path or binary_python_path:
-    extra_options += " --keep-pythonpath"
+    extra_options.append("--keep-pythonpath")
 
 if recurse_none:
-    extra_options += " --recurse-none"
+    extra_options.append("--recurse-none")
 
+if recurse_all:
+    extra_options.append("--recurse-all")
+
+if coverage_mode:
+    extra_options.append("--must-not-re-execute")
+    extra_options.append("--generate-c++-only")
+
+# Now build the command to run Nuitka.
 if not two_step_execution:
     if module_mode:
-        nuitka_cmd = nuitka_call + extra_options.split() + \
+        nuitka_cmd = nuitka_call + extra_options + \
           ["--execute", "--python-flag=no_warnings", "--module", filename]
     elif standalone_mode:
-        nuitka_cmd = nuitka_call + extra_options.split() + \
+        nuitka_cmd = nuitka_call + extra_options + \
           ["--execute", "--python-flag=no_warnings", "--standalone", filename]
     else:
-        nuitka_cmd = nuitka_call + extra_options.split() + \
+        nuitka_cmd = nuitka_call + extra_options + \
           ["--execute", "--python-flag=no_warnings", filename]
 
     if no_site:
@@ -174,24 +221,27 @@ if not two_step_execution:
 
 else:
     if module_mode:
-        nuitka_cmd1 = nuitka_call + extra_options.split() + \
+        nuitka_cmd1 = nuitka_call + extra_options + \
           ["--python-flag=no_warnings", "--module", os.path.abspath(filename)]
     elif standalone_mode:
-        nuitka_cmd1 = nuitka_call + extra_options.split() + \
+        nuitka_cmd1 = nuitka_call + extra_options + \
           ["--python-flag=no_warnings", "--standalone", filename]
     else:
-        nuitka_cmd1 = nuitka_call + extra_options.split() + \
+        nuitka_cmd1 = nuitka_call + extra_options + \
           ["--python-flag=no_warnings", filename]
 
     if no_site:
         nuitka_cmd1.insert(len(nuitka_cmd1) - 1, "--python-flag=-S")
 
 
-dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_options)
+for extra_option in extra_options:
+    dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_option)
 
-if dir_match:
-    output_dir = dir_match.group(1)
+    if dir_match:
+        output_dir = dir_match.group(1)
+        break
 else:
+    # The default.
     output_dir = "."
 
 if module_mode:
@@ -216,18 +266,19 @@ else:
 if trace_command:
     my_print("CPython command:", *cpython_cmd)
 
-start_time = time.time()
+if comparison_mode:
+    start_time = time.time()
 
-process = subprocess.Popen(
-    args   = cpython_cmd,
-    stdout = subprocess.PIPE,
-    stderr = subprocess.PIPE
-)
+    process = subprocess.Popen(
+        args   = cpython_cmd,
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE
+    )
 
-stdout_cpython, stderr_cpython = process.communicate()
-exit_cpython = process.returncode
+    stdout_cpython, stderr_cpython = process.communicate()
+    exit_cpython = process.returncode
 
-cpython_time = time.time() - start_time
+    cpython_time = time.time() - start_time
 
 def displayOutput(stdout, stderr):
     if type(stdout) is not str:
@@ -238,10 +289,10 @@ def displayOutput(stdout, stderr):
     if stderr:
         my_print(stderr)
 
-if not silent_mode:
+if comparison_mode and not silent_mode:
     displayOutput(stdout_cpython, stderr_cpython)
 
-if not silent_mode:
+if comparison_mode and not silent_mode:
     my_print("*" * 80)
     my_print("Nuitka:")
     my_print("*" * 80)
@@ -291,24 +342,34 @@ else:
         exit_nuitka = exit_nuitka1
         stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
     else:
-        if trace_command:
-            my_print("Nuitka command 2:", nuitka_cmd2)
+        # No execution second step for coverage mode.
+        if comparison_mode:
+            if trace_command:
+                my_print("Nuitka command 2:", nuitka_cmd2)
 
-        process = subprocess.Popen(
-            args   = nuitka_cmd2,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
-        )
+            process = subprocess.Popen(
+                args   = nuitka_cmd2,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE
+            )
 
-        stdout_nuitka2, stderr_nuitka2 = process.communicate()
-        stdout_nuitka = stdout_nuitka1 + stdout_nuitka2
-        stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
-        exit_nuitka = process.returncode
+            stdout_nuitka2, stderr_nuitka2 = process.communicate()
+            stdout_nuitka = stdout_nuitka1 + stdout_nuitka2
+            stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
+            exit_nuitka = process.returncode
+        else:
+            exit_nuitka = exit_nuitka1
+            stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
+
 
 nuitka_time = time.time() - start_time
 
 if not silent_mode:
     displayOutput(stdout_nuitka, stderr_nuitka)
+
+    if coverage_mode:
+        assert not stdout_nuitka
+        assert not stderr_nuitka
 
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+")
@@ -478,37 +539,38 @@ def compareOutput(kind, out_cpython, out_nuitka):
     else:
         return 0
 
-exit_code_stdout = compareOutput("stdout", stdout_cpython, stdout_nuitka)
+if comparison_mode:
+    exit_code_stdout = compareOutput("stdout", stdout_cpython, stdout_nuitka)
 
-if ignore_stderr:
-    exit_code_stderr = 0
-else:
-    exit_code_stderr = compareOutput("stderr", stderr_cpython, stderr_nuitka)
+    if ignore_stderr:
+        exit_code_stderr = 0
+    else:
+        exit_code_stderr = compareOutput("stderr", stderr_cpython, stderr_nuitka)
 
-exit_code_return = exit_cpython != exit_nuitka
+    exit_code_return = exit_cpython != exit_nuitka
 
-if exit_code_return:
-    my_print(
-        """\
-Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
-            exit_cpython = exit_cpython,
-            exit_nuitka  = exit_nuitka
+    if exit_code_return:
+        my_print(
+            """\
+    Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
+                exit_cpython = exit_cpython,
+                exit_nuitka  = exit_nuitka
+            )
         )
-    )
 
-exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
+    exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 
-if exit_code:
-    sys.exit("Error, outputs differed.")
+    if exit_code:
+        sys.exit("Error, outputs differed.")
 
-if expect_success and exit_cpython != 0:
-    if silent_mode:
-        displayOutput(stdout_cpython, stderr_cpython)
+    if expect_success and exit_cpython != 0:
+        if silent_mode:
+            displayOutput(stdout_cpython, stderr_cpython)
 
-    sys.exit("Unexpected error exit from CPython.")
+        sys.exit("Unexpected error exit from CPython.")
 
-if expect_failure and exit_cpython == 0:
-    sys.exit("Unexpected success exit from CPython.")
+    if expect_failure and exit_cpython == 0:
+        sys.exit("Unexpected success exit from CPython.")
 
 if remove_output:
     if not module_mode:
@@ -541,7 +603,7 @@ if remove_output:
             os.unlink(module_filename)
 
 
-if timing:
+if comparison_mode and timing:
     my_print(
         "CPython took %.2fs vs %0.2fs Nuitka." % (
             cpython_time,
@@ -549,5 +611,5 @@ if timing:
         )
     )
 
-if not silent_mode:
+if comparison_mode and not silent_mode:
     my_print("OK, same outputs.")

@@ -33,50 +33,49 @@ from test_common import (
     my_print,
     setup,
     convertUsing2to3,
+    createSearchMode,
     compareWithCPython
 )
 
-python_version = setup()
+python_version = setup(needs_io_encoding = True)
 
-search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
-
-start_at = sys.argv[2] if len( sys.argv ) > 2 else None
-
-if start_at:
-    active = False
-else:
-    active = True
+search_mode = createSearchMode()
 
 extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS","")
 
-for filename in sorted(os.listdir( "." )):
-    if not os.path.isdir(filename) or filename.endswith(".build"):
+for filename in sorted(os.listdir('.')):
+    if not os.path.isdir(filename) or \
+       filename.endswith(".build") or \
+       filename.endswith(".dist"):
         continue
 
-    path = os.path.relpath( filename )
+    filename = os.path.relpath(filename)
 
-    if not active and start_at in ( filename, path ):
-        active = True
-
+    # For these, we expect that they will fail.
     expected_errors = [
-        "module_exits", "main_raises", "main_raises2",
+        "module_exits",
+        "main_raises",
+        "main_raises2",
         "package_contains_main"
     ]
 
     # Allowed after Python3, packages need no more "__init__.py"
 
     if python_version < "3.3":
-        expected_errors.append( "package_missing_init" )
+        expected_errors.append("package_missing_init")
 
     if filename not in expected_errors:
-        extra_flags = [ "expect_success" ]
+        extra_flags = ["expect_success"]
     else:
-        extra_flags = [ "expect_failure" ]
+        extra_flags = ["expect_failure"]
 
-    if filename in ( "package_missing_init", "dash_import", "reimport_main" ):
-        extra_flags.append( "ignore_stderr" )
+    if filename in ("reimport_main_static", "package_missing_init",
+                    "dash_import"):
+        extra_flags.append("ignore_warnings")
 
-    extra_flags.append( "remove_output" )
+    extra_flags.append("remove_output")
+
+    extra_flags.append("recurse_all")
 
     # Cannot include the files with syntax errors, these would then become
     # ImportError, but that's not the test. In all other cases, use two
@@ -88,21 +87,39 @@ for filename in sorted(os.listdir( "." )):
         extra_flags.append("binary_python_path")
 
     if filename == "plugin_import":
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = extra_options + \
-          " --recurse-all --recurse-directory=%s/some_package" % (
-              os.path.abspath( filename )
+        os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
+          " --recurse-directory=%s/some_package" % (
+              os.path.abspath(filename)
           )
+    elif filename == "reimport_main_dynamic":
+        if python_version < "3":
+            os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
+              " --recurse-directory=%s" % (
+                  os.path.abspath(filename)
+              )
+        else:
+            os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
+              " --recurse-pattern=%s/*.py" % (
+                  os.path.abspath(filename)
+              )
+
+        extra_flags.append("ignore_warnings")
     else:
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = extra_options + " --recurse-all"
+        os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
+
+    active = search_mode.consider(
+        dirname  = None,
+        filename = filename
+    )
 
     if active:
-        my_print( "Consider output of recursively compiled program:", path )
+        my_print("Consider output of recursively compiled program:", filename)
 
-        for filename_main in os.listdir( filename ):
-            if filename_main.endswith( "Main.py" ):
+        for filename_main in os.listdir(filename):
+            if filename_main.endswith("Main.py"):
                 break
 
-            if filename_main.endswith( "Main" ):
+            if filename_main.endswith("Main"):
                 break
         else:
             sys.exit(
@@ -113,10 +130,13 @@ Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case.""" % (
             )
 
         compareWithCPython(
-            path        = os.path.join( filename, filename_main ),
+            dirname     = filename,
+            filename    = filename_main,
             extra_flags = extra_flags,
             search_mode = search_mode,
             needs_2to3  = False
         )
     else:
-        my_print( "Skipping", filename )
+        my_print("Skipping", filename)
+
+search_mode.finish()
