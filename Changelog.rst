@@ -1,5 +1,5 @@
-Nuitka Release 0.5.9 (Draft)
-============================
+Nuitka Release 0.5.9
+====================
 
 This release is mostly a maintenance release, bringing out minor compatiblity
 improvements, and some standalone improvements. Also new options to control
