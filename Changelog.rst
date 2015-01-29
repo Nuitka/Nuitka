@@ -1,7 +1,9 @@
 Nuitka Release 0.5.9 (Draft)
 ============================
 
-This release is not yet finished.
+This release is mostly a maintenance release, bringing out minor compatiblity
+improvements, and some standalone improvements. Also new options to control
+the recursion into modules are added.
 
 Bug Fixes
 ---------
@@ -35,18 +37,26 @@ Bug Fixes
   read-only and executing ``chrpath`` could potentially then fail. This has
   not been observed, but is a conclusion of MacOS fix.
 
+- Standalone: When freezing standard library, the path of Nuitka and the
+  current directory remained in the search path, which could lead to looking
+  at the wrong files.
 
 Optimization
 ------------
 
-- The closure variables no longer use C++ objects to share storage, but proper
-  ``PyCellObject`` for improved compatibility, and to approach a more C-ish
-  status.
+- The ``getattr`` built-in is now optimized for compile time constants if
+  possible, even in the presence of a ``default`` argument. This is more
+  a cleanup than actually useful yet.
+
+- The calling of ``PyCFunction`` from normal Python extension modules got
+  accelerated, especially for the no or single argument cases where Nuitka
+  now avoids building the tuple.
 
 New Features
 ------------
 
-- Added the option ``--recurse-pattern`` to include modules per filename.
+- Added the option ``--recurse-pattern`` to include modules per filename, which
+  for Python3 is the only way to not have them in a package automatically.
 
 - Added the option ``--generate-c++-only`` to only generate the C++ source code
   without starting the compiler.
@@ -59,7 +69,7 @@ Organizational
 --------------
 
 - Renamed the debug option ``--c++-only`` to ``--recompile-c++-only`` to make
-  its purpose more clear.
+  its purpose more clear and there now is ``--generate-c++-only`` too.
 
 Tests
 -----
@@ -70,12 +80,27 @@ Tests
 - Added support for taking coverage for all Nuitka test runners, migrating them
   all to common code for searching.
 
-- More uniform way of reporting skipped tests.
+- Added uniform way of reporting skipped tests, not generally used yet.
+
 
 Summary
 -------
 
-This release is not finished yet.
+This release marks progress towards having coverage testing. Recent releases
+had made it clear that not all code of Nuitka is actually used at least once
+in our release tests. We aim at identifying these.
+
+Another direction was to catch cases, where Nuitka leaks exceptions or is
+subject to leaked exceptions, which revealed previously unnoticed errors.
+
+Important changes have been delayed, e.g. the closure variables will not yet
+use C++ objects to share storage, but proper ``PyCellObject`` for improved
+compatibility, and to approach a more C-ish status. These is unfinished code
+that does this. And the forward propagation of values is not enabled yet
+again either.
+
+So this is an interim step to get the bug fixes and improvements acculumated
+out. Expect more actual changes in the next releases.
 
 
 Nuitka Release 0.5.8
