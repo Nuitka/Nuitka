@@ -111,7 +111,7 @@ if branch_name.startswith("release") or \
 
     assert checkNuitkaChangelog() == "final", checkNuitkaChangelog()
 else:
-    assert checkDebianChangeLog("New upstream pre-release.")
+    assert checkDebianChangeLog("New upstream pre-release."), branch_name
     assert checkNuitkaChangelog() == "draft", checkNuitkaChangelog()
 
 shutil.rmtree("dist", ignore_errors = True)
