@@ -41,6 +41,19 @@ static long Nuitka_Generator_tp_traverse( PyObject *function, visitproc visit, v
     return 0;
 }
 
+static void Nuitka_Generator_release_parameters( Nuitka_GeneratorObject *generator )
+{
+    if ( generator->m_parameters )
+    {
+        for( Py_ssize_t i = 0; i < generator->m_parameters_given; i++ )
+        {
+            Py_XDECREF( generator->m_parameters[i] );
+            generator->m_parameters[i] = NULL;
+        }
+    }
+
+    generator->m_parameters = NULL;
+}
 
 static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObject *value )
 {
@@ -135,13 +148,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
             Py_XDECREF( generator->m_frame );
             generator->m_frame = NULL;
 
-            if ( generator->m_context )
-            {
-                // Surpressing exception in cleanup, to restore later before
-                // return.
-                generator->m_cleanup( generator->m_context );
-                generator->m_context = NULL;
-            }
+            Nuitka_Generator_release_parameters( generator );
 
             assert( ERROR_OCCURRED() );
 
@@ -279,12 +286,17 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
         PyObject_ClearWeakRefs( (PyObject *)generator );
     }
 
-    if ( generator->m_context )
-    {
-        generator->m_cleanup( generator->m_context );
-    }
+    Nuitka_Generator_release_parameters( generator );
 
-    Py_DECREF( generator->m_name );
+    if ( generator->m_parameters_given ) free( generator->m_parameters );
+    if ( generator->m_closure_given )
+    {
+        for( Py_ssize_t i = 0; i < generator->m_closure_given; i++ )
+        {
+            Py_DECREF( generator->m_closure[ i ] );
+        }
+        free( generator->m_closure );
+    }
 
     Py_XDECREF( generator->m_frame );
 
@@ -518,7 +530,7 @@ PyTypeObject Nuitka_Generator_Type =
 #endif
 };
 
-PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, void *context, releaser cleanup )
+PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given )
 {
     Nuitka_GeneratorObject *result = PyObject_GC_New( Nuitka_GeneratorObject, &Nuitka_Generator_Type );
 
@@ -535,10 +547,17 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
 
     result->m_code = (void *)code;
 
-    result->m_name = INCREASE_REFCOUNT( name );
+    result->m_name = name;
 
-    result->m_context = context;
-    result->m_cleanup = cleanup;
+    // We take ownership of those and received the reference count from the
+    // caller.
+    result->m_closure = closure;
+    result->m_closure_given = closure_given;
+
+    // We take ownership of those and received the reference count from the
+    // caller.
+    result->m_parameters = parameters;
+    result->m_parameters_given = parameters_given;
 
     result->m_weakrefs = NULL;
 
@@ -558,11 +577,6 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
 
     Nuitka_GC_Track( result );
     return (PyObject *)result;
-}
-
-PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object )
-{
-    return Nuitka_Generator_New( code, name, code_object, NULL, NULL );
 }
 
 #if PYTHON_VERSION >= 330

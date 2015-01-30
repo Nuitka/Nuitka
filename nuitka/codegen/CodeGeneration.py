@@ -490,14 +490,6 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
         closure_variables   = function_body.getClosureVariables()
     )
 
-    if function_body.getClosureVariables() and not function_body.isGenerator():
-        function_decl += '\n'
-
-        function_decl += Generator.getFunctionContextDefinitionCode(
-            function_identifier = function_body.getCodeName(),
-            closure_variables   = function_body.getClosureVariables(),
-        )
-
     context.addDeclaration(function_identifier, function_decl)
 
     Generator.getFunctionCreationCode(

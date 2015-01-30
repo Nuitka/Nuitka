@@ -166,6 +166,9 @@ def getFrameGuardLightCode(frame_identifier, code_identifier, codes,
         context  = context
     )
 
+
+    # TODO: Don't create locals for StopIteration or GeneratorExit, that is just
+    # wasteful.
     result += CodeTemplates.template_frame_guard_generator_exception_handler % {
         "frame_identifier"      : frame_identifier,
         "store_frame_locals"    : indented(locals_code, 0, vert_block = True),

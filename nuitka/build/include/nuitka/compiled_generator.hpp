@@ -49,10 +49,7 @@ typedef struct {
     Fiber m_yielder_context;
     Fiber m_caller_context;
 
-    void *m_context;
-    releaser m_cleanup;
-
-    // Weakrefs are supported for generator objects in CPython.
+    // Weak references are supported for generator objects in CPython.
     PyObject *m_weakrefs;
 
     int m_running;
@@ -65,6 +62,14 @@ typedef struct {
 
     PyFrameObject *m_frame;
     PyCodeObject *m_code_object;
+
+    // Closure variables given, if any, we reference cells here.
+    PyCellObject **m_closure;
+    Py_ssize_t m_closure_given;
+
+    // Parameter variable values given, if any.
+    PyObject **m_parameters;
+    Py_ssize_t m_parameters_given;
 
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
@@ -82,8 +87,7 @@ typedef void (*yielder_func)( int, int );
 typedef void (*yielder_func)( Nuitka_GeneratorObject * );
 #endif
 
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, void *context, releaser cleanup );
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object );
+extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *function, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given );
 
 static inline bool Nuitka_Generator_Check( PyObject *object )
 {

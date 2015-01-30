@@ -101,7 +101,6 @@ from .FrameCodes import (
 from .FunctionCodes import (
     getDirectFunctionCallCode,
     getFunctionCode,
-    getFunctionContextDefinitionCode,
     getFunctionCreationCode,
     getFunctionDirectDecl,
     getFunctionMakerCode,

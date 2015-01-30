@@ -38,35 +38,6 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
     )
 
 
-def _getContextAccess(context, force_closure = False):
-    # Context access is variant depending on if that's a created function or
-    # not. For generators, they even share closure variables in the common
-    # context.
-
-    # This is a return factory, pylint: disable=R0911
-    if context.isPythonModule():
-        return ""
-    else:
-        function = context.getFunction()
-
-        if function.needsCreation():
-            if function.isGenerator():
-                if force_closure:
-                    return "_python_context->common_context->"
-                else:
-                    return "_python_context->"
-            else:
-                if force_closure:
-                    return "_python_context->"
-                else:
-                    return ""
-        else:
-            if function.isGenerator():
-                return "_python_context->"
-            else:
-                return ""
-
-
 def getVariableCodeName(in_context, variable):
     if in_context:
         # Closure case:
@@ -79,20 +50,76 @@ def getVariableCodeName(in_context, variable):
         return "var_" + Utils.encodeNonAscii(variable.getName())
 
 
+def _getLocalVariableCode(context, variable):
+    # Now must be local or temporary variable. Owners of them will not use
+    # context except if it's a parameter variable, which is not shared between
+    # different generator instances. This is supposed to return in just about
+    # every branch, pylint: disable=R0911
+    user = context.getOwner()
+    owner = variable.getOwner()
+
+    if owner is user:
+        result = getVariableCodeName(
+            in_context = owner is not user,
+            variable   = variable
+        )
+
+        # Generator objects store their parameters in a dedicate kind of
+        # closure alike.
+        if user.isExpressionFunctionBody() and \
+           user.isGenerator() and \
+           variable.isParameterVariable():
+            parameter_index = user.getParameters().getVariables().index(variable)
+            if variable.isSharedTechnically():
+                return """((PyCellObject *)generator->m_parameters[%d])""" % parameter_index, True
+            else:
+                return """generator->m_parameters[%d]""" % parameter_index, False
+
+        if variable.isSharedTechnically():
+            return result + ".storage", True
+        else:
+            return result + ".object", False
+    elif context.isForDirectCall():
+        if user.isGenerator():
+            closure_index = user.getClosureVariables().index(variable)
+
+            return """generator->m_closure[%d]""" % closure_index, True
+        else:
+            result = getVariableCodeName(
+                in_context = True,
+                variable   = variable
+            )
+
+            return result, False
+    else:
+        closure_index = user.getClosureVariables().index(variable)
+
+        if user.isGenerator():
+            return """generator->m_closure[%d]""" % closure_index, True
+        else:
+            return """self->m_closure[%d]""" % closure_index, True
 
 def getVariableCode(context, variable):
-    from_context = _getContextAccess(
-        context       = context,
-        force_closure = variable.getOwner() is not context.getOwner()
-    )
+    # Modules are simple.
+    if variable.isModuleVariable():
+        return getVariableCodeName(
+            in_context = False,
+            variable   = variable
+        )
 
-    return from_context + getVariableCodeName(
-        in_context = context.getOwner() is not variable.getOwner() or \
-                     # TODO: Ought to not treat generator context as always
-                     # closure, that makes it too pointless.
-                     (not context.getOwner().isPythonModule() and context.getOwner().isGenerator()),
-        variable   = variable
-    )
+    result, _is_cell = _getLocalVariableCode(context, variable)
+    return result
+
+
+def getLocalVariableObjectAccessCode(context, variable):
+    assert variable.isLocalVariable()
+
+    code, is_cell = _getLocalVariableCode(context, variable)
+
+    if is_cell:
+        return code + "->ob_ref"
+    else:
+        return code
 
 
 def getLocalVariableInitCode(variable, init_from = None, in_context = False):
@@ -120,7 +147,7 @@ def getLocalVariableInitCode(variable, init_from = None, in_context = False):
         else:
             if init_from is not None:
                 if variable.isSharedTechnically():
-                    result += "; %s.storage->object = %s" % (code_name, init_from)
+                    result += "; PyCell_SET( %s.storage, %s )" % (code_name, init_from)
                 else:
                     result += "; %s.object = %s" % (code_name, init_from)
 

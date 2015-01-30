@@ -27,7 +27,7 @@ from .ErrorCodes import getErrorExitBoolCode
 from .ModuleCodes import getModuleAccessCode
 from .VariableCodes import (
     getVariableAssignmentCode,
-    getVariableCode,
+    getLocalVariableObjectAccessCode,
     getVariableInitializedCheckCode
 )
 
@@ -80,41 +80,26 @@ def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
     # information.
 
     emit(
-        "if (%s)\n{" % getVariableInitializedCheckCode(
+        "if %s\n{" % getVariableInitializedCheckCode(
             variable = variable,
             context  = context
         )
     )
 
-    # TODO: For Python3 classes, we need to allow non-dicts, and we ought to
-    # check their errors. Often we know it as fresh dict, so this could be
-    # optimized.
-    access_code = getVariableCode(
+    access_code = getLocalVariableObjectAccessCode(
         variable = variable,
         context  = context
     )
 
-    if variable.isLocalVariable():
-        if variable.isSharedTechnically():
-            access_code += ".storage->object"
-        else:
-            access_code += ".object"
-    else:
-        if variable.isSharedTechnically():
-            access_code += ".storage->object"
-        else:
-            access_code += ".object"
-
-
     if is_dict:
         emit(
             """\
-%s = PyDict_SetItem(
-    %s,
-    %s,
-    %s
-);
-assert( %s != -1 );
+    %s = PyDict_SetItem(
+        %s,
+        %s,
+        %s
+    );
+    assert( %s != -1 );
 """ % (
                 context.getIntResName(),
                 dict_name,
@@ -131,11 +116,11 @@ assert( %s != -1 );
 
         emit(
             """\
-%s = PyObject_SetItem(
-    %s,
-    %s,
-    %s
-);
+    %s = PyObject_SetItem(
+        %s,
+        %s,
+        %s
+    );
 """ % (
                 res_name,
                 dict_name,
@@ -178,6 +163,7 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
         context.addCleanupTempName(to_name)
 
         for local_var in local_list:
+            # TODO: Avoid adding __iterator, doesn't belong in there.
             _getVariableDictUpdateCode(
                 dict_name = to_name,
                 variable  = local_var,
@@ -206,6 +192,7 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             )
 
             for local_var in local_list:
+                # TODO: Avoid adding __iterator, doesn't belong in there.
                 _getVariableDictUpdateCode(
                     dict_name = to_name,
                     variable  = local_var,
@@ -269,7 +256,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
             )
 
             emit("PyErr_Clear();")
-            emit("if (%s != NULL)" % value_name)
+            emit("if ( %s != NULL )" % value_name)
             emit('{')
 
             context.addCleanupTempName(value_name)

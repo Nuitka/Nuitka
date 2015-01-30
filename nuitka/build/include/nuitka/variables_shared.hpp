@@ -18,30 +18,6 @@
 #ifndef __NUITKA_VARIABLES_SHARED_H__
 #define __NUITKA_VARIABLES_SHARED_H__
 
-class PyObjectSharedStorage
-{
-public:
-    explicit PyObjectSharedStorage( PyObject *object )
-    {
-        assert( object == NULL || Py_REFCNT( object ) > 0 );
-
-        this->object     = object;
-        this->ref_count  = 1;
-    }
-
-    ~PyObjectSharedStorage()
-    {
-        Py_XDECREF( this->object );
-    }
-
-    PyObject *object;
-    int ref_count;
-
-private:
-
-    PyObjectSharedStorage( const PyObjectSharedStorage & ) { assert( false ); };
-
-};
 
 class PyObjectSharedLocalVariable
 {
@@ -49,110 +25,20 @@ public:
 
     explicit PyObjectSharedLocalVariable()
     {
-        this->storage = new PyObjectSharedStorage( NULL );
+        // TODO: Should in-line creating empty cells.
+        this->storage = (PyCellObject *)PyCell_New( NULL );
     };
 
     ~PyObjectSharedLocalVariable()
     {
-        if ( this->storage )
-        {
-            assert( this->storage->ref_count > 0 );
-            this->storage->ref_count -= 1;
-
-            if ( this->storage->ref_count == 0 )
-            {
-                delete this->storage;
-            }
-        }
+        Py_DECREF( this->storage );
     }
 
-    void shareWith( const PyObjectSharedLocalVariable &other )
-    {
-        assert( other.storage != NULL );
-        assert( this->storage != NULL );
-
-        delete this->storage;
-
-        this->storage = other.storage;
-        this->storage->ref_count += 1;
-    }
-
-    PyObjectSharedStorage *storage;
+    PyCellObject *storage;
 
 private:
 
     PyObjectSharedLocalVariable( const PyObjectSharedLocalVariable & ) {  assert( false ); };
-
-};
-
-class PyObjectSharedTempStorage
-{
-public:
-    explicit PyObjectSharedTempStorage( PyObject *object )
-    {
-        assert( object == NULL || Py_REFCNT( object ) > 0 );
-
-        this->object     = object;
-        this->ref_count  = 1;
-    }
-
-    ~PyObjectSharedTempStorage()
-    {
-        Py_XDECREF( this->object );
-    }
-
-    PyObject *object;
-    int ref_count;
-
-private:
-
-    PyObjectSharedTempStorage( const PyObjectSharedTempStorage & ) { assert( false ); };
-
-};
-
-class PyObjectSharedTempVariable
-{
-public:
-    explicit PyObjectSharedTempVariable( PyObject *object )
-    {
-        this->storage = new PyObjectSharedTempStorage( object );
-    }
-
-    explicit PyObjectSharedTempVariable()
-    {
-        this->storage = NULL;
-    };
-
-    ~PyObjectSharedTempVariable()
-    {
-        if ( this->storage )
-        {
-            assert( this->storage->ref_count > 0 );
-            this->storage->ref_count -= 1;
-
-            if ( this->storage->ref_count == 0 )
-            {
-                delete this->storage;
-            }
-        }
-    }
-
-    void shareWith( const PyObjectSharedTempVariable &other )
-    {
-        assert( this->storage == NULL );
-        assert( other.storage != NULL );
-
-        this->storage = other.storage;
-        this->storage->ref_count += 1;
-    }
-
-public:
-
-    PyObjectSharedTempStorage *storage;
-
-private:
-
-    PyObjectSharedTempVariable( const PyObjectSharedTempVariable & ) {  assert( false ); };
 
 };
 
