@@ -2616,8 +2616,8 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     Generator.getVariableAssignmentCode(
         tmp_name      = tmp_name2,
         variable      = tried_statement.getTargetVariableRef().getVariable(),
-        emit          = emit,
         needs_release = None,
+        emit          = emit,
         context       = context
     )
 

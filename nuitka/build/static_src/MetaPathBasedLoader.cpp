@@ -512,14 +512,14 @@ static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyOb
     struct Nuitka_MetaPathBasedLoaderEntry *entry = find_entry( name );
     if ( entry == NULL ) return INCREASE_REFCOUNT( Py_None );
 
-    PyObject *importlib = PyImport_ImportModule("importlib._bootstrap");
+    PyObject *importlib = PyImport_ImportModule( "importlib._bootstrap" );
 
-    if (unlikely( importlib == NULL))
+    if (unlikely( importlib == NULL ))
     {
         return NULL;
     }
 
-    PyObject *module_spec_class = PyObject_GetAttrString( importlib, "ModuleSpec");
+    PyObject *module_spec_class = PyObject_GetAttrString( importlib, "ModuleSpec" );
 
     if (unlikely( module_spec_class == NULL ))
     {

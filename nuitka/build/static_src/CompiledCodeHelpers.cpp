@@ -52,20 +52,20 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
 
     if ( flags != NULL )
     {
-        if (kw_args == NULL) kw_args = PyDict_New();
+        if ( kw_args == NULL ) kw_args = PyDict_New();
         PyDict_SetItemString( kw_args, "flags", flags );
     }
 
     if ( dont_inherit != NULL )
     {
-        if (kw_args == NULL) kw_args = PyDict_New();
+        if ( kw_args == NULL ) kw_args = PyDict_New();
         PyDict_SetItemString( kw_args, "dont_inherit", dont_inherit );
     }
 
 #if PYTHON_VERSION >= 300
     if ( optimize != NULL )
     {
-        if (kw_args == NULL) kw_args = PyDict_New();
+        if ( kw_args == NULL ) kw_args = PyDict_New();
         PyDict_SetItemString( kw_args, "optimize", optimize );
     }
 #endif
@@ -2335,7 +2335,7 @@ void restoreStandaloneEnvironment()
 #if defined( _WIN32 )
     SetEnvironmentVariable( "PYTHONHOME", original_home );
 #else
-    if (original_home == NULL)
+    if ( original_home == NULL )
     {
         unsetenv( "PYTHONHOME" );
     }
@@ -2367,7 +2367,7 @@ static PyObject *binary_path_object = NULL;
 
 PyObject *MAKE_BINARY_RELATIVE(PyObject *relative)
 {
-    if (binary_path_object == NULL)
+    if ( binary_path_object == NULL )
     {
 #if PYTHON_VERSION >= 300
         binary_path_object = PyUnicode_FromString(getBinaryDirectory());
@@ -2528,7 +2528,7 @@ void _initSlotCompare()
     Py_DECREF( r );
 }
 
-#define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
+#define RICHCOMPARE( t ) ( PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL )
 
 static inline int adjust_tp_compare( int c )
 {
@@ -2723,7 +2723,7 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     {
         f = RICHCOMPARE( b->ob_type );
 
-        if ( f != NULL)
+        if ( f != NULL )
         {
             result = (*f)( b, a, swapped_op[ op ] );
 
@@ -2948,7 +2948,7 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
     {
         f = RICHCOMPARE( b->ob_type );
 
-        if ( f != NULL)
+        if ( f != NULL )
         {
             result = (*f)( b, a, swapped_op[ op ] );
 
@@ -3350,7 +3350,7 @@ PyObject *DEEP_COPY( PyObject *value )
             PyDictObject *mp = (PyDictObject *)value;
 
             PyObject **newvalues = PyMem_NEW( PyObject *, mp->ma_keys->dk_size );
-            assert (newvalues != NULL);
+            assert( newvalues != NULL );
 
             PyDictObject *result = PyObject_GC_New( PyDictObject, &PyDict_Type );
             assert( result != NULL );

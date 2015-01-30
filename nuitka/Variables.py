@@ -227,6 +227,7 @@ class TempVariable(Variable):
 
     def getDeclarationTypeCode(self, in_context):
         if self.isSharedTechnically():
+            assert False
             return "PyObjectSharedTempVariable"
         else:
             return "PyObjectTempVariable"

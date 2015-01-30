@@ -151,14 +151,14 @@ else if ( _python_par_%(parameter_name)s == NULL )
 """
 
 parse_argument_template_copy_list_star_args = """
-// Copy left over argument values to the star list parameter given.
+// Copy left-over argument values to the star list parameter given.
 if ( args_given > %(top_level_parameter_count)d )
 {
     _python_par_%(list_star_parameter_name)s = PyTuple_New( args_size - %(top_level_parameter_count)d );
 
     for( Py_ssize_t i = 0; i < args_size - %(top_level_parameter_count)d; i++ )
     {
-       PyTuple_SET_ITEM( _python_par_%(list_star_parameter_name)s, i, INCREASE_REFCOUNT( args[%(top_level_parameter_count)d+i] ) );
+        PyTuple_SET_ITEM( _python_par_%(list_star_parameter_name)s, i, INCREASE_REFCOUNT( args[%(top_level_parameter_count)d+i] ) );
     }
 }
 else
@@ -210,7 +210,7 @@ else
         PyDictObject *mp = (PyDictObject *)kw;
 
         PyObject **newvalues = PyMem_NEW( PyObject *, mp->ma_keys->dk_size );
-        assert (newvalues != NULL);
+        assert( newvalues != NULL );
 
         PyDictObject *split_copy = PyObject_GC_New( PyDictObject, &PyDict_Type );
         assert( split_copy != NULL );

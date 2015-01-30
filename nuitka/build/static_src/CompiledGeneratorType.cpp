@@ -302,9 +302,9 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
 
 static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyObject *args )
 {
-    assert(generator->m_exception_type == NULL);
-    assert(generator->m_exception_value == NULL);
-    assert(generator->m_exception_tb == NULL);
+    assert( generator->m_exception_type == NULL );
+    assert( generator->m_exception_value == NULL );
+    assert( generator->m_exception_tb == NULL );
 
     int res = PyArg_UnpackTuple( args, "throw", 1, 3, &generator->m_exception_type, &generator->m_exception_value, (PyObject **)&generator->m_exception_tb );
 

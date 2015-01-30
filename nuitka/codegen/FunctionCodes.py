@@ -519,7 +519,7 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables, with many
-    # branches to decide, pylint: disable=R0912,R0914,R0915
+    # branches to decide, pylint: disable=R0912,R0914
 
     parameter_variables, entry_point_code, parameter_objects_decl = \
       getParameterParsingCode(

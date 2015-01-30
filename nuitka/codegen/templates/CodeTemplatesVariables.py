@@ -20,7 +20,7 @@
 """
 
 template_write_local_unclear_ref0 = """\
-if (%(identifier)s.object == NULL)
+if ( %(identifier)s.object == NULL )
 {
     %(identifier)s.object = %(tmp_name)s;
 }
@@ -32,7 +32,7 @@ else
 }"""
 
 template_write_local_unclear_ref1 = """\
-if (%(identifier)s.object == NULL)
+if ( %(identifier)s.object == NULL )
 {
     %(identifier)s.object = INCREASE_REFCOUNT( %(tmp_name)s );
 }
