@@ -19,7 +19,7 @@
 
 from __future__ import print_function
 
-import sys
+import sys, os, shutil
 
 from redbaron import RedBaron
 
@@ -150,6 +150,14 @@ for node in red.find_all("StringNode"):
         raise
 
 
-with open(sys.argv[1], "w") as source_code:
+new_name = sys.argv[1] + ".new"
+
+with open(new_name, "w") as source_code:
     source_code.write(red.dumps())
 
+# There is no way to safely replace a file on Windows, but lets try on Linux
+# at least.
+try:
+    os.rename(new_name, sys.argv[1])
+except OSError:
+    shutil.copy(new_name, sys.argv[1])
