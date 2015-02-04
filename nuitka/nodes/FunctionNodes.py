@@ -181,7 +181,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         }
 
     def getDetail(self):
-        return "named %s with %s" % (self.name, self.parameters)
+        return "named %s with %s" % (self.getFunctionName(), self.parameters)
 
     def getParent(self):
         assert False
