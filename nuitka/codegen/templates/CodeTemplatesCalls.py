@@ -216,7 +216,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
 
             // Some buggy C functions do this, and Nuitka inner workings can get
             // upset from it.
-            if (result != NULL) DROP_ERROR_OCCURRED();
+            if (unlikely( result != NULL )) DROP_ERROR_OCCURRED();
 
             return result;
 #else
@@ -251,7 +251,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
 
             // Some buggy C functions do this, and Nuitka inner workings can get
             // upset from it.
-            if ( result != NULL ) DROP_ERROR_OCCURRED();
+            if (unlikely( result != NULL )) DROP_ERROR_OCCURRED();
 
             return result;
 #else
