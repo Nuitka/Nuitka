@@ -645,6 +645,22 @@ def simpleFunction80():
 
     del simpleFunction80.__doc__
 
+def simpleFunction81():
+    def f():
+        yield 1
+        j
+
+    j = 1
+    x = list( f() )
+
+def simpleFunction82():
+    def f():
+        yield 1
+        j
+
+    j = 1
+    x = f.__doc__
+
 # These need stderr to be wrapped.
 tests_stderr = (63,)
 
