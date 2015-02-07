@@ -232,21 +232,26 @@ goto %(return_exit)s;
 """
 
 
+# TODO: Should we check type of value.
 template_frame_guard_generator_exception_handler = """\
 %(frame_exception_exit)s:;
 
-if ( exception_tb == NULL )
+if ( !PyErr_GivenExceptionMatches( exception_type, PyExc_StopIteration ) &&
+     !PyErr_GivenExceptionMatches( exception_type, PyExc_GeneratorExit ) )
 {
-    exception_tb = %(tb_making)s;
-}
-else if ( exception_tb->tb_frame != %(frame_identifier)s )
-{
-    PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( INCREASE_REFCOUNT( %(frame_identifier)s ) );
-    traceback_new->tb_next = exception_tb;
-    exception_tb = traceback_new;
-}
+    if ( exception_tb == NULL )
+    {
+        exception_tb = %(tb_making)s;
+    }
+    else if ( exception_tb->tb_frame != %(frame_identifier)s )
+    {
+        PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( INCREASE_REFCOUNT( %(frame_identifier)s ) );
+        traceback_new->tb_next = exception_tb;
+        exception_tb = traceback_new;
+    }
 
 %(store_frame_locals)s
+}
 
 #if PYTHON_VERSION > 300
 RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );

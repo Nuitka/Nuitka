@@ -113,7 +113,6 @@ template_generator_exception_exit = """\
     return;
 function_exception_exit:
     assert( exception_type );
-    assert( exception_tb );
     PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
     generator->m_yielded = NULL;
     return;

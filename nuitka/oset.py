@@ -33,6 +33,7 @@ It was originally downloaded from http://code.activestate.com/recipes/576694/
 
 import collections
 
+
 class OrderedSet(collections.MutableSet):
 
     def __init__(self, iterable=None):

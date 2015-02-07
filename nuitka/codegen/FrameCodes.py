@@ -171,7 +171,7 @@ def getFrameGuardLightCode(frame_identifier, code_identifier, codes,
     # wasteful.
     result += CodeTemplates.template_frame_guard_generator_exception_handler % {
         "frame_identifier"      : frame_identifier,
-        "store_frame_locals"    : indented(locals_code, 0, vert_block = True),
+        "store_frame_locals"    : indented(locals_code, vert_block = True),
         "tb_making"             : getTracebackMakingIdentifier(context),
         "frame_exception_exit"  : frame_exception_exit,
         "parent_exception_exit" : parent_exception_exit,
