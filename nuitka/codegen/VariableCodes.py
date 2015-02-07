@@ -71,9 +71,9 @@ def _getLocalVariableCode(context, variable):
            variable.isParameterVariable():
             parameter_index = user.getParameters().getVariables().index(variable)
             if variable.isSharedTechnically():
-                return """((PyCellObject *)generator->m_parameters[%d])""" % parameter_index, True
+                return "((PyCellObject *)generator->m_parameters[%d])" % parameter_index, True
             else:
-                return """generator->m_parameters[%d]""" % parameter_index, False
+                return "generator->m_parameters[%d]" % parameter_index, False
 
         if variable.isSharedTechnically():
             return result + ".storage", True
@@ -83,7 +83,7 @@ def _getLocalVariableCode(context, variable):
         if user.isGenerator():
             closure_index = user.getClosureVariables().index(variable)
 
-            return """generator->m_closure[%d]""" % closure_index, True
+            return "generator->m_closure[%d]" % closure_index, True
         else:
             result = getVariableCodeName(
                 in_context = True,
@@ -95,9 +95,9 @@ def _getLocalVariableCode(context, variable):
         closure_index = user.getClosureVariables().index(variable)
 
         if user.isGenerator():
-            return """generator->m_closure[%d]""" % closure_index, True
+            return "generator->m_closure[%d]" % closure_index, True
         else:
-            return """self->m_closure[%d]""" % closure_index, True
+            return "self->m_closure[%d]" % closure_index, True
 
 def getVariableCode(context, variable):
     # Modules are simple.

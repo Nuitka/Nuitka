@@ -323,7 +323,7 @@ def getFunctionDirectClosureArgs(closure_variables):
                 "PyCellObject *%s" % (
                     getVariableCodeName(
                         in_context = True,
-                        variable = closure_variable
+                        variable   = closure_variable
                     )
                 )
             )
@@ -678,7 +678,7 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
 
 
             closure_decl = CodeTemplates.genfunc_generator_with_own_closure % {
-                "closure_copy" : "\n".join(closure_copy),
+                "closure_copy" : '\n'.join(closure_copy),
                 "closure_count" : closure_count
             }
         else:

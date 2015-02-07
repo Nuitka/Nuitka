@@ -266,7 +266,7 @@ def _detectImports(command, is_late):
         sys.path
         if not Utils.areSamePaths(
             path_element,
-            "."
+            '.'
         )
         if not Utils.areSamePaths(
             path_element,

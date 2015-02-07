@@ -44,7 +44,7 @@ class Variable:
 
     def getCodeName(self):
         var_name = self.variable_name
-        var_name = var_name.replace(".", "$")
+        var_name = var_name.replace('.', '$')
         var_name = Utils.encodeNonAscii(var_name)
 
         return var_name
