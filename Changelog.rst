@@ -3,6 +3,21 @@ Nuitka Release 0.5.10 (Draft)
 
 This release is not yet done.
 
+Bug Fixes
+---------
+
+- Compatibility: The variable name in locals for the iterator provided to the
+  generator expression should be ``.0``, now it is.
+
+Optimization
+------------
+
+- Do not create traceback and locals dictionary for frame when ``StopIteration``
+  or ``GeneratorExit`` are raised. These are wasted and unused.
+
+- Closure variables to functions and parameters of generator functions are now
+  attached to the function and generator objects.
+
 
 Nuitka Release 0.5.9
 ====================
