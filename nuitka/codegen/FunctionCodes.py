@@ -346,7 +346,7 @@ def getFunctionDirectDecl(function_identifier, closure_variables,
                           parameter_variables, file_scope):
 
     parameter_objects_decl = [
-        "PyObject *_python_par_" + variable.getName()
+        "PyObject *_python_par_" + variable.getCodeName()
         for variable in
         parameter_variables
     ]
@@ -384,7 +384,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     function_parameter_decl = [
         getLocalVariableInitCode(
             variable  = variable,
-            init_from = "_python_par_" + variable.getName()
+            init_from = "_python_par_" + variable.getCodeName()
         )
         for variable in
         parameter_variables
@@ -637,14 +637,14 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
                 parameter_copy.append(
                     "parameters[%d] = PyCell_New( _python_par_%s );" % (
                         count,
-                        variable.getName()
+                        variable.getCodeName()
                     )
                 )
             else:
                 parameter_copy.append(
                     "parameters[%d] = _python_par_%s;" % (
                         count,
-                        variable.getName()
+                        variable.getCodeName()
                     )
                 )
 

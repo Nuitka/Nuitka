@@ -23,6 +23,8 @@ module variable references.
 
 """
 
+from nuitka import Utils
+
 
 class Variable:
     def __init__(self, owner, variable_name):
@@ -39,6 +41,13 @@ class Variable:
 
     def getName(self):
         return self.variable_name
+
+    def getCodeName(self):
+        var_name = self.variable_name
+        var_name = var_name.replace(".", "$")
+        var_name = Utils.encodeNonAscii(var_name)
+
+        return var_name
 
     def getOwner(self):
         return self.owner

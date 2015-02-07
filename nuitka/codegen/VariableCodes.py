@@ -41,13 +41,13 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
 def getVariableCodeName(in_context, variable):
     if in_context:
         # Closure case:
-        return "closure_" + Utils.encodeNonAscii(variable.getName())
+        return "closure_" + variable.getCodeName()
     elif variable.isParameterVariable():
-        return "par_" + Utils.encodeNonAscii(variable.getName())
+        return "par_" + variable.getCodeName()
     elif variable.isTempVariable():
-        return "tmp_" + Utils.encodeNonAscii(variable.getName())
+        return "tmp_" + variable.getCodeName()
     else:
-        return "var_" + Utils.encodeNonAscii(variable.getName())
+        return "var_" + variable.getCodeName()
 
 
 def _getLocalVariableCode(context, variable):

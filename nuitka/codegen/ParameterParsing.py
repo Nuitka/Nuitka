@@ -49,7 +49,7 @@ def _getParameterParsingCode(context, parameters, function_name):
     # First, declare all parameter objects as variables.
     parameter_parsing_code = "".join(
         [
-            "PyObject *_python_par_" + variable.getName() + " = NULL;\n"
+            "PyObject *_python_par_" + variable.getCodeName() + " = NULL;\n"
             for variable in
             parameters.getAllVariables()
         ]
@@ -78,7 +78,7 @@ def _getParameterParsingCode(context, parameters, function_name):
         for variable in top_level_parameters:
             if not variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_with_star_dict % {
-                    "parameter_name"           : variable.getName(),
+                    "parameter_name"           : variable.getCodeName(),
                     "parameter_name_object"    : getConstantCode(
                         constant = variable.getName(),
                         context  = context
@@ -100,7 +100,7 @@ def _getParameterParsingCode(context, parameters, function_name):
             )
 
             parameter_assign_from_kw = CodeTemplates.argparse_template_assign_from_dict_finding % {
-                "parameter_name" : variable.getName(),
+                "parameter_name" : variable.getCodeName(),
             }
 
             if variable.isParameterVariableKwOnly():
@@ -143,18 +143,18 @@ def _getParameterParsingCode(context, parameters, function_name):
         for count, variable in enumerate(top_level_parameters):
             if variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.argparse_template_nested_argument % {
-                    "parameter_name"            : variable.getName(),
+                    "parameter_name"            : variable.getCodeName(),
                     "parameter_position"        : count,
                     "top_level_parameter_count" : plain_possible_count,
                 }
             elif not variable.isParameterVariableKwOnly():
                 parameter_parsing_code += CodeTemplates.argparse_template_plain_argument % {
-                    "parameter_name"            : variable.getName(),
+                    "parameter_name"            : variable.getCodeName(),
                     "parameter_position"        : count,
                     "top_level_parameter_count" : plain_possible_count,
                 }
 
-                plain_var_names.append("_python_par_" + variable.getName())
+                plain_var_names.append("_python_par_" + variable.getCodeName())
 
         parameter_parsing_code += CodeTemplates.template_arguments_check % {
             "parameter_test" : " || ".join(
@@ -181,7 +181,7 @@ def _getParameterParsingCode(context, parameters, function_name):
 
         for count, variable in enumerate(variables):
             if variable.isNestedParameterVariable():
-                assign_source = "_python_par_%s" % variable.getName()
+                assign_source = "_python_par_%s" % variable.getCodeName()
 
                 unpack_code = ""
 
@@ -189,14 +189,14 @@ def _getParameterParsingCode(context, parameters, function_name):
 
                 for count, child_variable in enumerate(child_variables):
                     unpack_code += CodeTemplates.parse_argument_template_nested_argument_assign % {
-                        "parameter_name" : child_variable.getName(),
+                        "parameter_name" : child_variable.getCodeName(),
                         "iter_name"      : variable.getName(),
                         "unpack_count"   : count
                     }
 
                 result += CodeTemplates.parse_argument_template_nested_argument_unpack % {
                     "unpack_source_identifier" : assign_source,
-                    "parameter_name" : variable.getName(),
+                    "parameter_name" : variable.getCodeName(),
                     "unpack_code"    : unpack_code
                 }
 
@@ -218,14 +218,14 @@ def _getParameterParsingCode(context, parameters, function_name):
     for variable in parameters.getKwOnlyVariables():
         parameter_parsing_code += CodeTemplates.template_kwonly_argument_default % {
             "function_name"         : function_name,
-            "parameter_name"        : variable.getName(),
+            "parameter_name"        : variable.getCodeName(),
             "parameter_name_object" : getConstantCode(
                 constant = variable.getName(),
                 context  = context
             )
         }
 
-        kw_only_var_names.append("_python_par_" + variable.getName())
+        kw_only_var_names.append("_python_par_" + variable.getCodeName())
 
     if kw_only_var_names:
         parameter_parsing_code += CodeTemplates.template_kwonly_arguments_check % {
@@ -246,13 +246,13 @@ def getParameterParsingCode( context, function_identifier, function_name,
 
     if function_parameter_variables:
         parameter_objects_decl = [
-            "PyObject *_python_par_" + variable.getName()
+            "PyObject *_python_par_" + variable.getCodeName()
             for variable in
             function_parameter_variables
         ]
 
         parameter_objects_list = [
-            "_python_par_" + variable.getName()
+            "_python_par_" + variable.getCodeName()
             for variable in
             function_parameter_variables
         ]
@@ -266,7 +266,7 @@ def getParameterParsingCode( context, function_identifier, function_name,
 
     parameter_release_code = "".join(
         [
-            "    Py_XDECREF( _python_par_" + variable.getName() + " );\n"
+            "    Py_XDECREF( _python_par_" + variable.getCodeName() + " );\n"
             for variable in
             parameters.getAllVariables()
             if not variable.isNestedParameterVariable()

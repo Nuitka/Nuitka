@@ -26,8 +26,8 @@ from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitBoolCode
 from .ModuleCodes import getModuleAccessCode
 from .VariableCodes import (
-    getVariableAssignmentCode,
     getLocalVariableObjectAccessCode,
+    getVariableAssignmentCode,
     getVariableInitializedCheckCode
 )
 
@@ -163,7 +163,6 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
         context.addCleanupTempName(to_name)
 
         for local_var in local_list:
-            # TODO: Avoid adding __iterator, doesn't belong in there.
             _getVariableDictUpdateCode(
                 dict_name = to_name,
                 variable  = local_var,
@@ -192,7 +191,6 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             )
 
             for local_var in local_list:
-                # TODO: Avoid adding __iterator, doesn't belong in there.
                 _getVariableDictUpdateCode(
                     dict_name = to_name,
                     variable  = local_var,

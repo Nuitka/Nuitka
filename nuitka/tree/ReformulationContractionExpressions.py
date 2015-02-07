@@ -503,13 +503,15 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
     assert provider.isParentVariableProvider(), provider
 
+    iterator_var_name = ".0"
+
     function_body = ExpressionFunctionBody(
         provider   = provider,
         name       = name,
         doc        = None,
         parameters = ParameterSpec(
             name          = "contraction",
-            normal_args   = ("__iterator",),
+            normal_args   = (iterator_var_name,),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
@@ -527,7 +529,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         container_tmp = None
 
     outer_iter_ref = ExpressionVariableRef(
-        variable_name = "__iterator",
+        variable_name = iterator_var_name,
         source_ref    = source_ref
     )
 
