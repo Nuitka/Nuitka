@@ -25,10 +25,13 @@ def empty():
 module_var = None
 
 def calledRepeatedly():
-    # Force frame.
-    module_var
+    # We measure making that call or not. Lets get the module
+    # variable look-up out of the game, by making it a local
+    # variable
+    called = empty
+
 # construct_begin
-    empty()
+    called()
 # construct_end
 
 for x in xrange(50000):
