@@ -18,6 +18,8 @@
 #     limitations under the License.
 #
 module_value1 = 1000
+module_value2 = None
+module_value3 = None
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
@@ -30,8 +32,6 @@ def calledRepeatedly():
 
 # construct_begin
     module_value2 = local_value
-# construct_alternative
-    module_value2 = None
 # construct_end
 
     module_value3 = local_value
