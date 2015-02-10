@@ -201,14 +201,17 @@ PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *a
             PyErr_Format( PyExc_RuntimeError, "generator ignored GeneratorExit" );
             return NULL;
         }
-        else if ( PyErr_ExceptionMatches( PyExc_StopIteration ) || PyErr_ExceptionMatches( PyExc_GeneratorExit ) )
-        {
-            PyErr_Clear();
-            return INCREASE_REFCOUNT( Py_None );
-        }
         else
         {
-            assert( ERROR_OCCURRED() );
+            PyObject *error = GET_ERROR_OCCURRED();
+            assert( error != NULL );
+
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_GeneratorExit ) ||
+                 EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) )
+            {
+                PyErr_Clear();
+                return INCREASE_REFCOUNT( Py_None );
+            }
 
             return NULL;
         }
@@ -705,7 +708,7 @@ PyObject *ERROR_GET_STOP_ITERATION_VALUE()
 
     if ( exception_value )
     {
-        if ( PyErr_GivenExceptionMatches( exception_value, PyExc_StopIteration ) )
+        if ( EXCEPTION_MATCH_BOOL_SINGLE( exception_value, PyExc_StopIteration ) )
         {
             value = ((PyStopIterationObject *)exception_value)->value;
             Py_XINCREF( value );
@@ -768,7 +771,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
         {
             // The yielding generator is being closed, but we also are tasked to
             // immediately close the currently running sub-generator.
-            if ( PyErr_GivenExceptionMatches( generator->m_exception_type, PyExc_GeneratorExit ) )
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( generator->m_exception_type, PyExc_GeneratorExit ) )
             {
                 PyObject *close_method = PyObject_GetAttr( value, const_str_plain_close );
 
@@ -784,9 +787,14 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 
                     Py_DECREF( close_value );
                 }
-                else if ( !PyErr_ExceptionMatches( PyExc_AttributeError ) )
+                else
                 {
-                    PyErr_WriteUnraisable( (PyObject *)value );
+                    PyObject *error = GET_ERROR_OCCURRED();
+
+                    if ( error != NULL && !EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_AttributeError ) )
+                    {
+                        PyErr_WriteUnraisable( (PyObject *)value );
+                    }
                 }
 
                 RAISE_GENERATOR_EXCEPTION( generator );
@@ -802,7 +810,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 
                 if (unlikely( send_value == NULL ))
                 {
-                    if ( PyErr_ExceptionMatches( PyExc_StopIteration ) )
+                    if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) )
                     {
                         return ERROR_GET_STOP_ITERATION_VALUE();
                     }
@@ -815,7 +823,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
                 generator->m_exception_value = NULL;
                 generator->m_exception_tb = NULL;
             }
-            else if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+            else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
             {
                 PyErr_Clear();
 
@@ -857,7 +865,8 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
         // Check the sub-generator result
         if ( retval == NULL )
         {
-            if ( !ERROR_OCCURRED() )
+            PyObject *error = GET_ERROR_OCCURRED();
+            if ( error == NULL )
             {
                 return INCREASE_REFCOUNT( Py_None ) ;
             }
@@ -866,7 +875,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
             // StopIteration, we need to check the value, as it is going to be
             // the expression value of this "yield from", and we are done. All
             // other errors, we need to raise.
-            if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+            if (likely( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) ))
             {
                 return ERROR_GET_STOP_ITERATION_VALUE();
             }
@@ -908,7 +917,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
         {
             // The yielding generator is being closed, but we also are tasked to
             // immediately close the currently running sub-generator.
-            if ( PyErr_GivenExceptionMatches( generator->m_exception_type, PyExc_GeneratorExit ) )
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( generator->m_exception_type, PyExc_GeneratorExit ) )
             {
                 PyObject *close_method = PyObject_GetAttr( value, const_str_plain_close );
 
@@ -924,7 +933,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
 
                     Py_DECREF( close_value );
                 }
-                else if ( !PyErr_ExceptionMatches( PyExc_AttributeError ) )
+                else if ( !EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
                 {
                     PyErr_WriteUnraisable( (PyObject *)value );
                 }
@@ -942,7 +951,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
 
                 if (unlikely( send_value == NULL ))
                 {
-                    if ( PyErr_ExceptionMatches( PyExc_StopIteration ) )
+                    if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) )
                     {
                         return ERROR_GET_STOP_ITERATION_VALUE();
                     }
@@ -955,7 +964,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
                 generator->m_exception_value = NULL;
                 generator->m_exception_tb = NULL;
             }
-            else if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+            else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
             {
                 PyErr_Clear();
 
@@ -1006,7 +1015,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
             // StopIteration, we need to check the value, as it is going to be
             // the expression value of this "yield from", and we are done. All
             // other errors, we need to raise.
-            if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+            if (likely( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) ))
             {
                 return ERROR_GET_STOP_ITERATION_VALUE();
             }

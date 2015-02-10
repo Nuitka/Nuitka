@@ -142,9 +142,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
     PyObject *result = (*iternext)( iterator );
 
 #if PYTHON_VERSION < 330
-    if ( result == NULL && PyErr_Occurred() && PyErr_ExceptionMatches( PyExc_StopIteration ) )
+    if ( result == NULL )
     {
-        PyErr_Clear();
+        PyObject *error = GET_ERROR_OCCURRED();
+        if ( error )
+        {
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) )
+            {
+                PyErr_Clear();
+            }
+        }
     }
 #endif
 
@@ -203,9 +210,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
 
     if (unlikely( result == NULL ))
     {
-        if ( ERROR_OCCURRED() )
+        PyObject *error = GET_ERROR_OCCURRED();
+
+        if ( error != NULL )
         {
-            if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ))
             {
                 PyErr_Clear();
 
@@ -241,7 +250,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
 #if PYTHON_VERSION < 300
         if (unlikely( !ERROR_OCCURRED() ))
 #else
-        if (unlikely( !ERROR_OCCURRED() || PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+        if (unlikely( !ERROR_OCCURRED() || EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) ))
 #endif
         {
             if ( seq_size_so_far == 1 )
@@ -274,7 +283,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
 #if PYTHON_VERSION < 300
         if (unlikely( !ERROR_OCCURRED() ))
 #else
-        if (unlikely( !ERROR_OCCURRED() || PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+        if (unlikely( !ERROR_OCCURRED() || EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) ))
 #endif
         {
             if ( seq_size_so_far == 1 )
@@ -304,9 +313,11 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
 
     if (likely( attempt == NULL ))
     {
-        if ( ERROR_OCCURRED() )
+        PyObject *error = GET_ERROR_OCCURRED();
+
+        if ( error )
         {
-            if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+            if (likely( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) ))
             {
                 PyErr_Clear();
             }
@@ -326,7 +337,6 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
         return false;
     }
 }
-
 
 #endif
 

@@ -866,7 +866,8 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     PyObject *iter;
     bool all_case;
 
-    if ( PyObject *all = PyObject_GetAttr( module, const_str_plain___all__ ) )
+    PyObject *all = PyObject_GetAttr( module, const_str_plain___all__ );
+    if ( all != NULL )
     {
         iter = MAKE_ITERATOR( all );
         Py_DECREF( all );
@@ -878,7 +879,7 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 
         all_case = true;
     }
-    else if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+    else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
     {
         PyErr_Clear();
 
@@ -1807,7 +1808,7 @@ PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *defa
 
     if ( result == NULL )
     {
-        if ( default_value != NULL && PyErr_ExceptionMatches( PyExc_AttributeError ))
+        if ( default_value != NULL && EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
         {
             PyErr_Clear();
 

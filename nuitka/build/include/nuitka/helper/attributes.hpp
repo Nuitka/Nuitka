@@ -72,7 +72,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
     // Next see if a class has it
     result = FIND_ATTRIBUTE_IN_CLASS( source_instance->in_class, attr_name );
 
-    if ( result )
+    if ( result != NULL )
     {
         descrgetfunc func = Py_TYPE( result )->tp_descr_get;
 
@@ -94,15 +94,20 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
             return INCREASE_REFCOUNT( result );
         }
     }
-    else if ( ERROR_OCCURRED() )
+    else
     {
-        if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+        PyObject *error = GET_ERROR_OCCURRED();
+
+        if ( error != NULL )
         {
-            PyErr_Clear();
-        }
-        else
-        {
-            return NULL;
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_AttributeError ) )
+            {
+                PyErr_Clear();
+            }
+            else
+            {
+                return NULL;
+            }
         }
     }
 

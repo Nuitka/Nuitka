@@ -28,19 +28,20 @@ assertObject( %(iterator_name)s ); assert( HAS_ITERNEXT( %(iterator_name)s ) );
 
 if (likely( %(attempt_name)s == NULL ))
 {
-    // TODO: Could first fetch, then check, should be faster.
-    if ( !ERROR_OCCURRED() )
+    PyObject *error = GET_ERROR_OCCURRED();
+
+    if ( error != NULL )
     {
-    }
-    else if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
-    {
-        PyErr_Clear();
-    }
-    else
-    {
-        PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+        if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ))
+        {
+            PyErr_Clear();
+        }
+        else
+        {
+            PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
 %(release_temps_1)s
-        goto %(exception_exit)s;
+            goto %(exception_exit)s;
+        }
     }
 }
 else

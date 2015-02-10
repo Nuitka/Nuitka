@@ -185,10 +185,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 
     if (unlikely( base_int == -1 ))
     {
-        if (likely( ERROR_OCCURRED() ))
+        PyObject *error = GET_ERROR_OCCURRED();
+
+        if (likely( error ))
         {
 #if PYTHON_VERSION >= 300
-            if ( PyErr_ExceptionMatches( PyExc_OverflowError ) )
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_OverflowError ) )
             {
                 PyErr_Format(
                         PyExc_ValueError,
@@ -466,7 +468,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 
     if (unlikely( result == NULL ))
     {
-        if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+        if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
         {
 #if PYTHON_VERSION < 340
             PyErr_Format( PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString( import_name ));

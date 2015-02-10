@@ -236,8 +236,8 @@ goto %(return_exit)s;
 template_frame_guard_generator_exception_handler = """\
 %(frame_exception_exit)s:;
 
-if ( !PyErr_GivenExceptionMatches( exception_type, PyExc_StopIteration ) &&
-     !PyErr_GivenExceptionMatches( exception_type, PyExc_GeneratorExit ) )
+if ( !EXCEPTION_MATCH_BOOL_SINGLE( exception_type, PyExc_GeneratorExit ) &&
+     !EXCEPTION_MATCH_BOOL_SINGLE( exception_type, PyExc_StopIteration ) )
 {
     if ( exception_tb == NULL )
     {

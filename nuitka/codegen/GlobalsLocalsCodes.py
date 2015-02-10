@@ -238,6 +238,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
 
             value_name = context.allocateTempName("locals_value", unique = True)
 
+            # This should really be a template.
             emit(
                "%s = PyObject_GetItem( %s, %s );" % (
                    value_name,
@@ -248,7 +249,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
 
             getErrorExitBoolCode(
                 condition = """\
-%s == NULL && !PyErr_ExceptionMatches( PyExc_KeyError )""" % value_name,
+%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_KeyError )""" % value_name,
                 emit      = emit,
                 context   = context
             )

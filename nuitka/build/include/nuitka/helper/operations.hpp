@@ -314,7 +314,7 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
 
         if (unlikely(  exception ))
         {
-            if ( !PyErr_GivenExceptionMatches( exception, PyExc_OverflowError ) )
+            if ( !EXCEPTION_MATCH_BOOL_SINGLE( exception, PyExc_OverflowError ) )
             {
                 return NULL;
             }

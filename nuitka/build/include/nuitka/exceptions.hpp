@@ -130,20 +130,6 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR( PyObject *exception_type, PyObje
 }
 
 
-// Special helper that checks for StopIteration and if so clears it, only
-// indicating if it was set.
-NUITKA_MAY_BE_UNUSED static bool HAS_STOP_ITERATION_OCCURRED( void )
-{
-    if ( PyErr_ExceptionMatches( PyExc_StopIteration ) )
-    {
-        PyErr_Clear();
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
 
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
@@ -368,6 +354,50 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION( PyObject **exceptio
 #endif
 }
 
+NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE( PyObject *exception_value, PyObject *exception_checked )
+{
+    assertObject( exception_value );
+    assertObject( exception_checked );
+
+    // We need to check the class.
+    if ( PyExceptionInstance_Check( exception_value ) )
+    {
+        exception_value = PyExceptionInstance_Class( exception_value );
+    }
+
+    // Lets be optimistic. If it matches, we would be wasting our time.
+    if ( exception_value == exception_checked )
+    {
+        return true;
+    }
+
+    if ( PyExceptionClass_Check( exception_value ) )
+    {
+        // Save the current exception, if any, we must preserve it.
+        PyObject *save_exception_type, *save_exception_value, *save_exception_tb;
+        PyErr_Fetch(&save_exception_type, &save_exception_value, &save_exception_tb);
+
+        int res = PyObject_IsSubclass( exception_value, exception_checked );
+
+        // This function must not fail, so print the error here */
+        if (unlikely( res == -1 ))
+        {
+            PyErr_WriteUnraisable( exception_value );
+        }
+
+        PyErr_Restore( save_exception_type, save_exception_value, save_exception_tb );
+
+        return res == 1;
+    }
+
+    return false;
+}
+
+// This is for the actual comparison operation that is being done in the
+// node tree, no other code should use it. TODO: Then it's probably not
+// properly located here, and it could still in-line the code of
+// "PyErr_GivenExceptionMatches" to save on Python3 doing two tuple checks
+// and iterations.
 NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL( PyObject *exception_value, PyObject *exception_checked )
 {
 #if PYTHON_VERSION >= 300
@@ -413,5 +443,26 @@ NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT( PyObject **except
     }
 }
 #endif
+
+// Special helper that checks for StopIteration and if so clears it, only
+// indicating if it was set.
+NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED( void )
+{
+    PyObject *error = GET_ERROR_OCCURRED();
+
+    if ( error == NULL )
+    {
+        return true;
+    }
+    else if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) )
+    {
+        PyErr_Clear();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 #endif
