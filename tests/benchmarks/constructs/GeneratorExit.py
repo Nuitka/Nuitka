@@ -26,10 +26,7 @@ def calledRepeatedly():
 
     gen = generator()
 
-    x = next(gen)
-
-    def throwy():
-        raise GeneratorExit
+    next(gen)
 
     # Take attribute lookup out of it, and built-in lookup too.
     throw = gen.throw
@@ -43,8 +40,6 @@ def calledRepeatedly():
 # construct_end
     except exc:
         pass
-
-    return throwy, exc
 
 for x in xrange(50000):
     calledRepeatedly()
