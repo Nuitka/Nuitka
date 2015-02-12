@@ -162,6 +162,9 @@ Explicit raise already raises implicitly building exception cause."""
 
         return self, None, None
 
+    def needsFrame(self):
+        return not self.isStatementReraiseException()
+
 
 class StatementRaiseExceptionImplicit(StatementRaiseException):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
