@@ -157,7 +157,11 @@ with open(new_name, "w") as source_code:
 
 # There is no way to safely replace a file on Windows, but lets try on Linux
 # at least.
+old_stat = os.stat(sys.argv[1])
+
 try:
     os.rename(new_name, sys.argv[1])
 except OSError:
     shutil.copy(new_name, sys.argv[1])
+
+os.chmod(sys.argv[1], old_stat.st_mode )
