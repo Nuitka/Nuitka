@@ -354,6 +354,55 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION( PyObject **exceptio
 #endif
 }
 
+NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR( PyObject *exception_value )
+{
+    assertObject( exception_value );
+
+    // We need to check the class.
+    if ( PyExceptionInstance_Check( exception_value ) )
+    {
+        exception_value = PyExceptionInstance_Class( exception_value );
+    }
+
+    // Lets be optimistic. If it matches, we would be wasting our time.
+    if ( exception_value == PyExc_GeneratorExit || exception_value == PyExc_StopIteration )
+    {
+        return true;
+    }
+
+    if ( PyExceptionClass_Check( exception_value ) )
+    {
+        // Save the current exception, if any, we must preserve it.
+        PyObject *save_exception_type, *save_exception_value, *save_exception_tb;
+        PyErr_Fetch(&save_exception_type, &save_exception_value, &save_exception_tb);
+
+        int res = PyObject_IsSubclass( exception_value, PyExc_GeneratorExit );
+
+        // This function must not fail, so print the error here */
+        if (unlikely( res == -1 ))
+        {
+            PyErr_WriteUnraisable( exception_value );
+        }
+
+        if (res == 1) return true;
+
+        res = PyObject_IsSubclass( exception_value, PyExc_StopIteration );
+
+        // This function must not fail, so print the error here */
+        if (unlikely( res == -1 ))
+        {
+            PyErr_WriteUnraisable( exception_value );
+        }
+
+        PyErr_Restore( save_exception_type, save_exception_value, save_exception_tb );
+
+        return res == 1;
+    }
+
+    return false;
+}
+
+
 NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE( PyObject *exception_value, PyObject *exception_checked )
 {
     assertObject( exception_value );

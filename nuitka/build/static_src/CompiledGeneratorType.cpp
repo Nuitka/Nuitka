@@ -206,8 +206,7 @@ PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *a
             PyObject *error = GET_ERROR_OCCURRED();
             assert( error != NULL );
 
-            if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_GeneratorExit ) ||
-                 EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) )
+            if ( EXCEPTION_MATCH_GENERATOR( error ) )
             {
                 PyErr_Clear();
                 return INCREASE_REFCOUNT( Py_None );
