@@ -192,7 +192,8 @@ if ( generator->m_exception_type )
 
 # Frame in a generator
 template_frame_guard_generator = """\
-%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
+MAKE_OR_REUSE_FRAME( cache_%(frame_identifier)s, %(code_identifier)s, %(module_identifier)s );
+%(frame_identifier)s = cache_%(frame_identifier)s;
 
 Py_INCREF( %(frame_identifier)s );
 generator->m_frame = %(frame_identifier)s;
@@ -205,7 +206,7 @@ Py_CLEAR( generator->m_frame->f_back );
 generator->m_frame->f_back = PyThreadState_GET()->frame;
 Py_INCREF( generator->m_frame->f_back );
 
-PyThreadState_GET()->frame = generator->m_frame;
+PyThreadState_GET()->frame = INCREASE_REFCOUNT( generator->m_frame );
 
 #if PYTHON_VERSION >= 340
 %(frame_identifier)s->f_executing += 1;

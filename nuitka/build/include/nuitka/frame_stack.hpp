@@ -52,6 +52,8 @@ NUITKA_MAY_BE_UNUSED static PyFrameObject *INCREASE_REFCOUNT_X( PyFrameObject *f
 
 NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
 {
+    if ( frame_object ) assertObject( (PyObject *)frame_object );
+
     return
         // Never used.
         frame_object == NULL ||

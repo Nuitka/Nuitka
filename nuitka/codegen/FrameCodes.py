@@ -138,6 +138,12 @@ def getFrameGuardLightCode(frame_identifier, code_identifier, codes,
     assert frame_exception_exit is not None
 
     context.addFrameDeclaration(
+        CodeTemplates.template_frame_guard_cache_decl % {
+            "frame_identifier" : frame_identifier,
+        }
+    )
+
+    context.addFrameDeclaration(
         CodeTemplates.template_frame_guard_frame_decl % {
             "frame_identifier" : frame_identifier,
         }
