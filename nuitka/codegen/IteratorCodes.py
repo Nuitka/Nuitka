@@ -110,7 +110,7 @@ if (%s == NULL)
 
 def getUnpackNextCode(to_name, value, count, emit, context):
     emit(
-        "%s = UNPACK_PARAMETER_NEXT( %s, %s );" % (
+        "%s = UNPACK_NEXT( %s, %s );" % (
             to_name,
             value,
             count - 1

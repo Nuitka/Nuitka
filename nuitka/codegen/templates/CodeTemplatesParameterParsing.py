@@ -426,7 +426,7 @@ parse_argument_template_nested_argument_unpack = """\
     }
 %(unpack_code)s
     // Check that the unpack was complete.
-    if (unlikely( UNPACK_PARAMETER_ITERATOR_CHECK( _python_iter_%(parameter_name)s ) == false ))
+    if (unlikely( UNPACK_ITERATOR_CHECK( _python_iter_%(parameter_name)s ) == false ))
     {
        Py_DECREF( _python_iter_%(parameter_name)s );
        goto error_exit;
@@ -436,7 +436,7 @@ parse_argument_template_nested_argument_unpack = """\
 
 parse_argument_template_nested_argument_assign = """
     // Unpack to _python_par_%(parameter_name)s
-    _python_par_%(parameter_name)s = UNPACK_PARAMETER_NEXT( _python_iter_%(iter_name)s, %(unpack_count)d );
+    _python_par_%(parameter_name)s = UNPACK_NEXT( _python_iter_%(iter_name)s, %(unpack_count)d );
 
     if (unlikely (_python_par_%(parameter_name)s == NULL ))
     {

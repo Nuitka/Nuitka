@@ -239,39 +239,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
 }
 
 
-NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
-{
-    assertObject( iterator ); assert( HAS_ITERNEXT( iterator ) );
-
-    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
-
-    if (unlikely( result == NULL ))
-    {
-#if PYTHON_VERSION < 300
-        if (unlikely( !ERROR_OCCURRED() ))
-#else
-        if (unlikely( !ERROR_OCCURRED() || EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) ))
-#endif
-        {
-            if ( seq_size_so_far == 1 )
-            {
-                PyErr_Format( PyExc_ValueError, "need more than 1 value to unpack" );
-            }
-            else
-            {
-                PyErr_Format( PyExc_ValueError, "need more than %d values to unpack", seq_size_so_far );
-            }
-        }
-
-        return NULL;
-    }
-
-    assertObject( result );
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *iterator, int seq_size_so_far )
+NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 {
     assertObject( iterator );
     assert( HAS_ITERNEXT( iterator ) );
@@ -304,7 +272,8 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObject *iterator )
+
+NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATOR_CHECK( PyObject *iterator )
 {
     assertObject( iterator );
     assert( HAS_ITERNEXT( iterator ) );
@@ -313,21 +282,7 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
 
     if (likely( attempt == NULL ))
     {
-        PyObject *error = GET_ERROR_OCCURRED();
-
-        if ( error )
-        {
-            if (likely( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) ))
-            {
-                PyErr_Clear();
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED();
     }
     else
     {

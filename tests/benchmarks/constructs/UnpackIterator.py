@@ -21,15 +21,15 @@ module_var = 1
 
 def calledRepeatedly():
     global module_var
-    module_var
+    c = module_var
 
     iterator=iter(range(2))
 
 # construct_begin
     a, b = iterator
 # construct_alternative
-    a = 1
-    b = 2
+    a = c
+    b = c
 # construct_end
 
     return a, b
