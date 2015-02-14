@@ -111,7 +111,8 @@ template_generator_exception_exit = """\
 
     generator->m_yielded = NULL;
     return;
-function_exception_exit:
+
+    function_exception_exit:
     assert( exception_type );
     RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
     generator->m_yielded = NULL;
@@ -130,7 +131,8 @@ template_generator_return_exit = """\
     // as well, or else it will complain and/or generate inferior code.
     assert(false);
     return;
-function_return_exit:
+
+    function_return_exit:
 #if PYTHON_VERSION < 330
     RESTORE_ERROR_OCCURRED( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
 #else

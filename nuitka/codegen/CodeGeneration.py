@@ -533,13 +533,12 @@ def generateFunctionBodyCode(function_body, context):
             function = function_body
         )
 
-    # TODO: Generate both codes, and base direct/etc. decisions on context.
-    function_codes = []
+    function_codes = Emission.SourceCodeCollector()
 
     generateStatementSequenceCode(
         statement_sequence = function_body.getBody(),
         allow_none         = True,
-        emit               = function_codes.append,
+        emit               = function_codes,
         context            = function_context
     )
 
@@ -575,7 +574,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
-            function_codes         = function_codes,
+            function_codes         = function_codes.codes,
             function_doc           = function_body.getDoc(),
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = needs_generator_return
@@ -589,7 +588,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables    = function_body.getClosureVariables(),
             user_variables       = function_body.getUserLocalVariables(),
             temp_variables       = function_body.getTempVariables(),
-            function_codes       = function_codes,
+            function_codes       = function_codes.codes,
             function_doc         = function_body.getDoc(),
             needs_exception_exit = needs_exception_exit,
             file_scope           = Generator.getExportScopeCode(
@@ -4093,11 +4092,11 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
 
     statement_sequence = module.getBody()
 
-    codes = []
+    codes = Emission.SourceCodeCollector()
 
     generateStatementSequenceCode(
         statement_sequence = statement_sequence,
-        emit               = codes.append,
+        emit               = codes,
         allow_none         = True,
         context            = context,
     )
@@ -4171,7 +4170,7 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
     template_values = Generator.prepareModuleCode(
         module_name             = module_name,
         module_identifier       = module.getCodeName(),
-        codes                   = codes,
+        codes                   = codes.codes,
         metapath_loader_inittab = metapath_loader_inittab,
         metapath_module_decls   = metapath_module_decls,
         function_decl_codes     = function_decl_codes,

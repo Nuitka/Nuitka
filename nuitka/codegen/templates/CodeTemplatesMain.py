@@ -428,7 +428,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 """
 
 template_module_exception_exit = """\
-module_exception_exit:
+    module_exception_exit:
     RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
     return MOD_RETURN_VALUE( NULL );
 }"""

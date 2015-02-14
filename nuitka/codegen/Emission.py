@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Emission.
+""" Emission of source code.
 
 Code generation is driven via "emit", which is to receive lines of code and
 this is to collect them, providing the emit implementation. Sometimes nested
