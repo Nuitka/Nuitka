@@ -20,28 +20,21 @@
 """
 
 template_write_local_unclear_ref0 = """\
-if ( %(identifier)s == NULL )
-{
-    %(identifier)s = %(tmp_name)s;
-}
-else
 {
     PyObject *old = %(identifier)s;
     %(identifier)s = %(tmp_name)s;
-    Py_DECREF( old );
-}"""
+    Py_XDECREF( old );
+}
+"""
 
 template_write_local_unclear_ref1 = """\
-if ( %(identifier)s == NULL )
-{
-    %(identifier)s = INCREASE_REFCOUNT( %(tmp_name)s );
-}
-else
 {
     PyObject *old = %(identifier)s;
-    %(identifier)s = INCREASE_REFCOUNT( %(tmp_name)s );
-    Py_DECREF( old );
-}"""
+    %(identifier)s = %(tmp_name)s;
+    Py_INCREF( %(identifier)s );
+    Py_XDECREF( old );
+}
+"""
 
 template_write_local_empty_ref0 = """\
 assert( %(identifier)s == NULL );
@@ -50,52 +43,44 @@ assert( %(identifier)s == NULL );
 
 template_write_local_empty_ref1 = """\
 assert( %(identifier)s == NULL );
-%(identifier)s = INCREASE_REFCOUNT( %(tmp_name)s );
+Py_INCREF( %(tmp_name)s );
+%(identifier)s = %(tmp_name)s;
 """
 
 template_write_local_clear_ref0 = """\
-assert( %(identifier)s != NULL );
 {
     PyObject *old = %(identifier)s;
+    assert( old != NULL );
     %(identifier)s = %(tmp_name)s;
     Py_DECREF( old );
 }
 """
 
 template_write_local_clear_ref1 = """\
-assert( %(identifier)s != NULL );
 {
     PyObject *old = %(identifier)s;
-    %(identifier)s = INCREASE_REFCOUNT( %(tmp_name)s );
+    assert( old != NULL );
+    %(identifier)s = %(tmp_name)s;
+    Py_INCREF( %(identifier)s );
     Py_DECREF( old );
 }
 """
 
-
-# TODO: With cells there should be a macro to do the update.
 template_write_shared_unclear_ref0 = """\
-if ( PyCell_GET( %(identifier)s ) == NULL )
-{
-    PyCell_SET( %(identifier)s, %(tmp_name)s );
-}
-else
 {
     PyObject *old = PyCell_GET( %(identifier)s );
     PyCell_SET( %(identifier)s, %(tmp_name)s );
-    Py_DECREF( old );
-}"""
+    Py_XDECREF( old );
+}
+"""
 
 template_write_shared_unclear_ref1 = """\
-if ( PyCell_GET( %(identifier)s ) == NULL )
-{
-    PyCell_SET( %(identifier)s, INCREASE_REFCOUNT( %(tmp_name)s ) );
-}
-else
 {
     PyObject *old = PyCell_GET( %(identifier)s );
     PyCell_SET( %(identifier)s, INCREASE_REFCOUNT( %(tmp_name)s ) );
-    Py_DECREF( old );
-}"""
+    Py_XDECREF( old );
+}
+"""
 
 template_write_shared_clear_ref0 = """\
 assert( PyCell_GET( %(identifier)s ) == NULL );
@@ -104,7 +89,8 @@ PyCell_SET( %(identifier)s, %(tmp_name)s );
 
 template_write_shared_clear_ref1 = """\
 assert( PyCell_GET( %(identifier)s ) == NULL );
-PyCell_SET( %(identifier)s, INCREASE_REFCOUNT( %(tmp_name)s ) );
+Py_INCREF( %(tmp_name)s );
+PyCell_SET( %(identifier)s, %(tmp_name)s );
 """
 
 

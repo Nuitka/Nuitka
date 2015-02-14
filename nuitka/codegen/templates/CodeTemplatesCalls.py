@@ -48,7 +48,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *fast_python_call( PyObject *func, PyObject
 
         for ( int i = 0; i < count; i++ )
         {
-            frame->f_localsplus[i] = INCREASE_REFCOUNT( args[i] );
+            frame->f_localsplus[i] = args[i];
+            Py_INCREF( frame->f_localsplus[i] );
         }
 
         PyObject *result = PyEval_EvalFrameEx( frame, 0 );

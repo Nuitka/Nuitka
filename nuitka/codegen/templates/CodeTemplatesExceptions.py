@@ -36,7 +36,8 @@ if ( %(condition)s )
 {
     if ( !ERROR_OCCURRED() )
     {
-        exception_type = INCREASE_REFCOUNT( %(quick_exception)s );
+        exception_type = %(quick_exception)s;
+        Py_INCREF( exception_type );
         exception_value = NULL;
         exception_tb = NULL;
     }
