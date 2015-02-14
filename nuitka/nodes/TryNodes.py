@@ -165,7 +165,7 @@ class StatementTryFinally(StatementChildrenHavingBase,
 
 
                 # Mark all variables as unknown that are written in the tried
-                # block, so it destroys the assumptions for loop turn around.
+                # block, so it destroys the assumptions for final block.
                 for variable, _variable_version in variable_writes:
                     constraint_collection.markActiveVariableAsUnknown(
                         variable = variable

@@ -28,6 +28,29 @@ from .ErrorCodes import getErrorFormatExitBoolCode, getErrorFormatExitCode
 from .Indentation import indented
 
 
+def generateVariableDelCode(statement, emit, context):
+    old_source_ref = context.setCurrentSourceCodeReference(
+        statement.getSourceReference()
+    )
+
+    getVariableDelCode(
+        variable = statement.getTargetVariableRef().getVariable(),
+        tolerant = statement.isTolerant(),
+        emit     = emit,
+        context  = context
+    )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
+
+def generateVariableReleaseCode(statement, emit, context):
+    getVariableReleaseCode(
+        variable = statement.getVariable(),
+        emit     = emit,
+        context  = context
+    )
+
+
+
 def generateVariableReferenceCode(to_name, expression, emit, context):
     getVariableAccessCode(
         to_name     = to_name,
@@ -403,7 +426,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
     assert False, variable
 
 
-def getVariableDelCode(tolerant, variable, emit, context):
+def getVariableDelCode(variable, tolerant, emit, context):
     # Many different cases, as this must be, pylint: disable=R0912
     assert isinstance(variable, Variables.Variable), variable
 
@@ -533,6 +556,27 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
             )
     else:
         assert False, variable
+
+
+def getVariableReleaseCode(variable, emit, context):
+    assert isinstance(variable, Variables.Variable), variable
+
+    assert not variable.isModuleVariable()
+
+    # TODO: Check if it is clearly set or not.
+    if True:
+        template = CodeTemplates.template_release_unclear
+    else:
+        template = CodeTemplates.template_release_clear
+
+    emit(
+        template % {
+            "identifier" : getVariableCode(
+                variable = variable,
+                context  = context
+            )
+        }
+    )
 
 
 def getVariableInitializedCheckCode(variable, context):

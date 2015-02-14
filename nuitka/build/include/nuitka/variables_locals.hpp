@@ -26,10 +26,6 @@ public:
         this->object = NULL;
     }
 
-    ~PyObjectLocalVariable()
-    {
-        Py_XDECREF( this->object );
-    }
 
 private:
 

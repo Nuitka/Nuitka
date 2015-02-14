@@ -130,6 +130,14 @@ if ( %(result)s == true )
 }
 """
 
+template_release_unclear = """\
+Py_XDECREF( %(identifier)s );
+"""
+
+template_release_clear = """\
+Py_DECREF( %(identifier)s );
+"""
+
 # TODO: Maybe storage is never NULL.
 template_check_shared = """\
 ( %(identifier)s != NULL && PyCell_GET( %(identifier)s ) != NULL )"""

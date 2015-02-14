@@ -373,7 +373,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
             previous = current
         )
 
-        # Assign to uninit again.
+        # Assign to not initialized again.
         self.addVariableTrace(
             variable = variable,
             version  = version,
@@ -384,6 +384,18 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         self.markCurrentVariableTrace(variable, version)
 
         return variable_trace
+
+    def onVariableRelease(self, release_node):
+        variable = release_node.getVariable()
+
+        current = self.getVariableCurrentTrace(variable)
+
+        # TODO: Really need to clean that up. These would be the real releases.
+        if False:
+            current.addRelease(release_node)
+
+
+        return current
 
 
     def onVariableContentEscapes(self, variable):

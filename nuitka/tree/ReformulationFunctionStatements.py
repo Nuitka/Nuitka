@@ -23,7 +23,10 @@ source code comments with developer manual sections.
 """
 
 from nuitka import SyntaxErrors, Utils
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementReleaseVariable
+)
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
@@ -35,6 +38,7 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.TryNodes import StatementTryFinally
 from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 
 from .Helpers import (
@@ -44,6 +48,7 @@ from .Helpers import (
     extractDocFromBody,
     getKind,
     makeDictCreationOrConstant,
+    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     mangleName,
     popIndicatorVariable,
@@ -351,3 +356,44 @@ def buildParameterSpec(provider, name, node, source_ref):
         )
 
     return result
+
+
+def addFunctionVariableReleases(function):
+    assert function.isExpressionFunctionBody()
+
+    releases = []
+
+    # We attach everything to the function definition source location.
+    source_ref = function.getSourceReference()
+
+    for variable in function.getLocalVariables():
+        # Shared variables are freed by object use.
+        if variable.getOwner() is not function:
+            continue
+
+        if function.isGenerator() and variable.isParameterVariable():
+            continue
+
+        releases.append(
+            StatementReleaseVariable(
+                variable   = variable,
+                source_ref = source_ref
+            )
+        )
+
+    if releases:
+        body = function.getBody()
+        body = StatementTryFinally(
+            tried      = body,
+            final      = makeStatementsSequence(
+                statements = releases,
+                allow_none = False,
+                source_ref = source_ref
+            ),
+            public_exc = False,
+            source_ref = source_ref
+        )
+
+        function.setBody(
+            makeStatementsSequenceFromStatement(body)
+        )

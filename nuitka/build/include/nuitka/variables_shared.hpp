@@ -29,11 +29,6 @@ public:
         this->storage = (PyCellObject *)PyCell_New( NULL );
     };
 
-    ~PyObjectSharedLocalVariable()
-    {
-        Py_DECREF( this->storage );
-    }
-
     PyCellObject *storage;
 
 private:

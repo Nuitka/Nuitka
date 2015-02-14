@@ -167,9 +167,7 @@ from .SubscriptCodes import (
 )
 from .VariableCodes import (
     getVariableAccessCode,
-    getVariableAssignmentCode,
-    getVariableCode,
-    getVariableDelCode
+    getVariableCode
 )
 from .YieldCodes import getYieldCode, getYieldFromCode
 

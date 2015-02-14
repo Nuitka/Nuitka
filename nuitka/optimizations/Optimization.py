@@ -181,7 +181,9 @@ def optimizeVariables(module):
                 elif variable_trace.getReleases():
                     # Python3 only, but a "del" statement may occur and needs
                     # to prevent.
+
                     assert Utils.python_version >= 300
+
                     empty = False
                     break
 

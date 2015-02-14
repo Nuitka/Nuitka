@@ -32,6 +32,7 @@ from nuitka.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage, isSharedLogically
 
 from .Operations import VisitorNoopMixin, visitTree
+from .ReformulationFunctionStatements import addFunctionVariableReleases
 
 
 # Note: We do the variable scope assignment, as an extra step from tree
@@ -408,3 +409,11 @@ def completeVariableClosures(tree):
         if tree.isPythonModule():
             for function in tree.getFunctions():
                 visitTree(function, visitor)
+
+    if tree.isPythonModule():
+        for function in tree.getFunctions():
+            addFunctionVariableReleases(function)
+    else:
+        # For "eval" code, this will need to be done differently, not done
+        # yet-
+        assert False

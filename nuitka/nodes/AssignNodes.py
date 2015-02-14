@@ -27,7 +27,7 @@ that should be unified at some point.
 
 from nuitka import Utils
 
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 class StatementAssignmentVariable(StatementChildrenHavingBase):
@@ -519,6 +519,48 @@ class StatementDelVariable(StatementChildrenHavingBase):
                 return False
 
             return True
+
+
+class StatementReleaseVariable(NodeBase):
+    kind = "STATEMENT_RELEASE_VARIABLE"
+
+    def __init__(self, variable, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.variable = variable
+
+    def getDetail(self):
+        return "of variable %s" % self.variable
+
+    def getDetails(self):
+        return {
+            "variable" : self.variable
+        }
+
+    def getVariable(self):
+        return self.variable
+
+    def computeStatement(self, constraint_collection):
+        variable_trace = constraint_collection.onVariableRelease(
+            release_node = self
+        )
+
+        if variable_trace.isUninitTrace():
+            return None, "new_statements", None
+
+        # TODO: We might be able to remove ourselves based on the trace
+        # we belong to.
+
+        return self, None, None
+
+    def mayHaveSideEffects(self):
+        return True
+
+    def mayRaiseException(self, exception_type):
+        return False
 
 
 class StatementDelAttribute(StatementChildrenHavingBase):

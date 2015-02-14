@@ -39,7 +39,12 @@ from .ModuleCodes import generateModuleFileAttributeCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 from .SliceCodes import generateBuiltinSliceCode
 from .SubscriptCodes import generateSubscriptLookupCode
-from .VariableCodes import generateVariableReferenceCode
+from .VariableCodes import (
+    generateVariableDelCode,
+    getVariableAssignmentCode,
+    generateVariableReferenceCode,
+    generateVariableReleaseCode
+)
 
 
 def generateTupleCreationCode(to_name, elements, emit, context):
@@ -522,6 +527,7 @@ def generateFunctionBodyCode(function_body, context):
     if function_identifier in _generated_functions:
         return _generated_functions[function_identifier]
 
+    # TODO: Generate both codes, and base direct/etc. decisions on context.
     if function_body.needsCreation():
         function_context = Contexts.PythonFunctionCreatedContext(
             parent   = context,
@@ -2235,18 +2241,6 @@ def generateAssignmentSliceCode(statement, emit, context):
         context.setCurrentSourceCodeReference(old_source_ref)
 
 
-def generateVariableDelCode(statement, emit, context):
-    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
-
-    Generator.getVariableDelCode(
-        variable = statement.getTargetVariableRef().getVariable(),
-        tolerant = statement.isTolerant(),
-        emit     = emit,
-        context  = context
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
-
 
 def generateDelSubscriptCode(statement, emit, context):
     subscribed = statement.getSubscribed()
@@ -2604,7 +2598,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
         context = context
     )
 
-    Generator.getVariableAssignmentCode(
+    getVariableAssignmentCode(
         tmp_name      = tmp_name2,
         variable      = tried_statement.getTargetVariableRef().getVariable(),
         needs_release = None,
@@ -2690,7 +2684,7 @@ _temp_whitelist = [()]
 
 def generateTryFinallyCode(to_name, statement, emit, context):
     # The try/finally is very hard for C-ish code generation. We need to react
-    # on break, continue, return, raise in the tried blocks with reraise. We
+    # on break, continue, return, raise in the tried blocks with re-raise. We
     # need to publish it to the handler (Python3) or save it for re-raise,
     # unless another exception or continue, break, return occurs. So this is
     # full of detail stuff, pylint: disable=R0914,R0912,R0915
@@ -3523,13 +3517,15 @@ def generateAssignmentVariableCode(statement, emit, context):
         context    = context
     )
 
-    Generator.getVariableAssignmentCode(
+    getVariableAssignmentCode(
         tmp_name      = tmp_name,
         variable      = variable_ref.getVariable(),
         needs_release = statement.needsReleaseValue(),
         emit          = emit,
         context       = context
     )
+
+    assert emit.emit
 
     # Ownership of that reference should be transfered.
     assert not context.needsCleanup(tmp_name)
@@ -3649,6 +3645,12 @@ def _generateStatementCode(statement, emit, context):
         )
     elif statement.isStatementDelVariable():
         generateVariableDelCode(
+            statement = statement,
+            emit      = emit,
+            context   = context
+        )
+    elif statement.isStatementReleaseVariable():
+        generateVariableReleaseCode(
             statement = statement,
             emit      = emit,
             context   = context
