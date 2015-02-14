@@ -31,6 +31,16 @@ Optimization
 
 - The creation and destruction of generator objects was accelerated.
 
+Cleanup
+-------
+
+- The use of C++ classes for variable objects was largely reduced. Closure
+  variables are now attached as ``PyCellObject``.
+
+- The use of C++ context classes for closure taking and generator parameters
+  has been replaced with attaching values directly to functions and generator
+  objects.
+
 
 Nuitka Release 0.5.9
 ====================
