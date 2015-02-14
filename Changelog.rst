@@ -9,14 +9,27 @@ Bug Fixes
 - Compatibility: The variable name in locals for the iterator provided to the
   generator expression should be ``.0``, now it is.
 
+- Generators could leak frames until program exit, these are now properly
+  freed immediately.
+
 Optimization
 ------------
+
+- Faster exception save and restore functions that can be inlined by the
+  backend compiler.
+
+- Faster error checks for many operations, where these errors are expected,
+  e.g. instance attribute lookups.
 
 - Do not create traceback and locals dictionary for frame when ``StopIteration``
   or ``GeneratorExit`` are raised. These are wasted and unused.
 
 - Closure variables to functions and parameters of generator functions are now
   attached to the function and generator objects.
+
+- The creation of functions with closure taking was accelerated.
+
+- The creation and destruction of generator objects was accelerated.
 
 
 Nuitka Release 0.5.9
