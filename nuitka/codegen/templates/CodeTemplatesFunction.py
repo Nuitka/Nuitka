@@ -104,9 +104,8 @@ template_function_exception_exit = """\
 function_exception_exit:
 %(function_cleanup)s\
     assert( exception_type );
-    PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 
-    assert( ERROR_OCCURRED() );
     return NULL;
 """
 

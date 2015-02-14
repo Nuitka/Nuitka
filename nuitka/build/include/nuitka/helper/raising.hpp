@@ -102,7 +102,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
             Py_DECREF( *exception_type );
             Py_DECREF( *exception_value );
 
-            PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+            FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
             return;
         }
 #endif
@@ -145,7 +145,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
         Py_DECREF( *exception_type );
 
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( *exception_type )->tp_name );
-        PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+        FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 
         return;
     }
@@ -179,7 +179,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
             Py_DECREF( *exception_type );
             Py_XDECREF( *exception_tb );
 
-            PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+            FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 
             return;
         }
@@ -197,7 +197,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
 
         PyErr_Format( PyExc_TypeError, "exception causes must derive from BaseException" );
 
-        PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+        FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         return;
     }
 
@@ -219,7 +219,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
                 Py_TYPE( *exception_value )->tp_name
             );
 
-            PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+            FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
             return;
         }
 
@@ -250,7 +250,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
 
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
 
-        PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+        FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         return;
     }
 }
@@ -285,7 +285,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_VALUE( PyObject **exceptio
             Py_XDECREF( *exception_value );
             Py_XDECREF( *exception_tb );
 
-            PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+            FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         }
 #endif
 
@@ -304,7 +304,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_VALUE( PyObject **exceptio
             Py_XDECREF( *exception_value );
             Py_XDECREF( *exception_tb );
 
-            PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+            FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 
             return;
         }
@@ -319,7 +319,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_VALUE( PyObject **exceptio
     else
     {
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
-        PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+        FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         return;
     }
 }
@@ -352,7 +352,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT( PyObject **exception_
     else
     {
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
-        PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+        FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         return;
     }
 }
@@ -391,7 +391,7 @@ NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION_WITH_TRACEBACK( PyObject
             Py_XDECREF( *exception_value );
             Py_XDECREF( *exception_tb );
 
-            PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+            FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         }
 #endif
 
@@ -410,7 +410,7 @@ NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION_WITH_TRACEBACK( PyObject
             Py_XDECREF( *exception_value );
             Py_XDECREF( *exception_tb );
 
-            PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+            FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 
             return;
         }
@@ -425,7 +425,7 @@ NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION_WITH_TRACEBACK( PyObject
     else
     {
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
-        PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+        FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         return;
     }
 }
@@ -455,7 +455,7 @@ NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( PyObject **exception_type, P
             "exceptions must be old-style classes or derived from BaseException, not %s",
             Py_TYPE( *exception_type )->tp_name
         );
-        PyErr_Fetch( exception_type, exception_value, (PyObject **)exception_tb );
+        FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 #endif
     }
 }

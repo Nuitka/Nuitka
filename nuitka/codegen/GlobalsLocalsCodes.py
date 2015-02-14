@@ -254,7 +254,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
                 context   = context
             )
 
-            emit("PyErr_Clear();")
+            emit("CLEAR_ERROR_OCCURRED();")
             emit("if ( %s != NULL )" % value_name)
             emit('{')
 

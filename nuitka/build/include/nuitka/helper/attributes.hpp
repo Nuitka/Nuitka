@@ -56,8 +56,8 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
     PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-    // TODO: The special cases should get their own SET_ATTRIBUTE variant on the
-    // code generation level as SET_ATTRIBUTE is called with constants only.
+    // The special cases have their own variant on the code generation level
+    // as we are called with constants only.
     assert( attr_name != const_str_plain___dict__ );
     assert( attr_name != const_str_plain___class__ );
 
@@ -96,25 +96,21 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
     }
     else
     {
-        PyObject *error = GET_ERROR_OCCURRED();
-
-        if ( error != NULL )
+        if (unlikely( !CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED() ))
         {
-            if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_AttributeError ) )
-            {
-                PyErr_Clear();
-            }
-            else
-            {
-                return NULL;
-            }
+            return NULL;
         }
     }
 
     // Finally allow a __getattr__ to handle it or else it's an error.
     if (unlikely( source_instance->in_class->cl_getattr == NULL ))
     {
-        PyErr_Format( PyExc_AttributeError, "%s instance has no attribute '%s'", PyString_AS_STRING( source_instance->in_class->cl_name ), PyString_AS_STRING( attr_name ) );
+        PyErr_Format(
+            PyExc_AttributeError,
+            "%s instance has no attribute '%s'",
+            PyString_AS_STRING( source_instance->in_class->cl_name ),
+            PyString_AS_STRING( attr_name )
+        );
 
         return NULL;
     }
@@ -157,7 +153,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
         }
         else
         {
-            PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name, Nuitka_String_AsString_Unchecked( attr_name ) );
+            PyErr_Format(
+                PyExc_AttributeError,
+                "'%s' object has no attribute '%s'",
+                type->tp_name,
+                Nuitka_String_AsString_Unchecked( attr_name )
+            );
+
             return NULL;
         }
     }

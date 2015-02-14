@@ -120,10 +120,10 @@ static inline PyObject *YIELD( Nuitka_GeneratorObject *generator, PyObject *valu
     // Check for thrown exception.
     if (unlikely( generator->m_exception_type ))
     {
-        PyErr_Restore(
+        RESTORE_ERROR_OCCURRED(
             generator->m_exception_type,
             generator->m_exception_value,
-            (PyObject *)generator->m_exception_tb
+            generator->m_exception_tb
         );
 
         generator->m_exception_type = NULL;
@@ -190,10 +190,10 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
     // Check for thrown exception.
     if (unlikely( generator->m_exception_type ))
     {
-        PyErr_Restore(
+        RESTORE_ERROR_OCCURRED(
             generator->m_exception_type,
             generator->m_exception_value,
-            (PyObject *)generator->m_exception_tb
+            generator->m_exception_tb
         );
 
         generator->m_exception_type = NULL;

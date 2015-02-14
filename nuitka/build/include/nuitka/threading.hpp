@@ -57,7 +57,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING( void )
             PyObject *async_exc = INCREASE_REFCOUNT( tstate->async_exc );
             tstate->async_exc = NULL;
 
-            PyErr_Restore( async_exc, NULL, NULL );
+            RESTORE_ERROR_OCCURRED( async_exc, NULL, NULL );
 
             return false;
         }

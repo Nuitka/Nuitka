@@ -92,12 +92,13 @@ static char const *GET_CLASS_NAME( PyObject *klass )
 
 static char const *GET_INSTANCE_CLASS_NAME( PyObject *instance )
 {
+    // TODO: We have a constant for that already.
     PyObject *klass = PyObject_GetAttrString( instance, "__class__" );
 
     // Fallback to type as this cannot fail.
     if ( klass == NULL )
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         klass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( instance ) );
     }
 

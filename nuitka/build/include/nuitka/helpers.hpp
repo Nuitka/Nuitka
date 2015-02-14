@@ -433,7 +433,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
     }
     else
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
 
         return method;
     }
@@ -703,7 +703,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
 
         if ( metaclass == NULL )
         {
-            PyErr_Clear();
+            CLEAR_ERROR_OCCURRED();
 
             metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
         }

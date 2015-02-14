@@ -147,9 +147,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
         PyObject *error = GET_ERROR_OCCURRED();
         if ( error )
         {
-            if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) )
+            if (likely( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) ))
             {
-                PyErr_Clear();
+                CLEAR_ERROR_OCCURRED();
             }
         }
     }
@@ -216,7 +216,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
         {
             if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ))
             {
-                PyErr_Clear();
+                DROP_ERROR_OCCURRED();
 
                 return INCREASE_REFCOUNT( default_value );
             }

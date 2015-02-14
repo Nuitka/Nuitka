@@ -107,13 +107,13 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 }"""
 
 template_generator_exception_exit = """\
-    PyErr_Restore( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
+    RESTORE_ERROR_OCCURRED( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
 
     generator->m_yielded = NULL;
     return;
 function_exception_exit:
     assert( exception_type );
-    PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
     generator->m_yielded = NULL;
     return;
 """
@@ -132,9 +132,9 @@ template_generator_return_exit = """\
     return;
 function_return_exit:
 #if PYTHON_VERSION < 330
-    PyErr_Restore( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
+    RESTORE_ERROR_OCCURRED( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
 #else
-    PyErr_Restore( INCREASE_REFCOUNT( PyExc_StopIteration ), tmp_return_value, NULL );
+    RESTORE_ERROR_OCCURRED( INCREASE_REFCOUNT( PyExc_StopIteration ), tmp_return_value, NULL );
 #endif
     generator->m_yielded = NULL;
     return;

@@ -582,7 +582,7 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
 
     if ( start == -1 && ERROR_OCCURRED() )
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
 
         PyObject *result = CALL_FUNCTION_WITH_ARGS1(
             _python_builtin_range.asObject0(),
@@ -628,7 +628,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
     if (unlikely( start == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
@@ -636,7 +636,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
     if (unlikely( end == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
@@ -711,7 +711,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     if (unlikely( start == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
@@ -719,7 +719,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     if (unlikely( end == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
@@ -727,7 +727,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     if (unlikely( step_long == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
@@ -881,7 +881,7 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     }
     else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
 
         iter = MAKE_ITERATOR( PyModule_GetDict( module ) );
         assertObject( iter );
@@ -1670,7 +1670,7 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
             {
                 if ( class_attr == NULL )
                 {
-                    PyErr_Clear();
+                    CLEAR_ERROR_OCCURRED();
                 }
                 else
                 {
@@ -1810,7 +1810,7 @@ PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *defa
     {
         if ( default_value != NULL && EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
         {
-            PyErr_Clear();
+            CLEAR_ERROR_OCCURRED();
 
             return INCREASE_REFCOUNT( default_value );
         }

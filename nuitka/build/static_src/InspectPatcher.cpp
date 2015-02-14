@@ -92,7 +92,7 @@ static void patchInspectModule( void )
         if ( site_module == NULL )
         {
             // Ignore ImportError, site is not a must.
-            PyErr_Clear();
+            CLEAR_ERROR_OCCURRED();
         }
     }
 #endif

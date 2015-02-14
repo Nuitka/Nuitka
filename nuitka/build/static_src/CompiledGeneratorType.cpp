@@ -208,7 +208,8 @@ PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *a
 
             if ( EXCEPTION_MATCH_GENERATOR( error ) )
             {
-                PyErr_Clear();
+                CLEAR_ERROR_OCCURRED();
+
                 return INCREASE_REFCOUNT( Py_None );
             }
 
@@ -231,8 +232,10 @@ static void Nuitka_Generator_tp_del( Nuitka_GeneratorObject *generator )
     assert( Py_REFCNT( generator ) == 0 );
     Py_REFCNT( generator ) = 1;
 
-    PyObject *error_type, *error_value, *error_traceback;
-    PyErr_Fetch( &error_type, &error_value, &error_traceback );
+    PyObject *error_type, *error_value;
+    PyTracebackObject *error_traceback;
+
+    FETCH_ERROR_OCCURRED( &error_type, &error_value, &error_traceback );
 
     PyObject *result = Nuitka_Generator_close( generator, NULL );
 
@@ -246,7 +249,7 @@ static void Nuitka_Generator_tp_del( Nuitka_GeneratorObject *generator )
     }
 
     /* Restore the saved exception. */
-    PyErr_Restore( error_type, error_value, error_traceback );
+    RESTORE_ERROR_OCCURRED( error_type, error_value, error_traceback );
 
     assert( Py_REFCNT( generator ) > 0 );
     Py_REFCNT( generator ) -= 1;
@@ -269,8 +272,9 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
     Py_REFCNT( generator ) = 1;
 
     // Save the current exception, if any, we must preserve it.
-    PyObject *save_exception_type, *save_exception_value, *save_exception_tb;
-    PyErr_Fetch(&save_exception_type, &save_exception_value, &save_exception_tb);
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
 
     PyObject *close_result = Nuitka_Generator_close( generator, NULL );
 
@@ -311,7 +315,7 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
     Nuitka_GC_UnTrack( generator );
 
     PyObject_GC_Del( generator );
-    PyErr_Restore( save_exception_type, save_exception_value, save_exception_tb );
+    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
 
 static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyObject *args )
@@ -403,7 +407,7 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
     }
     else
     {
-        PyErr_Restore( generator->m_exception_type, generator->m_exception_value, (PyObject *)generator->m_exception_tb );
+        RESTORE_ERROR_OCCURRED( generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb );
 
         generator->m_exception_type = NULL;
         generator->m_exception_value = NULL;
@@ -697,8 +701,9 @@ PyObject *ERROR_GET_STOP_ITERATION_VALUE()
 {
     assert( PyErr_ExceptionMatches( PyExc_StopIteration ) );
 
-    PyObject *exception_type, *exception_value, *exception_tb;
-    PyErr_Fetch( &exception_type, &exception_value, &exception_tb );
+    PyObject *exception_type, *exception_value;
+    PyTracebackObject *exception_tb;
+    FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 
     Py_DECREF( exception_type );
     Py_XDECREF( exception_tb );
@@ -731,14 +736,10 @@ static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
 {
     assertObject( generator->m_exception_type );
 
-//    Py_INCREF( generator->m_exception_type );
-//    Py_XINCREF( generator->m_exception_value );
-//    Py_XINCREF( generator->m_exception_tb );
-
-    PyErr_Restore(
+    RESTORE_ERROR_OCCURRED(
         generator->m_exception_type,
         generator->m_exception_value,
-        (PyObject *)generator->m_exception_tb
+        generator->m_exception_tb
     );
 
     generator->m_exception_type = NULL;
@@ -824,7 +825,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
             }
             else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
             {
-                PyErr_Clear();
+                CLEAR_ERROR_OCCURRED();
 
                 RAISE_GENERATOR_EXCEPTION( generator );
 
@@ -965,7 +966,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
             }
             else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
             {
-                PyErr_Clear();
+                CLEAR_ERROR_OCCURRED();
 
                 RAISE_GENERATOR_EXCEPTION( generator );
 

@@ -28,11 +28,41 @@ NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED( void )
     return tstate->curexc_type != NULL;
 }
 
+// Get the error occurred.
+NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return tstate->curexc_type;
+}
+
+// Clear error, which likely set.
+NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *old_type  = tstate->curexc_type;
+    PyObject *old_value = tstate->curexc_value;
+    PyObject *old_tb    = tstate->curexc_traceback;
+
+    tstate->curexc_type = NULL;
+    tstate->curexc_value = NULL;
+    tstate->curexc_traceback = NULL;
+
+    Py_XDECREF( old_type );
+    Py_XDECREF( old_value );
+    Py_XDECREF( old_tb );
+}
+
+
+
+// Clear error, which is not likely set. This is about bugs from CPython,
+// use CLEAR_ERROR_OCCURRED is not sure.
 NUITKA_MAY_BE_UNUSED static inline void DROP_ERROR_OCCURRED( void )
 {
     PyThreadState *tstate = PyThreadState_GET();
 
-    if ( tstate->curexc_type != NULL )
+    if (unlikely( tstate->curexc_type != NULL ))
     {
         PyObject *old_type  = tstate->curexc_type;
         PyObject *old_value = tstate->curexc_value;
@@ -48,13 +78,7 @@ NUITKA_MAY_BE_UNUSED static inline void DROP_ERROR_OCCURRED( void )
     }
 }
 
-// Get the error occurred.
-NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED( void )
-{
-    PyThreadState *tstate = PyThreadState_GET();
 
-    return tstate->curexc_type;
-}
 
 NUITKA_MAY_BE_UNUSED static void PRINT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb )
 {
@@ -89,7 +113,7 @@ NUITKA_MAY_BE_UNUSED static void PRINT_EXCEPTION( PyObject *exception_type, PyOb
 }
 
 // Fetch the current error into object variables.
-NUITKA_MAY_BE_UNUSED static void FETCH_ERROR( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_traceback)
+NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_traceback)
 {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -98,7 +122,7 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR( PyObject **exception_type, PyObjec
     *exception_traceback = (PyTracebackObject *)tstate->curexc_traceback;
 
 #if _DEBUG_EXCEPTIONS
-    PRINT_STRING("FETCH_ERROR:\n");
+    PRINT_STRING("FETCH_ERROR_OCCURRED:\n");
     PRINT_EXCEPTION( tstate->curexc_type,  tstate->curexc_value, tstate->curexc_traceback );
 #endif
 
@@ -107,7 +131,7 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR( PyObject **exception_type, PyObjec
     tstate->curexc_traceback = NULL;
 }
 
-NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_traceback)
+NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_traceback )
 {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -120,7 +144,7 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR( PyObject *exception_type, PyObje
     tstate->curexc_traceback = (PyObject *)exception_traceback;
 
 #if _DEBUG_EXCEPTIONS
-    PRINT_STRING("RESTORE_ERROR:\n");
+    PRINT_STRING("RESTORE_ERROR_OCCURRED:\n");
     PRINT_EXCEPTION( tstate->curexc_type,  tstate->curexc_value, tstate->curexc_traceback );
 #endif
 
@@ -373,8 +397,9 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR( PyObject *exception_
     if ( PyExceptionClass_Check( exception_value ) )
     {
         // Save the current exception, if any, we must preserve it.
-        PyObject *save_exception_type, *save_exception_value, *save_exception_tb;
-        PyErr_Fetch(&save_exception_type, &save_exception_value, &save_exception_tb);
+        PyObject *save_exception_type, *save_exception_value;
+        PyTracebackObject *save_exception_tb;
+        FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
 
         int res = PyObject_IsSubclass( exception_value, PyExc_GeneratorExit );
 
@@ -394,7 +419,7 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR( PyObject *exception_
             PyErr_WriteUnraisable( exception_value );
         }
 
-        PyErr_Restore( save_exception_type, save_exception_value, save_exception_tb );
+        RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 
         return res == 1;
     }
@@ -423,8 +448,9 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE( PyObject *exceptio
     if ( PyExceptionClass_Check( exception_value ) )
     {
         // Save the current exception, if any, we must preserve it.
-        PyObject *save_exception_type, *save_exception_value, *save_exception_tb;
-        PyErr_Fetch(&save_exception_type, &save_exception_value, &save_exception_tb);
+        PyObject *save_exception_type, *save_exception_value;
+        PyTracebackObject *save_exception_tb;
+        FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
 
         int res = PyObject_IsSubclass( exception_value, exception_checked );
 
@@ -434,7 +460,7 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE( PyObject *exceptio
             PyErr_WriteUnraisable( exception_value );
         }
 
-        PyErr_Restore( save_exception_type, save_exception_value, save_exception_tb );
+        RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 
         return res == 1;
     }
@@ -505,7 +531,7 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED( void )
     }
     else if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) )
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         return true;
     }
     else
@@ -513,5 +539,27 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED( void )
         return false;
     }
 }
+
+// Special helper that checks for StopIteration and if so clears it, only
+// indicating if it was set.
+NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED( void )
+{
+    PyObject *error = GET_ERROR_OCCURRED();
+
+    if ( error == NULL )
+    {
+        return true;
+    }
+    else if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_AttributeError ) )
+    {
+        CLEAR_ERROR_OCCURRED();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 
 #endif

@@ -91,7 +91,7 @@ if (%s == NULL)
     else
     {
 %s
-        PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %s
         goto %s;
     }

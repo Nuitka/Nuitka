@@ -190,5 +190,5 @@ if ( %(tmp_name)s == NULL )
 
 template_del_global_unclear = """\
 %(res_name)s = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, %(var_name)s );
-if ( %(res_name)s == -1 ) PyErr_Clear();
+if ( %(res_name)s == -1 ) CLEAR_ERROR_OCCURRED();
 """

@@ -258,7 +258,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     if (unlikely( res < 0 ))
     {
         // Might be refuted, which wouldn't be harmful.
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
     }
 
     // Call the standard import fix-ups for extension modules. Their interface

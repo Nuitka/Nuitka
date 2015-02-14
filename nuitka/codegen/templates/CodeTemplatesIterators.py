@@ -34,11 +34,11 @@ if (likely( %(attempt_name)s == NULL ))
     {
         if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ))
         {
-            PyErr_Clear();
+            CLEAR_ERROR_OCCURRED();
         }
         else
         {
-            PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+            FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %(release_temps_1)s
             goto %(exception_exit)s;
         }
@@ -54,7 +54,7 @@ else
 #else
     PyErr_Format( PyExc_ValueError, "too many values to unpack (expected %(count)d)" );
 #endif
-    PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+    FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %(release_temps_2)s
     goto %(exception_exit)s;
 }"""
