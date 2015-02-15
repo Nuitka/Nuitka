@@ -2757,7 +2757,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
         old_return = context.getReturnTarget()
         context.setReturnTarget(handler_start_target)
 
-    # Initialise expression, so even if it exits, the compiler will not see a
+    # Initialize expression, so even if it exits, the compiler will not see a
     # random value there. This shouldn't be necessary and hopefully the C++
     # compiler will find out. Since these are rare, it doesn't matter.
     if to_name is not None:
@@ -3931,6 +3931,9 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
     parent_exception_exit = context.getExceptionEscape()
 
+    # Allow stacking of frame handles.
+    old_frame_handle = context.getFrameHandle()
+
     if guard_mode != "pass_through":
         if provider.isExpressionFunctionBody():
             context.setFrameHandle("frame_function")
@@ -4040,6 +4043,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
     if frame_return_exit is not None:
         context.setReturnTarget(parent_return_exit)
+
+    context.setFrameHandle(old_frame_handle)
 
     for line in codes:
         emit(line)
