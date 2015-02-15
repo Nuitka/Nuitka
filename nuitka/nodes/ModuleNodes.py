@@ -198,7 +198,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         self.cross_used_functions = OrderedSet()
 
         # SSA trace based information about the module.
-        self.collection = None
+        self.constraint_collection = None
 
     def getDetails(self):
         return {
@@ -327,19 +327,19 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return "copy"
 
     def computeModule(self):
-        self.collection = ConstraintCollectionModule()
+        self.constraint_collection = ConstraintCollectionModule()
 
         module_body = self.getBody()
 
         if module_body is not None:
             result = module_body.computeStatementsSequence(
-                constraint_collection = self.collection
+                constraint_collection = self.constraint_collection
             )
 
             if result is not module_body:
                 self.setBody(result)
 
-        self.collection.makeVariableTraceOptimizations(self)
+        self.constraint_collection.makeVariableTraceOptimizations(self)
 
 
 
