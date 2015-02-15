@@ -547,8 +547,7 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
     for user_variable in user_variables + temp_variables:
         function_locals.append(
             getLocalVariableInitCode(
-                variable   = user_variable,
-                in_context = False
+                variable = user_variable,
             )
         )
 

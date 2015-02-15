@@ -67,7 +67,6 @@ static inline void assertObject( PyTracebackObject *value )
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
-#include "nuitka/variables_temporary.hpp"
 #include "nuitka/exceptions.hpp"
 
 // For the MAKE_TUPLE macros.
@@ -493,9 +492,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 #include "nuitka/builtins.hpp"
 
 #include "nuitka/frame_stack.hpp"
-
-#include "nuitka/variables_locals.hpp"
-#include "nuitka/variables_shared.hpp"
 
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {

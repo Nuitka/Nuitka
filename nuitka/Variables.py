@@ -89,8 +89,8 @@ class Variable:
         from nuitka.VariableRegistry import isSharedTechnically
         return isSharedTechnically(self)
 
-    def getDeclarationTypeCode(self, in_context):
-        # Abstract method, pylint: disable=R0201,W0613
+    def getDeclarationTypeCode(self):
+        # Abstract method, pylint: disable=R0201
         assert False
 
 
@@ -112,11 +112,11 @@ class LocalVariable(Variable):
     def isLocalVariable(self):
         return True
 
-    def getDeclarationTypeCode(self, in_context):
+    def getDeclarationTypeCode(self):
         if self.isSharedTechnically():
-            return "PyObjectSharedLocalVariable"
+            return "PyCellObject *"
         else:
-            return "PyObjectLocalVariable"
+            return "PyObject *"
 
 
 class MaybeLocalVariable(Variable):
@@ -234,12 +234,11 @@ class TempVariable(Variable):
     def isTempVariable(self):
         return True
 
-    def getDeclarationTypeCode(self, in_context):
+    def getDeclarationTypeCode(self):
         if self.isSharedTechnically():
-            assert False
-            return "PyObjectSharedTempVariable"
+            return "PyCellObject *"
         else:
-            return "PyObjectTempVariable"
+            return "PyObject *"
 
     def getDeclarationInitValueCode(self):
         # Virtual method, pylint: disable=R0201

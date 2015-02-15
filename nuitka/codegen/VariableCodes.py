@@ -99,9 +99,9 @@ def _getLocalVariableCode(context, variable):
                 return "generator->m_parameters[%d]" % parameter_index, False
 
         if variable.isSharedTechnically():
-            return result + ".storage", True
+            return result, True
         else:
-            return result + ".object", False
+            return result, False
     elif context.isForDirectCall():
         if user.isGenerator():
             closure_index = user.getClosureVariables().index(variable)
@@ -145,34 +145,30 @@ def getLocalVariableObjectAccessCode(context, variable):
         return code
 
 
-def getLocalVariableInitCode(variable, init_from = None, in_context = False):
+def getLocalVariableInitCode(variable, init_from = None):
     assert not variable.isModuleVariable()
 
-    result = variable.getDeclarationTypeCode(in_context)
+    result = variable.getDeclarationTypeCode()
 
     # For pointer types, we don't have to separate with spaces.
     if not result.endswith('*'):
         result += ' '
 
     code_name = getVariableCodeName(
-        in_context = in_context,
+        in_context = False,
         variable   = variable
     )
 
     result += code_name
 
-    if not in_context:
-        if variable.isTempVariable():
-            assert init_from is None
+    if init_from is None:
+        init_from = "NULL";
 
-            if variable.isSharedTechnically():
-                result += "( NULL )"
-        else:
-            if init_from is not None:
-                if variable.isSharedTechnically():
-                    result += "; PyCell_SET( %s.storage, %s )" % (code_name, init_from)
-                else:
-                    result += "; %s.object = %s" % (code_name, init_from)
+    if variable.isSharedTechnically():
+        # TODO: Have our own creation for cells.
+        result += " = (PyCellObject *)PyCell_New( %s )" % init_from
+    else:
+        result += " = %s" % init_from
 
     result += ';'
 
