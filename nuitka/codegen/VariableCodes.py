@@ -148,31 +148,29 @@ def getLocalVariableObjectAccessCode(context, variable):
 def getLocalVariableInitCode(variable, init_from = None):
     assert not variable.isModuleVariable()
 
-    result = variable.getDeclarationTypeCode()
-
-    # For pointer types, we don't have to separate with spaces.
-    if not result.endswith('*'):
-        result += ' '
+    type_name = variable.getDeclarationTypeCode()
 
     code_name = getVariableCodeName(
         in_context = False,
         variable   = variable
     )
 
-    result += code_name
-
-    if init_from is None:
-        init_from = "NULL";
-
     if variable.isSharedTechnically():
-        # TODO: Have our own creation for cells.
-        result += " = (PyCellObject *)PyCell_New( %s )" % init_from
+        if init_from is not None:
+            init_value = "PyCell_NEW( %s )" % init_from
+        else:
+            init_value = "PyCell_EMPTY()"
     else:
-        result += " = %s" % init_from
+        if init_from is None:
+            init_from = "NULL"
 
-    result += ';'
+        init_value = "%s" % init_from
 
-    return result
+    return "%s%s = %s;" % (
+        type_name,
+        code_name,
+        init_value
+    )
 
 
 def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):

@@ -766,4 +766,6 @@ NUITKA_MAY_BE_UNUSED static void forceGC()
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL );
 }
 
+#include "nuitka/helper/cells.hpp"
+
 #endif
