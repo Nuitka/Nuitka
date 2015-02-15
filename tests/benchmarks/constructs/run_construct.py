@@ -71,11 +71,21 @@ options, positional_args = parser.parse_args()
 
 if len(positional_args) != 1:
     sys.exit("Error, need to give test case file name as positional argument.")
+
 test_case = positional_args[0]
+
+if os.path.exists(test_case):
+    test_case = os.path.abspath(test_case)
 
 if options.cpython == "no":
     options.cpython = ""
 
+nuitka = options.nuitka
+
+if os.path.exists(nuitka):
+    nuitka = os.path.abspath(nuitka)
+elif nuitka:
+    sys.exit("Error, nuitka binary '%s' not found." % nuitka)
 
 from test_common import (
     my_print,
@@ -185,15 +195,7 @@ case_2_file.close()
 
 os.environ["PYTHONHASHSEED"] = "0"
 
-nuitka = options.nuitka
-
-if os.path.exists(nuitka):
-    nuitka = os.path.abspath(nuitka)
-elif nuitka:
-    sys.exit("Error, nuitka binary not found.")
-
 if nuitka:
-
     nuitka_id = commands.getoutput(
         "cd %s; git rev-parse HEAD" % os.path.dirname(nuitka)
     )
