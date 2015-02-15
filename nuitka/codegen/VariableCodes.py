@@ -43,12 +43,20 @@ def generateVariableDelCode(statement, emit, context):
     context.setCurrentSourceCodeReference(old_source_ref)
 
 def generateVariableReleaseCode(statement, emit, context):
-    getVariableReleaseCode(
-        variable = statement.getVariable(),
-        emit     = emit,
-        context  = context
-    )
+    variable = statement.getVariable()
 
+    if variable.isSharedTechnically():
+        # TODO: We might start to not allocate the cell object.
+        needs_check = False
+    else:
+        needs_check = statement.variable_trace.isUnknownTrace()
+
+    getVariableReleaseCode(
+        variable    = statement.getVariable(),
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
+    )
 
 
 def generateVariableReferenceCode(to_name, expression, emit, context):
@@ -552,13 +560,12 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
         assert False, variable
 
 
-def getVariableReleaseCode(variable, emit, context):
+def getVariableReleaseCode(variable, needs_check, emit, context):
     assert isinstance(variable, Variables.Variable), variable
 
     assert not variable.isModuleVariable()
 
-    # TODO: Check if it is clearly set or not.
-    if True:
+    if needs_check:
         template = CodeTemplates.template_release_unclear
     else:
         template = CodeTemplates.template_release_clear

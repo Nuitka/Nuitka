@@ -532,6 +532,8 @@ class StatementReleaseVariable(NodeBase):
 
         self.variable = variable
 
+        self.variable_trace = None
+
     def getDetail(self):
         return "of variable %s" % self.variable
 
@@ -544,11 +546,11 @@ class StatementReleaseVariable(NodeBase):
         return self.variable
 
     def computeStatement(self, constraint_collection):
-        variable_trace = constraint_collection.onVariableRelease(
+        self.variable_trace = constraint_collection.onVariableRelease(
             release_node = self
         )
 
-        if variable_trace.isUninitTrace():
+        if self.variable_trace.isUninitTrace():
             return None, "new_statements", None
 
         # TODO: We might be able to remove ourselves based on the trace

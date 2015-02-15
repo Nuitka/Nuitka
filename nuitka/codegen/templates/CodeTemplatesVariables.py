@@ -135,6 +135,7 @@ Py_XDECREF( %(identifier)s );
 """
 
 template_release_clear = """\
+assertObject( (PyObject *)%(identifier)s );
 Py_DECREF( %(identifier)s );
 """
 
