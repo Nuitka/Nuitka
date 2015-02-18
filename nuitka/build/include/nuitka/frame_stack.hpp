@@ -127,7 +127,9 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack( PyFrameObject *frame_obj
     if ( old != NULL )
     {
         assertFrameObject( old );
-        frame_object->f_back = INCREASE_REFCOUNT( old );
+
+        frame_object->f_back = old;
+        Py_INCREF( frame_object->f_back );
     }
 
 #if _DEBUG_FRAME

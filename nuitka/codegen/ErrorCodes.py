@@ -103,7 +103,8 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
         from .ConstantCodes import getModuleConstantCode
 
         set_exception = [
-            "exception_type = INCREASE_REFCOUNT( %s );" % exception,
+            "exception_type = %s;" % exception,
+            "Py_INCREF( exception_type );",
             "exception_value = %s;" % getModuleConstantCode(
                 constant = args[0],
             ),

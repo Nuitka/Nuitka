@@ -77,7 +77,8 @@ template_write_shared_unclear_ref0 = """\
 template_write_shared_unclear_ref1 = """\
 {
     PyObject *old = PyCell_GET( %(identifier)s );
-    PyCell_SET( %(identifier)s, INCREASE_REFCOUNT( %(tmp_name)s ) );
+    PyCell_SET( %(identifier)s, %(tmp_name)s );
+    Py_INCREF( %(tmp_name)s );
     Py_XDECREF( old );
 }
 """

@@ -242,9 +242,12 @@ def getFramePreserveExceptionCode(emit, context):
 
             emit(
                 """\
-%(keeper_type)s = INCREASE_REFCOUNT( PyThreadState_GET()->exc_type );
-%(keeper_value)s = INCREASE_REFCOUNT_X( PyThreadState_GET()->exc_value );
-%(keeper_tb)s = (PyTracebackObject *)INCREASE_REFCOUNT_X( PyThreadState_GET()->exc_traceback );
+%(keeper_type)s = PyThreadState_GET()->exc_type;
+Py_XINCREF( %(keeper_type)s );
+%(keeper_value)s = PyThreadState_GET()->exc_value;
+Py_XINCREF( %(keeper_value)s );
+%(keeper_tb)s = (PyTracebackObject *)PyThreadState_GET()->exc_traceback;
+Py_XINCREF( %(keeper_tb)s );
 """ % {
                     "keeper_type"  : keeper_type,
                     "keeper_value" : keeper_value,
@@ -289,9 +292,12 @@ def getFrameReraiseExceptionCode(emit, context):
 
     emit(
         """\
-exception_type = INCREASE_REFCOUNT( PyThreadState_GET()->exc_type );
-exception_value = INCREASE_REFCOUNT( PyThreadState_GET()->exc_value );
-exception_tb = (PyTracebackObject *)INCREASE_REFCOUNT( PyThreadState_GET()->exc_traceback );
+exception_type = PyThreadState_GET()->exc_type;
+Py_INCREF( exception_type );
+exception_value = PyThreadState_GET()->exc_value;
+Py_INCREF( exception_value );
+exception_tb = (PyTracebackObject *)PyThreadState_GET()->exc_traceback;
+Py_INCREF( exception_tb );
 """ )
     getSetLineNumberCodeRaw("exception_tb->tb_lineno", emit, context)
     getFrameRestoreExceptionCode(emit, context)

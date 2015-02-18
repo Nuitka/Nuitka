@@ -107,7 +107,8 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 }"""
 
 template_generator_exception_exit = """\
-    RESTORE_ERROR_OCCURRED( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
+    Py_INCREF( PyExc_StopIteration );
 
     generator->m_yielded = NULL;
     return;
@@ -134,10 +135,11 @@ template_generator_return_exit = """\
 
     function_return_exit:
 #if PYTHON_VERSION < 330
-    RESTORE_ERROR_OCCURRED( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
 #else
-    RESTORE_ERROR_OCCURRED( INCREASE_REFCOUNT( PyExc_StopIteration ), tmp_return_value, NULL );
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, tmp_return_value, NULL );
 #endif
+    Py_INCREF( PyExc_StopIteration );
     generator->m_yielded = NULL;
     return;
 """

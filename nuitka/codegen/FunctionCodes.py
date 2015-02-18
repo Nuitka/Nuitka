@@ -278,25 +278,22 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
         closure_variables = closure_variables
     )
 
-    def takeRefs(arg_names):
-        result = []
-
-        for arg_name in arg_names:
-            if context.needsCleanup(arg_name):
-                context.removeCleanupTempName(arg_name)
-
-                result.append(arg_name)
-            else:
-                result.append("INCREASE_REFCOUNT( %s )" % arg_name)
-
-        return result
+    # TODO: We ought to not assume references for direct calls, or make a
+    # profile if an argument needs a reference at all. Most functions don't
+    # bother to release a called argument by "del" or assignment to it. We
+    # could well know that ahead of time.
+    for arg_name in arg_names:
+        if context.needsCleanup(arg_name):
+            context.removeCleanupTempName(arg_name)
+        else:
+            emit("Py_INCREF( %s );" % arg_name)
 
     emit(
         "%s = %s( %s );" % (
             to_name,
             function_identifier,
             ", ".join(
-                takeRefs(arg_names) + suffix_args
+                arg_names + suffix_args
             )
         )
     )

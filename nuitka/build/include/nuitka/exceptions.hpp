@@ -141,6 +141,7 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *fr
 
     result->tb_next = NULL;
     result->tb_frame = frame;
+    Py_INCREF( frame );
 
     result->tb_lasti = 0;
     result->tb_lineno = frame->f_lineno;
@@ -153,8 +154,6 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *fr
 // Add a frame to an existing exception traceback.
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyFrameObject *frame, PyTracebackObject *exception_tb )
 {
-    Py_INCREF( frame );
-
     if ( exception_tb->tb_frame != frame || exception_tb->tb_lineno != frame->f_lineno )
     {
         PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( frame );
@@ -166,6 +165,9 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyFrameObject *fra
     else
     {
         return exception_tb;
+
+        // TODO: This might be a bug.
+        Py_INCREF( frame );
     }
 
 }
@@ -228,16 +230,20 @@ NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION( PyFrameObject 
 #if _DEBUG_EXCEPTIONS
             PRINT_STRING("PRESERVE_FRAME_EXCEPTION: preserve thread exception\n");
 #endif
-            frame_object->f_exc_type = INCREASE_REFCOUNT( thread_state->exc_type );
-            frame_object->f_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
-            frame_object->f_exc_traceback = INCREASE_REFCOUNT_X( thread_state->exc_traceback );
+            frame_object->f_exc_type = thread_state->exc_type;
+            Py_INCREF( frame_object->f_exc_type );
+            frame_object->f_exc_value = thread_state->exc_value;
+            Py_XINCREF( frame_object->f_exc_value );
+            frame_object->f_exc_traceback = thread_state->exc_traceback;
+            Py_XINCREF( frame_object->f_exc_traceback );
         }
         else
         {
 #if _DEBUG_EXCEPTIONS
             PRINT_STRING("PRESERVE_FRAME_EXCEPTION: no exception to preserve\n");
 #endif
-            frame_object->f_exc_type = INCREASE_REFCOUNT( Py_None );
+            frame_object->f_exc_type = Py_None;
+            Py_INCREF( frame_object->f_exc_type );
             frame_object->f_exc_value = NULL;
             frame_object->f_exc_traceback = NULL;
         }

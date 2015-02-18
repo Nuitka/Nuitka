@@ -138,7 +138,7 @@ def decideRecursion(module_filename, module_name, module_package,
                 "Module listed explicitly to recurse to."
             )
 
-        if full_name.startswith(any_case_module + '.' ):
+        if full_name.startswith(any_case_module + '.'):
             return (
                 True,
                 "Module in package listed explicitly to recurse to."

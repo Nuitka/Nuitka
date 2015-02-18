@@ -185,7 +185,9 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             )
 
             emit(
-                "%s = INCREASE_REFCOUNT( locals_dict );" % (
+                """\
+%s = locals_dict;
+Py_INCREF( locals_dict );""" % (
                     to_name
                 )
             )

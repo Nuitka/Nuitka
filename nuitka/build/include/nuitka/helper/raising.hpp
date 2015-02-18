@@ -435,9 +435,12 @@ NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( PyObject **exception_type, P
     PyThreadState *tstate = PyThreadState_GET();
     assert( tstate );
 
-    *exception_type = INCREASE_REFCOUNT( tstate->exc_type != NULL ? tstate->exc_type : Py_None );
-    *exception_value = INCREASE_REFCOUNT_X( tstate->exc_value );
-    *exception_tb = (PyTracebackObject *)INCREASE_REFCOUNT_X( tstate->exc_traceback );
+    *exception_type = tstate->exc_type != NULL ? tstate->exc_type : Py_None;
+    Py_INCREF( *exception_type );
+    *exception_value = tstate->exc_value;
+    Py_XINCREF( *exception_value );
+    *exception_tb = (PyTracebackObject *)tstate->exc_traceback;
+    Py_XINCREF( *exception_tb );
 
     assertObject( *exception_type );
 
