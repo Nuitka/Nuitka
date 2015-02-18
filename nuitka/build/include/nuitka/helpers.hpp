@@ -42,21 +42,11 @@ typedef struct {
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
 // Helper to check that an object is valid and has positive reference count.
-static inline void assertObject( PyObject *value )
-{
-    assert( value != NULL );
-    assert( Py_REFCNT( value ) > 0 );
-}
-
-static inline void assertObject( PyTracebackObject *value )
-{
-    assertObject( (PyObject *)value );
-}
+#define assertObject( value ) ( assert( value != NULL ), assert( Py_REFCNT( value ) > 0 ) );
 
 
 #include "nuitka/exceptions.hpp"
 
-// For the MAKE_TUPLE macros.
 #include "__helpers.hpp"
 
 // Helper functions for reference count handling in the fly.
