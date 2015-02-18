@@ -44,12 +44,6 @@ NUITKA_MAY_BE_UNUSED static PyFrameObject *INCREASE_REFCOUNT( PyFrameObject *fra
     return frame_object;
 }
 
-NUITKA_MAY_BE_UNUSED static PyFrameObject *INCREASE_REFCOUNT_X( PyFrameObject *frame_object )
-{
-    Py_XINCREF( frame_object );
-    return frame_object;
-}
-
 NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
 {
     if ( frame_object ) assertObject( (PyObject *)frame_object );

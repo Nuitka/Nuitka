@@ -616,8 +616,10 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
 
     result->m_function = (Nuitka_FunctionObject * )INCREASE_REFCOUNT( (PyObject *)function );
 
-    result->m_object = INCREASE_REFCOUNT_X( object );
-    result->m_class = INCREASE_REFCOUNT_X( klass );
+    result->m_object = object;
+    Py_XINCREF( object );
+    result->m_class = klass;
+    Py_XINCREF( klass );
 
     result->m_weakrefs = NULL;
 

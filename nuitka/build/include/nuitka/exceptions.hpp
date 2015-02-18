@@ -125,12 +125,6 @@ NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *INCREASE_REFCOUNT( PyTrace
     return traceback_object;
 }
 
-NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *INCREASE_REFCOUNT_X( PyTracebackObject *traceback_object )
-{
-    Py_XINCREF( traceback_object );
-    return traceback_object;
-}
-
 // Create a traceback for a given frame. TODO: Probably we ought to have a quick
 // cache for it, in case of repeated usage.
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame )

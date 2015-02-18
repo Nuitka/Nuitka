@@ -68,9 +68,12 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
         PyThreadState *thread_state = PyThreadState_GET();
 
 #if PYTHON_VERSION < 300
-        PyObject *saved_exception_type = INCREASE_REFCOUNT_X( thread_state->exc_type );
-        PyObject *saved_exception_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
-        PyTracebackObject *saved_exception_traceback = INCREASE_REFCOUNT_X( (PyTracebackObject *)thread_state->exc_traceback );
+        PyObject *saved_exception_type = thread_state->exc_type;
+        Py_XINCREF( saved_exception_type );
+        PyObject *saved_exception_value = thread_state->exc_value;
+        Py_XINCREF( saved_exception_value );
+        PyTracebackObject *saved_exception_traceback = (PyTracebackObject *)thread_state->exc_traceback;
+        Py_XINCREF( saved_exception_traceback );
 #endif
 
         if ( generator->m_running )

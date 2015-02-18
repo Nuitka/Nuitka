@@ -40,7 +40,6 @@ typedef struct {
 #include "nuitka/helper/printing.hpp"
 
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
-static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 
 // Helper to check that an object is valid and has positive reference count.
 static inline void assertObject( PyObject *value )
@@ -76,13 +75,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
     assertObject( object );
 
     Py_INCREF( object );
-
-    return object;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT_X( PyObject *object )
-{
-    Py_XINCREF( object );
 
     return object;
 }
