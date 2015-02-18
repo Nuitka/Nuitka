@@ -208,64 +208,69 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INCREMENTAL( PyObject **operand1, PyObject *operand2 )
 {
-    if ( !PyString_CHECK_INTERNED( *operand1 ) )
+    assert( PyString_CheckExact( *operand1 ) );
+    assert( !PyString_CHECK_INTERNED( *operand1 ) );
+    assert( PyString_CheckExact( operand2 ) );
+
+    Py_ssize_t operand1_size = PyString_GET_SIZE( *operand1 );
+    Py_ssize_t operand2_size = PyString_GET_SIZE( operand2 );
+
+    Py_ssize_t new_size = operand1_size + operand2_size;
+
+    if (unlikely( new_size < 0 ))
     {
-        Py_ssize_t operand1_size = PyString_GET_SIZE( *operand1 );
-        Py_ssize_t operand2_size = PyString_GET_SIZE( operand2 );
-
-        Py_ssize_t new_size = operand1_size + operand2_size;
-
-        if (unlikely( new_size < 0 ))
-        {
-            PyErr_Format(
-                PyExc_OverflowError,
-                "strings are too large to concat"
-            );
-
-            return false;
-        }
-
-        if (unlikely( _PyString_Resize( operand1, new_size ) != 0 ))
-        {
-            return false;
-        }
-
-        memcpy(
-            PyString_AS_STRING( *operand1 ) + operand1_size,
-            PyString_AS_STRING( operand2 ),
-            operand2_size
+        PyErr_Format(
+            PyExc_OverflowError,
+            "strings are too large to concat"
         );
+
+        return false;
     }
-    else
+
+    // Need to lie about reference count.
+    Py_REFCNT( *operand1 ) = 1;
+
+    if (unlikely( _PyString_Resize( operand1, new_size ) != 0 ))
     {
-        // Otherwise, normal concat. TODO: Errors?
-        PyString_Concat( operand1, operand2 );
+        Py_REFCNT( *operand1 ) = 3;
+        return false;
     }
+    Py_REFCNT( *operand1 ) = 3;
+
+    memcpy(
+        PyString_AS_STRING( *operand1 ) + operand1_size,
+        PyString_AS_STRING( operand2 ),
+        operand2_size
+    );
 
     return true;
 }
 #endif
 
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INCREMENTAL( PyObject **operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     assertObject( *operand1 );
     assertObject( operand2 );
 
 #if PYTHON_VERSION < 300
-    if ( Py_REFCNT( operand1 ) == 1 )
+    if ( Py_REFCNT( *operand1 ) == 3 )
     {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-        if ( PyString_CheckExact( operand1 ) && PyString_CheckExact( operand2 ) )
+        if ( PyString_CheckExact( *operand1 ) &&
+             !PyString_CHECK_INTERNED( *operand1 ) &&
+             PyString_CheckExact( operand2 ) )
         {
             return STRING_ADD_INCREMENTAL( operand1, operand2 );
         }
     }
 #endif
 
-    PyObject *result = BINARY_OPERATION_ADD( *operand1, operand2 );
+    // TODO: Could specialize more and the generic variant, that e.g. need not
+    // check for strings anymore.
+    PyObject *result = BINARY_OPERATION( PyNumber_InPlaceAdd, *operand1, operand2 );
 
     if (unlikely( result == NULL ))
     {
@@ -273,6 +278,8 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INCREMENTAL( PyObject **op
     }
     else
     {
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
         *operand1 = result;
         return true;
     }

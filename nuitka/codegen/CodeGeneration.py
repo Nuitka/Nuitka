@@ -36,14 +36,18 @@ from .ConditionalCodes import generateConditionCode
 from .ConstantCodes import generateConstantReferenceCode
 from .ErrorCodes import getErrorExitBoolCode
 from .ModuleCodes import generateModuleFileAttributeCode
+from .OperationCodes import (
+    generateOperationBinaryCode,
+    generateOperationUnaryCode
+)
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 from .SliceCodes import generateBuiltinSliceCode
 from .SubscriptCodes import generateSubscriptLookupCode
 from .VariableCodes import (
     generateVariableDelCode,
-    getVariableAssignmentCode,
     generateVariableReferenceCode,
-    generateVariableReleaseCode
+    generateVariableReleaseCode,
+    getVariableAssignmentCode
 )
 
 
@@ -997,41 +1001,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_names      = exception_arg_names,
             emit           = emit,
             context        = context
-        )
-    elif expression.isExpressionOperationBinary():
-        left_arg_name = context.allocateTempName("binop_left")
-        right_arg_name = context.allocateTempName("binop_right")
-
-        makeExpressionCode(
-            to_name    = left_arg_name,
-            expression = expression.getLeft()
-        )
-        makeExpressionCode(
-            to_name    = right_arg_name,
-            expression = expression.getRight()
-        )
-
-        Generator.getOperationCode(
-            to_name   = to_name,
-            operator  = expression.getOperator(),
-            arg_names = (left_arg_name, right_arg_name),
-            emit      = emit,
-            context   = context
-        )
-    elif expression.isExpressionOperationUnary():
-        arg_name = context.allocateTempName("unary_arg")
-
-        makeExpressionCode(
-            to_name    = arg_name,
-            expression = expression.getOperand()
-        )
-
-        Generator.getOperationCode(
-            to_name   = to_name,
-            operator  = expression.getOperator(),
-            arg_names = (arg_name,),
-            emit      = emit,
-            context   = context
         )
     elif expression.isExpressionComparison():
         generateComparisonExpressionCode(
@@ -4242,6 +4211,10 @@ Helpers.setExpressionDispatchDict(
         "SUBSCRIPT_LOOKUP"          : generateSubscriptLookupCode,
         "BUILTIN_SLICE"             : generateBuiltinSliceCode,
         "BUILTIN_ID"                : generateBuiltinIdCode,
+        "OPERATION_BINARY"          : generateOperationBinaryCode,
+        "OPERATION_BINARY_INPLACE"  : generateOperationBinaryCode,
+        "OPERATION_UNARY"           : generateOperationUnaryCode,
+        "OPERATION_NOT"             : generateOperationUnaryCode,
         "CALL_EMPTY"                : generateCallCode,
         "CALL_KEYWORDS_ONLY"        : generateCallCode,
         "CALL_NO_KEYWORDS"          : generateCallCode,

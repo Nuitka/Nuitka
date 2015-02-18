@@ -40,6 +40,14 @@ class ExpressionOperationBase(ExpressionChildrenHavingBase):
 
         self.simulator = simulator
 
+        self.inplace_suspect = False
+
+    def markAsInplaceSuspect(self):
+        self.inplace_suspect = True
+
+    def isInplaceSuspect(self):
+        return self.inplace_suspect
+
     def getDetail(self):
         return self.operator
 
@@ -78,13 +86,8 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
-        self.inplace_suspect = False
-
-    def markAsInplaceSuspect(self):
-        self.inplace_suspect = True
-
-    def isInplaceSuspect(self):
-        return self.inplace_suspect
+        if operator.startswith('I'):
+            self.markAsInplaceSuspect()
 
     def computeExpression(self, constraint_collection):
         # This is using many returns based on many conditions,
