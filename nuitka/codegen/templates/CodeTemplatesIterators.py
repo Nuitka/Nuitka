@@ -58,3 +58,21 @@ else
 %(release_temps_2)s
     goto %(exception_exit)s;
 }"""
+
+template_loop_break_next = """\
+if ( %(to_name)s == NULL )
+{
+    if ( CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() )
+    {
+%(break_indicator_code)s
+        goto %(break_target)s;
+    }
+    else
+    {
+%(release_temps)s
+        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+%(line_number_code)s
+        goto %(exception_target)s;
+    }
+}
+"""

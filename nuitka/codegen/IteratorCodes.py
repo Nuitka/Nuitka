@@ -27,7 +27,6 @@ from .ErrorCodes import (
     getReleaseCode
 )
 from .Indentation import indented
-from .LabelCodes import getGotoCode
 from .LineNumberCodes import getLineNumberUpdateCode
 
 
@@ -69,40 +68,28 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
         context      = context
     )
 
-    emit(
-        """\
-if (%s == NULL)
-{
-    if ( CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() )
-    {
-""" % to_name
-    )
-
     break_target = context.getLoopBreakTarget()
     if type(break_target) is tuple:
-        emit("%s = true;" % break_target[1])
+        break_indicator_code = "%s = true;" % break_target[1]
         break_target = break_target[0]
-
-    getGotoCode(break_target, emit)
+    else:
+        break_indicator_code = ""
 
     emit(
-    """
-    }
-    else
-    {
-%s
-        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
-%s
-        goto %s;
-    }
-}
-""" % (
-            indented(getErrorExitReleaseCode(context), 2),
-            indented(
-                getLineNumberUpdateCode(context)
+        CodeTemplates.template_loop_break_next % {
+            "to_name" : to_name,
+            "break_indicator_code" : break_indicator_code,
+            "break_target" : break_target,
+            "release_temps"    : indented(
+                getErrorExitReleaseCode(context),
+                2
             ),
-            context.getExceptionEscape()
-        )
+            "line_number_code" : indented(
+                getLineNumberUpdateCode(context),
+                2
+            ),
+            "exception_target" : context.getExceptionEscape()
+        }
     )
 
     context.addCleanupTempName(to_name)
