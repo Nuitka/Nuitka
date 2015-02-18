@@ -78,40 +78,6 @@ NUITKA_MAY_BE_UNUSED static inline void DROP_ERROR_OCCURRED( void )
     }
 }
 
-
-
-NUITKA_MAY_BE_UNUSED static void PRINT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb )
-{
-    if ( exception_type != NULL )
-    {
-        PRINT_ITEM( PyObject_Repr( exception_type ) );
-    }
-    else
-    {
-        PRINT_NULL();
-    }
-
-    if ( exception_value != NULL  )
-    {
-        PRINT_ITEM( PyObject_Repr( exception_value ) );
-    }
-    else
-    {
-        PRINT_NULL();
-    }
-
-    if ( exception_tb != NULL )
-    {
-        PRINT_ITEM( exception_tb );
-    }
-    else
-    {
-        PRINT_NULL();
-    }
-
-    PRINT_NEW_LINE();
-}
-
 // Fetch the current error into object variables.
 NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_traceback)
 {
@@ -152,36 +118,6 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED( PyObject *exception_typ
     Py_XDECREF( old_exception_value );
     Py_XDECREF( old_exception_traceback );
 }
-
-
-
-#if PYTHON_VERSION < 300
-NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
-{
-    PRINT_STRING("Dumping traceback:\n");
-
-    if ( traceback == NULL ) PRINT_STRING( "<NULL traceback?!>\n" );
-
-    while( traceback )
-    {
-        printf( " line %d (frame object chain):\n", traceback->tb_lineno );
-
-        PyFrameObject *frame = traceback->tb_frame;
-
-        while ( frame )
-        {
-            printf( "  Frame at %s\n", PyString_AsString( PyObject_Str( (PyObject *)frame->f_code )));
-
-            frame = frame->f_back;
-        }
-
-        assert( traceback->tb_next != traceback );
-        traceback = traceback->tb_next;
-    }
-
-    PRINT_STRING("End of Dump.\n");
-}
-#endif
 
 NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *INCREASE_REFCOUNT( PyTracebackObject *traceback_object )
 {

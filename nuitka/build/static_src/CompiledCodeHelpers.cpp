@@ -1114,10 +1114,68 @@ bool PRINT_STRING( char const *str )
     return res != -1;
 }
 
+bool PRINT_REPR( PyObject *object )
+{
+    bool res;
+
+    if ( object != NULL )
+    {
+        PyObject *repr = PyObject_Repr( object );
+        res = PRINT_ITEM( repr );
+        Py_DECREF( repr );
+    }
+    else
+    {
+        res = PRINT_NULL();
+    }
+
+    return res;
+}
+
 bool PRINT_NULL( void )
 {
     return PRINT_STRING("<NULL>");
 }
+
+void PRINT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb )
+{
+    PRINT_REPR( exception_type );
+    PRINT_REPR( exception_value );
+    PRINT_REPR( exception_tb );
+
+    PRINT_NEW_LINE();
+}
+
+// TODO: Could be ported, the "printf" stuff would need to be split. On Python3
+// the normal C print output gets lost.
+#if PYTHON_VERSION < 300
+void PRINT_TRACEBACK( PyTracebackObject *traceback )
+{
+    PRINT_STRING("Dumping traceback:\n");
+
+    if ( traceback == NULL ) PRINT_STRING( "<NULL traceback?!>\n" );
+
+    while( traceback )
+    {
+        printf( " line %d (frame object chain):\n", traceback->tb_lineno );
+
+        PyFrameObject *frame = traceback->tb_frame;
+
+        while ( frame )
+        {
+            printf( "  Frame at %s\n", PyString_AsString( PyObject_Str( (PyObject *)frame->f_code )));
+
+            frame = frame->f_back;
+        }
+
+        assert( traceback->tb_next != traceback );
+        traceback = traceback->tb_next;
+    }
+
+    PRINT_STRING("End of Dump.\n");
+}
+#endif
+
 
 PyObject *GET_STDOUT()
 {

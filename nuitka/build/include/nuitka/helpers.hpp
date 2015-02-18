@@ -36,11 +36,9 @@ typedef struct {
     PyObject *md_dict;
 } PyModuleObject;
 
-extern bool PRINT_ITEM_TO( PyObject *file, PyObject *object );
-extern bool PRINT_ITEM( PyObject *object );
-extern bool PRINT_NEW_LINE( void );
-extern bool PRINT_STRING( char const * );
-extern bool PRINT_NULL( void );
+// Most fundamental, because we use it for debugging in everything else.
+#include "nuitka/helper/printing.hpp"
+
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 
@@ -102,8 +100,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 #ifndef __NUITKA_NO_ASSERT__
 extern Py_hash_t DEEP_HASH( PyObject *value );
 #endif
-
-#include "printing.hpp"
 
 #include "nuitka/helper/boolean.hpp"
 

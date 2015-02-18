@@ -19,12 +19,11 @@
 #define __NUITKA_PRINTING_H__
 
 // Helper functions for print. Need to play nice with Python softspace
-// behaviour.
-
-#include "nuitka/exceptions.hpp"
+// behavior.
 
 extern bool PRINT_NEW_LINE( void );
 extern bool PRINT_ITEM( PyObject *object );
+extern bool PRINT_STRING( char const *str );
 
 extern bool PRINT_ITEM_TO( PyObject *file, PyObject *object );
 extern bool PRINT_NEW_LINE_TO( PyObject *file );
@@ -32,7 +31,27 @@ extern bool PRINT_NEW_LINE_TO( PyObject *file );
 extern PyObject *GET_STDOUT();
 extern PyObject *GET_STDERR();
 
-// Helper functions to debug the compiler operation.
+// -----------------------------------------------------------------------
+// Helper functions to debug the run time operation of the compiled binary
+// manually or in debug modes.
+
+// Print the reference count of the object.
 extern void PRINT_REFCOUNT( PyObject *object );
+
+// Print the full traceback stack.
+// TODO: Could be ported, the "printf" stuff would need to be split. On Python3
+// the normal C print output gets lost.
+#if PYTHON_VERSION < 300
+extern void PRINT_TRACEBACK( PyTracebackObject *traceback );
+#endif
+
+// Print the exception state, including NULL values.
+extern void PRINT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb );
+
+// Print the representation of the object, or "<NULL>" if it's not set.
+extern bool PRINT_REPR( PyObject *object );
+
+// Print the word <NULL>, as an alternative to pointers.
+extern bool PRINT_NULL( void );
 
 #endif
