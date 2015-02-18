@@ -47,8 +47,6 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
 #include "nuitka/exceptions.hpp"
 
-#include "__helpers.hpp"
-
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 {
