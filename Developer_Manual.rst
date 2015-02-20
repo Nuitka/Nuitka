@@ -29,20 +29,23 @@ Milestones
    absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
-   older CPython release. For CPython 3.2, and CPython 3.3 it also has been
-   reached. We do not target older CPython 3.1 and 3.0 releases.
+   older CPython release. For CPython 3.2, CPython 3.3, and CPython 3.4 it also
+   has been reached. We do not target the older and practically unused CPython
+   3.1 and 3.0 releases.
 
    This milestone was reached.
 
 2. Create the most efficient native code from this. This means to be fast with
    the basic Python object handling.
 
-   This milestone was reached.
+   This milestone was reached, although of course, micro optimizations to this
+   are happening all the time.
 
 3. Then do constant propagation, determine as many values and useful constraints
    as possible at compile time and create more efficient code.
 
-   This milestone is considered almost reached.
+   This milestone is considered almost reached. We continue to discover new
+   things, but the infrastructure is there, and these are easy to add.
 
 4. Type inference, detect and special case the handling of strings, integers,
    lists in the program.
@@ -85,10 +88,10 @@ should express which of these, we consider done.
 - Final:
 
   We will then round it up and call it "Nuitka 1.0" when this works as expected
-  for a bunch of people. The plan is to reach this goal during 2015. This is
+  for a bunch of people. The plan is to reach this goal during 2016. This is
   based on positive assumptions that may not hold up though.
 
-Of course, this may be subject to change.
+Of course, all of this may be subject to change.
 
 
 Current State
@@ -231,7 +234,7 @@ Prefer list contractions over built-ins
 
 This concerns ``map``, ``filter``, and ``apply``. Usage of these built-ins is
 highly discouraged within Nuitka source code. Using them is considered worth a
-warning by "PyLint" e.g. "Used builtin function 'map'". We should use list
+warning by "PyLint" e.g. "Used built-in function 'map'". We should use list
 contractions instead, because they are more readable.
 
 List contractions are a generalization for all of them. We love readability and
@@ -274,7 +277,7 @@ cannot be overloaded without re-declaring them.
 Overloading is then not at all obvious anymore. Now imagine having a setter and
 only overloading the getter. How to update the property easily?
 
-So, that's not likable about them. And then we are also for clarity in these
+So, that's not likeable about them. And then we are also for clarity in these
 internal APIs too. Properties try and hide the fact that code needs to run and
 may do things. So lets not use them.
 
@@ -416,7 +419,7 @@ It sometimes so happens that Nuitka must do this itself, because the
 ``ast.parse`` doesn't see the problem and raises no ``SyntaxError`` of its
 own.
 
-Using the ``global`` statementon a function argument is an example of
+Using the ``global`` statement on a function argument is an example of
 this. These tests make sure that the errors of Nuitka and CPython are totally
 the same for this:
 
@@ -786,8 +789,8 @@ changed.
 * This value of ``__class__`` is also available in the child functions.
 
 * The parser marks up code objects usage of "super". It doesn't have to be a
-  call, it can also be a local variable. If the ``super`` builtin is assigned to
-  another name and that is used without arguments, it won't work unless
+  call, it can also be a local variable. If the ``super`` built-in is assigned
+  to another name and that is used without arguments, it won't work unless
   ``__class__`` is taken as a closure variable.
 
 * As can be seen in the CPython3.2 code, the closure value is added after the
@@ -944,7 +947,8 @@ Code Generation towards C
 -------------------------
 
 Currently, Nuitka use C++ as a glorified C, it will tend to use less and less
-actual C++ patterns. To control the order to object deletion, this is vital.
+actual C++ patterns. Nuitka needs to control the order of releases fully, and
+may have objects becoming illegal references by e.g. in-place operations.
 
 Exceptions
 ++++++++++
@@ -954,16 +958,13 @@ To handle and work with exceptions, every construct that can raise has either a
 This is very much in line with that the Python C-API does.
 
 Every helper function that contains code that might raise needs these
-variables. After a failed call, ``PyErr_Fetch`` must be used to catch the
-defined error, unless some quick exception cases apply. Sometimes e.g. ``NULL``
-return from C-API means ``StopIteration``.
-
-The difficulty here, is only to discover the need for these variables, because
-we would like to not have unused variables declared. In principle, the
-``mayRaiseException`` should be used to discover this.
+variables. After a failed call, our variant of ``PyErr_Fetch`` called
+``FETCH_ERROR_OCCURRED`` must be used to catch the defined error, unless some
+quick exception cases apply. The quick exception means, ``NULL`` return from
+C-API without a set exception means means e.g. ``StopIteration``.
 
 As an optimization, functions that raise exceptions, but are known not to do so,
-for whatever reason, may only be asserted.
+for whatever reason, could only be asserted to not do so.
 
 Statement Temporary Variables
 +++++++++++++++++++++++++++++
@@ -976,6 +977,19 @@ The larger scope temporary variables, are tracked in the function or module
 context, where they are supposed to have explicit ``del`` to release their
 references.
 
+Local Variables Storage
++++++++++++++++++++++++
+
+Closure variables taken are to be released when the function object is later
+destroyed. For in-lined calls, variables are just passed, and it does not
+become an issue to release anything.
+
+For function exit, owned variables, local or shared to other functions, must
+be released. This cannot be a ``del`` operation, as it also involves setting
+a value, which would be wrong for shared variables (and wasteful to local
+variables, as that would be its last usage). Therefore we need a special
+operation that simply releases the reference to the cell or object variable.
+
 Exit Targets
 ++++++++++++
 
@@ -986,13 +1000,10 @@ Each error or other exit releases statement temporary values and then executes a
 Other exits are ``continue``, ``break``, and ``return`` exits. They all work
 alike.
 
-For frames, later, local variables will need to be freed on the way out. The way
-out for a frame, should either be a function return, or another frame exit. We
-will later have a ``try``/``finally`` with the ``del`` around them.
-
 Generally, the exits stack of with constructs that need to register themselves
 for some exit types. A loop e.g. registers the ``continue`` exit, and a
-contained ``try``/``finally`` too, so it can execute the final code.
+contained ``try``/``finally`` too, so it can execute the final code should it
+be needed.
 
 Frames
 ++++++
@@ -1026,21 +1037,21 @@ Problems were
 * Even unused code contributed to start-up time, this can become a lot for
   large programs, especially in standalone mode.
 
-* The massive amount of constant creation codes gave C++ compilers a much
-  harder time than necessary to grok all at once.
+* The massive amount of constant creation codes gave backend compilers a much
+  harder time than necessary to analyse it all at once.
 
 The current approach is as follows. Code generation detects constants used in
 only one module, and declared ``static`` there, if the module is the only user,
 or ``extern`` if it is not. Some values or forced to be global, as they are
 used pre-main or in helpers.
 
-The ``extern`` values are globally created pre-main. The ``static`` values are
-created when the module is loaded.
+These ``extern`` values are globally created before anything is used. The
+``static`` values are created when the module is loaded, i.e. something did
+import it.
 
 We trace used constants per module, and for nested ones, we also associate
-them. The global constants code is special in that it can only use
-``static`` for nested values it exclusively uses, and has to export values that
-others use.
+them. The global constants code is special in that it can only use ``static``
+for nested values it exclusively uses, and has to export values that others use.
 
 
 Language Conversions to make things simpler
@@ -1679,7 +1690,7 @@ The difference is that with Python3, the function "_listcontr_helper" is really
 there and named ``<listcomp>``, whereas with Python2 the function is to be
 considered in-lined.
 
-This in-inlining in case of Python2 causes difficulties, because it's statements
+This in-lining in case of Python2 causes difficulties, because it's statements
 that occur inside an expression, which means a lot of side effects, that may or
 may not be possible to unroll to outside.
 
@@ -1708,11 +1719,11 @@ they produce an actual helper function:
     set_value = _setcontr_helper( range(8) )
 
 
-Dict Contractions
-+++++++++++++++++
+Dictionary Contractions
++++++++++++++++++++++++
 
-The dict contractions of Python2.7 are like list contractions in Python3, in
-that they produce an actual helper function:
+The dictionary contractions of are like list contractions in Python3, in that
+they produce an actual helper function:
 
 .. code-block:: python
 
@@ -1786,7 +1797,7 @@ On the C-API level there is a tuple and dictionary built. This one is exposed:
 
 A called function will access this tuple and the dictionary to parse the
 arguments, once that is also re-formulated (argument parsing), it can then lead
-to simple inlining. This way calls only have 2 arguments with constant
+to simple in-lining. This way calls only have 2 arguments with constant
 semantics, that fits perfectly with the C-API where it is the same, so it is
 actually easier for code generation.
 
@@ -1813,13 +1824,13 @@ The evaluation order is precisely that. An example would be:
 
 The task here is that first all the arguments are evaluated, left to right, and
 then they are merged into only two, that is positional and named arguments
-only. for this, the star list argument and the star dict arguments, are merged
-with the positional and named arguments.
+only. for this, the star list argument and the star dictionary arguments, are
+merged with the positional and named arguments.
 
-What's peculiar, is that if both the star list and dict arguments are present,
-the merging is first done for star dict, and only after that for the star list
-argument. This makes a difference, because in case of an error, the star
-argument raises first.
+What's peculiar, is that if both the star list and dictionary arguments are
+present, the merging is first done for star dictionary, and only after that for
+the star list argument. This makes a difference, because in case of an error,
+the star argument raises first.
 
 .. code-block:: python
 
@@ -1831,8 +1842,8 @@ after * must be a sequence, not int."
 
 That doesn't matter much though, because the value is to be evaluated first
 anyway, and the check is only performed afterwards. If the star list argument
-calculation gives an error, this one is raised before checking the star dict
-argument.
+calculation gives an error, this one is raised before checking the star
+dictionary argument.
 
 So, what we do, is we convert complex calls by the way of special functions,
 which handle the dirty work for us. The optimization is then tasked to do the
@@ -1870,7 +1881,7 @@ relates to the "PyObject_Call" C-API.
 Print statements
 ++++++++++++++++
 
-The ``print`` statement exists only in Python2. It implicitly coverts its
+The ``print`` statement exists only in Python2. It implicitly converts its
 arguments to strings before printing them. In order to make this accessible and
 compile time optimized, this is made visible in the node tree.
 
@@ -1907,7 +1918,7 @@ This is being reformulated to:
 
 This allows code generation to not deal with arbitrary amount of arguments to
 ``print``. It also separates the newline indicator from the rest of things,
-which makes sense too, having it as a special node, as it's behaviour with
+which makes sense too, having it as a special node, as it's behavior with
 regards to soft-space is different of course.
 
 And finally, for ``print`` without a target, we still assume that a target was
@@ -2100,7 +2111,7 @@ more. We want to forward propagate abstract properties of the values.
 In order to fully benefit from type knowledge, the new type system must be able
 to be fully friends with existing built-in types.  The behavior of a type
 ``long``, ``str``, etc. ought to be implemented as far as possible with the
-builtin ``long``, ``str`` as well.
+built-in ``long``, ``str`` as well.
 
 .. note::
 
@@ -2282,7 +2293,7 @@ propagate forward, how to handle this:
 
       return a
 
-We would notate that ``a`` is first a "unknown but defined parameter object",
+We would annotate that ``a`` is first a "unknown but defined parameter object",
 then later on something that definitely has an ``append`` attribute, when
 returned. Otherwise an exception occurs.
 
@@ -2922,7 +2933,7 @@ In order to do that, such code must be considered:
 
    print len( a )
 
-It will be good, if "len" still knows that "a" is a list, but not the constant
+It will be good, if ``len`` still knows that "a" is a list, but not the constant
 list anymore.
 
 From here, work should be done to demonstrate the correctness of it with the
@@ -3003,7 +3014,7 @@ etc.
 
   Looking at the "SELECT_METACLASS" it should become an anonymous helper
   function. In that way, the optimization process can remove choices at compile
-  time, and e.g. inline the effect of a meta class, if it is known.
+  time, and e.g. in-line the effect of a meta class, if it is known.
 
   This of course makes most sense, if we have the optimizations in place that
   will allow this to actually happen.
@@ -3136,7 +3147,7 @@ etc.
   information to the node tree a lot.
 
   Later versions, Nuitka will become able to determine it has to be the original
-  built-in at compilt time, then a condition that checks will be optimized away,
+  built-in at compile time, then a condition that checks will be optimized away,
   together with the slow path. Or the other path, if it won't be.  Then it will
   be optimized away, or if doubt exists, it will be correct. That is the goal.
 
@@ -3145,7 +3156,7 @@ etc.
 
   Making the compatible version, will also require a full listing of all
   built-ins, which is typing work merely, but not needed now. And a way to stop
-  built-in optimization from optimizing builtin calls that it used in a
+  built-in optimization from optimizing built-in calls that it used in a
   wrap. Probably just some flag to indicate it when it visits it to skip
   it. That's for later.
 
