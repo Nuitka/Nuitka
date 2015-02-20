@@ -1094,17 +1094,10 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
 void PRINT_REFCOUNT( PyObject *object )
 {
-#if PYTHON_VERSION < 300
-   char buffer[ 1024 ];
-   sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
+    char buffer[ 1024 ];
+    sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
 
-   if (unlikely( PyFile_WriteString( buffer, GET_STDOUT() ) == -1 ))
-   {
-      return;
-   }
-#else
-   assert( false );
-#endif
+    PRINT_STRING( buffer );
 }
 
 bool PRINT_STRING( char const *str )
