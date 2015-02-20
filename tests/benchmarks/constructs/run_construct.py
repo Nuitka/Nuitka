@@ -293,3 +293,13 @@ if options.cpython and options.nuitka:
             float(100 * cpython_diff) / nuitka_diff
         )
     )
+    print(
+        "RAW_GAIN=%.3f" % (
+            float(100 * cpython_1) / nuitka_1
+        )
+    )
+    print(
+        "BASE_GAIN=%.3f" % (
+            float(100 * cpython_2) / nuitka_2
+        )
+    )
