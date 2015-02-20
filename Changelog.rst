@@ -1,7 +1,9 @@
 Nuitka Release 0.5.10 (Draft)
 =============================
 
-This release is not yet done.
+This release has a focus on code generation optimization. Doing major changes
+away from "C++-ish" code to "C-ish" code, many constructs are now faster or
+got looked at and optimized.
 
 Bug Fixes
 ---------
@@ -15,8 +17,8 @@ Bug Fixes
 Optimization
 ------------
 
-- Faster exception save and restore functions that can be inlined by the
-  backend compiler.
+- Faster exception save and restore functions that might be in-lined by the
+  backend C compiler.
 
 - Faster error checks for many operations, where these errors are expected,
   e.g. instance attribute lookups.
@@ -31,21 +33,48 @@ Optimization
 
 - The creation and destruction of generator objects was accelerated.
 
+- The re-formulation for in-place assignments got simplified and got faster
+  doing so.
+
+- Access to local variable values got accelerated.
+
 Cleanup
 -------
 
-- The use of C++ classes for variable objects was largely reduced. Closure
-  variables are now attached as ``PyCellObject``.
+- The use of C++ classes for variable objects was removed. Closure variables
+  are now attached as ``PyCellObject`` to the function objects owning them.
 
 - The use of C++ context classes for closure taking and generator parameters
   has been replaced with attaching values directly to functions and generator
   objects.
 
+- The indentation of code template instantiations spanning multiple was not
+  in all cases properly indented. We were using objects that handled it and
+  mere lists, in mixed forms. Also some non-template codes got changed to be
+  properly formatted templates.
+
+- The internal API for handling of exceptions is now more consistent and used
+  more efficiently.
+
+Summary
+-------
+
+This is the next evolution of "C-ish" coming to pass. The use of C++ has for
+all practical purposes ceased. It will remain an ongoing activity to clear that
+up. This was a huge road block to many things, that now will become simpler.
+
+Also, lots of polishing was done while adding construct benchmarks that were
+made to check the impact of these changes. Here, generators probably stand out
+the most, as some of the missed optimization got revealed and addressed. Their
+speed increase will be visible to some programs that depend a lot on them.
+
+Complex code will benefit the most from these changes.
+
 
 Nuitka Release 0.5.9
 ====================
 
-This release is mostly a maintenance release, bringing out minor compatiblity
+This release is mostly a maintenance release, bringing out minor compatibility
 improvements, and some standalone improvements. Also new options to control
 the recursion into modules are added.
 
@@ -70,7 +99,7 @@ Bug Fixes
 
 - Python3: Errors when creating class dictionaries raised by the ``__prepare__``
   dictionary (e.g. ``enum`` classes with wrong identifiers) were not immediately
-  raised, but only by the ``type`` call. This was not observable, but hight have
+  raised, but only by the ``type`` call. This was not observable, but might have
   caused issues potentially.
 
 - Standalone MacOS: Shared libraries and extension modules didn't have their
@@ -139,11 +168,11 @@ subject to leaked exceptions, which revealed previously unnoticed errors.
 
 Important changes have been delayed, e.g. the closure variables will not yet
 use C++ objects to share storage, but proper ``PyCellObject`` for improved
-compatibility, and to approach a more C-ish status. These is unfinished code
+compatibility, and to approach a more "C-ish" status. These is unfinished code
 that does this. And the forward propagation of values is not enabled yet
 again either.
 
-So this is an interim step to get the bug fixes and improvements acculumated
+So this is an interim step to get the bug fixes and improvements accumulated
 out. Expect more actual changes in the next releases.
 
 
@@ -226,7 +255,7 @@ Tests
 Summary
 -------
 
-This release brings about two major changes, earch with the risk to break
+This release brings about two major changes, each with the risk to break
 things.
 
 One is that we finally started to have our own import logic, which has the risk
@@ -457,17 +486,18 @@ Summary
 
 The release is mainly the result of consolidation work. While the previous
 release contained many important enhancements, this is another important step
-towards full SSA, closing one loop whole (class variables and exec functions),
-as well as applying it to local variables, largely extending its use.
+towards full SSA, closing one loop whole (class variables and ``exec``
+functions), as well as applying it to local variables, largely extending its
+use.
 
 The amount of cleanups is tremendous, in huge part due to infrastructure
 problems that prevented release repeatedly. This reduces the technological
 debt very much.
 
-More importantly, it would appear that now eliminating local and temp variables
-that are not necessary is only a small step away. But as usual, while this may
-be easy to implement now, it will uncover more bugs in existing code, that we
-need to address before we continue.
+More importantly, it would appear that now eliminating local and temporary
+variables that are not necessary is only a small step away. But as usual, while
+this may be easy to implement now, it will uncover more bugs in existing code,
+that we need to address before we continue.
 
 
 Nuitka Release 0.5.5
@@ -5466,7 +5496,7 @@ New Tests
 
 - Activated the testing of ``sys.exc_info()`` in ``ExceptionRaising`` test. This
   was previously commented out, and now I added stuff to illustrate all of the
-  behaviour of CPython there.
+  behavior of CPython there.
 
 - Enhanced ``ComparisonChains`` test to demonstrate that the order of
   evaluations is done right and that side effects are maintained.
