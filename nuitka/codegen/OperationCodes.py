@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Codes for operations.
+
+There are unary and binary operations. Many of them have specializations and
+of course types could play into it. Then there is also the added difficulty of
+in-place assignments, which have other operation variants.
+"""
 
 from . import OperatorCodes
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
@@ -56,18 +62,22 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
 
 
 def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
-    # This needs to have one return per operation of Python, and there are many
-    # of these.
+    # This needs to have one case per operation of Python, and there are many
+    # of these, # pylint: disable=R0912
 
     prefix_args = ()
     ref_count = 1
 
     if operator == "Pow":
         helper = "POWER_OPERATION"
-    elif operator == "IPow":
+    elif operator == "IPow" and in_place:
         helper = "POWER_OPERATION_INPLACE"
+    elif operator == "IPow":
+        helper = "POWER_OPERATION2"
     elif operator == "Add":
         helper = "BINARY_OPERATION_ADD"
+    elif operator == "IAdd" and in_place:
+        helper = "BINARY_OPERATION_ADD_INPLACE"
     elif operator == "Sub":
         helper = "BINARY_OPERATION_SUB"
     elif operator == "Div":
@@ -92,17 +102,31 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
         assert False, operator
 
     # This is not working, as we do assertions that are broken.
-    if False and in_place and operator in OperatorCodes.inplace_operator_codes:
+    if in_place:
         res_name = context.getBoolResName()
 
-        emit(
-            "%s = %s( &%s, %s );" % (
-                res_name,
-                OperatorCodes.inplace_operator_codes[ operator ],
-                arg_names[0],
-                arg_names[1],
+        # We may have not specialized this one yet, so lets use generic in-place
+        # code, or the helper specificed.
+        if helper == "BINARY_OPERATION":
+            emit(
+                "%s = BINARY_OPERATION_INPLACE( %s, &%s, %s );" % (
+                    res_name,
+                    OperatorCodes.binary_operator_codes[ operator ],
+                    arg_names[0],
+                    arg_names[1],
+                )
             )
-        )
+        else:
+            emit(
+                "%s = %s( &%s, %s );" % (
+                    res_name,
+                    helper,
+                    arg_names[0],
+                    arg_names[1],
+                )
+            )
+
+            ref_count = 0
 
         emit(
             "%s = %s;" % (
@@ -123,6 +147,9 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
             emit      = emit,
             context   = context
         )
+
+        if ref_count:
+            context.addCleanupTempName(to_name)
 
     else:
         emit(

@@ -265,6 +265,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
                 variable      = variable,
                 tmp_name      = value_name,
                 needs_release = None, # TODO: Could be known maybe.
+                in_place      = False,
                 emit          = emit,
                 context       = context
             )

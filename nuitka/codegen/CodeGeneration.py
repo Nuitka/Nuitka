@@ -2571,6 +2571,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
         tmp_name      = tmp_name2,
         variable      = tried_statement.getTargetVariableRef().getVariable(),
         needs_release = None,
+        in_place      = False,
         emit          = emit,
         context       = context
     )
@@ -3490,6 +3491,7 @@ def generateAssignmentVariableCode(statement, emit, context):
         tmp_name      = tmp_name,
         variable      = variable_ref.getVariable(),
         needs_release = statement.needsReleaseValue(),
+        in_place      = statement.inplace_suspect,
         emit          = emit,
         context       = context
     )

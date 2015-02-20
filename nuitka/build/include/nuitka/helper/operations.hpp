@@ -58,6 +58,31 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE( binary_api api, PyObject **operand1, PyObject *operand2 )
+{
+    assert( operand1 );
+    assertObject( *operand1 );
+    assertObject( operand2 );
+
+    // TODO: There is not really much point in these things.
+    PyObject *result = BINARY_OPERATION( api, *operand1, operand2 );
+
+    if (unlikely( result == NULL ))
+    {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF( *operand1 );
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, PyObject *operand2 )
 {
     assertObject( operand1 );
@@ -206,6 +231,36 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
 }
 
 #if PYTHON_VERSION < 300
+#include <stddef.h>
+
+#define PyStringObject_SIZE ( offsetof( PyStringObject, ob_sval ) + 1 )
+
+NUITKA_MAY_BE_UNUSED static bool STRING_RESIZE( PyObject **value, Py_ssize_t newsize )
+{
+    PyStringObject *sv;
+
+    _Py_DEC_REFTOTAL;
+    _Py_ForgetReference( *value );
+
+    *value = (PyObject *)PyObject_REALLOC( (char *)*value, PyStringObject_SIZE + newsize );
+
+    if (unlikely( *value == NULL ))
+    {
+        PyErr_NoMemory();
+
+        return false;
+    }
+    _Py_NewReference( *value );
+
+    sv = (PyStringObject *)*value;
+    Py_SIZE( sv ) = newsize;
+
+    sv->ob_sval[newsize] = '\0';
+    sv->ob_shash = -1;
+
+    return true;
+}
+
 NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INCREMENTAL( PyObject **operand1, PyObject *operand2 )
 {
     assert( PyString_CheckExact( *operand1 ) );
@@ -227,15 +282,10 @@ NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INCREMENTAL( PyObject **operand1, Py
         return false;
     }
 
-    // Need to lie about reference count.
-    Py_REFCNT( *operand1 ) = 1;
-
-    if (unlikely( _PyString_Resize( operand1, new_size ) != 0 ))
+    if (unlikely( STRING_RESIZE( operand1, new_size ) == false ))
     {
-        Py_REFCNT( *operand1 ) = 3;
         return false;
     }
-    Py_REFCNT( *operand1 ) = 3;
 
     memcpy(
         PyString_AS_STRING( *operand1 ) + operand1_size,
@@ -245,6 +295,44 @@ NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INCREMENTAL( PyObject **operand1, Py
 
     return true;
 }
+#else
+NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL( PyObject **operand1, PyObject *operand2 )
+{
+#if PYTHON_VERSION < 330
+    Py_ssize_t operand1_size = PyUnicode_GET_SIZE( *operand1 );
+    Py_ssize_t operand2_size = PyUnicode_GET_SIZE( operand2 );
+
+    Py_ssize_t new_size = operand1_size + operand2_size;
+
+    if (unlikely( new_size < 0 ))
+    {
+        PyErr_Format(
+            PyExc_OverflowError,
+            "strings are too large to concat"
+        );
+
+        return false;
+    }
+
+    if (unlikely( PyUnicode_Resize( operand1, new_size ) != 0 ))
+    {
+        return false;
+    }
+
+    /* copy 'w' into the newly allocated area of 'v' */
+    memcpy(
+        PyUnicode_AS_UNICODE( *operand1 ) + operand1_size,
+        PyUnicode_AS_UNICODE( operand2 ),
+        operand2_size * sizeof( Py_UNICODE )
+    );
+
+    return true;
+#else
+    PyUnicode_Append( operand1, operand2 );
+    return !ERROR_OCCURRED();
+#endif
+}
+
 #endif
 
 
@@ -255,7 +343,32 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operan
     assertObject( operand2 );
 
 #if PYTHON_VERSION < 300
-    if ( Py_REFCNT( *operand1 ) == 3 )
+    // Something similar for Python3 should exist too.
+    if ( PyInt_CheckExact( *operand1 ) && PyInt_CheckExact( operand2 ) )
+    {
+        long a, b, i;
+
+        a = PyInt_AS_LONG( *operand1 );
+        b = PyInt_AS_LONG( operand2 );
+
+        i = a + b;
+
+        // Detect overflow, in which case, a "long" object would have to be
+        // created, which we won't handle here.
+        if (likely(!( (i^a) < 0 && (i^b) < 0 ) ))
+        {
+            PyObject *result = PyInt_FromLong( i );
+            Py_DECREF( *operand1 );
+
+            *operand1 = result;
+
+            return true;
+        }
+    }
+#endif
+
+#if PYTHON_VERSION < 300
+    if ( Py_REFCNT( *operand1 ) == 1 )
     {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
@@ -266,23 +379,58 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operan
             return STRING_ADD_INCREMENTAL( operand1, operand2 );
         }
     }
+
+    // Strings are to be treated differently.
+    if ( PyString_CheckExact( *operand1 ) && PyString_CheckExact( operand2 ) )
+    {
+        PyString_Concat( operand1, operand2 );
+        return !ERROR_OCCURRED();
+    }
+#else
+    if ( Py_REFCNT( *operand1 ) == 1 )
+    {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+        if ( PyUnicode_CheckExact( *operand1 ) &&
+             !PyUnicode_CHECK_INTERNED( *operand1 ) &&
+             PyUnicode_CheckExact( operand2 ) )
+        {
+            return UNICODE_ADD_INCREMENTAL( operand1, operand2 );
+        }
+    }
+
+    // Strings are to be treated differently.
+    if ( PyUnicode_CheckExact( *operand1 ) && PyUnicode_CheckExact( operand2 ) )
+    {
+        PyObject *result = PyUnicode_Concat( *operand1, operand2 );
+
+        if (unlikely( result == NULL ))
+        {
+            return false;
+        }
+
+        Py_DECREF( *operand1 );
+        *operand1 = result;
+
+        return true;
+    }
 #endif
 
-    // TODO: Could specialize more and the generic variant, that e.g. need not
-    // check for strings anymore.
-    PyObject *result = BINARY_OPERATION( PyNumber_InPlaceAdd, *operand1, operand2 );
+    PyObject *result = PyNumber_InPlaceAdd( *operand1, operand2 );
 
     if (unlikely( result == NULL ))
     {
         return false;
     }
-    else
-    {
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
-        *operand1 = result;
-        return true;
-    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF( *operand1 );
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
 }
 
 
@@ -895,6 +1043,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION( PyObject *operand1, PyObj
 {
     PyObject *result = PyNumber_Power( operand1, operand2, Py_None );
 
+
     if (unlikely( result == NULL ))
     {
         return NULL;
@@ -903,7 +1052,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION( PyObject *operand1, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION2( PyObject *operand1, PyObject *operand2 )
 {
     PyObject *result = PyNumber_InPlacePower( operand1, operand2, Py_None );
 
@@ -913,6 +1062,25 @@ NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand
     }
 
     return result;
+}
+
+
+NUITKA_MAY_BE_UNUSED static bool POWER_OPERATION_INPLACE( PyObject **operand1, PyObject *operand2 )
+{
+    PyObject *result = PyNumber_InPlacePower( *operand1, operand2, Py_None );
+
+    if (unlikely( result == NULL ))
+    {
+        return false;
+    }
+
+    if ( result != *operand1 )
+    {
+        Py_DECREF( *operand1 );
+        *operand1 = result;
+    }
+
+    return true;
 }
 
 #endif

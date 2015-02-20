@@ -29,6 +29,9 @@ from .NodeBases import ExpressionChildrenHavingBase
 
 
 class ExpressionOperationBase(ExpressionChildrenHavingBase):
+
+    inplace_suspect = False
+
     def __init__(self, operator, simulator, values, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -40,10 +43,11 @@ class ExpressionOperationBase(ExpressionChildrenHavingBase):
 
         self.simulator = simulator
 
-        self.inplace_suspect = False
-
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
+
+    def unmarkAsInplaceSuspect(self):
+        self.inplace_suspect = False
 
     def isInplaceSuspect(self):
         return self.inplace_suspect
@@ -86,8 +90,6 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
-        if operator.startswith('I'):
-            self.markAsInplaceSuspect()
 
     def computeExpression(self, constraint_collection):
         # This is using many returns based on many conditions,

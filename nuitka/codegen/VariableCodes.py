@@ -181,7 +181,8 @@ def getLocalVariableInitCode(variable, init_from = None):
     )
 
 
-def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
+def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
+                              in_place):
     # Many different cases, as this must be, pylint: disable=R0912,R0915
 
     assert isinstance(variable, Variables.Variable), variable
@@ -208,7 +209,16 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
         if ref_count:
             context.removeCleanupTempName(tmp_name)
     elif variable.isLocalVariable():
-        if variable.isSharedTechnically():
+        if in_place:
+            # Releasing is not an issue here, local variable reference never
+            # gave a reference, and the inplace code deals with possible
+            # replacement/release.
+            if variable.isSharedTechnically():
+                template = CodeTemplates.template_write_shared_inplace
+            else:
+                template = CodeTemplates.template_write_local_inplace
+
+        elif variable.isSharedTechnically():
             if ref_count:
                 if needs_release is False:
                     template = CodeTemplates.template_write_shared_clear_ref0

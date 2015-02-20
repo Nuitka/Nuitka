@@ -661,6 +661,33 @@ def simpleFunction82():
     j = 1
     x = f.__doc__
 
+def simpleFunction83():
+    x = list(range(7))
+    x[2] = 5
+
+    j = 3
+    x += [h*2 for h in range(j)]
+
+def simpleFunction84():
+    x = tuple(range(7))
+
+    j = 3
+    x += tuple([h*2 for h in range(j)])
+
+def simpleFunction84():
+    x = list(range(7))
+    x[2] = 3
+    x *= 2
+
+def simpleFunction85():
+    x = "something"
+    x += ""
+
+def simpleFunction86():
+    x = 7
+    x += 2000
+
+
 # These need stderr to be wrapped.
 tests_stderr = (63,)
 

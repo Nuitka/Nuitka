@@ -21,22 +21,27 @@
 module_value1 = 5
 module_value2 = 3
 
+class C:
+    def __init__(self):
+
+        self.s = "2" * 100000
+
+    def increment(self):
+        additiv = "*" * 1000
+
+# construct_begin
+        self.s += additiv
+# construct_end
+
+        return additiv
+
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
-    # Make sure we have a local variable x anyway
-    s = 2
+    local_value = C()
 
-    local_value = module_value1
-
-    s += module_value1
-# construct_begin
-    s += 1000
-# construct_end
-    s += module_value2
-
-    return s
+    local_value.increment()
 
 for x in xrange(50000):
     calledRepeatedly()

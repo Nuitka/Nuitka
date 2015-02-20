@@ -604,24 +604,30 @@ def _buildInplaceAssignVariableNode(variable_ref, operator, expression,
                                     source_ref):
     assert variable_ref.isExpressionTargetVariableRef(), variable_ref
 
-    return (
+    inplace_node = ExpressionOperationBinaryInplace(
+        operator   = operator,
+        left       = ExpressionVariableRef(
+            variable_name = variable_ref.getVariableName(),
+            source_ref    = source_ref
+        ),
+        right      = expression,
+        source_ref = source_ref
+    )
+
+    inplace_node.markAsInplaceSuspect()
+
+    result = (
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetVariableRef(
                 variable_name = variable_ref.getVariableName(),
                 source_ref    = source_ref
             ),
-            source       = ExpressionOperationBinaryInplace(
-                operator   = operator,
-                left       = ExpressionVariableRef(
-                    variable_name = variable_ref.getVariableName(),
-                    source_ref    = source_ref
-                ),
-                right      = expression,
-                source_ref = source_ref
-            ),
+            source       = inplace_node,
             source_ref   = source_ref
         ),
     )
+
+    return result
 
 
 def _buildInplaceAssignAttributeNode(lookup_source, attribute_name,

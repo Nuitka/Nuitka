@@ -21,6 +21,8 @@
 module_value1 = 5
 module_value2 = 3
 
+additiv_global = "*" * 1000
+
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
     module_value1
@@ -28,15 +30,14 @@ def calledRepeatedly():
     # Make sure we have a local variable x anyway
     s = "2"
 
-    additiv = "*" * 1000
+    additiv = additiv_global
 
-    local_value = module_value1
-
-    for x in range(local_value, local_value+15):
+    s += additiv
 # construct_begin
-        s += additiv
+    s += additiv
 # construct_end
-        pass
+
+    return s
 
 for x in xrange(50000):
     calledRepeatedly()

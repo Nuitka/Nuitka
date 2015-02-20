@@ -56,6 +56,15 @@ template_write_local_clear_ref0 = """\
 }
 """
 
+template_write_local_inplace = """\
+%(identifier)s = %(tmp_name)s;
+"""
+
+template_write_shared_inplace = """\
+PyCell_SET( %(identifier)s, %(tmp_name)s );
+"""
+
+
 template_write_local_clear_ref1 = """\
 {
     PyObject *old = %(identifier)s;
