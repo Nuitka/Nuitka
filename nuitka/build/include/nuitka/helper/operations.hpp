@@ -21,7 +21,7 @@
 #if PYTHON_VERSION < 300
 #define NEW_STYLE_NUMBER( o ) PyType_HasFeature( Py_TYPE( o ), Py_TPFLAGS_CHECKTYPES )
 #else
-#define NEW_STYLE_NUMBER( o ) (true)
+#define NEW_STYLE_NUMBER( o ) ( true )
 #endif
 
 typedef PyObject *(unary_api)( PyObject * );

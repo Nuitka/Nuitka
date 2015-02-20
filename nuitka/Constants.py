@@ -120,7 +120,7 @@ else:
         unicode,
         long,
         # This has no name in Python, but the natural one in C-API.
-        builtin_anon_names[ "instance" ]
+        builtin_anon_names["instance"]
     )
 
 def isConstant(constant):

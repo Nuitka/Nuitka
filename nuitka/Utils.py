@@ -120,7 +120,7 @@ def readLink(path):
 
 
 def listDir(path):
-    """ Give a sorted path, basename pairs of a directory."""
+    """ Give a sorted path, base filename pairs of a directory."""
 
     return sorted(
         [
