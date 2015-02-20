@@ -83,7 +83,7 @@ if ( exception_tb == NULL )
 }
 else if ( exception_tb->tb_frame != %(frame_identifier)s )
 {
-    PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( %(frame_identifier)s );
+    PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s );
     traceback_new->tb_next = exception_tb;
     exception_tb = traceback_new;
 }
@@ -145,7 +145,7 @@ if ( exception_tb == NULL )
 }
 else if ( exception_tb->tb_frame != %(frame_identifier)s )
 {
-    PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( %(frame_identifier)s );
+    PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s );
     traceback_new->tb_next = exception_tb;
     exception_tb = traceback_new;
 }
@@ -246,7 +246,7 @@ if ( !EXCEPTION_MATCH_GENERATOR( exception_type ) )
     }
     else if ( exception_tb->tb_frame != %(frame_identifier)s )
     {
-        PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( %(frame_identifier)s );
+        PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s );
         traceback_new->tb_next = exception_tb;
         exception_tb = traceback_new;
     }

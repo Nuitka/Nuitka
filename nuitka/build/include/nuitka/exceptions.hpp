@@ -150,7 +150,7 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyFrameObject *fra
 {
     if ( exception_tb->tb_frame != frame || exception_tb->tb_lineno != frame->f_lineno )
     {
-        PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( frame );
+        PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame );
 
         traceback_new->tb_next = exception_tb;
 
