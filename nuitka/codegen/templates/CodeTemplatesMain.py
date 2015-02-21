@@ -126,7 +126,7 @@ int main( int argc, char *argv[] )
 
     // Initialize the constant values used.
     _initBuiltinModule();
-    _initConstants();
+    createGlobalConstants();
     _initBuiltinOriginalValues();
 
     // Revert the wrong sys.flags value, it's used by "site" on at least Debian
@@ -206,6 +206,10 @@ int main( int argc, char *argv[] )
 
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
+
+#ifndef __NUITKA_NO_ASSERT__
+    checkGlobalConstants();
+#endif
 
     if ( ERROR_OCCURRED() )
     {
@@ -324,7 +328,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // Initialize the constant values used.
     _initBuiltinModule();
-    _initConstants();
+    createGlobalConstants();
 
     // Initialize the compiled types of Nuitka.
     PyType_Ready( &Nuitka_Generator_Type );

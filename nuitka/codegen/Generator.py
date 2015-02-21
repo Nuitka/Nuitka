@@ -57,10 +57,7 @@ from .ComparisonCodes import (
 )
 from .ConstantCodes import (
     getConstantAccess,
-    getConstantCode,
-    getConstantsDeclCode,
-    getConstantsInitCode,
-    stream_data
+    getConstantCode
 )
 from .DictCodes import (
     getBuiltinDict2Code,
