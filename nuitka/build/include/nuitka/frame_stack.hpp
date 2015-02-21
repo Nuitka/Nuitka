@@ -48,7 +48,7 @@ NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
 {
     if ( frame_object ) assertObject( (PyObject *)frame_object );
 
-    return
+    bool result =
         // Never used.
         frame_object == NULL ||
         // Still in use
@@ -60,6 +60,19 @@ NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
         // Was detached from (TODO: When detaching, can't we just have another
         // frame guard instead)
         frame_object->f_back != NULL;
+
+#if _DEBUG_REFRAME
+    if (result && frame_object)
+    {
+        PRINT_STRING("NOT REUSING FRAME:");
+        PRINT_ITEM((PyObject *)frame_object);
+        PRINT_REFCOUNT( (PyObject *)frame_object );
+        if ( frame_object->f_back ) PRINT_ITEM( (PyObject *)frame_object->f_back );
+        PRINT_NEW_LINE();
+    }
+#endif
+
+    return result;
 }
 
 NUITKA_MAY_BE_UNUSED inline static void popFrameStack( void )
