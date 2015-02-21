@@ -2018,6 +2018,81 @@ void _initBuiltinModule()
 }
 
 
+PyObject *callPythonFunction( PyObject *func, PyObject **args, int count )
+{
+    PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE( func );
+    PyObject *globals = PyFunction_GET_GLOBALS( func );
+    PyObject *argdefs = PyFunction_GET_DEFAULTS( func );
+
+#if PYTHON_VERSION >= 300
+    PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS( func );
+
+    if ( kwdefs == NULL && argdefs == NULL && co->co_argcount == count &&
+        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
+#else
+    if ( argdefs == NULL && co->co_argcount == count &&
+        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
+#endif
+    {
+        PyThreadState *tstate = PyThreadState_GET();
+        assertObject( globals );
+
+        PyFrameObject *frame = PyFrame_New( tstate, co, globals, NULL );
+
+        if (unlikely( frame == NULL ))
+        {
+            return NULL;
+        };
+
+        for ( int i = 0; i < count; i++ )
+        {
+            frame->f_localsplus[i] = args[i];
+            Py_INCREF( frame->f_localsplus[i] );
+        }
+
+        PyObject *result = PyEval_EvalFrameEx( frame, 0 );
+
+        // Frame release protects against recursion as it may lead to variable
+        // destruction.
+        ++tstate->recursion_depth;
+        Py_DECREF( frame );
+        --tstate->recursion_depth;
+
+        return result;
+    }
+
+    PyObject **defaults = NULL;
+    int nd = 0;
+
+    if ( argdefs != NULL )
+    {
+        defaults = &PyTuple_GET_ITEM( argdefs, 0 );
+        nd = int( Py_SIZE( argdefs ) );
+    }
+
+    PyObject *result = PyEval_EvalCodeEx(
+#if PYTHON_VERSION >= 300
+        (PyObject *)co,
+#else
+        co,        // code object
+#endif
+        globals,   // globals
+        NULL,      // no locals
+        args,      // args
+        count,     // argcount
+        NULL,      // kwds
+        0,         // kwcount
+        defaults,  // defaults
+        nd,        // defcount
+#if PYTHON_VERSION >= 300
+        kwdefs,
+#endif
+        PyFunction_GET_CLOSURE( func )
+    );
+
+    return result;
+}
+
 static PyObject *_fast_function_noargs( PyObject *func )
 {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE( func );

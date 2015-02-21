@@ -442,6 +442,8 @@ template_helper_impl_decl = """\
 
 #include "nuitka/prelude.hpp"
 
+extern PyObject *callPythonFunction( PyObject *func, PyObject **args, int count );
+
 """
 
 template_header_guard = """\
