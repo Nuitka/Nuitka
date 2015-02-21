@@ -24,7 +24,8 @@ Optimization
   e.g. instance attribute lookups.
 
 - Do not create traceback and locals dictionary for frame when ``StopIteration``
-  or ``GeneratorExit`` are raised. These are wasted and unused.
+  or ``GeneratorExit`` are raised. These tracebacks were wasted, as they were
+  immediately released afterwards.
 
 - Closure variables to functions and parameters of generator functions are now
   attached to the function and generator objects.
@@ -36,7 +37,17 @@ Optimization
 - The re-formulation for in-place assignments got simplified and got faster
   doing so.
 
-- Access to local variable values got accelerated.
+- In-place operations of ``str`` were always copying the string, even if was
+  not necessary. This corrects `Issue#124 <http://bugs.nuitka.net/issue124>`__.
+
+  .. code-block:: python
+
+      a += b # Was not re-using the storage of "a" in case of strings
+
+- Python2: Additions of ``int`` for Python2 are now even faster.
+
+- Access to local variable values got slightly accelerated at the expense of
+  closure variables.
 
 Cleanup
 -------
@@ -56,6 +67,43 @@ Cleanup
 - The internal API for handling of exceptions is now more consistent and used
   more efficiently.
 
+- The printing helpers got cleaned up and moved to static code, removing any
+  need for forward declaration.
+
+- The use of ``INCREASE_REFCOUNT_X`` was removed, it got replaced with proper
+  ``Py_XINCREF`` usages. The function was once required before "C-ish" lifted
+  the need to do everything in one function call.
+
+- The use of ``INCREASE_REFCOUNT`` got reduced. See above for why that is any
+  good. The idea is that ``Py_INCREF`` must be good enough, and that we want
+  to avoid the C function it was, even if in-lined.
+
+- The ``assertObject`` function that checks if an object is not ``NULL`` and
+  has positive reference count, i.e. is sane, got turned into a preprocessor
+  macro.
+
+- Deep hashes of constant values created in ``--debug`` mode, which cover also
+  mutable values, and attempt to depend on actual content. These are checked at
+  program exit for corruption. This may help uncover bugs.
+
+Organizational
+--------------
+
+- Speedcenter has been enhanced with better graphing and has more benchmarks
+  now. More work will be needed to make it useful.
+
+- Updates to the Developer Manual, reflecting the current near finished state
+  of "C-ish" code generation.
+
+Tests
+-----
+
+- New reference count tests to cover generator expressions and their usage got
+  added.
+
+- Many new construct based tests got added, these will be used for performance
+  graphing, and serve as micro benchmarks now.
+
 Summary
 -------
 
@@ -68,7 +116,10 @@ made to check the impact of these changes. Here, generators probably stand out
 the most, as some of the missed optimization got revealed and addressed. Their
 speed increase will be visible to some programs that depend a lot on them.
 
-Complex code will benefit the most from these changes.
+This release is clearly major in that the most important issues got addressed,
+future releases will provide more tuning and completeness, but structurally
+the "C-ish" migration has succeeded, and now we can reap the benefits in the
+coming releases.
 
 
 Nuitka Release 0.5.9
@@ -114,8 +165,8 @@ Bug Fixes
   current directory remained in the search path, which could lead to looking
   at the wrong files.
 
-Optimization
-------------
+Organizational
+--------------
 
 - The ``getattr`` built-in is now optimized for compile time constants if
   possible, even in the presence of a ``default`` argument. This is more
