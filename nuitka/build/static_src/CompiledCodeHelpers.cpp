@@ -3602,7 +3602,23 @@ Py_hash_t DEEP_HASH( PyObject *value )
     {
         Py_hash_t result = DEEP_HASH_INIT( value );
 
-        // TODO: How to iterate set elements.
+        PyObject *iterator = PyObject_GetIter( value );
+        assertObject( iterator );
+
+        while( true )
+        {
+            PyObject *item = PyIter_Next( iterator );
+            if (!item) break;
+
+            assertObject( item );
+
+            result ^= DEEP_HASH( item );
+
+            Py_DECREF( item );
+        }
+
+        Py_DECREF( iterator );
+
         return result;
     }
     else if (
