@@ -88,6 +88,26 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
     assertObject( operand1 );
     assertObject( operand2 );
 
+#if PYTHON_VERSION < 300
+    // Something similar for Python3 should exist too.
+    if ( PyInt_CheckExact( operand1 ) && PyInt_CheckExact( operand2 ) )
+    {
+        long a, b, i;
+
+        a = PyInt_AS_LONG( operand1 );
+        b = PyInt_AS_LONG( operand2 );
+
+        i = a + b;
+
+        // Detect overflow, in which case, a "long" object would have to be
+        // created, which we won't handle here.
+        if (likely(!( (i^a) < 0 && (i^b) < 0 ) ))
+        {
+            return PyInt_FromLong( i );
+        }
+    }
+#endif
+
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
 
