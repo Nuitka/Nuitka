@@ -478,12 +478,17 @@ extern "C" const unsigned char constant_bin[];
 // are not accelerated at all, merely bundled with the binary or module, so
 // that Python library can start out.
 
-void copyFrozenModulesTo(void* destination)
+void copyFrozenModulesTo( void* destination )
 {
     _frozen frozen_modules[] = {
         %(frozen_modules)s
         { NULL, NULL, 0 }
     };
-    memcpy(destination, frozen_modules, ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen ));
+
+    memcpy(
+        destination,
+        frozen_modules,
+        ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen )
+    );
 }
 """

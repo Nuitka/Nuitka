@@ -642,7 +642,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
     if ( fallback )
     {
-        PyObject *pos_args = PyTuple_New(2);
+        PyObject *pos_args = PyTuple_New( 2 );
         PyTuple_SET_ITEM( pos_args, 0, low_temp );
         PyTuple_SET_ITEM( pos_args, 1, high_temp );
 
@@ -663,7 +663,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
         return _BUILTIN_RANGE_INT2( start, end );
     }
 #else
-    PyObject *pos_args = PyTuple_New(2);
+    PyObject *pos_args = PyTuple_New( 2 );
     PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( low ) );
     PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( high ) );
 
@@ -733,7 +733,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     if ( fallback )
     {
-        PyObject *pos_args = PyTuple_New(3);
+        PyObject *pos_args = PyTuple_New( 3 );
         PyTuple_SET_ITEM( pos_args, 0, low_temp );
         PyTuple_SET_ITEM( pos_args, 1, high_temp );
         PyTuple_SET_ITEM( pos_args, 2, step_temp );
@@ -762,7 +762,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
         return _BUILTIN_RANGE_INT3( start, end, step_long );
     }
 #else
-    PyObject *pos_args = PyTuple_New(3);
+    PyObject *pos_args = PyTuple_New( 3 );
     PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( low ) );
     PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( high ) );
     PyTuple_SET_ITEM( pos_args, 2, INCREASE_REFCOUNT( step ) );
@@ -1063,7 +1063,7 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
             object
         );
 
-        Py_XDECREF(result);
+        Py_XDECREF( result );
 
         return result != NULL;
     }
