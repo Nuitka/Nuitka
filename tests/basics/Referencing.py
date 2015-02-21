@@ -687,6 +687,17 @@ def simpleFunction86():
     x = 7
     x += 2000
 
+def simpleFunction87():
+    class C:
+        def __iadd__(self, other):
+            return self
+
+    x = C()
+    x += C()
+
+def simpleFunction88():
+   x = [1,2]
+   x += [3,4]
 
 # These need stderr to be wrapped.
 tests_stderr = (63,)
