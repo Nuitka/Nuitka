@@ -618,7 +618,7 @@ def compileTree(main_module):
         )
 
     if Options.shallNotDoExecCppCall():
-        return None, {}
+        return True, {}
 
     # Run the Scons to build things.
     result, options = runScons(
