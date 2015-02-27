@@ -22,7 +22,7 @@ One for each type of call. """
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentSubscript,
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
@@ -668,37 +668,25 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     )
 
     final = (
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_dict_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_iter_variable,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_keys_variable,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_key_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_key_variable,
+            tolerant   = True,
+            source_ref = source_ref
         )
     )
 
@@ -777,37 +765,25 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key_xxx")
 
     final = [
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_dict_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_iter_variable,
+            tolerant   = True,
+            source_ref = source_ref,
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_keys_variable,
+            tolerant   = True,
+            source_ref = source_ref,
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_key_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_key_variable,
+            tolerant   = True,
+            source_ref = source_ref,
         )
     ]
 
@@ -1015,29 +991,20 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
 
     final += [
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_iter_variable,
+            tolerant   = True,
+            source_ref = source_ref,
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_item_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_item_variable,
+            tolerant   = True,
+            source_ref = source_ref,
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_key_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref,
+        StatementReleaseVariable(
+            variable   = tmp_key_variable,
+            tolerant   = True,
+            source_ref = source_ref,
         )
     ]
 

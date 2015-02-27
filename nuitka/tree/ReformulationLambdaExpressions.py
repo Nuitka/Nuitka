@@ -25,7 +25,7 @@ source code comments with developer manual sections.
 from nuitka import Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
@@ -131,13 +131,10 @@ def buildLambdaNode(provider, node, source_ref):
             )
             body = makeTryFinallyStatement(
                 tried      = statements,
-                final      = StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_return_value,
-                        source_ref = source_ref,
-                    ),
-                    tolerant     = True,
-                    source_ref   = source_ref
+                final      = StatementReleaseVariable(
+                    variable   = tmp_return_value,
+                    tolerant   = True,
+                    source_ref = source_ref
                 ),
                 source_ref = source_ref
             )

@@ -364,13 +364,12 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         version = variable_ref.getVariableVersion()
         variable = variable_ref.getVariable()
 
-        current = self.getVariableCurrentTrace(variable)
-        current.addRelease(del_node)
+        old_trace = self.getVariableCurrentTrace(variable)
 
         variable_trace = VariableUninitTrace(
             variable = variable,
             version  = version,
-            previous = current
+            previous = old_trace
         )
 
         # Assign to not initialized again.
@@ -383,17 +382,17 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
 
-        return variable_trace
+        return old_trace
 
     def onVariableRelease(self, release_node):
         variable = release_node.getVariable()
 
         current = self.getVariableCurrentTrace(variable)
 
-        # TODO: Really need to clean that up. These would be the real releases.
-        if False:
-            current.addRelease(release_node)
-
+        # Annotate that release node. It's an unimportant usage, but one we
+        # would like to be able to remove, should we remove the assignment
+        # that underlies it.
+        current.addRelease(release_node)
 
         return current
 

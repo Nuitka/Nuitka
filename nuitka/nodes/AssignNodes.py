@@ -494,13 +494,11 @@ class StatementDelVariable(StatementChildrenHavingBase):
         )
 
         if self.isTolerant():
-            previous = self.variable_trace.getPrevious()
-
-            if previous is None or previous.isUninitTrace():
+            if self.variable_trace.isUninitTrace():
                 return (
                     None,
                     "new_statements",
-                    "Removed tolerant del without effect."
+                    "Removed tolerant 'del' statement without effect."
                 )
 
         return self, None, None
@@ -514,9 +512,19 @@ class StatementDelVariable(StatementChildrenHavingBase):
         else:
             variable = self.getTargetVariableRef().getVariable()
 
-            # Temp variables won't raise.
-            if variable.isTempVariable():
-                return False
+            # TODO: This condition must become unnecessary, but enhancing
+            # SSA to notice potential escapes.
+            if not variable.isSharedTechnically():
+
+                # Temporary variables deletions won't raise, just because we don't
+                # create them that way. We can avoid going through SSA in these
+                # cases.
+                if variable.isTempVariable():
+                    return False
+
+                # If SSA knows, that's fine.
+                if self.variable_trace.mustHaveValue():
+                    return False
 
             return True
 
@@ -524,11 +532,14 @@ class StatementDelVariable(StatementChildrenHavingBase):
 class StatementReleaseVariable(NodeBase):
     kind = "STATEMENT_RELEASE_VARIABLE"
 
-    def __init__(self, variable, source_ref):
+    def __init__(self, variable, tolerant, source_ref):
         NodeBase.__init__(
             self,
             source_ref = source_ref
         )
+
+        # TODO: Unsure if that makes sense, we only have those it seems.
+        self.tolerant = tolerant
 
         self.variable = variable
 

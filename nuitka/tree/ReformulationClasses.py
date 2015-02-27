@@ -25,7 +25,7 @@ source code comments with developer manual sections.
 from nuitka import Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
@@ -564,37 +564,25 @@ def _buildClassNode3(provider, node, source_ref):
 
 
     final = (
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_bases,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_bases,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_class_decl_dict,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_class_decl_dict,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_metaclass,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_metaclass,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_prepared,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_prepared,
+            tolerant   = True,
+            source_ref = source_ref
         )
     )
 
@@ -849,37 +837,25 @@ def _buildClassNode2(provider, node, source_ref):
     )
 
     final = (
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_class,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_class,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_bases,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_bases,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_class_dict,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_class_dict,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_metaclass,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_metaclass,
+            tolerant   = True,
+            source_ref = source_ref
         )
     )
 

@@ -140,13 +140,27 @@ if ( %(result)s == true )
 }
 """
 
+template_del_local_known = """\
+assertObject( %(identifier)s );
+Py_DECREF( %(identifier)s );
+%(identifier)s = NULL;
+"""
+
+template_del_shared_known = """\
+Py_DECREF( PyCell_GET( %(identifier)s ) );
+PyCell_SET( %(identifier)s, NULL );
+"""
+
+
 template_release_unclear = """\
 Py_XDECREF( %(identifier)s );
+%(identifier)s = NULL;
 """
 
 template_release_clear = """\
 assertObject( (PyObject *)%(identifier)s );
 Py_DECREF( %(identifier)s );
+%(identifier)s = NULL;
 """
 
 # TODO: Maybe storage is never NULL.

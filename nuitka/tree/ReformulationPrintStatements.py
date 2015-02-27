@@ -24,7 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable
 )
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
@@ -154,13 +154,10 @@ def buildPrintNode(provider, node, source_ref):
         statements.append(
             makeTryFinallyStatement(
                 tried      = print_statements,
-                final      = StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_target_variable,
-                        source_ref = source_ref
-                    ),
-                    tolerant     = False,
-                    source_ref   = source_ref
+                final      = StatementReleaseVariable(
+                    variable   = tmp_target_variable,
+                    tolerant   = False,
+                    source_ref = source_ref
                 ),
                 source_ref = source_ref
             )

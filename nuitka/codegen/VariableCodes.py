@@ -34,10 +34,12 @@ def generateVariableDelCode(statement, emit, context):
     )
 
     getVariableDelCode(
-        variable = statement.getTargetVariableRef().getVariable(),
-        tolerant = statement.isTolerant(),
-        emit     = emit,
-        context  = context
+        variable    = statement.getTargetVariableRef().getVariable(),
+        tolerant    = statement.isTolerant(),
+        needs_check = statement.isTolerant() or \
+                      statement.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
@@ -49,7 +51,7 @@ def generateVariableReleaseCode(statement, emit, context):
         # TODO: We might start to not allocate the cell object.
         needs_check = False
     else:
-        needs_check = statement.variable_trace.isUnknownTrace()
+        needs_check = not statement.variable_trace.mustHaveValue()
 
     getVariableReleaseCode(
         variable    = statement.getVariable(),
@@ -438,7 +440,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
     assert False, variable
 
 
-def getVariableDelCode(variable, tolerant, emit, context):
+def getVariableDelCode(variable, tolerant, needs_check, emit, context):
     # Many different cases, as this must be, pylint: disable=R0912
     assert isinstance(variable, Variables.Variable), variable
 
@@ -458,6 +460,7 @@ def getVariableDelCode(variable, tolerant, emit, context):
             }
         )
 
+        # TODO: Apply needs_check for module variables too.
         if check:
             getErrorFormatExitBoolCode(
                 condition = "%s == -1" % res_name,
@@ -472,7 +475,21 @@ def getVariableDelCode(variable, tolerant, emit, context):
                 context   = context
             )
     elif variable.isLocalVariable():
-        if tolerant:
+        if not needs_check:
+            if variable.isSharedTechnically():
+                template = CodeTemplates.template_del_shared_known
+            else:
+                template = CodeTemplates.template_del_local_known
+
+            emit(
+                template % {
+                    "identifier" : getVariableCode(
+                        variable = variable,
+                        context  = context
+                    )
+                }
+            )
+        elif tolerant:
             if variable.isSharedTechnically():
                 template = CodeTemplates.template_del_shared_tolerant
             else:
@@ -574,6 +591,9 @@ def getVariableReleaseCode(variable, needs_check, emit, context):
     assert isinstance(variable, Variables.Variable), variable
 
     assert not variable.isModuleVariable()
+
+    # TODO: We could know, if we could loop, and only set the
+    # variable to NULL then, using a different template.
 
     if needs_check:
         template = CodeTemplates.template_release_unclear
