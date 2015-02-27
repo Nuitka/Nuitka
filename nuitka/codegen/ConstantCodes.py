@@ -307,7 +307,8 @@ assert( hash_%(constant_identifier)s == DEEP_HASH( %(constant_identifier)s ) );"
         )
 
         if Options.isExperimental():
-            check("""\
+            check(
+                """\
 if ( hash_%(constant_identifier)s == -1 ) puts("Note: Weak hash for: %(constant_identifier)s.");""" % {
                 "constant_identifier" : constant_identifier
                 }

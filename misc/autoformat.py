@@ -112,11 +112,6 @@ def updateString(string_node):
             if '"' not in real_value:
                 string_node.value = '"' + real_value + '"'
 
-
-
-
-
-
 for node in red.find_all("CallNode"):
     try:
         updateCall(node)
@@ -149,6 +144,14 @@ for node in red.find_all("StringNode"):
         node.help(deep = True, with_formatting = True)
         raise
 
+for node in red.find_all("DefNode"):
+    # print("1:", repr(str(node.first_formatting)))
+    # print("2:", repr(str(node.second_formatting)))
+    #print("3:", repr(str(node.third_formatting)))
+    # print("4:", repr(str(node.fourth_formatting)))
+    pass
+    # TODO: Third and fourth formatting cannot be set.
+    # assert False, node.arguments
 
 new_name = sys.argv[1] + ".new"
 

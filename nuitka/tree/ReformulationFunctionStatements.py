@@ -338,10 +338,18 @@ def buildParameterSpec(provider, name, node, source_ref):
 
     result = ParameterSpec(
         name          = name,
-        normal_args   = [ extractArg(arg) for arg in node.args.args ],
-        kw_only_args  = [ extractArg(arg) for arg in node.args.kwonlyargs ]
-                           if Utils.python_version >= 300 else
-                         [],
+        normal_args   = [
+            extractArg(arg)
+            for arg in
+            node.args.args
+        ],
+        kw_only_args  = [
+            extractArg(arg)
+            for arg in
+            node.args.kwonlyargs
+            ]
+              if Utils.python_version >= 300 else
+            [],
         list_star_arg = extractArg(node.args.vararg),
         dict_star_arg = extractArg(node.args.kwarg),
         default_count = len(node.args.defaults)

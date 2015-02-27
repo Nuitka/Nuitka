@@ -427,7 +427,7 @@ class StatementsFrame(StatementsSequence):
                 constraint_collection.signalChange(
                     "new_statements",
                     self.getSourceReference(),
-                    "Removed useless frame"
+                    "Removed useless frame."
                 )
 
                 return makeStatementsSequenceReplacementNode(
