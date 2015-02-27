@@ -168,7 +168,8 @@ else:
             "-m",
             "coverage",
             "run",
-            "--rcfile", os.devnull,
+            "--rcfile",
+            os.devnull,
             "-a",
             os.path.abspath(os.path.join(os.path.dirname(__file__), "nuitka"))
         ]
@@ -339,6 +340,13 @@ else:
     exit_nuitka1 = process.returncode
 
     if exit_nuitka1 != 0:
+        if not expect_failure and \
+           not comparison_mode and \
+           not os.path.exists(".coverage"):
+            sys.exit(
+                "Error, no coverage module installed for %s." % os.environ["PYTHON"]
+            )
+
         exit_nuitka = exit_nuitka1
         stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
     else:
