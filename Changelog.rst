@@ -49,6 +49,11 @@ Optimization
 - Access to local variable values got slightly accelerated at the expense of
   closure variables.
 
+- Added support for optimizing the ``complex`` built-in.
+
+- Removing unused temporary and local variables as a result of optimization,
+  these previously still allocated storage.
+
 Cleanup
 -------
 
@@ -60,9 +65,12 @@ Cleanup
   objects.
 
 - The indentation of code template instantiations spanning multiple was not
-  in all cases properly indented. We were using objects that handled it and
-  mere lists, in mixed forms. Also some non-template codes got changed to be
-  properly formatted templates.
+  in all cases proper. We were using emission objects that handle it new lines
+  in code and mere ``list`` objects, that don't handle them in mixed forms.
+  Now only the emission objects are used.
+
+- Some templates with C++ helper functions that had no variables got changed
+  to be properly formatted templates.
 
 - The internal API for handling of exceptions is now more consistent and used
   more efficiently.
@@ -104,22 +112,34 @@ Tests
 - Many new construct based tests got added, these will be used for performance
   graphing, and serve as micro benchmarks now.
 
+- Again, more basic tests are directly executable with Python3.
+
 Summary
 -------
 
 This is the next evolution of "C-ish" coming to pass. The use of C++ has for
-all practical purposes ceased. It will remain an ongoing activity to clear that
-up. This was a huge road block to many things, that now will become simpler.
+all practical purposes vanished. It will remain an ongoing activity to clear
+that up and become real C. The C++ classes were a huge road block to many
+things, that now will become simpler. One example of these were in-place
+operations, which now can be dealt with easily.
 
-Also, lots of polishing was done while adding construct benchmarks that were
-made to check the impact of these changes. Here, generators probably stand out
-the most, as some of the missed optimization got revealed and addressed. Their
-speed increase will be visible to some programs that depend a lot on them.
+Also, lots of polishing and tweaking was done while adding construct benchmarks
+that were made to check the impact of these changes. Here, generators probably
+stand out the most, as some of the missed optimization got revealed and then
+addressed.
+
+Their speed increases will be visible to some programs that depend a lot on
+generators.
 
 This release is clearly major in that the most important issues got addressed,
 future releases will provide more tuning and completeness, but structurally
 the "C-ish" migration has succeeded, and now we can reap the benefits in the
-coming releases.
+coming releases. More work will be needed for all in-place operations to be
+accelerated.
+
+More work will be needed to complete this, but it's good that this is coming
+to an end, so we can focus on SSA based optimization for the major gains to
+be had.
 
 
 Nuitka Release 0.5.9
