@@ -36,7 +36,7 @@ from nuitka.nodes.StatementNodes import (
     StatementReraiseFrameException,
     StatementsSequence
 )
-from nuitka.nodes.TryNodes import StatementTryFinally
+from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef

@@ -38,7 +38,7 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.TryNodes import StatementTryFinally
+from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 
 from .Helpers import (

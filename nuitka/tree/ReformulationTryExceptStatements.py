@@ -45,7 +45,7 @@ from nuitka.nodes.StatementNodes import (
     StatementRestoreFrameException,
     StatementsSequence
 )
-from nuitka.nodes.TryNodes import StatementTryExcept
+from nuitka.nodes.TryExceptNodes import StatementTryExcept
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef

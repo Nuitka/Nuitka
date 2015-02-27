@@ -44,7 +44,7 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
     ExpressionBuiltinLocals
 )
-from nuitka.nodes.TryNodes import StatementTryFinally
+from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,

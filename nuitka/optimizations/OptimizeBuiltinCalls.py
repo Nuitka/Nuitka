@@ -100,7 +100,7 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationUnary
 )
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.TryNodes import ExpressionTryFinally
+from nuitka.nodes.TryFinallyNodes import ExpressionTryFinally
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinSuper,
