@@ -139,6 +139,30 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
     return result;
 }
 
+extern PyObject *const_int_0;
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_COMPLEX( PyObject *real, PyObject *imag )
+{
+    // TODO: Very lazy here, we should create the values ourselves, surely a
+    // a lot of optimization can be had that way.
+    if ( real == NULL )
+    {
+        assert( imag != NULL );
+
+        real = const_int_0;
+    }
+
+    if ( imag == NULL)
+    {
+        return CALL_FUNCTION_WITH_ARGS1( (PyObject *)&PyComplex_Type, real );
+    }
+    else
+    {
+        return CALL_FUNCTION_WITH_ARGS2( (PyObject *)&PyComplex_Type, real, imag );
+    }
+}
+
+
 NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 {
     // TODO: Need to check if 3.4 is really the first version to do this.

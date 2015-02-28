@@ -145,6 +145,9 @@ print "Found during optimization", dict(dict({"le": 2, "la": 1}), fu = 3), dict(
 print "Floats from constants", float("3.0"), float(x = 9.0), float()
 print "Found during optimization", float(float("3.2")), float(x = float(11.0))
 
+print "Complex from constants", complex("3.0j"), complex(real = 9.0), complex(imag=9.0), complex(1,2), complex()
+print "Found during optimization", complex(float("3.2")), complex(real = float(11.0)), complex(imag = float(11.0))
+
 print "Strs from constants", str("3.3"), str(object = 9.1), str()
 print "Found during optimization", str(float("3.3")), str(object = float(12.0))
 

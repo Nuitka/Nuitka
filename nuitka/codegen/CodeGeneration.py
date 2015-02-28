@@ -1571,6 +1571,19 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             emit       = emit,
             context    = context
         )
+    elif expression.isExpressionBuiltinComplex():
+        generateCAPIObjectCode(
+            to_name    = to_name,
+            capi       = "TO_COMPLEX",
+            arg_desc   = (
+                ("real_arg", expression.getReal()),
+                ("imag_arg", expression.getImag())
+            ),
+            source_ref = expression.getCompatibleSourceReference(),
+            none_null  = True,
+            emit       = emit,
+            context    = context
+        )
     elif expression.isExpressionBuiltinBool():
         generateCAPIObjectCode0(
             to_name    = to_name,

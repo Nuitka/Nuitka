@@ -164,6 +164,7 @@ class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
     builtin_spec = BuiltinOptimization.builtin_int_spec
     builtin = int
 
+
 class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
                                    ExpressionSpecBasedComputationMixin):
     named_children = (
@@ -327,3 +328,45 @@ class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
     getStart = ChildrenHavingMixin.childGetter("start")
     getStop = ChildrenHavingMixin.childGetter("stop")
     getStep = ChildrenHavingMixin.childGetter("step")
+
+
+class ExpressionBuiltinComplex(ChildrenHavingMixin, NodeBase,
+                               ExpressionSpecBasedComputationMixin):
+    kind = "EXPRESSION_BUILTIN_COMPLEX"
+
+    named_children = (
+        "real",
+        "imag",
+    )
+
+    builtin_spec = BuiltinOptimization.builtin_complex_spec
+
+    def __init__(self, real, imag, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = {
+                "real" : real,
+                "imag" : imag,
+            }
+        )
+
+    def computeExpression(self, constraint_collection):
+        start = self.getReal()
+        stop = self.getImag()
+
+        args = (
+            start,
+            stop,
+        )
+
+        return self.computeBuiltinSpec(
+            given_values = args
+        )
+
+    getReal = ChildrenHavingMixin.childGetter("real")
+    getImag = ChildrenHavingMixin.childGetter("imag")
