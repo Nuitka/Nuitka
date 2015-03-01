@@ -123,23 +123,16 @@ class VariableTraceBase:
            self.variable.isSharedTechnically():
             return False
 
-        # TODO: Merge traces should be considered too.
+        # Merge traces have this overloaded.
 
         return self.isInitTrace() or self.isAssignTrace()
 
-    def mustBeUninit(self):
+    def mustNotHaveValue(self):
         if self.variable.isModuleVariable() or \
            self.variable.isSharedTechnically():
             return False
 
         return self.isUninitTrace()
-
-    def mayBeUninit(self):
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically():
-            return True
-
-        return self.isUninitTrace() or self.isUnknownTrace()
 
 
 
@@ -356,7 +349,7 @@ class VariableMergeTrace(VariableTraceBase):
 
         return True
 
-    def mustBeUninit(self):
+    def mustNotHaveValue(self):
         if self.variable.isModuleVariable() or \
            self.variable.isSharedTechnically():
             return False
@@ -367,13 +360,3 @@ class VariableMergeTrace(VariableTraceBase):
 
         return True
 
-    def mayBeUninit(self):
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically():
-            return True
-
-        for previous in self.previous:
-            if not previous.isUninitTrace() and not previous.isUnknownTrace():
-                return False
-
-        return True

@@ -48,7 +48,8 @@ def generateVariableReleaseCode(statement, emit, context):
     variable = statement.getVariable()
 
     if variable.isSharedTechnically():
-        # TODO: We might start to not allocate the cell object.
+        # TODO: We might start to not allocate the cell object, then a check
+        # would be due. But currently we always allocate it.
         needs_check = False
     else:
         needs_check = not statement.variable_trace.mustHaveValue()
@@ -324,7 +325,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 context    = context
             )
         elif Options.isDebug():
-            emit("assertObject(%s);" % to_name)
+            emit("assertObject( %s );" % to_name)
 
         return
     elif variable.isMaybeLocalVariable():
@@ -380,7 +381,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 context    = context
             )
         elif Options.isDebug():
-            emit("assertObject(%s);" % to_name)
+            emit("assertObject( %s );" % to_name)
 
         return
     elif variable.isTempVariable():
@@ -407,7 +408,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     context    = context
                 )
             elif Options.isDebug():
-                emit("assertObject(%s);" % to_name)
+                emit("assertObject( %s );" % to_name)
 
             return
         else:
@@ -433,7 +434,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     context    = context
                 )
             elif Options.isDebug():
-                emit("assertObject(%s);" % to_name)
+                emit("assertObject( %s );" % to_name)
 
             return
 

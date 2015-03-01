@@ -175,7 +175,7 @@ Side effects of assignments promoted to statements."""
     def needsReleaseValue(self):
         previous = self.variable_trace.getPrevious()
 
-        if previous.mustBeUninit():
+        if previous.mustNotHaveValue():
             return False
         elif previous.mustHaveValue():
             return True
