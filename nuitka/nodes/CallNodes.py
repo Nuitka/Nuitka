@@ -88,6 +88,10 @@ class ExpressionCall(ExpressionChildrenHavingBase):
 
             return result, "new_raise", "Call keyword arguments raise exception"
 
+        # Any code could be run, note that. TODO: Move this down into the
+        # specific handlers.
+        constraint_collection.onControlFlowEscape(self)
+
         return called.computeExpressionCall(
             call_node             = self,
             constraint_collection = constraint_collection

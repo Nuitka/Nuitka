@@ -90,6 +90,13 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
                 description = "Comparison with constant arguments."
             )
 
+        # The value of these nodes escaped and could change its contents.
+        constraint_collection.removeKnowledge(left)
+        constraint_collection.removeKnowledge(right)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
         return self, None, None
 
     def computeExpressionOperationNot(self, not_node, constraint_collection):
@@ -108,7 +115,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
             )
 
             return result, "new_expression", """\
-Replaced negated comparison with inverse comparision."""
+Replaced negated comparison with inverse comparison."""
 
         return not_node, None, None
 

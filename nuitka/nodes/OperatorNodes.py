@@ -170,6 +170,13 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                 description = "Operator '%s' with constant arguments." % operator
             )
         else:
+            # The value of these nodes escaped and could change its contents.
+            constraint_collection.removeKnowledge(left)
+            constraint_collection.removeKnowledge(right)
+
+            # Any code could be run, note that.
+            constraint_collection.onControlFlowEscape(self)
+
             return self, None, None
 
     def getOperands(self):
@@ -214,6 +221,12 @@ class ExpressionOperationUnary(ExpressionOperationBase):
                 description = "Operator '%s' with constant argument." % operator
             )
         else:
+            # The value of that node escapes and could change its contents.
+            constraint_collection.removeKnowledge(operand)
+
+            # Any code could be run, note that.
+            constraint_collection.onControlFlowEscape(self)
+
             return self, None, None
 
     getOperand = ExpressionChildrenHavingBase.childGetter("operand")

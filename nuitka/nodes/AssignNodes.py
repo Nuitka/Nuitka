@@ -255,6 +255,9 @@ Attribute assignment raises exception in assigned value, removed assignment."""
             return result, "new_raise", """\
 Attribute assignment raises exception in source, removed assignment."""
 
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
         return self, None, None
 
 
@@ -337,6 +340,9 @@ Subscript assignment raises exception in subscribed, removed assignment."""
             return result, "new_raise", """
 Subscript assignment raises exception in subscript value, removed \
 assignment."""
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
 
         return self, None, None
 
@@ -440,6 +446,9 @@ assignment."""
 Slice assignment raises exception in upper slice boundary value, removed \
 assignment."""
 
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
         return self, None, None
 
 
@@ -489,17 +498,27 @@ class StatementDelVariable(StatementChildrenHavingBase):
     )
 
     def computeStatement(self, constraint_collection):
-        self.variable_trace = constraint_collection.onVariableDel(
+        variable_trace = constraint_collection.onVariableDel(
             del_node = self
         )
 
         if self.isTolerant():
-            if self.variable_trace.isUninitTrace():
+            if variable_trace.isUninitTrace():
                 return (
                     None,
                     "new_statements",
                     "Removed tolerant 'del' statement without effect."
                 )
+
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Need to fetch the potentially invalidated variable. A "del" on a
+        # or shared value, may easily assign the global variable in "__del__".
+        self.variable_trace = constraint_collection.getVariableCurrentTrace(
+            variable = self.getTargetVariableRef().getVariable()
+        )
 
         return self, None, None
 
@@ -595,7 +614,9 @@ class StatementDelAttribute(StatementChildrenHavingBase):
         self.attribute_name = attribute_name
 
     def getDetails(self):
-        return { "attribute" : self.attribute_name }
+        return {
+            "attribute" : self.attribute_name
+        }
 
     def getDetail(self):
         return "to attribute %s" % self.attribute_name
@@ -657,7 +678,7 @@ class StatementDelSubscript(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Subscript del raises exception in subscribed value, removed del"""
+Subscript 'del' raises exception in subscribed value, removed del."""
 
         constraint_collection.onExpression(self.getSubscript())
         subscript = self.getSubscript()
@@ -673,7 +694,7 @@ Subscript del raises exception in subscribed value, removed del"""
             )
 
             return result, "new_raise", """\
-Subscript del raises exception in subscribt value, removed del"""
+Subscript 'del' raises exception in subscript value, removed del."""
 
         return self, None, None
 
