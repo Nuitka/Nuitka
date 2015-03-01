@@ -300,7 +300,7 @@ hash_%(constant_identifier)s = DEEP_HASH( %(constant_identifier)s );""" % {
 
         check(
             """\
-assertObject( %(constant_identifier)s );
+CHECK_OBJECT( %(constant_identifier)s );
 assert( hash_%(constant_identifier)s == DEEP_HASH( %(constant_identifier)s ) );""" % {
              "constant_identifier" : constant_identifier
              }

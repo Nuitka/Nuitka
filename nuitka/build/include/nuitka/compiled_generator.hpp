@@ -102,7 +102,7 @@ static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
 
 static inline PyObject *YIELD( Nuitka_GeneratorObject *generator, PyObject *value )
 {
-    assertObject( value );
+    CHECK_OBJECT( value );
 
     generator->m_yielded = value;
 
@@ -133,14 +133,14 @@ static inline PyObject *YIELD( Nuitka_GeneratorObject *generator, PyObject *valu
         return NULL;
     }
 
-    assertObject( generator->m_yielded );
+    CHECK_OBJECT( generator->m_yielded );
     return generator->m_yielded;
 }
 
 #if PYTHON_VERSION >= 300
 static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
 {
-    assertObject( value );
+    CHECK_OBJECT( value );
 
     generator->m_yielded = value;
 

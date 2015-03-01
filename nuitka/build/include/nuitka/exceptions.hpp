@@ -196,7 +196,7 @@ NUITKA_MAY_BE_UNUSED inline void SET_CURRENT_EXCEPTION( PyObject *exception_type
 #if PYTHON_VERSION < 300
     // Set sys attributes in the fastest possible way.
     PyObject *sys_dict = thread_state->interp->sysdict;
-    assertObject( sys_dict );
+    CHECK_OBJECT( sys_dict );
 
     PyDict_SetItem( sys_dict, const_str_plain_exc_type, exception_type ? exception_type : Py_None );
     PyDict_SetItem( sys_dict, const_str_plain_exc_value, exception_value ? exception_value : Py_None );
@@ -316,7 +316,7 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION( PyObject **exceptio
 
 NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR( PyObject *exception_value )
 {
-    assertObject( exception_value );
+    CHECK_OBJECT( exception_value );
 
     // We need to check the class.
     if ( PyExceptionInstance_Check( exception_value ) )
@@ -366,8 +366,8 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR( PyObject *exception_
 
 NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE( PyObject *exception_value, PyObject *exception_checked )
 {
-    assertObject( exception_value );
-    assertObject( exception_checked );
+    CHECK_OBJECT( exception_value );
+    CHECK_OBJECT( exception_checked );
 
     // We need to check the class.
     if ( PyExceptionInstance_Check( exception_value ) )

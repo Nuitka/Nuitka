@@ -36,9 +36,9 @@ static inline bool IS_INDEXABLE( PyObject *value )
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, PyObject *lower, PyObject *upper )
 {
-    assertObject( source );
-    assertObject( lower );
-    assertObject( upper );
+    CHECK_OBJECT( source );
+    CHECK_OBJECT( lower );
+    CHECK_OBJECT( upper );
 
     PySequenceMethods *tp_as_sequence = Py_TYPE( source )->tp_as_sequence;
 
@@ -100,7 +100,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, PyObject *
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INDEX_SLICE( PyObject *source, Py_ssize_t lower, Py_ssize_t upper )
 {
-    assertObject( source );
+    CHECK_OBJECT( source );
 
     PyObject *result = PySequence_GetSlice( source, lower, upper );
 
@@ -114,10 +114,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INDEX_SLICE( PyObject *source, Py_s
 
 NUITKA_MAY_BE_UNUSED static bool SET_SLICE( PyObject *target, PyObject *lower, PyObject *upper, PyObject *value )
 {
-    assertObject( target );
-    assertObject( lower );
-    assertObject( upper );
-    assertObject( value );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( lower );
+    CHECK_OBJECT( upper );
+    CHECK_OBJECT( value );
 
     PySequenceMethods *tp_as_sequence = Py_TYPE( target )->tp_as_sequence;
 
@@ -177,8 +177,8 @@ NUITKA_MAY_BE_UNUSED static bool SET_SLICE( PyObject *target, PyObject *lower, P
 
 NUITKA_MAY_BE_UNUSED static bool SET_INDEX_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value )
 {
-    assertObject( target );
-    assertObject( value );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( value );
 
     PySequenceMethods *tp_as_sequence = Py_TYPE( target )->tp_as_sequence;
 
@@ -215,9 +215,9 @@ NUITKA_MAY_BE_UNUSED static bool SET_INDEX_SLICE( PyObject *target, Py_ssize_t l
 
 NUITKA_MAY_BE_UNUSED static bool DEL_SLICE( PyObject *target, PyObject *lower, PyObject *upper )
 {
-    assertObject( target );
-    assertObject( lower );
-    assertObject( upper );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( lower );
+    CHECK_OBJECT( upper );
 
     PySequenceMethods *tp_as_sequence = Py_TYPE( target )->tp_as_sequence;
 
@@ -277,7 +277,7 @@ NUITKA_MAY_BE_UNUSED static bool DEL_SLICE( PyObject *target, PyObject *lower, P
 
 NUITKA_MAY_BE_UNUSED static bool DEL_INDEX_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper )
 {
-    assertObject( target );
+    CHECK_OBJECT( target );
 
     PySequenceMethods *tp_as_sequence = Py_TYPE( target )->tp_as_sequence;
 
@@ -318,9 +318,9 @@ NUITKA_MAY_BE_UNUSED static bool DEL_INDEX_SLICE( PyObject *target, Py_ssize_t l
 // Note: Cannot fail
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ3( PyObject *start, PyObject *stop, PyObject *step )
 {
-    assertObject( start );
-    assertObject( stop );
-    assertObject( step );
+    CHECK_OBJECT( start );
+    CHECK_OBJECT( stop );
+    CHECK_OBJECT( step );
 
     return PySlice_New( start, stop, step );
 }

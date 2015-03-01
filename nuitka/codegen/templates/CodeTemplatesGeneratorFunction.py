@@ -98,7 +98,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
 #endif
 
-    assertObject( (PyObject *)generator );
+    CHECK_OBJECT( (PyObject *)generator );
     assert( Nuitka_Generator_Check( (PyObject *)generator ) );
 
     %(function_identifier)s_context2( generator );

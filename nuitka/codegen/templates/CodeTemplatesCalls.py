@@ -25,7 +25,7 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args
 template_call_function_with_args_impl = """\
 PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s )
 {
-    assertObject( called );
+    CHECK_OBJECT( called );
 
     // Check if arguments are valid objects in debug mode.
 #ifndef __NUITKA_NO_ASSERT__
@@ -33,7 +33,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
 
     for( size_t i = 0; i < sizeof( args_for_test ) / sizeof( PyObject * ); i++ )
     {
-        assertObject( args_for_test[ i ] );
+        CHECK_OBJECT( args_for_test[ i ] );
     }
 #endif
 

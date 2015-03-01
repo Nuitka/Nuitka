@@ -118,7 +118,7 @@ template_function_noexception_exit = """\
 template_function_return_exit = """\
     function_return_exit:
 %(function_cleanup)s\
-    assertObject( tmp_return_value );
+    CHECK_OBJECT( tmp_return_value );
     assert( had_error || !ERROR_OCCURRED() );
     return tmp_return_value;
 """

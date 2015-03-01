@@ -325,7 +325,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 context    = context
             )
         elif Options.isDebug():
-            emit("assertObject( %s );" % to_name)
+            emit("CHECK_OBJECT( %s );" % to_name)
 
         return
     elif variable.isMaybeLocalVariable():
@@ -381,7 +381,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 context    = context
             )
         elif Options.isDebug():
-            emit("assertObject( %s );" % to_name)
+            emit("CHECK_OBJECT( %s );" % to_name)
 
         return
     elif variable.isTempVariable():
@@ -408,7 +408,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     context    = context
                 )
             elif Options.isDebug():
-                emit("assertObject( %s );" % to_name)
+                emit("CHECK_OBJECT( %s );" % to_name)
 
             return
         else:
@@ -434,7 +434,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     context    = context
                 )
             elif Options.isDebug():
-                emit("assertObject( %s );" % to_name)
+                emit("CHECK_OBJECT( %s );" % to_name)
 
             return
 

@@ -24,7 +24,7 @@
 
 NUITKA_MAY_BE_UNUSED static int CHECK_IF_TRUE( PyObject *object )
 {
-    assertObject( object );
+    CHECK_OBJECT( object );
 
     if ( object == Py_True )
     {
@@ -81,8 +81,8 @@ NUITKA_MAY_BE_UNUSED static int CHECK_IF_FALSE( PyObject *object )
 
 NUITKA_MAY_BE_UNUSED static PyObject *BOOL_FROM( bool value )
 {
-    assertObject( Py_True );
-    assertObject( Py_False );
+    CHECK_OBJECT( Py_True );
+    CHECK_OBJECT( Py_False );
 
     return value ? Py_True : Py_False;
 }

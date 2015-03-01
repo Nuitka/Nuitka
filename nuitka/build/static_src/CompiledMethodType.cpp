@@ -194,7 +194,7 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
         else
         {
             PyObject *self = PyTuple_GET_ITEM( args, 0 );
-            assertObject( self );
+            CHECK_OBJECT( self );
 
             int result = PyObject_IsInstance( self, method->m_class );
 

@@ -737,7 +737,7 @@ PyObject *ERROR_GET_STOP_ITERATION_VALUE()
 
 static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
 {
-    assertObject( generator->m_exception_type );
+    CHECK_OBJECT( generator->m_exception_type );
 
     RESTORE_ERROR_OCCURRED(
         generator->m_exception_type,
@@ -894,7 +894,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 
             send_value = generator->m_yielded;
 
-            assertObject( send_value );
+            CHECK_OBJECT( send_value );
         }
     }
 }
@@ -1066,7 +1066,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
 
             send_value = generator->m_yielded;
 
-            assertObject( send_value );
+            CHECK_OBJECT( send_value );
         }
     }
 }

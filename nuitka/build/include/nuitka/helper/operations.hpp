@@ -28,7 +28,7 @@ typedef PyObject *(unary_api)( PyObject * );
 
 NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION( unary_api api, PyObject *operand )
 {
-    assertObject( operand );
+    CHECK_OBJECT( operand );
     PyObject *result = api( operand );
 
     if (unlikely( result == NULL ))
@@ -36,7 +36,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION( unary_api api, PyObject *
         return NULL;
     }
 
-    assertObject( result );
+    CHECK_OBJECT( result );
 
     return result;
 }
@@ -45,8 +45,8 @@ typedef PyObject *(binary_api)( PyObject *, PyObject * );
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject *operand2 )
 {
-    assertObject( operand1 );
-    assertObject( operand2 );
+    CHECK_OBJECT( operand1 );
+    CHECK_OBJECT( operand2 );
 
     PyObject *result = api( operand1, operand2 );
 
@@ -61,8 +61,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE( binary_api api, PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
-    assertObject( *operand1 );
-    assertObject( operand2 );
+    CHECK_OBJECT( *operand1 );
+    CHECK_OBJECT( operand2 );
 
     // TODO: There is not really much point in these things.
     PyObject *result = BINARY_OPERATION( api, *operand1, operand2 );
@@ -85,8 +85,8 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE( binary_api api, PyObj
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, PyObject *operand2 )
 {
-    assertObject( operand1 );
-    assertObject( operand2 );
+    CHECK_OBJECT( operand1 );
+    CHECK_OBJECT( operand2 );
 
 #if PYTHON_VERSION < 300
     // Something similar for Python3 should exist too.
@@ -359,8 +359,8 @@ NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL( PyObject **operand1, P
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
-    assertObject( *operand1 );
-    assertObject( operand2 );
+    CHECK_OBJECT( *operand1 );
+    CHECK_OBJECT( operand2 );
 
 #if PYTHON_VERSION < 300
     // Something similar for Python3 should exist too.
@@ -516,8 +516,8 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, PyObject *operand2 )
 {
-    assertObject( operand1 );
-    assertObject( operand2 );
+    CHECK_OBJECT( operand1 );
+    CHECK_OBJECT( operand2 );
 
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
@@ -662,8 +662,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, 
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB( PyObject *operand1, PyObject *operand2 )
 {
-    assertObject( operand1 );
-    assertObject( operand2 );
+    CHECK_OBJECT( operand1 );
+    CHECK_OBJECT( operand2 );
 
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
@@ -796,8 +796,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB( PyObject *operand1, 
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV( PyObject *operand1, PyObject *operand2 )
 {
-    assertObject( operand1 );
-    assertObject( operand2 );
+    CHECK_OBJECT( operand1 );
+    CHECK_OBJECT( operand2 );
 
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
@@ -929,8 +929,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV( PyObject *operand1, 
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER( PyObject *operand1, PyObject *operand2 )
 {
-    assertObject( operand1 );
-    assertObject( operand2 );
+    CHECK_OBJECT( operand1 );
+    CHECK_OBJECT( operand2 );
 
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;

@@ -27,12 +27,12 @@
 
 inline static void assertCodeObject( PyCodeObject *code_object )
 {
-    assertObject( (PyObject *)code_object );
+    CHECK_OBJECT( (PyObject *)code_object );
 }
 
 inline static void assertFrameObject( PyFrameObject *frame_object )
 {
-    assertObject( (PyObject *)frame_object );
+    CHECK_OBJECT( (PyObject *)frame_object );
     assertCodeObject( frame_object->f_code );
 }
 
@@ -46,7 +46,7 @@ NUITKA_MAY_BE_UNUSED static PyFrameObject *INCREASE_REFCOUNT( PyFrameObject *fra
 
 NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
 {
-    if ( frame_object ) assertObject( (PyObject *)frame_object );
+    if ( frame_object ) CHECK_OBJECT( (PyObject *)frame_object );
 
     bool result =
         // Never used.

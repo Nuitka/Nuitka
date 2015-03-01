@@ -62,7 +62,7 @@ static PyObject *Nuitka_Function_tp_repr( Nuitka_FunctionObject *function )
 
 static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObject *args, PyObject *kw )
 {
-    assertObject( args );
+    CHECK_OBJECT( args );
     assert( PyTuple_Check( args ) );
 
     if ( kw || function->m_direct_arg_parser == NULL )
@@ -529,7 +529,7 @@ static inline PyObject *make_compiled_function( function_arg_parser code, direct
     {
         defaults = INCREASE_REFCOUNT( Py_None );
     }
-    assertObject( defaults );
+    CHECK_OBJECT( defaults );
     assert( defaults == Py_None || ( PyTuple_Check( defaults ) && PyTuple_Size( defaults ) > 0 ) );
     result->m_defaults = defaults;
     result->m_defaults_given = defaults == Py_None ? 0 : PyTuple_GET_SIZE( defaults );

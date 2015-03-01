@@ -495,11 +495,11 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int kw_only_count, int flags )
 #endif
 {
-    assertObject( filename );
+    CHECK_OBJECT( filename );
     assert( Nuitka_String_Check( filename ) );
-    assertObject( function_name );
+    CHECK_OBJECT( function_name );
     assert( Nuitka_String_Check( function_name ) );
-    assertObject( argnames );
+    CHECK_OBJECT( argnames );
     assert( PyTuple_Check( argnames ) );
 
     // TODO: Consider using PyCode_NewEmpty

@@ -378,7 +378,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     moduledict_%(module_identifier)s = (PyDictObject *)((PyModuleObject *)module_%(module_identifier)s)->md_dict;
 
-    assertObject( module_%(module_identifier)s );
+    CHECK_OBJECT( module_%(module_identifier)s );
 
 // Seems to work for Python2.7 out of the box, but for Python3, the module
 // doesn't automatically enter "sys.modules", so do it manually.

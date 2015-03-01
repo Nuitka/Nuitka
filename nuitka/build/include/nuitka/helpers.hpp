@@ -42,7 +42,7 @@ typedef struct {
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
 // Helper to check that an object is valid and has positive reference count.
-#define assertObject( value ) ( assert( value != NULL ), assert( Py_REFCNT( value ) > 0 ) );
+#define CHECK_OBJECT( value ) ( assert( value != NULL ), assert( Py_REFCNT( value ) > 0 ) );
 
 
 #include "nuitka/exceptions.hpp"
@@ -50,7 +50,7 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 {
-    assertObject( object );
+    CHECK_OBJECT( object );
 
     Py_INCREF( object );
 
@@ -59,7 +59,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 
 NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 {
-    assertObject( object );
+    CHECK_OBJECT( object );
 
     Py_DECREF( object );
 
@@ -344,9 +344,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_BOOL( PyObject *value )
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *encoding, PyObject *errors )
 {
-    assertObject( value );
-    if ( encoding ) assertObject( encoding );
-    if ( errors ) assertObject( errors );
+    CHECK_OBJECT( value );
+    if ( encoding ) CHECK_OBJECT( encoding );
+    if ( errors ) CHECK_OBJECT( errors );
 
     char *encoding_str;
 
@@ -362,7 +362,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     else if ( PyUnicode_Check( encoding ) )
     {
         PyObject *uarg2 = _PyUnicode_AsDefaultEncodedString( encoding, NULL );
-        assertObject( uarg2 );
+        CHECK_OBJECT( uarg2 );
 
         encoding_str = Nuitka_String_AsString_Unchecked( uarg2 );
     }
@@ -387,7 +387,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     else if ( PyUnicode_Check( errors ) )
     {
         PyObject *uarg3 = _PyUnicode_AsDefaultEncodedString( errors, NULL );
-        assertObject( uarg3 );
+        CHECK_OBJECT( uarg3 );
 
         errors_str = Nuitka_String_AsString_Unchecked( uarg3 );
     }
@@ -412,7 +412,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 {
-    assertObject( method );
+    CHECK_OBJECT( method );
 
     PyObject *attempt = PyStaticMethod_New( method );
 
@@ -431,7 +431,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 {
-    assertObject( source );
+    CHECK_OBJECT( source );
 
     PyObject *result = PyObject_GetAttr( source, const_str_plain___dict__ );
 
@@ -450,8 +450,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 
 NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *import_name )
 {
-    assertObject( module );
-    assertObject( import_name );
+    CHECK_OBJECT( module );
+    CHECK_OBJECT( import_name );
 
     PyObject *result = PyObject_GetAttr( module, import_name );
 
@@ -485,7 +485,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
-    assertObject( list );
+    CHECK_OBJECT( list );
     assert( PyList_CheckExact( list ) );
 
     Py_ssize_t size = PyList_GET_SIZE( list );
@@ -628,8 +628,8 @@ extern void _initSlotCompare( void );
 #if PYTHON_VERSION >= 300
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
 {
-    assertObject( metaclass );
-    assertObject( bases );
+    CHECK_OBJECT( metaclass );
+    CHECK_OBJECT( bases );
 
     if (likely( PyType_Check( metaclass ) ))
     {
@@ -681,7 +681,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
 
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObject *metaclass_global )
 {
-    assertObject( bases );
+    CHECK_OBJECT( bases );
 
     PyObject *metaclass;
 
@@ -711,7 +711,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
     }
 
     // Cannot fail on Python2.
-    assertObject( metaclass );
+    CHECK_OBJECT( metaclass );
 
     return metaclass;
 }

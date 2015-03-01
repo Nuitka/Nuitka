@@ -120,7 +120,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
 
 NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
-    assertObject( iterator );
+    CHECK_OBJECT( iterator );
 
     iternextfunc iternext = Py_TYPE( iterator )->tp_iternext;
 
@@ -160,7 +160,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 {
-    assertObject( iterator );
+    CHECK_OBJECT( iterator );
 
     iternextfunc iternext = Py_TYPE( iterator )->tp_iternext;
 
@@ -194,7 +194,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
     }
     else
     {
-        assertObject( result );
+        CHECK_OBJECT( result );
     }
 
     return result;
@@ -203,8 +203,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObject *default_value )
 {
-    assertObject( iterator );
-    assertObject( default_value );
+    CHECK_OBJECT( iterator );
+    CHECK_OBJECT( default_value );
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
@@ -232,7 +232,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
     }
     else
     {
-        assertObject( result );
+        CHECK_OBJECT( result );
     }
 
     return result;
@@ -241,7 +241,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
 
 NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 {
-    assertObject( iterator );
+    CHECK_OBJECT( iterator );
     assert( HAS_ITERNEXT( iterator ) );
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
@@ -267,7 +267,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT( PyObject *iterator, int seq_s
         return NULL;
     }
 
-    assertObject( result );
+    CHECK_OBJECT( result );
 
     return result;
 }
@@ -275,7 +275,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT( PyObject *iterator, int seq_s
 
 NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATOR_CHECK( PyObject *iterator )
 {
-    assertObject( iterator );
+    CHECK_OBJECT( iterator );
     assert( HAS_ITERNEXT( iterator ) );
 
     PyObject *attempt = (*Py_TYPE( iterator )->tp_iternext)( iterator );

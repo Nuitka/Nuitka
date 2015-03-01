@@ -84,9 +84,9 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
 
 PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
-    assertObject( code );
-    assertObject( globals );
-    assertObject( locals );
+    CHECK_OBJECT( code );
+    CHECK_OBJECT( globals );
+    CHECK_OBJECT( locals );
 
     if ( PyDict_Check( globals ) == 0 )
     {
@@ -814,7 +814,7 @@ PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step )
 
 PyObject *BUILTIN_LEN( PyObject *value )
 {
-    assertObject( value );
+    CHECK_OBJECT( value );
 
     Py_ssize_t res = PyObject_Size( value );
 
@@ -832,11 +832,11 @@ static PythonBuiltin _python_builtin_import( &const_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
-    assertObject( module_name );
-    assertObject( globals );
-    assertObject( locals );
-    assertObject( import_items );
-    assertObject( level );
+    CHECK_OBJECT( module_name );
+    CHECK_OBJECT( globals );
+    CHECK_OBJECT( locals );
+    CHECK_OBJECT( import_items );
+    CHECK_OBJECT( level );
 
     PyObject *pos_args = PyTuple_New(5);
     PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( module_name ) );
@@ -860,8 +860,8 @@ extern PyObject *const_str_plain___all__;
 bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 {
     // Check parameters.
-    assertObject( module );
-    assertObject( target );
+    CHECK_OBJECT( module );
+    CHECK_OBJECT( target );
 
     PyObject *iter;
     bool all_case;
@@ -884,7 +884,7 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
         CLEAR_ERROR_OCCURRED();
 
         iter = MAKE_ITERATOR( PyModule_GetDict( module ) );
-        assertObject( iter );
+        CHECK_OBJECT( iter );
 
         all_case = false;
     }
@@ -961,7 +961,7 @@ bool PRINT_NEW_LINE_TO( PyObject *file )
     }
 
     PyFile_SoftSpace( file, 0 );
-    assertObject( file );
+    CHECK_OBJECT( file );
 
     Py_DECREF( file );
     return true;
@@ -1003,8 +1003,8 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         file = GET_STDOUT();
     }
 
-    assertObject( file );
-    assertObject( object );
+    CHECK_OBJECT( file );
+    CHECK_OBJECT( object );
 
     // need to hold a reference to the file or else __getattr__ may release
     // "file" in the mean time.
@@ -1051,7 +1051,7 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         PyFile_SoftSpace( file, !softspace );
     }
 
-    assertObject( file );
+    CHECK_OBJECT( file );
     Py_DECREF( file );
 
     return true;
@@ -1269,7 +1269,7 @@ PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
         PyErr_Print();
     }
 
-    assertObject( result );
+    CHECK_OBJECT( result );
 
     return result;
 }
@@ -1280,7 +1280,7 @@ PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size )
     PyObject *result = PyUnicode_FromStringAndSize( (char const  *)buffer, size );
 
     assert( !ERROR_OCCURRED() );
-    assertObject( result );
+    CHECK_OBJECT( result );
 
     return result;
 }
@@ -1295,7 +1295,7 @@ PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool in
 #endif
 
     assert( !ERROR_OCCURRED() );
-    assertObject( result );
+    CHECK_OBJECT( result );
     assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
@@ -1306,7 +1306,7 @@ PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool in
     {
         Nuitka_StringIntern( &result );
 
-        assertObject( result );
+        CHECK_OBJECT( result );
         assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
@@ -1328,7 +1328,7 @@ PyObject *UNSTREAM_CHAR( unsigned char value, bool intern )
 #endif
 
     assert( !ERROR_OCCURRED() );
-    assertObject( result );
+    CHECK_OBJECT( result );
     assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
@@ -1341,7 +1341,7 @@ PyObject *UNSTREAM_CHAR( unsigned char value, bool intern )
     {
         Nuitka_StringIntern( &result );
 
-        assertObject( result );
+        CHECK_OBJECT( result );
         assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
@@ -1370,7 +1370,7 @@ PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size )
 {
     PyObject *result = PyBytes_FromStringAndSize( (char const  *)buffer, size );
     assert( !ERROR_OCCURRED() );
-    assertObject( result );
+    CHECK_OBJECT( result );
 
     assert( PyBytes_GET_SIZE( result ) == size );
     return result;
@@ -1679,7 +1679,7 @@ extern PyObject *const_str_plain___class__;
 
 PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 {
-    assertObject( type );
+    CHECK_OBJECT( type );
 
     superobject *result = PyObject_GC_New( superobject, &PySuper_Type );
     assert( result );
@@ -1745,7 +1745,7 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 
     Nuitka_GC_Track( result );
 
-    assertObject( (PyObject *)result );
+    CHECK_OBJECT( (PyObject *)result );
     assert( Py_TYPE( result ) == &PySuper_Type );
 
     return (PyObject *)result;
@@ -1759,8 +1759,8 @@ PyObject *BUILTIN_CALLABLE( PyObject *value )
 // Used by InspectPatcher too.
 int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
 {
-    assertObject( inst );
-    assertObject( cls );
+    CHECK_OBJECT( inst );
+    CHECK_OBJECT( cls );
 
     // Quick path.
     if ( Py_TYPE( inst ) == (PyTypeObject *)cls )
@@ -1904,8 +1904,8 @@ extern PyObject *const_str_plain_open;
 
 int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObject *value )
 {
-    assertObject( (PyObject *)module );
-    assertObject( name );
+    CHECK_OBJECT( (PyObject *)module );
+    CHECK_OBJECT( name );
 
     // This is used for "del" as well.
     assert( value == NULL || Py_REFCNT( value ) > 0 );
@@ -2035,7 +2035,7 @@ PyObject *callPythonFunction( PyObject *func, PyObject **args, int count )
 #endif
     {
         PyThreadState *tstate = PyThreadState_GET();
-        assertObject( globals );
+        CHECK_OBJECT( globals );
 
         PyFrameObject *frame = PyFrame_New( tstate, co, globals, NULL );
 
@@ -2110,7 +2110,7 @@ static PyObject *_fast_function_noargs( PyObject *func )
 #endif
     {
         PyThreadState *tstate = PyThreadState_GET();
-        assertObject( globals );
+        CHECK_OBJECT( globals );
 
         PyFrameObject *frame = PyFrame_New( tstate, co, globals, NULL );
 
@@ -2164,7 +2164,7 @@ static PyObject *_fast_function_noargs( PyObject *func )
 
 PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 {
-    assertObject( called );
+    CHECK_OBJECT( called );
 
     if ( Nuitka_Function_Check( called ) )
     {
@@ -2502,10 +2502,10 @@ PyObject *MAKE_BINARY_RELATIVE(PyObject *relative)
         binary_path_object = PyString_FromString(getBinaryDirectory());
 #endif
     }
-    assertObject( binary_path_object );
+    CHECK_OBJECT( binary_path_object );
 
     PyObject *os_path = PyImport_ImportModule("os.path");
-    assertObject(os_path);
+    CHECK_OBJECT(os_path);
 
     PyObject *os_path_join = PyObject_GetAttrString(os_path, "join");
 
@@ -2551,7 +2551,7 @@ void _initBuiltinOriginalValues()
     ASSIGN_BUILTIN( long );
 #endif
 
-    assertObject( _python_original_builtin_value_range );
+    CHECK_OBJECT( _python_original_builtin_value_range );
 }
 
 #endif
@@ -2600,7 +2600,7 @@ void _initSlotIternext()
     );
     Py_DECREF( c );
 
-    assertObject( r );
+    CHECK_OBJECT( r );
     assert( Py_TYPE( r )->tp_iternext );
 
     default_iternext = Py_TYPE(r)->tp_iternext;
@@ -2647,7 +2647,7 @@ void _initSlotCompare()
     );
     Py_DECREF( c );
 
-    assertObject( r );
+    CHECK_OBJECT( r );
     assert( Py_TYPE( r )->tp_compare );
 
     default_tp_compare = Py_TYPE( r )->tp_compare;
@@ -2758,8 +2758,8 @@ static int try_3way_compare( PyObject *a, PyObject *b )
 
 PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
 {
-    assertObject( a );
-    assertObject( b );
+    CHECK_OBJECT( a );
+    CHECK_OBJECT( b );
 
     // TODO: Type a-ware rich comparison would be really nice, but this is what
     // CPython does, and should be even in "richcomparisons.hpp" as the first
@@ -2992,8 +2992,8 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
 
 PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
 {
-    assertObject( a );
-    assertObject( b );
+    CHECK_OBJECT( a );
+    CHECK_OBJECT( b );
 
     // TODO: Type a-ware rich comparison would be really nice, but this is what
     // CPython does, and should be even in "richcomparisons.hpp" as the first
@@ -3220,8 +3220,8 @@ static char const *op_strings[] =
 
 PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
 {
-    assertObject( a );
-    assertObject( b );
+    CHECK_OBJECT( a );
+    CHECK_OBJECT( b );
 
     if (unlikely( Py_EnterRecursiveCall( (char *)" in comparison" ) ))
     {
@@ -3333,8 +3333,8 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
 
 PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
 {
-    assertObject( a );
-    assertObject( b );
+    CHECK_OBJECT( a );
+    CHECK_OBJECT( b );
 
     bool checked_reverse_op = false;
     PyObject *result = NULL;
@@ -3678,14 +3678,14 @@ Py_hash_t DEEP_HASH( PyObject *value )
         Py_hash_t result = DEEP_HASH_INIT( value );
 
         PyObject *iterator = PyObject_GetIter( value );
-        assertObject( iterator );
+        CHECK_OBJECT( iterator );
 
         while( true )
         {
             PyObject *item = PyIter_Next( iterator );
             if (!item) break;
 
-            assertObject( item );
+            CHECK_OBJECT( item );
 
             result ^= DEEP_HASH( item );
 

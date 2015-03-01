@@ -141,7 +141,7 @@ if ( %(result)s == true )
 """
 
 template_del_local_known = """\
-assertObject( %(identifier)s );
+CHECK_OBJECT( %(identifier)s );
 Py_DECREF( %(identifier)s );
 %(identifier)s = NULL;
 """
@@ -158,7 +158,7 @@ Py_XDECREF( %(identifier)s );
 """
 
 template_release_clear = """\
-assertObject( (PyObject *)%(identifier)s );
+CHECK_OBJECT( (PyObject *)%(identifier)s );
 Py_DECREF( %(identifier)s );
 %(identifier)s = NULL;
 """

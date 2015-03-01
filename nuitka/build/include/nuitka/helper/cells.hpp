@@ -20,7 +20,7 @@
 
 NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW( PyObject *value )
 {
-    assertObject( value );
+    CHECK_OBJECT( value );
 
     PyCellObject *result;
 
