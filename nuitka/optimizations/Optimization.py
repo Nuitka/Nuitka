@@ -177,6 +177,30 @@ def areEmptyTraces(variable_traces):
     return empty
 
 
+def optimizeUnusedClosureVariables(function_body):
+    for closure_variable in function_body.getClosureVariables():
+        # print "VAR", closure_variable
+
+        variable_traces = function_body.constraint_collection.getVariableTraces(
+            variable = closure_variable
+        )
+
+        empty = areEmptyTraces(variable_traces)
+        if empty:
+            function_body.removeClosureVariable(closure_variable)
+
+
+def optimizeUnusedUserVariables(function_body):
+    for local_variable in function_body.getUserLocalVariables():
+        variable_traces = function_body.constraint_collection.getVariableTraces(
+            variable = local_variable
+        )
+
+        empty = areEmptyTraces(variable_traces)
+        if empty:
+            function_body.removeUserVariable(local_variable)
+
+
 def optimizeUnusedTempVariables(provider):
     for temp_variable in provider.getTempVariables():
 
@@ -195,16 +219,9 @@ def optimizeVariables(module):
         if constraint_collection.unclear_locals:
             continue
 
-        for closure_variable in function_body.getClosureVariables():
-            # print "VAR", closure_variable
+        optimizeUnusedUserVariables(function_body)
 
-            variable_traces = constraint_collection.getVariableTraces(
-                variable = closure_variable
-            )
-
-            empty = areEmptyTraces(variable_traces)
-            if empty:
-                function_body.removeVariable(closure_variable)
+        optimizeUnusedClosureVariables(function_body)
 
         optimizeUnusedTempVariables(function_body)
 
