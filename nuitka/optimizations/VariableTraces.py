@@ -123,6 +123,8 @@ class VariableTraceBase:
            self.variable.isSharedTechnically():
             return False
 
+        # TODO: Merge traces should be considered too.
+
         return self.isInitTrace() or self.isAssignTrace()
 
     def mustBeUninit(self):

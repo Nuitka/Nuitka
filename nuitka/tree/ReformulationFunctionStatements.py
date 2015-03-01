@@ -375,10 +375,12 @@ def addFunctionVariableReleases(function):
     source_ref = function.getSourceReference()
 
     for variable in function.getLocalVariables():
-        # Shared variables are freed by object use.
+        # Shared variables are freed by function object attachment.
         if variable.getOwner() is not function:
             continue
 
+        # Generators have it attached at creation and release it automatically
+        # when deleted.
         if function.isGenerator() and variable.isParameterVariable():
             continue
 

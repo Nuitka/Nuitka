@@ -96,7 +96,7 @@ def buildListContractionNode(provider, node, source_ref):
             name       = "listcontr_result"
         )
 
-        statements, del_statements = _buildContractionBodyNode(
+        statements, release_statements = _buildContractionBodyNode(
             provider        = provider,
             node            = node,
             emit_class      = ExpressionListOperationAppend,
@@ -137,7 +137,7 @@ def buildListContractionNode(provider, node, source_ref):
                 source_ref = source_ref
             ),
             tried      = statements,
-            final      = del_statements,
+            final      = release_statements,
             source_ref = source_ref
         )
 
@@ -471,7 +471,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         StatementReleaseVariable(
             variable   = tmp_variable,
             tolerant   = True,
-            source_ref = source_ref.atInternal()
+            source_ref = source_ref
         )
         for tmp_variable in
         tmp_variables
