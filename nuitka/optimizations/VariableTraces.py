@@ -359,4 +359,3 @@ class VariableMergeTrace(VariableTraceBase):
                 return False
 
         return True
-
