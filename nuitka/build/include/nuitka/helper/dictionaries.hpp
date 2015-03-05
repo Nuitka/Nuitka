@@ -158,9 +158,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE( PyDictObject *dict,
 
 NUITKA_MAY_BE_UNUSED static bool DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
 {
-    assertObject( dict );
-    assertObject( key );
-    assertObject( value );
+    CHECK_OBJECT( dict );
+    CHECK_OBJECT( key );
+    CHECK_OBJECT( value );
 
     int status = PyDict_SetItem( dict, key, value );
 
@@ -192,10 +192,10 @@ NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM( PyObject *dict, PyObject *key
 
 NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *key )
 {
-    assertObject( dict );
+    CHECK_OBJECT( dict );
     assert( PyDict_Check( dict ) );
 
-    assertObject( key );
+    CHECK_OBJECT( key );
 
     PyObject *result = PyDict_GetItem( dict, key );
 
@@ -266,7 +266,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0( PyDictObject *dict, Nuitka
     {
         SET_DICT_ENTRY_VALUE( entry, INCREASE_REFCOUNT( value ) );
 
-        assertObject( old );
+        CHECK_OBJECT( old );
 
         Py_DECREF( old );
     }

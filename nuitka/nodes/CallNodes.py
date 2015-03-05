@@ -21,7 +21,8 @@ Function calls and generally calling expressions are the same thing. This is
 very important, because it allows to predict most things, and avoid expensive
 operations like parameter parsing at run time.
 
-There will be a method "computeExpressionCall" to aid predicting them.
+There will be a method "computeExpressionCall" to aid predicting them in other
+nodes.
 """
 
 from .ConstantRefNodes import ExpressionConstantRef
@@ -86,6 +87,10 @@ class ExpressionCall(ExpressionChildrenHavingBase):
             )
 
             return result, "new_raise", "Call keyword arguments raise exception"
+
+        # Any code could be run, note that. TODO: Move this down into the
+        # specific handlers.
+        constraint_collection.onControlFlowEscape(self)
 
         return called.computeExpressionCall(
             call_node             = self,

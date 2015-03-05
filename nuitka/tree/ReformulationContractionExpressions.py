@@ -25,7 +25,7 @@ source code comments with developer manual sections.
 from nuitka import Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable,
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
@@ -96,7 +96,7 @@ def buildListContractionNode(provider, node, source_ref):
             name       = "listcontr_result"
         )
 
-        statements, del_statements = _buildContractionBodyNode(
+        statements, release_statements = _buildContractionBodyNode(
             provider        = provider,
             node            = node,
             emit_class      = ExpressionListOperationAppend,
@@ -137,27 +137,21 @@ def buildListContractionNode(provider, node, source_ref):
                 source_ref = source_ref
             ),
             tried      = statements,
-            final      = del_statements,
+            final      = release_statements,
             source_ref = source_ref
         )
 
         final = StatementsSequence(
             statements = (
-                StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = container_tmp,
-                        source_ref = source_ref
-                    ),
-                    tolerant     = True,
-                    source_ref   = source_ref
+                StatementReleaseVariable(
+                    variable   = container_tmp,
+                    tolerant   = True,
+                    source_ref = source_ref
                 ),
-                StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = outer_iter_var,
-                        source_ref = source_ref
-                    ),
-                    tolerant     = True,
-                    source_ref   = source_ref
+                StatementReleaseVariable(
+                    variable   = outer_iter_var,
+                    tolerant   = True,
+                    source_ref = source_ref
                 ),
             ),
             source_ref = source_ref
@@ -241,7 +235,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                               assign_provider, source_ref, function_body):
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=R0912,R0914,R0915
+    # expressions sharing this code, pylint: disable=R0912,R0914
     if start_value is not None:
         statements = [
             StatementAssignmentVariable(
@@ -450,13 +444,10 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
         if tmp_iter_variable is not None:
             nested_statements.append(
-                StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_iter_variable,
-                        source_ref = source_ref
-                    ),
-                    tolerant     = False,
-                    source_ref   = source_ref
+                StatementReleaseVariable(
+                    variable   = tmp_iter_variable,
+                    tolerant   = False,
+                    source_ref = source_ref
                 )
             )
 
@@ -476,20 +467,17 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             )
         )
 
-    del_statements = []
-    for tmp_variable in tmp_variables:
-        del_statements.append(
-            StatementDelVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_variable,
-                    source_ref = source_ref
-                ),
-                tolerant     = True,
-                source_ref   = source_ref.atInternal()
-            )
+    release_statements = [
+        StatementReleaseVariable(
+            variable   = tmp_variable,
+            tolerant   = True,
+            source_ref = source_ref
         )
+        for tmp_variable in
+        tmp_variables
+    ]
 
-    return statements, del_statements
+    return statements, release_statements
 
 
 def _buildContractionNode(provider, node, name, emit_class, start_value,
@@ -503,13 +491,15 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
     assert provider.isParentVariableProvider(), provider
 
+    iterator_var_name = ".0"
+
     function_body = ExpressionFunctionBody(
         provider   = provider,
         name       = name,
         doc        = None,
         parameters = ParameterSpec(
             name          = "contraction",
-            normal_args   = ("__iterator",),
+            normal_args   = (iterator_var_name,),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
@@ -527,7 +517,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         container_tmp = None
 
     outer_iter_ref = ExpressionVariableRef(
-        variable_name = "__iterator",
+        variable_name = iterator_var_name,
         source_ref    = source_ref
     )
 

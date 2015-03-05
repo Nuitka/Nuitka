@@ -288,6 +288,26 @@ class StatementsFrame(StatementsSequence):
     def getVarNames(self):
         return self.var_names
 
+    def updateVarNames(self):
+        """ For use during variable closure phase.
+
+        """
+        provider = self.getParentVariableProvider()
+
+        # TODO: Bad for in-lining of these.
+        if provider.isExpressionFunctionBody():
+            var_names = provider.getParameters().getCoArgNames()
+
+            # Add names of local variables too.
+            var_names += [
+                local_variable.getName()
+                for local_variable in
+                provider.getLocalVariables()
+                if not local_variable.isParameterVariable()
+            ]
+
+            self.var_names = tuple(var_names)
+
     def getCodeObjectName(self):
         return self.code_name
 
@@ -407,7 +427,7 @@ class StatementsFrame(StatementsSequence):
                 constraint_collection.signalChange(
                     "new_statements",
                     self.getSourceReference(),
-                    "Removed useless frame"
+                    "Removed useless frame."
                 )
 
                 return makeStatementsSequenceReplacementNode(

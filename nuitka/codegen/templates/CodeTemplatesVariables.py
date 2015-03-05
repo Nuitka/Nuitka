@@ -20,147 +20,170 @@
 """
 
 template_write_local_unclear_ref0 = """\
-if (%(identifier)s.object == NULL)
 {
-    %(identifier)s.object = %(tmp_name)s;
+    PyObject *old = %(identifier)s;
+    %(identifier)s = %(tmp_name)s;
+    Py_XDECREF( old );
 }
-else
-{
-    PyObject *old = %(identifier)s.object;
-    %(identifier)s.object = %(tmp_name)s;
-    Py_DECREF( old );
-}"""
+"""
 
 template_write_local_unclear_ref1 = """\
-if (%(identifier)s.object == NULL)
 {
-    %(identifier)s.object = INCREASE_REFCOUNT( %(tmp_name)s );
+    PyObject *old = %(identifier)s;
+    %(identifier)s = %(tmp_name)s;
+    Py_INCREF( %(identifier)s );
+    Py_XDECREF( old );
 }
-else
-{
-    PyObject *old = %(identifier)s.object;
-    %(identifier)s.object = INCREASE_REFCOUNT( %(tmp_name)s );
-    Py_DECREF( old );
-}"""
+"""
 
 template_write_local_empty_ref0 = """\
-assert( %(identifier)s.object == NULL );
-%(identifier)s.object = %(tmp_name)s;
+assert( %(identifier)s == NULL );
+%(identifier)s = %(tmp_name)s;
 """
 
 template_write_local_empty_ref1 = """\
-assert( %(identifier)s.object == NULL );
-%(identifier)s.object = INCREASE_REFCOUNT( %(tmp_name)s );
+assert( %(identifier)s == NULL );
+Py_INCREF( %(tmp_name)s );
+%(identifier)s = %(tmp_name)s;
 """
 
 template_write_local_clear_ref0 = """\
-assert( %(identifier)s.object != NULL );
 {
-    PyObject *old = %(identifier)s.object;
-    %(identifier)s.object = %(tmp_name)s;
+    PyObject *old = %(identifier)s;
+    assert( old != NULL );
+    %(identifier)s = %(tmp_name)s;
     Py_DECREF( old );
 }
 """
+
+template_write_local_inplace = """\
+%(identifier)s = %(tmp_name)s;
+"""
+
+template_write_shared_inplace = """\
+PyCell_SET( %(identifier)s, %(tmp_name)s );
+"""
+
 
 template_write_local_clear_ref1 = """\
-assert( %(identifier)s.object != NULL );
 {
-    PyObject *old = %(identifier)s.object;
-    %(identifier)s.object = INCREASE_REFCOUNT( %(tmp_name)s );
+    PyObject *old = %(identifier)s;
+    assert( old != NULL );
+    %(identifier)s = %(tmp_name)s;
+    Py_INCREF( %(identifier)s );
     Py_DECREF( old );
 }
 """
 
-
 template_write_shared_unclear_ref0 = """\
-if (%(identifier)s.storage->object == NULL)
 {
-    %(identifier)s.storage->object = %(tmp_name)s;
+    PyObject *old = PyCell_GET( %(identifier)s );
+    PyCell_SET( %(identifier)s, %(tmp_name)s );
+    Py_XDECREF( old );
 }
-else
-{
-    PyObject *old = %(identifier)s.storage->object;
-    %(identifier)s.storage->object = %(tmp_name)s;
-    Py_DECREF( old );
-}"""
+"""
 
 template_write_shared_unclear_ref1 = """\
-if (%(identifier)s.storage->object == NULL)
 {
-    %(identifier)s.storage->object = INCREASE_REFCOUNT( %(tmp_name)s );
+    PyObject *old = PyCell_GET( %(identifier)s );
+    PyCell_SET( %(identifier)s, %(tmp_name)s );
+    Py_INCREF( %(tmp_name)s );
+    Py_XDECREF( old );
 }
-else
-{
-    PyObject *old = %(identifier)s.storage->object;
-    %(identifier)s.storage->object = INCREASE_REFCOUNT( %(tmp_name)s );
-    Py_DECREF( old );
-}"""
+"""
 
 template_write_shared_clear_ref0 = """\
-assert( %(identifier)s.storage->object == NULL );
-%(identifier)s.storage->object = %(tmp_name)s;
+assert( PyCell_GET( %(identifier)s ) == NULL );
+PyCell_SET( %(identifier)s, %(tmp_name)s );
 """
 
 template_write_shared_clear_ref1 = """\
-assert( %(identifier)s.storage->object == NULL );
-%(identifier)s.storage->object = INCREASE_REFCOUNT( %(tmp_name)s );
+assert( PyCell_GET( %(identifier)s ) == NULL );
+Py_INCREF( %(tmp_name)s );
+PyCell_SET( %(identifier)s, %(tmp_name)s );
 """
 
 
 template_read_local = """\
-%(tmp_name)s = %(identifier)s.object;
+%(tmp_name)s = %(identifier)s;
 """
 
 template_del_local_tolerant = """\
-Py_XDECREF( %(identifier)s.object );
-%(identifier)s.object = NULL;
+Py_XDECREF( %(identifier)s );
+%(identifier)s = NULL;
 """
 
 template_del_shared_tolerant = """\
-if ( %(identifier)s.storage )
+if ( %(identifier)s )
 {
-    Py_XDECREF( %(identifier)s.storage->object );
-    %(identifier)s.storage->object = NULL;
+    Py_XDECREF( PyCell_GET( %(identifier)s ));
+    PyCell_SET( %(identifier)s, NULL );
 }
 """
 
 template_del_local_intolerant = """\
-%(result)s = %(identifier)s.object != NULL;
+%(result)s = %(identifier)s != NULL;
 if ( %(result)s == true )
 {
-    Py_DECREF( %(identifier)s.object );
-    %(identifier)s.object = NULL;
+    Py_DECREF( %(identifier)s );
+    %(identifier)s = NULL;
 }
 """
 
+# TODO: Storage will not be NULL. What is this used for.
 template_del_shared_intolerant = """\
-%(result)s = %(identifier)s.storage != NULL && %(identifier)s.storage->object != NULL;
+%(result)s = %(identifier)s != NULL && PyCell_GET( %(identifier)s ) != NULL;
 if ( %(result)s == true )
 {
-    Py_DECREF( %(identifier)s.storage->object );
-    %(identifier)s.storage->object = NULL;
+    Py_DECREF( PyCell_GET( %(identifier)s ) );
+    PyCell_SET( %(identifier)s, NULL );
 }
 """
 
+template_del_local_known = """\
+CHECK_OBJECT( %(identifier)s );
+Py_DECREF( %(identifier)s );
+%(identifier)s = NULL;
+"""
+
+template_del_shared_known = """\
+Py_DECREF( PyCell_GET( %(identifier)s ) );
+PyCell_SET( %(identifier)s, NULL );
+"""
+
+
+template_release_unclear = """\
+Py_XDECREF( %(identifier)s );
+%(identifier)s = NULL;
+"""
+
+template_release_clear = """\
+CHECK_OBJECT( (PyObject *)%(identifier)s );
+Py_DECREF( %(identifier)s );
+%(identifier)s = NULL;
+"""
+
+# TODO: Maybe storage is never NULL.
 template_check_shared = """\
-(%(identifier)s.storage != NULL && %(identifier)s.storage->object != NULL)"""
+( %(identifier)s != NULL && PyCell_GET( %(identifier)s ) != NULL )"""
 
 template_check_local = """\
-(%(identifier)s.object != NULL)"""
+( %(identifier)s != NULL )"""
 
+# TODO: Storage will not be NULL.
 template_read_shared_unclear = """\
-if ( %(identifier)s.storage == NULL)
+if ( %(identifier)s == NULL )
 {
     %(tmp_name)s = NULL;
 }
 else
 {
-    %(tmp_name)s = %(identifier)s.storage->object;
+    %(tmp_name)s = PyCell_GET( %(identifier)s );
 }
 """
 
 template_read_shared_known = """\
-%(tmp_name)s = %(identifier)s.storage->object;
+%(tmp_name)s = PyCell_GET( %(identifier)s );
 """
 
 # For module variable values, need to lookup in module dictionary or in
@@ -186,5 +209,5 @@ if ( %(tmp_name)s == NULL )
 
 template_del_global_unclear = """\
 %(res_name)s = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, %(var_name)s );
-if ( %(res_name)s == -1 ) PyErr_Clear();
+if ( %(res_name)s == -1 ) CLEAR_ERROR_OCCURRED();
 """

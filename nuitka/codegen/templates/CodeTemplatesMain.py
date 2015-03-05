@@ -126,7 +126,7 @@ int main( int argc, char *argv[] )
 
     // Initialize the constant values used.
     _initBuiltinModule();
-    _initConstants();
+    createGlobalConstants();
     _initBuiltinOriginalValues();
 
     // Revert the wrong sys.flags value, it's used by "site" on at least Debian
@@ -206,6 +206,10 @@ int main( int argc, char *argv[] )
 
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
+
+#ifndef __NUITKA_NO_ASSERT__
+    checkGlobalConstants();
+#endif
 
     if ( ERROR_OCCURRED() )
     {
@@ -324,7 +328,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // Initialize the constant values used.
     _initBuiltinModule();
-    _initConstants();
+    createGlobalConstants();
 
     // Initialize the compiled types of Nuitka.
     PyType_Ready( &Nuitka_Generator_Type );
@@ -374,7 +378,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     moduledict_%(module_identifier)s = (PyDictObject *)((PyModuleObject *)module_%(module_identifier)s)->md_dict;
 
-    assertObject( module_%(module_identifier)s );
+    CHECK_OBJECT( module_%(module_identifier)s );
 
 // Seems to work for Python2.7 out of the box, but for Python3, the module
 // doesn't automatically enter "sys.modules", so do it manually.
@@ -428,8 +432,8 @@ MOD_INIT_DECL( %(module_identifier)s )
 """
 
 template_module_exception_exit = """\
-module_exception_exit:
-    PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+    module_exception_exit:
+    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
     return MOD_RETURN_VALUE( NULL );
 }"""
 
@@ -441,6 +445,8 @@ template_helper_impl_decl = """\
 // templates.
 
 #include "nuitka/prelude.hpp"
+
+extern PyObject *callPythonFunction( PyObject *func, PyObject **args, int count );
 
 """
 
@@ -472,12 +478,17 @@ extern "C" const unsigned char constant_bin[];
 // are not accelerated at all, merely bundled with the binary or module, so
 // that Python library can start out.
 
-void copyFrozenModulesTo(void* destination)
+void copyFrozenModulesTo( void* destination )
 {
     _frozen frozen_modules[] = {
         %(frozen_modules)s
         { NULL, NULL, 0 }
     };
-    memcpy(destination, frozen_modules, ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen ));
+
+    memcpy(
+        destination,
+        frozen_modules,
+        ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen )
+    );
 }
 """

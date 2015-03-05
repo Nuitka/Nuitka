@@ -181,7 +181,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         }
 
     def getDetail(self):
-        return "named %s with %s" % (self.name, self.parameters)
+        return "named %s with %s" % (self.getFunctionName(), self.parameters)
 
     def getParent(self):
         assert False
@@ -258,15 +258,24 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     def getVariables(self):
         return self.providing.values()
 
-    def removeVariable(self, variable):
+    def removeClosureVariable(self, variable):
         assert variable in self.providing.values(), (self.providing, variable)
 
         del self.providing[variable.getName()]
 
         assert not variable.isParameterVariable() or \
-               not variable.getOwner() is self
+               variable.getOwner() is not self
 
         self.taken.remove(variable)
+
+    def removeUserVariable(self, variable):
+        assert variable in self.providing.values(), (self.providing, variable)
+
+        del self.providing[variable.getName()]
+
+        assert not variable.isParameterVariable() or \
+               variable.getOwner() is not self
+
 
     def getVariableForAssignment(self, variable_name):
         # print ("ASS func", self, variable_name)

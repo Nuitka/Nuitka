@@ -25,7 +25,7 @@ source code comments with developer manual sections.
 from nuitka import Options, Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
@@ -276,37 +276,25 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     return makeTryFinallyStatement(
         tried      = statements,
         final      = (
-            StatementDelVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_source_variable,
-                    source_ref = source_ref
-                ),
-                tolerant     = True,
-                source_ref   = source_ref
+            StatementReleaseVariable(
+                variable   = tmp_source_variable,
+                tolerant   = True,
+                source_ref = source_ref
             ),
-            StatementDelVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_enter_variable,
-                    source_ref = source_ref
-                ),
-                tolerant     = True,
-                source_ref   = source_ref
+            StatementReleaseVariable(
+                variable   = tmp_enter_variable,
+                tolerant   = True,
+                source_ref = source_ref
             ),
-            StatementDelVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_exit_variable,
-                    source_ref = source_ref
-                ),
-                tolerant     = True,
-                source_ref   = source_ref
+            StatementReleaseVariable(
+                variable   = tmp_exit_variable,
+                tolerant   = True,
+                source_ref = source_ref
             ),
-            StatementDelVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_indicator_variable,
-                    source_ref = source_ref
-                ),
-                tolerant     = True,
-                source_ref   = source_ref
+            StatementReleaseVariable(
+                variable   = tmp_indicator_variable,
+                tolerant   = True,
+                source_ref = source_ref
             ),
         ),
         source_ref = source_ref

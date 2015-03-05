@@ -23,6 +23,8 @@ module variable references.
 
 """
 
+from nuitka import Utils
+
 
 class Variable:
     def __init__(self, owner, variable_name):
@@ -39,6 +41,13 @@ class Variable:
 
     def getName(self):
         return self.variable_name
+
+    def getCodeName(self):
+        var_name = self.variable_name
+        var_name = var_name.replace('.', '$')
+        var_name = Utils.encodeNonAscii(var_name)
+
+        return var_name
 
     def getOwner(self):
         return self.owner
@@ -80,8 +89,8 @@ class Variable:
         from nuitka.VariableRegistry import isSharedTechnically
         return isSharedTechnically(self)
 
-    def getDeclarationTypeCode(self, in_context):
-        # Abstract method, pylint: disable=R0201,W0613
+    def getDeclarationTypeCode(self):
+        # Abstract method, pylint: disable=R0201
         assert False
 
 
@@ -103,11 +112,11 @@ class LocalVariable(Variable):
     def isLocalVariable(self):
         return True
 
-    def getDeclarationTypeCode(self, in_context):
+    def getDeclarationTypeCode(self):
         if self.isSharedTechnically():
-            return "PyObjectSharedLocalVariable"
+            return "PyCellObject *"
         else:
-            return "PyObjectLocalVariable"
+            return "PyObject *"
 
 
 class MaybeLocalVariable(Variable):
@@ -225,11 +234,11 @@ class TempVariable(Variable):
     def isTempVariable(self):
         return True
 
-    def getDeclarationTypeCode(self, in_context):
+    def getDeclarationTypeCode(self):
         if self.isSharedTechnically():
-            return "PyObjectSharedTempVariable"
+            return "PyCellObject *"
         else:
-            return "PyObjectTempVariable"
+            return "PyObject *"
 
     def getDeclarationInitValueCode(self):
         # Virtual method, pylint: disable=R0201

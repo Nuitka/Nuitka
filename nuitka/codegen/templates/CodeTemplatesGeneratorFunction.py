@@ -19,72 +19,9 @@
 
 """
 
-genfunc_context_body_template = """
-
-// This structure is for attachment as self of the generator function %(function_identifier)s and
-// contains the common closure. It is allocated at the time the genexpr object is created.
-struct _context_common_%(function_identifier)s_t
-{
-    // Ref count to keep track of common context usage and release only when it's the last one
-    int ref_count;
-
-    // The generator function can access a read-only closure of the creator.
-%(function_common_context_decl)s
-};
-
-struct _context_generator_%(function_identifier)s_t
-{
-    _context_common_%(function_identifier)s_t *common_context;
-
-    // The generator function instance can access its parameters from creation time.
-%(function_instance_context_decl)s
-};
-
-static void _context_common_%(function_identifier)s_destructor( void *context_voidptr )
-{
-    _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)context_voidptr;
-
-    assert( _python_context->ref_count > 0 );
-    _python_context->ref_count -= 1;
-%(context_free)s
-
-    if ( _python_context->ref_count == 0 )
-    {
-        delete _python_context;
-    }
-}
-
-static void _context_generator_%(function_identifier)s_destructor( void *context_voidptr )
-{
-    _context_generator_%(function_identifier)s_t *_python_context = (struct _context_generator_%(function_identifier)s_t *)context_voidptr;
-
-    _context_common_%(function_identifier)s_destructor( _python_context->common_context );
-
-    delete _python_context;
-}
-"""
-
-genfunc_context_local_only_template = """
-struct _context_generator_%(function_identifier)s_t
-{
-    // The generator function instance can access its parameters from creation time.
-%(function_instance_context_decl)s
-};
-
-static void _context_generator_%(function_identifier)s_destructor( void *context_voidptr )
-{
-    _context_generator_%(function_identifier)s_t *_python_context = (struct _context_generator_%(function_identifier)s_t *)context_voidptr;
-
-    delete _python_context;
-}
-"""
-
 make_genfunc_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
-    struct _context_common_%(function_identifier)s_t *_python_context = new _context_common_%(function_identifier)s_t;
-    _python_context->ref_count = 1;
-
     // Copy the parameter default values and closure values over.
 %(context_copy)s
 
@@ -103,8 +40,8 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 #endif
         %(module_identifier)s,
         %(function_doc)s,
-        _python_context,
-        _context_common_%(function_identifier)s_destructor
+        closure,
+        %(closure_count)d
     );
 }
 """
@@ -134,6 +71,17 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 # TODO: Make the try/catch below unnecessary by detecting the presence
 # or return statements in generators.
 genfunc_yielder_template = """
+static void %(function_identifier)s_context2( Nuitka_GeneratorObject *generator )
+{
+    // Local variable initialization
+%(function_var_inits)s
+
+    // Actual function code.
+%(function_body)s
+
+%(generator_exit)s
+}
+
 #ifdef _NUITKA_MAKECONTEXT_INTS
 static void %(function_identifier)s_context( int generator_address_1, int generator_address_2 )
 {
@@ -150,44 +98,33 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
 #endif
 
-    assertObject( (PyObject *)generator );
+    CHECK_OBJECT( (PyObject *)generator );
     assert( Nuitka_Generator_Check( (PyObject *)generator ) );
 
-    // Make context accessible if one is used.
-%(context_access)s
+    %(function_identifier)s_context2( generator );
 
-    // Local variable inits
-%(function_var_inits)s
-
-    // Actual function code.
-%(function_body)s
-
-%(generator_exit)s
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 }"""
 
 template_generator_exception_exit = """\
-    PyErr_Restore( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
+    Py_INCREF( PyExc_StopIteration );
 
     generator->m_yielded = NULL;
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-
-    // The above won't return, but we need to make it clear to the compiler
-    // as well, or else it will complain and/or generate inferior code.
-    assert(false);
     return;
-function_exception_exit:
+
+    function_exception_exit:
     assert( exception_type );
-    assert( exception_tb );
-    PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
     generator->m_yielded = NULL;
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+    return;
 """
 
 template_generator_noexception_exit = """\
     // Return statement must be present.
     assert(false);
     generator->m_yielded = NULL;
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+    return;
 """
 
 template_generator_return_exit = """\
@@ -195,80 +132,65 @@ template_generator_return_exit = """\
     // as well, or else it will complain and/or generate inferior code.
     assert(false);
     return;
-function_return_exit:
-#if PYTHON_VERSION < 330
-    PyErr_Restore( INCREASE_REFCOUNT( PyExc_StopIteration ), NULL, NULL );
-#else
-    PyErr_Restore( INCREASE_REFCOUNT( PyExc_StopIteration ), tmp_return_value, NULL );
-#endif
-    generator->m_yielded = NULL;
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 
+    function_return_exit:
+#if PYTHON_VERSION < 330
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
+#else
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, tmp_return_value, NULL );
+#endif
+    Py_INCREF( PyExc_StopIteration );
+    generator->m_yielded = NULL;
+    return;
 """
 
+genfunc_generator_no_parameters = """\
+    PyObject **parameters = NULL;
+"""
 
-genfunc_common_context_use_template = """\
-struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self->m_context;
-struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;
+genfunc_generator_with_parameters = """\
+    PyObject **parameters = (PyObject **)malloc(%(parameter_count)d * sizeof(PyObject *));
+%(parameter_copy)s
+"""
 
-_python_context->common_context = _python_common_context;
-_python_common_context->ref_count += 1;"""
+genfunc_generator_no_closure = """\
+    PyCellObject **closure = NULL;
+"""
 
-genfunc_local_context_use_template = """\
-struct _context_generator_%(function_identifier)s_t *_python_context = \
-new _context_generator_%(function_identifier)s_t;"""
+genfunc_generator_with_parent_closure = """\
+    PyCellObject **closure = (PyCellObject **)malloc(%(closure_count)d * sizeof(PyCellObject *));
+    for( Py_ssize_t i = 0; i < %(closure_count)d; i++ )
+    {
+        closure[ i ] = self->m_closure[ i ];
+        Py_INCREF( closure[ i ] );
+    }
+"""
+genfunc_generator_with_own_closure = """\
+    PyCellObject **closure = (PyCellObject **)malloc(%(closure_count)d * sizeof(PyCellObject *));
+%(closure_copy)s
+"""
 
-
-genfunc_generator_without_context_making = """\
-        PyObject *result = Nuitka_Generator_New(
-            %(function_identifier)s_context,
-            %(function_name_obj)s,
-            %(code_identifier)s
-        );"""
-
-genfunc_generator_with_context_making = """\
-        PyObject *result = Nuitka_Generator_New(
-            %(function_identifier)s_context,
-            %(function_name_obj)s,
-            %(code_identifier)s,
-            _python_context,
-            _context_generator_%(function_identifier)s_destructor
-        );"""
-
-
-genfunc_function_maker_template = """
+genfunc_function_impl_template = """
 static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 {
-    // Create context if any
-%(context_making)s
+%(parameter_decl)s
+%(closure_decl)s
 
-%(generator_making)s
-
+    PyObject *result = Nuitka_Generator_New(
+        %(function_identifier)s_context,
+        %(function_name_obj)s,
+        %(code_identifier)s,
+        closure,
+        %(closure_count)d,
+        parameters,
+        %(parameter_count)d
+    );
     if (unlikely( result == NULL ))
     {
-        PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
+        PyErr_Format( PyExc_RuntimeError, "cannot create generator %(function_name)s" );
         return NULL;
     }
 
-    // Copy to context parameter values and closured variables if any.
-%(context_copy)s
-
     return result;
 }
-"""
-
-generator_context_access_template = """
-// The context of the generator.
-struct _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)self->m_context;
-"""
-
-generator_context_unused_template = """\
-// No context is used.
-"""
-
-# TODO: The NUITKA_MAY_BE_UNUSED is because Nuitka doesn't yet detect the case
-# of unused parameters (which are stored in the context for generators to share)
-# reliably.
-generator_context_access_template2 = """
-NUITKA_MAY_BE_UNUSED struct _context_generator_%(function_identifier)s_t *_python_context = (_context_generator_%(function_identifier)s_t *)generator->m_context;
 """

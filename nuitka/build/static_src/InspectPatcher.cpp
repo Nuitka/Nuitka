@@ -92,7 +92,7 @@ static void patchInspectModule( void )
         if ( site_module == NULL )
         {
             // Ignore ImportError, site is not a must.
-            PyErr_Clear();
+            CLEAR_ERROR_OCCURRED();
         }
     }
 #endif
@@ -104,16 +104,16 @@ static void patchInspectModule( void )
         PyErr_PrintEx( 0 );
         Py_Exit( 1 );
     }
-    assertObject( module_inspect );
+    CHECK_OBJECT( module_inspect );
 
     // Patch "inspect.getgeneratorstate" unless it is already patched.
     old_getgeneratorstate = PyObject_GetAttrString( module_inspect, "getgeneratorstate" );
-    assertObject( old_getgeneratorstate );
+    CHECK_OBJECT( old_getgeneratorstate );
 
     if ( PyFunction_Check( old_getgeneratorstate ) )
     {
         PyObject *inspect_getgeneratorstate_replacement = PyCFunction_New( &_method_def_inspect_getgeneratorstate_replacement, NULL );
-        assertObject( inspect_getgeneratorstate_replacement );
+        CHECK_OBJECT( inspect_getgeneratorstate_replacement );
 
         PyObject_SetAttrString( module_inspect, "getgeneratorstate", inspect_getgeneratorstate_replacement );
     }
@@ -155,17 +155,17 @@ extern PyModuleObject *builtin_module;
 
 void patchBuiltinModule()
 {
-    assertObject( (PyObject *)builtin_module );
+    CHECK_OBJECT( (PyObject *)builtin_module );
 
     // Patch "inspect.isinstance" unless it is already patched.
     PyObject *old_isinstance = PyObject_GetAttrString( (PyObject *)builtin_module, "isinstance" );
-    assertObject( old_isinstance );
+    CHECK_OBJECT( old_isinstance );
 
     // TODO: Find safe criterion, these was a C method before
     if ( true || PyFunction_Check( old_isinstance ))
     {
         PyObject *builtin_isinstance_replacement = PyCFunction_New( &_method_def_builtin_isinstance_replacement, NULL );
-        assertObject( builtin_isinstance_replacement );
+        CHECK_OBJECT( builtin_isinstance_replacement );
 
         PyObject_SetAttrString( (PyObject *)builtin_module, "isinstance", builtin_isinstance_replacement );
     }
@@ -210,8 +210,8 @@ static PyObject *Nuitka_type_tp_richcompare( PyObject *a, PyObject *b, int op )
         }
     }
 
-    assertObject( a );
-    assertObject( b );
+    CHECK_OBJECT( a );
+    CHECK_OBJECT( b );
 
     assert( original_PyType_tp_richcompare );
 

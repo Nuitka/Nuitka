@@ -27,30 +27,9 @@ template_function_direct_declaration = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s );
 """
 
-function_context_body_template = """
-// This structure is for attachment as self of %(function_identifier)s.
-// It is allocated at the time the function object is created.
-struct _context_%(function_identifier)s_t
-{
-    // The function can access a read-only closure of the creator.
-%(context_decl)s
-};
-
-static void _context_%(function_identifier)s_destructor( void *context_voidptr )
-{
-    _context_%(function_identifier)s_t *_python_context = (_context_%(function_identifier)s_t *)context_voidptr;
-
-%(context_free)s
-
-    delete _python_context;
-}
-"""
-
 make_function_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
-    struct _context_%(function_identifier)s_t *_python_context = new _context_%(function_identifier)s_t;
-
     // Copy the parameter default values and closure values over.
 %(context_copy)s
 
@@ -69,8 +48,8 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 #endif
         %(module_identifier)s,
         %(function_doc)s,
-        _python_context,
-        _context_%(function_identifier)s_destructor
+        closure,
+        %(closure_count)d
     );
 
     return result;
@@ -109,8 +88,6 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
     NUITKA_MAY_BE_UNUSED bool had_error = ERROR_OCCURRED();
 #endif
 
-%(context_access_function_impl)s
-
     // Local variable declarations.
 %(function_locals)s
 
@@ -127,9 +104,8 @@ template_function_exception_exit = """\
 function_exception_exit:
 %(function_cleanup)s\
     assert( exception_type );
-    PyErr_Restore( exception_type, exception_value, (PyObject *)exception_tb );
+    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 
-    assert( ERROR_OCCURRED() );
     return NULL;
 """
 
@@ -140,9 +116,9 @@ template_function_noexception_exit = """\
 """
 
 template_function_return_exit = """\
-function_return_exit:
+    function_return_exit:
 %(function_cleanup)s\
-    assertObject( tmp_return_value );
+    CHECK_OBJECT( tmp_return_value );
     assert( had_error || !ERROR_OCCURRED() );
     return tmp_return_value;
 """
@@ -154,8 +130,6 @@ function_direct_body_template = """\
     NUITKA_MAY_BE_UNUSED bool had_error = ERROR_OCCURRED();
     assert(!had_error); // Do not enter inlined functions with error set.
 #endif
-
-%(context_access_function_impl)s
 
     // Local variable declarations.
 %(function_locals)s
@@ -172,13 +146,3 @@ function_dict_setup = """\
 // Locals dictionary setup.
 PyObject *locals_dict = PyDict_New();
 """
-
-# Bad to read, but the context declaration should be on one line.
-# pylint: disable=C0301
-
-function_context_access_template = """\
-    // The context of the function.
-    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self->m_context;"""
-
-function_context_unused_template = """\
-    // No context is used."""

@@ -70,7 +70,7 @@ def _optimizeModulePass(module):
     # Pick up parent package if any.
     _attemptRecursion(module)
 
-    written_variables = module.collection.getWrittenVariables()
+    written_variables = module.constraint_collection.getWrittenVariables()
 
     for variable in module.getVariables():
         old_value = variable.getReadOnlyIndicator()
@@ -80,7 +80,7 @@ def _optimizeModulePass(module):
             # Don't suddenly start to write.
             assert not (new_value is False and old_value is True)
 
-            module.collection.signalChange(
+            module.constraint_collection.signalChange(
                 "read_only_mvar",
                 module.getSourceReference(),
                 "Determined variable '{variable_name}' is only read.".format(
@@ -146,47 +146,103 @@ def optimizeShlibModule(module):
     module.considerImplicitImports(signal_change = signalChange)
 
 
+def areEmptyTraces(variable_traces):
+    empty = True
+
+    for variable_trace in variable_traces:
+        if variable_trace.isAssignTrace():
+            empty = False
+            break
+        elif variable_trace.isInitTrace():
+            empty = False
+            break
+        elif variable_trace.isUninitTrace():
+            if variable_trace.getPrevious():
+                # A "del" statement can do this, and needs to prevent variable
+                # from being removed.
+
+                empty = False
+                break
+            elif variable_trace.getDefiniteUsages():
+                # Checking definite is enough, the merges, we shall see
+                # them as well.
+                empty = False
+                break
+        elif variable_trace.isUnknownTrace():
+            if variable_trace.getDefiniteUsages():
+                # Checking definite is enough, the merges, we shall see
+                # them as well.
+                empty = False
+                break
+        elif variable_trace.isMergeTrace():
+            if variable_trace.getDefiniteUsages():
+                # Checking definite is enough, the merges, we shall see
+                # them as well.
+                empty = False
+                break
+        elif variable_trace.isEscaped():
+            assert False, variable_trace
+
+            # If the value is escape, we still need to keep it for that
+            # escape opportunity. This is only while that is not seen
+            # as a definite usage.
+            empty = False
+            break
+        else:
+            assert False, variable_trace
+
+    return empty
+
+
+def optimizeUnusedClosureVariables(function_body):
+    for closure_variable in function_body.getClosureVariables():
+        # print "VAR", closure_variable
+
+        variable_traces = function_body.constraint_collection.getVariableTraces(
+            variable = closure_variable
+        )
+
+        empty = areEmptyTraces(variable_traces)
+        if empty:
+            function_body.removeClosureVariable(closure_variable)
+
+
+def optimizeUnusedUserVariables(function_body):
+    for local_variable in function_body.getUserLocalVariables():
+        variable_traces = function_body.constraint_collection.getVariableTraces(
+            variable = local_variable
+        )
+
+        empty = areEmptyTraces(variable_traces)
+        if empty:
+            function_body.removeUserVariable(local_variable)
+
+
+def optimizeUnusedTempVariables(provider):
+    for temp_variable in provider.getTempVariables():
+
+        variable_traces = provider.constraint_collection.getVariableTraces(
+            variable = temp_variable
+        )
+
+        empty = areEmptyTraces(variable_traces)
+        if empty:
+            provider.removeTempVariable(temp_variable)
+
+
 def optimizeVariables(module):
     for function_body in module.getUsedFunctions():
         constraint_collection = function_body.constraint_collection
         if constraint_collection.unclear_locals:
             continue
 
-        for closure_variable in function_body.getClosureVariables():
-            # print "VAR", closure_variable
+        optimizeUnusedUserVariables(function_body)
 
-            variable_traces = constraint_collection.getVariableTraces(
-                variable = closure_variable
-            )
+        optimizeUnusedClosureVariables(function_body)
 
-            empty = True
-            for variable_trace in variable_traces:
-                if variable_trace.isAssignTrace():
-                    empty = False
-                    break
-                elif variable_trace.isInitTrace():
-                    empty = False
-                    break
-                elif variable_trace.getDefiniteUsages():
-                    # Checking definite is enough, the merges, we shall see
-                    # them as well.
-                    empty = False
-                    break
-                elif variable_trace.isEscaped():
-                    # If the value is escape, we still need to keep it for that
-                    # escape opportunity. This is only while that is not seen
-                    # as a definite usage.
-                    empty = False
-                    break
-                elif variable_trace.getReleases():
-                    # Python3 only, but a "del" statement may occur and needs
-                    # to prevent.
-                    assert Utils.python_version >= 300
-                    empty = False
-                    break
+        optimizeUnusedTempVariables(function_body)
 
-            if empty:
-                function_body.removeVariable(closure_variable)
+    optimizeUnusedTempVariables(module)
 
 
 def optimize():

@@ -36,63 +36,30 @@ typedef struct {
     PyObject *md_dict;
 } PyModuleObject;
 
-extern bool PRINT_ITEM_TO( PyObject *file, PyObject *object );
-extern bool PRINT_ITEM( PyObject *object );
-extern bool PRINT_NEW_LINE( void );
-extern bool PRINT_STRING( char const * );
-extern bool PRINT_NULL( void );
+// Most fundamental, because we use it for debugging in everything else.
+#include "nuitka/helper/printing.hpp"
+
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
-static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 
 // Helper to check that an object is valid and has positive reference count.
-static inline void assertObject( PyObject *value )
-{
-    assert( value != NULL );
-    assert( Py_REFCNT( value ) > 0 );
-}
+#define CHECK_OBJECT( value ) ( assert( value != NULL ), assert( Py_REFCNT( value ) > 0 ) );
 
-static inline void assertObject( PyTracebackObject *value )
-{
-    assertObject( (PyObject *)value );
-}
 
-// Due to ABI issues, it seems that on Windows the symbols used by
-// _PyObject_GC_TRACK are not exported and we need to use a function that does
-// it instead.
-#if defined( _WIN32 )
-#define Nuitka_GC_Track PyObject_GC_Track
-#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
-#else
-#define Nuitka_GC_Track _PyObject_GC_TRACK
-#define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
-#endif
-
-#include "nuitka/variables_temporary.hpp"
 #include "nuitka/exceptions.hpp"
-
-// For the MAKE_TUPLE macros.
-#include "__helpers.hpp"
 
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 {
-    assertObject( object );
+    CHECK_OBJECT( object );
 
     Py_INCREF( object );
 
     return object;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT_X( PyObject *object )
-{
-    Py_XINCREF( object );
-
-    return object;
-}
-
 NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 {
-    assertObject( object );
+    CHECK_OBJECT( object );
 
     Py_DECREF( object );
 
@@ -103,8 +70,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 #ifndef __NUITKA_NO_ASSERT__
 extern Py_hash_t DEEP_HASH( PyObject *value );
 #endif
-
-#include "printing.hpp"
 
 #include "nuitka/helper/boolean.hpp"
 
@@ -174,6 +139,30 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
     return result;
 }
 
+extern PyObject *const_int_0;
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_COMPLEX( PyObject *real, PyObject *imag )
+{
+    // TODO: Very lazy here, we should create the values ourselves, surely a
+    // a lot of optimization can be had that way.
+    if ( real == NULL )
+    {
+        assert( imag != NULL );
+
+        real = const_int_0;
+    }
+
+    if ( imag == NULL)
+    {
+        return CALL_FUNCTION_WITH_ARGS1( (PyObject *)&PyComplex_Type, real );
+    }
+    else
+    {
+        return CALL_FUNCTION_WITH_ARGS2( (PyObject *)&PyComplex_Type, real, imag );
+    }
+}
+
+
 NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 {
     // TODO: Need to check if 3.4 is really the first version to do this.
@@ -185,10 +174,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 
     if (unlikely( base_int == -1 ))
     {
-        if (likely( ERROR_OCCURRED() ))
+        PyObject *error = GET_ERROR_OCCURRED();
+
+        if (likely( error ))
         {
 #if PYTHON_VERSION >= 300
-            if ( PyErr_ExceptionMatches( PyExc_OverflowError ) )
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_OverflowError ) )
             {
                 PyErr_Format(
                         PyExc_ValueError,
@@ -353,9 +344,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_BOOL( PyObject *value )
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *encoding, PyObject *errors )
 {
-    assertObject( value );
-    if ( encoding ) assertObject( encoding );
-    if ( errors ) assertObject( errors );
+    CHECK_OBJECT( value );
+    if ( encoding ) CHECK_OBJECT( encoding );
+    if ( errors ) CHECK_OBJECT( errors );
 
     char *encoding_str;
 
@@ -371,7 +362,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     else if ( PyUnicode_Check( encoding ) )
     {
         PyObject *uarg2 = _PyUnicode_AsDefaultEncodedString( encoding, NULL );
-        assertObject( uarg2 );
+        CHECK_OBJECT( uarg2 );
 
         encoding_str = Nuitka_String_AsString_Unchecked( uarg2 );
     }
@@ -396,7 +387,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     else if ( PyUnicode_Check( errors ) )
     {
         PyObject *uarg3 = _PyUnicode_AsDefaultEncodedString( errors, NULL );
-        assertObject( uarg3 );
+        CHECK_OBJECT( uarg3 );
 
         errors_str = Nuitka_String_AsString_Unchecked( uarg3 );
     }
@@ -421,7 +412,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 {
-    assertObject( method );
+    CHECK_OBJECT( method );
 
     PyObject *attempt = PyStaticMethod_New( method );
 
@@ -431,7 +422,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
     }
     else
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
 
         return method;
     }
@@ -440,7 +431,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 {
-    assertObject( source );
+    CHECK_OBJECT( source );
 
     PyObject *result = PyObject_GetAttr( source, const_str_plain___dict__ );
 
@@ -459,14 +450,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 
 NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *import_name )
 {
-    assertObject( module );
-    assertObject( import_name );
+    CHECK_OBJECT( module );
+    CHECK_OBJECT( import_name );
 
     PyObject *result = PyObject_GetAttr( module, import_name );
 
     if (unlikely( result == NULL ))
     {
-        if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+        if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
         {
 #if PYTHON_VERSION < 340
             PyErr_Format( PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString( import_name ));
@@ -492,12 +483,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 
 #include "nuitka/frame_stack.hpp"
 
-#include "nuitka/variables_locals.hpp"
-#include "nuitka/variables_shared.hpp"
-
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
-    assertObject( list );
+    CHECK_OBJECT( list );
     assert( PyList_CheckExact( list ) );
 
     Py_ssize_t size = PyList_GET_SIZE( list );
@@ -594,7 +582,13 @@ extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
 // For the constant loading:
 
 // Call this to initialize all common constants pre-main.
-void _initConstants( void );
+extern void createGlobalConstants( void );
+
+// Call this to check of common constants are still intact.
+#ifndef __NUITKA_NO_ASSERT__
+extern void checkGlobalConstants( void );
+#endif
+
 
 #if defined(_WIN32) && defined(_NUITKA_EXE)
 #include <Windows.h>
@@ -634,8 +628,8 @@ extern void _initSlotCompare( void );
 #if PYTHON_VERSION >= 300
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
 {
-    assertObject( metaclass );
-    assertObject( bases );
+    CHECK_OBJECT( metaclass );
+    CHECK_OBJECT( bases );
 
     if (likely( PyType_Check( metaclass ) ))
     {
@@ -687,7 +681,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
 
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObject *metaclass_global )
 {
-    assertObject( bases );
+    CHECK_OBJECT( bases );
 
     PyObject *metaclass;
 
@@ -701,7 +695,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
 
         if ( metaclass == NULL )
         {
-            PyErr_Clear();
+            CLEAR_ERROR_OCCURRED();
 
             metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
         }
@@ -717,7 +711,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
     }
 
     // Cannot fail on Python2.
-    assertObject( metaclass );
+    CHECK_OBJECT( metaclass );
 
     return metaclass;
 }
@@ -767,5 +761,7 @@ NUITKA_MAY_BE_UNUSED static void forceGC()
 {
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL );
 }
+
+#include "nuitka/helper/cells.hpp"
 
 #endif

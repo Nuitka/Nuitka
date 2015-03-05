@@ -24,7 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
@@ -99,15 +99,12 @@ def buildComparisonNode(provider, node, source_ref):
                 source_ref   = source_ref,
             )
 
-            # TODO: The delete must be placed later.
+            # TODO: The release ought to be placed later.
             final.append(
-                StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = keeper_variable,
-                        source_ref = source_ref
-                    ),
-                    tolerant     = True,
-                    source_ref   = source_ref,
+                StatementReleaseVariable(
+                    variable   = keeper_variable,
+                    tolerant   = True,
+                    source_ref = source_ref,
                 )
             )
 

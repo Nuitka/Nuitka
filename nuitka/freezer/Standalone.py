@@ -250,7 +250,7 @@ def _detectedShlibFile(filename, module_name):
 
 def _detectImports(command, is_late):
     # This is pretty complicated stuff, with variants to deal with.
-    # pylint: disable=R0912,R0194
+    # pylint: disable=R0912,R0914
 
     # Print statements for stuff to show, the modules loaded.
     if Utils.python_version >= 300:
@@ -266,7 +266,7 @@ def _detectImports(command, is_late):
         sys.path
         if not Utils.areSamePaths(
             path_element,
-            "."
+            '.'
         )
         if not Utils.areSamePaths(
             path_element,

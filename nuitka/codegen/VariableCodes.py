@@ -28,6 +28,40 @@ from .ErrorCodes import getErrorFormatExitBoolCode, getErrorFormatExitCode
 from .Indentation import indented
 
 
+def generateVariableDelCode(statement, emit, context):
+    old_source_ref = context.setCurrentSourceCodeReference(
+        statement.getSourceReference()
+    )
+
+    getVariableDelCode(
+        variable    = statement.getTargetVariableRef().getVariable(),
+        tolerant    = statement.isTolerant(),
+        needs_check = statement.isTolerant() or \
+                      statement.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
+    )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
+
+def generateVariableReleaseCode(statement, emit, context):
+    variable = statement.getVariable()
+
+    if variable.isSharedTechnically():
+        # TODO: We might start to not allocate the cell object, then a check
+        # would be due. But currently we always allocate it.
+        needs_check = False
+    else:
+        needs_check = not statement.variable_trace.mustHaveValue()
+
+    getVariableReleaseCode(
+        variable    = statement.getVariable(),
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
+    )
+
+
 def generateVariableReferenceCode(to_name, expression, emit, context):
     getVariableAccessCode(
         to_name     = to_name,
@@ -38,98 +72,120 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
     )
 
 
-def _getContextAccess(context, force_closure = False):
-    # Context access is variant depending on if that's a created function or
-    # not. For generators, they even share closure variables in the common
-    # context.
-
-    # This is a return factory, pylint: disable=R0911
-    if context.isPythonModule():
-        return ""
-    else:
-        function = context.getFunction()
-
-        if function.needsCreation():
-            if function.isGenerator():
-                if force_closure:
-                    return "_python_context->common_context->"
-                else:
-                    return "_python_context->"
-            else:
-                if force_closure:
-                    return "_python_context->"
-                else:
-                    return ""
-        else:
-            if function.isGenerator():
-                return "_python_context->"
-            else:
-                return ""
-
-
 def getVariableCodeName(in_context, variable):
     if in_context:
         # Closure case:
-        return "closure_" + Utils.encodeNonAscii(variable.getName())
+        return "closure_" + variable.getCodeName()
     elif variable.isParameterVariable():
-        return "par_" + Utils.encodeNonAscii(variable.getName())
+        return "par_" + variable.getCodeName()
     elif variable.isTempVariable():
-        return "tmp_" + Utils.encodeNonAscii(variable.getName())
+        return "tmp_" + variable.getCodeName()
     else:
-        return "var_" + Utils.encodeNonAscii(variable.getName())
+        return "var_" + variable.getCodeName()
 
 
+def _getLocalVariableCode(context, variable):
+    # Now must be local or temporary variable. Owners of them will not use
+    # context except if it's a parameter variable, which is not shared between
+    # different generator instances. This is supposed to return in just about
+    # every branch, pylint: disable=R0911
+    user = context.getOwner()
+    owner = variable.getOwner()
+
+    if owner is user:
+        result = getVariableCodeName(
+            in_context = owner is not user,
+            variable   = variable
+        )
+
+        # Generator objects store their parameters in a dedicate kind of
+        # closure alike.
+        if user.isExpressionFunctionBody() and \
+           user.isGenerator() and \
+           variable.isParameterVariable():
+            parameter_index = user.getParameters().getVariables().index(variable)
+            if variable.isSharedTechnically():
+                return "((PyCellObject *)generator->m_parameters[%d])" % parameter_index, True
+            else:
+                return "generator->m_parameters[%d]" % parameter_index, False
+
+        if variable.isSharedTechnically():
+            return result, True
+        else:
+            return result, False
+    elif context.isForDirectCall():
+        if user.isGenerator():
+            closure_index = user.getClosureVariables().index(variable)
+
+            return "generator->m_closure[%d]" % closure_index, True
+        else:
+            result = getVariableCodeName(
+                in_context = True,
+                variable   = variable
+            )
+
+            return result, False
+    else:
+        closure_index = user.getClosureVariables().index(variable)
+
+        if user.isGenerator():
+            return "generator->m_closure[%d]" % closure_index, True
+        else:
+            return "self->m_closure[%d]" % closure_index, True
 
 def getVariableCode(context, variable):
-    from_context = _getContextAccess(
-        context       = context,
-        force_closure = variable.getOwner() is not context.getOwner()
-    )
+    # Modules are simple.
+    if variable.isModuleVariable():
+        return getVariableCodeName(
+            in_context = False,
+            variable   = variable
+        )
 
-    return from_context + getVariableCodeName(
-        in_context = context.getOwner() is not variable.getOwner() or \
-                     # TODO: Ought to not treat generator context as always
-                     # closure, that makes it too pointless.
-                     (not context.getOwner().isPythonModule() and context.getOwner().isGenerator()),
-        variable   = variable
-    )
-
-
-def getLocalVariableInitCode(variable, init_from = None, in_context = False):
-    assert not variable.isModuleVariable()
-
-    result = variable.getDeclarationTypeCode(in_context)
-
-    # For pointer types, we don't have to separate with spaces.
-    if not result.endswith('*'):
-        result += ' '
-
-    code_name = getVariableCodeName(
-        in_context = in_context,
-        variable   = variable
-    )
-
-    result += code_name
-
-    if not in_context:
-        if variable.isTempVariable():
-            assert init_from is None
-
-            if variable.isSharedTechnically():
-                result += "( NULL )"
-        else:
-            if init_from is not None:
-                if variable.isSharedTechnically():
-                    result += "; %s.storage->object = %s" % (code_name, init_from)
-                else:
-                    result += "; %s.object = %s" % (code_name, init_from)
-
-    result += ';'
-
+    result, _is_cell = _getLocalVariableCode(context, variable)
     return result
 
 
-def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
+def getLocalVariableObjectAccessCode(context, variable):
+    assert variable.isLocalVariable()
+
+    code, is_cell = _getLocalVariableCode(context, variable)
+
+    if is_cell:
+        return code + "->ob_ref"
+    else:
+        return code
+
+
+def getLocalVariableInitCode(variable, init_from = None):
+    assert not variable.isModuleVariable()
+
+    type_name = variable.getDeclarationTypeCode()
+
+    code_name = getVariableCodeName(
+        in_context = False,
+        variable   = variable
+    )
+
+    if variable.isSharedTechnically():
+        if init_from is not None:
+            init_value = "PyCell_NEW( %s )" % init_from
+        else:
+            init_value = "PyCell_EMPTY()"
+    else:
+        if init_from is None:
+            init_from = "NULL"
+
+        init_value = "%s" % init_from
+
+    return "%s%s = %s;" % (
+        type_name,
+        code_name,
+        init_value
+    )
+
+
+def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
+                              in_place):
     # Many different cases, as this must be, pylint: disable=R0912,R0915
 
     assert isinstance(variable, Variables.Variable), variable
@@ -156,7 +212,16 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release):
         if ref_count:
             context.removeCleanupTempName(tmp_name)
     elif variable.isLocalVariable():
-        if variable.isSharedTechnically():
+        if in_place:
+            # Releasing is not an issue here, local variable reference never
+            # gave a reference, and the inplace code deals with possible
+            # replacement/release.
+            if variable.isSharedTechnically():
+                template = CodeTemplates.template_write_shared_inplace
+            else:
+                template = CodeTemplates.template_write_local_inplace
+
+        elif variable.isSharedTechnically():
             if ref_count:
                 if needs_release is False:
                     template = CodeTemplates.template_write_shared_clear_ref0
@@ -260,7 +325,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 context    = context
             )
         elif Options.isDebug():
-            emit("assertObject(%s);" % to_name)
+            emit("CHECK_OBJECT( %s );" % to_name)
 
         return
     elif variable.isMaybeLocalVariable():
@@ -316,7 +381,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 context    = context
             )
         elif Options.isDebug():
-            emit("assertObject(%s);" % to_name)
+            emit("CHECK_OBJECT( %s );" % to_name)
 
         return
     elif variable.isTempVariable():
@@ -343,7 +408,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     context    = context
                 )
             elif Options.isDebug():
-                emit("assertObject(%s);" % to_name)
+                emit("CHECK_OBJECT( %s );" % to_name)
 
             return
         else:
@@ -369,14 +434,14 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     context    = context
                 )
             elif Options.isDebug():
-                emit("assertObject(%s);" % to_name)
+                emit("CHECK_OBJECT( %s );" % to_name)
 
             return
 
     assert False, variable
 
 
-def getVariableDelCode(tolerant, variable, emit, context):
+def getVariableDelCode(variable, tolerant, needs_check, emit, context):
     # Many different cases, as this must be, pylint: disable=R0912
     assert isinstance(variable, Variables.Variable), variable
 
@@ -396,6 +461,7 @@ def getVariableDelCode(tolerant, variable, emit, context):
             }
         )
 
+        # TODO: Apply needs_check for module variables too.
         if check:
             getErrorFormatExitBoolCode(
                 condition = "%s == -1" % res_name,
@@ -410,7 +476,21 @@ def getVariableDelCode(tolerant, variable, emit, context):
                 context   = context
             )
     elif variable.isLocalVariable():
-        if tolerant:
+        if not needs_check:
+            if variable.isSharedTechnically():
+                template = CodeTemplates.template_del_shared_known
+            else:
+                template = CodeTemplates.template_del_local_known
+
+            emit(
+                template % {
+                    "identifier" : getVariableCode(
+                        variable = variable,
+                        context  = context
+                    )
+                }
+            )
+        elif tolerant:
             if variable.isSharedTechnically():
                 template = CodeTemplates.template_del_shared_tolerant
             else:
@@ -506,6 +586,29 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
             )
     else:
         assert False, variable
+
+
+def getVariableReleaseCode(variable, needs_check, emit, context):
+    assert isinstance(variable, Variables.Variable), variable
+
+    assert not variable.isModuleVariable()
+
+    # TODO: We could know, if we could loop, and only set the
+    # variable to NULL then, using a different template.
+
+    if needs_check:
+        template = CodeTemplates.template_release_unclear
+    else:
+        template = CodeTemplates.template_release_clear
+
+    emit(
+        template % {
+            "identifier" : getVariableCode(
+                variable = variable,
+                context  = context
+            )
+        }
+    )
 
 
 def getVariableInitializedCheckCode(variable, context):

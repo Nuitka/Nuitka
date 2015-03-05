@@ -24,7 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable,
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
@@ -168,21 +168,15 @@ def buildForLoopNode(provider, node, source_ref):
     )
 
     cleanup_statements = [
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_value_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_value_variable,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = tmp_iter_variable,
+            tolerant   = True,
+            source_ref = source_ref
         )
     ]
 
@@ -252,13 +246,10 @@ def buildForLoopNode(provider, node, source_ref):
         statements = (
             makeTryFinallyStatement(
                 tried      = statements,
-                final      = StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_break_indicator,
-                        source_ref = source_ref
-                    ),
-                    tolerant     = False,
-                    source_ref   = source_ref
+                final      = StatementReleaseVariable(
+                    variable   = tmp_break_indicator,
+                    tolerant   = False,
+                    source_ref = source_ref
                 ),
                 source_ref = source_ref
             ),
@@ -384,13 +375,10 @@ def buildWhileLoopNode(provider, node, source_ref):
         statements = (
             makeTryFinallyStatement(
                 tried      = statements,
-                final      = StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_break_indicator,
-                        source_ref = source_ref
-                    ),
-                    tolerant     = False,
-                    source_ref   = source_ref
+                final      = StatementReleaseVariable(
+                    variable   = tmp_break_indicator,
+                    tolerant   = False,
+                    source_ref = source_ref
                 ),
                 source_ref = source_ref
             ),

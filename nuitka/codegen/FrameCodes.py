@@ -138,6 +138,12 @@ def getFrameGuardLightCode(frame_identifier, code_identifier, codes,
     assert frame_exception_exit is not None
 
     context.addFrameDeclaration(
+        CodeTemplates.template_frame_guard_cache_decl % {
+            "frame_identifier" : frame_identifier,
+        }
+    )
+
+    context.addFrameDeclaration(
         CodeTemplates.template_frame_guard_frame_decl % {
             "frame_identifier" : frame_identifier,
         }
@@ -166,9 +172,12 @@ def getFrameGuardLightCode(frame_identifier, code_identifier, codes,
         context  = context
     )
 
+
+    # TODO: Don't create locals for StopIteration or GeneratorExit, that is just
+    # wasteful.
     result += CodeTemplates.template_frame_guard_generator_exception_handler % {
         "frame_identifier"      : frame_identifier,
-        "store_frame_locals"    : indented(locals_code, 0, vert_block = True),
+        "store_frame_locals"    : indented(locals_code, vert_block = True),
         "tb_making"             : getTracebackMakingIdentifier(context),
         "frame_exception_exit"  : frame_exception_exit,
         "parent_exception_exit" : parent_exception_exit,
@@ -233,9 +242,12 @@ def getFramePreserveExceptionCode(emit, context):
 
             emit(
                 """\
-%(keeper_type)s = INCREASE_REFCOUNT( PyThreadState_GET()->exc_type );
-%(keeper_value)s = INCREASE_REFCOUNT_X( PyThreadState_GET()->exc_value );
-%(keeper_tb)s = (PyTracebackObject *)INCREASE_REFCOUNT_X( PyThreadState_GET()->exc_traceback );
+%(keeper_type)s = PyThreadState_GET()->exc_type;
+Py_XINCREF( %(keeper_type)s );
+%(keeper_value)s = PyThreadState_GET()->exc_value;
+Py_XINCREF( %(keeper_value)s );
+%(keeper_tb)s = (PyTracebackObject *)PyThreadState_GET()->exc_traceback;
+Py_XINCREF( %(keeper_tb)s );
 """ % {
                     "keeper_type"  : keeper_type,
                     "keeper_value" : keeper_value,
@@ -280,9 +292,12 @@ def getFrameReraiseExceptionCode(emit, context):
 
     emit(
         """\
-exception_type = INCREASE_REFCOUNT( PyThreadState_GET()->exc_type );
-exception_value = INCREASE_REFCOUNT( PyThreadState_GET()->exc_value );
-exception_tb = (PyTracebackObject *)INCREASE_REFCOUNT( PyThreadState_GET()->exc_traceback );
+exception_type = PyThreadState_GET()->exc_type;
+Py_INCREF( exception_type );
+exception_value = PyThreadState_GET()->exc_value;
+Py_INCREF( exception_value );
+exception_tb = (PyTracebackObject *)PyThreadState_GET()->exc_traceback;
+Py_INCREF( exception_tb );
 """ )
     getSetLineNumberCodeRaw("exception_tb->tb_lineno", emit, context)
     getFrameRestoreExceptionCode(emit, context)

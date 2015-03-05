@@ -27,8 +27,8 @@ extern PyDictObject *dict_builtin;
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
 {
-    assertObject( (PyObject *)dict_builtin );
-    assertObject( name );
+    CHECK_OBJECT( (PyObject *)dict_builtin );
+    CHECK_OBJECT( name );
     assert( Nuitka_String_Check( name ) );
 
     PyObject *result = GET_STRING_DICT_VALUE(
@@ -36,7 +36,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
         (Nuitka_StringObject *)name
     );
 
-    assertObject( result );
+    CHECK_OBJECT( result );
 
     return result;
 }
@@ -57,14 +57,14 @@ public:
             this->value = LOOKUP_BUILTIN( (PyObject *)*this->name );
         }
 
-        assertObject( this->value );
+        CHECK_OBJECT( this->value );
 
         return this->value;
     }
 
     void update( PyObject *new_value )
     {
-        assertObject( new_value );
+        CHECK_OBJECT( new_value );
 
         this->value = new_value;
     }

@@ -26,8 +26,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, 
 {
     assert( !ERROR_OCCURRED() );
 
-    assertObject( function_object );
-    assertObject( positional_args );
+    CHECK_OBJECT( function_object );
+    CHECK_OBJECT( positional_args );
     assert( named_args == NULL || Py_REFCNT( named_args ) > 0 );
 
     ternaryfunc call_slot = Py_TYPE( function_object )->tp_call;

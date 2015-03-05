@@ -44,9 +44,6 @@ struct Nuitka_FunctionObject {
 
     PyObject *m_name;
 
-    void *m_context;
-    releaser m_cleanup;
-
     PyObject *m_module;
     PyObject *m_doc;
 
@@ -61,6 +58,10 @@ struct Nuitka_FunctionObject {
     // List of defaults, for use in __defaults__ and parameter parsing.
     PyObject *m_defaults;
     Py_ssize_t m_defaults_given;
+
+    // Closure taken objects, for use in __closure__ and for accessing it.
+    PyCellObject **m_closure;
+    Py_ssize_t m_closure_given;
 
 #if PYTHON_VERSION >= 300
     // List of keyword only defaults, for use in __kwdefaults__ and parameter
@@ -92,11 +93,11 @@ extern PyObject *Nuitka_Function_New( function_arg_parser code, direct_arg_parse
 
 // Make a function with context.
 #if PYTHON_VERSION < 300
-extern PyObject *Nuitka_Function_New( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup );
+extern PyObject *Nuitka_Function_New( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
 #elif PYTHON_VERSION < 330
-extern PyObject *Nuitka_Function_New( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup );
+extern PyObject *Nuitka_Function_New( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
 #else
-extern PyObject *Nuitka_Function_New( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup );
+extern PyObject *Nuitka_Function_New( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
 #endif
 
 static inline bool Nuitka_Function_Check( PyObject *object )

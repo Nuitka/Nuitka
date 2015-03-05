@@ -36,13 +36,14 @@ if ( %(condition)s )
 {
     if ( !ERROR_OCCURRED() )
     {
-        exception_type = INCREASE_REFCOUNT( %(quick_exception)s );
+        exception_type = %(quick_exception)s;
+        Py_INCREF( exception_type );
         exception_value = NULL;
         exception_tb = NULL;
     }
     else
     {
-        PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
     }
 %(release_temps)s
 
@@ -55,7 +56,7 @@ if ( %(condition)s )
 {
     assert( ERROR_OCCURRED() );
 
-    PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+    FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %(release_temps)s
 
 %(line_number_code)s

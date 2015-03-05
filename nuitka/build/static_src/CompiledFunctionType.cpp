@@ -62,7 +62,7 @@ static PyObject *Nuitka_Function_tp_repr( Nuitka_FunctionObject *function )
 
 static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObject *args, PyObject *kw )
 {
-    assertObject( args );
+    CHECK_OBJECT( args );
     assert( PyTuple_Check( args ) );
 
     if ( kw || function->m_direct_arg_parser == NULL )
@@ -434,9 +434,14 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
     Py_DECREF( function->m_annotations );
 #endif
 
-    if ( function->m_context )
+    if ( function->m_closure )
     {
-        function->m_cleanup( function->m_context );
+        for( Py_ssize_t i = 0; i < function->m_closure_given; i++ )
+        {
+            Py_DECREF( function->m_closure[i] );
+        }
+
+        free( function->m_closure );
     }
 
     PyObject_GC_Del( function );
@@ -500,11 +505,11 @@ PyTypeObject Nuitka_Function_Type =
 };
 
 #if PYTHON_VERSION < 300
-static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+static inline PyObject *make_compiled_function( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
 #elif PYTHON_VERSION < 330
-static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+static inline PyObject *make_compiled_function( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given)
 #else
-static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+static inline PyObject *make_compiled_function( function_arg_parser code, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
 #endif
 {
     Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
@@ -520,14 +525,11 @@ static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_par
     result->m_qualname = INCREASE_REFCOUNT( qualname ? qualname : name );
 #endif
 
-    result->m_context = context;
-    result->m_cleanup = cleanup;
-
     if ( defaults == NULL )
     {
         defaults = INCREASE_REFCOUNT( Py_None );
     }
-    assertObject( defaults );
+    CHECK_OBJECT( defaults );
     assert( defaults == Py_None || ( PyTuple_Check( defaults ) && PyTuple_Size( defaults ) > 0 ) );
     result->m_defaults = defaults;
     result->m_defaults_given = defaults == Py_None ? 0 : PyTuple_GET_SIZE( defaults );
@@ -555,43 +557,46 @@ static inline PyObject *make_kfunction( function_arg_parser code, direct_arg_par
     static long Nuitka_Function_counter = 0;
     result->m_counter = Nuitka_Function_counter++;
 
+    result->m_closure = closure;
+    result->m_closure_given = closure_given;
+
     Nuitka_GC_Track( result );
     return (PyObject *)result;
 }
 
-// Make a function without context.
+// Make a function without closure.
 #if PYTHON_VERSION < 300
 PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc )
 {
-    return make_kfunction( fparse, dparse, name, code_object, defaults, module, doc, NULL, NULL );
+    return make_compiled_function( fparse, dparse, name, code_object, defaults, module, doc, NULL, 0 );
 }
 #elif PYTHON_VERSION < 330
 PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
 {
-    return make_kfunction( fparse, dparse, name, code_object, defaults, kwdefaults, annotations, module, doc, NULL, NULL );
+    return make_compiled_function( fparse, dparse, name, code_object, defaults, kwdefaults, annotations, module, doc, NULL, 0 );
 }
 #else
 PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
 {
-    return make_kfunction( fparse, dparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, NULL, NULL );
+    return make_compiled_function( fparse, dparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, NULL, 0 );
 }
 #endif
 
-// Make a function with context.
+// Make a function with closure.
 #if PYTHON_VERSION < 300
-PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
 {
-    return make_kfunction( fparse, dparse, name, code_object, defaults, module, doc, context, cleanup );
+    return make_compiled_function( fparse, dparse, name, code_object, defaults, module, doc, closure, closure_given );
 }
 #elif PYTHON_VERSION < 330
-PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
 {
-    return make_kfunction( fparse, dparse, name, code_object, defaults, kwdefaults, annotations, module, doc, context, cleanup );
+    return make_compiled_function( fparse, dparse, name, code_object, defaults, kwdefaults, annotations, module, doc, closure, closure_given );
 }
 #else
-PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
 {
-    return make_kfunction( fparse, dparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, context, cleanup );
+    return make_compiled_function( fparse, dparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, closure, closure_given );
 }
 #endif
 

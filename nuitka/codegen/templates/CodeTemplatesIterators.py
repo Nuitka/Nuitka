@@ -22,25 +22,26 @@
 
 template_iterator_check = """\
 // Check if iterator has left-over elements.
-assertObject( %(iterator_name)s ); assert( HAS_ITERNEXT( %(iterator_name)s ) );
+CHECK_OBJECT( %(iterator_name)s ); assert( HAS_ITERNEXT( %(iterator_name)s ) );
 
 %(attempt_name)s = (*Py_TYPE( %(iterator_name)s )->tp_iternext)( %(iterator_name)s );
 
 if (likely( %(attempt_name)s == NULL ))
 {
-    // TODO: Could first fetch, then check, should be faster.
-    if ( !ERROR_OCCURRED() )
+    PyObject *error = GET_ERROR_OCCURRED();
+
+    if ( error != NULL )
     {
-    }
-    else if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
-    {
-        PyErr_Clear();
-    }
-    else
-    {
-        PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+        if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ))
+        {
+            CLEAR_ERROR_OCCURRED();
+        }
+        else
+        {
+            FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %(release_temps_1)s
-        goto %(exception_exit)s;
+            goto %(exception_exit)s;
+        }
     }
 }
 else
@@ -53,7 +54,25 @@ else
 #else
     PyErr_Format( PyExc_ValueError, "too many values to unpack (expected %(count)d)" );
 #endif
-    PyErr_Fetch( &exception_type, &exception_value, (PyObject **)&exception_tb );
+    FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %(release_temps_2)s
     goto %(exception_exit)s;
 }"""
+
+template_loop_break_next = """\
+if ( %(to_name)s == NULL )
+{
+    if ( CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() )
+    {
+%(break_indicator_code)s
+        goto %(break_target)s;
+    }
+    else
+    {
+%(release_temps)s
+        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+%(line_number_code)s
+        goto %(exception_target)s;
+    }
+}
+"""

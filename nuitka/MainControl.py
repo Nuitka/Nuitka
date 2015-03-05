@@ -77,8 +77,7 @@ def createNodeTree(filename):
     # harm.
     source_dir = getSourceDirectoryPath(main_module)
 
-    if not Options.shallOnlyExecCppCall() and \
-       not Options.shallNotDoExecCppCall():
+    if not Options.shallOnlyExecCppCall():
         cleanSourceDirectory(source_dir)
 
     if Options.isStandaloneMode():
@@ -619,7 +618,7 @@ def compileTree(main_module):
         )
 
     if Options.shallNotDoExecCppCall():
-        return None, {}
+        return True, {}
 
     # Run the Scons to build things.
     result, options = runScons(

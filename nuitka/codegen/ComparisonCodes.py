@@ -319,4 +319,8 @@ def getBuiltinIsinstanceBoolCode(inst_name, cls_name, emit, context):
         context   = context
     )
 
-    getBranchingCode("%s == 1" % res_name, emit, context)
+    getBranchingCode(
+        condition = "%s == 1" % res_name,
+        emit      = emit,
+        context   = context
+    )

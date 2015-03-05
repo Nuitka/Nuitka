@@ -24,7 +24,7 @@ sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname(os.path.abspath(__file__ )),
+            os.path.dirname(os.path.abspath(__file__)),
             ".."
         )
     )
@@ -40,7 +40,7 @@ python_version = setup()
 # TODO: This ought to no longer be necessary, removing it could highlight bugs.
 # No random hashing, it makes comparing outputs futile.
 if "PYTHONHASHSEED" not in os.environ:
-    os.environ["PYTHONHASHSEED"] = "0"
+    os.environ["PYTHONHASHSEED"] = '0'
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
@@ -48,16 +48,16 @@ tmp_dir = getTempDir()
 
 # TODO: Could detect this more automatic.
 PACKAGE_LIST = (
-    'nuitka',
-    'nuitka/nodes',
-    'nuitka/tree',
-    'nuitka/build',
-    'nuitka/freezer',
-    'nuitka/gui',
-    'nuitka/codegen',
-    'nuitka/codegen/templates',
-    'nuitka/optimizations',
-    'nuitka/finalizations',
+    "nuitka",
+    "nuitka/nodes",
+    "nuitka/tree",
+    "nuitka/build",
+    "nuitka/freezer",
+    "nuitka/gui",
+    "nuitka/codegen",
+    "nuitka/codegen/templates",
+    "nuitka/optimizations",
+    "nuitka/finalizations",
 )
 
 def diffRecursive(dir1, dir2):
@@ -124,7 +124,7 @@ def executePASS1():
     base_dir = os.path.join("..", "..")
 
     for package in PACKAGE_LIST:
-        package = package.replace("/", os.path.sep)
+        package = package.replace('/', os.path.sep)
 
         source_dir = os.path.join(base_dir, package)
         target_dir = package
@@ -190,7 +190,7 @@ def executePASS1():
     )
 
     if result != 0:
-        sys.exit( result )
+        sys.exit(result)
 
     scons_inline_copy_path = os.path.join(
         base_dir,
@@ -222,7 +222,7 @@ def compileAndCompareWith( nuitka ):
     base_dir = os.path.join("..", "..")
 
     for package in PACKAGE_LIST:
-        package = package.replace("/", os.path.sep)
+        package = package.replace('/', os.path.sep)
 
         source_dir = os.path.join(base_dir, package)
 
@@ -259,9 +259,9 @@ def compileAndCompareWith( nuitka ):
                 )
 
                 if result != 0:
-                    sys.exit( result )
+                    sys.exit(result)
 
-                diffRecursive(os.path.join( package, target), target_dir)
+                diffRecursive(os.path.join(package, target), target_dir)
 
                 shutil.rmtree(target_dir)
 
@@ -281,9 +281,9 @@ def executePASS2():
     # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
     # have to add it.
     if os.name == "nt":
-        os.environ["PYTHONPATH"] = ":".join(PACKAGE_LIST)
+        os.environ["PYTHONPATH"] = ':'.join(PACKAGE_LIST)
 
-    compileAndCompareWith(os.path.join(".", "nuitka.exe"))
+    compileAndCompareWith(os.path.join('.', "nuitka.exe"))
 
     # Undo the damage from above.
     if os.name == "nt":

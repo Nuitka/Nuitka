@@ -76,7 +76,8 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
 """
 
 parse_argument_usable_count = r"""
-// Copy normal parameter values given as part of the args list to the respective variables:
+// Copy normal parameter values given as part of the argument list to the
+// respective variables:
 
 """
 
@@ -89,13 +90,15 @@ if (likely( %(parameter_position)d < args_given ))
          goto error_exit;
      }
 
-    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( args[ %(parameter_position)d ] );
+    _python_par_%(parameter_name)s = args[ %(parameter_position)d ];
+    Py_INCREF( _python_par_%(parameter_name)s );
 }
 else if ( _python_par_%(parameter_name)s == NULL )
 {
     if ( %(parameter_position)d + self->m_defaults_given >= %(top_level_parameter_count)d  )
     {
-        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d ) );
+        _python_par_%(parameter_name)s = PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d );
+        Py_INCREF( _python_par_%(parameter_name)s );
     }
 #if PYTHON_VERSION < 330
     else
@@ -126,6 +129,8 @@ if (unlikely( %(parameter_test)s ))
 #endif
 """
 
+# TODO: Is there a missing INCREF in the first branch part. Other parts do
+# have it, so this might be a reference loss here when taking from "args[]".
 argparse_template_nested_argument = """\
 if (likely( %(parameter_position)d < args_given ))
 {
@@ -135,7 +140,8 @@ else if ( _python_par_%(parameter_name)s == NULL )
 {
     if ( %(parameter_position)d + self->m_defaults_given >= %(top_level_parameter_count)d  )
     {
-        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d ) );
+        _python_par_%(parameter_name)s = PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d );
+        Py_INCREF( _python_par_%(parameter_name)s );
     }
     else
     {
@@ -151,19 +157,22 @@ else if ( _python_par_%(parameter_name)s == NULL )
 """
 
 parse_argument_template_copy_list_star_args = """
-// Copy left over argument values to the star list parameter given.
+// Copy left-over argument values to the star list parameter given.
 if ( args_given > %(top_level_parameter_count)d )
 {
     _python_par_%(list_star_parameter_name)s = PyTuple_New( args_size - %(top_level_parameter_count)d );
 
     for( Py_ssize_t i = 0; i < args_size - %(top_level_parameter_count)d; i++ )
     {
-       PyTuple_SET_ITEM( _python_par_%(list_star_parameter_name)s, i, INCREASE_REFCOUNT( args[%(top_level_parameter_count)d+i] ) );
+        PyObject *value = args[%(top_level_parameter_count)d+i];
+        PyTuple_SET_ITEM( _python_par_%(list_star_parameter_name)s, i, value );
+        Py_INCREF( value );
     }
 }
 else
 {
-    _python_par_%(list_star_parameter_name)s = INCREASE_REFCOUNT( const_tuple_empty );
+    _python_par_%(list_star_parameter_name)s = const_tuple_empty;
+    Py_INCREF( const_tuple_empty );
 }
 """
 
@@ -210,7 +219,7 @@ else
         PyDictObject *mp = (PyDictObject *)kw;
 
         PyObject **newvalues = PyMem_NEW( PyObject *, mp->ma_keys->dk_size );
-        assert (newvalues != NULL);
+        assert( newvalues != NULL );
 
         PyDictObject *split_copy = PyObject_GC_New( PyDictObject, &PyDict_Type );
         assert( split_copy != NULL );
@@ -234,7 +243,8 @@ else
                 goto error_exit;
             }
 
-            split_copy->ma_values[ i ] = INCREASE_REFCOUNT_X( mp->ma_values[ i ] );
+            split_copy->ma_values[ i ] = mp->ma_values[ i ];
+            Py_XINCREF( split_copy->ma_values[ i ] );
         }
 
         _python_par_%(dict_star_parameter_name)s = (PyObject *)split_copy;
@@ -297,7 +307,9 @@ if ( kw_size > 0 )
     {
         assert( _python_par_%(parameter_name)s == NULL );
 
-        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( kw_arg_value );
+        _python_par_%(parameter_name)s = kw_arg_value;
+        Py_INCREF( kw_arg_value );
+
         PyDict_DelItem( _python_par_%(dict_star_parameter_name)s, %(parameter_name_object)s );
 
         kw_found += 1;
@@ -315,7 +327,8 @@ if ( kw_size > 0 )
     {
         assert( _python_par_%(parameter_name)s == NULL );
 
-        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( kw_arg_value );
+        _python_par_%(parameter_name)s = kw_arg_value;
+        Py_INCREF( kw_arg_value );
     }
 }
 """
@@ -426,7 +439,7 @@ parse_argument_template_nested_argument_unpack = """\
     }
 %(unpack_code)s
     // Check that the unpack was complete.
-    if (unlikely( UNPACK_PARAMETER_ITERATOR_CHECK( _python_iter_%(parameter_name)s ) == false ))
+    if (unlikely( UNPACK_ITERATOR_CHECK( _python_iter_%(parameter_name)s ) == false ))
     {
        Py_DECREF( _python_iter_%(parameter_name)s );
        goto error_exit;
@@ -436,7 +449,7 @@ parse_argument_template_nested_argument_unpack = """\
 
 parse_argument_template_nested_argument_assign = """
     // Unpack to _python_par_%(parameter_name)s
-    _python_par_%(parameter_name)s = UNPACK_PARAMETER_NEXT( _python_iter_%(iter_name)s, %(unpack_count)d );
+    _python_par_%(parameter_name)s = UNPACK_NEXT( _python_iter_%(iter_name)s, %(unpack_count)d );
 
     if (unlikely (_python_par_%(parameter_name)s == NULL ))
     {

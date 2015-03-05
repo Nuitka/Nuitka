@@ -170,6 +170,17 @@ typedef long Py_hash_t;
 #define NUITKA_CROSS_MODULE
 #define NUITKA_LOCAL_MODULE static
 
+// Due to ABI issues, it seems that on Windows the symbols used by
+// _PyObject_GC_TRACK are not exported and we need to use a function that does
+// it instead.
+#if defined( _WIN32 )
+#define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#else
+#define Nuitka_GC_Track _PyObject_GC_TRACK
+#define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
+#endif
+
 #include "nuitka/helpers.hpp"
 
 #include "nuitka/compiled_function.hpp"

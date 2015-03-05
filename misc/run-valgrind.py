@@ -20,51 +20,56 @@
 import os, sys, commands, subprocess, shutil, tempfile
 
 input_file = sys.argv[1]
-nuitka_binary = os.environ.get( "NUITKA_BINARY", "nuitka" )
+nuitka_binary = os.environ.get("NUITKA_BINARY", "nuitka")
 
-basename = os.path.basename( input_file )
+basename = os.path.basename(input_file)
 
 tempdir = tempfile.mkdtemp(
-    prefix = basename + "-",
-    dir    = None if not os.path.exists( "/var/tmp" ) else "/var/tmp"
+    prefix = basename + '-',
+    dir    = None if not os.path.exists("/var/tmp") else "/var/tmp"
 )
 
 output_binary = os.path.join(
     tempdir,
-    ( basename[:-3] if input_file.endswith( ".py" ) else basename ) + ".exe"
+    ( basename[:-3] if input_file.endswith(".py") else basename ) + ".exe"
 )
 
-os.environ[ "PYTHONHASHSEED" ] = "0"
+os.environ[ "PYTHONHASHSEED" ] = '0'
 
 os.system(
     "%s --exe --python-flag=-S --output-dir=%s %s %s %s" % (
         nuitka_binary,
         tempdir,
         "" if "number" in sys.argv else "--unstripped",
-        os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
+        os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
         input_file
     )
 )
 
-if not os.path.exists( output_binary ):
+if not os.path.exists(output_binary):
     print "Seeming failure of Nuitka to compile."
 
 
-log_base = basename[:-3] if input_file.endswith( ".py" ) else basename
+log_base = basename[:-3] if input_file.endswith(".py") else basename
 log_file = log_base + ".log"
 
 sys.stdout.flush()
 
 valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s --zero-before=init__main__() --zero-before=init__main__" % log_file
 
-subprocess.check_call( [ "valgrind" ] + valgrind_options.split() + [ output_binary ] )
+subprocess.check_call(
+    ["valgrind"] +
+    valgrind_options.split() +
+    [output_binary],
+    stdout = open(os.devnull, "w")
+)
 
 if "number" in sys.argv:
-    for line in open( log_file ):
-        if line.startswith( "summary:" ):
-            sizes = commands.getoutput( "size '%s'" % output_binary ).split("\n")[-1].replace( "\t", "" ).split()
+    for line in open(log_file):
+        if line.startswith("summary:"):
+            sizes = commands.getoutput("size '%s'" % output_binary).split('\n')[-1].replace('\t', "").split()
 
-            print "SIZE=%d" % ( int( sizes[0] ) + int( sizes[1] ) )
+            print "SIZE=%d" % ( int(sizes[0]) + int(sizes[1]) )
             print "TICKS=%s" % line.split()[1]
             break
     else:
@@ -73,17 +78,22 @@ if "number" in sys.argv:
     log_mem = log_base + ".mem"
     valgrind_options = "-q --tool=massif --massif-out-file=%s" % log_mem
 
-    subprocess.check_call( [ "valgrind" ] + valgrind_options.split() + [ output_binary ] )
+    subprocess.check_call(
+        ["valgrind"] +
+        valgrind_options.split() +
+        [output_binary],
+        stdout = open(os.devnull, "w")
+    )
 
     max_mem = 0
 
-    for line in open( log_mem ):
-        if line.startswith( "mem_heap_B=" ):
-            mem = int( line.split("=")[1] )
-            max_mem = max( mem, max_mem )
+    for line in open(log_mem):
+        if line.startswith("mem_heap_B="):
+            mem = int(line.split('=')[1])
+            max_mem = max(mem, max_mem)
 
     print "MEM=%s" % max_mem
 
-    shutil.rmtree( tempdir )
+    shutil.rmtree(tempdir)
 else:
-    os.system( "kcachegrind 2>/dev/null 1>/dev/null %s &" % log_file )
+    os.system("kcachegrind 2>/dev/null 1>/dev/null %s &" % log_file)

@@ -22,8 +22,8 @@ extern PyObject *BUILTIN_CHR( unsigned char c );
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript )
 {
-    assertObject( source );
-    assertObject( const_subscript );
+    CHECK_OBJECT( source );
+    CHECK_OBJECT( const_subscript );
 
     PyTypeObject *type = Py_TYPE( source );
     PyMappingMethods *mapping_methods = type->tp_as_mapping;
@@ -134,8 +134,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
 {
-    assertObject( source );
-    assertObject( subscript );
+    CHECK_OBJECT( source );
+    CHECK_OBJECT( subscript );
 
     PyTypeObject *type = Py_TYPE( source );
     PyMappingMethods *mapping = type->tp_as_mapping;
@@ -207,9 +207,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
 
 NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST( PyObject *target, PyObject *subscript, Py_ssize_t int_subscript, PyObject *value )
 {
-    assertObject( value );
-    assertObject( target );
-    assertObject( subscript );
+    CHECK_OBJECT( value );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( subscript );
 
     PyMappingMethods *mapping_methods = Py_TYPE( target )->tp_as_mapping;
 
@@ -305,9 +305,9 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST( PyObject *target, PyObject
 
 NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT( PyObject *target, PyObject *subscript, PyObject *value )
 {
-    assertObject( value );
-    assertObject( target );
-    assertObject( subscript );
+    CHECK_OBJECT( value );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( subscript );
 
     PyMappingMethods *mapping_methods = Py_TYPE( target )->tp_as_mapping;
 
@@ -373,8 +373,8 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT( PyObject *target, PyObject *subs
 
 NUITKA_MAY_BE_UNUSED static bool DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
 {
-    assertObject( target );
-    assertObject( subscript );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( subscript );
 
     int status = PyObject_DelItem( target, subscript );
 

@@ -15,6 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
+
 def lamdaContainer(x):
     f = lambda c : c
     g = lambda c : c if x else c*c
@@ -23,23 +25,23 @@ def lamdaContainer(x):
     y = f(x)
 
     if 'a' <= x <= y <= 'z':
-        print "Four"
+        print("Four")
 
     if 'a' <= x <= 'z':
-        print "Yes"
+        print("Yes")
 
     if 'a' <= x > 'z':
-        print "Yes1"
+        print("Yes1")
 
     if 'a' <= ('1' if x else '2') > 'z':
-        print "Yes2"
+        print("Yes2")
 
     if 'a' <= ('1' if x else '2') > 'z' > i:
-        print "Yes3"
+        print("Yes3")
 
     z = lambda huhu = y : huhu
 
-    print "Lambda defaulted gives", z()
+    print("Lambda defaulted gives", z())
 
 lamdaContainer('b')
 
@@ -47,6 +49,6 @@ def lambdaGenerator():
     x = lambda : (yield 3)
 
     gen = x()
-    print "Lambda generator gives", gen.next()
+    print("Lambda generator gives", next(gen))
 
 lambdaGenerator()

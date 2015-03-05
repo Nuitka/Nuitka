@@ -258,7 +258,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     if (unlikely( res < 0 ))
     {
         // Might be refuted, which wouldn't be harmful.
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
     }
 
     // Call the standard import fix-ups for extension modules. Their interface
@@ -272,7 +272,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     }
 #elif PYTHON_VERSION < 330
     PyObject *filename_obj = PyUnicode_FromString( filename );
-    assertObject( filename_obj );
+    CHECK_OBJECT( filename_obj );
 
     res = _PyImport_FixupExtensionUnicode( module, (char *)full_name, filename_obj );
 
@@ -284,9 +284,9 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     }
 #else
     PyObject *full_name_obj = PyUnicode_FromString( full_name );
-    assertObject( full_name_obj );
+    CHECK_OBJECT( full_name_obj );
     PyObject *filename_obj = PyUnicode_FromString( filename );
-    assertObject( filename_obj );
+    CHECK_OBJECT( filename_obj );
 
     res = _PyImport_FixupExtensionObject( module, full_name_obj, filename_obj );
 
@@ -512,14 +512,14 @@ static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyOb
     struct Nuitka_MetaPathBasedLoaderEntry *entry = find_entry( name );
     if ( entry == NULL ) return INCREASE_REFCOUNT( Py_None );
 
-    PyObject *importlib = PyImport_ImportModule("importlib._bootstrap");
+    PyObject *importlib = PyImport_ImportModule( "importlib._bootstrap" );
 
-    if (unlikely( importlib == NULL))
+    if (unlikely( importlib == NULL ))
     {
         return NULL;
     }
 
-    PyObject *module_spec_class = PyObject_GetAttrString( importlib, "ModuleSpec");
+    PyObject *module_spec_class = PyObject_GetAttrString( importlib, "ModuleSpec" );
 
     if (unlikely( module_spec_class == NULL ))
     {
@@ -601,27 +601,27 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     // methods "find_module" where we acknowledge that we are capable of loading
     // the module, and "load_module" that does the actual thing.
     PyObject *method_dict = PyDict_New();
-    assertObject( method_dict );
+    CHECK_OBJECT( method_dict );
 
     PyObject *loader_find_module = PyCFunction_New(
         &_method_def_loader_find_module,
         NULL
     );
-    assertObject( loader_find_module );
+    CHECK_OBJECT( loader_find_module );
     PyDict_SetItemString( method_dict, "find_module", loader_find_module );
 
     PyObject *loader_load_module = PyCFunction_New(
         &_method_def_loader_load_module,
         NULL
     );
-    assertObject( loader_load_module );
+    CHECK_OBJECT( loader_load_module );
     PyDict_SetItemString( method_dict, "load_module", loader_load_module );
 
     PyObject *loader_is_package = PyCFunction_New(
         &_method_def_loader_is_package,
         NULL
     );
-    assertObject( loader_is_package );
+    CHECK_OBJECT( loader_is_package );
     PyDict_SetItemString( method_dict, "is_package", loader_is_package );
 
 
@@ -630,14 +630,14 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
         &_method_def_loader_repr_module,
         NULL
     );
-    assertObject( loader_repr_module );
+    CHECK_OBJECT( loader_repr_module );
     PyDict_SetItemString( method_dict, "module_repr", loader_repr_module );
 
     PyObject *loader_find_spec = PyCFunction_New(
         &_method_def_loader_find_spec,
         NULL
     );
-    assertObject( loader_find_spec );
+    CHECK_OBJECT( loader_find_spec );
     PyDict_SetItemString( method_dict, "find_spec", loader_find_spec );
 #endif
 
@@ -654,7 +654,7 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
         NULL
     );
 
-    assertObject( metapath_based_loader );
+    CHECK_OBJECT( metapath_based_loader );
 
     if ( Py_VerboseFlag )
     {

@@ -19,88 +19,13 @@
 
 """
 
-template_call_cpython_function_fast_impl = """\
-NUITKA_MAY_BE_UNUSED static PyObject *fast_python_call( PyObject *func, PyObject **args, int count )
-{
-    PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE( func );
-    PyObject *globals = PyFunction_GET_GLOBALS( func );
-    PyObject *argdefs = PyFunction_GET_DEFAULTS( func );
-
-#if PYTHON_VERSION >= 300
-    PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS( func );
-
-    if ( kwdefs == NULL && argdefs == NULL && co->co_argcount == count &&
-        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
-#else
-    if ( argdefs == NULL && co->co_argcount == count &&
-        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
-#endif
-    {
-        PyThreadState *tstate = PyThreadState_GET();
-        assertObject( globals );
-
-        PyFrameObject *frame = PyFrame_New( tstate, co, globals, NULL );
-
-        if (unlikely( frame == NULL ))
-        {
-            return NULL;
-        };
-
-        for ( int i = 0; i < count; i++ )
-        {
-            frame->f_localsplus[i] = INCREASE_REFCOUNT( args[i] );
-        }
-
-        PyObject *result = PyEval_EvalFrameEx( frame, 0 );
-
-        // Frame release protects against recursion as it may lead to variable
-        // destruction.
-        ++tstate->recursion_depth;
-        Py_DECREF( frame );
-        --tstate->recursion_depth;
-
-        return result;
-    }
-
-    PyObject **defaults = NULL;
-    int nd = 0;
-
-    if ( argdefs != NULL )
-    {
-        defaults = &PyTuple_GET_ITEM( argdefs, 0 );
-        nd = int( Py_SIZE( argdefs ) );
-    }
-
-    PyObject *result = PyEval_EvalCodeEx(
-#if PYTHON_VERSION >= 300
-        (PyObject *)co,
-#else
-        co,        // code object
-#endif
-        globals,   // globals
-        NULL,      // no locals
-        args,      // args
-        count,     // argcount
-        NULL,      // kwds
-        0,         // kwcount
-        defaults,  // defaults
-        nd,        // defcount
-#if PYTHON_VERSION >= 300
-        kwdefs,
-#endif
-        PyFunction_GET_CLOSURE( func )
-    );
-
-    return result;
-}"""
-
 template_call_function_with_args_decl = """\
 extern PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s );"""
 
 template_call_function_with_args_impl = """\
 PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s )
 {
-    assertObject( called );
+    CHECK_OBJECT( called );
 
     // Check if arguments are valid objects in debug mode.
 #ifndef __NUITKA_NO_ASSERT__
@@ -108,7 +33,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
 
     for( size_t i = 0; i < sizeof( args_for_test ) / sizeof( PyObject * ); i++ )
     {
-        assertObject( args_for_test[ i ] );
+        CHECK_OBJECT( args_for_test[ i ] );
     }
 #endif
 
@@ -216,7 +141,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
 
             // Some buggy C functions do this, and Nuitka inner workings can get
             // upset from it.
-            if (result != NULL) DROP_ERROR_OCCURRED();
+            if (unlikely( result != NULL )) DROP_ERROR_OCCURRED();
 
             return result;
 #else
@@ -251,7 +176,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
 
             // Some buggy C functions do this, and Nuitka inner workings can get
             // upset from it.
-            if ( result != NULL ) DROP_ERROR_OCCURRED();
+            if (unlikely( result != NULL )) DROP_ERROR_OCCURRED();
 
             return result;
 #else
@@ -309,7 +234,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
     {
         PyObject *args[] = { %(args_list)s };
 
-        return fast_python_call(
+        return callPythonFunction(
             called,
             args,
             sizeof( args ) / sizeof( PyObject * )

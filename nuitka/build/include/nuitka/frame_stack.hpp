@@ -27,12 +27,12 @@
 
 inline static void assertCodeObject( PyCodeObject *code_object )
 {
-    assertObject( (PyObject *)code_object );
+    CHECK_OBJECT( (PyObject *)code_object );
 }
 
 inline static void assertFrameObject( PyFrameObject *frame_object )
 {
-    assertObject( (PyObject *)frame_object );
+    CHECK_OBJECT( (PyObject *)frame_object );
     assertCodeObject( frame_object->f_code );
 }
 
@@ -44,15 +44,11 @@ NUITKA_MAY_BE_UNUSED static PyFrameObject *INCREASE_REFCOUNT( PyFrameObject *fra
     return frame_object;
 }
 
-NUITKA_MAY_BE_UNUSED static PyFrameObject *INCREASE_REFCOUNT_X( PyFrameObject *frame_object )
-{
-    Py_XINCREF( frame_object );
-    return frame_object;
-}
-
 NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
 {
-    return
+    if ( frame_object ) CHECK_OBJECT( (PyObject *)frame_object );
+
+    bool result =
         // Never used.
         frame_object == NULL ||
         // Still in use
@@ -64,6 +60,19 @@ NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
         // Was detached from (TODO: When detaching, can't we just have another
         // frame guard instead)
         frame_object->f_back != NULL;
+
+#if _DEBUG_REFRAME
+    if (result && frame_object)
+    {
+        PRINT_STRING("NOT REUSING FRAME:");
+        PRINT_ITEM((PyObject *)frame_object);
+        PRINT_REFCOUNT( (PyObject *)frame_object );
+        if ( frame_object->f_back ) PRINT_ITEM( (PyObject *)frame_object->f_back );
+        PRINT_NEW_LINE();
+    }
+#endif
+
+    return result;
 }
 
 NUITKA_MAY_BE_UNUSED inline static void popFrameStack( void )
@@ -125,7 +134,9 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack( PyFrameObject *frame_obj
     if ( old != NULL )
     {
         assertFrameObject( old );
-        frame_object->f_back = INCREASE_REFCOUNT( old );
+
+        frame_object->f_back = old;
+        Py_INCREF( frame_object->f_back );
     }
 
 #if _DEBUG_FRAME

@@ -57,6 +57,10 @@ binary_operator_codes = {
     "IBitXor"   : "PyNumber_InPlaceXor",
 }
 
+inplace_operator_codes = {
+    "IAdd" : "BINARY_OPERATION_ADD_INPLACE"
+}
+
 unary_operator_codes = {
     "UAdd"   : ("PyNumber_Positive", 1),
     "USub"   : ("PyNumber_Negative", 1),

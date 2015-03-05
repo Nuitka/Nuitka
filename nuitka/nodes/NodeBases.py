@@ -321,9 +321,6 @@ class NodeBase(NodeMetaClassBase):
     def isOperation(self):
         return self.kind.startswith("EXPRESSION_OPERATION_")
 
-    def isExpressionOperationBool2(self):
-        return self.kind.startswith("EXPRESSION_BOOL_")
-
     def isStatementReraiseException(self):
         # Virtual method, pylint: disable=R0201
         return False
@@ -1020,8 +1017,12 @@ class ExpressionMixin:
     def computeExpressionSubscript(self, lookup_node, subscript,
                                    constraint_collection):
         # By default, an subscript may change everything about the lookup
-        # source. Virtual method, pylint: disable=R0201,W0613
+        # source.
         constraint_collection.removeKnowledge(lookup_node)
+        constraint_collection.removeKnowledge(subscript)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
 
         return lookup_node, None, None
 
@@ -1047,7 +1048,12 @@ class ExpressionMixin:
 
     def computeExpressionOperationNot(self, not_node, constraint_collection):
         # Virtual method, pylint: disable=R0201
+
+        # The value of that node escapes and could change its contents.
         constraint_collection.removeKnowledge(not_node)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(not_node)
 
         return not_node, None, None
 
@@ -1135,6 +1141,8 @@ Compile time constant negation truth value pre-computed."""
                 computation = lambda : self.getCompileTimeConstant()[ subscript.getCompileTimeConstant() ],
                 description = "Subscript of constant with constant value."
             )
+
+        # TODO: Look-up of subscript to index may happen.
 
         return lookup_node, None, None
 

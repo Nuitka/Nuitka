@@ -48,22 +48,32 @@ struct __initResourceConstants
 extern "C" const unsigned char constant_bin[];
 #endif
 
-static void __initConstants( void )
+static void _createGlobalConstants( void )
 {
     NUITKA_MAY_BE_UNUSED PyObject *exception_type, *exception_value;
     NUITKA_MAY_BE_UNUSED PyTracebackObject *exception_tb;
 
 #ifdef _MSC_VER
-    // Prevent unused warnings in case of simple programs.
+    // Prevent unused warnings in case of simple programs, the attribute
+    // NUITKA_MAY_BE_UNUSED doesn't work for MSVC.
     (void *)exception_type; (void *)exception_value; (void *)exception_tb;
 #endif
 
 %(constant_inits)s
-
-    return;
 }
 
-void _initConstants( void )
+// In debug mode we can check that the constants were not tampered with in any
+// given moment. We typically do it at program exit, but we can add extra calls
+// for sanity.
+#ifndef __NUITKA_NO_ASSERT__
+void checkGlobalConstants( void )
+{
+%(constant_checks)s
+}
+#endif
+
+
+void createGlobalConstants( void )
 {
     if ( _sentinel_value == NULL )
     {
@@ -75,7 +85,7 @@ void _initConstants( void )
 #endif
         assert( _sentinel_value );
 
-        __initConstants();
+        _createGlobalConstants();
     }
 }
 """

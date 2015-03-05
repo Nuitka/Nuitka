@@ -48,16 +48,16 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS2( PyObject *called, PyObject *arg1, PyO
 
 static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 {
-    assertObject( source );
-    assertObject( attr_name );
+    CHECK_OBJECT( source );
+    CHECK_OBJECT( attr_name );
 
     assert( PyInstance_Check( source ) );
     assert( PyString_Check( attr_name ) );
 
     PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-    // TODO: The special cases should get their own SET_ATTRIBUTE variant on the
-    // code generation level as SET_ATTRIBUTE is called with constants only.
+    // The special cases have their own variant on the code generation level
+    // as we are called with constants only.
     assert( attr_name != const_str_plain___dict__ );
     assert( attr_name != const_str_plain___class__ );
 
@@ -72,7 +72,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
     // Next see if a class has it
     result = FIND_ATTRIBUTE_IN_CLASS( source_instance->in_class, attr_name );
 
-    if ( result )
+    if ( result != NULL )
     {
         descrgetfunc func = Py_TYPE( result )->tp_descr_get;
 
@@ -85,7 +85,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
                 return NULL;
             }
 
-            assertObject( result );
+            CHECK_OBJECT( result );
 
             return result;
         }
@@ -94,13 +94,9 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
             return INCREASE_REFCOUNT( result );
         }
     }
-    else if ( ERROR_OCCURRED() )
+    else
     {
-        if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
-        {
-            PyErr_Clear();
-        }
-        else
+        if (unlikely( !CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED() ))
         {
             return NULL;
         }
@@ -109,7 +105,12 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
     // Finally allow a __getattr__ to handle it or else it's an error.
     if (unlikely( source_instance->in_class->cl_getattr == NULL ))
     {
-        PyErr_Format( PyExc_AttributeError, "%s instance has no attribute '%s'", PyString_AS_STRING( source_instance->in_class->cl_name ), PyString_AS_STRING( attr_name ) );
+        PyErr_Format(
+            PyExc_AttributeError,
+            "%s instance has no attribute '%s'",
+            PyString_AS_STRING( source_instance->in_class->cl_name ),
+            PyString_AS_STRING( attr_name )
+        );
 
         return NULL;
     }
@@ -126,8 +127,8 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
 {
-    assertObject( source );
-    assertObject( attr_name );
+    CHECK_OBJECT( source );
+    CHECK_OBJECT( attr_name );
 
 #if PYTHON_VERSION < 300
     if ( PyInstance_Check( source ) )
@@ -152,7 +153,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
         }
         else
         {
-            PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name, Nuitka_String_AsString_Unchecked( attr_name ) );
+            PyErr_Format(
+                PyExc_AttributeError,
+                "'%s' object has no attribute '%s'",
+                type->tp_name,
+                Nuitka_String_AsString_Unchecked( attr_name )
+            );
+
             return NULL;
         }
     }
@@ -160,7 +167,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *source )
 {
-    assertObject( source );
+    CHECK_OBJECT( source );
 
 #if PYTHON_VERSION < 300
     if (likely( PyInstance_Check( source ) ))
@@ -183,7 +190,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *sour
                 return NULL;
             }
 
-            assertObject( result );
+            CHECK_OBJECT( result );
             return result;
         }
         else if ( type->tp_getattr != NULL )
@@ -195,7 +202,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *sour
                 return NULL;
             }
 
-            assertObject( result );
+            CHECK_OBJECT( result );
             return result;
         }
         else
@@ -208,7 +215,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *sour
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *source )
 {
-    assertObject( source );
+    CHECK_OBJECT( source );
 
 #if PYTHON_VERSION < 300
     if (likely( PyInstance_Check( source ) ))
@@ -231,7 +238,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *sou
                 return NULL;
             }
 
-            assertObject( result );
+            CHECK_OBJECT( result );
             return result;
         }
         else if ( type->tp_getattr != NULL )
@@ -243,7 +250,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *sou
                 return NULL;
             }
 
-            assertObject( result );
+            CHECK_OBJECT( result );
             return result;
         }
         else
@@ -257,8 +264,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *sou
 
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_HASATTR( PyObject *source, PyObject *attr_name )
 {
-    assertObject( source );
-    assertObject( attr_name );
+    CHECK_OBJECT( source );
+    CHECK_OBJECT( attr_name );
 
     int res = PyObject_HasAttr( source, attr_name );
 
@@ -275,9 +282,9 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS3( PyObject *called, PyObject *arg1, PyO
 
 static bool SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value )
 {
-    assertObject( target );
-    assertObject( attr_name );
-    assertObject( value );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( attr_name );
+    CHECK_OBJECT( value );
 
     assert( PyInstance_Check( target ) );
     assert( PyString_Check( attr_name ) );
@@ -326,9 +333,9 @@ static bool SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 
 NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *value )
 {
-    assertObject( target );
-    assertObject( attr_name );
-    assertObject( value );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( attr_name );
+    CHECK_OBJECT( value );
 
 #if PYTHON_VERSION < 300
     if ( PyInstance_Check( target ) )
@@ -387,8 +394,8 @@ NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE( PyObject *target, PyObject *attr
 
 NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE_DICT_SLOT( PyObject *target, PyObject *value )
 {
-    assertObject( target );
-    assertObject( value );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( value );
 
 #if PYTHON_VERSION < 300
     if ( likely( PyInstance_Check( target ) ))
@@ -455,8 +462,8 @@ NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE_DICT_SLOT( PyObject *target, PyOb
 
 NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE_CLASS_SLOT( PyObject *target, PyObject *value )
 {
-    assertObject( target );
-    assertObject( value );
+    CHECK_OBJECT( target );
+    CHECK_OBJECT( value );
 
 #if PYTHON_VERSION < 300
     if (likely( PyInstance_Check( target ) ))
@@ -552,7 +559,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
                 return NULL;
             }
 
-            assertObject( func_result );
+            CHECK_OBJECT( func_result );
             return func_result;
         }
     }

@@ -52,20 +52,20 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
 
     if ( flags != NULL )
     {
-        if (kw_args == NULL) kw_args = PyDict_New();
+        if ( kw_args == NULL ) kw_args = PyDict_New();
         PyDict_SetItemString( kw_args, "flags", flags );
     }
 
     if ( dont_inherit != NULL )
     {
-        if (kw_args == NULL) kw_args = PyDict_New();
+        if ( kw_args == NULL ) kw_args = PyDict_New();
         PyDict_SetItemString( kw_args, "dont_inherit", dont_inherit );
     }
 
 #if PYTHON_VERSION >= 300
     if ( optimize != NULL )
     {
-        if (kw_args == NULL) kw_args = PyDict_New();
+        if ( kw_args == NULL ) kw_args = PyDict_New();
         PyDict_SetItemString( kw_args, "optimize", optimize );
     }
 #endif
@@ -84,9 +84,9 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
 
 PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
-    assertObject( code );
-    assertObject( globals );
-    assertObject( locals );
+    CHECK_OBJECT( code );
+    CHECK_OBJECT( globals );
+    CHECK_OBJECT( locals );
 
     if ( PyDict_Check( globals ) == 0 )
     {
@@ -582,7 +582,7 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
 
     if ( start == -1 && ERROR_OCCURRED() )
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
 
         PyObject *result = CALL_FUNCTION_WITH_ARGS1(
             _python_builtin_range.asObject0(),
@@ -628,7 +628,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
     if (unlikely( start == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
@@ -636,13 +636,13 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
     if (unlikely( end == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
     if ( fallback )
     {
-        PyObject *pos_args = PyTuple_New(2);
+        PyObject *pos_args = PyTuple_New( 2 );
         PyTuple_SET_ITEM( pos_args, 0, low_temp );
         PyTuple_SET_ITEM( pos_args, 1, high_temp );
 
@@ -663,7 +663,7 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
         return _BUILTIN_RANGE_INT2( start, end );
     }
 #else
-    PyObject *pos_args = PyTuple_New(2);
+    PyObject *pos_args = PyTuple_New( 2 );
     PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( low ) );
     PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( high ) );
 
@@ -711,7 +711,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     if (unlikely( start == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
@@ -719,7 +719,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     if (unlikely( end == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
@@ -727,13 +727,13 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
     if (unlikely( step_long == -1 && ERROR_OCCURRED() ))
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         fallback = true;
     }
 
     if ( fallback )
     {
-        PyObject *pos_args = PyTuple_New(3);
+        PyObject *pos_args = PyTuple_New( 3 );
         PyTuple_SET_ITEM( pos_args, 0, low_temp );
         PyTuple_SET_ITEM( pos_args, 1, high_temp );
         PyTuple_SET_ITEM( pos_args, 2, step_temp );
@@ -762,7 +762,7 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
         return _BUILTIN_RANGE_INT3( start, end, step_long );
     }
 #else
-    PyObject *pos_args = PyTuple_New(3);
+    PyObject *pos_args = PyTuple_New( 3 );
     PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( low ) );
     PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( high ) );
     PyTuple_SET_ITEM( pos_args, 2, INCREASE_REFCOUNT( step ) );
@@ -814,7 +814,7 @@ PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step )
 
 PyObject *BUILTIN_LEN( PyObject *value )
 {
-    assertObject( value );
+    CHECK_OBJECT( value );
 
     Py_ssize_t res = PyObject_Size( value );
 
@@ -832,11 +832,11 @@ static PythonBuiltin _python_builtin_import( &const_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
-    assertObject( module_name );
-    assertObject( globals );
-    assertObject( locals );
-    assertObject( import_items );
-    assertObject( level );
+    CHECK_OBJECT( module_name );
+    CHECK_OBJECT( globals );
+    CHECK_OBJECT( locals );
+    CHECK_OBJECT( import_items );
+    CHECK_OBJECT( level );
 
     PyObject *pos_args = PyTuple_New(5);
     PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( module_name ) );
@@ -860,13 +860,14 @@ extern PyObject *const_str_plain___all__;
 bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 {
     // Check parameters.
-    assertObject( module );
-    assertObject( target );
+    CHECK_OBJECT( module );
+    CHECK_OBJECT( target );
 
     PyObject *iter;
     bool all_case;
 
-    if ( PyObject *all = PyObject_GetAttr( module, const_str_plain___all__ ) )
+    PyObject *all = PyObject_GetAttr( module, const_str_plain___all__ );
+    if ( all != NULL )
     {
         iter = MAKE_ITERATOR( all );
         Py_DECREF( all );
@@ -878,12 +879,12 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 
         all_case = true;
     }
-    else if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+    else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
 
         iter = MAKE_ITERATOR( PyModule_GetDict( module ) );
-        assertObject( iter );
+        CHECK_OBJECT( iter );
 
         all_case = false;
     }
@@ -960,7 +961,7 @@ bool PRINT_NEW_LINE_TO( PyObject *file )
     }
 
     PyFile_SoftSpace( file, 0 );
-    assertObject( file );
+    CHECK_OBJECT( file );
 
     Py_DECREF( file );
     return true;
@@ -1002,8 +1003,8 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         file = GET_STDOUT();
     }
 
-    assertObject( file );
-    assertObject( object );
+    CHECK_OBJECT( file );
+    CHECK_OBJECT( object );
 
     // need to hold a reference to the file or else __getattr__ may release
     // "file" in the mean time.
@@ -1050,7 +1051,7 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         PyFile_SoftSpace( file, !softspace );
     }
 
-    assertObject( file );
+    CHECK_OBJECT( file );
     Py_DECREF( file );
 
     return true;
@@ -1062,7 +1063,7 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
             object
         );
 
-        Py_XDECREF(result);
+        Py_XDECREF( result );
 
         return result != NULL;
     }
@@ -1093,17 +1094,10 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
 void PRINT_REFCOUNT( PyObject *object )
 {
-#if PYTHON_VERSION < 300
-   char buffer[ 1024 ];
-   sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
+    char buffer[ 1024 ];
+    sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
 
-   if (unlikely( PyFile_WriteString( buffer, GET_STDOUT() ) == -1 ))
-   {
-      return;
-   }
-#else
-   assert( false );
-#endif
+    PRINT_STRING( buffer );
 }
 
 bool PRINT_STRING( char const *str )
@@ -1113,10 +1107,68 @@ bool PRINT_STRING( char const *str )
     return res != -1;
 }
 
+bool PRINT_REPR( PyObject *object )
+{
+    bool res;
+
+    if ( object != NULL )
+    {
+        PyObject *repr = PyObject_Repr( object );
+        res = PRINT_ITEM( repr );
+        Py_DECREF( repr );
+    }
+    else
+    {
+        res = PRINT_NULL();
+    }
+
+    return res;
+}
+
 bool PRINT_NULL( void )
 {
     return PRINT_STRING("<NULL>");
 }
+
+void PRINT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb )
+{
+    PRINT_REPR( exception_type );
+    PRINT_REPR( exception_value );
+    PRINT_REPR( exception_tb );
+
+    PRINT_NEW_LINE();
+}
+
+// TODO: Could be ported, the "printf" stuff would need to be split. On Python3
+// the normal C print output gets lost.
+#if PYTHON_VERSION < 300
+void PRINT_TRACEBACK( PyTracebackObject *traceback )
+{
+    PRINT_STRING("Dumping traceback:\n");
+
+    if ( traceback == NULL ) PRINT_STRING( "<NULL traceback?!>\n" );
+
+    while( traceback )
+    {
+        printf( " line %d (frame object chain):\n", traceback->tb_lineno );
+
+        PyFrameObject *frame = traceback->tb_frame;
+
+        while ( frame )
+        {
+            printf( "  Frame at %s\n", PyString_AsString( PyObject_Str( (PyObject *)frame->f_code )));
+
+            frame = frame->f_back;
+        }
+
+        assert( traceback->tb_next != traceback );
+        traceback = traceback->tb_next;
+    }
+
+    PRINT_STRING("End of Dump.\n");
+}
+#endif
+
 
 PyObject *GET_STDOUT()
 {
@@ -1217,7 +1269,7 @@ PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size )
         PyErr_Print();
     }
 
-    assertObject( result );
+    CHECK_OBJECT( result );
 
     return result;
 }
@@ -1228,7 +1280,7 @@ PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size )
     PyObject *result = PyUnicode_FromStringAndSize( (char const  *)buffer, size );
 
     assert( !ERROR_OCCURRED() );
-    assertObject( result );
+    CHECK_OBJECT( result );
 
     return result;
 }
@@ -1243,7 +1295,7 @@ PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool in
 #endif
 
     assert( !ERROR_OCCURRED() );
-    assertObject( result );
+    CHECK_OBJECT( result );
     assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
@@ -1254,7 +1306,7 @@ PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool in
     {
         Nuitka_StringIntern( &result );
 
-        assertObject( result );
+        CHECK_OBJECT( result );
         assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
@@ -1276,7 +1328,7 @@ PyObject *UNSTREAM_CHAR( unsigned char value, bool intern )
 #endif
 
     assert( !ERROR_OCCURRED() );
-    assertObject( result );
+    CHECK_OBJECT( result );
     assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
@@ -1289,7 +1341,7 @@ PyObject *UNSTREAM_CHAR( unsigned char value, bool intern )
     {
         Nuitka_StringIntern( &result );
 
-        assertObject( result );
+        CHECK_OBJECT( result );
         assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
@@ -1318,7 +1370,7 @@ PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size )
 {
     PyObject *result = PyBytes_FromStringAndSize( (char const  *)buffer, size );
     assert( !ERROR_OCCURRED() );
-    assertObject( result );
+    CHECK_OBJECT( result );
 
     assert( PyBytes_GET_SIZE( result ) == size );
     return result;
@@ -1627,7 +1679,7 @@ extern PyObject *const_str_plain___class__;
 
 PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 {
-    assertObject( type );
+    CHECK_OBJECT( type );
 
     superobject *result = PyObject_GC_New( superobject, &PySuper_Type );
     assert( result );
@@ -1669,7 +1721,7 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
             {
                 if ( class_attr == NULL )
                 {
-                    PyErr_Clear();
+                    CLEAR_ERROR_OCCURRED();
                 }
                 else
                 {
@@ -1693,7 +1745,7 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 
     Nuitka_GC_Track( result );
 
-    assertObject( (PyObject *)result );
+    CHECK_OBJECT( (PyObject *)result );
     assert( Py_TYPE( result ) == &PySuper_Type );
 
     return (PyObject *)result;
@@ -1707,8 +1759,8 @@ PyObject *BUILTIN_CALLABLE( PyObject *value )
 // Used by InspectPatcher too.
 int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
 {
-    assertObject( inst );
-    assertObject( cls );
+    CHECK_OBJECT( inst );
+    CHECK_OBJECT( cls );
 
     // Quick path.
     if ( Py_TYPE( inst ) == (PyTypeObject *)cls )
@@ -1807,9 +1859,9 @@ PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *defa
 
     if ( result == NULL )
     {
-        if ( default_value != NULL && PyErr_ExceptionMatches( PyExc_AttributeError ))
+        if ( default_value != NULL && EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
         {
-            PyErr_Clear();
+            CLEAR_ERROR_OCCURRED();
 
             return INCREASE_REFCOUNT( default_value );
         }
@@ -1852,8 +1904,8 @@ extern PyObject *const_str_plain_open;
 
 int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObject *value )
 {
-    assertObject( (PyObject *)module );
-    assertObject( name );
+    CHECK_OBJECT( (PyObject *)module );
+    CHECK_OBJECT( name );
 
     // This is used for "del" as well.
     assert( value == NULL || Py_REFCNT( value ) > 0 );
@@ -1966,6 +2018,81 @@ void _initBuiltinModule()
 }
 
 
+PyObject *callPythonFunction( PyObject *func, PyObject **args, int count )
+{
+    PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE( func );
+    PyObject *globals = PyFunction_GET_GLOBALS( func );
+    PyObject *argdefs = PyFunction_GET_DEFAULTS( func );
+
+#if PYTHON_VERSION >= 300
+    PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS( func );
+
+    if ( kwdefs == NULL && argdefs == NULL && co->co_argcount == count &&
+        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
+#else
+    if ( argdefs == NULL && co->co_argcount == count &&
+        co->co_flags == ( CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE ))
+#endif
+    {
+        PyThreadState *tstate = PyThreadState_GET();
+        CHECK_OBJECT( globals );
+
+        PyFrameObject *frame = PyFrame_New( tstate, co, globals, NULL );
+
+        if (unlikely( frame == NULL ))
+        {
+            return NULL;
+        };
+
+        for ( int i = 0; i < count; i++ )
+        {
+            frame->f_localsplus[i] = args[i];
+            Py_INCREF( frame->f_localsplus[i] );
+        }
+
+        PyObject *result = PyEval_EvalFrameEx( frame, 0 );
+
+        // Frame release protects against recursion as it may lead to variable
+        // destruction.
+        ++tstate->recursion_depth;
+        Py_DECREF( frame );
+        --tstate->recursion_depth;
+
+        return result;
+    }
+
+    PyObject **defaults = NULL;
+    int nd = 0;
+
+    if ( argdefs != NULL )
+    {
+        defaults = &PyTuple_GET_ITEM( argdefs, 0 );
+        nd = int( Py_SIZE( argdefs ) );
+    }
+
+    PyObject *result = PyEval_EvalCodeEx(
+#if PYTHON_VERSION >= 300
+        (PyObject *)co,
+#else
+        co,        // code object
+#endif
+        globals,   // globals
+        NULL,      // no locals
+        args,      // args
+        count,     // argcount
+        NULL,      // kwds
+        0,         // kwcount
+        defaults,  // defaults
+        nd,        // defcount
+#if PYTHON_VERSION >= 300
+        kwdefs,
+#endif
+        PyFunction_GET_CLOSURE( func )
+    );
+
+    return result;
+}
+
 static PyObject *_fast_function_noargs( PyObject *func )
 {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE( func );
@@ -1983,7 +2110,7 @@ static PyObject *_fast_function_noargs( PyObject *func )
 #endif
     {
         PyThreadState *tstate = PyThreadState_GET();
-        assertObject( globals );
+        CHECK_OBJECT( globals );
 
         PyFrameObject *frame = PyFrame_New( tstate, co, globals, NULL );
 
@@ -2037,7 +2164,7 @@ static PyObject *_fast_function_noargs( PyObject *func )
 
 PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 {
-    assertObject( called );
+    CHECK_OBJECT( called );
 
     if ( Nuitka_Function_Check( called ) )
     {
@@ -2335,7 +2462,7 @@ void restoreStandaloneEnvironment()
 #if defined( _WIN32 )
     SetEnvironmentVariable( "PYTHONHOME", original_home );
 #else
-    if (original_home == NULL)
+    if ( original_home == NULL )
     {
         unsetenv( "PYTHONHOME" );
     }
@@ -2367,7 +2494,7 @@ static PyObject *binary_path_object = NULL;
 
 PyObject *MAKE_BINARY_RELATIVE(PyObject *relative)
 {
-    if (binary_path_object == NULL)
+    if ( binary_path_object == NULL )
     {
 #if PYTHON_VERSION >= 300
         binary_path_object = PyUnicode_FromString(getBinaryDirectory());
@@ -2375,10 +2502,10 @@ PyObject *MAKE_BINARY_RELATIVE(PyObject *relative)
         binary_path_object = PyString_FromString(getBinaryDirectory());
 #endif
     }
-    assertObject( binary_path_object );
+    CHECK_OBJECT( binary_path_object );
 
     PyObject *os_path = PyImport_ImportModule("os.path");
-    assertObject(os_path);
+    CHECK_OBJECT(os_path);
 
     PyObject *os_path_join = PyObject_GetAttrString(os_path, "join");
 
@@ -2424,7 +2551,7 @@ void _initBuiltinOriginalValues()
     ASSIGN_BUILTIN( long );
 #endif
 
-    assertObject( _python_original_builtin_value_range );
+    CHECK_OBJECT( _python_original_builtin_value_range );
 }
 
 #endif
@@ -2473,7 +2600,7 @@ void _initSlotIternext()
     );
     Py_DECREF( c );
 
-    assertObject( r );
+    CHECK_OBJECT( r );
     assert( Py_TYPE( r )->tp_iternext );
 
     default_iternext = Py_TYPE(r)->tp_iternext;
@@ -2520,7 +2647,7 @@ void _initSlotCompare()
     );
     Py_DECREF( c );
 
-    assertObject( r );
+    CHECK_OBJECT( r );
     assert( Py_TYPE( r )->tp_compare );
 
     default_tp_compare = Py_TYPE( r )->tp_compare;
@@ -2528,7 +2655,7 @@ void _initSlotCompare()
     Py_DECREF( r );
 }
 
-#define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
+#define RICHCOMPARE( t ) ( PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL )
 
 static inline int adjust_tp_compare( int c )
 {
@@ -2631,8 +2758,8 @@ static int try_3way_compare( PyObject *a, PyObject *b )
 
 PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
 {
-    assertObject( a );
-    assertObject( b );
+    CHECK_OBJECT( a );
+    CHECK_OBJECT( b );
 
     // TODO: Type a-ware rich comparison would be really nice, but this is what
     // CPython does, and should be even in "richcomparisons.hpp" as the first
@@ -2723,7 +2850,7 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     {
         f = RICHCOMPARE( b->ob_type );
 
-        if ( f != NULL)
+        if ( f != NULL )
         {
             result = (*f)( b, a, swapped_op[ op ] );
 
@@ -2865,8 +2992,8 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
 
 PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
 {
-    assertObject( a );
-    assertObject( b );
+    CHECK_OBJECT( a );
+    CHECK_OBJECT( b );
 
     // TODO: Type a-ware rich comparison would be really nice, but this is what
     // CPython does, and should be even in "richcomparisons.hpp" as the first
@@ -2948,7 +3075,7 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
     {
         f = RICHCOMPARE( b->ob_type );
 
-        if ( f != NULL)
+        if ( f != NULL )
         {
             result = (*f)( b, a, swapped_op[ op ] );
 
@@ -3093,8 +3220,8 @@ static char const *op_strings[] =
 
 PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
 {
-    assertObject( a );
-    assertObject( b );
+    CHECK_OBJECT( a );
+    CHECK_OBJECT( b );
 
     if (unlikely( Py_EnterRecursiveCall( (char *)" in comparison" ) ))
     {
@@ -3206,8 +3333,8 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
 
 PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
 {
-    assertObject( a );
-    assertObject( b );
+    CHECK_OBJECT( a );
+    CHECK_OBJECT( b );
 
     bool checked_reverse_op = false;
     PyObject *result = NULL;
@@ -3350,7 +3477,7 @@ PyObject *DEEP_COPY( PyObject *value )
             PyDictObject *mp = (PyDictObject *)value;
 
             PyObject **newvalues = PyMem_NEW( PyObject *, mp->ma_keys->dk_size );
-            assert (newvalues != NULL);
+            assert( newvalues != NULL );
 
             PyDictObject *result = PyObject_GC_New( PyDictObject, &PyDict_Type );
             assert( result != NULL );
@@ -3550,7 +3677,23 @@ Py_hash_t DEEP_HASH( PyObject *value )
     {
         Py_hash_t result = DEEP_HASH_INIT( value );
 
-        // TODO: How to iterate set elements.
+        PyObject *iterator = PyObject_GetIter( value );
+        CHECK_OBJECT( iterator );
+
+        while( true )
+        {
+            PyObject *item = PyIter_Next( iterator );
+            if (!item) break;
+
+            CHECK_OBJECT( item );
+
+            result ^= DEEP_HASH( item );
+
+            Py_DECREF( item );
+        }
+
+        Py_DECREF( iterator );
+
         return result;
     }
     else if (

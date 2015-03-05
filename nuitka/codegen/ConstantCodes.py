@@ -46,6 +46,7 @@ from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Indentation import indented
 from .Pickling import getStreamedConstant
+from nuitka.codegen import Emission
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
@@ -260,7 +261,7 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
 
     return True
 
-def _addConstantInitCode(context, emit, constant_type, constant_value,
+def _addConstantInitCode(context, emit, check, constant_type, constant_value,
                          constant_identifier, module_level):
     """ Emit code for a specific constant to be prepared during init.
 
@@ -286,19 +287,35 @@ def _addConstantInitCode(context, emit, constant_type, constant_value,
         return
 
     # Then it's a real named constant not yet created.
-    __addConstantInitCode(context, emit, constant_type, constant_value,
+    __addConstantInitCode(context, emit, check, constant_type, constant_value,
                           constant_identifier, module_level)
 
     if Options.isDebug():
         emit(
              """\
 hash_%(constant_identifier)s = DEEP_HASH( %(constant_identifier)s );""" % {
-                 "constant_identifier" : constant_identifier
+             "constant_identifier" : constant_identifier
              }
         )
 
+        check(
+            """\
+CHECK_OBJECT( %(constant_identifier)s );
+assert( hash_%(constant_identifier)s == DEEP_HASH( %(constant_identifier)s ) );""" % {
+             "constant_identifier" : constant_identifier
+             }
+        )
 
-def __addConstantInitCode(context, emit, constant_type, constant_value,
+        if Options.isExperimental():
+            check(
+                """\
+if ( hash_%(constant_identifier)s == -1 ) puts("Note: Weak hash for: %(constant_identifier)s.");""" % {
+                "constant_identifier" : constant_identifier
+                }
+            )
+
+
+def __addConstantInitCode(context, emit, check, constant_type, constant_value,
                           constant_identifier, module_level):
     """ Emit code for a specific constant to be prepared during init.
 
@@ -489,6 +506,7 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
             key_name = getConstantCodeName(context, key)
             _addConstantInitCode(
                 emit                = emit,
+                check               = check,
                 constant_type       = type(key),
                 constant_value      = key,
                 constant_identifier = key_name,
@@ -499,6 +517,7 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
             value_name = getConstantCodeName(context, value)
             _addConstantInitCode(
                 emit                = emit,
+                check               = check,
                 constant_type       = type(value),
                 constant_value      = value,
                 constant_identifier = value_name,
@@ -515,8 +534,12 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
                 )
             )
 
-        # TODO: Check dictionary size, in case we have overlapping keys or
-        # bugs.
+        emit(
+            "assert( PyDict_Size( %s ) == %d );" % (
+                constant_identifier,
+                len(constant_value)
+            )
+        )
 
         return
 
@@ -542,6 +565,7 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
 
             _addConstantInitCode(
                 emit                = emit,
+                check               = check,
                 constant_type       = type(element_value),
                 constant_value      = element_value,
                 constant_identifier = getConstantCodeName(
@@ -586,6 +610,7 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
 
             _addConstantInitCode(
                 emit                = emit,
+                check               = check,
                 constant_type       = type(element_value),
                 constant_value      = element_value,
                 constant_identifier = element_name,
@@ -612,7 +637,9 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
             return
 
         # TODO: Hinting size is really not possible?
-        emit("%s = PySet_New( NULL );" % constant_identifier)
+        emit(
+            "%s = PySet_New( NULL );" % constant_identifier
+        )
 
         for element_value in constant_value:
             element_name = getConstantCodeName(
@@ -622,6 +649,7 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
 
             _addConstantInitCode(
                 emit                = emit,
+                check               = check,
                 constant_type       = type(element_value),
                 constant_value      = element_value,
                 constant_identifier = element_name,
@@ -636,14 +664,20 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
                 )
             )
 
-        # TODO: Check set size, in case we have overlapping keys or
-        # bugs.
+        emit(
+            "assert( PySet_Size( %s ) == %d );" % (
+                constant_identifier,
+                len(constant_value)
+            )
+        )
+
         return
 
     if constant_type is slice:
         slice1_name = getConstantCodeName(context, constant_value.start)
         _addConstantInitCode(
             emit                = emit,
+            check               = check,
             constant_type       = type(constant_value.start),
             constant_value      = constant_value.start,
             constant_identifier = slice1_name,
@@ -653,6 +687,7 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
         slice2_name = getConstantCodeName(context, constant_value.stop)
         _addConstantInitCode(
             emit                = emit,
+            check               = check,
             constant_type       = type(constant_value.stop),
             constant_value      = constant_value.stop,
             constant_identifier = slice2_name,
@@ -662,6 +697,7 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
         slice3_name = getConstantCodeName(context, constant_value.step)
         _addConstantInitCode(
             emit                = emit,
+            check               = check,
             constant_type       = type(constant_value.step),
             constant_value      = constant_value.step,
             constant_identifier = slice3_name,
@@ -701,6 +737,8 @@ def __addConstantInitCode(context, emit, constant_type, constant_value,
 def getConstantsInitCode(context):
     emit = SourceCodeCollector()
 
+    check = SourceCodeCollector()
+
     # Sort items by length and name, so we are determistic and pretty.
     sorted_constants = sorted(
         iterItems(context.getConstants()),
@@ -710,6 +748,7 @@ def getConstantsInitCode(context):
     for constant_identifier, constant_value in sorted_constants:
         _addConstantInitCode(
             emit                = emit,
+            check               = check,
             constant_type       = type(constant_value),
             constant_value      = constant_value,
             constant_identifier = constant_identifier,
@@ -717,7 +756,7 @@ def getConstantsInitCode(context):
             context             = context
         )
 
-    return emit.codes
+    return emit.codes, check.codes
 
 
 def getConstantsDeclCode(context):
@@ -871,7 +910,8 @@ constant_counts = {}
 
 def getConstantInitCodes(module_context):
     decls = []
-    inits = []
+    inits = Emission.SourceCodeCollector()
+    check = Emission.SourceCodeCollector()
 
     sorted_constants = sorted(
         module_context.getConstants(),
@@ -890,7 +930,8 @@ def getConstantInitCodes(module_context):
             constant_value = global_context.constants[constant_identifier]
 
             _addConstantInitCode(
-                emit                = inits.append,
+                emit                = inits,
+                check               = check,
                 constant_type       = type(constant_value),
                 constant_value      = constant_value,
                 constant_identifier = constant_identifier,
@@ -915,7 +956,7 @@ def getConstantInitCodes(module_context):
                 )
             )
 
-    return decls, inits
+    return decls, inits.codes
 
 
 def allocateNestedConstants(module_context):
@@ -957,7 +998,7 @@ def getConstantsDefinitionCode(context):
         than one module) and create them.
 
     """
-    constant_inits = getConstantsInitCode(
+    constant_inits, constant_checks = getConstantsInitCode(
         context = context
     )
 
@@ -968,4 +1009,5 @@ def getConstantsDefinitionCode(context):
     return CodeTemplates.template_constants_reading % {
         "constant_declarations" : '\n'.join(constant_declarations),
         "constant_inits"        : indented(constant_inits),
+        "constant_checks"       : indented(constant_checks)
     }

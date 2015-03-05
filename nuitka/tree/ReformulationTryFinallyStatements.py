@@ -25,7 +25,7 @@ source code comments with developer manual sections.
 from nuitka import Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable,
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
@@ -36,7 +36,7 @@ from nuitka.nodes.StatementNodes import (
     StatementReraiseFrameException,
     StatementsSequence
 )
-from nuitka.nodes.TryNodes import StatementTryFinally
+from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
@@ -167,13 +167,10 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                 ),
                 yes_branch = StatementsSequence(
                     statements = (
-                        StatementDelVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = tmp_indicator_var,
-                                source_ref = source_ref.atInternal()
-                            ),
-                            tolerant     = False,
-                            source_ref   = source_ref.atInternal()
+                        StatementReleaseVariable(
+                            variable   = tmp_indicator_var,
+                            tolerant   = False,
+                            source_ref = source_ref.atInternal()
                         ),
                         StatementReraiseFrameException(
                             source_ref = source_ref.atInternal()
@@ -183,13 +180,10 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                 ),
                 no_branch  = StatementsSequence(
                     statements = (
-                        StatementDelVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = tmp_indicator_var,
-                                source_ref = source_ref.atInternal()
-                            ),
-                            tolerant     = False,
-                            source_ref   = source_ref.atInternal()
+                        StatementReleaseVariable(
+                            variable   = tmp_indicator_var,
+                            tolerant   = False,
+                            source_ref = source_ref.atInternal()
                         ),
                     ),
                     source_ref = source_ref.atInternal()

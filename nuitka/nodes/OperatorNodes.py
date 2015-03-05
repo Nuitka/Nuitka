@@ -29,6 +29,9 @@ from .NodeBases import ExpressionChildrenHavingBase
 
 
 class ExpressionOperationBase(ExpressionChildrenHavingBase):
+
+    inplace_suspect = False
+
     def __init__(self, operator, simulator, values, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -39,6 +42,15 @@ class ExpressionOperationBase(ExpressionChildrenHavingBase):
         self.operator = operator
 
         self.simulator = simulator
+
+    def markAsInplaceSuspect(self):
+        self.inplace_suspect = True
+
+    def unmarkAsInplaceSuspect(self):
+        self.inplace_suspect = False
+
+    def isInplaceSuspect(self):
+        return self.inplace_suspect
 
     def getDetail(self):
         return self.operator
@@ -78,13 +90,6 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
-        self.inplace_suspect = False
-
-    def markAsInplaceSuspect(self):
-        self.inplace_suspect = True
-
-    def isInplaceSuspect(self):
-        return self.inplace_suspect
 
     def computeExpression(self, constraint_collection):
         # This is using many returns based on many conditions,
@@ -165,6 +170,13 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                 description = "Operator '%s' with constant arguments." % operator
             )
         else:
+            # The value of these nodes escaped and could change its contents.
+            constraint_collection.removeKnowledge(left)
+            constraint_collection.removeKnowledge(right)
+
+            # Any code could be run, note that.
+            constraint_collection.onControlFlowEscape(self)
+
             return self, None, None
 
     def getOperands(self):
@@ -209,6 +221,12 @@ class ExpressionOperationUnary(ExpressionOperationBase):
                 description = "Operator '%s' with constant argument." % operator
             )
         else:
+            # The value of that node escapes and could change its contents.
+            constraint_collection.removeKnowledge(operand)
+
+            # Any code could be run, note that.
+            constraint_collection.onControlFlowEscape(self)
+
             return self, None, None
 
     getOperand = ExpressionChildrenHavingBase.childGetter("operand")

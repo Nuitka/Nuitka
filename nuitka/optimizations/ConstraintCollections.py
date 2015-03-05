@@ -26,7 +26,7 @@ This is about collecting these constraints and to manage them.
 # Python3 compatibility.
 from logging import debug
 
-from nuitka import Options, Tracing
+from nuitka import Options, Tracing, Utils
 from nuitka.__past__ import iterItems
 from nuitka.nodes.AssignNodes import StatementDelVariable
 from nuitka.VariableRegistry import isSharedLogically
@@ -306,6 +306,25 @@ class ConstraintCollectionBase(CollectionTracingMixin):
     def removeKnowledge(self, node):
         pass
 
+    def onControlFlowEscape(self, node):
+        # TODO: One day, we should trace which nodes exactly cause a variable
+        # to be considered escaped, pylint: disable=W0613
+
+        for variable in self.getActiveVariables():
+            if variable.isModuleVariable():
+                # print variable
+
+                self.markActiveVariableAsUnknown(variable)
+
+            elif Utils.python_version >= 300 or variable.isSharedTechnically():
+                # print variable
+
+                # TODO: Could be limited to shared variables that are actually
+                # written to. Most of the time, that won't be the case.
+
+                self.markActiveVariableAsUnknown(variable)
+
+
     def removeAllKnowledge(self):
         # Temporary, we don't have to have this anyway, this will just disable
         # all uses of variable traces for optimization.
@@ -364,16 +383,15 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         version = variable_ref.getVariableVersion()
         variable = variable_ref.getVariable()
 
-        current = self.getVariableCurrentTrace(variable)
-        current.addRelease(del_node)
+        old_trace = self.getVariableCurrentTrace(variable)
 
         variable_trace = VariableUninitTrace(
             variable = variable,
             version  = version,
-            previous = current
+            previous = old_trace
         )
 
-        # Assign to uninit again.
+        # Assign to not initialized again.
         self.addVariableTrace(
             variable = variable,
             version  = version,
@@ -383,7 +401,19 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
 
-        return variable_trace
+        return old_trace
+
+    def onVariableRelease(self, release_node):
+        variable = release_node.getVariable()
+
+        current = self.getVariableCurrentTrace(variable)
+
+        # Annotate that release node. It's an unimportant usage, but one we
+        # would like to be able to remove, should we remove the assignment
+        # that underlies it.
+        current.addRelease(release_node)
+
+        return current
 
 
     def onVariableContentEscapes(self, variable):

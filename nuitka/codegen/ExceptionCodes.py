@@ -47,7 +47,7 @@ def getTracebackMakingIdentifier(context):
     frame_handle = context.getFrameHandle()
     assert frame_handle is not None
 
-    return "MAKE_TRACEBACK( INCREASE_REFCOUNT( %s ) )" % (
+    return "MAKE_TRACEBACK( %s )" % (
         frame_handle
     )
 
@@ -98,7 +98,18 @@ def getExceptionCaughtTracebackCode(to_name, emit, context):
         )
     else:
         emit(
-            "%s = exception_tb ? INCREASE_REFCOUNT( (PyObject *)exception_tb ) : (PyObject *)%s;" % (
+            """\
+if ( exception_tb != NULL )
+{
+    %s = (PyObject *)exception_tb;
+    Py_INCREF( exception_tb );
+}
+else
+{
+    %s = (PyObject *)%s;
+}
+""" % (
+                to_name,
                 to_name,
                 getTracebackMakingIdentifier(context)
             )

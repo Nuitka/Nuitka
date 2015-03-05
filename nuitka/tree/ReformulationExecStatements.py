@@ -24,7 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable,
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import (
@@ -44,7 +44,7 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
     ExpressionBuiltinLocals
 )
-from nuitka.nodes.TryNodes import StatementTryFinally
+from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
@@ -104,21 +104,15 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
         )
 
     post_statements += [
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = globals_keeper_variable,
-                source_ref = globals_node.getSourceReference()
-            ),
-            tolerant     = False,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = globals_keeper_variable,
+            tolerant   = False,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = locals_keeper_variable,
-                source_ref = locals_node.getSourceReference()
-            ),
-            tolerant     = False,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = locals_keeper_variable,
+            tolerant   = False,
+            source_ref = source_ref
         )
     ]
 
@@ -545,37 +539,25 @@ exec: arg 1 must be a string, file, or code object""",
     )
 
     final = makeStatementsSequenceFromStatements(
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = source_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = source_variable,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = globals_keeper_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = globals_keeper_variable,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = locals_keeper_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = locals_keeper_variable,
+            tolerant   = True,
+            source_ref = source_ref
         ),
-        StatementDelVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = plain_indicator_variable,
-                source_ref = source_ref
-            ),
-            tolerant     = True,
-            source_ref   = source_ref
+        StatementReleaseVariable(
+            variable   = plain_indicator_variable,
+            tolerant   = True,
+            source_ref = source_ref
         ),
     )
 

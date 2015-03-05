@@ -57,10 +57,7 @@ from .ComparisonCodes import (
 )
 from .ConstantCodes import (
     getConstantAccess,
-    getConstantCode,
-    getConstantsDeclCode,
-    getConstantsInitCode,
-    stream_data
+    getConstantCode
 )
 from .DictCodes import (
     getBuiltinDict2Code,
@@ -101,7 +98,6 @@ from .FrameCodes import (
 from .FunctionCodes import (
     getDirectFunctionCallCode,
     getFunctionCode,
-    getFunctionContextDefinitionCode,
     getFunctionCreationCode,
     getFunctionDirectDecl,
     getFunctionMakerCode,
@@ -166,77 +162,13 @@ from .SubscriptCodes import (
     getSubscriptDelCode,
     getSubscriptLookupCode
 )
-from .VariableCodes import (
-    getVariableAccessCode,
-    getVariableAssignmentCode,
-    getVariableCode,
-    getVariableDelCode
-)
+from .VariableCodes import getVariableAccessCode, getVariableCode
 from .YieldCodes import getYieldCode, getYieldFromCode
 
 
 # pylint: enable=W0611
 
 
-def getOperationCode(to_name, operator, arg_names, emit, context):
-    # This needs to have one return per operation of Python, and there are many
-    # of these.
-
-    prefix_args = ()
-    ref_count = 1
-
-    if operator == "Pow":
-        helper = "POWER_OPERATION"
-    elif operator == "IPow":
-        helper = "POWER_OPERATION_INPLACE"
-    elif operator == "Add":
-        helper = "BINARY_OPERATION_ADD"
-    elif operator == "Sub":
-        helper = "BINARY_OPERATION_SUB"
-    elif operator == "Div":
-        helper = "BINARY_OPERATION_DIV"
-    elif operator == "Mult":
-        helper = "BINARY_OPERATION_MUL"
-    elif operator == "Mod":
-        helper = "BINARY_OPERATION_REMAINDER"
-    elif len(arg_names) == 2:
-        helper = "BINARY_OPERATION"
-        prefix_args = (
-            OperatorCodes.binary_operator_codes[ operator ],
-        )
-    elif len(arg_names) == 1:
-        impl_helper, ref_count = OperatorCodes.unary_operator_codes[ operator ]
-
-        helper = "UNARY_OPERATION"
-        prefix_args = (
-            impl_helper,
-        )
-    else:
-        assert False, operator
-
-    emit(
-        "%s = %s( %s );" % (
-            to_name,
-            helper,
-            ", ".join(prefix_args + arg_names)
-        )
-    )
-
-    for arg_name in arg_names:
-        getReleaseCode(
-            arg_name,
-            emit,
-            context
-        )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
-
-    if ref_count:
-        context.addCleanupTempName(to_name)
 
 
 def getLoopBreakCode(emit, context):

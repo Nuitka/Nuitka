@@ -19,7 +19,7 @@
 
 from __future__ import print_function
 
-import sys
+import sys, os, shutil
 
 from redbaron import RedBaron
 
@@ -112,11 +112,6 @@ def updateString(string_node):
             if '"' not in real_value:
                 string_node.value = '"' + real_value + '"'
 
-
-
-
-
-
 for node in red.find_all("CallNode"):
     try:
         updateCall(node)
@@ -149,7 +144,27 @@ for node in red.find_all("StringNode"):
         node.help(deep = True, with_formatting = True)
         raise
 
+for node in red.find_all("DefNode"):
+    # print("1:", repr(str(node.first_formatting)))
+    # print("2:", repr(str(node.second_formatting)))
+    #print("3:", repr(str(node.third_formatting)))
+    # print("4:", repr(str(node.fourth_formatting)))
+    pass
+    # TODO: Third and fourth formatting cannot be set.
+    # assert False, node.arguments
 
-with open(sys.argv[1], "w") as source_code:
+new_name = sys.argv[1] + ".new"
+
+with open(new_name, "w") as source_code:
     source_code.write(red.dumps())
 
+# There is no way to safely replace a file on Windows, but lets try on Linux
+# at least.
+old_stat = os.stat(sys.argv[1])
+
+try:
+    os.rename(new_name, sys.argv[1])
+except OSError:
+    shutil.copy(new_name, sys.argv[1])
+
+os.chmod(sys.argv[1], old_stat.st_mode )

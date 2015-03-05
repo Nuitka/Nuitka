@@ -42,6 +42,7 @@ def visitFunction(function, visitor):
     visitor.onEnterNode(function)
     visitor.onLeaveNode(function)
 
+
 class VisitorNoopMixin:
     def onEnterNode(self, node):
         """ Overloaded for operation before the node children were done. """

@@ -69,13 +69,11 @@ def _getFunctionCreationArgs(defaults_name, kw_defaults_name,
 
     for closure_variable in closure_variables:
         result.append(
-            "%s &%s" % (
-                (
-                    "PyObjectSharedTempVariable"
-                       if closure_variable.isTempVariable() else
-                     "PyObjectSharedLocalVariable"
-                ),
-                getVariableCodeName(variable = closure_variable, in_context = True)
+            "PyCellObject *%s" % (
+                getVariableCodeName(
+                    variable   = closure_variable,
+                    in_context = True
+                )
             )
         )
 
@@ -126,12 +124,23 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
     if closure_variables:
         context_copy = []
 
-        for closure_variable in closure_variables:
+        closure_count = len(closure_variables)
+        context_copy.append(
+            "PyCellObject **closure = (PyCellObject **)malloc( %d * sizeof(PyCellObject *) );" % closure_count
+        )
+
+        for count, closure_variable in enumerate(closure_variables):
             context_copy.append(
-                "_python_context->%s.shareWith( %s );" % (
-                    getVariableCodeName(variable = closure_variable, in_context = True),
-                    getVariableCodeName(variable = closure_variable, in_context = True),
+                "closure[%d] = %s;" % (
+                    count,
+                    getVariableCodeName(
+                        True,
+                        closure_variable
+                    )
                 )
+            )
+            context_copy.append(
+                "Py_INCREF( closure[%d] );" %count
             )
 
         if is_generator:
@@ -171,6 +180,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
             "annotations"                : "annotations"
                                              if annotations_name else
                                            context.getConstantCode({}),
+            "closure_count"              : closure_count,
             "module_identifier"          : getModuleAccessCode(
                 context = context
             ),
@@ -268,25 +278,22 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
         closure_variables = closure_variables
     )
 
-    def takeRefs(arg_names):
-        result = []
-
-        for arg_name in arg_names:
-            if context.needsCleanup(arg_name):
-                context.removeCleanupTempName(arg_name)
-
-                result.append(arg_name)
-            else:
-                result.append("INCREASE_REFCOUNT( %s )" % arg_name)
-
-        return result
+    # TODO: We ought to not assume references for direct calls, or make a
+    # profile if an argument needs a reference at all. Most functions don't
+    # bother to release a called argument by "del" or assignment to it. We
+    # could well know that ahead of time.
+    for arg_name in arg_names:
+        if context.needsCleanup(arg_name):
+            context.removeCleanupTempName(arg_name)
+        else:
+            emit("Py_INCREF( %s );" % arg_name)
 
     emit(
         "%s = %s( %s );" % (
             to_name,
             function_identifier,
             ", ".join(
-                takeRefs(arg_names) + suffix_args
+                arg_names + suffix_args
             )
         )
     )
@@ -304,22 +311,44 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
     context.addCleanupTempName(to_name)
 
+def getFunctionDirectClosureArgs(closure_variables):
+    result = []
+
+    for closure_variable in closure_variables:
+        if closure_variable.isSharedTechnically():
+            result.append(
+                "PyCellObject *%s" % (
+                    getVariableCodeName(
+                        in_context = True,
+                        variable   = closure_variable
+                    )
+                )
+            )
+        else:
+            # TODO: The reference is only needed for Python3, could make it
+            # version dependent.
+            result.append(
+                "PyObject *&%s" % (
+                    getVariableCodeName(
+                        in_context = True,
+                        variable   = closure_variable
+                    )
+                )
+            )
+
+    return result
 
 
 def getFunctionDirectDecl(function_identifier, closure_variables,
                           parameter_variables, file_scope):
 
     parameter_objects_decl = [
-        "PyObject *_python_par_" + variable.getName()
+        "PyObject *_python_par_" + variable.getCodeName()
         for variable in
         parameter_variables
     ]
 
-    for closure_variable in closure_variables:
-        parameter_objects_decl.append(
-            closure_variable.getDeclarationTypeCode(in_context = False) + \
-            "& " + getVariableCodeName(in_context = True, variable = closure_variable)
-        )
+    parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)
 
     result = CodeTemplates.template_function_direct_declaration % {
         "file_scope"           : file_scope,
@@ -328,28 +357,6 @@ def getFunctionDirectDecl(function_identifier, closure_variables,
     }
 
     return result
-
-
-def getFunctionContextDefinitionCode(function_identifier, closure_variables):
-    context_decl = []
-
-    # Always empty now, but we may not use C++ destructors for everything in the
-    # future, so leave it.
-    context_free = []
-
-    for closure_variable in closure_variables:
-        context_decl.append(
-            getLocalVariableInitCode(
-                variable   = closure_variable,
-                in_context = True
-            )
-        )
-
-    return CodeTemplates.function_context_body_template % {
-        "function_identifier" : function_identifier,
-        "context_decl"        : indented(context_decl),
-        "context_free"        : indented(context_free),
-    }
 
 
 def getFunctionCode(context, function_name, function_identifier, parameters,
@@ -374,7 +381,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     function_parameter_decl = [
         getLocalVariableInitCode(
             variable  = variable,
-            init_from = "_python_par_" + variable.getName()
+            init_from = "_python_par_" + variable.getCodeName()
         )
         for variable in
         parameter_variables
@@ -457,13 +464,6 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
 
     result = ""
 
-    if closure_variables and context.isForCreatedFunction():
-        context_access_function_impl = CodeTemplates.function_context_access_template % {
-            "function_identifier" : function_identifier,
-        }
-    else:
-        context_access_function_impl = str(CodeTemplates.function_context_unused_template)
-
     if needs_exception_exit:
         function_exit = CodeTemplates.template_function_exception_exit % {
             "function_cleanup" : function_cleanup
@@ -477,16 +477,11 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         }
 
     if context.isForDirectCall():
-        for closure_variable in closure_variables:
-            parameter_objects_decl.append(
-                closure_variable.getDeclarationTypeCode(in_context = False) + \
-                "& " + getVariableCodeName(in_context = True, variable = closure_variable)
-            )
+        parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)
 
         result += CodeTemplates.function_direct_body_template % {
             "file_scope"                   : file_scope,
             "function_identifier"          : function_identifier,
-            "context_access_function_impl" : context_access_function_impl,
             "direct_call_arg_spec"         : ", ".join(
                 parameter_objects_decl
             ),
@@ -497,7 +492,6 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     else:
         result += CodeTemplates.template_function_body % {
             "function_identifier"          : function_identifier,
-            "context_access_function_impl" : context_access_function_impl,
             "parameter_objects_decl"       : ", ".join(parameter_objects_decl),
             "function_locals"              : indented(function_locals),
             "function_body"                : indented(function_codes),
@@ -521,6 +515,10 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=R0912,R0914,R0915
 
+    # Parameter parsing code of the function. TODO: Somehow we duplicate a lot
+    # of what a function is for these. We should make these generator object
+    # creations explicit, so they can be in-lined, and the duplication of some
+    # of this code could be avoided.
     parameter_variables, entry_point_code, parameter_objects_decl = \
       getParameterParsingCode(
         function_identifier = function_identifier,
@@ -530,70 +528,23 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
         context             = context,
     )
 
-    context_decl = []
-    context_copy = []
-    context_free = []
-
-    function_parameter_decl = [
-        getLocalVariableInitCode(
-            variable   = variable,
-            in_context = True
-        )
-        for variable in
-        parameter_variables
-    ]
-
-    parameter_context_assign = []
-
-    for variable in parameter_variables:
-        if variable.isSharedTechnically():
-            parameter_context_assign.append(
-                "_python_context->%s.storage->object = _python_par_%s;" % (
-                    getVariableCodeName(variable = variable, in_context = True),
-                    variable.getName()
+    # For direct calls, append the closure variables to the argument list.
+    if context.isForDirectCall():
+        for count, variable in enumerate(closure_variables):
+            parameter_objects_decl.append(
+                "PyCellObject *%s" % (
+                    getVariableCodeName(
+                        in_context = True,
+                        variable   = variable
+                    )
                 )
             )
-        else:
-            parameter_context_assign.append(
-                "_python_context->%s.object = _python_par_%s;" % (
-                    getVariableCodeName(variable = variable, in_context = True),
-                    variable.getName()
-                )
-            )
-        del variable
 
-    function_var_inits = []
-    local_var_decl = []
-
-    for user_variable in user_variables:
-        local_var_decl.append(
+    function_locals = []
+    for user_variable in user_variables + temp_variables:
+        function_locals.append(
             getLocalVariableInitCode(
-                variable   = user_variable,
-                in_context = True
-            )
-        )
-
-    for temp_variable in temp_variables:
-        assert temp_variable.isTempVariable(), variable
-
-        local_var_decl.append(
-            getLocalVariableInitCode(
-                variable   = temp_variable,
-                in_context = True
-            )
-        )
-
-    for closure_variable in closure_variables:
-        context_decl.append(
-            getLocalVariableInitCode(
-                variable   = closure_variable,
-                in_context = True
-            )
-        )
-        context_copy.append(
-            "_python_context->%s.shareWith( %s );" % (
-                getVariableCodeName(variable = closure_variable, in_context = True),
-                getVariableCodeName(variable = closure_variable, in_context = True),
+                variable = user_variable,
             )
         )
 
@@ -602,45 +553,8 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
         constant = function_doc
     )
 
-    function_name_obj = getConstantCode(
-        constant = function_name,
-        context  = context,
-    )
-
-    instance_context_decl = function_parameter_decl + local_var_decl
-
-    if context.isForDirectCall():
-        instance_context_decl = context_decl + instance_context_decl
-        context_decl = []
-
-    if context_decl:
-        result = CodeTemplates.genfunc_context_body_template % {
-            "function_identifier"            : function_identifier,
-            "function_common_context_decl"   : indented(context_decl),
-            "function_instance_context_decl" : indented(instance_context_decl),
-            "context_free"                   : indented(context_free, 2),
-        }
-    elif instance_context_decl:
-        result = CodeTemplates.genfunc_context_local_only_template % {
-            "function_identifier"            : function_identifier,
-            "function_instance_context_decl" : indented(instance_context_decl)
-        }
-    else:
-        result = ""
-
-    if instance_context_decl or context_decl:
-        context_access_instance = CodeTemplates.generator_context_access_template2  % {
-            "function_identifier" : function_identifier
-        }
-    else:
-        context_access_instance = ""
-
-    function_locals = []
-
     if context.hasLocalsDict():
         function_locals += CodeTemplates.function_dict_setup.split('\n')
-
-    function_locals += function_var_inits
 
     if context.needsExceptionVariables():
         function_locals += [
@@ -698,56 +612,87 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
     if needs_generator_return:
         generator_exit += CodeTemplates.template_generator_return_exit % {}
 
-    result += CodeTemplates.genfunc_yielder_template % {
+    result = CodeTemplates.genfunc_yielder_template % {
         "function_identifier" : function_identifier,
         "function_body"       : indented(function_codes),
         "function_var_inits"  : indented(function_locals),
-        "context_access"      : indented(context_access_instance),
         "generator_exit"      : generator_exit
     }
 
-    if context_decl or instance_context_decl:
-        if context_decl:
-            context_making = CodeTemplates.genfunc_common_context_use_template % {
-                "function_identifier" : function_identifier,
-            }
-        else:
-            context_making = CodeTemplates.genfunc_local_context_use_template  % {
-                "function_identifier" : function_identifier,
-            }
+    # Code to copy parameters into a "PyObject **" array, attaching it to the
+    # generator object to be created in the cause of the function call.
+    parameter_count = len(parameter_variables)
 
-        context_making = context_making.split('\n')
+    # Prepare declaration of parameters array to the generator object creation.
+    if parameter_count > 0:
+        parameter_copy = []
 
-        if context.isForDirectCall():
-            context_making += context_copy
+        for count, variable in enumerate(parameter_variables):
 
-        generator_making = CodeTemplates.genfunc_generator_with_context_making  % {
-            "function_name_obj"   : function_name_obj,
-            "function_identifier" : function_identifier,
-            "code_identifier"     : code_identifier
+            if variable.isSharedTechnically():
+                parameter_copy.append(
+                    "parameters[%d] = (PyObject *)PyCell_NEW( _python_par_%s );" % (
+                        count,
+                        variable.getCodeName()
+                    )
+                )
+            else:
+                parameter_copy.append(
+                    "parameters[%d] = _python_par_%s;" % (
+                        count,
+                        variable.getCodeName()
+                    )
+                )
+
+        parameters_decl = CodeTemplates.genfunc_generator_with_parameters  % {
+            "parameter_copy"      : indented(parameter_copy),
+            "parameter_count"     : parameter_count
         }
     else:
-        generator_making = CodeTemplates.genfunc_generator_without_context_making  % {
-            "function_name_obj"   : function_name_obj,
-            "function_identifier" : function_identifier,
-            "code_identifier"     : code_identifier
-        }
+        parameters_decl = CodeTemplates.genfunc_generator_no_parameters  % {}
 
-        context_making = []
+    # Prepare declaration of parameters array to the generator object creation.
+    closure_count = len(closure_variables)
 
-    if context.isForDirectCall():
-        for closure_variable in closure_variables:
-            parameter_objects_decl.append(
-                closure_variable.getDeclarationTypeCode(in_context = False) + \
-                "& " + getVariableCodeName(in_context = True, variable = closure_variable)
-            )
+    if closure_count > 0:
+        if context.isForDirectCall():
+            closure_copy = []
 
-    result += CodeTemplates.genfunc_function_maker_template % {
+            for count, variable in enumerate(closure_variables):
+                closure_copy.append(
+                    "closure[%d] = %s;" % (
+                        count,
+                        getVariableCodeName(
+                            in_context = True,
+                            variable   = variable
+                        )
+                    )
+                )
+                closure_copy.append(
+                    "Py_INCREF( closure[%d] );" % count
+                )
+
+
+            closure_decl = CodeTemplates.genfunc_generator_with_own_closure % {
+                "closure_copy" : '\n'.join(closure_copy),
+                "closure_count" : closure_count
+            }
+        else:
+            closure_decl = CodeTemplates.genfunc_generator_with_parent_closure % {
+                "closure_count" : closure_count
+            }
+    else:
+        closure_decl = CodeTemplates.genfunc_generator_no_closure % {}
+
+    result += CodeTemplates.genfunc_function_impl_template % {
         "function_name"          : function_name,
+        "function_name_obj"      : getConstantCode(context, function_name),
         "function_identifier"    : function_identifier,
-        "context_making"         : indented(context_making),
-        "context_copy"           : indented(parameter_context_assign),
-        "generator_making"       : generator_making,
+        "code_identifier"        : code_identifier,
+        "parameter_decl"         : parameters_decl,
+        "parameter_count"        : parameter_count,
+        "closure_decl"           : closure_decl,
+        "closure_count"          : closure_count,
         "parameter_objects_decl" : ", ".join(parameter_objects_decl),
     }
 

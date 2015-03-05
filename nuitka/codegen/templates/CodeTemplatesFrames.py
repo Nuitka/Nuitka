@@ -83,7 +83,7 @@ if ( exception_tb == NULL )
 }
 else if ( exception_tb->tb_frame != %(frame_identifier)s )
 {
-    PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( INCREASE_REFCOUNT( %(frame_identifier)s ) );
+    PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s );
     traceback_new->tb_next = exception_tb;
     exception_tb = traceback_new;
 }
@@ -145,7 +145,7 @@ if ( exception_tb == NULL )
 }
 else if ( exception_tb->tb_frame != %(frame_identifier)s )
 {
-    PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( INCREASE_REFCOUNT( %(frame_identifier)s ) );
+    PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s );
     traceback_new->tb_next = exception_tb;
     exception_tb = traceback_new;
 }
@@ -192,7 +192,8 @@ if ( generator->m_exception_type )
 
 # Frame in a generator
 template_frame_guard_generator = """\
-%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
+MAKE_OR_REUSE_FRAME( cache_%(frame_identifier)s, %(code_identifier)s, %(module_identifier)s );
+%(frame_identifier)s = cache_%(frame_identifier)s;
 
 Py_INCREF( %(frame_identifier)s );
 generator->m_frame = %(frame_identifier)s;
@@ -206,6 +207,7 @@ generator->m_frame->f_back = PyThreadState_GET()->frame;
 Py_INCREF( generator->m_frame->f_back );
 
 PyThreadState_GET()->frame = generator->m_frame;
+Py_INCREF( generator->m_frame );
 
 #if PYTHON_VERSION >= 340
 %(frame_identifier)s->f_executing += 1;
@@ -232,21 +234,25 @@ goto %(return_exit)s;
 """
 
 
+# TODO: Should we check type of value.
 template_frame_guard_generator_exception_handler = """\
 %(frame_exception_exit)s:;
 
-if ( exception_tb == NULL )
+if ( !EXCEPTION_MATCH_GENERATOR( exception_type ) )
 {
-    exception_tb = %(tb_making)s;
-}
-else if ( exception_tb->tb_frame != %(frame_identifier)s )
-{
-    PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( INCREASE_REFCOUNT( %(frame_identifier)s ) );
-    traceback_new->tb_next = exception_tb;
-    exception_tb = traceback_new;
-}
+    if ( exception_tb == NULL )
+    {
+        exception_tb = %(tb_making)s;
+    }
+    else if ( exception_tb->tb_frame != %(frame_identifier)s )
+    {
+        PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s );
+        traceback_new->tb_next = exception_tb;
+        exception_tb = traceback_new;
+    }
 
 %(store_frame_locals)s
+}
 
 #if PYTHON_VERSION > 300
 RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );

@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.9
+Nuitka V0.5.10
 Copyright (C) 2015 Kay Hayen."""
 
 import logging
@@ -571,8 +571,7 @@ windows_group.add_option(
 parser.add_option_group(windows_group)
 
 
-# First, isolate the first non-option arguments. TODO: Should respect "--"
-# as a terminator to options.
+# First, isolate the first non-option arguments.
 if is_nuitka_run:
     count = 0
 
@@ -581,6 +580,11 @@ if is_nuitka_run:
             continue
 
         if arg[0] != '-':
+            break
+
+        # Treat "--" as a terminator.
+        if arg == "--":
+            count += 1
             break
 
     if count > 0:

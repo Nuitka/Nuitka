@@ -27,7 +27,7 @@ that should be unified at some point.
 
 from nuitka import Utils
 
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 class StatementAssignmentVariable(StatementChildrenHavingBase):
@@ -175,7 +175,7 @@ Side effects of assignments promoted to statements."""
     def needsReleaseValue(self):
         previous = self.variable_trace.getPrevious()
 
-        if previous.mustBeUninit():
+        if previous.mustNotHaveValue():
             return False
         elif previous.mustHaveValue():
             return True
@@ -254,6 +254,9 @@ Attribute assignment raises exception in assigned value, removed assignment."""
 
             return result, "new_raise", """\
 Attribute assignment raises exception in source, removed assignment."""
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
 
         return self, None, None
 
@@ -337,6 +340,9 @@ Subscript assignment raises exception in subscribed, removed assignment."""
             return result, "new_raise", """
 Subscript assignment raises exception in subscript value, removed \
 assignment."""
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
 
         return self, None, None
 
@@ -440,6 +446,9 @@ assignment."""
 Slice assignment raises exception in upper slice boundary value, removed \
 assignment."""
 
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
         return self, None, None
 
 
@@ -489,19 +498,27 @@ class StatementDelVariable(StatementChildrenHavingBase):
     )
 
     def computeStatement(self, constraint_collection):
-        self.variable_trace = constraint_collection.onVariableDel(
+        variable_trace = constraint_collection.onVariableDel(
             del_node = self
         )
 
         if self.isTolerant():
-            previous = self.variable_trace.getPrevious()
-
-            if previous is None or previous.isUninitTrace():
+            if variable_trace.isUninitTrace():
                 return (
                     None,
                     "new_statements",
-                    "Removed tolerant del without effect."
+                    "Removed tolerant 'del' statement without effect."
                 )
+
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Need to fetch the potentially invalidated variable. A "del" on a
+        # or shared value, may easily assign the global variable in "__del__".
+        self.variable_trace = constraint_collection.getVariableCurrentTrace(
+            variable = self.getTargetVariableRef().getVariable()
+        )
 
         return self, None, None
 
@@ -514,11 +531,68 @@ class StatementDelVariable(StatementChildrenHavingBase):
         else:
             variable = self.getTargetVariableRef().getVariable()
 
-            # Temp variables won't raise.
-            if variable.isTempVariable():
-                return False
+            # TODO: This condition must become unnecessary, but enhancing
+            # SSA to notice potential escapes.
+            if not variable.isSharedTechnically():
+
+                # Temporary variables deletions won't raise, just because we don't
+                # create them that way. We can avoid going through SSA in these
+                # cases.
+                if variable.isTempVariable():
+                    return False
+
+                # If SSA knows, that's fine.
+                if self.variable_trace.mustHaveValue():
+                    return False
 
             return True
+
+
+class StatementReleaseVariable(NodeBase):
+    kind = "STATEMENT_RELEASE_VARIABLE"
+
+    def __init__(self, variable, tolerant, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        # TODO: Unsure if that makes sense, we only have those it seems.
+        self.tolerant = tolerant
+
+        self.variable = variable
+
+        self.variable_trace = None
+
+    def getDetail(self):
+        return "of variable %s" % self.variable
+
+    def getDetails(self):
+        return {
+            "variable" : self.variable
+        }
+
+    def getVariable(self):
+        return self.variable
+
+    def computeStatement(self, constraint_collection):
+        self.variable_trace = constraint_collection.onVariableRelease(
+            release_node = self
+        )
+
+        if self.variable_trace.isUninitTrace():
+            return None, "new_statements", None
+
+        # TODO: We might be able to remove ourselves based on the trace
+        # we belong to.
+
+        return self, None, None
+
+    def mayHaveSideEffects(self):
+        return True
+
+    def mayRaiseException(self, exception_type):
+        return False
 
 
 class StatementDelAttribute(StatementChildrenHavingBase):
@@ -540,7 +614,9 @@ class StatementDelAttribute(StatementChildrenHavingBase):
         self.attribute_name = attribute_name
 
     def getDetails(self):
-        return { "attribute" : self.attribute_name }
+        return {
+            "attribute" : self.attribute_name
+        }
 
     def getDetail(self):
         return "to attribute %s" % self.attribute_name
@@ -602,7 +678,7 @@ class StatementDelSubscript(StatementChildrenHavingBase):
             )
 
             return result, "new_raise", """\
-Subscript del raises exception in subscribed value, removed del"""
+Subscript 'del' raises exception in subscribed value, removed del."""
 
         constraint_collection.onExpression(self.getSubscript())
         subscript = self.getSubscript()
@@ -618,7 +694,7 @@ Subscript del raises exception in subscribed value, removed del"""
             )
 
             return result, "new_raise", """\
-Subscript del raises exception in subscribt value, removed del"""
+Subscript 'del' raises exception in subscript value, removed del."""
 
         return self, None, None
 

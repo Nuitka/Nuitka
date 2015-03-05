@@ -68,8 +68,8 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *element, 
 
 NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_t index, PyObject *value )
 {
-    assertObject( sequence );
-    assertObject( value );
+    CHECK_OBJECT( sequence );
+    CHECK_OBJECT( value );
 
     PySequenceMethods *sequence_methods = Py_TYPE( sequence )->tp_as_sequence;
 

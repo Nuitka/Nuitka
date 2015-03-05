@@ -68,6 +68,7 @@ from nuitka.nodes.BuiltinRefNodes import (
 from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBool,
     ExpressionBuiltinBytearray,
+    ExpressionBuiltinComplex,
     ExpressionBuiltinFloat,
     ExpressionBuiltinInt,
     ExpressionBuiltinList,
@@ -100,7 +101,7 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationUnary
 )
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.TryNodes import ExpressionTryFinally
+from nuitka.nodes.TryFinallyNodes import ExpressionTryFinally
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinSuper,
@@ -422,6 +423,13 @@ def float_extractor(node):
         node          = node,
         builtin_class = ExpressionBuiltinFloat,
         builtin_spec  = BuiltinOptimization.builtin_float_spec
+    )
+
+def complex_extractor(node):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = ExpressionBuiltinComplex,
+        builtin_spec  = BuiltinOptimization.builtin_complex_spec
     )
 
 def str_extractor(node):
@@ -943,6 +951,7 @@ _dispatch_dict = {
     "dict"       : dict_extractor,
     "set"        : set_extractor,
     "float"      : float_extractor,
+    "complex"    : complex_extractor,
     "str"        : str_extractor,
     "bool"       : bool_extractor,
     "int"        : int_extractor,

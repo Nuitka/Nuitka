@@ -26,8 +26,8 @@ from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitBoolCode
 from .ModuleCodes import getModuleAccessCode
 from .VariableCodes import (
+    getLocalVariableObjectAccessCode,
     getVariableAssignmentCode,
-    getVariableCode,
     getVariableInitializedCheckCode
 )
 
@@ -80,41 +80,26 @@ def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
     # information.
 
     emit(
-        "if (%s)\n{" % getVariableInitializedCheckCode(
+        "if %s\n{" % getVariableInitializedCheckCode(
             variable = variable,
             context  = context
         )
     )
 
-    # TODO: For Python3 classes, we need to allow non-dicts, and we ought to
-    # check their errors. Often we know it as fresh dict, so this could be
-    # optimized.
-    access_code = getVariableCode(
+    access_code = getLocalVariableObjectAccessCode(
         variable = variable,
         context  = context
     )
 
-    if variable.isLocalVariable():
-        if variable.isSharedTechnically():
-            access_code += ".storage->object"
-        else:
-            access_code += ".object"
-    else:
-        if variable.isSharedTechnically():
-            access_code += ".storage->object"
-        else:
-            access_code += ".object"
-
-
     if is_dict:
         emit(
             """\
-%s = PyDict_SetItem(
-    %s,
-    %s,
-    %s
-);
-assert( %s != -1 );
+    %s = PyDict_SetItem(
+        %s,
+        %s,
+        %s
+    );
+    assert( %s != -1 );
 """ % (
                 context.getIntResName(),
                 dict_name,
@@ -131,11 +116,11 @@ assert( %s != -1 );
 
         emit(
             """\
-%s = PyObject_SetItem(
-    %s,
-    %s,
-    %s
-);
+    %s = PyObject_SetItem(
+        %s,
+        %s,
+        %s
+    );
 """ % (
                 res_name,
                 dict_name,
@@ -200,7 +185,9 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
             )
 
             emit(
-                "%s = INCREASE_REFCOUNT( locals_dict );" % (
+                """\
+%s = locals_dict;
+Py_INCREF( locals_dict );""" % (
                     to_name
                 )
             )
@@ -253,6 +240,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
 
             value_name = context.allocateTempName("locals_value", unique = True)
 
+            # This should really be a template.
             emit(
                "%s = PyObject_GetItem( %s, %s );" % (
                    value_name,
@@ -263,13 +251,13 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
 
             getErrorExitBoolCode(
                 condition = """\
-%s == NULL && !PyErr_ExceptionMatches( PyExc_KeyError )""" % value_name,
+%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_KeyError )""" % value_name,
                 emit      = emit,
                 context   = context
             )
 
-            emit("PyErr_Clear();")
-            emit("if (%s != NULL)" % value_name)
+            emit("CLEAR_ERROR_OCCURRED();")
+            emit("if ( %s != NULL )" % value_name)
             emit('{')
 
             context.addCleanupTempName(value_name)
@@ -277,6 +265,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
                 variable      = variable,
                 tmp_name      = value_name,
                 needs_release = None, # TODO: Could be known maybe.
+                in_place      = False,
                 emit          = emit,
                 context       = context
             )

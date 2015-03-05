@@ -17,6 +17,11 @@
 #     limitations under the License.
 #
 
+""" Main front-end to the tests of Nuitka.
+
+Has many options, read --help output.
+"""
+
 from __future__ import print_function
 
 import os, sys, tempfile, subprocess
@@ -142,6 +147,17 @@ covered. With Python 2.x these are not run. Default is %default."""
 )
 
 parser.add_option(
+    "--skip-cpython34-tests",
+    action  = "store_false",
+    dest    = "cpython34",
+    default = True,
+    help    = """\
+The standard CPython3.4 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default."""
+)
+
+
+parser.add_option(
     "--no-python2.6",
     action  = "store_true",
     dest    = "no26",
@@ -219,8 +235,10 @@ os.environ["PATH"] = \
   os.pathsep + \
   os.environ["PATH"]
 
-def checkExecutableCommand( command ):
+def checkExecutableCommand(command):
     """ Check if a command is executable. """
+
+    # Many cases, pylint: disable=R0911,R0912
 
     # Do respect given options to disable specific Python versions
     if command == "python2.6" and options.no26:
@@ -237,15 +255,15 @@ def checkExecutableCommand( command ):
     # Shortcuts for python versions, also needed for Windows as it won't have
     # the version number in the Python binaries at all.
     if command == "python2.6" and sys.version_info[0:2] == (2,6):
-       return True
+        return True
     if command == "python2.7" and sys.version_info[0:2] == (2,7):
-       return True
+        return True
     if command == "python3.2" and sys.version_info[0:2] == (3,2):
-       return True
+        return True
     if command == "python3.3" and sys.version_info[0:2] == (3,3):
-       return True
+        return True
     if command == "python3.4" and sys.version_info[0:2] == (3,4):
-       return True
+        return True
 
     path = os.environ[ "PATH" ]
 
@@ -258,8 +276,8 @@ def checkExecutableCommand( command ):
         for suffix in suffixes:
             if os.path.exists(os.path.join(part, command + suffix)):
                 return True
-    else:
-        return False
+
+    return False
 
 def setExtraFlags( where, name, flags ):
     if where is not None:
@@ -278,7 +296,7 @@ def setExtraFlags( where, name, flags ):
     else:
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = flags
 
-def executeSubTest( command, hide_stderror = False ):
+def executeSubTest(command, hide_output = False):
     if options.coverage and "search" in command:
         command = command.replace("search", "coverage")
 
@@ -292,12 +310,24 @@ def executeSubTest( command, hide_stderror = False ):
     print("Run '%s' in '%s'." % (' '.join(parts), os.getcwd()))
 
     sys.stdout.flush()
-    result = subprocess.call(parts)
+
+    if hide_output:
+        result = subprocess.call(
+            parts,
+            stdout = open(os.devnull, 'w')
+        )
+    else:
+        result = subprocess.call(
+            parts
+        )
+
 
     if result != 0:
         sys.exit(result)
 
 def execute_tests( where, use_python, flags ):
+    # Many cases, pylint: disable=R0912,R0915
+
     print(
         "Executing test case called %s with CPython %s and extra flags '%s'." % (
             where,
@@ -417,16 +447,29 @@ def execute_tests( where, use_python, flags ):
             else:
                 print("The CPython3.3 tests are not present, not run.")
 
+        # Running the Python 3.3 test suite only with CPython2.x.
+        if not use_python.startswith("python2"):
+            if os.path.exists("./tests/CPython34/run_all.py"):
+                if options.cpython33:
+                    setExtraFlags(where, "34tests", flags)
+                    executeSubTest("./tests/CPython33/run_all.py search")
+            else:
+                print("The CPython3.4 tests are not present, not run.")
+
     if "NUITKA_EXTRA_OPTIONS" in os.environ:
         del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
 
-assert checkExecutableCommand("python2.6") or checkExecutableCommand("python2.7") or checkExecutableCommand("python3.2") or checkExecutableCommand("python3.3") or checkExecutableCommand("python3.4")
+assert checkExecutableCommand("python2.6") or \
+       checkExecutableCommand("python2.7") or \
+       checkExecutableCommand("python3.2") or \
+       checkExecutableCommand("python3.3") or \
+       checkExecutableCommand("python3.4")
 
 # Just the quick syntax test, full tests are run later.
 if checkExecutableCommand("python3.2"):
     executeSubTest(
         "bin/nuitka --python-version=3.2 --version",
-        hide_stderror = True
+        hide_output = True
     )
 
 if checkExecutableCommand("python2.6"):
@@ -471,21 +514,51 @@ if checkExecutableCommand("python3.4"):
 else:
     print("Cannot execute tests with Python 3.4, disabled or not installed.")
 
-if checkExecutableCommand("cppcheck"):
-    command = [
-        "cppcheck",
-        "-q",
-        "--error-exitcode=1",
-        "--enable=all",
-        "--check-config", "nuitka/build/",
-        "-I", "nuitka/build/include/",
-        "-I", "/usr/include/python2.7"
-    ]
-
+def checkWithCppCheck():
     sys.stdout.flush()
-    result = subprocess.call(command)
+
+    result = subprocess.call(
+        command = [
+            "cppcheck",
+            "-q",
+            "--error-exitcode=1",
+            "--enable=all",
+            "--check-config", "nuitka/build/",
+            "-I", "nuitka/build/include/",
+            "-I", "/usr/include/python2.7"
+        ]
+    )
 
     if result != 0:
         sys.exit(result)
+
+if checkExecutableCommand("cppcheck"):
+    checkWithCppCheck()
+
+if options.coverage:
+    if os.name == "nt":
+        assert 0 == subprocess.call(
+            (
+                "C:\\MinGW\\msys\\1.0\\bin\\scp.exe",
+                ".coverage",
+                os.path.join(
+                    os.environ["COVERAGE_DIR"],
+                    ".coverage.win"
+                )
+            )
+        )
+    else:
+        import platform
+
+        assert 0 == subprocess.call(
+            (
+                "scp",
+                ".coverage",
+                os.path.join(
+                    os.environ["COVERAGE_DIR"],
+                    ".coverage." + platform.uname()[0] + '.' + platform.uname()[4]
+                )
+            )
+        )
 
 print("OK.")

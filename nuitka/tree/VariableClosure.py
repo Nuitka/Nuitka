@@ -32,6 +32,7 @@ from nuitka.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage, isSharedLogically
 
 from .Operations import VisitorNoopMixin, visitTree
+from .ReformulationFunctionStatements import addFunctionVariableReleases
 
 
 # Note: We do the variable scope assignment, as an extra step from tree
@@ -360,18 +361,18 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
 
 class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
-    """ Variable closure phase 3: Find errors.
+    """ Variable closure phase 3: Find errors and complete frame variables.
 
-        In this phase, the only task remaining is to find errors. We might e.g.
+        In this phase, we can do some fix-ups and find errors. We might e.g.
         detect that a "del" was executed on a shared variable, which is not
         allowed for Python 2.x, so it must be caught. The parsing wouldn't do
-        that. Currently this phase is Python2 only, but that may change.
+        that.
+
+        Also, frame objects for functions should learn their variable names.
     """
 
     def onEnterNode(self, node):
-        assert python_version < 300
-
-        if node.isStatementDelVariable():
+        if python_version < 300 and node.isStatementDelVariable():
             variable = node.getTargetVariableRef().getVariable()
 
             if not variable.isModuleVariable() and \
@@ -387,20 +388,16 @@ can not delete variable '%s' referenced in nested scope""" % (
                     display_file = not isFullCompat(),
                     display_line = not isFullCompat()
                 )
+        elif node.isStatementsFrame():
+            node.updateVarNames()
 
 
 def completeVariableClosures(tree):
-    if python_version < 300:
-        visitors = (
-            VariableClosureLookupVisitorPhase1(),
-            VariableClosureLookupVisitorPhase2(),
-            VariableClosureLookupVisitorPhase3()
-        )
-    else:
-        visitors = (
-            VariableClosureLookupVisitorPhase1(),
-            VariableClosureLookupVisitorPhase2(),
-        )
+    visitors = (
+        VariableClosureLookupVisitorPhase1(),
+        VariableClosureLookupVisitorPhase2(),
+        VariableClosureLookupVisitorPhase3()
+    )
 
     for visitor in visitors:
         visitTree(tree, visitor)
@@ -408,3 +405,11 @@ def completeVariableClosures(tree):
         if tree.isPythonModule():
             for function in tree.getFunctions():
                 visitTree(function, visitor)
+
+    if tree.isPythonModule():
+        for function in tree.getFunctions():
+            addFunctionVariableReleases(function)
+    else:
+        # For "eval" code, this will need to be done differently, not done
+        # yet-
+        assert False

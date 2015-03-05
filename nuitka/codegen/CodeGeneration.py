@@ -36,10 +36,19 @@ from .ConditionalCodes import generateConditionCode
 from .ConstantCodes import generateConstantReferenceCode
 from .ErrorCodes import getErrorExitBoolCode
 from .ModuleCodes import generateModuleFileAttributeCode
+from .OperationCodes import (
+    generateOperationBinaryCode,
+    generateOperationUnaryCode
+)
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 from .SliceCodes import generateBuiltinSliceCode
 from .SubscriptCodes import generateSubscriptLookupCode
-from .VariableCodes import generateVariableReferenceCode
+from .VariableCodes import (
+    generateVariableDelCode,
+    generateVariableReferenceCode,
+    generateVariableReleaseCode,
+    getVariableAssignmentCode
+)
 
 
 def generateTupleCreationCode(to_name, elements, emit, context):
@@ -490,14 +499,6 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
         closure_variables   = function_body.getClosureVariables()
     )
 
-    if function_body.getClosureVariables() and not function_body.isGenerator():
-        function_decl += '\n'
-
-        function_decl += Generator.getFunctionContextDefinitionCode(
-            function_identifier = function_body.getCodeName(),
-            closure_variables   = function_body.getClosureVariables(),
-        )
-
     context.addDeclaration(function_identifier, function_decl)
 
     Generator.getFunctionCreationCode(
@@ -530,6 +531,7 @@ def generateFunctionBodyCode(function_body, context):
     if function_identifier in _generated_functions:
         return _generated_functions[function_identifier]
 
+    # TODO: Generate both codes, and base direct/etc. decisions on context.
     if function_body.needsCreation():
         function_context = Contexts.PythonFunctionCreatedContext(
             parent   = context,
@@ -541,13 +543,12 @@ def generateFunctionBodyCode(function_body, context):
             function = function_body
         )
 
-    # TODO: Generate both codes, and base direct/etc. decisions on context.
-    function_codes = []
+    function_codes = Emission.SourceCodeCollector()
 
     generateStatementSequenceCode(
         statement_sequence = function_body.getBody(),
         allow_none         = True,
-        emit               = function_codes.append,
+        emit               = function_codes,
         context            = function_context
     )
 
@@ -583,7 +584,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
-            function_codes         = function_codes,
+            function_codes         = function_codes.codes,
             function_doc           = function_body.getDoc(),
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = needs_generator_return
@@ -597,7 +598,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables    = function_body.getClosureVariables(),
             user_variables       = function_body.getUserLocalVariables(),
             temp_variables       = function_body.getTempVariables(),
-            function_codes       = function_codes,
+            function_codes       = function_codes.codes,
             function_doc         = function_body.getDoc(),
             needs_exception_exit = needs_exception_exit,
             file_scope           = Generator.getExportScopeCode(
@@ -1000,41 +1001,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_names      = exception_arg_names,
             emit           = emit,
             context        = context
-        )
-    elif expression.isExpressionOperationBinary():
-        left_arg_name = context.allocateTempName("binop_left")
-        right_arg_name = context.allocateTempName("binop_right")
-
-        makeExpressionCode(
-            to_name    = left_arg_name,
-            expression = expression.getLeft()
-        )
-        makeExpressionCode(
-            to_name    = right_arg_name,
-            expression = expression.getRight()
-        )
-
-        Generator.getOperationCode(
-            to_name   = to_name,
-            operator  = expression.getOperator(),
-            arg_names = (left_arg_name, right_arg_name),
-            emit      = emit,
-            context   = context
-        )
-    elif expression.isExpressionOperationUnary():
-        arg_name = context.allocateTempName("unary_arg")
-
-        makeExpressionCode(
-            to_name    = arg_name,
-            expression = expression.getOperand()
-        )
-
-        Generator.getOperationCode(
-            to_name   = to_name,
-            operator  = expression.getOperator(),
-            arg_names = (arg_name,),
-            emit      = emit,
-            context   = context
         )
     elif expression.isExpressionComparison():
         generateComparisonExpressionCode(
@@ -1602,6 +1568,19 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("float_arg", expression.getValue()),
             ),
             source_ref = expression.getCompatibleSourceReference(),
+            emit       = emit,
+            context    = context
+        )
+    elif expression.isExpressionBuiltinComplex():
+        generateCAPIObjectCode(
+            to_name    = to_name,
+            capi       = "TO_COMPLEX",
+            arg_desc   = (
+                ("real_arg", expression.getReal()),
+                ("imag_arg", expression.getImag())
+            ),
+            source_ref = expression.getCompatibleSourceReference(),
+            none_null  = True,
             emit       = emit,
             context    = context
         )
@@ -2244,18 +2223,6 @@ def generateAssignmentSliceCode(statement, emit, context):
         context.setCurrentSourceCodeReference(old_source_ref)
 
 
-def generateVariableDelCode(statement, emit, context):
-    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
-
-    Generator.getVariableDelCode(
-        variable = statement.getTargetVariableRef().getVariable(),
-        tolerant = statement.isTolerant(),
-        emit     = emit,
-        context  = context
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
-
 
 def generateDelSubscriptCode(statement, emit, context):
     subscribed = statement.getSubscribed()
@@ -2613,11 +2580,12 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
         context = context
     )
 
-    Generator.getVariableAssignmentCode(
+    getVariableAssignmentCode(
         tmp_name      = tmp_name2,
         variable      = tried_statement.getTargetVariableRef().getVariable(),
-        emit          = emit,
         needs_release = None,
+        in_place      = False,
+        emit          = emit,
         context       = context
     )
 
@@ -2699,7 +2667,7 @@ _temp_whitelist = [()]
 
 def generateTryFinallyCode(to_name, statement, emit, context):
     # The try/finally is very hard for C-ish code generation. We need to react
-    # on break, continue, return, raise in the tried blocks with reraise. We
+    # on break, continue, return, raise in the tried blocks with re-raise. We
     # need to publish it to the handler (Python3) or save it for re-raise,
     # unless another exception or continue, break, return occurs. So this is
     # full of detail stuff, pylint: disable=R0914,R0912,R0915
@@ -2766,7 +2734,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
         old_return = context.getReturnTarget()
         context.setReturnTarget(handler_start_target)
 
-    # Initialise expression, so even if it exits, the compiler will not see a
+    # Initialize expression, so even if it exits, the compiler will not see a
     # random value there. This shouldn't be necessary and hopefully the C++
     # compiler will find out. Since these are rare, it doesn't matter.
     if to_name is not None:
@@ -3532,13 +3500,16 @@ def generateAssignmentVariableCode(statement, emit, context):
         context    = context
     )
 
-    Generator.getVariableAssignmentCode(
+    getVariableAssignmentCode(
         tmp_name      = tmp_name,
         variable      = variable_ref.getVariable(),
         needs_release = statement.needsReleaseValue(),
+        in_place      = statement.inplace_suspect,
         emit          = emit,
         context       = context
     )
+
+    assert emit.emit
 
     # Ownership of that reference should be transfered.
     assert not context.needsCleanup(tmp_name)
@@ -3658,6 +3629,12 @@ def _generateStatementCode(statement, emit, context):
         )
     elif statement.isStatementDelVariable():
         generateVariableDelCode(
+            statement = statement,
+            emit      = emit,
+            context   = context
+        )
+    elif statement.isStatementReleaseVariable():
+        generateVariableReleaseCode(
             statement = statement,
             emit      = emit,
             context   = context
@@ -3940,6 +3917,9 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
     parent_exception_exit = context.getExceptionEscape()
 
+    # Allow stacking of frame handles.
+    old_frame_handle = context.getFrameHandle()
+
     if guard_mode != "pass_through":
         if provider.isExpressionFunctionBody():
             context.setFrameHandle("frame_function")
@@ -4050,6 +4030,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     if frame_return_exit is not None:
         context.setReturnTarget(parent_return_exit)
 
+    context.setFrameHandle(old_frame_handle)
+
     for line in codes:
         emit(line)
 
@@ -4101,11 +4083,11 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
 
     statement_sequence = module.getBody()
 
-    codes = []
+    codes = Emission.SourceCodeCollector()
 
     generateStatementSequenceCode(
         statement_sequence = statement_sequence,
-        emit               = codes.append,
+        emit               = codes,
         allow_none         = True,
         context            = context,
     )
@@ -4179,7 +4161,7 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
     template_values = Generator.prepareModuleCode(
         module_name             = module_name,
         module_identifier       = module.getCodeName(),
-        codes                   = codes,
+        codes                   = codes.codes,
         metapath_loader_inittab = metapath_loader_inittab,
         metapath_module_decls   = metapath_module_decls,
         function_decl_codes     = function_decl_codes,
@@ -4244,6 +4226,10 @@ Helpers.setExpressionDispatchDict(
         "SUBSCRIPT_LOOKUP"          : generateSubscriptLookupCode,
         "BUILTIN_SLICE"             : generateBuiltinSliceCode,
         "BUILTIN_ID"                : generateBuiltinIdCode,
+        "OPERATION_BINARY"          : generateOperationBinaryCode,
+        "OPERATION_BINARY_INPLACE"  : generateOperationBinaryCode,
+        "OPERATION_UNARY"           : generateOperationUnaryCode,
+        "OPERATION_NOT"             : generateOperationUnaryCode,
         "CALL_EMPTY"                : generateCallCode,
         "CALL_KEYWORDS_ONLY"        : generateCallCode,
         "CALL_NO_KEYWORDS"          : generateCallCode,

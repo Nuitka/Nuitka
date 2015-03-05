@@ -25,7 +25,7 @@ source code comments with developer manual sections.
 from nuitka import Options, SyntaxErrors, Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable
+    StatementReleaseVariable
 )
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import (
@@ -45,7 +45,7 @@ from nuitka.nodes.StatementNodes import (
     StatementRestoreFrameException,
     StatementsSequence
 )
-from nuitka.nodes.TryNodes import StatementTryExcept
+from nuitka.nodes.TryExceptNodes import StatementTryExcept
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
@@ -128,13 +128,10 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
         )
     )
 
-    final = StatementDelVariable(
-        variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_handler_indicator_variable,
-            source_ref = source_ref.atInternal()
-        ),
-        tolerant     = False,
-        source_ref   = source_ref.atInternal()
+    final = StatementReleaseVariable(
+        variable   = tmp_handler_indicator_variable,
+        tolerant   = False,
+        source_ref = source_ref.atInternal()
     ),
 
     return StatementsSequence(

@@ -38,7 +38,7 @@ from nuitka.nodes.StatementNodes import (
     StatementsFrame,
     StatementsSequence
 )
-from nuitka.nodes.TryNodes import ExpressionTryFinally, StatementTryFinally
+from nuitka.nodes.TryFinallyNodes import ExpressionTryFinally, StatementTryFinally
 
 
 def dump(node):

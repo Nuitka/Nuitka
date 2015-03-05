@@ -15,24 +15,36 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#ifndef __NUITKA_PRINTING_H__
-#define __NUITKA_PRINTING_H__
+#ifndef __NUITKA_CELLS_H__
+#define __NUITKA_CELLS_H__
 
-// Helper functions for print. Need to play nice with Python softspace
-// behaviour.
+NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW( PyObject *value )
+{
+    CHECK_OBJECT( value );
 
-#include "nuitka/exceptions.hpp"
+    PyCellObject *result;
 
-extern bool PRINT_NEW_LINE( void );
-extern bool PRINT_ITEM( PyObject *object );
+    result = (PyCellObject *)PyObject_GC_New( PyCellObject, &PyCell_Type );
+    assert( result != NULL );
 
-extern bool PRINT_ITEM_TO( PyObject *file, PyObject *object );
-extern bool PRINT_NEW_LINE_TO( PyObject *file );
+    result->ob_ref = value;
+    Py_INCREF( value );
 
-extern PyObject *GET_STDOUT();
-extern PyObject *GET_STDERR();
+    Nuitka_GC_Track( result );
+    return result;
+}
 
-// Helper functions to debug the compiler operation.
-extern void PRINT_REFCOUNT( PyObject *object );
+NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_EMPTY( void )
+{
+    PyCellObject *result;
+
+    result = (PyCellObject *)PyObject_GC_New( PyCellObject, &PyCell_Type );
+    assert( result != NULL );
+
+    result->ob_ref = NULL;
+
+    Nuitka_GC_Track( result );
+    return result;
+}
 
 #endif

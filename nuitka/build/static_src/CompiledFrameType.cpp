@@ -51,10 +51,7 @@ static PyObject *Nuitka_Frame_get_exc_traceback( PyFrameObject *frame )
 
 static int Nuitka_Frame_set_exc_traceback( PyFrameObject *frame, PyObject *traceback )
 {
-    if ( frame->f_exc_traceback != NULL )
-    {
-        Py_DECREF(frame->f_exc_traceback );
-    }
+    Py_XDECREF( frame->f_exc_traceback );
 
     if ( traceback == Py_None )
     {
@@ -62,7 +59,8 @@ static int Nuitka_Frame_set_exc_traceback( PyFrameObject *frame, PyObject *trace
     }
     else
     {
-        frame->f_exc_traceback = INCREASE_REFCOUNT_X( traceback );
+        frame->f_exc_traceback = traceback;
+        Py_XINCREF( traceback );
     }
 
     return 0;
@@ -82,19 +80,15 @@ static PyObject *Nuitka_Frame_get_exc_type( PyFrameObject *frame )
 
 static int Nuitka_Frame_set_exc_type( PyFrameObject *frame, PyObject *exception_type )
 {
-    if ( frame->f_exc_type != NULL )
-    {
-        Py_DECREF( frame->f_exc_type );
-    }
+    Py_XDECREF( frame->f_exc_type );
 
     if ( exception_type == Py_None )
     {
-        frame->f_exc_type = NULL;
+        exception_type = NULL;
     }
-    else
-    {
-        frame->f_exc_type = INCREASE_REFCOUNT_X( exception_type );
-    }
+
+    frame->f_exc_type = exception_type;
+    Py_XINCREF( frame->f_exc_type );
 
     return 0;
 }
@@ -120,12 +114,12 @@ static int Nuitka_Frame_set_exc_value( PyFrameObject *frame, PyObject *exception
 
     if ( exception_value == Py_None )
     {
-        frame->f_exc_value = NULL;
+        exception_value = NULL;
     }
-    else
-    {
-        frame->f_exc_value = INCREASE_REFCOUNT_X( exception_value );
-    }
+
+
+    frame->f_exc_value = exception_value;
+    Py_XINCREF( exception_value );
 
     return 0;
 }
@@ -501,11 +495,11 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int kw_only_count, int flags )
 #endif
 {
-    assertObject( filename );
+    CHECK_OBJECT( filename );
     assert( Nuitka_String_Check( filename ) );
-    assertObject( function_name );
+    CHECK_OBJECT( function_name );
     assert( Nuitka_String_Check( function_name ) );
-    assertObject( argnames );
+    CHECK_OBJECT( argnames );
     assert( PyTuple_Check( argnames ) );
 
     // TODO: Consider using PyCode_NewEmpty
@@ -571,15 +565,9 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame, PyObject *locals
 
     new_frame->f_builtins = INCREASE_REFCOUNT( old_frame->f_builtins );
 
-#if 0
-    new_frame->f_exc_type = INCREASE_REFCOUNT_X( old_frame->f_exc_type );
-    new_frame->f_exc_value = INCREASE_REFCOUNT_X( old_frame->f_exc_value );
-    new_frame->f_exc_traceback = INCREASE_REFCOUNT_X( old_frame->f_exc_traceback );
-#else
     new_frame->f_exc_type = NULL;
     new_frame->f_exc_value = NULL;
     new_frame->f_exc_traceback = NULL;
-#endif
 
     assert( old_frame->f_valuestack == old_frame->f_localsplus );
     new_frame->f_valuestack = new_frame->f_localsplus;

@@ -22,7 +22,7 @@
 
 NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
 {
-    assertObject( value );
+    CHECK_OBJECT( value );
 
 #if PYTHON_VERSION < 300
     if ( PyInt_Check( value ) )

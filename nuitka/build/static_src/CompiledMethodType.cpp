@@ -92,12 +92,13 @@ static char const *GET_CLASS_NAME( PyObject *klass )
 
 static char const *GET_INSTANCE_CLASS_NAME( PyObject *instance )
 {
+    // TODO: We have a constant for that already.
     PyObject *klass = PyObject_GetAttrString( instance, "__class__" );
 
     // Fallback to type as this cannot fail.
     if ( klass == NULL )
     {
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
         klass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( instance ) );
     }
 
@@ -193,7 +194,7 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
         else
         {
             PyObject *self = PyTuple_GET_ITEM( args, 0 );
-            assertObject( self );
+            CHECK_OBJECT( self );
 
             int result = PyObject_IsInstance( self, method->m_class );
 
@@ -615,8 +616,10 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
 
     result->m_function = (Nuitka_FunctionObject * )INCREASE_REFCOUNT( (PyObject *)function );
 
-    result->m_object = INCREASE_REFCOUNT_X( object );
-    result->m_class = INCREASE_REFCOUNT_X( klass );
+    result->m_object = object;
+    Py_XINCREF( object );
+    result->m_class = klass;
+    Py_XINCREF( klass );
 
     result->m_weakrefs = NULL;
 
