@@ -1,5 +1,5 @@
-Nuitka Release 0.5.10 (Draft)
-=============================
+Nuitka Release 0.5.10
+=====================
 
 This release has a focus on code generation optimization. Doing major changes
 away from "C++-ish" code to "C-ish" code, many constructs are now faster or
