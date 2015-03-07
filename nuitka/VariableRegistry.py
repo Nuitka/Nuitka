@@ -53,6 +53,7 @@ def addVariableUsage(variable, user):
     variable_info.addUser(user)
 
 
+# TODO: This seems practically unused and not needed.
 def isSharedLogically(variable):
     variable_info = variable_registry[variable]
 
@@ -65,6 +66,10 @@ def isSharedTechnically(variable):
     top_owner = variable_info.getTopOwner()
 
     for user in variable_info.getUsers():
+        # May have been optimized away.
+        if variable not in user.getVariables():
+            continue
+
         while user != top_owner and \
               user.isExpressionFunctionBody() and \
               not user.needsCreation() and \
