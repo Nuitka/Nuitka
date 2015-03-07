@@ -2250,16 +2250,16 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     );
 }
 
-#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
-
 #include <osdefs.h>
 
 #if defined(_WIN32)
 #include <Shlwapi.h>
 #elif defined(__APPLE__)
 #include <mach-o/dyld.h>
+#include <dlfcn.h>
 #include <libgen.h>
 #else
+#include <dlfcn.h>
 #include <libgen.h>
 #endif
 
@@ -2270,6 +2270,8 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 #if defined( __FreeBSD__ )
 #include <sys/sysctl.h>
 #endif
+
+#if defined(_NUITKA_EXE)
 
 char *getBinaryDirectory()
 {
@@ -2324,6 +2326,38 @@ char *getBinaryDirectory()
     init_done = true;
     return binary_directory;
 }
+#else
+static char *getDllDirectory()
+{
+#if defined(_WIN32)
+    static char path[ PATH_MAX ];
+    HMODULE hm = NULL;
+    path[0] = '\0';
+
+    int res = GetModuleHandleExA(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        (LPCSTR) &getDllDirectory,
+        &hm
+    );
+
+    assert( res );
+
+    PathRemoveFileSpec( path );
+
+    return path;
+
+#else
+    Dl_info where;
+    int res = dladdr( (void *)getDllDirectory, &where );
+    assert( res != 0 );
+
+    return dirname( (char *)where.dli_fname );
+#endif
+}
+#endif
+
+
+#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 
 #if _NUITKA_FROZEN > 0
 extern void copyFrozenModulesTo(void* destination);
@@ -2488,28 +2522,38 @@ void restoreStandaloneEnvironment()
 
 #endif
 
-#ifdef _NUITKA_STANDALONE
+static PyObject *our_path_object = NULL;
 
-static PyObject *binary_path_object = NULL;
-
-PyObject *MAKE_BINARY_RELATIVE(PyObject *relative)
+PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
 {
-    if ( binary_path_object == NULL )
+    if ( our_path_object == NULL )
     {
+#if defined( _NUITKA_EXE )
+
 #if PYTHON_VERSION >= 300
-        binary_path_object = PyUnicode_FromString(getBinaryDirectory());
+        our_path_object = PyUnicode_FromString( getBinaryDirectory() );
 #else
-        binary_path_object = PyString_FromString(getBinaryDirectory());
+        our_path_object = PyString_FromString( getBinaryDirectory() );
+#endif
+
+#else
+#if PYTHON_VERSION >= 300
+        our_path_object = PyUnicode_FromString( getDllDirectory() );
+#else
+        our_path_object = PyString_FromString( getDllDirectory() );
+#endif
+
 #endif
     }
-    CHECK_OBJECT( binary_path_object );
+
+    CHECK_OBJECT( our_path_object );
 
     PyObject *os_path = PyImport_ImportModule("os.path");
     CHECK_OBJECT(os_path);
 
     PyObject *os_path_join = PyObject_GetAttrString(os_path, "join");
 
-    PyObject *result = PyObject_CallFunctionObjArgs( os_path_join, binary_path_object, relative, NULL );
+    PyObject *result = PyObject_CallFunctionObjArgs( os_path_join, our_path_object, relative, NULL );
 
     if (unlikely( result == NULL ))
     {
@@ -2522,7 +2566,6 @@ PyObject *MAKE_BINARY_RELATIVE(PyObject *relative)
 
     return result;
 }
-#endif
 
 
 #ifdef _NUITKA_EXE

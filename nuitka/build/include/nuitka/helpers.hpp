@@ -736,8 +736,10 @@ extern char *getBinaryDirectory();
 
 #if _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute( void );
-extern PyObject *MAKE_BINARY_RELATIVE(PyObject *relative);
 #endif
+
+// For making paths relative to where we got loaded from.
+extern PyObject *MAKE_RELATIVE_PATH( PyObject *relative );
 
 #include <nuitka/threading.hpp>
 

@@ -190,7 +190,7 @@ def getModuleCode(module_context, template_values):
 
 def generateModuleFileAttributeCode(to_name, expression, emit, context):
     emit(
-        "%s = MAKE_BINARY_RELATIVE( %s );" % (
+        "%s = MAKE_RELATIVE_PATH( %s );" % (
             to_name,
             context.getConstantCode(
                 constant = expression.getRunTimeFilename()

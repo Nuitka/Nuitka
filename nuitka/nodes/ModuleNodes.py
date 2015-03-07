@@ -30,7 +30,6 @@ from nuitka.optimizations. \
 from nuitka.oset import OrderedSet
 from nuitka.SourceCodeReferences import SourceCodeReference
 
-from .ConstantRefNodes import ExpressionConstantRef
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
@@ -124,23 +123,21 @@ class PythonModuleMixin:
         return self.getSourceReference().getFilename()
 
     def getRunTimeFilename(self):
-        if Options.isStandaloneMode():
-            filename = self.getCompileTimeFilename()
-
-            full_name = self.getFullName()
-
-            result = Utils.basename(filename)
-            current = filename
-
-            for _i in range(full_name.count('.')):
-                current = Utils.dirname(current)
-                result = Utils.joinpath(Utils.basename(current), result)
-
-            return result
-        else:
+        if Options.shallHaveOriginalFileReference():
             return self.getCompileTimeFilename()
 
+        filename = self.getCompileTimeFilename()
 
+        full_name = self.getFullName()
+
+        result = Utils.basename(filename)
+        current = filename
+
+        for _i in range(full_name.count('.')):
+            current = Utils.dirname(current)
+            result = Utils.joinpath(Utils.basename(current), result)
+
+        return result
 
 
 def checkModuleBody(value):
@@ -556,16 +553,10 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
         return False
 
     def computeExpression(self, constraint_collection):
-        if Options.isStandaloneMode():
-            return self, None, None
-        else:
-            result = ExpressionConstantRef(
-                constant      = self.getCompileTimeFilename(),
-                user_provided = True,
-                source_ref    = self.getSourceReference()
-            )
+        # There is not a whole lot to do here, the path will change at run
+        # time
 
-            return result, None, None
+        return self, None, None
 
     def getCompileTimeFilename(self):
         return self.getParentModule().getCompileTimeFilename()

@@ -409,6 +409,17 @@ python_win_lib_re            = re.compile(
     r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib"
 )
 
+traceback_re                 = re.compile(
+    r'(F|f)ile "(.*?)", line (\d+)'
+)
+
+def traceback_re_callback(match):
+    return r'%sile "%s", line %s' % (
+        match.group(1),
+        os.path.abspath(match.group(2)),
+        match.group(3)
+    )
+
 
 def makeDiffable(output):
     result = []
@@ -485,6 +496,7 @@ def makeDiffable(output):
 
         line = ran_tests_re.sub(r"\1x.xxxs", line)
 
+        line = traceback_re.sub(traceback_re_callback, line)
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
         if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":

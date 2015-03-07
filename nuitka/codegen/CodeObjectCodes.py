@@ -20,7 +20,7 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from nuitka import Options, Utils
+from nuitka import Utils
 
 from .ConstantCodes import getConstantCode
 
@@ -62,19 +62,11 @@ def getCodeObjectsInitCode(context):
 
         co_flags.extend(code_object_key[11])
 
-        if Options.isStandaloneMode():
-            # TODO: Make an actual difference, and have this become local
-            # to the binary.
-            filename_code = "MAKE_BINARY_RELATIVE( %s )" % (
-                context.getConstantCode(
-                    constant = code_object_key[0]
-                )
+        filename_code = "MAKE_RELATIVE_PATH( %s )" % (
+            context.getConstantCode(
+                constant = code_object_key[0]
             )
-        else:
-            filename_code = getConstantCode(
-                constant = code_object_key[0],
-                context  = context
-            )
+        )
 
         if Utils.python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
