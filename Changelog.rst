@@ -1,7 +1,43 @@
 Nuitka Release 0.5.11 (Draft)
 =============================
 
-This release is not done yet.
+This release has a focus on cleaning up open issues that were postponed in
+the last release due to its focus on performance.
+
+New Features
+------------
+
+- The filenames of source files as found in the ``__file__`` attribute are
+  now made relative for all modes, not just standalone mode.
+
+  This makes it possible to put data files along side compiled modules in a
+  deployment.
+
+Bug Fixes
+---------
+
+- Local functions that reference themselves were not released. They now are.
+
+  .. code-block:: python
+
+    def someFunction():
+        def f():
+            f() # referencing 'f' in 'f' caused the garbage collection to fail.
+
+  Recent changes to code generation attached closure variable values to the
+  function object, so now they can be properly visited.
+
+- Python2.6: The complex constants with real or imaginary parts ``-0.0`` were
+  collapsed with constants of value ``0.0``.
+
+
+Summary
+-------
+
+This release is mostly a maintenance release, bringing out compatibility
+improvements, and bug fixes that improve the usability of Nuitka. It does
+not do much new optimization.
+
 
 Nuitka Release 0.5.10
 =====================
@@ -291,7 +327,7 @@ New Features
 ------------
 
 - The filenames of source files as found in the ``__file__`` attribute are
-  now made relative.
+  now made relative in standalone mode.
 
   This should make it more apparent if things outside of the distribution
   folder are used, at the cost of tracebacks. Expect the default ability
