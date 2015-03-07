@@ -84,13 +84,20 @@ static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObj
     }
 }
 
-static long Nuitka_Function_tp_traverse( PyObject *function, visitproc visit, void *arg )
+static long Nuitka_Function_tp_traverse( Nuitka_FunctionObject *function, visitproc visit, void *arg )
 {
-    // TODO: Identify the impact of not visiting owned objects and/or if it
-    // could be NULL instead. The methodobject visits its self and module. I
-    // understand this is probably so that back references of this function to
-    // its upper do not make it stay in the memory. A specific test if that
-    // works might be needed.
+    // TODO: Identify the impact of not visiting other owned objects. It appears
+    // to be mostly harmless, as these are strings.
+    Py_VISIT( function->m_dict );
+
+    if ( function->m_closure )
+    {
+        for( Py_ssize_t i = 0; i < function->m_closure_given; i++ )
+        {
+            Py_VISIT( function->m_closure[i] );
+        }
+    }
+
     return 0;
 }
 
