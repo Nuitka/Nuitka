@@ -123,7 +123,8 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 Module variable '%s' found to be built-in exception reference.""" % (
                     self.variable_name
                 )
-            elif self.variable_name in Builtins.builtin_names:
+            elif self.variable_name in Builtins.builtin_names and \
+                 self.variable_name != "pow":
                 from .BuiltinRefNodes import ExpressionBuiltinRef
 
                 new_node = ExpressionBuiltinRef(
