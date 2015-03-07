@@ -29,7 +29,6 @@ sys.path.insert(
 )
 from test_common import (
     executeReferenceChecked,
-    checkReferenceCount,
     my_print,
 )
 
@@ -696,17 +695,104 @@ def simpleFunction87():
     x += C()
 
 def simpleFunction88():
-   x = [1,2]
-   x += [3,4]
+    x = [1,2]
+    x += [3,4]
+
+def anyArgs(*args, **kw):
+    pass
+
+def simpleFunction89():
+    some_tuple = (
+        simpleFunction89,
+    )
+
+    anyArgs(*some_tuple)
+
+def simpleFunction90():
+    some_dict = {
+        "a" : simpleFunction90,
+    }
+
+    anyArgs(**some_dict)
+
+def simpleFunction91():
+    some_tuple = (
+        simpleFunction89,
+    )
+
+    some_dict = {
+        "a" : simpleFunction90,
+    }
+
+    anyArgs(*some_tuple, **some_dict)
+
+def simpleFunction92():
+    some_tuple = (
+        simpleFunction89,
+    )
+
+    some_dict = {
+        "a" : simpleFunction90,
+    }
+
+    anyArgs(some_tuple, *some_tuple, **some_dict)
+
+def simpleFunction93():
+    some_tuple = (
+        simpleFunction89,
+    )
+
+    some_dict = {
+        "a" : simpleFunction90,
+    }
+
+    anyArgs(*some_tuple, b = some_dict, **some_dict)
+
+def simpleFunction94():
+    some_tuple = (
+        simpleFunction89,
+    )
+
+    some_dict = {
+        "a" : simpleFunction90,
+    }
+
+    anyArgs(some_tuple, *some_tuple, b = some_dict, **some_dict)
+
+def simpleFunction95():
+    some_tuple = (
+        simpleFunction89,
+    )
+
+    anyArgs(some_tuple, *some_tuple)
+
+def simpleFunction96():
+    some_dict = {
+        "a" : simpleFunction90,
+    }
+
+    anyArgs(b = some_dict, **some_dict)
+
+def simpleFunction97():
+    some_tuple = (
+        simpleFunction89,
+    )
+
+    anyArgs(*some_tuple, b = some_tuple)
+
+def simpleFunction98():
+    some_dict = {
+        "a" : simpleFunction90,
+    }
+
+    anyArgs(some_dict, **some_dict)
+
 
 # These need stderr to be wrapped.
 tests_stderr = (63,)
 
 # Disabled tests
-tests_skipped = {
-   56 : "Functions with closure to themselves are not yet released.",
-   77 : "Functions with closure to themselves are not yet released.",
-}
+tests_skipped = {}
 
 result = executeReferenceChecked(
     prefix        = "simpleFunction",

@@ -1308,10 +1308,26 @@ def getFunctionCallHelperStarList():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_list_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -1408,10 +1424,31 @@ def getFunctionCallHelperKeywordsStarList():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = kw_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_list_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -1512,10 +1549,31 @@ def getFunctionCallHelperPosStarList():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = args_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_list_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -1625,10 +1683,36 @@ def getFunctionCallHelperPosKeywordsStarList():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = args_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = kw_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_list_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -1729,10 +1813,26 @@ def getFunctionCallHelperStarDict():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -1843,10 +1943,31 @@ def getFunctionCallHelperPosStarDict():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = args_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -1982,10 +2103,31 @@ def getFunctionCallHelperKeywordsStarDict():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = kw_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -2131,10 +2273,36 @@ def getFunctionCallHelperPosKeywordsStarDict():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = args_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = kw_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -2233,10 +2401,31 @@ def getFunctionCallHelperStarListStarDict():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_list_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -2350,10 +2539,36 @@ def getFunctionCallHelperPosStarListStarDict():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = args_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_list_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -2463,10 +2678,36 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = kw_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_list_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
@@ -2589,10 +2830,41 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         )
     )
 
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
+    final = (
+        StatementReleaseVariable(
+            variable   = called_variable,
+            tolerant   = True,
             source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = args_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = kw_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_list_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = star_arg_dict_variable,
+            tolerant   = True,
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
         )
     )
 
