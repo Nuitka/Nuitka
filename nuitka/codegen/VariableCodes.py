@@ -167,8 +167,10 @@ def getLocalVariableInitCode(variable, init_from = None):
     )
 
     if variable.isSharedTechnically():
+        # TODO: Single out "init_from" only user, so it becomes sure that we
+        # get a reference transferred here in these cases.
         if init_from is not None:
-            init_value = "PyCell_NEW( %s )" % init_from
+            init_value = "PyCell_NEW1( %s )" % init_from
         else:
             init_value = "PyCell_EMPTY()"
     else:

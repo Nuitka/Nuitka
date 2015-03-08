@@ -704,6 +704,8 @@ def anyArgs(*args, **kw):
 def simpleFunction89():
     some_tuple = (
         simpleFunction89,
+        simpleFunction89,
+        simpleFunction89,
     )
 
     anyArgs(*some_tuple)
@@ -786,6 +788,19 @@ def simpleFunction98():
     }
 
     anyArgs(some_dict, **some_dict)
+
+def simpleFunction99():
+    def h(f):
+        def g():
+            return f
+
+        return g
+
+    def f():
+        pass
+
+    h(f)
+
 
 
 # These need stderr to be wrapped.

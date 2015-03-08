@@ -631,7 +631,7 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
 
             if variable.isSharedTechnically():
                 parameter_copy.append(
-                    "parameters[%d] = (PyObject *)PyCell_NEW( _python_par_%s );" % (
+                    "parameters[%d] = (PyObject *)PyCell_NEW1( _python_par_%s );" % (
                         count,
                         variable.getCodeName()
                     )
