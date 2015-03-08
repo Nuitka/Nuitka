@@ -743,13 +743,10 @@ if os.name != "nt" and os.path.islink(os.path.join(python_prefix, ".Python")):
     )
 elif os.name != "nt" and python_version >= "3.3" and \
      os.path.exists(os.path.join(python_prefix, "bin/activate")):
-    # For venv of Python3.3, it seems necessary to find things at a higher
+    # For "venv" of Python3.3, it seems necessary to find include files
+    # and libraries on the outside.
     python_binary = os.path.join(python_prefix, "bin", "python")
-    while os.path.islink(python_binary):
-        python_binary = os.path.join(
-            os.path.join(python_prefix, "bin"),
-            os.readlink(python_binary)
-        )
+    python_binary = os.path.realpath(python_binary)
 
     python_prefix = os.path.normpath(
         os.path.join(
