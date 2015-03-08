@@ -18,7 +18,7 @@
 #ifndef __NUITKA_CELLS_H__
 #define __NUITKA_CELLS_H__
 
-NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW( PyObject *value )
+NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW0( PyObject *value )
 {
     CHECK_OBJECT( value );
 
@@ -29,6 +29,21 @@ NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW( PyObject *value )
 
     result->ob_ref = value;
     Py_INCREF( value );
+
+    Nuitka_GC_Track( result );
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW1( PyObject *value )
+{
+    CHECK_OBJECT( value );
+
+    PyCellObject *result;
+
+    result = (PyCellObject *)PyObject_GC_New( PyCellObject, &PyCell_Type );
+    assert( result != NULL );
+
+    result->ob_ref = value;
 
     Nuitka_GC_Track( result );
     return result;
