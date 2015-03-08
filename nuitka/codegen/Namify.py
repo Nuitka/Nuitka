@@ -90,7 +90,9 @@ def namifyConstant(constant):
         return "float_%s" % repr(constant).replace('.', '_').\
           replace('-', "_minus_").replace('+', "")
     elif type(constant) is complex:
-        value = str(constant).replace('+', 'p').replace('-', 'm').\
+        value = "%s__%s" % (constant.real, constant.imag)
+
+        value = value.replace('+', 'p').replace('-', 'm').\
           replace('.', '_')
 
         if value.startswith('(') and value.endswith(')'):
