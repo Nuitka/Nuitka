@@ -76,7 +76,9 @@ def getConstantCodeName(context, constant):
 _match_attribute_names = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
 
 def _isAttributeName(value):
-    return _match_attribute_names.match(value)
+    # TODO: The exception is to make sure we intern the ".0" argument name
+    # used for generator expressions, iterator value.
+    return _match_attribute_names.match(value) or value == ".0"
 
 # Indicator to standalone mode code, if we need pickling module early on, which
 # we try to avoid, but can happen with things we cannot create directly.
