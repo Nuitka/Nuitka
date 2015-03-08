@@ -168,7 +168,7 @@ def getModuleCode(module_context, template_values):
         "year"    : Options.getYear()
     }
 
-    decls, inits = getConstantInitCodes(module_context)
+    decls, inits, checks = getConstantInitCodes(module_context)
 
     template_values["constant_decl_codes"] = indented(
         decls,
@@ -177,6 +177,11 @@ def getModuleCode(module_context, template_values):
 
     template_values["constant_init_codes"] = indented(
         inits,
+        1
+    )
+
+    template_values["constant_check_codes"] = indented(
+        checks,
         1
     )
 

@@ -3614,17 +3614,28 @@ PyObject *DEEP_COPY( PyObject *value )
 
 static Py_hash_t DEEP_HASH_INIT( PyObject *value )
 {
-    Py_hash_t result = (Py_hash_t)value;
+    Py_hash_t result = Py_hash_t( value );
 
     result ^= DEEP_HASH( (PyObject *)Py_TYPE( value ) );
 
     return result;
 }
 
+static void DEEP_HASH_BLOB( Py_hash_t *hash, char *s, Py_ssize_t size )
+{
+    while( size > 0 )
+    {
+        *hash = ( 1000003 * (*hash) ) ^ Py_hash_t( *s++ );
+        size--;
+    }
+}
+
 // Hash function that actually verifies things done to the bit level. Can be
 // used to detect corruption.
 Py_hash_t DEEP_HASH( PyObject *value )
 {
+    assert( value != NULL );
+
     if ( PyType_Check( value ) )
     {
         return (Py_hash_t)((PyTypeObject *)value)->tp_name;
@@ -3696,29 +3707,135 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
         return result;
     }
-    else if (
-#if PYTHON_VERSION < 300
-        PyString_Check( value )  ||
+    else if ( PyLong_Check( value ) )
+    {
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        PyObject *exception_type, *exception_value;
+        PyTracebackObject *exception_tb;
+
+        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+
+        // Use string to hash the long value, which relies on that to not
+        // use the object address.
+        PyObject *str = PyObject_Str( value );
+        result ^= DEEP_HASH( str );
+        Py_DECREF( str );
+
+        RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+
+        return result;
+    }
+    else if ( PyUnicode_Check( value ) )
+    {
+        Py_hash_t result = DEEP_HASH( (PyObject *)Py_TYPE( value ) );
+
+        PyObject *exception_type, *exception_value;
+        PyTracebackObject *exception_tb;
+
+        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+
+#if PYTHON_PYTHON >= 330
+        Py_ssize_t size;
+        char *s = PyUnicode_AsUTF8AndSize( value, &size );
+
+        if ( s != NULL )
+        {
+            DEEP_HASH_BLOB( &result, s, size );
+        }
+#elif PYTHON_VERSION >= 300
+        // Not done for Python3.2 really yet.
+#else
+        PyObject *str = PyUnicode_AsUTF8String( value );
+
+        if ( str )
+        {
+            result ^= DEEP_HASH( str );
+        }
+
+        Py_DECREF( str );
 #endif
-        PyUnicode_Check( value ) ||
+        RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+
+        return result;
+    }
+#if PYTHON_VERSION < 300
+    else if ( PyString_Check( value ) )
+    {
+        Py_hash_t result = DEEP_HASH( (PyObject *)Py_TYPE( value ) );
+
+        Py_ssize_t size;
+        char *s;
+
+        int res = PyString_AsStringAndSize( value, &s, &size );
+        assert( res != -1 );
+
+        DEEP_HASH_BLOB( &result, s, size );
+
+        return result;
+    }
+#else
+    else if ( PyBytes_Check( value ) )
+    {
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        Py_ssize_t size;
+        char *s;
+
+        int res = PyBytes_AsStringAndSize( value, &s, &size );
+        assert( res != -1 );
+
+        DEEP_HASH_BLOB( &result, s, size );
+
+        return result;
+    }
+#endif
+    else if ( value == Py_None || value == Py_Ellipsis )
+    {
+        return DEEP_HASH_INIT( value );
+    }
+    else if ( PyComplex_Check( value ) )
+    {
+        Py_complex c = PyComplex_AsCComplex( value );
+
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        Py_ssize_t size = sizeof(c);
+        char *s = (char *)&c;
+
+        DEEP_HASH_BLOB( &result, s, size );
+
+        return result;
+    }
+    else if ( PyFloat_Check( value ) )
+    {
+        double f = PyFloat_AsDouble( value );
+
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        Py_ssize_t size = sizeof(f);
+        char *s = (char *)&f;
+
+        DEEP_HASH_BLOB( &result, s, size );
+
+        return result;
+    }
+    else if (
 #if PYTHON_VERSION < 300
         PyInt_Check( value )     ||
 #endif
-        PyLong_Check( value )    ||
-        value == Py_None         ||
         PyBool_Check( value )    ||
-        PyFloat_Check( value )   ||
-        PyBytes_Check( value )   ||
 #if PYTHON_VERSION >= 300
         PyRange_Check( value )   ||
 #endif
-        PyType_Check( value )    ||
-        PySlice_Check( value )   ||
-        PyComplex_Check( value ) ||
-        value == Py_Ellipsis
+        PySlice_Check( value )
         )
     {
         Py_hash_t result = DEEP_HASH_INIT( value );
+
+#if 0
+        printf("Too simple deep hash: %s\n", Py_TYPE( value )->tp_name );
+#endif
 
         return result;
     }
