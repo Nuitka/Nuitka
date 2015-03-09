@@ -290,11 +290,6 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
         Py_DECREF( close_result );
     }
 
-    if ( generator->m_weakrefs != NULL )
-    {
-        PyObject_ClearWeakRefs( (PyObject *)generator );
-    }
-
     Nuitka_Generator_release_parameters( generator );
 
     if ( generator->m_parameters_given ) free( generator->m_parameters );
@@ -316,6 +311,12 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
 
     // Now it is safe to release references and memory for it.
     Nuitka_GC_UnTrack( generator );
+
+    if ( generator->m_weakrefs != NULL )
+    {
+        PyObject_ClearWeakRefs( (PyObject *)generator );
+        assert( !ERROR_OCCURRED() );
+    }
 
     PyObject_GC_Del( generator );
     RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
