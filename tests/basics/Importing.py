@@ -63,4 +63,15 @@ def localImportFailure():
 
     print "but path was", path
 
-print "From import that fails in the middle", localImportFailure()
+print "From import that fails in the middle",
+localImportFailure()
+
+def nonPackageImportFailure():
+    try:
+        # Not allowed without being a package, should raise ValueError
+        from . import whatever
+    except Exception as e:
+        print type(e), repr(e)
+
+print "Package import fails in non-package:",
+nonPackageImportFailure()

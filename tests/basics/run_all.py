@@ -35,6 +35,7 @@ from test_common import (
     decideFilenameVersionSkip,
     compareWithCPython,
     hasDebugPython,
+    withPythonPathChange,
     createSearchMode
 )
 
@@ -77,7 +78,18 @@ for filename in sorted(os.listdir('.')):
     if not decideFilenameVersionSkip(filename):
         continue
 
-    extra_flags = ["expect_success", "remove_output"]
+    extra_flags = [
+        # No error exits normally, unless we break tests, and that we would
+        # like to know.
+        "expect_success",
+        # Keep no temporary files.
+        "remove_output",
+        # Include imported files, mostly "test_common" module.
+        "recurse_all",
+        # Use the original __file__ value, at least one case warns about things
+        # with filename included.
+        "original_file"
+    ]
 
     # This test should be run with the debug Python, and makes outputs to
     # standard error that might be ignored.
@@ -86,7 +98,7 @@ for filename in sorted(os.listdir('.')):
 
     # This tests warns about __import__() used.
     if filename == "OrderChecks.py":
-        extra_flags.append("ignore_stderr")
+        extra_flags.append("ignore_warnings")
 
     # TODO: Nuitka does not give output for ignored exception in dtor, this is
     # not fully compatible and potentially an error.
@@ -107,13 +119,14 @@ for filename in sorted(os.listdir('.')):
                      not filename.endswith("32.py") and \
                      not filename.endswith("33.py")
 
-        compareWithCPython(
-            dirname     = None,
-            filename    = filename,
-            extra_flags = extra_flags,
-            search_mode = search_mode,
-            needs_2to3  = needs_2to3
-        )
+        with withPythonPathChange(".."):
+            compareWithCPython(
+                dirname     = None,
+                filename    = filename,
+                extra_flags = extra_flags,
+                search_mode = search_mode,
+                needs_2to3  = needs_2to3
+            )
     else:
         my_print("Skipping", filename)
 

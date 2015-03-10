@@ -77,6 +77,10 @@ for filename in sorted(os.listdir('.')):
 
     extra_flags.append("recurse_all")
 
+    # Use the original __file__ value, at least one case warns about things
+    # with filename included.
+    extra_flags.append("original_file")
+
     # Cannot include the files with syntax errors, these would then become
     # ImportError, but that's not the test. In all other cases, use two
     # step execution, which will not add the program original source to

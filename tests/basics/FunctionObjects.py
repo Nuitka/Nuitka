@@ -40,7 +40,7 @@ print("Setting its dict")
 func.my_value = "attached value"
 print("Reading its dict", func.my_value)
 
-print("__code__", func.__code__, func.__code__.co_argcount)
+print("__code__ dir")
 print(dir(func.__code__))
 
 def func2(arg1, arg2 = "default_arg2", arg3 = "default_arg3"):

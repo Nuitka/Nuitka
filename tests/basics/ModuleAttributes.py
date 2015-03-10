@@ -22,7 +22,7 @@ With newline and stuff."""
 import os, sys
 
 print "doc:", __doc__
-print "filename:", __file__
+print "filename:", os.path.basename(__file__)
 print "builtins:", __builtins__
 print "debug", __debug__
 print "debug in builtins", __builtins__.__debug__
@@ -35,12 +35,15 @@ except NameError:
 
 def checkFromFunction():
     frame = sys._getframe(1)
-    locals = frame.f_locals
 
     def displayDict(d):
-        d = dict(d)
         if "__loader__" in d:
-            d[ "__loader__" ] = "<loader removed>"
+            d = dict(d)
+            d["__loader__"] = "<__loader__ removed>"
+
+        if "__file__" in d:
+            d = dict(d)
+            d["__file__"] = "<__file__ removed>"
 
         return repr(d)
 

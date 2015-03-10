@@ -83,7 +83,6 @@ def someFunction(a):
 someFunction(2)
 
 class C:
-    print("Class frame", sys._getframe().f_code)
     print("Class locals", str(sys._getframe().f_locals).replace(", '__locals__': {...}", "").replace("'__qualname__': 'C', ", ""))
     print("Class flags", sys._getframe().f_code.co_flags)
 
@@ -96,7 +95,11 @@ f()
 def displayDict(d):
     if "__loader__" in d:
         d = dict(d)
-        d["__loader__"] = "<loader removed>"
+        d["__loader__"] = "<__loader__ removed>"
+
+    if "__file__" in d:
+        d = dict(d)
+        d["__file__"] = "<__file__ removed>"
 
     return repr(d)
 
