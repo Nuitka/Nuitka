@@ -52,7 +52,11 @@ NUITKA_MAY_BE_UNUSED static inline bool HAS_ITERNEXT( PyObject *value )
 // Stolen from CPython implementation, so we can access it.
 typedef struct {
     PyObject_HEAD
+#if PYTHON_VERSION < 340
     long      it_index;
+#else
+    Py_ssize_t it_index;
+#endif
     PyObject *it_seq;
 } seqiterobject;
 

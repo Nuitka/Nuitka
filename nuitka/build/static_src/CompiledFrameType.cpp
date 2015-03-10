@@ -502,9 +502,16 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     CHECK_OBJECT( argnames );
     assert( PyTuple_Check( argnames ) );
 
+    // The PyCode_New has funny code that interns, mutating the tuple that owns
+    // it. Really serious non-immutable shit. We have triggered that changes
+    // behind our back in the past.
+#ifndef __NUITKA_NO_ASSERT__
+    Py_hash_t hash = DEEP_HASH( argnames );
+#endif
+
     // TODO: Consider using PyCode_NewEmpty
 
-    PyCodeObject *result = PyCode_New (
+    PyCodeObject *result = PyCode_New(
         arg_count,           // argcount
 #if PYTHON_VERSION >= 300
         kw_only_count,       // kw-only count
@@ -531,6 +538,8 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
         const_bytes_empty    // lnotab (table to translate code object)
 #endif
     );
+
+    assert( DEEP_HASH( argnames ) == hash );
 
     if (unlikely( result == NULL ))
     {
