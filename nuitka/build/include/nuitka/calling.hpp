@@ -58,7 +58,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, 
         {
             PyErr_Format(
                 PyExc_SystemError,
-                "NULL result without error in PyObject_Call"
+                "NULL result without error in CALL_FUNCTION"
             );
         }
 
