@@ -239,8 +239,8 @@ def _getParameterParsingCode(context, parameters, function_name):
 
     return indented(parameter_parsing_code)
 
-def getParameterParsingCode( context, function_identifier, function_name,
-                             parameters, needs_creation ):
+def getParameterParsingCode(context, function_identifier, function_name,
+                             parameters, needs_creation):
 
     function_parameter_variables = parameters.getVariables()
 

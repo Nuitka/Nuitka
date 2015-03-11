@@ -35,6 +35,7 @@ from logging import warning
 import marshal
 from nuitka import Options
 from nuitka.__past__ import iterItems, long, unicode  # pylint: disable=W0622
+from nuitka.codegen import Emission
 from nuitka.Constants import (
     constant_builtin_types,
     getConstantWeight,
@@ -46,7 +47,6 @@ from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Indentation import indented
 from .Pickling import getStreamedConstant
-from nuitka.codegen import Emission
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):

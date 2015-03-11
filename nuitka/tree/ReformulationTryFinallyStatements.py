@@ -25,7 +25,7 @@ source code comments with developer manual sections.
 from nuitka import Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementReleaseVariable,
+    StatementReleaseVariable
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional

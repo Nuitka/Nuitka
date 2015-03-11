@@ -24,7 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementReleaseVariable,
+    StatementReleaseVariable
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,

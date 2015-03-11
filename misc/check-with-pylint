@@ -52,6 +52,8 @@
 # W0632: Possible unbalanced tuple unpacking with sequence defined at ...
 # It's not really good at guessing these things.
 #
+# W1504: Using type() instead of isinstance() for a typecheck.
+# Nuitka is all about exact type checks, so this doesn't apply
 
 from __future__ import print_function
 
@@ -63,7 +65,7 @@ os.chdir("..")
 
 pylint_options = """\
 --rcfile=/dev/null
---disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632
+--disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632,W1504
 --msg-template="{path}:{line} {msg_id} {obj} {msg}"
 --reports=no
 --persistent=no

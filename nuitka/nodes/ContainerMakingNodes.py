@@ -96,7 +96,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
                 for element in
                 self.getElements()
             ),
-            description = "%s with constant arguments." % simulator
+            description = "%s with constant arguments." % simulator.__name__.title()
         )
 
     def mayHaveSideEffectsBool(self):

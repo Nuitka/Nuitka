@@ -24,6 +24,7 @@ in concept.
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
+
 class ReturnBreakContinueHandlingMixin:
     def __init__(self):
         self.needs_return_handling = 0

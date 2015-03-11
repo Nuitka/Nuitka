@@ -68,10 +68,10 @@ class StatementLoop(StatementChildrenHavingBase):
     def isStatementAborting(self):
         loop_body = self.getLoopBody()
 
-        if loop_body is not None:
-            return not loop_body.mayBreak()
-        else:
+        if loop_body is None:
             return True
+        else:
+            return not loop_body.mayBreak()
 
     def computeStatement(self, constraint_collection):
         loop_body = self.getLoopBody()

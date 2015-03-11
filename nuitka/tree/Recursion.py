@@ -96,7 +96,7 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
 
 
 def decideRecursion(module_filename, module_name, module_package,
-                    module_kind ):
+                    module_kind):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=R0911,R0912
 

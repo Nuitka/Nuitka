@@ -94,7 +94,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
             )
 
             return new_node, "new_constant", """\
-Builtin constant %s resolved""" % self.builtin_name
+Built-in constant %s resolved""" % self.builtin_name
 
         return self, None, None
 
@@ -223,4 +223,4 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         if new_node is None:
             return call_node, None, None
 
-        return new_node, "new_expression", "detected builtin exception making"
+        return new_node, "new_expression", "Detected built-in exception making."
