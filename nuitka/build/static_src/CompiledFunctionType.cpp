@@ -418,11 +418,17 @@ static PyMethodDef Nuitka_Generator_methods[] =
 
 static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 {
+    // Save the current exception, if any, we must preserve it.
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
+
     Nuitka_GC_UnTrack( function );
 
     if ( function->m_weakrefs != NULL )
     {
         PyObject_ClearWeakRefs( (PyObject *)function );
+        assert( !ERROR_OCCURRED() );
     }
 
     Py_DECREF( function->m_name );
@@ -430,8 +436,8 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
     Py_DECREF( function->m_qualname );
 #endif
 
+    // These may actually re-surrect the object, not?
     Py_XDECREF( function->m_dict );
-
     Py_DECREF( function->m_defaults );
 
     Py_DECREF( function->m_doc );
@@ -452,6 +458,8 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
     }
 
     PyObject_GC_Del( function );
+
+    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
 
 static const long tp_flags =
