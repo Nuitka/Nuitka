@@ -22,7 +22,6 @@ together and cross-module optimizations are the most difficult to tackle.
 """
 
 import re
-import sys
 
 from nuitka import Importing, Options, Utils, Variables
 from nuitka.optimizations. \
@@ -449,95 +448,6 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
     def startTraversal(self):
         pass
 
-    def getImplicitImports(self):
-        full_name = self.getFullName()
-
-        if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
-            if Utils.python_version < 300:
-                return (
-                    ("atexit", None),
-                    ("sip", None),
-                )
-            else:
-                return (
-                    ("sip", None),
-                )
-        elif full_name == "lxml.etree":
-            return (
-                ("gzip", None),
-                ("_elementpath", "lxml")
-            )
-        elif full_name == "gtk._gtk":
-            return (
-                ("pangocairo", None),
-                ("pango", None),
-                ("cairo", None),
-                ("gio", None),
-                ("atk", None),
-            )
-        else:
-            return ()
-
-    def considerImplicitImports(self, signal_change):
-        for module_name, module_package in self.getImplicitImports():
-            _module_package, _module_name, module_filename = \
-              Importing.findModule(
-                source_ref     = self.source_ref,
-                module_name    = module_name,
-                parent_package = module_package,
-                level          = -1,
-                warn           = True
-            )
-
-            if module_filename is None:
-                sys.exit(
-                    "Error, implicit module '%s' expected by '%s' not found" % (
-                        module_name,
-                        self.getFullName()
-                    )
-                )
-            elif Utils.isDir(module_filename):
-                module_kind = "py"
-            elif module_filename.endswith(".py"):
-                module_kind = "py"
-            elif module_filename.endswith(".so"):
-                module_kind = "shlib"
-            elif module_filename.endswith(".pyd"):
-                module_kind = "shlib"
-            else:
-                assert False, module_filename
-
-            from nuitka.tree import Recursion
-
-            decision, reason = Recursion.decideRecursion(
-                module_filename = module_filename,
-                module_name     = module_name,
-                module_package  = module_package,
-                module_kind     = module_kind
-            )
-
-            assert decision or reason == "Module is frozen."
-
-            if decision:
-                module_relpath = Utils.relpath(module_filename)
-
-                imported_module, added_flag = Recursion.recurseTo(
-                    module_package  = module_package,
-                    module_filename = module_filename,
-                    module_relpath  = module_relpath,
-                    module_kind     = module_kind,
-                    reason          = reason
-                )
-
-                from nuitka.ModuleRegistry import addUsedModule
-                addUsedModule(imported_module)
-
-                if added_flag:
-                    signal_change(
-                        "new_code",
-                        imported_module.getSourceReference(),
-                        "Recursed to module."
-                    )
 
 
 class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):

@@ -26,6 +26,7 @@ make others possible.
 from logging import debug
 
 from nuitka import ModuleRegistry, Options, Utils
+from nuitka.plugins.PluginBase import Plugins
 from nuitka.Tracing import printLine
 
 from . import ConstraintCollections
@@ -143,7 +144,7 @@ def optimizeShlibModule(module):
     global tag_set
     tag_set = TagSet()
 
-    module.considerImplicitImports(signal_change = signalChange)
+    Plugins.considerImplicitImports(module, signal_change = signalChange)
 
 
 def areEmptyTraces(variable_traces):
