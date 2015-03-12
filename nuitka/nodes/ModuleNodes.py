@@ -24,8 +24,7 @@ together and cross-module optimizations are the most difficult to tackle.
 import re
 
 from nuitka import Importing, Options, Utils, Variables
-from nuitka.optimizations. \
-    ConstraintCollections import ConstraintCollectionModule
+from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.oset import OrderedSet
 from nuitka.SourceCodeReferences import SourceCodeReference
 
@@ -337,8 +336,18 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         self.constraint_collection.makeVariableTraceOptimizations(self)
 
+    def getTraceCollections(self):
+        yield self.constraint_collection
 
+        for function in self.getUsedFunctions():
+            yield function.constraint_collection
 
+    def hasUnclearLocals(self):
+        for collection in self.getTraceCollections():
+            if collection.unclear_locals:
+                return True
+
+        return False
 
 class SingleCreationMixin:
     created = set()

@@ -27,6 +27,7 @@ giving information about what really needs to be closure taken.
 # of information about that variable.
 variable_registry = {}
 
+
 class VariableInformation:
     def __init__(self, variable):
         self.variable = variable
@@ -80,3 +81,40 @@ def isSharedTechnically(variable):
             return True
 
     return False
+
+
+# The key is a variable name, and the value is a set of traces.
+variable_traces = {}
+
+variable_traces_full = {}
+
+class GlobalVariableTrace:
+    def __init__(self):
+        self.traces = set()
+
+    def add(self, variable_trace):
+        self.traces.add(variable_trace)
+
+    def hasDefiniteWrites(self):
+        for trace in self.traces:
+            if trace.isAssignTrace():
+                return True
+
+        return False
+
+def addVariableTrace(variable_trace):
+    variable = variable_trace.getVariable()
+
+    if variable not in variable_traces:
+        variable_traces[variable] = GlobalVariableTrace()
+
+    variable_traces[variable].add(variable_trace)
+
+def startTraversal():
+    global variable_traces_full, variable_traces
+
+    variable_traces_full = variable_traces
+    variable_traces = {}
+
+def getGlobalVariableTrace(variable):
+    return variable_traces_full.get(variable, None)

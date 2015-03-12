@@ -632,7 +632,7 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         owning_module.addUsedFunction(function_body)
 
-        from nuitka.optimizations.ConstraintCollections import \
+        from nuitka.optimizations.TraceCollections import \
             ConstraintCollectionFunction
 
         collection = ConstraintCollectionFunction(

@@ -152,7 +152,7 @@ Removed try/except with empty tried block."""
         constraint_collection.removeAllKnowledge()
 
         if self.getExceptionHandling() is not None:
-            from nuitka.optimizations.ConstraintCollections import \
+            from nuitka.optimizations.TraceCollections import \
               ConstraintCollectionBranch
 
             _collection_exception_handling = ConstraintCollectionBranch(

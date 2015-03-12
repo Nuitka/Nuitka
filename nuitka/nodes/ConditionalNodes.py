@@ -85,7 +85,7 @@ branches."""
             return condition, "new_raise", """\
 Conditional expression raises in condition."""
 
-        from nuitka.optimizations.ConstraintCollections import \
+        from nuitka.optimizations.TraceCollections import \
             ConstraintCollectionBranch
 
         # Decide this based on truth value of condition.
@@ -327,7 +327,7 @@ class StatementConditional(StatementChildrenHavingBase):
 Conditional statements already raises implicitly in condition, removing \
 branches."""
 
-        from nuitka.optimizations.ConstraintCollections import \
+        from nuitka.optimizations.TraceCollections import \
             ConstraintCollectionBranch
 
         # Consider to not execute branches that we know to be true, but execute

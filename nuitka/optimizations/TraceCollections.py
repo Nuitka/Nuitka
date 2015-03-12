@@ -56,17 +56,6 @@ class VariableUsageProfile:
 
 
 class VariableUsageTrackingMixin:
-    def __init__(self):
-        self.variable_usages = {}
-
-    # TODO: This will be removed, to be replaced by variable trace information.
-    def _getVariableUsage(self, variable):
-        if variable in self.variable_usages:
-            return self.variable_usages[ variable ]
-        else:
-            self.variable_usages[ variable ] = VariableUsageProfile(variable)
-
-            return self.variable_usages[ variable ]
 
     def _initVariable(self, variable):
         if variable.isParameterVariable():
@@ -197,6 +186,9 @@ class CollectionStartpointMixin:
 
         return result
 
+    def getVariableTracesAll(self):
+        return self.variable_traces.values()
+
     def addVariableTrace(self, variable, version, trace):
         key = variable, version
 
@@ -266,13 +258,6 @@ class CollectionStartpointMixin:
         self.markCurrentVariableTrace(variable, 0)
 
     def assumeUnclearLocals(self, source_ref):
-        if not self.unclear_locals:
-            self.signalChange(
-                "new_expression",
-                source_ref,
-                "Unclear module variable delays processing."
-            )
-
         self.unclear_locals = True
 
 
@@ -464,9 +449,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         return new_node
 
-    def onModuleVariableAssigned(self, variable):
-        self.parent.onModuleVariableAssigned(variable)
-
     def onStatement(self, statement):
         try:
             assert statement.isStatement(), statement
@@ -577,8 +559,6 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
             parent = parent
         )
 
-        VariableUsageTrackingMixin.__init__(self)
-
         self.function_body = function_body
         function_body.constraint_collection = self
 
@@ -667,18 +647,3 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
             self,
             parent = None
         )
-
-        VariableUsageTrackingMixin.__init__(self)
-
-
-    def onModuleVariableAssigned(self, variable):
-        assert variable.isModuleVariable()
-
-        self._getVariableUsage(variable).markAsWrittenTo()
-
-    def getWrittenVariables(self):
-        return [
-            variable
-            for variable, usage in iterItems(self.variable_usages)
-            if not usage.isReadOnly()
-        ]

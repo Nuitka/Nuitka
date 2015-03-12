@@ -163,9 +163,6 @@ Side effects of assignments promoted to statements."""
         else:
             result = self, None, None
 
-        if variable.isModuleVariable():
-            constraint_collection.onModuleVariableAssigned(variable)
-
         self.variable_trace = constraint_collection.onVariableSet(
             assign_node = self
         )
