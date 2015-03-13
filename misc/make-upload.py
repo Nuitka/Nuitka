@@ -35,7 +35,7 @@ for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
 if branch_name.startswith( "release" ) or branch_name == "master":
     pass
 elif branch_name == "develop":
-    for remote in "origin", "bitbucket", "github", "gitorious", "googlecode":
+    for remote in "origin", "bitbucket", "github", "gitorious":
         assert 0 == os.system( "git push --tags -f %s develop" % remote )
         assert 0 == os.system( "git push %s master" % remote )
 else:
