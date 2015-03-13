@@ -106,10 +106,6 @@ Built-in constant %s resolved""" % self.builtin_name
             called    = self
         )
 
-        if new_node.isExpressionBuiltinLocals() or \
-           new_node.isExpressionBuiltinEval():
-            constraint_collection.assumeUnclearLocals(self.source_ref)
-
         return new_node, tags, message
 
     def getStringValue(self):

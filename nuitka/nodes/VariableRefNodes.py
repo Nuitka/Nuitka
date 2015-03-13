@@ -112,7 +112,7 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
         # TODO: Maybe local variables are factored into this strangely.
         if global_trace is None and variable.isModuleVariable():
-            constraint_collection.assumeUnclearLocals(self.source_ref)
+            constraint_collection.assumeUnclearLocals()
         elif (variable.isModuleVariable() and not global_trace.hasDefiniteWrites() ) or \
              variable.isMaybeLocalVariable():
             if self.variable_name in Builtins.builtin_exception_names:

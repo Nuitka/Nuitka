@@ -298,13 +298,13 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             )
 
             # Remember that we need that closure variable for something, so
-            # we don't redo it all the time.
+            # we don't create it again all the time.
             if not result.isModuleVariable():
                 self.registerProvidedVariable(result)
 
-            # For exec containing/star import containing, get a closure variable
-            # and if it is a module variable, only then make it a maybe local
-            # variable.
+            # For "exec" containing/star import containing, we get a
+            # closure variable already, but if it is a module variable,
+            # only then make it a maybe local variable.
             if self.isUnoptimized() and result.isModuleVariable():
                 result = Variables.MaybeLocalVariable(
                     owner          = self,

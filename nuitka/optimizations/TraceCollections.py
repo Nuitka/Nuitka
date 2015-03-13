@@ -257,8 +257,11 @@ class CollectionStartpointMixin:
 
         self.markCurrentVariableTrace(variable, 0)
 
-    def assumeUnclearLocals(self, source_ref):
+    def assumeUnclearLocals(self):
         self.unclear_locals = True
+
+    def hasUnclearLocals(self):
+        return self.unclear_locals
 
 
 class ConstraintCollectionBase(CollectionTracingMixin):
@@ -317,8 +320,8 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         self.markActiveVariablesAsUnknown()
 
-    def assumeUnclearLocals(self, source_ref):
-        self.parent.assumeUnclearLocals(source_ref)
+    def assumeUnclearLocals(self):
+        self.parent.assumeUnclearLocals()
 
     def getVariableTrace(self, variable, version):
         return self.parent.getVariableTrace(variable, version)
@@ -516,7 +519,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
 
 class ConstraintCollectionBranch(ConstraintCollectionBase):
-    def __init__(self, parent, branch):
+    def __init__(self, parent):
         ConstraintCollectionBase.__init__(
             self,
             parent = parent
@@ -524,6 +527,7 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
 
         self.variable_actives = dict(parent.variable_actives)
 
+    def computeBranch(self, branch):
         if branch.isStatementsSequence():
             result = branch.computeStatementsSequence(
                 constraint_collection = self
@@ -535,7 +539,6 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
             self.onExpression(
                 expression = branch
             )
-
 
     def _initVariable(self, variable):
         variable_trace = self.parent.getVariableCurrentTrace(variable)

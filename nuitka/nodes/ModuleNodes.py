@@ -344,7 +344,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     def hasUnclearLocals(self):
         for collection in self.getTraceCollections():
-            if collection.unclear_locals:
+            if collection.hasUnclearLocals():
                 return True
 
         return False

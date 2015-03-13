@@ -22,6 +22,8 @@ are conditional statements and not the issue anymore.
 
 """
 
+from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
+
 from .NodeBases import StatementChildrenHavingBase
 
 
@@ -147,18 +149,28 @@ class StatementTryExcept(StatementChildrenHavingBase):
             return None, "new_statements", """\
 Removed try/except with empty tried block."""
 
-        # TODO: Need not to remove all knowledge, but only the parts that were
-        # touched.
-        constraint_collection.removeAllKnowledge()
 
         if self.getExceptionHandling() is not None:
-            from nuitka.optimizations.TraceCollections import \
-              ConstraintCollectionBranch
-
-            _collection_exception_handling = ConstraintCollectionBranch(
+            collection_exception_handling = ConstraintCollectionBranch(
                 parent = constraint_collection,
+            )
+
+            # TODO: Need not to remove all knowledge, but only the parts that were
+            # touched.
+            collection_exception_handling.removeAllKnowledge()
+
+            collection_exception_handling.computeBranch(
                 branch = self.getExceptionHandling()
             )
+
+
+        # Merge only, if the exception handling itself does exit.
+        if self.getExceptionHandling() and \
+           not self.getExceptionHandling().isStatementAborting():
+
+            # TODO: Need not to remove all knowledge, but only the parts that
+            # were touched.
+            constraint_collection.removeAllKnowledge()
 
         # Without exception handlers remaining, nothing else to do. They may
         # e.g. be removed as only re-raising.
@@ -166,17 +178,11 @@ Removed try/except with empty tried block."""
            self.getExceptionHandling().getStatements()[0].\
              isStatementReraiseException():
             return tried_statement_sequence, "new_statements", """\
-Removed try/except without any remaing handlers."""
+Removed try/except without any remaining handlers."""
 
         # Remove exception handling, if it cannot happen.
         if not tried_statement_sequence.mayRaiseException(BaseException):
             return tried_statement_sequence, "new_statements", """\
 Removed try/except with tried block that cannot raise."""
-
-        # Give up, merging this is too hard for now, any amount of the tried
-        # sequence may have executed together with one of the handlers, or all
-        # of tried and no handlers. TODO: improve this to an actual merge, even
-        # if a pessimistic one.
-        constraint_collection.removeAllKnowledge()
 
         return self, None, None

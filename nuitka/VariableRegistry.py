@@ -111,6 +111,8 @@ def addVariableTrace(variable_trace):
     variable_traces[variable].add(variable_trace)
 
 def startTraversal():
+    # Using global here, as this is really a singleton, in the form of a module,
+    # pylint: disable=W0603
     global variable_traces_full, variable_traces
 
     variable_traces_full = variable_traces
