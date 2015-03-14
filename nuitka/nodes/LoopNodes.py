@@ -22,8 +22,6 @@ statements for it. These re-formulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
-from nuitka.tree.Extractions import getVariablesWritten
-
 from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
@@ -77,15 +75,8 @@ class StatementLoop(StatementChildrenHavingBase):
         loop_body = self.getLoopBody()
 
         if loop_body is not None:
-            # Look ahead. what will be written.
-            variable_writes = getVariablesWritten(loop_body)
-
-            # Mark all variables as unknown that are written in the loop body,
-            # so it destroys the assumptions for loop turn around.
-            for variable, _variable_version in variable_writes:
-                constraint_collection.markActiveVariableAsUnknown(
-                    variable = variable
-                )
+            # Look ahead. what will be written and degrade about that.
+            constraint_collection.degradePartiallyFromCode(loop_body)
 
             result = loop_body.computeStatementsSequence(
                 constraint_collection = constraint_collection

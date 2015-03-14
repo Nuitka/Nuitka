@@ -158,20 +158,7 @@ class StatementTryFinally(StatementChildrenHavingBase,
 
         if final_statement_sequence is not None:
             if tried_statement_sequence is not None:
-                from nuitka.tree.Extractions import getVariablesWritten
-
-                variable_writes = getVariablesWritten(
-                    tried_statement_sequence
-                )
-
-
-                # Mark all variables as unknown that are written in the tried
-                # block, so it destroys the assumptions for final block.
-                for variable, _variable_version in variable_writes:
-                    constraint_collection.markActiveVariableAsUnknown(
-                        variable = variable
-                    )
-
+                constraint_collection.degradePartiallyFromCode(tried_statement_sequence)
 
             # Then assuming no exception, the no raise block if present.
             result = final_statement_sequence.computeStatementsSequence(
@@ -322,19 +309,9 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
 
         if final_statement_sequence is not None:
             if tried_statement_sequence is not None:
-                from nuitka.tree.Extractions import getVariablesWritten
-
-                variable_writes = getVariablesWritten(
-                    tried_statement_sequence
-                )
-
-
                 # Mark all variables as unknown that are written in the tried
                 # block, so it destroys the assumptions for loop turn around.
-                for variable, _variable_version in variable_writes:
-                    constraint_collection.markActiveVariableAsUnknown(
-                        variable = variable
-                    )
+                constraint_collection.degradePartiallyFromCode(tried_statement_sequence)
 
 
             # Then assuming no exception, the no raise block if present.

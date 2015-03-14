@@ -150,27 +150,26 @@ class StatementTryExcept(StatementChildrenHavingBase):
 Removed try/except with empty tried block."""
 
 
+        collection_exception_handling = ConstraintCollectionBranch(
+            parent = constraint_collection,
+        )
+
+        collection_exception_handling.degradePartiallyFromCode(tried_statement_sequence)
+
         if self.getExceptionHandling() is not None:
-            collection_exception_handling = ConstraintCollectionBranch(
-                parent = constraint_collection,
-            )
-
-            # TODO: Need not to remove all knowledge, but only the parts that were
-            # touched.
-            collection_exception_handling.removeAllKnowledge()
-
             collection_exception_handling.computeBranch(
                 branch = self.getExceptionHandling()
             )
 
 
         # Merge only, if the exception handling itself does exit.
-        if self.getExceptionHandling() and \
+        if self.getExceptionHandling() is None or \
            not self.getExceptionHandling().isStatementAborting():
 
-            # TODO: Need not to remove all knowledge, but only the parts that
-            # were touched.
-            constraint_collection.removeAllKnowledge()
+            constraint_collection.mergeBranches(
+                collection_yes = collection_exception_handling,
+                collection_no  = None
+            )
 
         # Without exception handlers remaining, nothing else to do. They may
         # e.g. be removed as only re-raising.

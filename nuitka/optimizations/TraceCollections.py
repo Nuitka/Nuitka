@@ -517,6 +517,23 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
                     self.markCurrentVariableTrace(variable, version)
 
+    def degradePartiallyFromCode(self, statement_sequence):
+        from nuitka.tree.Extractions import getVariablesWritten
+
+        variable_writes = getVariablesWritten(
+            statement_sequence
+        )
+
+
+        # Mark all variables as unknown that are written in the statement
+        # sequence, so it destroys the assumptions for final block. TODO: To
+        # unknown is a bit harsh, in case it is known assigned before and
+        # not deleted.
+        for variable, _variable_version in variable_writes:
+            self.markActiveVariableAsUnknown(
+                variable = variable
+            )
+
 
 class ConstraintCollectionBranch(ConstraintCollectionBase):
     def __init__(self, parent):
