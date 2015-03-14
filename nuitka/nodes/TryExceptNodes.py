@@ -185,4 +185,36 @@ Removed try/except without any remaining handlers."""
             return tried_statement_sequence, "new_statements", """\
 Removed try/except with tried block that cannot raise."""
 
+        new_statements = tried_statement_sequence.getStatements()
+        # Determine statements inside the exception guard, that need not be in
+        # a handler, because they wouldn't raise an exception. TODO: This
+        # actual exception being watched for should be considered, by look
+        # for any now.
+        outside_pre = []
+        while new_statements and \
+              not new_statements[0].mayRaiseException(BaseException):
+            outside_pre.append(new_statements[0])
+            new_statements = list(new_statements)[1:]
+
+        outside_post = []
+        if self.getExceptionHandling() is not None and \
+           self.getExceptionHandling().isStatementAborting():
+            while new_statements and \
+                  not new_statements[-1].mayRaiseException(BaseException):
+                outside_post.insert(0, new_statements[-1])
+                new_statements = list(new_statements)[:-1]
+
+        if outside_pre or outside_post:
+            tried_statement_sequence.setStatements(new_statements)
+
+            from .NodeMakingHelpers import makeStatementsSequenceReplacementNode
+
+            result = makeStatementsSequenceReplacementNode(
+                statements = outside_pre + [self] + outside_post,
+                node       = self
+            )
+
+            return result, "new_statements", """\
+Moved statements of tried block that cannot raise."""
+
         return self, None, None
