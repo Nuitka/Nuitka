@@ -1936,6 +1936,17 @@ This expression is reformulated to ``locals().keys()`` for Python2, and
 Nodes that serve special purposes
 ---------------------------------
 
+Releases
+++++++++
+
+When a function exits, the local variables are to be released. The same applies
+to temporary variables used in re-formulations. These releases cause a reference
+to the object to the released, but no value change. They are typically the last
+use of the object in the function.
+
+The are similar to ``del``, but make no value change. For shared variables this
+effect is most visible.
+
 Side Effects
 ++++++++++++
 
