@@ -58,6 +58,7 @@ recurse_none       = hasArg("recurse_none")
 recurse_all        = hasArg("recurse_all")
 timing             = hasArg("timing")
 coverage_mode      = hasArg("coverage")
+original_file      = hasArg("original_file")
 
 if args:
     sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
@@ -179,6 +180,9 @@ if python_debug:
 
 if remove_output:
     extra_options.append("--remove-output")
+
+if original_file:
+    extra_options.append("--file-reference-choice=original")
 
 if binary_python_path:
     if os.name == "nt":

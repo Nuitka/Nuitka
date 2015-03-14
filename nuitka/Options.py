@@ -304,7 +304,6 @@ Allow minor deviations from CPython behavior, e.g. better tracebacks, which
 are not really incompatible, but different.""",
 )
 
-
 codegen_group.add_option(
     "--code-gen-no-statement-lines",
     action  = "store_false",
@@ -314,6 +313,15 @@ codegen_group.add_option(
 #     help    = """\
 # Statements shall have their line numbers set. Disable this for less precise
 # exceptions and slightly faster code. Not recommended. Defaults to off."""
+)
+
+codegen_group.add_option(
+    "--file-reference-choice",
+    action  = "store",
+    dest    = "file_reference_mode",
+    choices = ("original", "runtime"),
+    default = "runtime",
+    help    = SUPPRESS_HELP,
 )
 
 codegen_group.add_option(
@@ -634,6 +642,9 @@ def shallNotDoExecCppCall():
 
 def shallHaveStatementLines():
     return options.statement_lines
+
+def shallHaveOriginalFileReference():
+    return options.file_reference_mode == "original"
 
 def shallMakeModule():
     return not options.executable
