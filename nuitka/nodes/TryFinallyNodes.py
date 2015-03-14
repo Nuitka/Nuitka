@@ -204,6 +204,34 @@ Removed try/finally with try block that cannot raise."""
                 collection_no  = None
             )
 
+            new_statements = tried_statement_sequence.getStatements()
+            # Determine statements inside the exception guard, that need not be in
+            # a handler, because they wouldn't raise an exception. TODO: This
+            # actual exception being watched for should be considered, by look
+            # for any now.
+            outside_pre = []
+            while new_statements and \
+                  not new_statements[0].mayRaiseException(BaseException) and \
+                  not new_statements[0].mayReturn() and \
+                  not new_statements[0].mayBreak() and \
+                  not new_statements[0].mayContinue():
+
+                outside_pre.append(new_statements[0])
+                new_statements = list(new_statements)[1:]
+
+            if outside_pre:
+                tried_statement_sequence.setStatements(new_statements)
+
+                from .NodeMakingHelpers import makeStatementsSequenceReplacementNode
+
+                result = makeStatementsSequenceReplacementNode(
+                    statements = outside_pre + [self],
+                    node       = self
+                )
+
+                return result, "new_statements", """\
+Moved statements of tried block that cannot abort to the outside."""
+
             return self, None, None
 
 
