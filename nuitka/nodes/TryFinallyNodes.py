@@ -22,6 +22,8 @@ is used in re-formulations of Nuitka only, and not real Python. But very similar
 in concept.
 """
 
+from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
+
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 
@@ -152,17 +154,21 @@ class StatementTryFinally(StatementChildrenHavingBase,
 
         final_statement_sequence = self.getBlockFinal()
 
-        # TODO: The final must not assume that all of tried was executed,
-        # instead it may have aborted after any part of it, which is a rather
-        # complex definition.
-
         if final_statement_sequence is not None:
+            # TODO: The must not assume that all of tried was executed, instead
+            # it may have aborted after any part of it, which is a rather
+            # a complex situation, so we just invalidate all writes.
+
+            collection_exception_handling = ConstraintCollectionBranch(
+                parent = constraint_collection,
+            )
+
             if tried_statement_sequence is not None:
-                constraint_collection.degradePartiallyFromCode(tried_statement_sequence)
+                collection_exception_handling.degradePartiallyFromCode(tried_statement_sequence)
 
             # Then assuming no exception, the no raise block if present.
             result = final_statement_sequence.computeStatementsSequence(
-                constraint_collection = constraint_collection
+                constraint_collection = collection_exception_handling
             )
 
             if result is not final_statement_sequence:
@@ -191,10 +197,13 @@ Removed try/finally with empty final block."""
             return tried_statement_sequence, "new_statements", """\
 Removed try/finally with try block that cannot raise."""
         else:
-            # TODO: Can't really merge it yet.
-            constraint_collection.removeAllKnowledge()
+            # Otherwise keep it as it, merging the finally block back into
+            # the constraint collection.
+            constraint_collection.mergeBranches(
+                collection_yes = collection_exception_handling,
+                collection_no  = None
+            )
 
-            # Otherwise keep it as it.
             return self, None, None
 
 
@@ -308,17 +317,21 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
         # complex definition.
 
         if final_statement_sequence is not None:
+            collection_exception_handling = ConstraintCollectionBranch(
+                parent = constraint_collection,
+            )
+
             if tried_statement_sequence is not None:
                 # Mark all variables as unknown that are written in the tried
                 # block, so it destroys the assumptions for loop turn around.
-                constraint_collection.degradePartiallyFromCode(tried_statement_sequence)
+                collection_exception_handling.degradePartiallyFromCode(tried_statement_sequence)
 
             # In case there are assignments hidden in the expression too.
-            constraint_collection.degradePartiallyFromCode(self.getExpression())
+            collection_exception_handling.degradePartiallyFromCode(self.getExpression())
 
             # Then assuming no exception, the no raise block if present.
             result = final_statement_sequence.computeStatementsSequence(
-                constraint_collection = constraint_collection
+                constraint_collection = collection_exception_handling
             )
 
             if result is not final_statement_sequence:
@@ -333,8 +346,14 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
             return self.getExpression(), "new_expression", """\
 Removed try/finally expression with empty tried and final block."""
         else:
-            # TODO: Can't really merge it yet.
-            constraint_collection.removeAllKnowledge()
+            if final_statement_sequence is not None:
+                # Otherwise keep it as it, merging the finally block back into
+                # the constraint collection.
+                constraint_collection.mergeBranches(
+                    collection_yes = collection_exception_handling,
+                    collection_no  = None
+                )
+
 
             # Otherwise keep it as it.
             return self, None, None
