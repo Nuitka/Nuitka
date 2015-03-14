@@ -232,6 +232,43 @@ static int Nuitka_Function_set_code( Nuitka_FunctionObject *object, PyObject *va
     return -1;
 }
 
+static PyObject *Nuitka_Function_get_closure( Nuitka_FunctionObject *object )
+{
+    if ( object->m_closure )
+    {
+        PyObject *result = PyTuple_New( object->m_closure_given );
+
+        for( Py_ssize_t i = 0; i < object->m_closure_given; i++ )
+        {
+            PyTuple_SET_ITEM( result, i, (PyObject *)object->m_closure[i] );
+            Py_INCREF( (PyObject *)object->m_closure[i] );
+        }
+
+        return result;
+    }
+    else
+    {
+        Py_INCREF( Py_None );
+        return Py_None;
+    }
+}
+
+
+static int Nuitka_Function_set_closure( Nuitka_FunctionObject *object, PyObject *value )
+{
+    PyErr_Format(
+#if PYTHON_VERSION < 300
+        PyExc_TypeError,
+#else
+        PyExc_AttributeError,
+#endif
+        "readonly attribute"
+    );
+
+    return -1;
+}
+
+
 static PyObject *Nuitka_Function_get_defaults( Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( (PyObject *)object->m_defaults );
@@ -369,7 +406,7 @@ static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
 static PyGetSetDef Nuitka_Function_getset[] =
 {
 #if PYTHON_VERSION >= 330
-   { (char *)"__qualname__",    (getter)Nuitka_Function_get_qualname,    (setter)Nuitka_Function_set_qualname},
+   { (char *)"__qualname__",    (getter)Nuitka_Function_get_qualname,    (setter)Nuitka_Function_set_qualname, NULL },
 #endif
 #if PYTHON_VERSION < 300
    { (char *)"func_name",       (getter)Nuitka_Function_get_name,        (setter)Nuitka_Function_set_name, NULL },
@@ -394,11 +431,15 @@ static PyGetSetDef Nuitka_Function_getset[] =
 #if PYTHON_VERSION < 300
    { (char *)"func_globals",    (getter)Nuitka_Function_get_globals,     (setter)Nuitka_Function_set_globals, NULL },
 #endif
+   { (char *)"__closure__",     (getter)Nuitka_Function_get_closure,     (setter)Nuitka_Function_set_closure, NULL },
+#if PYTHON_VERSION < 300
+   { (char *)"func_closure",    (getter)Nuitka_Function_get_closure,     (setter)Nuitka_Function_set_closure, NULL },
+#endif
    { (char *)"__globals__",     (getter)Nuitka_Function_get_globals,     (setter)Nuitka_Function_set_globals, NULL },
    { (char *)"__module__",      (getter)Nuitka_Function_get_module,      (setter)Nuitka_Function_set_module, NULL },
 #if PYTHON_VERSION >= 300
-   { (char *)"__kwdefaults__",  (getter)Nuitka_Function_get_kwdefaults,  (setter)Nuitka_Function_set_kwdefaults},
-   { (char *)"__annotations__", (getter)Nuitka_Function_get_annotations, (setter)Nuitka_Function_set_annotations},
+   { (char *)"__kwdefaults__",  (getter)Nuitka_Function_get_kwdefaults,  (setter)Nuitka_Function_set_kwdefaults, NULL },
+   { (char *)"__annotations__", (getter)Nuitka_Function_get_annotations, (setter)Nuitka_Function_set_annotations, NULL },
 
 #endif
    { NULL }
