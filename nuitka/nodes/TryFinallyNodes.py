@@ -313,6 +313,8 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
                 # block, so it destroys the assumptions for loop turn around.
                 constraint_collection.degradePartiallyFromCode(tried_statement_sequence)
 
+            # In case there are assignments hidden in the expression too.
+            constraint_collection.degradePartiallyFromCode(self.getExpression())
 
             # Then assuming no exception, the no raise block if present.
             result = final_statement_sequence.computeStatementsSequence(
