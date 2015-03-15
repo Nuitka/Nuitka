@@ -69,6 +69,10 @@ if args:
 if coverage_mode:
     two_step_execution = True
 
+# The coverage mode doesn't work with debug mode.
+if coverage_mode:
+    python_debug = False
+
 comparison_mode = not coverage_mode
 
 assert not standalone_mode or not module_mode
