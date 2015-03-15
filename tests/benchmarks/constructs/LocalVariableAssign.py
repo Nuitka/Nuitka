@@ -33,6 +33,8 @@ def calledRepeatedly():
     local_value * 2
 # construct_end
 
+    return local_value
+
 for x in xrange(50000):
     calledRepeatedly()
 
