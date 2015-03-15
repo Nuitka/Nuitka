@@ -163,6 +163,11 @@ def buildLambdaNode(provider, node, source_ref):
         source_ref    = body.getSourceReference()
     )
 
+
+    body = makeStatementsSequenceFromStatement(
+        statement = body,
+    )
+
     function_body.setBody(body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)

@@ -24,7 +24,10 @@ are conditional statements and not the issue anymore.
 
 from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
 
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import (
+    StatementChildrenHavingBase,
+    checkStatementsSequenceOrNone
+)
 
 
 class StatementTryExcept(StatementChildrenHavingBase):
@@ -34,6 +37,11 @@ class StatementTryExcept(StatementChildrenHavingBase):
         "tried",
         "handling"
     )
+
+    checkers = {
+        "tried"    : checkStatementsSequenceOrNone,
+        "handling" : checkStatementsSequenceOrNone
+    }
 
     def __init__(self, tried, handling, public_exc, source_ref):
         self.public_exc = public_exc

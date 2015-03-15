@@ -1318,3 +1318,10 @@ class SideEffectsFromChildrenMixin:
             )
 
         return tuple(result)
+
+
+# TODO: Maybe this should be in a "Checkers" module
+def checkStatementsSequenceOrNone(value):
+    assert value is None or value.kind == "STATEMENTS_SEQUENCE"
+
+    return value

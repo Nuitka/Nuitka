@@ -44,7 +44,8 @@ from .NodeBases import (
     ExpressionChildrenHavingBase,
     ExpressionMixin,
     NodeBase,
-    SideEffectsFromChildrenMixin
+    SideEffectsFromChildrenMixin,
+    checkStatementsSequenceOrNone
 )
 from .ParameterSpecs import TooManyArguments, matchCall
 
@@ -63,6 +64,10 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     named_children = (
         "body",
     )
+
+    checkers = {
+        "body" : checkStatementsSequenceOrNone
+    }
 
     if Utils.python_version >= 340:
         qualname_setup = None
@@ -129,7 +134,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
                 "body" : None # delayed
             }
         )
-
 
         MarkGeneratorIndicator.__init__(self)
 

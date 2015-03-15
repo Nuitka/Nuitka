@@ -126,6 +126,11 @@ def buildFunctionNode(provider, node, source_ref):
             )
         )
 
+    if function_statements_body.isStatementsFrame():
+        function_statements_body = makeStatementsSequenceFromStatement(
+            statement = function_statements_body
+        )
+
     function_body.setBody(
         function_statements_body
     )
@@ -396,10 +401,8 @@ def addFunctionVariableReleases(function):
         body = function.getBody()
 
         if body.isStatementsFrame():
-            body = makeStatementsSequence(
-                statements = (body,),
-                allow_none = False,
-                source_ref = source_ref
+            body = makeStatementsSequenceFromStatement(
+                statement = body
             )
 
         body = StatementTryFinally(
@@ -414,5 +417,7 @@ def addFunctionVariableReleases(function):
         )
 
         function.setBody(
-            makeStatementsSequenceFromStatement(body)
+            makeStatementsSequenceFromStatement(
+                statement = body
+            )
         )

@@ -22,7 +22,11 @@ statements for it. These re-formulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeBases import (
+    NodeBase,
+    StatementChildrenHavingBase,
+    checkStatementsSequenceOrNone
+)
 
 
 class StatementLoop(StatementChildrenHavingBase):
@@ -31,6 +35,10 @@ class StatementLoop(StatementChildrenHavingBase):
     named_children = (
         "frame",
     )
+
+    checkers = {
+        "frame" : checkStatementsSequenceOrNone
+    }
 
     def __init__(self, body, source_ref):
         StatementChildrenHavingBase.__init__(

@@ -33,7 +33,8 @@ from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeBase,
     ExpressionMixin,
-    NodeBase
+    NodeBase,
+    checkStatementsSequenceOrNone
 )
 
 
@@ -138,12 +139,6 @@ class PythonModuleMixin:
         return result
 
 
-def checkModuleBody(value):
-    assert value is None or value.isStatementsSequence()
-
-    return value
-
-
 class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
                    ClosureGiverNodeBase):
     """ Module
@@ -159,7 +154,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     )
 
     checkers = {
-        "body": checkModuleBody
+        "body": checkStatementsSequenceOrNone
     }
 
     def __init__(self, name, package_name, source_ref):

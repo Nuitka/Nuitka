@@ -24,7 +24,11 @@ in concept.
 
 from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
 
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase,
+    checkStatementsSequenceOrNone
+)
 
 
 class ReturnBreakContinueHandlingMixin:
@@ -63,6 +67,11 @@ class StatementTryFinally(StatementChildrenHavingBase,
         "tried",
         "final"
     )
+
+    checkers = {
+        "tried" : checkStatementsSequenceOrNone,
+        "final" : checkStatementsSequenceOrNone,
+    }
 
     def __init__(self, tried, final, public_exc, source_ref):
         assert tried is None or tried.isStatementsSequence()
