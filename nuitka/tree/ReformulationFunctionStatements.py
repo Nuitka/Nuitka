@@ -394,6 +394,14 @@ def addFunctionVariableReleases(function):
 
     if releases:
         body = function.getBody()
+
+        if body.isStatementsFrame():
+            body = makeStatementsSequence(
+                statements = (body,),
+                allow_none = False,
+                source_ref = source_ref
+            )
+
         body = StatementTryFinally(
             tried      = body,
             final      = makeStatementsSequence(
