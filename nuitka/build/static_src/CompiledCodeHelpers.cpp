@@ -2522,10 +2522,11 @@ void restoreStandaloneEnvironment()
 
 #endif
 
-static PyObject *our_path_object = NULL;
 
 PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
 {
+    static PyObject *our_path_object = NULL;
+
     if ( our_path_object == NULL )
     {
 #if defined( _NUITKA_EXE )
@@ -2548,10 +2549,18 @@ PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
 
     CHECK_OBJECT( our_path_object );
 
-    PyObject *os_path = PyImport_ImportModule("os.path");
-    CHECK_OBJECT(os_path);
+    static PyObject *os_path_join = NULL;
 
-    PyObject *os_path_join = PyObject_GetAttrString(os_path, "join");
+    if ( os_path_join == NULL )
+    {
+        PyObject *os_path = PyImport_ImportModule("os.path");
+        CHECK_OBJECT(os_path);
+
+        os_path_join = PyObject_GetAttrString(os_path, "join");
+        CHECK_OBJECT(os_path_join);
+
+        Py_DECREF(os_path);
+    }
 
     PyObject *result = PyObject_CallFunctionObjArgs( os_path_join, our_path_object, relative, NULL );
 
@@ -2560,9 +2569,6 @@ PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
         PyErr_PrintEx(1);
         abort();
     }
-
-    Py_DECREF(os_path);
-    Py_DECREF(os_path_join);
 
     return result;
 }
