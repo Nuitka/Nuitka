@@ -38,8 +38,27 @@ def getCodeObjectsDeclCode(context):
 def getCodeObjectsInitCode(context):
     statements = []
 
-    for code_object_key, code_identifier in context.getCodeObjects():
+    code_objects = context.getCodeObjects()
+
+    # Create the always identical, but dynamic filename first thing.
+    if code_objects:
+        # We do not care about release of this object, as code object live
+        # forever anyway.
+        statements.append(
+            "PyObject *code_object_filename = MAKE_RELATIVE_PATH( %s );" % (
+                context.getConstantCode(
+                    constant = code_objects[0][0][0]
+                )
+            )
+        )
+
+        filename_code = "code_object_filename"
+
+    for code_object_key, code_identifier in code_objects:
         co_flags = []
+
+        # Make sure the filename is always identical.
+        assert code_object_key[0] == code_objects[0][0][0]
 
         if code_object_key[2] != 0 and \
            (code_object_key[7] or Utils.python_version < 340):
@@ -61,12 +80,6 @@ def getCodeObjectsInitCode(context):
             co_flags.append("CO_NOFREE")
 
         co_flags.extend(code_object_key[11])
-
-        filename_code = "MAKE_RELATIVE_PATH( %s )" % (
-            context.getConstantCode(
-                constant = code_object_key[0]
-            )
-        )
 
         if Utils.python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
