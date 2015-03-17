@@ -161,27 +161,13 @@ static int Nuitka_Function_set_doc( Nuitka_FunctionObject *object, PyObject *val
 {
     PyObject *old = object->m_doc;
 
-    if ( value == Py_None || value == NULL )
+    if ( value == NULL )
     {
-        object->m_doc = INCREASE_REFCOUNT( Py_None );
+        value = Py_None;
     }
-#if PYTHON_VERSION < 300
-    else if (unlikely( PyString_Check( value ) == 0 ))
-    {
-        PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
-        return -1;
-    }
-#else
-    else if (unlikely( PyUnicode_Check( value ) == 0 ))
-    {
-        PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
-        return -1;
-    }
-#endif
-    else
-    {
-        object->m_doc = INCREASE_REFCOUNT( value );
-    }
+
+    object->m_doc = value;
+    Py_INCREF( value );
 
     Py_DECREF( old );
 
