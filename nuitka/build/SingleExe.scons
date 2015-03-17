@@ -965,13 +965,13 @@ if debug_mode or unstripped_mode:
         )
 else:
     if gcc_mode:
-        env.Append(
-            LINKFLAGS = ["-s"]
-        )
-
         if sys.platform == "darwin":
             env.Append(
                 LINKFLAGS = ["-Wno-deprecated-declarations"]
+            )
+        else:
+            env.Append(
+                LINKFLAGS = ["-s"]
             )
 
 # When debugging, optimize less than when optimizing, when not remove
