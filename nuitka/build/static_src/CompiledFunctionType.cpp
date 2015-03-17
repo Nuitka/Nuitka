@@ -459,17 +459,19 @@ static PyMethodDef Nuitka_Generator_methods[] =
 
 static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 {
+#ifndef __NUITKA_NO_ASSERT__
     // Save the current exception, if any, we must preserve it.
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
     FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
+    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
+#endif
 
     Nuitka_GC_UnTrack( function );
 
     if ( function->m_weakrefs != NULL )
     {
         PyObject_ClearWeakRefs( (PyObject *)function );
-        assert( !ERROR_OCCURRED() );
     }
 
     Py_DECREF( function->m_name );
@@ -500,7 +502,13 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 
     PyObject_GC_Del( function );
 
-    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
+#ifndef __NUITKA_NO_ASSERT__
+    PyThreadState *tstate = PyThreadState_GET();
+
+    assert( tstate->curexc_type == save_exception_type );
+    assert( tstate->curexc_value == save_exception_value );
+    assert( (PyTracebackObject *)tstate->curexc_traceback == save_exception_tb );
+#endif
 }
 
 static const long tp_flags =
