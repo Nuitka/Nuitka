@@ -446,7 +446,7 @@ static PyMethodDef Nuitka_Generator_methods[] =
 static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 {
 #ifndef __NUITKA_NO_ASSERT__
-    // Save the current exception, if any, we must preserve it.
+    // Save the current exception, if any, we must to not corrupt it.
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
     FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );

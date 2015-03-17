@@ -473,6 +473,14 @@ static const int max_method_cache_size = 4096;
 
 static void Nuitka_Method_tp_dealloc( Nuitka_MethodObject *method )
 {
+#ifndef __NUITKA_NO_ASSERT__
+    // Save the current exception, if any, we must to not corrupt it.
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
+    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
+#endif
+
     Nuitka_GC_UnTrack( method );
 
     if ( method->m_weakrefs != NULL )
@@ -494,6 +502,14 @@ static void Nuitka_Method_tp_dealloc( Nuitka_MethodObject *method )
     else {
         PyObject_GC_Del( method );
     }
+
+#ifndef __NUITKA_NO_ASSERT__
+    PyThreadState *tstate = PyThreadState_GET();
+
+    assert( tstate->curexc_type == save_exception_type );
+    assert( tstate->curexc_value == save_exception_value );
+    assert( (PyTracebackObject *)tstate->curexc_traceback == save_exception_tb );
+#endif
 }
 
 static PyObject *Nuitka_Method_tp_new( PyTypeObject* type, PyObject* args, PyObject *kw )
