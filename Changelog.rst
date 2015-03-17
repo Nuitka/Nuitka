@@ -62,6 +62,18 @@ Bug Fixes
 - Fix, generator objects didn't release weak references to them properly. Fixed
   in 0.5.10.2 already.
 
+- Compatiblity: The ``__closure__`` attributes of functions was so far not
+  supported, and rarely missing. Recent changes made it easy to expose, so now
+  it was added. This corrects `Issue#45 <http://bugs.nuitka.net/issue45>`__.
+
+- MacOS: A linker warning about deprecated linker option ``-s`` was solved by
+  removing the option.
+
+- Compatibility: Nuitka was enforcing that the ``__doc__`` attribute to be a
+  string object, and gave a misleading error message. This check must not be
+  done though, ``__doc__`` can be any type in Python. This corrects `Issue#177
+  <http://bugs.nuitka.net/issue177>`__.
+
 New Optimization
 ----------------
 
@@ -156,6 +168,10 @@ Testing
 
 - The tests of CPython are now also run with Python in debug mode, but only on
   Linux, enhancing reference leak coverage.
+
+- The CPython test parts which had been disabled due to reference cycles
+  involving compiled functions, or usage of ``__closure__`` attribute, were
+  reactivated.
 
 Organizational
 --------------
