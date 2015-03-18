@@ -1,5 +1,5 @@
-Nuitka Release 0.5.11 (Draft)
-=============================
+Nuitka Release 0.5.11
+=====================
 
 The last release represented a significant change and introduced a few
 regressions, which got addressed with hot fix releases. But it also had a focus
@@ -182,18 +182,20 @@ Organizational
 Summary
 -------
 
-This release is mostly a maintenance release, bringing out compatibility
-improvements, and important bug fixes, and usability features for modules,
-that expand the use cases of Nuitka.
+This release brings exciting new optimization with the focus on the ``try``
+constructs, now being done more optimal. It is also a maintenance release,
+bringing out compatibility improvements, and important bug fixes, and important
+usability features for the deployment of modules and packages, that further
+expand the use cases of Nuitka.
 
-It does not do all that much new optimization, which is going to be the focus of
-coming releases. The git flow had to be applied this time to get out fixes
-for regression bug fixes, that the big change of the last release brought,
-so this is also to consolidate these and the other corrections into a full
-release before making more invasive changes.
+The git flow had to be applied this time to get out fixes for regression bug
+fixes, that the big change of the last release brought, so this is also to
+consolidate these and the other corrections into a full release before making
+more invasive changes.
 
 The cleanups are leading the way to expanded SSA applied to global variable
-and shared variable values.
+and shared variable values as well. Already the built-in detect is now based
+on global SSA information, which was an important step ahead.
 
 
 Nuitka Release 0.5.10
