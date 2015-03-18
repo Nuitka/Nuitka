@@ -1,7 +1,93 @@
 Nuitka Release 0.5.12 (Draft)
 =============================
 
-This release is not done yet.
+This release contains massive amounts of corrections for long standing issues
+in the import recursion mechanism, as well as for standalone issues now visible
+after the ``__file__`` and ``__path__`` values have changed to become runtime
+dependent values.
+
+Bug Fixes
+---------
+
+- Fix, the ``__path__`` attribute for packages was still the original filename's
+  directory, even in file reference mode was ``runtime``.
+
+- The use of ``runtime`` as default file reference mode for executables, even if
+  not in standalone mode, was making acceleration harder than necessary. Changed
+  to ``original`` for that case. Fixed in 0.5.11.1 already.
+
+- The constant value for the smallest ``int`` that is not yet a ``long`` is
+  created using ``1`` due to C compiler limitations, but ``1`` was not yet
+  initialized properly, if this was a global constant, i.e. used in multiple
+  modules. Fixed in 0.5.11.2 already.
+
+- Standalone: Recent fixes around ``__path__`` revealed issues with PyWin32,
+  where modules from ``win32com.shell`` were not properly recursed to. Fixed in
+  0.5.11.2 already.
+
+- The importing of modules with the same name as a built-in module inside a
+  package falsely assumed these were the built-ins which need not exist, and
+  then didn't recurse into them. This affected standalone mode the most, as
+  the module was then missing entirely. This corrects `Issue#178
+  <http://bugs.nuitka.net/issue178>`__.
+
+  .. code-block:: python
+
+      # Inside "x.y" module:
+      import x.y.exceptions
+
+- Similarily, the importing of modules with the same name as standard library
+  modules could go wrong. This corrects `Issue#184
+  <http://bugs.nuitka.net/issue184>`__.
+
+  .. code-block:: python
+
+      # Inside "x.y" module:
+      import x.y.types
+
+New Features
+------------
+
+- Standalone: On systems, where ``.pth`` files inject Python packages at launch,
+  these are now detected, and taking into account. Previously Nuitka did not
+  recognize them, due to lack of ``__init__.py`` files. These are mostly pip
+  installations of e.g. ``zope.interface``.
+
+- The option ``--trace-execution`` now also covers early program initialisation
+  before any Python code runs, to ease finding bugs in this domain as well.
+
+- Added option ``--explain-imports`` to debug the import resolution code of
+  Nuitka.
+
+Organizational
+--------------
+
+- Changed default for file reference mode to ``original`` unless standalone or
+  module mode are used. For mere acceleration, breaking the reading of data
+  files from ``__file__`` is useless.
+
+Cleanups
+--------
+
+- Moved ``oset`` and ``odict`` modules which provide ordered sets and
+  dictionaries into a new package ``nuitka.container`` to clean up the
+  top level scope.
+
+- Moved ``SyntaxErrors`` to ``nuitka.tree`` package, where it is used to
+  format error messages.
+
+Summary
+-------
+
+This release is a major maintenance release. Support for namespace modules
+injected by ``*.pth`` is a major step for new compatibility. The import logic
+improvements expand the ability of standalone mode widely. Many more use cases
+will now work out of the box.
+
+There is no new optimization though as many of these improvements could not
+be delivered as hotfixes (too invasive code changes), and should be out to the
+users as a stable release.
+
 
 Nuitka Release 0.5.11
 =====================
@@ -135,9 +221,10 @@ New Optimization
               return 2
           c = 1
 
-   The impact may on execution speed may be marginal, but it is definitely
-   going to improve the branch merging to be added later. Note that ``c``
-   can only be optimized, because the exception handler is aborting.
+  The impact may on execution speed may be marginal, but it is definitely
+  going to improve the branch merging to be added later. Note that ``c`` can
+  only be optimized, because the exception handler is aborting, otherwise it
+  would change behaviour.
 
 - The creation of code objects for standalone mode and now all code objects was
   creating a distinct filename object for every function in a module, despite
