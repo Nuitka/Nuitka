@@ -321,7 +321,15 @@ codegen_group.add_option(
     dest    = "file_reference_mode",
     choices = ("original", "runtime"),
     default = "runtime",
-    help    = SUPPRESS_HELP,
+    help    = """\
+Select what value "__file__" is going to be. With "runtime" (default), the
+created binaries and modules, use the location of themselves to deduct the
+value of "__file__". Included packages pretend to be in directories below
+that location. This allows you to include data files in deliveries. If you
+merely seek acceleration and not deployment, it's better for you to use
+the original value, where the source files location will be used. For
+compatibility reasons, the "__file__" value will always have ".py" suffix
+independent of what it really is."""
 )
 
 codegen_group.add_option(
