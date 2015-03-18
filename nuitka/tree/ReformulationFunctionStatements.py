@@ -126,6 +126,11 @@ def buildFunctionNode(provider, node, source_ref):
             )
         )
 
+    if function_statements_body.isStatementsFrame():
+        function_statements_body = makeStatementsSequenceFromStatement(
+            statement = function_statements_body
+        )
+
     function_body.setBody(
         function_statements_body
     )
@@ -394,6 +399,12 @@ def addFunctionVariableReleases(function):
 
     if releases:
         body = function.getBody()
+
+        if body.isStatementsFrame():
+            body = makeStatementsSequenceFromStatement(
+                statement = body
+            )
+
         body = StatementTryFinally(
             tried      = body,
             final      = makeStatementsSequence(
@@ -406,5 +417,7 @@ def addFunctionVariableReleases(function):
         )
 
         function.setBody(
-            makeStatementsSequenceFromStatement(body)
+            makeStatementsSequenceFromStatement(
+                statement = body
+            )
         )

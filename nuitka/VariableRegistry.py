@@ -27,6 +27,7 @@ giving information about what really needs to be closure taken.
 # of information about that variable.
 variable_registry = {}
 
+
 class VariableInformation:
     def __init__(self, variable):
         self.variable = variable
@@ -53,6 +54,7 @@ def addVariableUsage(variable, user):
     variable_info.addUser(user)
 
 
+# TODO: This seems practically unused and not needed.
 def isSharedLogically(variable):
     variable_info = variable_registry[variable]
 
@@ -65,6 +67,10 @@ def isSharedTechnically(variable):
     top_owner = variable_info.getTopOwner()
 
     for user in variable_info.getUsers():
+        # May have been optimized away.
+        if variable not in user.getVariables():
+            continue
+
         while user != top_owner and \
               user.isExpressionFunctionBody() and \
               not user.needsCreation() and \
@@ -75,3 +81,42 @@ def isSharedTechnically(variable):
             return True
 
     return False
+
+
+# The key is a variable name, and the value is a set of traces.
+variable_traces = {}
+
+variable_traces_full = {}
+
+class GlobalVariableTrace:
+    def __init__(self):
+        self.traces = set()
+
+    def add(self, variable_trace):
+        self.traces.add(variable_trace)
+
+    def hasDefiniteWrites(self):
+        for trace in self.traces:
+            if trace.isAssignTrace():
+                return True
+
+        return False
+
+def addVariableTrace(variable_trace):
+    variable = variable_trace.getVariable()
+
+    if variable not in variable_traces:
+        variable_traces[variable] = GlobalVariableTrace()
+
+    variable_traces[variable].add(variable_trace)
+
+def startTraversal():
+    # Using global here, as this is really a singleton, in the form of a module,
+    # pylint: disable=W0603
+    global variable_traces_full, variable_traces
+
+    variable_traces_full = variable_traces
+    variable_traces = {}
+
+def getGlobalVariableTrace(variable):
+    return variable_traces_full.get(variable, None)

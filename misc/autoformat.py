@@ -112,6 +112,21 @@ def updateString(string_node):
             if '"' not in real_value:
                 string_node.value = '"' + real_value + '"'
 
+def updateDefNode(def_node):
+    # This is between "def" and function name.
+    def_node.first_formatting = " "
+
+    # This is after the opening/closing brace, we don't want it there.
+    def_node.third_formatting = ""
+    def_node.fourth_formatting = ""
+
+    # This is to insert/remove spaces or new lines, depending on line length
+    # so far, but is not functional at all.
+    for argument_node in def_node.arguments:
+        argument_node.first_formatting = " "
+        argument_node.second_formatting = " "
+
+
 for node in red.find_all("CallNode"):
     try:
         updateCall(node)
@@ -145,13 +160,12 @@ for node in red.find_all("StringNode"):
         raise
 
 for node in red.find_all("DefNode"):
-    # print("1:", repr(str(node.first_formatting)))
-    # print("2:", repr(str(node.second_formatting)))
-    #print("3:", repr(str(node.third_formatting)))
-    # print("4:", repr(str(node.fourth_formatting)))
-    pass
-    # TODO: Third and fourth formatting cannot be set.
-    # assert False, node.arguments
+    try:
+        updateDefNode(node)
+    except Exception:
+        print("Problem with", node)
+        node.help(deep = True, with_formatting = True)
+        raise
 
 new_name = sys.argv[1] + ".new"
 

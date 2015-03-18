@@ -109,6 +109,7 @@ from .Helpers import (
     makeDictCreationOrConstant,
     makeModuleFrame,
     makeSequenceCreationOrConstant,
+    makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
     mangleName,
     mergeStatements,
@@ -1055,9 +1056,12 @@ def createModuleTree(module, source_ref, source_filename, is_main):
         is_main     = is_main
     )
 
-    module.setBody(
-        module_body
-    )
+    if module_body.isStatementsFrame():
+        module_body = makeStatementsSequenceFromStatement(
+            statement = module_body,
+        )
+
+    module.setBody(module_body)
 
     completeVariableClosures(module)
 

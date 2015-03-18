@@ -310,3 +310,12 @@ def makeAddPair(a, b):
 print "Exec adds functions declares in explicit locals() given.", execDefinesFunctionToLocalsExplicity()
 
 os.unlink(tmp_filename)
+
+
+def execWithShortTuple():
+    try:
+        exec("print hey",)
+    except Exception as e:
+        return "gives exception: " + repr(e)
+
+print "Exec with too short tuple argument:", execWithShortTuple()

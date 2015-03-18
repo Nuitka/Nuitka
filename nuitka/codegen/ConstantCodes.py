@@ -35,6 +35,7 @@ from logging import warning
 import marshal
 from nuitka import Options
 from nuitka.__past__ import iterItems, long, unicode  # pylint: disable=W0622
+from nuitka.codegen import Emission
 from nuitka.Constants import (
     constant_builtin_types,
     getConstantWeight,
@@ -46,7 +47,6 @@ from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Indentation import indented
 from .Pickling import getStreamedConstant
-from nuitka.codegen import Emission
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
@@ -913,7 +913,7 @@ constant_counts = {}
 def getConstantInitCodes(module_context):
     decls = []
     inits = Emission.SourceCodeCollector()
-    check = Emission.SourceCodeCollector()
+    checks = Emission.SourceCodeCollector()
 
     sorted_constants = sorted(
         module_context.getConstants(),
@@ -933,7 +933,7 @@ def getConstantInitCodes(module_context):
 
             _addConstantInitCode(
                 emit                = inits,
-                check               = check,
+                check               = checks,
                 constant_type       = type(constant_value),
                 constant_value      = constant_value,
                 constant_identifier = constant_identifier,
@@ -958,7 +958,7 @@ def getConstantInitCodes(module_context):
                 )
             )
 
-    return decls, inits.codes
+    return decls, inits.codes, checks.codes
 
 
 def allocateNestedConstants(module_context):

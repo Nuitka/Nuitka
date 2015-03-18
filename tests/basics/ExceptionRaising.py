@@ -121,31 +121,6 @@ else:
 print("After catching, sys.exc_info is this", sys.exc_info())
 print('*' * 20)
 
-print("Checking tracebacks:")
-
-def checkTraceback():
-    import sys, traceback
-
-    try:
-        raise "me"
-    except:
-        assert sys.exc_info()[0] is not None
-        assert sys.exc_info()[1] is not None
-        assert sys.exc_info()[2] is not None
-
-        print("Check traceback:")
-
-        traceback.print_tb(sys.exc_info()[2], file = sys.stdout)
-
-        print("End of traceback")
-
-        print("Type is", sys.exc_info()[0])
-        print("Value is", sys.exc_info()[1])
-
-checkTraceback()
-
-print('*' * 20)
-
 print("Check lazy exception creation:")
 
 def checkExceptionConversion():

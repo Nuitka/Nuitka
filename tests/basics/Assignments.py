@@ -63,7 +63,7 @@ def otherFunction():
 
     print("Assignments from iterable", a ,b ,c)
 
-    print("Assignments from too small iterable",end = "")
+    print("Assignments from too small iterable",end = " ")
 
     try:
         f, g = 1,
@@ -80,7 +80,7 @@ def otherFunction():
         except UnboundLocalError:
             print("Variable g is untouched")
 
-    print("Assignments from too large iterable", end = "")
+    print("Assignments from too large iterable", end = " ")
 
     try:
         d, j = 1, 2, 3

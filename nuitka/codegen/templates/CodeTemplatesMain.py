@@ -209,6 +209,7 @@ int main( int argc, char *argv[] )
 
 #ifndef __NUITKA_NO_ASSERT__
     checkGlobalConstants();
+    checkModuleConstants___main__();
 #endif
 
     if ( ERROR_OCCURRED() )
@@ -248,10 +249,17 @@ PyDictObject *moduledict_%(module_identifier)s;
 // The module constants used
 %(constant_decl_codes)s
 
-static void _initModuleConstants(void)
+static void _initModuleConstants( void )
 {
 %(constant_init_codes)s
 }
+
+#ifndef __NUITKA_NO_ASSERT__
+void checkModuleConstants_%(module_identifier)s( void )
+{
+%(constant_check_codes)s
+}
+#endif
 
 // The module code objects.
 %(module_code_objects_decl)s

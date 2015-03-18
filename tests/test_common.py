@@ -698,3 +698,21 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
 
     gc.enable()
     return result
+
+from contextlib import contextmanager
+
+@contextmanager
+def withPythonPathChange(python_path):
+    if "PYTHONPATH" in os.environ:
+        old_path = os.environ["PYTHONPATH"]
+        os.environ["PYTHONPATH"] += ":" + python_path
+    else:
+        old_path = None
+        os.environ["PYTHONPATH"] = python_path
+
+    yield
+
+    if old_path is None:
+        del os.environ["PYTHONPATH"]
+    else:
+        os.environ["PYTHONPATH"] = old_path

@@ -23,6 +23,7 @@ expressed via nesting of conditional statements.
 """
 
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
+from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
@@ -85,9 +86,6 @@ branches."""
             return condition, "new_raise", """\
 Conditional expression raises in condition."""
 
-        from nuitka.optimizations.ConstraintCollections import \
-            ConstraintCollectionBranch
-
         # Decide this based on truth value of condition.
         truth_value = condition.getTruthValue()
 
@@ -100,6 +98,9 @@ Conditional expression raises in condition."""
         if truth_value is not False:
             branch_yes_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+            )
+
+            branch_yes_collection.computeBranch(
                 branch = yes_branch
             )
 
@@ -118,6 +119,9 @@ Conditional expression raises in condition."""
         if truth_value is not True:
             branch_no_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+            )
+
+            branch_no_collection.computeBranch(
                 branch = no_branch
             )
 
@@ -327,9 +331,6 @@ class StatementConditional(StatementChildrenHavingBase):
 Conditional statements already raises implicitly in condition, removing \
 branches."""
 
-        from nuitka.optimizations.ConstraintCollections import \
-            ConstraintCollectionBranch
-
         # Consider to not execute branches that we know to be true, but execute
         # the ones that may be true, potentially both.
         truth_value = condition.getTruthValue()
@@ -348,6 +349,9 @@ branches."""
         if yes_branch is not None and truth_value is not False:
             branch_yes_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+            )
+
+            branch_yes_collection.computeBranch(
                 branch = yes_branch
             )
 
@@ -371,8 +375,12 @@ branches."""
         if no_branch is not None and truth_value is not True:
             branch_no_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+            )
+
+            branch_no_collection.computeBranch(
                 branch = no_branch
             )
+
 
             # May have just gone away, so fetch it again.
             no_branch = self.getBranchNo()

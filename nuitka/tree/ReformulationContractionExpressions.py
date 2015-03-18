@@ -25,7 +25,7 @@ source code comments with developer manual sections.
 from nuitka import Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementReleaseVariable,
+    StatementReleaseVariable
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
@@ -554,18 +554,20 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     )
 
     function_body.setBody(
-        StatementsFrame(
-            statements    = statements,
-            guard_mode    = "pass_through"
-                              if emit_class is not ExpressionYield else
-                            "generator",
-            var_names     = (),
-            arg_count     = 0,
-            kw_only_count = 0,
-            has_starlist  = False,
-            has_stardict  = False,
-            code_name     = "contraction",
-            source_ref    = source_ref
+        makeStatementsSequenceFromStatement(
+            statement  = StatementsFrame(
+                statements    = statements,
+                guard_mode    = "pass_through"
+                                  if emit_class is not ExpressionYield else
+                                "generator",
+                var_names     = (),
+                arg_count     = 0,
+                kw_only_count = 0,
+                has_starlist  = False,
+                has_stardict  = False,
+                code_name     = "contraction",
+                source_ref    = source_ref
+            )
         )
     )
 

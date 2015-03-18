@@ -58,6 +58,7 @@ recurse_none       = hasArg("recurse_none")
 recurse_all        = hasArg("recurse_all")
 timing             = hasArg("timing")
 coverage_mode      = hasArg("coverage")
+original_file      = hasArg("original_file")
 
 if args:
     sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
@@ -67,6 +68,10 @@ if args:
 # compilation:
 if coverage_mode:
     two_step_execution = True
+
+# The coverage mode doesn't work with debug mode.
+if coverage_mode:
+    python_debug = False
 
 comparison_mode = not coverage_mode
 
@@ -179,6 +184,9 @@ if python_debug:
 
 if remove_output:
     extra_options.append("--remove-output")
+
+if original_file:
+    extra_options.append("--file-reference-choice=original")
 
 if binary_python_path:
     if os.name == "nt":
@@ -405,6 +413,17 @@ python_win_lib_re            = re.compile(
     r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib"
 )
 
+traceback_re                 = re.compile(
+    r'(F|f)ile "(.*?)", line (\d+)'
+)
+
+def traceback_re_callback(match):
+    return r'%sile "%s", line %s' % (
+        match.group(1),
+        os.path.abspath(match.group(2)),
+        match.group(3)
+    )
+
 
 def makeDiffable(output):
     result = []
@@ -481,6 +500,7 @@ def makeDiffable(output):
 
         line = ran_tests_re.sub(r"\1x.xxxs", line)
 
+        line = traceback_re.sub(traceback_re_callback, line)
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
         if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":

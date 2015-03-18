@@ -22,7 +22,7 @@ and its expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Builtins, Variables
+from nuitka import Builtins, VariableRegistry, Variables
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import ExpressionMixin, NodeBase
@@ -100,16 +100,21 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         self.variable = variable
 
     def computeExpression(self, constraint_collection):
-        assert self.variable is not None
+        variable = self.variable
+
+        assert variable is not None
 
         self.variable_trace = constraint_collection.getVariableCurrentTrace(
-            variable = self.variable
+            variable = variable
         )
 
-        if _isReadOnlyUnterdeterminedModuleVariable(self.variable):
-            constraint_collection.assumeUnclearLocals(self.source_ref)
+        global_trace = VariableRegistry.getGlobalVariableTrace(variable)
 
-        if _isReadOnlyModuleVariable(self.variable):
+        # TODO: Maybe local variables are factored into this strangely.
+        if global_trace is None and variable.isModuleVariable():
+            constraint_collection.assumeUnclearLocals()
+        elif (variable.isModuleVariable() and not global_trace.hasDefiniteWrites() ) or \
+             variable.isMaybeLocalVariable():
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
@@ -123,7 +128,8 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 Module variable '%s' found to be built-in exception reference.""" % (
                     self.variable_name
                 )
-            elif self.variable_name in Builtins.builtin_names:
+            elif self.variable_name in Builtins.builtin_names and \
+                 self.variable_name != "pow":
                 from .BuiltinRefNodes import ExpressionBuiltinRef
 
                 new_node = ExpressionBuiltinRef(
@@ -138,7 +144,7 @@ Module variable '%s' found to be built-in reference.""" % (
                 )
             elif self.variable_name == "__name__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getOwner().getParentModule().\
+                    constant   = variable.getOwner().getParentModule().\
                                    getFullName(),
                     source_ref = self.getSourceReference()
                 )
@@ -148,7 +154,7 @@ Module variable '%s' found to be built-in reference.""" % (
 Replaced read-only module attribute '__name__' with constant value."""
             elif self.variable_name == "__package__":
                 new_node = ExpressionConstantRef(
-                    constant   = self.variable.getOwner().getPackage(),
+                    constant   = variable.getOwner().getPackage(),
                     source_ref = self.getSourceReference()
                 )
 

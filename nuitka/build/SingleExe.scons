@@ -668,13 +668,7 @@ if standalone_mode:
         CPPDEFINES = ["_NUITKA_STANDALONE"]
     )
 
-    if win_target:
-        # This is used for "PathRemoveFileSpec" used in standalone mode
-        # Windows code.
-        env.Append(
-            LIBS = ["Shlwapi"]
-        )
-    elif "linux" in sys.platform:
+    if "linux" in sys.platform:
         env.Append(
             LIBS = ["dl"]
         )
@@ -692,11 +686,15 @@ if win_target:
                 LINKFLAGS = ["-Wl,--subsystem,windows"]
             )
 
+    # This is used for "PathRemoveFileSpec" used in Windows code.
+    env.Append(
+        LIBS = ["Shlwapi"]
+    )
+
     if win_disable_console:
         env.Append(
             CPPDEFINES = ["_NUITKA_WINMAIN_ENTRY_POINT"]
         )
-
 
 if python_debug:
     env.Append(
@@ -967,13 +965,13 @@ if debug_mode or unstripped_mode:
         )
 else:
     if gcc_mode:
-        env.Append(
-            LINKFLAGS = ["-s"]
-        )
-
         if sys.platform == "darwin":
             env.Append(
                 LINKFLAGS = ["-Wno-deprecated-declarations"]
+            )
+        else:
+            env.Append(
+                LINKFLAGS = ["-s"]
             )
 
 # When debugging, optimize less than when optimizing, when not remove

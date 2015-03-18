@@ -31,8 +31,8 @@ from nuitka.nodes.AssignNodes import (
     StatementDelAttribute,
     StatementDelSlice,
     StatementDelSubscript,
-    StatementReleaseVariable,
-    StatementDelVariable
+    StatementDelVariable,
+    StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import (

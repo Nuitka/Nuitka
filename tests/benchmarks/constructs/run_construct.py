@@ -207,7 +207,7 @@ if nuitka:
     shutil.copy(test_case_1, os.path.basename(test_case))
 
     subprocess.check_call(
-        [ nuitka, os.path.basename(test_case) ]
+        [ nuitka, "--python-flag=-S", os.path.basename(test_case) ]
     )
     os.rename(
         os.path.basename(test_case).replace(".py", ".build"),
@@ -220,7 +220,7 @@ if nuitka:
 
     shutil.copy(test_case_2, os.path.basename(test_case))
     subprocess.check_call(
-        [ nuitka, os.path.basename(test_case) ]
+        [ nuitka, "--python-flag=-S", os.path.basename(test_case) ]
     )
     os.rename(
         os.path.basename(test_case).replace(".py", ".build"),
@@ -273,12 +273,12 @@ if options.cpython:
     cpython_1 = runValgrind(
         "CPython construct",
         test_case_1,
-        ("python", test_case_1)
+        ("python", "-S", test_case_1)
     )
     cpython_2 = runValgrind(
         "CPython baseline",
         test_case_2,
-        ("python", test_case_2)
+        ("python", "-S", test_case_2)
     )
 
     cpython_diff = cpython_1 - cpython_2

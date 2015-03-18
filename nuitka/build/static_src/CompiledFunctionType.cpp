@@ -161,27 +161,13 @@ static int Nuitka_Function_set_doc( Nuitka_FunctionObject *object, PyObject *val
 {
     PyObject *old = object->m_doc;
 
-    if ( value == Py_None || value == NULL )
+    if ( value == NULL )
     {
-        object->m_doc = INCREASE_REFCOUNT( Py_None );
+        value = Py_None;
     }
-#if PYTHON_VERSION < 300
-    else if (unlikely( PyString_Check( value ) == 0 ))
-    {
-        PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
-        return -1;
-    }
-#else
-    else if (unlikely( PyUnicode_Check( value ) == 0 ))
-    {
-        PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
-        return -1;
-    }
-#endif
-    else
-    {
-        object->m_doc = INCREASE_REFCOUNT( value );
-    }
+
+    object->m_doc = value;
+    Py_INCREF( value );
 
     Py_DECREF( old );
 
@@ -231,6 +217,43 @@ static int Nuitka_Function_set_code( Nuitka_FunctionObject *object, PyObject *va
     PyErr_Format( PyExc_RuntimeError, "__code__ is not writable in Nuitka" );
     return -1;
 }
+
+static PyObject *Nuitka_Function_get_closure( Nuitka_FunctionObject *object )
+{
+    if ( object->m_closure )
+    {
+        PyObject *result = PyTuple_New( object->m_closure_given );
+
+        for( Py_ssize_t i = 0; i < object->m_closure_given; i++ )
+        {
+            PyTuple_SET_ITEM( result, i, (PyObject *)object->m_closure[i] );
+            Py_INCREF( (PyObject *)object->m_closure[i] );
+        }
+
+        return result;
+    }
+    else
+    {
+        Py_INCREF( Py_None );
+        return Py_None;
+    }
+}
+
+
+static int Nuitka_Function_set_closure( Nuitka_FunctionObject *object, PyObject *value )
+{
+    PyErr_Format(
+#if PYTHON_VERSION < 300
+        PyExc_TypeError,
+#else
+        PyExc_AttributeError,
+#endif
+        "readonly attribute"
+    );
+
+    return -1;
+}
+
 
 static PyObject *Nuitka_Function_get_defaults( Nuitka_FunctionObject *object )
 {
@@ -369,7 +392,7 @@ static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
 static PyGetSetDef Nuitka_Function_getset[] =
 {
 #if PYTHON_VERSION >= 330
-   { (char *)"__qualname__",    (getter)Nuitka_Function_get_qualname,    (setter)Nuitka_Function_set_qualname},
+   { (char *)"__qualname__",    (getter)Nuitka_Function_get_qualname,    (setter)Nuitka_Function_set_qualname, NULL },
 #endif
 #if PYTHON_VERSION < 300
    { (char *)"func_name",       (getter)Nuitka_Function_get_name,        (setter)Nuitka_Function_set_name, NULL },
@@ -394,11 +417,15 @@ static PyGetSetDef Nuitka_Function_getset[] =
 #if PYTHON_VERSION < 300
    { (char *)"func_globals",    (getter)Nuitka_Function_get_globals,     (setter)Nuitka_Function_set_globals, NULL },
 #endif
+   { (char *)"__closure__",     (getter)Nuitka_Function_get_closure,     (setter)Nuitka_Function_set_closure, NULL },
+#if PYTHON_VERSION < 300
+   { (char *)"func_closure",    (getter)Nuitka_Function_get_closure,     (setter)Nuitka_Function_set_closure, NULL },
+#endif
    { (char *)"__globals__",     (getter)Nuitka_Function_get_globals,     (setter)Nuitka_Function_set_globals, NULL },
    { (char *)"__module__",      (getter)Nuitka_Function_get_module,      (setter)Nuitka_Function_set_module, NULL },
 #if PYTHON_VERSION >= 300
-   { (char *)"__kwdefaults__",  (getter)Nuitka_Function_get_kwdefaults,  (setter)Nuitka_Function_set_kwdefaults},
-   { (char *)"__annotations__", (getter)Nuitka_Function_get_annotations, (setter)Nuitka_Function_set_annotations},
+   { (char *)"__kwdefaults__",  (getter)Nuitka_Function_get_kwdefaults,  (setter)Nuitka_Function_set_kwdefaults, NULL },
+   { (char *)"__annotations__", (getter)Nuitka_Function_get_annotations, (setter)Nuitka_Function_set_annotations, NULL },
 
 #endif
    { NULL }
@@ -418,6 +445,14 @@ static PyMethodDef Nuitka_Generator_methods[] =
 
 static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 {
+#ifndef __NUITKA_NO_ASSERT__
+    // Save the current exception, if any, we must to not corrupt it.
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
+    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
+#endif
+
     Nuitka_GC_UnTrack( function );
 
     if ( function->m_weakrefs != NULL )
@@ -430,8 +465,8 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
     Py_DECREF( function->m_qualname );
 #endif
 
+    // These may actually re-surrect the object, not?
     Py_XDECREF( function->m_dict );
-
     Py_DECREF( function->m_defaults );
 
     Py_DECREF( function->m_doc );
@@ -452,6 +487,14 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
     }
 
     PyObject_GC_Del( function );
+
+#ifndef __NUITKA_NO_ASSERT__
+    PyThreadState *tstate = PyThreadState_GET();
+
+    assert( tstate->curexc_type == save_exception_type );
+    assert( tstate->curexc_value == save_exception_value );
+    assert( (PyTracebackObject *)tstate->curexc_traceback == save_exception_tb );
+#endif
 }
 
 static const long tp_flags =

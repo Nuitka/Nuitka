@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.10.2
+Nuitka V0.5.11
 Copyright (C) 2015 Kay Hayen."""
 
 import logging
@@ -74,7 +74,9 @@ parser.add_option(
     help    = """\
 Enable standalone mode in build. This allows you to transfer the created binary
 to other machines without it relying on an existing Python installation. It
-implies these options: "--recurse-all --recurse-stdlib". Defaults to off.""",
+implies these options: "--recurse-all --recurse-stdlib". You may also want
+to use "--python-flag=no_site" to avoid the "site.py" module. Defaults to
+off.""",
 )
 
 parser.add_option(
@@ -304,7 +306,6 @@ Allow minor deviations from CPython behavior, e.g. better tracebacks, which
 are not really incompatible, but different.""",
 )
 
-
 codegen_group.add_option(
     "--code-gen-no-statement-lines",
     action  = "store_false",
@@ -314,6 +315,23 @@ codegen_group.add_option(
 #     help    = """\
 # Statements shall have their line numbers set. Disable this for less precise
 # exceptions and slightly faster code. Not recommended. Defaults to off."""
+)
+
+codegen_group.add_option(
+    "--file-reference-choice",
+    action  = "store",
+    dest    = "file_reference_mode",
+    choices = ("original", "runtime"),
+    default = "runtime",
+    help    = """\
+Select what value "__file__" is going to be. With "runtime" (default), the
+created binaries and modules, use the location of themselves to deduct the
+value of "__file__". Included packages pretend to be in directories below
+that location. This allows you to include data files in deliveries. If you
+merely seek acceleration and not deployment, it's better for you to use
+the original value, where the source files location will be used. For
+compatibility reasons, the "__file__" value will always have ".py" suffix
+independent of what it really is."""
 )
 
 codegen_group.add_option(
@@ -634,6 +652,9 @@ def shallNotDoExecCppCall():
 
 def shallHaveStatementLines():
     return options.statement_lines
+
+def shallHaveOriginalFileReference():
+    return options.file_reference_mode == "original"
 
 def shallMakeModule():
     return not options.executable

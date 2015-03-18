@@ -22,7 +22,14 @@ is used in re-formulations of Nuitka only, and not real Python. But very similar
 in concept.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
+
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase,
+    checkStatementsSequenceOrNone
+)
+
 
 class ReturnBreakContinueHandlingMixin:
     def __init__(self):
@@ -60,6 +67,11 @@ class StatementTryFinally(StatementChildrenHavingBase,
         "tried",
         "final"
     )
+
+    checkers = {
+        "tried" : checkStatementsSequenceOrNone,
+        "final" : checkStatementsSequenceOrNone,
+    }
 
     def __init__(self, tried, final, public_exc, source_ref):
         assert tried is None or tried.isStatementsSequence()
@@ -151,30 +163,21 @@ class StatementTryFinally(StatementChildrenHavingBase,
 
         final_statement_sequence = self.getBlockFinal()
 
-        # TODO: The final must not assume that all of tried was executed,
-        # instead it may have aborted after any part of it, which is a rather
-        # complex definition.
-
         if final_statement_sequence is not None:
+            # TODO: The must not assume that all of tried was executed, instead
+            # it may have aborted after any part of it, which is a rather
+            # a complex situation, so we just invalidate all writes.
+
+            collection_exception_handling = ConstraintCollectionBranch(
+                parent = constraint_collection,
+            )
+
             if tried_statement_sequence is not None:
-                from nuitka.tree.Extractions import getVariablesWritten
-
-                variable_writes = getVariablesWritten(
-                    tried_statement_sequence
-                )
-
-
-                # Mark all variables as unknown that are written in the tried
-                # block, so it destroys the assumptions for final block.
-                for variable, _variable_version in variable_writes:
-                    constraint_collection.markActiveVariableAsUnknown(
-                        variable = variable
-                    )
-
+                collection_exception_handling.degradePartiallyFromCode(tried_statement_sequence)
 
             # Then assuming no exception, the no raise block if present.
             result = final_statement_sequence.computeStatementsSequence(
-                constraint_collection = constraint_collection
+                constraint_collection = collection_exception_handling
             )
 
             if result is not final_statement_sequence:
@@ -203,10 +206,41 @@ Removed try/finally with empty final block."""
             return tried_statement_sequence, "new_statements", """\
 Removed try/finally with try block that cannot raise."""
         else:
-            # TODO: Can't really merge it yet.
-            constraint_collection.removeAllKnowledge()
+            # Otherwise keep it as it, merging the finally block back into
+            # the constraint collection.
+            constraint_collection.mergeBranches(
+                collection_yes = collection_exception_handling,
+                collection_no  = None
+            )
 
-            # Otherwise keep it as it.
+            new_statements = tried_statement_sequence.getStatements()
+            # Determine statements inside the exception guard, that need not be in
+            # a handler, because they wouldn't raise an exception. TODO: This
+            # actual exception being watched for should be considered, by look
+            # for any now.
+            outside_pre = []
+            while new_statements and \
+                  not new_statements[0].mayRaiseException(BaseException) and \
+                  not new_statements[0].mayReturn() and \
+                  not new_statements[0].mayBreak() and \
+                  not new_statements[0].mayContinue():
+
+                outside_pre.append(new_statements[0])
+                new_statements = list(new_statements)[1:]
+
+            if outside_pre:
+                tried_statement_sequence.setStatements(new_statements)
+
+                from .NodeMakingHelpers import makeStatementsSequenceReplacementNode
+
+                result = makeStatementsSequenceReplacementNode(
+                    statements = outside_pre + [self],
+                    node       = self
+                )
+
+                return result, "new_statements", """\
+Moved statements of tried block that cannot abort to the outside."""
+
             return self, None, None
 
 
@@ -320,25 +354,21 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
         # complex definition.
 
         if final_statement_sequence is not None:
+            collection_exception_handling = ConstraintCollectionBranch(
+                parent = constraint_collection,
+            )
+
             if tried_statement_sequence is not None:
-                from nuitka.tree.Extractions import getVariablesWritten
-
-                variable_writes = getVariablesWritten(
-                    tried_statement_sequence
-                )
-
-
                 # Mark all variables as unknown that are written in the tried
                 # block, so it destroys the assumptions for loop turn around.
-                for variable, _variable_version in variable_writes:
-                    constraint_collection.markActiveVariableAsUnknown(
-                        variable = variable
-                    )
+                collection_exception_handling.degradePartiallyFromCode(tried_statement_sequence)
 
+            # In case there are assignments hidden in the expression too.
+            collection_exception_handling.degradePartiallyFromCode(self.getExpression())
 
             # Then assuming no exception, the no raise block if present.
             result = final_statement_sequence.computeStatementsSequence(
-                constraint_collection = constraint_collection
+                constraint_collection = collection_exception_handling
             )
 
             if result is not final_statement_sequence:
@@ -353,8 +383,14 @@ class ExpressionTryFinally(ExpressionChildrenHavingBase):
             return self.getExpression(), "new_expression", """\
 Removed try/finally expression with empty tried and final block."""
         else:
-            # TODO: Can't really merge it yet.
-            constraint_collection.removeAllKnowledge()
+            if final_statement_sequence is not None:
+                # Otherwise keep it as it, merging the finally block back into
+                # the constraint collection.
+                constraint_collection.mergeBranches(
+                    collection_yes = collection_exception_handling,
+                    collection_no  = None
+                )
+
 
             # Otherwise keep it as it.
             return self, None, None

@@ -189,6 +189,14 @@ static PyObject *Nuitka_Frame_tp_repr( Nuitka_FrameObject *nuitka_frame )
 
 static void Nuitka_Frame_tp_dealloc( Nuitka_FrameObject *nuitka_frame )
 {
+#ifndef __NUITKA_NO_ASSERT__
+    // Save the current exception, if any, we must to not corrupt it.
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
+    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
+#endif
+
     Nuitka_GC_UnTrack( nuitka_frame );
 
     PyFrameObject *frame = &nuitka_frame->m_frame;
@@ -219,6 +227,14 @@ static void Nuitka_Frame_tp_dealloc( Nuitka_FrameObject *nuitka_frame )
     Py_XDECREF( frame->f_exc_traceback );
 
     PyObject_GC_Del( nuitka_frame );
+
+#ifndef __NUITKA_NO_ASSERT__
+    PyThreadState *tstate = PyThreadState_GET();
+
+    assert( tstate->curexc_type == save_exception_type );
+    assert( tstate->curexc_value == save_exception_value );
+    assert( (PyTracebackObject *)tstate->curexc_traceback == save_exception_tb );
+#endif
 }
 
 static int Nuitka_Frame_tp_traverse( PyFrameObject *frame, visitproc visit, void *arg )

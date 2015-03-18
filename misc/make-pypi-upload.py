@@ -17,9 +17,14 @@
 #     limitations under the License.
 #
 
+""" Make PyPI upload of Nuitka, and check success of it. """
+
 from __future__ import print_function
 
-import os, sys, shutil, subprocess
+import os
+import subprocess
+import time
+import xmlrpclib
 
 nuitka_version = subprocess.check_output(
     "./bin/nuitka --version", shell = True
@@ -44,18 +49,20 @@ assert 0 == os.system("python setup.py sdist upload")
 
 # A delay might be necessary before making the check.
 
-import xmlrpclib
-import time
 
-# Wait some time for PyPI to catch up with us. Without delay
-# the old version will still appear. Since this is running
-# in a Buildbot, we need not be optimal.
-time.sleep(360)
+for i in range(60):
+    # Wait some time for PyPI to catch up with us. Without delay
+    # the old version will still appear. Since this is running
+    # in a Buildbot, we need not be optimal.
+    time.sleep(5*60)
 
-pypi = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
-pypi_versions = pypi.package_releases("Nuitka")
+    pypi = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
+    pypi_versions = pypi.package_releases("Nuitka")
 
-assert len(pypi_versions) == 1, pypi_versions
-assert nuitka_version == pypi_versions[0], (nuitka_version, pypi_versions)
+    assert len(pypi_versions) == 1, pypi_versions
+    if nuitka_version == pypi_versions[0]:
+        break
+
+    print("Version check failed:", nuitka_version, pypi_versions)
 
 print("Uploaded OK:", pypi_versions[0])

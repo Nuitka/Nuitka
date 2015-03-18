@@ -258,8 +258,6 @@ def _detectImports(command, is_late):
                    'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
                    'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it
 
-    reduced_path = list(sys.path)
-
     reduced_path = [
         path_element
         for path_element in
@@ -423,6 +421,10 @@ def scanStandardLibraryPath(stdlib_dir):
                 filenames.remove("popen_fork.py")
                 filenames.remove("popen_forkserver.py")
                 filenames.remove("popen_spawn_posix.py")
+
+        if Utils.getOS() == "NetBSD":
+            if import_path == "xml.sax":
+                filenames.remove("expatreader.py")
 
         for filename in filenames:
             if filename.endswith(".py") and filename not in ignore_modules:

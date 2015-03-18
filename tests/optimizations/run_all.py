@@ -86,7 +86,8 @@ def checkSequence(statements):
         if kind == "PrintValue":
             print_arg, = getRole(statement, "value")
 
-            if getKind(print_arg) != "ConstantRef":
+            if getKind(print_arg) not in ("ConstantRef",
+                                          "ModuleFileAttributeRef"):
                 sys.exit(
                     "%s: Error, print of non-constant %s." % (
                         getSourceRef(statement),
@@ -120,7 +121,9 @@ def checkSequence(statements):
 
             source_kind = getKind(assign_source)
 
-            if source_kind not in("ConstantRef", "ImportModuleHard"):
+            if source_kind not in("ConstantRef",
+                                  "ImportModuleHard",
+                                  "ModuleFileAttributeRef"):
                 sys.exit("Error, assignment from of non-constant %s." % source_kind)
             continue
 

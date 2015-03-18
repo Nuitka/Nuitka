@@ -22,9 +22,11 @@ statements for it. These re-formulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
-from nuitka.tree.Extractions import getVariablesWritten
-
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeBases import (
+    NodeBase,
+    StatementChildrenHavingBase,
+    checkStatementsSequenceOrNone
+)
 
 
 class StatementLoop(StatementChildrenHavingBase):
@@ -33,6 +35,10 @@ class StatementLoop(StatementChildrenHavingBase):
     named_children = (
         "frame",
     )
+
+    checkers = {
+        "frame" : checkStatementsSequenceOrNone
+    }
 
     def __init__(self, body, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -68,24 +74,17 @@ class StatementLoop(StatementChildrenHavingBase):
     def isStatementAborting(self):
         loop_body = self.getLoopBody()
 
-        if loop_body is not None:
-            return not loop_body.mayBreak()
-        else:
+        if loop_body is None:
             return True
+        else:
+            return not loop_body.mayBreak()
 
     def computeStatement(self, constraint_collection):
         loop_body = self.getLoopBody()
 
         if loop_body is not None:
-            # Look ahead. what will be written.
-            variable_writes = getVariablesWritten(loop_body)
-
-            # Mark all variables as unknown that are written in the loop body,
-            # so it destroys the assumptions for loop turn around.
-            for variable, _variable_version in variable_writes:
-                constraint_collection.markActiveVariableAsUnknown(
-                    variable = variable
-                )
+            # Look ahead. what will be written and degrade about that.
+            constraint_collection.degradePartiallyFromCode(loop_body)
 
             result = loop_body.computeStatementsSequence(
                 constraint_collection = constraint_collection

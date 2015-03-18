@@ -22,21 +22,19 @@ together and cross-module optimizations are the most difficult to tackle.
 """
 
 import re
-import sys
 
 from nuitka import Importing, Options, Utils, Variables
-from nuitka.optimizations. \
-    ConstraintCollections import ConstraintCollectionModule
+from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.oset import OrderedSet
 from nuitka.SourceCodeReferences import SourceCodeReference
 
-from .ConstantRefNodes import ExpressionConstantRef
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeBase,
     ExpressionMixin,
-    NodeBase
+    NodeBase,
+    checkStatementsSequenceOrNone
 )
 
 
@@ -124,29 +122,21 @@ class PythonModuleMixin:
         return self.getSourceReference().getFilename()
 
     def getRunTimeFilename(self):
-        if Options.isStandaloneMode():
-            filename = self.getCompileTimeFilename()
-
-            full_name = self.getFullName()
-
-            result = Utils.basename(filename)
-            current = filename
-
-            for _i in range(full_name.count('.')):
-                current = Utils.dirname(current)
-                result = Utils.joinpath(Utils.basename(current), result)
-
-            return result
-        else:
+        if Options.shallHaveOriginalFileReference():
             return self.getCompileTimeFilename()
 
+        filename = self.getCompileTimeFilename()
 
+        full_name = self.getFullName()
 
+        result = Utils.basename(filename)
+        current = filename
 
-def checkModuleBody(value):
-    assert value is None or value.isStatementsSequence()
+        for _i in range(full_name.count('.')):
+            current = Utils.dirname(current)
+            result = Utils.joinpath(Utils.basename(current), result)
 
-    return value
+        return result
 
 
 class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
@@ -164,7 +154,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     )
 
     checkers = {
-        "body": checkModuleBody
+        "body": checkStatementsSequenceOrNone
     }
 
     def __init__(self, name, package_name, source_ref):
@@ -341,8 +331,18 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         self.constraint_collection.makeVariableTraceOptimizations(self)
 
+    def getTraceCollections(self):
+        yield self.constraint_collection
 
+        for function in self.getUsedFunctions():
+            yield function.constraint_collection
 
+    def hasUnclearLocals(self):
+        for collection in self.getTraceCollections():
+            if collection.hasUnclearLocals():
+                return True
+
+        return False
 
 class SingleCreationMixin:
     created = set()
@@ -452,95 +452,6 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
     def startTraversal(self):
         pass
 
-    def getImplicitImports(self):
-        full_name = self.getFullName()
-
-        if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
-            if Utils.python_version < 300:
-                return (
-                    ("atexit", None),
-                    ("sip", None),
-                )
-            else:
-                return (
-                    ("sip", None),
-                )
-        elif full_name == "lxml.etree":
-            return (
-                ("gzip", None),
-                ("_elementpath", "lxml")
-            )
-        elif full_name == "gtk._gtk":
-            return (
-                ("pangocairo", None),
-                ("pango", None),
-                ("cairo", None),
-                ("gio", None),
-                ("atk", None),
-            )
-        else:
-            return ()
-
-    def considerImplicitImports(self, signal_change):
-        for module_name, module_package in self.getImplicitImports():
-            _module_package, _module_name, module_filename = \
-              Importing.findModule(
-                source_ref     = self.source_ref,
-                module_name    = module_name,
-                parent_package = module_package,
-                level          = -1,
-                warn           = True
-            )
-
-            if module_filename is None:
-                sys.exit(
-                    "Error, implicit module '%s' expected by '%s' not found" % (
-                        module_name,
-                        self.getFullName()
-                    )
-                )
-            elif Utils.isDir(module_filename):
-                module_kind = "py"
-            elif module_filename.endswith(".py"):
-                module_kind = "py"
-            elif module_filename.endswith(".so"):
-                module_kind = "shlib"
-            elif module_filename.endswith(".pyd"):
-                module_kind = "shlib"
-            else:
-                assert False, module_filename
-
-            from nuitka.tree import Recursion
-
-            decision, reason = Recursion.decideRecursion(
-                module_filename = module_filename,
-                module_name     = module_name,
-                module_package  = module_package,
-                module_kind     = module_kind
-            )
-
-            assert decision or reason == "Module is frozen."
-
-            if decision:
-                module_relpath = Utils.relpath(module_filename)
-
-                imported_module, added_flag = Recursion.recurseTo(
-                    module_package  = module_package,
-                    module_filename = module_filename,
-                    module_relpath  = module_relpath,
-                    module_kind     = module_kind,
-                    reason          = reason
-                )
-
-                from nuitka.ModuleRegistry import addUsedModule
-                addUsedModule(imported_module)
-
-                if added_flag:
-                    signal_change(
-                        "new_code",
-                        imported_module.getSourceReference(),
-                        "Recursed to module."
-                    )
 
 
 class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
@@ -556,16 +467,10 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
         return False
 
     def computeExpression(self, constraint_collection):
-        if Options.isStandaloneMode():
-            return self, None, None
-        else:
-            result = ExpressionConstantRef(
-                constant      = self.getCompileTimeFilename(),
-                user_provided = True,
-                source_ref    = self.getSourceReference()
-            )
+        # There is not a whole lot to do here, the path will change at run
+        # time
 
-            return result, None, None
+        return self, None, None
 
     def getCompileTimeFilename(self):
         return self.getParentModule().getCompileTimeFilename()

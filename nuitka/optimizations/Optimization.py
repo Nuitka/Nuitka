@@ -25,10 +25,11 @@ make others possible.
 
 from logging import debug
 
-from nuitka import ModuleRegistry, Options, Utils
+from nuitka import ModuleRegistry, Options, Utils, VariableRegistry
+from nuitka.optimizations import TraceCollections
+from nuitka.plugins.PluginBase import Plugins
 from nuitka.Tracing import printLine
 
-from . import ConstraintCollections
 from .Tags import TagSet
 
 _progress = Options.isShowProgress()
@@ -62,7 +63,7 @@ def signalChange(tags, source_ref, message):
     tag_set.onSignal(tags)
 
 # Use this globally from there, without cyclic dependency.
-ConstraintCollections.signalChange = signalChange
+TraceCollections.signalChange = signalChange
 
 def _optimizeModulePass(module):
     module.computeModule()
@@ -70,25 +71,11 @@ def _optimizeModulePass(module):
     # Pick up parent package if any.
     _attemptRecursion(module)
 
-    written_variables = module.constraint_collection.getWrittenVariables()
-
-    for variable in module.getVariables():
-        old_value = variable.getReadOnlyIndicator()
-        new_value = variable not in written_variables
-
-        if old_value is not new_value:
-            # Don't suddenly start to write.
-            assert not (new_value is False and old_value is True)
-
-            module.constraint_collection.signalChange(
-                "read_only_mvar",
-                module.getSourceReference(),
-                "Determined variable '{variable_name}' is only read.".format(
-                    variable_name = variable.getName()
-                )
+    for trace_collection in module.getTraceCollections():
+        for variable_trace in trace_collection.getVariableTracesAll():
+            VariableRegistry.addVariableTrace(
+                variable_trace
             )
-
-            variable.setReadOnlyIndicator(new_value)
 
 
 def optimizePythonModule(module):
@@ -131,7 +118,7 @@ def optimizePythonModule(module):
             )
         )
 
-    return touched
+    return touched or module.hasUnclearLocals()
 
 
 def optimizeShlibModule(module):
@@ -143,7 +130,7 @@ def optimizeShlibModule(module):
     global tag_set
     tag_set = TagSet()
 
-    module.considerImplicitImports(signal_change = signalChange)
+    Plugins.considerImplicitImports(module, signal_change = signalChange)
 
 
 def areEmptyTraces(variable_traces):
@@ -248,7 +235,9 @@ def optimizeVariables(module):
 def optimize():
     while True:
         finished = True
+
         ModuleRegistry.startTraversal()
+        VariableRegistry.startTraversal()
 
         while True:
             current_module = ModuleRegistry.nextModule()

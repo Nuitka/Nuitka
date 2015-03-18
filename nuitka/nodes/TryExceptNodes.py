@@ -22,7 +22,12 @@ are conditional statements and not the issue anymore.
 
 """
 
-from .NodeBases import StatementChildrenHavingBase
+from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
+
+from .NodeBases import (
+    StatementChildrenHavingBase,
+    checkStatementsSequenceOrNone
+)
 
 
 class StatementTryExcept(StatementChildrenHavingBase):
@@ -32,6 +37,11 @@ class StatementTryExcept(StatementChildrenHavingBase):
         "tried",
         "handling"
     )
+
+    checkers = {
+        "tried"    : checkStatementsSequenceOrNone,
+        "handling" : checkStatementsSequenceOrNone
+    }
 
     def __init__(self, tried, handling, public_exc, source_ref):
         self.public_exc = public_exc
@@ -147,17 +157,26 @@ class StatementTryExcept(StatementChildrenHavingBase):
             return None, "new_statements", """\
 Removed try/except with empty tried block."""
 
-        # TODO: Need not to remove all knowledge, but only the parts that were
-        # touched.
-        constraint_collection.removeAllKnowledge()
+
+        collection_exception_handling = ConstraintCollectionBranch(
+            parent = constraint_collection,
+        )
+
+        collection_exception_handling.degradePartiallyFromCode(tried_statement_sequence)
 
         if self.getExceptionHandling() is not None:
-            from nuitka.optimizations.ConstraintCollections import \
-              ConstraintCollectionBranch
-
-            _collection_exception_handling = ConstraintCollectionBranch(
-                parent = constraint_collection,
+            collection_exception_handling.computeBranch(
                 branch = self.getExceptionHandling()
+            )
+
+
+        # Merge only, if the exception handling itself does exit.
+        if self.getExceptionHandling() is None or \
+           not self.getExceptionHandling().isStatementAborting():
+
+            constraint_collection.mergeBranches(
+                collection_yes = collection_exception_handling,
+                collection_no  = None
             )
 
         # Without exception handlers remaining, nothing else to do. They may
@@ -166,17 +185,43 @@ Removed try/except with empty tried block."""
            self.getExceptionHandling().getStatements()[0].\
              isStatementReraiseException():
             return tried_statement_sequence, "new_statements", """\
-Removed try/except without any remaing handlers."""
+Removed try/except without any remaining handlers."""
 
         # Remove exception handling, if it cannot happen.
         if not tried_statement_sequence.mayRaiseException(BaseException):
             return tried_statement_sequence, "new_statements", """\
 Removed try/except with tried block that cannot raise."""
 
-        # Give up, merging this is too hard for now, any amount of the tried
-        # sequence may have executed together with one of the handlers, or all
-        # of tried and no handlers. TODO: improve this to an actual merge, even
-        # if a pessimistic one.
-        constraint_collection.removeAllKnowledge()
+        new_statements = tried_statement_sequence.getStatements()
+        # Determine statements inside the exception guard, that need not be in
+        # a handler, because they wouldn't raise an exception. TODO: This
+        # actual exception being watched for should be considered, by look
+        # for any now.
+        outside_pre = []
+        while new_statements and \
+              not new_statements[0].mayRaiseException(BaseException):
+            outside_pre.append(new_statements[0])
+            new_statements = list(new_statements)[1:]
+
+        outside_post = []
+        if self.getExceptionHandling() is not None and \
+           self.getExceptionHandling().isStatementAborting():
+            while new_statements and \
+                  not new_statements[-1].mayRaiseException(BaseException):
+                outside_post.insert(0, new_statements[-1])
+                new_statements = list(new_statements)[:-1]
+
+        if outside_pre or outside_post:
+            tried_statement_sequence.setStatements(new_statements)
+
+            from .NodeMakingHelpers import makeStatementsSequenceReplacementNode
+
+            result = makeStatementsSequenceReplacementNode(
+                statements = outside_pre + [self] + outside_post,
+                node       = self
+            )
+
+            return result, "new_statements", """\
+Moved statements of tried block that cannot raise."""
 
         return self, None, None

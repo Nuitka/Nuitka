@@ -44,7 +44,8 @@ from .NodeBases import (
     ExpressionChildrenHavingBase,
     ExpressionMixin,
     NodeBase,
-    SideEffectsFromChildrenMixin
+    SideEffectsFromChildrenMixin,
+    checkStatementsSequenceOrNone
 )
 from .ParameterSpecs import TooManyArguments, matchCall
 
@@ -63,6 +64,10 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     named_children = (
         "body",
     )
+
+    checkers = {
+        "body" : checkStatementsSequenceOrNone
+    }
 
     if Utils.python_version >= 340:
         qualname_setup = None
@@ -129,7 +134,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
                 "body" : None # delayed
             }
         )
-
 
         MarkGeneratorIndicator.__init__(self)
 
@@ -298,13 +302,13 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             )
 
             # Remember that we need that closure variable for something, so
-            # we don't redo it all the time.
+            # we don't create it again all the time.
             if not result.isModuleVariable():
                 self.registerProvidedVariable(result)
 
-            # For exec containing/star import containing, get a closure variable
-            # and if it is a module variable, only then make it a maybe local
-            # variable.
+            # For "exec" containing/star import containing, we get a
+            # closure variable already, but if it is a module variable,
+            # only then make it a maybe local variable.
             if self.isUnoptimized() and result.isModuleVariable():
                 result = Variables.MaybeLocalVariable(
                     owner          = self,
@@ -632,7 +636,7 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         owning_module.addUsedFunction(function_body)
 
-        from nuitka.optimizations.ConstraintCollections import \
+        from nuitka.optimizations.TraceCollections import \
             ConstraintCollectionFunction
 
         collection = ConstraintCollectionFunction(

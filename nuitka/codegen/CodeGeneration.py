@@ -3876,9 +3876,9 @@ def _generateStatementSequenceCode(statement_sequence, emit, context,
         return
 
     for statement in statement_sequence.getStatements():
-        source_ref = statement.getSourceReference()
-
         if Options.shallTraceExecution():
+            source_ref = statement.getSourceReference()
+
             statement_repr = repr(statement)
             source_repr = source_ref.getAsString()
 
@@ -3893,8 +3893,9 @@ def _generateStatementSequenceCode(statement_sequence, emit, context,
                 )
             )
 
-        if statement.isStatementsSequence():
-            generateStatementSequenceCode(
+        # Might contain frame statement sequences as children.
+        if statement.isStatementsFrame():
+            generateStatementsFrameCode(
                 statement_sequence = statement,
                 emit               = emit,
                 context            = context
@@ -3911,6 +3912,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames, which got a
     # lot of variants and details, therefore lots of branches.
     # pylint: disable=R0912
+
+    context = Contexts.PythonStatementCContext(context)
 
     provider = statement_sequence.getParentVariableProvider()
     guard_mode = statement_sequence.getGuardMode()
@@ -4036,28 +4039,26 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         emit(line)
 
 
+    # Complain if any temporary was not dealt with yet.
+    assert not context.getCleanupTempnames(), \
+      context.getCleanupTempnames()
+
+
 def generateStatementSequenceCode(statement_sequence, emit, context,
                                   allow_none = False):
 
     if allow_none and statement_sequence is None:
         return None
 
-    assert statement_sequence.isStatementsSequence(), statement_sequence
+    assert statement_sequence.kind == "STATEMENTS_SEQUENCE", statement_sequence
 
     statement_context = Contexts.PythonStatementCContext(context)
 
-    if statement_sequence.isStatementsFrame():
-        generateStatementsFrameCode(
-            statement_sequence = statement_sequence,
-            emit               = emit,
-            context            = statement_context
-        )
-    else:
-        _generateStatementSequenceCode(
-            statement_sequence = statement_sequence,
-            emit               = emit,
-            context            = statement_context
-        )
+    _generateStatementSequenceCode(
+        statement_sequence = statement_sequence,
+        emit               = emit,
+        context            = statement_context
+    )
 
     # Complain if any temporary was not dealt with yet.
     assert not statement_context.getCleanupTempnames(), \

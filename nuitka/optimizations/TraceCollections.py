@@ -56,17 +56,6 @@ class VariableUsageProfile:
 
 
 class VariableUsageTrackingMixin:
-    def __init__(self):
-        self.variable_usages = {}
-
-    # TODO: This will be removed, to be replaced by variable trace information.
-    def _getVariableUsage(self, variable):
-        if variable in self.variable_usages:
-            return self.variable_usages[ variable ]
-        else:
-            self.variable_usages[ variable ] = VariableUsageProfile(variable)
-
-            return self.variable_usages[ variable ]
 
     def _initVariable(self, variable):
         if variable.isParameterVariable():
@@ -197,6 +186,9 @@ class CollectionStartpointMixin:
 
         return result
 
+    def getVariableTracesAll(self):
+        return self.variable_traces.values()
+
     def addVariableTrace(self, variable, version, trace):
         key = variable, version
 
@@ -265,15 +257,11 @@ class CollectionStartpointMixin:
 
         self.markCurrentVariableTrace(variable, 0)
 
-    def assumeUnclearLocals(self, source_ref):
-        if not self.unclear_locals:
-            self.signalChange(
-                "new_expression",
-                source_ref,
-                "Unclear module variable delays processing."
-            )
-
+    def assumeUnclearLocals(self):
         self.unclear_locals = True
+
+    def hasUnclearLocals(self):
+        return self.unclear_locals
 
 
 class ConstraintCollectionBase(CollectionTracingMixin):
@@ -332,8 +320,8 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         self.markActiveVariablesAsUnknown()
 
-    def assumeUnclearLocals(self, source_ref):
-        self.parent.assumeUnclearLocals(source_ref)
+    def assumeUnclearLocals(self):
+        self.parent.assumeUnclearLocals()
 
     def getVariableTrace(self, variable, version):
         return self.parent.getVariableTrace(variable, version)
@@ -464,9 +452,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         return new_node
 
-    def onModuleVariableAssigned(self, variable):
-        self.parent.onModuleVariableAssigned(variable)
-
     def onStatement(self, statement):
         try:
             assert statement.isStatement(), statement
@@ -532,9 +517,26 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
                     self.markCurrentVariableTrace(variable, version)
 
+    def degradePartiallyFromCode(self, statement_sequence):
+        from nuitka.tree.Extractions import getVariablesWritten
+
+        variable_writes = getVariablesWritten(
+            statement_sequence
+        )
+
+
+        # Mark all variables as unknown that are written in the statement
+        # sequence, so it destroys the assumptions for final block. TODO: To
+        # unknown is a bit harsh, in case it is known assigned before and
+        # not deleted.
+        for variable, _variable_version in variable_writes:
+            self.markActiveVariableAsUnknown(
+                variable = variable
+            )
+
 
 class ConstraintCollectionBranch(ConstraintCollectionBase):
-    def __init__(self, parent, branch):
+    def __init__(self, parent):
         ConstraintCollectionBase.__init__(
             self,
             parent = parent
@@ -542,6 +544,7 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
 
         self.variable_actives = dict(parent.variable_actives)
 
+    def computeBranch(self, branch):
         if branch.isStatementsSequence():
             result = branch.computeStatementsSequence(
                 constraint_collection = self
@@ -553,7 +556,6 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
             self.onExpression(
                 expression = branch
             )
-
 
     def _initVariable(self, variable):
         variable_trace = self.parent.getVariableCurrentTrace(variable)
@@ -576,8 +578,6 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
             self,
             parent = parent
         )
-
-        VariableUsageTrackingMixin.__init__(self)
 
         self.function_body = function_body
         function_body.constraint_collection = self
@@ -667,18 +667,3 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
             self,
             parent = None
         )
-
-        VariableUsageTrackingMixin.__init__(self)
-
-
-    def onModuleVariableAssigned(self, variable):
-        assert variable.isModuleVariable()
-
-        self._getVariableUsage(variable).markAsWrittenTo()
-
-    def getWrittenVariables(self):
-        return [
-            variable
-            for variable, usage in iterItems(self.variable_usages)
-            if not usage.isReadOnly()
-        ]

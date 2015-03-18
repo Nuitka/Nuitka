@@ -481,7 +481,7 @@ for value in sorted(dir()):
     main_value = getattr(sys.modules[ "__main__" ], value)
 
     if inspect.isfunction(main_value):
-        print(main_value, main_value.__code__, main_value.__code__.co_varnames[:main_value.__code__.co_argcount]) # inspect.getargs( main_value.func_code )
+        print(main_value, main_value.__code__.co_varnames[:main_value.__code__.co_argcount]) # inspect.getargs( main_value.func_code )
 
         # TODO: Make this work as well, currently disabled, because of nested arguments not
         # being compatible yet.

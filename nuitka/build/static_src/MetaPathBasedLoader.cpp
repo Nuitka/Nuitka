@@ -411,7 +411,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
         }
 
         return LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
-   }
+    }
 
     return INCREASE_REFCOUNT( Py_None );
 }

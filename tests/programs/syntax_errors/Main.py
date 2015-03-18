@@ -15,16 +15,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
-print( "Running as", __file__ )
+import os
+
 try:
     from SyntaxErroring import x
 except Exception as e:
-    print( "Importing with syntax error gave", type(e), e )
+    print("Importing with syntax error gave:", type(e), e)
 
 try:
     from IndentationErroring import x
 except Exception as e:
-    print( "Importing with indentation error gave", type(e), e )
+    print("Importing with indentation error gave:", type(e), e)
 
-print( "Finished." )
+print("Finished.")

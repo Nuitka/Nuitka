@@ -77,25 +77,25 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
     {
         PyObject *result = (*tp_iter)( iterated );
 
-        if (likely( result != NULL ))
+        if (unlikely( result == NULL ))
         {
-            if (unlikely( !HAS_ITERNEXT( result )) )
-            {
+            return NULL;
+        }
+        else if (unlikely( !HAS_ITERNEXT( result )) )
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "iter() returned non-iterator of type '%s'",
+                Py_TYPE( result )->tp_name
+            );
 
-                PyErr_Format(
-                    PyExc_TypeError,
-                    "iter() returned non-iterator of type '%s'",
-                    Py_TYPE( result )->tp_name
-                );
-                Py_DECREF( result );
-                return NULL;
-            }
+            Py_DECREF( result );
 
-            return result;
+            return NULL;
         }
         else
         {
-            return NULL;
+            return result;
         }
     }
     else if ( PySequence_Check( iterated ) )

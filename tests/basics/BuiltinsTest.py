@@ -62,7 +62,11 @@ print someFunctionWritingLocalsContainingExec()
 def displayDict(d):
     if "__loader__" in d:
         d = dict(d)
-        d["__loader__"] = "<loader removed>"
+        d["__loader__"] = "<__loader__ removed>"
+
+    if "__file__" in d:
+        d = dict(d)
+        d["__file__"] = "<__file__ removed>"
 
     return repr(d)
 

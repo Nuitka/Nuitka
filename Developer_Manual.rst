@@ -1936,6 +1936,17 @@ This expression is reformulated to ``locals().keys()`` for Python2, and
 Nodes that serve special purposes
 ---------------------------------
 
+Releases
+++++++++
+
+When a function exits, the local variables are to be released. The same applies
+to temporary variables used in re-formulations. These releases cause a reference
+to the object to the released, but no value change. They are typically the last
+use of the object in the function.
+
+The are similar to ``del``, but make no value change. For shared variables this
+effect is most visible.
+
 Side Effects
 ++++++++++++
 
@@ -3265,41 +3276,6 @@ etc.
 
   TODO: Are they really that expensive? Unnecessary yes, but expensive may not
   be true.
-
-* References
-
-  Currently Nuitka has "Variable" objects. Every variable reference node type
-  refers to a "VariableReference" node and there are multiple of them. Every
-  variable traces the reference objects created.
-
-  The idea of references started out with closure references and has expanded
-  from there. It's now used to decide that a variable is shared. You can ask a
-  variable about it, and because it knows all its references, it can tell.
-
-  The thing is, this is not updated, so should a closure variable reference go
-  away, it's still shared, as the reference remains. The thing with replaced and
-  removed nodes, is that currently they do not remove themselves, there is no
-  ``__del__`` being called. I consider this too unreliable.
-
-  That makes the detection of "shared" unreliable and with false positives, that
-  so far do not harm much. There is an issue with Python3 not compiling with
-  debug mode that is a cause of it.
-
-  Anyway, the problem is increased by the scope of code in use in each
-  optimization pass is only ever increasing, but starts out small. That a
-  variable is shared or merely used elsewhere, might be discovered late. By
-  starting from scratch again, over and over, we might discover this only later.
-
-  That may mean, we should do trace based optimization only after it's all
-  complete, and not before. During the collection, information about the sharing
-  should be reset at the start, and the built up and judged at the end.
-
-  The task to maintain this would be near ModuleRegistry.
-
-* Statement Sequences with only a frame contained should be optimized
-
-  While it's probably not all that relevant, it appears that the empty module at
-  least contains a statement sequence that ends up with only a frame child.
 
 .. raw:: pdf
 

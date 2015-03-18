@@ -55,10 +55,7 @@ from .ComparisonCodes import (
     getComparisonExpressionBoolCode,
     getComparisonExpressionCode
 )
-from .ConstantCodes import (
-    getConstantAccess,
-    getConstantCode
-)
+from .ConstantCodes import getConstantAccess, getConstantCode
 from .DictCodes import (
     getBuiltinDict2Code,
     getDictOperationGetCode,
