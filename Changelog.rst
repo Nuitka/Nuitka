@@ -1,3 +1,8 @@
+Nuitka Release 0.5.12 (Draft)
+=============================
+
+This release is not done yet.
+
 Nuitka Release 0.5.11
 =====================
 
