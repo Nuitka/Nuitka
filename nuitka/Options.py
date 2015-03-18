@@ -74,7 +74,9 @@ parser.add_option(
     help    = """\
 Enable standalone mode in build. This allows you to transfer the created binary
 to other machines without it relying on an existing Python installation. It
-implies these options: "--recurse-all --recurse-stdlib". Defaults to off.""",
+implies these options: "--recurse-all --recurse-stdlib". You may also want
+to use "--python-flag=no_site" to avoid the "site.py" module. Defaults to
+off.""",
 )
 
 parser.add_option(
