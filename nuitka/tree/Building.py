@@ -819,8 +819,13 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         )
 
         if provider.isPythonPackage():
-            # TODO: __package__ is not set here, but automatically, which makes
-            # it invisible though
+            if Options.shallHaveOriginalFileReference():
+                path_value = [
+                    Utils.dirname(source_ref.getFilename())
+                ]
+            else:
+                path_value = []
+
             statements.append(
                 StatementAssignmentVariable(
                     variable_ref = ExpressionTargetVariableRef(
@@ -828,9 +833,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                         source_ref    = internal_source_ref
                     ),
                     source       = ExpressionConstantRef(
-                        constant      = [
-                            Utils.dirname(source_ref.getFilename())
-                        ],
+                        constant      = path_value,
                         source_ref    = internal_source_ref,
                         user_provided = True
                     ),
