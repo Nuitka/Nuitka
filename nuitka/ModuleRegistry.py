@@ -25,7 +25,7 @@
     the existing set of modules.
 """
 
-from .oset import OrderedSet
+from nuitka.containers.oset import OrderedSet
 
 # One or more root modules, i.e. entry points that must be there.
 root_modules = OrderedSet()

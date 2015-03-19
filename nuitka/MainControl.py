@@ -28,15 +28,9 @@ import subprocess
 import sys
 from logging import info, warning
 
-from . import (
-    Importing,
-    ModuleRegistry,
-    Options,
-    SyntaxErrors,
-    Tracing,
-    TreeXML,
-    Utils
-)
+from nuitka.tree import SyntaxErrors
+
+from . import Importing, ModuleRegistry, Options, Tracing, TreeXML, Utils
 from .build import SconsInterface
 from .codegen import CodeGeneration, ConstantCodes
 from .finalizations import Finalization

@@ -42,7 +42,9 @@ import os
 import sys
 from logging import warning
 
-from . import Utils, oset
+from nuitka.containers import oset
+
+from . import Utils
 
 _debug_module_finding = False
 

@@ -24,8 +24,8 @@ together and cross-module optimizations are the most difficult to tackle.
 import re
 
 from nuitka import Importing, Options, Utils, Variables
+from nuitka.containers.oset import OrderedSet
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
-from nuitka.oset import OrderedSet
 from nuitka.SourceCodeReferences import SourceCodeReference
 
 from .FutureSpecs import FutureSpec

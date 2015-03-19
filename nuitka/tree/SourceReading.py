@@ -23,13 +23,8 @@ and version differences of Python.
 
 import re
 
-from nuitka import (
-    Options,
-    PythonVersions,
-    SourceCodeReferences,
-    SyntaxErrors,
-    Utils
-)
+from nuitka import Options, PythonVersions, SourceCodeReferences, Utils
+from nuitka.tree import SyntaxErrors
 
 
 def _readSourceCodeFromFilename3(source_filename):

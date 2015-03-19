@@ -24,10 +24,11 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka import PythonVersions, SyntaxErrors, Variables
+from nuitka import PythonVersions, Variables
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
+from nuitka.tree import SyntaxErrors
 from nuitka.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage, isSharedLogically
 

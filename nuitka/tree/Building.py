@@ -58,7 +58,6 @@ from nuitka import (
     Options,
     PythonVersions,
     SourceCodeReferences,
-    SyntaxErrors,
     Tracing,
     Utils
 )
@@ -97,6 +96,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetVariableRef,
     ExpressionVariableRef
 )
+from nuitka.tree import SyntaxErrors
 
 from .Helpers import (
     applyLaterWrappers,
