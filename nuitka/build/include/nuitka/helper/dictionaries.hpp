@@ -264,7 +264,8 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0( PyDictObject *dict, Nuitka
     // speculatively try the quickest access method.
     if (likely( old != NULL ))
     {
-        SET_DICT_ENTRY_VALUE( entry, INCREASE_REFCOUNT( value ) );
+        Py_INCREF( value );
+        SET_DICT_ENTRY_VALUE( entry, value );
 
         CHECK_OBJECT( old );
 

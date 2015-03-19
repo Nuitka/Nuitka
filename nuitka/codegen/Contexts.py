@@ -546,6 +546,8 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
         self.frame_handle = None
 
+        self.needs_module_filename_object = False
+
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
@@ -632,6 +634,12 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
     def getConstants(self):
         return self.constants
+
+    def markAsNeedsModuleFilenameObject(self):
+        self.needs_module_filename_object = True
+
+    def needsModuleFilenameObject(self):
+        return self.needs_module_filename_object
 
 
 class PythonFunctionContext(PythonChildContextBase, TempMixin,
@@ -903,3 +911,6 @@ class PythonStatementCContext(PythonChildContextBase):
         result = self.last_source_ref
         # self.last_source_ref = None
         return result
+
+    def markAsNeedsModuleFilenameObject(self):
+        self.parent.markAsNeedsModuleFilenameObject()
