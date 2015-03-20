@@ -63,6 +63,7 @@ def setMainScriptDirectory(main_dir):
     global main_path
     main_path = main_dir
 
+
 def isPackageDir(dirname):
     """ Decide if a directory is a package.
 
@@ -75,6 +76,7 @@ def isPackageDir(dirname):
                Utils.python_version >= 330 or
                Utils.isFile(Utils.joinpath(dirname, "__init__.py"))
            )
+
 
 def findModule(source_ref, module_name, parent_package, level, warn):
     """ Find a module with given package name as parent.
@@ -386,6 +388,7 @@ def _findModule(module_name, parent_package):
 
         return module_filename, package
 
+
 def getModuleWhiteList():
     return (
         "mac", "nt", "os2", "posix", "_emx_link", "riscos", "ce", "riscospath",
@@ -553,6 +556,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # Mercurial test
         "statprof", "email.Generator", "email.Utils",
     )
+
 
 def _isWhiteListedNotExistingModule(module_name):
     result = module_name in getModuleWhiteList()
