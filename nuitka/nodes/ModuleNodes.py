@@ -28,6 +28,7 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.SourceCodeReferences import SourceCodeReference
 
+from .ConstantRefNodes import ExpressionConstantRef
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
@@ -122,21 +123,29 @@ class PythonModuleMixin:
         return self.getSourceReference().getFilename()
 
     def getRunTimeFilename(self):
-        if Options.shallHaveOriginalFileReference():
+        reference_mode = Options.getFileReferenceMode()
+
+        if reference_mode == "original":
             return self.getCompileTimeFilename()
+        elif reference_mode == "frozen":
+            return "<frozen %s>" % self.getFullName()
+        else:
+            filename = self.getCompileTimeFilename()
 
-        filename = self.getCompileTimeFilename()
+            full_name = self.getFullName()
 
-        full_name = self.getFullName()
+            result = Utils.basename(filename)
+            current = filename
 
-        result = Utils.basename(filename)
-        current = filename
+            levels = full_name.count('.')
+            if self.isPythonPackage():
+                levels += 1
 
-        for _i in range(full_name.count('.')):
-            current = Utils.dirname(current)
-            result = Utils.joinpath(Utils.basename(current), result)
+            for _i in range(levels):
+                current = Utils.dirname(current)
+                result = Utils.joinpath(Utils.basename(current), result)
 
-        return result
+            return result
 
 
 class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
@@ -469,6 +478,13 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
     def computeExpression(self, constraint_collection):
         # There is not a whole lot to do here, the path will change at run
         # time
+        if Options.getFileReferenceMode() != "runtime":
+            result = ExpressionConstantRef(
+                constant   = self.getRunTimeFilename(),
+                source_ref = self.getSourceReference()
+            )
+
+            return result, "new_expression", "Resolved to fixed __file__ value."
 
         return self, None, None
 

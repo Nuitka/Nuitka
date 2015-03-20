@@ -321,7 +321,7 @@ codegen_group.add_option(
     "--file-reference-choice",
     action  = "store",
     dest    = "file_reference_mode",
-    choices = ("original", "runtime"),
+    choices = ("original", "runtime", "frozen"),
     default = None,
     help    = """\
 Select what value "__file__" is going to be. With "runtime" (default for
@@ -330,8 +330,9 @@ use the location of themselves to deduct the value of "__file__". Included
 packages pretend to be in directories below that location. This allows you
 to include data files in deployments. If you merely seek acceleration, it's
 better for you to use the "original" value, where the source files location
-will be used. For compatibility reasons, the "__file__" value will always
-have ".py" suffix independent of what it really is."""
+will be used. With "frozen" a notation "<frozen module_name>" is used. For
+compatibility reasons, the "__file__" value will always have ".py" suffix
+independent of what it really is."""
 )
 
 codegen_group.add_option(
@@ -653,7 +654,7 @@ def shallNotDoExecCppCall():
 def shallHaveStatementLines():
     return options.statement_lines
 
-def shallHaveOriginalFileReference():
+def getFileReferenceMode():
     if options.file_reference_mode is None:
         value = ("runtime"
                    if shallMakeModule() or isStandaloneMode() else
@@ -661,7 +662,7 @@ def shallHaveOriginalFileReference():
     else:
         value = options.file_reference_mode
 
-    return value == "original"
+    return value
 
 def shallMakeModule():
     return not options.executable

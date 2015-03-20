@@ -819,7 +819,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         )
 
         if provider.isPythonPackage():
-            if Options.shallHaveOriginalFileReference():
+            if Options.getFileReferenceMode() == "original":
                 path_value = [
                     Utils.dirname(source_ref.getFilename())
                 ]
