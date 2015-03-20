@@ -23,10 +23,11 @@ import sys, os, shutil
 
 from redbaron import RedBaron
 
-print("Updating", sys.argv[1])
+print("Consider", sys.argv[1], end = ": ")
 
-with open(sys.argv[1], "r") as source_code:
-    red = RedBaron(source_code.read().rstrip()+"\n")
+old_code = open(sys.argv[1], "r").read()
+
+red = RedBaron(old_code.rstrip()+"\n")
 
 def updateCall(call_node):
     max_len = 0
@@ -167,18 +168,26 @@ for node in red.find_all("DefNode"):
         node.help(deep = True, with_formatting = True)
         raise
 
-new_name = sys.argv[1] + ".new"
+new_code = red.dumps()
 
-with open(new_name, "w") as source_code:
-    source_code.write(red.dumps())
+if new_code != old_code:
 
-# There is no way to safely replace a file on Windows, but lets try on Linux
-# at least.
-old_stat = os.stat(sys.argv[1])
+    new_name = sys.argv[1] + ".new"
 
-try:
-    os.rename(new_name, sys.argv[1])
-except OSError:
-    shutil.copy(new_name, sys.argv[1])
+    with open(new_name, "w") as source_code:
+        source_code.write(red.dumps())
 
-os.chmod(sys.argv[1], old_stat.st_mode )
+    # There is no way to safely replace a file on Windows, but lets try on Linux
+    # at least.
+    old_stat = os.stat(sys.argv[1])
+
+    try:
+        os.rename(new_name, sys.argv[1])
+    except OSError:
+        shutil.copy(new_name, sys.argv[1])
+
+    os.chmod(sys.argv[1], old_stat.st_mode)
+
+    print("updated.")
+else:
+    print("OK.")
