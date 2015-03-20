@@ -51,6 +51,7 @@ PACKAGE_LIST = (
     "nuitka",
     "nuitka/nodes",
     "nuitka/tree",
+    "nuitka/importing",
     "nuitka/build",
     "nuitka/freezer",
     "nuitka/gui",

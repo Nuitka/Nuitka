@@ -31,9 +31,9 @@ it being used.
 # This is heavily WIP.
 import sys
 
-from nuitka import Importing, Utils
+from nuitka import Utils
+from nuitka.importing import Importing, Recursion
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.tree import Recursion
 
 
 class NuitkaPluginBase:

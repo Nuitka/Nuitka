@@ -53,15 +53,10 @@ catching and passing in exceptions raised.
 import ast
 import sys
 
-from nuitka import (
-    Importing,
-    Options,
-    PythonVersions,
-    SourceCodeReferences,
-    Tracing,
-    Utils
-)
+from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing, Utils
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
+from nuitka.importing import Importing
+from nuitka.importing.ImportCache import addImportedModule
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
@@ -118,7 +113,6 @@ from .Helpers import (
     mergeStatements,
     setBuildingDispatchers
 )
-from .ImportCache import addImportedModule
 from .ReformulationAssertStatements import buildAssertNode
 from .ReformulationAssignmentStatements import (
     buildAssignNode,

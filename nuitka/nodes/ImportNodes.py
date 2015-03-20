@@ -29,8 +29,9 @@ compile time constant.
 
 from logging import warning
 
-from nuitka import Importing, Utils
-from nuitka.Importing import getModuleWhiteList
+from nuitka import Utils
+from nuitka.importing import Importing
+from nuitka.importing.Importing import getModuleWhiteList
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import (
@@ -116,7 +117,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
             module_name = None
 
         if module_kind is not None:
-            from nuitka.tree import Recursion
+            from nuitka.importing import Recursion
 
             decision, reason = Recursion.decideRecursion(
                 module_filename = module_filename,

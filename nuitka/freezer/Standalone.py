@@ -36,7 +36,7 @@ from nuitka.__past__ import (  # pylint: disable=W0622
     urlretrieve
 )
 from nuitka.codegen.ConstantCodes import needsPickleInit
-from nuitka.Importing import getStandardLibraryPaths
+from nuitka.importing.Importing import getStandardLibraryPaths
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 
 

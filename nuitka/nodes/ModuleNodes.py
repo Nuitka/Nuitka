@@ -23,8 +23,9 @@ together and cross-module optimizations are the most difficult to tackle.
 
 import re
 
-from nuitka import Importing, Options, Utils, Variables
+from nuitka import Options, Utils, Variables
 from nuitka.containers.oset import OrderedSet
+from nuitka.importing import Importing
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.SourceCodeReferences import SourceCodeReference
 
@@ -72,7 +73,7 @@ class PythonModuleMixin:
 
     def attemptRecursion(self):
         # Make sure the package is recursed to.
-        from nuitka.tree import Recursion
+        from nuitka.importing import Recursion
 
         # Return the list of newly added modules.
         result = []

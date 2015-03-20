@@ -28,9 +28,10 @@ import subprocess
 import sys
 from logging import info, warning
 
+from nuitka.importing import Importing, Recursion
 from nuitka.tree import SyntaxErrors
 
-from . import Importing, ModuleRegistry, Options, Tracing, TreeXML, Utils
+from . import ModuleRegistry, Options, Tracing, TreeXML, Utils
 from .build import SconsInterface
 from .codegen import CodeGeneration, ConstantCodes
 from .finalizations import Finalization
@@ -45,7 +46,7 @@ from .freezer.Standalone import (
     detectLateImports
 )
 from .optimizations import Optimization
-from .tree import Building, Recursion
+from .tree import Building
 
 
 def createNodeTree(filename):

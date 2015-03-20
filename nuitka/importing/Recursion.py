@@ -21,10 +21,12 @@
 
 from logging import debug, warning
 
-from nuitka import Importing, ModuleRegistry, Options, Utils
+from nuitka import ModuleRegistry, Options, Utils
 from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
+from nuitka.importing import Importing
+from nuitka.tree import Building
 
-from . import Building, ImportCache
+from . import ImportCache
 
 
 def recurseTo(module_package, module_filename, module_relpath, module_kind,

@@ -555,7 +555,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
     function_body.setBody(
         makeStatementsSequenceFromStatement(
-            statement  = StatementsFrame(
+            statement = StatementsFrame(
                 statements    = statements,
                 guard_mode    = "pass_through"
                                   if emit_class is not ExpressionYield else
