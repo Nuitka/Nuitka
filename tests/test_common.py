@@ -703,16 +703,21 @@ from contextlib import contextmanager
 
 @contextmanager
 def withPythonPathChange(python_path):
-    if "PYTHONPATH" in os.environ:
-        old_path = os.environ["PYTHONPATH"]
-        os.environ["PYTHONPATH"] += ":" + python_path
-    else:
-        old_path = None
-        os.environ["PYTHONPATH"] = python_path
+    if type(python_path) in (tuple, list):
+        python_path = os.pathsep.join(python_path)
+
+    if python_path:
+        if "PYTHONPATH" in os.environ:
+            old_path = os.environ["PYTHONPATH"]
+            os.environ["PYTHONPATH"] += os.pathsep + python_path
+        else:
+            old_path = None
+            os.environ["PYTHONPATH"] = python_path
 
     yield
 
-    if old_path is None:
-        del os.environ["PYTHONPATH"]
-    else:
-        os.environ["PYTHONPATH"] = old_path
+    if python_path:
+        if old_path is None:
+            del os.environ["PYTHONPATH"]
+        else:
+            os.environ["PYTHONPATH"] = old_path
