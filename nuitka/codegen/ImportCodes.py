@@ -74,13 +74,16 @@ def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
                 import_name
             )
         )
-    elif module_name == "__future__":
+    elif module_name in ("os", "__future__"):
         emit(
-             """%s = PyObject_GetAttrString(PyImport_ImportModule("__future__"), "%s");""" % (
+             """%s = PyObject_GetAttrString(PyImport_ImportModule("%s"), "%s");""" % (
                 to_name,
+                module_name,
                 import_name
             )
         )
+    else:
+        assert False, module_name
 
 
     if needs_check:
