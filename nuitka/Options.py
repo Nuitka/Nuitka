@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.11
+Nuitka V0.5.11.1
 Copyright (C) 2015 Kay Hayen."""
 
 import logging
@@ -322,16 +322,16 @@ codegen_group.add_option(
     action  = "store",
     dest    = "file_reference_mode",
     choices = ("original", "runtime"),
-    default = "runtime",
+    default = None,
     help    = """\
-Select what value "__file__" is going to be. With "runtime" (default), the
-created binaries and modules, use the location of themselves to deduct the
-value of "__file__". Included packages pretend to be in directories below
-that location. This allows you to include data files in deliveries. If you
-merely seek acceleration and not deployment, it's better for you to use
-the original value, where the source files location will be used. For
-compatibility reasons, the "__file__" value will always have ".py" suffix
-independent of what it really is."""
+Select what value "__file__" is going to be. With "runtime" (default for
+standalone binary mode and module mode), the created binaries and modules,
+use the location of themselves to deduct the value of "__file__". Included
+packages pretend to be in directories below that location. This allows you
+to include data files in deployments. If you merely seek acceleration, it's
+better for you to use the "original" value, where the source files location
+will be used. For compatibility reasons, the "__file__" value will always
+have ".py" suffix independent of what it really is."""
 )
 
 codegen_group.add_option(
@@ -654,7 +654,14 @@ def shallHaveStatementLines():
     return options.statement_lines
 
 def shallHaveOriginalFileReference():
-    return options.file_reference_mode == "original"
+    if options.file_reference_mode is None:
+        value = ("runtime"
+                   if shallMakeModule() or isStandaloneMode() else
+                 "original")
+    else:
+        value = options.file_reference_mode
+
+    return value == "original"
 
 def shallMakeModule():
     return not options.executable
