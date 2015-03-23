@@ -960,6 +960,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
 
     assert package is None or type(package) is str
+    assert filename is not None
 
     if is_main and Utils.isDir(filename):
         source_filename = Utils.joinpath(filename, "__main__.py")
@@ -1033,8 +1034,6 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         source_filename = Utils.joinpath(filename, "__init__.py")
 
         if not Utils.isFile(source_filename):
-            assert Utils.python_version >= 330, source_filename
-
             source_ref, result = createNamespacePackage(
                 package_name   = package_name,
                 module_relpath = filename

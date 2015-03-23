@@ -30,8 +30,9 @@ compile time constant.
 from logging import warning
 
 from nuitka import Utils
-from nuitka.importing import Importing
-from nuitka.importing.Importing import getModuleWhiteList
+from nuitka.importing.Importing import findModule
+from nuitka.importing.Recursion import decideRecursion, recurseTo
+from nuitka.importing.Whitelisting import getModuleWhiteList
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import (
@@ -117,9 +118,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
             module_name = None
 
         if module_kind is not None:
-            from nuitka.importing import Recursion
-
-            decision, reason = Recursion.decideRecursion(
+            decision, reason = decideRecursion(
                 module_filename = module_filename,
                 module_name     = module_name,
                 module_package  = module_package,
@@ -129,7 +128,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
             if decision:
                 module_relpath = Utils.relpath(module_filename)
 
-                imported_module, added_flag = Recursion.recurseTo(
+                imported_module, added_flag = recurseTo(
                     module_package  = module_package,
                     module_filename = module_filename,
                     module_relpath  = module_relpath,
@@ -177,7 +176,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         else:
             parent_package = self.getParentModule().getPackage()
 
-        module_package, _module_name, module_filename = Importing.findModule(
+        module_package, _module_name, module_filename = findModule(
             source_ref     = self.source_ref,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
@@ -203,9 +202,10 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                 if import_list and imported_module.isPythonPackage():
                     for import_item in import_list:
+                        if import_item == '*':
+                            continue
 
-                        module_package, _module_name, module_filename = \
-                          Importing.findModule(
+                        module_package, _module_name, module_filename = findModule(
                             source_ref     = self.source_ref,
                             module_name    = import_item,
                             parent_package = imported_module.getFullName(),
@@ -335,8 +335,8 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         level = self.getLevel()
 
         # TODO: In fact, if the module is not a package, we don't have to insist
-        # on the fromlist that much, but normally it's not used for anything but
-        # packages, so it will be rare.
+        # on the "fromlist" that much, but normally it's not used for anything
+        # but packages, so it will be rare.
 
         if module_name.isExpressionConstantRef() and \
            fromlist.isExpressionConstantRef() and \

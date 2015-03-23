@@ -45,6 +45,9 @@ from logging import warning
 from nuitka import Utils
 from nuitka.containers import oset
 
+from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
+from .Whitelisting import isWhiteListedNotExistingModule
+
 _debug_module_finding = False
 
 warned_about = set()
@@ -67,13 +70,15 @@ def isPackageDir(dirname):
     """ Decide if a directory is a package.
 
         Before Python3.3 it's required to have a "__init__.py" file, but then
-        it became impossible to decide.
+        it became impossible to decide, and for extra fun, there is also the
+        extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
 
     return Utils.isDir(dirname) and \
            (
                Utils.python_version >= 330 or
-               Utils.isFile(Utils.joinpath(dirname, "__init__.py"))
+               Utils.isFile(Utils.joinpath(dirname, "__init__.py")) or
+               isPreloadedPackagePath(dirname)
            )
 
 
@@ -86,15 +91,23 @@ def findModule(source_ref, module_name, parent_package, level, warn):
         Returns a triple of package name the module is in, module name
         and filename of it, which can be a directory.
     """
-
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
+
+    assert module_name != '*'
 
     if level > 1 and parent_package is not None:
         parent_package = '.'.join(parent_package.split('.')[:-level+1])
 
         if parent_package == "":
             parent_package = None
+
+    # It might be a pre-loaded package. If so, return that directly.
+    if parent_package is None:
+        preloaded_path = getPreloadedPackagePath(module_name)
+
+        if preloaded_path is not None:
+            return None, module_name, preloaded_path[0]
 
     if module_name != "" or parent_package is not None:
         try:
@@ -103,7 +116,7 @@ def findModule(source_ref, module_name, parent_package, level, warn):
                 parent_package = parent_package
             )
         except ImportError:
-            if warn and not _isWhiteListedNotExistingModule(module_name):
+            if warn and not isWhiteListedNotExistingModule(module_name):
                 key = module_name, parent_package, level
 
                 if key not in warned_about:
@@ -152,9 +165,9 @@ def findModule(source_ref, module_name, parent_package, level, warn):
     if _debug_module_finding:
         print(
             "findModule: Result",
-            module_package_name,
             module_name,
-            module_filename
+            "in", module_package_name,
+            "file", module_filename
         )
 
     return module_package_name, module_name, module_filename
@@ -166,14 +179,11 @@ def _findModuleInPath2(module_name, search_path):
     """ This is out own module finding low level implementation.
 
         Just the full module name and search path are given. This is then
-        tasked to raise ImportError or return a path if it finds it, or
+        tasked to raise "ImportError" or return a path if it finds it, or
         None, if it is a built-in.
     """
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
-
-    if imp.is_builtin(module_name):
-        return None
 
     # We may have to decide between package and module, therefore build
     # a list of candidates.
@@ -218,8 +228,12 @@ def _findModuleInPath2(module_name, search_path):
                 )
                 break
 
+    if _debug_module_finding:
+        print("Candidates", candidates)
+
     if candidates:
-        # Ignore lower priority matches, package directories without init.
+        # Ignore lower priority matches from package directories without
+        # "__init__.py" file.
         min_prio = min(candidate[1] for candidate in candidates)
         candidates = [
             candidate
@@ -264,24 +278,27 @@ def _findModuleInPath(module_name, package_name):
     extra_paths = [os.getcwd(), main_path]
 
     if package_name is not None:
-        # Work around _findModuleInPath2 bug on at least Windows. Won't handle
+        # Work around "_findModuleInPath2" bug on at least Windows. Won't handle
         # module name empty in find_module. And thinking of it, how could it
         # anyway.
         if module_name == "":
             module_name = package_name.split('.')[-1]
             package_name = '.'.join(package_name.split('.')[:-1])
 
-        def getPackageDirnames(element):
-            yield Utils.joinpath(element,*package_name.split('.')), False
+        ext_path = getPreloadedPackagePath(package_name)
 
-            if package_name == "win32com":
-                yield Utils.joinpath(element,"win32comext"), True
+        if ext_path is None:
+            def getPackageDirnames(element):
+                yield Utils.joinpath(element,*package_name.split('.')), False
 
-        ext_path = []
-        for element in extra_paths + sys.path:
-            for package_dir, force_package in getPackageDirnames(element):
-                if isPackageDir(package_dir) or force_package:
-                    ext_path.append(package_dir)
+                if package_name == "win32com":
+                    yield Utils.joinpath(element,"win32comext"), True
+
+            ext_path = []
+            for element in extra_paths + sys.path:
+                for package_dir, force_package in getPackageDirnames(element):
+                    if isPackageDir(package_dir) or force_package:
+                        ext_path.append(package_dir)
 
         if _debug_module_finding:
             print("_findModuleInPath: Package, using extended path", ext_path)
@@ -296,6 +313,7 @@ def _findModuleInPath(module_name, package_name):
                 print(
                     "_findModuleInPath: _findModuleInPath2 worked",
                     module_filename,
+                    module_name,
                     package_name
                 )
 
@@ -317,6 +335,10 @@ def _findModuleInPath(module_name, package_name):
     if _debug_module_finding:
         print("_findModuleInPath: Non-package, using extended path", ext_path)
 
+    # Free pass for built-in modules, the need not exist.
+    if package_name is None and imp.is_builtin(module_name):
+        return None, module_name
+
     try:
         module_filename = _findModuleInPath2(
             module_name = module_name,
@@ -336,10 +358,34 @@ def _findModuleInPath(module_name, package_name):
 
     return module_filename, None
 
+module_search_cache = {}
 
 def _findModule(module_name, parent_package):
     if _debug_module_finding:
         print("_findModule: Enter", module_name, "in", parent_package)
+
+    key = module_name, parent_package
+
+    if key in module_search_cache:
+        result = module_search_cache[key]
+
+        if _debug_module_finding:
+            print("_findModule: Cached result.")
+
+        if result is ImportError:
+            raise ImportError
+        else:
+            return result
+
+    try:
+        module_search_cache[key] = _findModule2(module_name, parent_package)
+    except ImportError:
+        module_search_cache[key] = ImportError
+        raise
+
+    return module_search_cache[key]
+
+def _findModule2(module_name, parent_package):
 
     # The os.path is strangely hacked into the "os" module, dispatching per
     # platform, we either cannot look into it, or we require that we resolve it
@@ -364,14 +410,23 @@ def _findModule(module_name, parent_package):
         # Relative import
         if parent_package is not None:
             try:
-                return _findModule(
+                if _debug_module_finding:
+                    print("_findModule: Try recurse relative:")
+
+                module_filename, found_package = _findModule(
                     module_name    = module_name,
                     parent_package = parent_package + '.' + package_part
                 )
+
+                if module_filename is not None:
+                    return module_filename, found_package
             except ImportError:
                 pass
 
         # Absolute import
+        if _debug_module_finding:
+            print("_findModule: Try recurse absolute:")
+
         return _findModule(
             module_name    = module_name,
             parent_package = package_part
@@ -386,186 +441,6 @@ def _findModule(module_name, parent_package):
             package = None
 
         return module_filename, package
-
-
-def getModuleWhiteList():
-    return (
-        "mac", "nt", "os2", "posix", "_emx_link", "riscos", "ce", "riscospath",
-        "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256",
-        "array", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle",
-        "marshal", "imp", "sys", "itertools", "cStringIO", "time", "zlib",
-        "thread", "math", "errno", "operator", "signal", "gc", "exceptions",
-        "win32process", "unicodedata", "__builtin__", "fcntl", "_socket",
-        "_ssl", "pwd", "spwd", "_random", "grp", "_io", "_string", "select",
-        "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
-        "_collections", "_locale", "_codecs", "_weakref", "_struct",
-        "_dummy_threading", "binascii", "datetime", "_ast", "xxsubtype",
-        "_bytesio", "cmath", "_fileio", "aetypes", "aepack", "MacOS", "cd",
-        "cl", "gdbm", "gl", "GL", "aetools", "_bisect", "_heapq", "_symtable",
-        "syslog", "_datetime", "_elementtree", "_pickle", "_posixsubprocess",
-        "_thread", "atexit", "pyexpat", "_imp", "_sha1", "faulthandler",
-
-        # Python-Qt4 does these if missing python3 parts:
-        "PyQt4.uic.port_v3.string_io", "PyQt4.uic.port_v3.load_plugin",
-        "PyQt4.uic.port_v3.ascii_upper", "PyQt4.uic.port_v3.proxy_base",
-        "PyQt4.uic.port_v3.as_string",
-
-        # CPython3 does these:
-        "builtins", "UserDict", "os.path", "StringIO",
-
-        # test_applesingle.py
-        "applesingle",
-
-        # test_compile.py
-        "__package__.module", "__mangled_mod",
-
-        # test_dbm.py
-        "dbm.dumb",
-
-        # test_distutils.py
-        "distutils.tests", "distutils.mwerkscompiler",
-
-        # test_docxmlrpc.py
-        "xmlrpc.server",
-
-        # test_emails.py
-        "email.test.test_email", "email.test.test_email_renamed",
-        "email.test.test_email_codecs",
-
-        # test/test_dbm_ndbm.py
-        "dbm.ndbm",
-
-        # test_frozen.py
-        "__hello__", "__phello__", "__phello__.spam", "__phello__.foo",
-
-        # test_imp.py
-        "importlib.test.import_", "pep3147.foo", "pep3147",
-
-        # test_import.py
-        "RAnDoM", "infinite_reload", "test_trailing_slash", "nonexistent_xyzzy",
-        "_parent_foo.bar", "_parent_foo", "test_unc_path",
-
-        # test_importhooks.py
-        "hooktestmodule", "hooktestpackage", "hooktestpackage.sub",
-        "reloadmodule", "hooktestpackage.sub.subber", "hooktestpackage.oldabs",
-        "hooktestpackage.newrel", "hooktestpackage.sub.subber.subest",
-        "hooktestpackage.futrel", "sub", "hooktestpackage.newabs",
-
-        # test_inspect.py
-        "inspect_fodder3",
-
-        # test_imageop.py
-        "imgfile",
-
-        # test_json.py
-        "json.tests",
-
-        # test_lib2to3.py
-        "lib2to3.tests",
-
-        # test_logging.py
-        "win32evtlog", "win32evtlogutil",
-
-        # test_macostools.py
-        "macostools",
-
-        # test_namespace_pkgs.py
-        "foo.one", "foo.two", "parent.child.one", "parent.child.two",
-        "parent.child.three", "bar.two", "a_test",
-
-        # test_new.py
-        "Spam",
-        # est_ossaudiodev.py
-        "ossaudiodev",
-
-        # test_platform.py
-        "gestalt",
-
-        # test_pkg.py
-        "t1", "t2", "t2.sub", "t2.sub.subsub", "t3.sub.subsub", "t5", "t6",
-        "t7", "t7.sub", "t7.sub.subsub", "t8",
-
-        # test_pkgutil.py
-        "foo", "zipimport",
-
-        # test_repr.py
-        """areallylongpackageandmodulenametotestreprtruncation.\
-areallylongpackageandmodulenametotestreprtruncation""",
-
-        # test_robotparser.py
-        "urllib.error",
-
-        # test_runpy.py
-        "test.script_helper",
-
-        # test_strftime.py
-        "java",
-
-        # test_strop.py
-        "strop",
-
-        # test_sundry.py
-        "distutils.emxccompiler", "os2emxpath",
-
-        # test_tk.py
-        "runtktests",
-
-        # test_tools.py
-        "analyze_dxp", "test_unparse",
-
-        # test_traceback.py
-        "test_bug737473",
-
-        # test_xml_etree.py
-        "xml.parsers.expat.errors",
-
-        # test_zipimport_support.py
-        "test_zipped_doctest", "zip_pkg",
-
-        # test/test_zipimport_support.py
-        "test.test_cmd_line_script",
-
-        # Python3: modules that no longer exist
-        "commands", "dummy_thread", "_dummy_thread", "httplib", "Queue", "sets",
-
-        # Python2: modules that don't yet exit
-        "http.client", "queue", "winreg",
-
-        # Very old modules with older names
-        "simplejson", "sets",
-
-        # Standalone mode "site" import flexibilities
-        "sitecustomize", "usercustomize", "apport_python_hook",
-        "_frozen_importlib",
-
-        # Standard library stuff that is optional
-        "comtypes.server.inprocserver", "_tkinter", "_scproxy", "EasyDialogs",
-        "SOCKS", "rourl2path", "_winapi", "win32api", "win32con", "_gestalt",
-        "java.lang", "vms_lib", "ic", "readline", "termios", "_sysconfigdata",
-        "al", "AL", "sunaudiodev", "SUNAUDIODEV", "Audio_mac", "nis",
-        "test.test_MimeWriter", "dos", "win32pipe", "Carbon", "Carbon.Files",
-        "sgi", "ctypes.macholib.dyld", "bsddb3", "_pybsddb", "_xmlrpclib",
-        "netbios", "win32wnet", "email.Parser", "elementree.cElementTree",
-        "elementree.ElementTree", "_gbdm", "resource", "crypt", "bz2", "dbm",
-        "mmap",
-
-        # Nuitka tests
-        "test_common",
-
-        # Mercurial test
-        "statprof", "email.Generator", "email.Utils",
-    )
-
-
-def _isWhiteListedNotExistingModule(module_name):
-    result = module_name in getModuleWhiteList()
-
-    if not result and module_name in sys.builtin_module_names:
-        warning("""\
-Your CPython version has a built-in module '%s', that is not whitelisted
-please report this to http://bugs.nuitka.net.""", module_name)
-
-    return result
 
 
 def getStandardLibraryPaths():

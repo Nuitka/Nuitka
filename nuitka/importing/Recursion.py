@@ -24,13 +24,14 @@ from logging import debug, warning
 from nuitka import ModuleRegistry, Options, Utils
 from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
 from nuitka.importing import Importing
-from nuitka.tree import Building
 
 from . import ImportCache
 
 
 def recurseTo(module_package, module_filename, module_relpath, module_kind,
              reason):
+    from nuitka.tree import Building
+
     if not ImportCache.isImportedModuleByPath(module_relpath):
         module, source_ref, source_filename = Building.decideModuleTree(
             filename = module_filename,
