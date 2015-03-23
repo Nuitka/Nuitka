@@ -64,15 +64,18 @@ from nuitka import (
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeList, ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
+    ExpressionImportModuleHard,
     ExpressionImportName
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
@@ -820,11 +823,39 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
         if provider.isPythonPackage():
             if Options.getFileReferenceMode() == "original":
-                path_value = [
-                    Utils.dirname(source_ref.getFilename())
-                ]
+                path_value = ExpressionConstantRef(
+                    constant      = [
+                        Utils.dirname(source_ref.getFilename())
+                    ],
+                    source_ref    = internal_source_ref,
+                    user_provided = True
+                )
             else:
-                path_value = []
+                path_value = ExpressionMakeList(
+                    elements = (
+                        ExpressionCallNoKeywords(
+                            called = ExpressionAttributeLookup(
+                                source = ExpressionImportModuleHard(
+                                    module_name = "os",
+                                    import_name = "path",
+                                    source_ref  = internal_source_ref
+                                ),
+                                attribute_name = "dirname",
+                                source_ref = internal_source_ref
+                            ),
+                            args = ExpressionMakeTuple(
+                                elements = (
+                                    ExpressionModuleFileAttributeRef(
+                                        source_ref = internal_source_ref,
+                                    ),
+                                ),
+                                source_ref = internal_source_ref,
+                            ),
+                            source_ref = internal_source_ref,
+                        ),
+                    ),
+                    source_ref = internal_source_ref
+                )
 
             statements.append(
                 StatementAssignmentVariable(
@@ -832,11 +863,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                         variable_name = "__path__",
                         source_ref    = internal_source_ref
                     ),
-                    source       = ExpressionConstantRef(
-                        constant      = path_value,
-                        source_ref    = internal_source_ref,
-                        user_provided = True
-                    ),
+                    source       = path_value,
                     source_ref   = internal_source_ref
                 )
             )
