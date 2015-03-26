@@ -237,7 +237,7 @@ def pickSourceFilenames(source_dir, modules):
     # Count up for colliding filenames.
     collision_counts = {}
 
-    # Second pass, this time sorted, so we get determistic results. We will
+    # Second pass, this time sorted, so we get deterministic results. We will
     # apply an @1/@2 to disambiguate the filenames.
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonShlibModule():
