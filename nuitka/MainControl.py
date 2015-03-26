@@ -432,6 +432,7 @@ def runScons(main_module, quiet):
         "optimize_mode"  : asBoolStr(Options.isOptimize()),
         "full_compat"    : asBoolStr(Options.isFullCompat()),
         "experimental"   : asBoolStr(Options.isExperimental()),
+        "trace_mode"     : asBoolStr(Options.shallTraceExecution()),
         "python_version" : python_version,
         "target_arch"    : Utils.getArchitecture(),
         "python_prefix"  : sys.prefix,
