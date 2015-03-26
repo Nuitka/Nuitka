@@ -440,7 +440,6 @@ is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
 off."""
 )
 
-
 debug_group.add_option(
     "--experimental",
     action  = "store_true",
@@ -450,6 +449,15 @@ debug_group.add_option(
 Use features declared as 'experimental'. May have no effect if no experimental
 features are present in the code. Defaults to off."""
 )
+
+debug_group.add_option(
+    "--explain-imports",
+    action  = "store_true",
+    dest    = "explain_imports",
+    default = False,
+    help    = SUPPRESS_HELP
+)
+
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.
@@ -798,6 +806,9 @@ def getIntendedPythonVersion():
 
 def isExperimental():
     return hasattr(options, "experimental") and options.experimental
+
+def shallExplainImports():
+    return options.explain_imports
 
 def isStandaloneMode():
     return options.is_standalone

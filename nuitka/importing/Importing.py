@@ -42,13 +42,13 @@ import os
 import sys
 from logging import warning
 
-from nuitka import Utils
+from nuitka import Utils, Options
 from nuitka.containers import oset
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
 from .Whitelisting import isWhiteListedNotExistingModule
 
-_debug_module_finding = False
+_debug_module_finding = Options.shallExplainImports()
 
 warned_about = set()
 
@@ -93,6 +93,15 @@ def findModule(source_ref, module_name, parent_package, level, warn):
     """
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
+    if _debug_module_finding:
+        print(
+            "findModule: Enter to search '%s' in '%s' level %s." % (
+                module_name,
+                parent_package,
+                level
+            )
+        )
+
 
     assert module_name != '*'
 
@@ -164,10 +173,11 @@ def findModule(source_ref, module_name, parent_package, level, warn):
 
     if _debug_module_finding:
         print(
-            "findModule: Result",
-            module_name,
-            "in", module_package_name,
-            "file", module_filename
+            "findModule: Result module '%s' in '%s' filename '%s':" % (
+                module_name,
+                module_package_name,
+                module_filename
+            )
         )
 
     return module_package_name, module_name, module_filename
@@ -267,7 +277,7 @@ def _findModuleInPath2(module_name, search_path):
     raise ImportError
 
 
-def _findModuleInPath(module_name, package_name):
+def _findModuleInPath(module_name, package_name, try_absolute):
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
 
@@ -289,6 +299,8 @@ def _findModuleInPath(module_name, package_name):
 
         if ext_path is None:
             def getPackageDirnames(element):
+                # It's easier to provide the arguments to "joinpath" like this.
+                # pylint: disable=W0142
                 package_elements = package_name.split('.')
 
                 yield Utils.joinpath(element,*package_elements), False
@@ -335,7 +347,6 @@ def _findModuleInPath(module_name, package_name):
             )
 
             return None, None
-
     ext_path = extra_paths + sys.path
 
     if _debug_module_finding:
@@ -344,6 +355,9 @@ def _findModuleInPath(module_name, package_name):
     # Free pass for built-in modules, the need not exist.
     if package_name is None and imp.is_builtin(module_name):
         return None, module_name
+
+    if not try_absolute:
+        raise ImportError
 
     try:
         module_filename = _findModuleInPath2(
@@ -368,7 +382,12 @@ module_search_cache = {}
 
 def _findModule(module_name, parent_package):
     if _debug_module_finding:
-        print("_findModule: Enter", module_name, "in", parent_package)
+        print(
+            "_findModule: Enter to search '%s' in '%s'." % (
+                module_name,
+                parent_package
+            )
+        )
 
     key = module_name, parent_package
 
@@ -376,7 +395,7 @@ def _findModule(module_name, parent_package):
         result = module_search_cache[key]
 
         if _debug_module_finding:
-            print("_findModule: Cached result.")
+            print("_findModule: Cached result (see previous call).")
 
         if result is ImportError:
             raise ImportError
@@ -419,9 +438,10 @@ def _findModule2(module_name, parent_package):
                 if _debug_module_finding:
                     print("_findModule: Try recurse relative:")
 
-                module_filename, found_package = _findModule(
+                module_filename, found_package = _findModuleInPath(
                     module_name    = module_name,
-                    parent_package = parent_package + '.' + package_part
+                    package_name = parent_package + '.' + package_part,
+                    try_absolute   = False
                 )
 
                 if module_filename is not None:
@@ -440,7 +460,8 @@ def _findModule2(module_name, parent_package):
     else:
         module_filename, package = _findModuleInPath(
             module_name  = module_name,
-            package_name = parent_package
+            package_name = parent_package,
+            try_absolute = True
         )
 
         if package == "":
