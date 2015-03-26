@@ -289,10 +289,16 @@ def _findModuleInPath(module_name, package_name):
 
         if ext_path is None:
             def getPackageDirnames(element):
-                yield Utils.joinpath(element,*package_name.split('.')), False
+                package_elements = package_name.split('.')
 
-                if package_name == "win32com":
-                    yield Utils.joinpath(element,"win32comext"), True
+                yield Utils.joinpath(element,*package_elements), False
+
+                # Hack for PyWin32. TODO: Move this __path__ extensions to
+                # plug-in decisions.
+                if package_elements[0] == "win32com":
+                    package_elements[0] = "win32comext"
+
+                    yield Utils.joinpath(element,*package_elements), True
 
             ext_path = []
             for element in extra_paths + sys.path:
