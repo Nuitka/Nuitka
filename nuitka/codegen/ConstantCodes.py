@@ -367,7 +367,8 @@ def __addConstantInitCode(context, emit, check, constant_type, constant_value,
             # MININT when used. We work around that warning here.
             emit(
                 """\
-%s = PyLong_FromLong( %sl ); // To be corrected in next line.
+%s = PyLong_FromLong( %sl ); // To be corrected with -1 in-place next lines.
+CHECK_OBJECT( const_int_pos_1 );
 %s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );""" % (
                     constant_identifier,
                     min_signed_long,
@@ -741,10 +742,10 @@ def getConstantsInitCode(context):
 
     check = SourceCodeCollector()
 
-    # Sort items by length and name, so we are determistic and pretty.
+    # Sort items by length and name, so we are deterministic and pretty.
     sorted_constants = sorted(
         iterItems(context.getConstants()),
-        key = lambda k: (len(k), k )
+        key = lambda k: (len(k[0]), k[0])
     )
 
     for constant_identifier, constant_value in sorted_constants:
@@ -764,10 +765,10 @@ def getConstantsInitCode(context):
 def getConstantsDeclCode(context):
     statements = []
 
-    # Sort items by length and name, so we are determistic and pretty.
+    # Sort items by length and name, so we are deterministic and pretty.
     sorted_constants = sorted(
         iterItems(context.getConstants()),
-        key = lambda k: (len(k), k )
+        key = lambda k: (len(k[0]), k[0])
     )
 
     for constant_identifier, constant_value in sorted_constants:
@@ -917,7 +918,7 @@ def getConstantInitCodes(module_context):
 
     sorted_constants = sorted(
         module_context.getConstants(),
-        key = lambda k: (len(k), k)
+        key = lambda k: (len(k[0]), k[0])
     )
 
     global_context = module_context.global_context
