@@ -59,18 +59,15 @@ from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
-from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeList, ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
-    ExpressionImportModuleHard,
     ExpressionImportName
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
@@ -137,7 +134,10 @@ from .ReformulationImportStatements import (
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationLoopStatements import buildForLoopNode, buildWhileLoopNode
-from .ReformulationNamespacePackages import createNamespacePackage
+from .ReformulationNamespacePackages import (
+    createNamespacePackage,
+    createPathAssignment
+)
 from .ReformulationPrintStatements import buildPrintNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
@@ -816,50 +816,9 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         )
 
         if provider.isPythonPackage():
-            if Options.getFileReferenceMode() == "original":
-                path_value = ExpressionConstantRef(
-                    constant      = [
-                        Utils.dirname(source_ref.getFilename())
-                    ],
-                    source_ref    = internal_source_ref,
-                    user_provided = True
-                )
-            else:
-                path_value = ExpressionMakeList(
-                    elements = (
-                        ExpressionCallNoKeywords(
-                            called = ExpressionAttributeLookup(
-                                source = ExpressionImportModuleHard(
-                                    module_name = "os",
-                                    import_name = "path",
-                                    source_ref  = internal_source_ref
-                                ),
-                                attribute_name = "dirname",
-                                source_ref = internal_source_ref
-                            ),
-                            args = ExpressionMakeTuple(
-                                elements = (
-                                    ExpressionModuleFileAttributeRef(
-                                        source_ref = internal_source_ref,
-                                    ),
-                                ),
-                                source_ref = internal_source_ref,
-                            ),
-                            source_ref = internal_source_ref,
-                        ),
-                    ),
-                    source_ref = internal_source_ref
-                )
-
+            # This assigns "__path__" value.
             statements.append(
-                StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetVariableRef(
-                        variable_name = "__path__",
-                        source_ref    = internal_source_ref
-                    ),
-                    source       = path_value,
-                    source_ref   = internal_source_ref
-                )
+                createPathAssignment(internal_source_ref)
             )
 
     if Utils.python_version >= 300:
