@@ -58,9 +58,10 @@ class NuitkaPluginBase:
             about. Most prominently "getImplicitImports()".
         """
 
-        implicit_imports = self.getImplicitImports(module.getFullName())
+        for full_name in self.getImplicitImports(module.getFullName()):
+            module_name = full_name.split(".")[-1]
+            module_package = ".".join(full_name.split(".")[:-1]) or None
 
-        for module_name, module_package in implicit_imports:
             module_filename = self.locateModule(
                 source_ref     = module.getSourceReference(),
                 module_name    = module_name,
@@ -153,31 +154,25 @@ class NuitkaPopularImplicitImports(NuitkaPluginBase):
 
     @staticmethod
     def getImplicitImports(full_name):
-        if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
+        elements = full_name.split(".")
+
+        if elements[0] in ("PyQt4", "PyQt5"):
             if Utils.python_version < 300:
-                return (
-                    ("atexit", None),
-                    ("sip", None),
-                )
-            else:
-                return (
-                    ("sip", None),
-                )
+                yield "atexit"
+
+            yield "sip"
+
+            if elements[1] == "QtGui":
+                yield elements[0] + ".QtCore"
         elif full_name == "lxml.etree":
-            return (
-                ("gzip", None),
-                ("_elementpath", "lxml")
-            )
+            yield "gzip"
+            yield "lxml._elementpath"
         elif full_name == "gtk._gtk":
-            return (
-                ("pangocairo", None),
-                ("pango", None),
-                ("cairo", None),
-                ("gio", None),
-                ("atk", None),
-            )
-        else:
-            return ()
+            yield "pangocairo"
+            yield "pango"
+            yield "cairo"
+            yield "gio"
+            yield "atk"
 
 class UserPluginBase(NuitkaPluginBase):
     pass
