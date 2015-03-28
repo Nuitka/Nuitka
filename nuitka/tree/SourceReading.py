@@ -121,8 +121,7 @@ see http://python.org/dev/peps/pep-0263/ for details""" % (
                         count+1,
                     ),
                     source_ref   = SourceCodeReferences.fromFilename(
-                        source_filename,
-                        None
+                        source_filename
                     ).atLineNumber(count+1),
                     display_line = False
                 )

@@ -65,7 +65,6 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
     ExpressionImportName
@@ -943,8 +942,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         source_filename = filename
 
         source_ref = SourceCodeReferences.fromFilename(
-            filename    = filename,
-            future_spec = FutureSpec()
+            filename = filename,
         )
 
         if is_main:
@@ -970,13 +968,13 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         if is_shlib:
             result = PythonShlibModule(
                 name         = module_name,
-                source_ref   = source_ref,
                 package_name = package,
+                source_ref   = source_ref
             )
         elif is_main:
             result = PythonMainModule(
-                source_ref = source_ref,
-                main_added = main_added
+                main_added = main_added,
+                source_ref = source_ref
             )
         else:
             result = PythonModule(
@@ -1000,8 +998,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             source_filename = None
         else:
             source_ref = SourceCodeReferences.fromFilename(
-                filename    = Utils.abspath(source_filename),
-                future_spec = FutureSpec()
+                filename = Utils.abspath(source_filename),
             )
 
             result = PythonPackage(
@@ -1024,11 +1021,9 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     return result, source_ref, source_filename
 
 
-def createModuleTree(module, source_ref, source_filename, is_main):
+def createModuleTree(module, source_ref, source_code, is_main):
     if Options.isShowProgress():
         memory_watch = Utils.MemoryWatch()
-
-    source_code = readSourceCodeFromFilename(source_filename)
 
     module_body = buildParseTree(
         provider    = module,
@@ -1076,10 +1071,10 @@ def buildModuleTree(filename, package, is_top, is_main):
     # Python3.3 or higher, then read it.
     if source_filename is not None:
         createModuleTree(
-            module          = module,
-            source_ref      = source_ref,
-            source_filename = source_filename,
-            is_main         = is_main
+            module      = module,
+            source_ref  = source_ref,
+            source_code = readSourceCodeFromFilename(source_filename),
+            is_main     = is_main
         )
 
     return module

@@ -29,6 +29,7 @@ import sys
 from logging import info, warning
 
 from nuitka.importing import Importing, Recursion
+from nuitka.plugins.PluginBase import Plugins
 from nuitka.tree import SyntaxErrors
 
 from . import ModuleRegistry, Options, Tracing, TreeXML, Utils
@@ -351,7 +352,7 @@ def makeSourceDirectory(main_module):
             )
 
             if Options.isShowInclusion():
-                info("Included compiled module '%s'.", module.getFullName())
+                info("Included compiled module '%s'." % module.getFullName())
 
         elif module.isPythonShlibModule():
             target_filename = Utils.joinpath(
@@ -711,13 +712,18 @@ def main():
                 (binary_filename, None)
             )
 
+            dist_dir = getStandaloneDirectoryPath(main_module)
+
+            for module in ModuleRegistry.getDoneUserModules():
+                standalone_entry_points.extend(
+                    Plugins.considerExtraDlls(dist_dir, module)
+                )
+
             if Utils.getOS() == "NetBSD":
                 warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
 
             copyUsedDLLs(
-                dist_dir                = getStandaloneDirectoryPath(
-                    main_module
-                ),
+                dist_dir                = dist_dir,
                 standalone_entry_points = standalone_entry_points
             )
 

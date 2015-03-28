@@ -134,6 +134,12 @@ def listDir(path):
     )
 
 
+def getFileList(path):
+    for root, _dirnames, filenames in os.walk(path):
+        for filename in filenames:
+            yield joinpath(root, filename)
+
+
 def deleteFile(path, must_exist):
     if must_exist or isFile(path):
         os.unlink(path)

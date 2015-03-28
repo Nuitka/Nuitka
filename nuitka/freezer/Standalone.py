@@ -29,7 +29,7 @@ import sys
 from logging import debug, info, warning
 
 import marshal
-from nuitka import Options, Tracing, Utils
+from nuitka import Options, SourceCodeReferences, Tracing, Utils
 from nuitka.__past__ import (  # pylint: disable=W0622
     iterItems,
     raw_input,
@@ -37,6 +37,7 @@ from nuitka.__past__ import (  # pylint: disable=W0622
 )
 from nuitka.codegen.ConstantCodes import needsPickleInit
 from nuitka.importing.Importing import getStandardLibraryPaths
+from nuitka.nodes.ModuleNodes import PythonShlibModule
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 
 
@@ -227,13 +228,8 @@ def _detectedShlibFile(filename, module_name):
         package_name = '.'.join(parts[:-1])
         name = parts[-1]
 
-    from nuitka.nodes.FutureSpecs import FutureSpec
-    from nuitka.nodes.ModuleNodes import PythonShlibModule
-    from nuitka import SourceCodeReferences
-
     source_ref = SourceCodeReferences.fromFilename(
-        filename    = filename,
-        future_spec = FutureSpec()
+        filename = filename
     )
 
     shlib_module = PythonShlibModule(

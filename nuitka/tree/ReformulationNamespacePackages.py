@@ -141,9 +141,9 @@ def createNamespacePackage(package_name, module_relpath):
 
     if Utils.python_version >= 300:
         statement = createPython3NamespacePath(
-            package_name = package_name,
+            package_name   = package_name,
             module_relpath = module_relpath,
-            source_ref = source_ref
+            source_ref     = source_ref
         )
     else:
         statement = createPathAssignment(source_ref)

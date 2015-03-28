@@ -23,9 +23,8 @@ from logging import debug, warning
 
 from nuitka import ModuleRegistry, Options, Utils
 from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
-from nuitka.importing import Importing
-
-from . import ImportCache
+from nuitka.importing import ImportCache, Importing
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
 
 
 def recurseTo(module_package, module_filename, module_relpath, module_kind,
@@ -54,10 +53,10 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
             if module_kind == "py" and source_filename is not None:
                 try:
                     Building.createModuleTree(
-                        module          = module,
-                        source_ref      = source_ref,
-                        source_filename = source_filename,
-                        is_main         = False
+                        module      = module,
+                        source_ref  = source_ref,
+                        source_code = readSourceCodeFromFilename(source_filename),
+                        is_main     = False
                     )
                 except (SyntaxError, IndentationError) as e:
                     if module_filename not in Importing.warned_about:

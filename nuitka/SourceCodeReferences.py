@@ -21,6 +21,9 @@ All the information to lookup line and file of a code location, together with
 the future flags in use there.
 """
 
+from nuitka.nodes.FutureSpecs import FutureSpec
+
+
 class SourceCodeReference:
     @classmethod
     def fromFilenameAndLine(cls, filename, line, future_spec):
@@ -96,9 +99,9 @@ class SourceCodeReference:
             return self
 
 
-def fromFilename(filename, future_spec):
+def fromFilename(filename):
     return SourceCodeReference.fromFilenameAndLine(
         filename    = filename,
         line        = 1,
-        future_spec = future_spec,
+        future_spec = FutureSpec(),
     )

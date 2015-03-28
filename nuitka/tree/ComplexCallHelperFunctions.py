@@ -55,7 +55,6 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
-from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
 from nuitka.nodes.ModuleNodes import PythonInternalModule
 from nuitka.nodes.OperatorNodes import (
@@ -86,7 +85,7 @@ from .Helpers import (
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
-source_ref = fromFilename("internal", FutureSpec()).atInternal()
+source_ref = fromFilename("internal").atInternal()
 
 
 # Cache result.

@@ -278,8 +278,7 @@ class InspectNodeTreeDialog(QtGui.QDialog):
         self.moving = False
 
         self.displayed = SourceCodeReferences.fromFilename(
-            filename    = filename,
-            future_spec = None
+            filename = filename
         )
 
 
