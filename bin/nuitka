@@ -118,8 +118,6 @@ if os.environ.get("PYTHONHASHSEED", "-1") != "0":
     os.environ["PYTHONHASHSEED"] = "0"
     needs_reexec = True
 
-#
-
 # In case we need to re-execute.
 if needs_reexec:
     if not Options.isAllowedToReexecute():

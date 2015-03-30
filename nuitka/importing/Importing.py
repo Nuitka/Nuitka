@@ -42,7 +42,7 @@ import os
 import sys
 from logging import warning
 
-from nuitka import Utils, Options
+from nuitka import Options, Utils
 from nuitka.containers import oset
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -439,9 +439,9 @@ def _findModule2(module_name, parent_package):
                     print("_findModule: Try recurse relative:")
 
                 module_filename, found_package = _findModuleInPath(
-                    module_name    = module_name,
+                    module_name  = module_name,
                     package_name = parent_package + '.' + package_part,
-                    try_absolute   = False
+                    try_absolute = False
                 )
 
                 if module_filename is not None:
