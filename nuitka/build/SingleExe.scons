@@ -1318,8 +1318,12 @@ if target_arch == "x86_64" and "linux" in sys.platform:
 if gcc_mode:
     env.Append(CCFLAGS = "-pipe")
 
+if "CPPFLAGS" in os.environ:
+    env.Append(CCFLAGS = os.environ["CPPFLAGS"].split())
 if "CCFLAGS" in os.environ:
     env.Append(CCFLAGS = os.environ["CCFLAGS"].split())
+if "CXXFLAGS" in os.environ:
+    env.Append(CCFLAGS = os.environ["CXXFLAGS"].split())
 
 if "LDFLAGS" in os.environ:
     env.Append(LINKFLAGS = os.environ["LDFLAGS"].split())
