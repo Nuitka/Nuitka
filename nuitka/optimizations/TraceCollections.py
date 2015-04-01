@@ -26,11 +26,9 @@ This is about collecting these constraints and to manage them.
 # Python3 compatibility.
 from logging import debug
 
-from nuitka import Options, Tracing
+from nuitka import Tracing
 from nuitka.__past__ import iterItems
-from nuitka.nodes.AssignNodes import StatementDelVariable
 from nuitka.utils import Utils
-from nuitka.VariableRegistry import isSharedLogically
 
 from .VariableTraces import (
     VariableAssignTrace,
@@ -76,6 +74,7 @@ class VariableUsageTrackingMixin:
     def _makeVariableTraceOptimization(self, owner, variable_trace):
         variable = variable_trace.getVariable()
 
+        # TODO: Remove unused variables, does not work, why?
         if variable.isTempVariable():
             if variable.getOwner() is owner:
 
@@ -86,14 +85,6 @@ class VariableUsageTrackingMixin:
                         # done not at all before code generation.
                         # owner.removeTempVariable( variable )
                         pass
-
-                # TODO: Something wrong here, disabled it for now.
-                if False and \
-                    variable_trace.isAssignTrace() and \
-                   not variable_trace.getAssignNode().getAssignSource().\
-                     mayHaveSideEffects() and \
-                   not variable_trace.getPotentialUsages():
-                    variable_trace.getAssignNode().replaceWith(None)
 
 
     def makeVariableTraceOptimizations(self, owner):
@@ -568,9 +559,6 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
                                    ConstraintCollectionBase,
                                    VariableUsageTrackingMixin):
     def __init__(self, parent, function_body):
-        # Too complex stuff here, but could be improved, just not now.
-        # pylint: disable=R0912
-
         assert function_body.isExpressionFunctionBody(), function_body
 
         CollectionStartpointMixin.__init__(self)
@@ -600,62 +588,8 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
         self.makeVariableTraceOptimizations(function_body)
 
-        if not Options.isExperimental() or self.removes_knowledge:
-            return
-
-        # self.dumpTrace()
-
-        # Cannot mess with locals yet.
-        if self.unclear_locals:
-            return
-
-        # TODO: Merge this into makeVariableTraceOptimizations instead, could
-        # check the above for these too.
-        # Trace based optimization goes here:
-        for variable_trace in self.variable_traces.values():
-            variable = variable_trace.getVariable()
-
-            # print variable
-
-            if variable.isLocalVariable() and not isSharedLogically(variable):
-                if variable_trace.isAssignTrace():
-                    assign_node = variable_trace.getAssignNode()
-
-                    if not assign_node.getAssignSource().mayHaveSideEffects():
-
-                        if not variable_trace.getPotentialUsages() and \
-                           not variable_trace.isEscaped():
-                            assign_node.parent.replaceWith(
-                                StatementDelVariable(
-                                    variable_ref = assign_node,
-                                    tolerant     = True,
-                                    source_ref   = assign_node.getSourceReference()
-                                )
-                            )
-
-                            for release in variable_trace.releases:
-                                if release.isStatementDelVariable():
-                                    release.replaceWith(
-                                        None
-                                    )
-
-                            self.signalChange(
-                                "new_statements",
-                                assign_node.parent.getSourceReference(),
-                                "Removed assignment without effect."
-                            )
-                elif variable_trace.isMergeTrace():
-                    # print variable_trace
-                    if not variable_trace.getDefiniteUsages() and \
-                       not variable_trace.isEscaped() and \
-                       not variable_trace.releases:
-                        pass
-                        # print "HIT", variable_trace
-
-
     def __repr__(self):
         return "<ConstraintCollectionFunction for %s>" % self.function_body
-
 
 
 class ConstraintCollectionModule(CollectionStartpointMixin,

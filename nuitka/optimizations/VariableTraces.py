@@ -47,9 +47,6 @@ class VariableTraceBase:
         # List of releases of the node.
         self.releases = []
 
-        # List of merges.
-        self.merges = []
-
         # If not None, this indicates the last usage, where the value was not
         # yet escaped. If it is 0, it escaped immediately. Escaping is a one
         # time action.
@@ -69,9 +66,6 @@ class VariableTraceBase:
     def addUsage(self, ref_node):
         self.usages.append(ref_node)
 
-    def addMerge(self, trace):
-        self.merges.append(trace)
-
     def addRelease(self, release_node):
         self.releases.append(release_node)
 
@@ -80,17 +74,6 @@ class VariableTraceBase:
 
     def isEscaped(self):
         return self.escaped_at is not None
-
-    def getPotentialUsages(self):
-        return self.usages + \
-               sum(
-                   [
-                       merge.getPotentialUsages()
-                       for merge in
-                       self.merges
-                   ],
-                   []
-               )
 
     def getDefiniteUsages(self):
         return self.usages
@@ -174,9 +157,6 @@ class VariableUninitTrace(VariableTraceBase):
 
             debug("  Used at %s", usage)
 
-        for merge in self.merges:
-            debug("   Merged to %s", merge)
-
         for release in self.releases:
             debug("   Release by %s", release)
 
@@ -209,9 +189,6 @@ class VariableInitTrace(VariableTraceBase):
                 debug("  Escaped value")
 
             debug("  Used at %s", usage)
-
-        for merge in self.merges:
-            debug("   Merged to %s", merge)
 
         for release in self.releases:
             debug("   Release by %s", release)
@@ -249,9 +226,6 @@ class VariableUnknownTrace(VariableTraceBase):
                 debug("  Escaped value")
 
             debug("  Used at %s", usage)
-
-        for merge in self.merges:
-            debug("   Merged to %s", merge)
 
         for release in self.releases:
             debug("   Release by %s", release)
@@ -292,9 +266,6 @@ class VariableAssignTrace(VariableTraceBase):
 
             debug("  Used at %s", usage)
 
-        for merge in self.merges:
-            debug("   Merged to %s", merge)
-
         for release in self.releases:
             debug("   Release by %s", release)
 
@@ -321,9 +292,6 @@ class VariableMergeTrace(VariableTraceBase):
             version  = version,
             previous = (trace_yes, trace_no)
         )
-
-        trace_yes.addMerge(self)
-        trace_no.addMerge(self)
 
     @staticmethod
     def isMergeTrace():
