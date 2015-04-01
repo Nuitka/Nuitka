@@ -124,7 +124,7 @@ class VariableTraceBase:
 
 
 
-class VariableUninitTrace(VariableTraceBase):
+class VariableTraceUninit(VariableTraceBase):
     def __init__(self, variable, version, previous):
         VariableTraceBase.__init__(
             self,
@@ -134,7 +134,7 @@ class VariableUninitTrace(VariableTraceBase):
         )
 
     def __repr__(self):
-        return "<VariableUninitTrace {variable} {version}>".format(
+        return "<VariableTraceUninit {variable} {version}>".format(
             variable = self.variable,
             version  = self.version
         )
@@ -161,7 +161,7 @@ class VariableUninitTrace(VariableTraceBase):
             debug("   Release by %s", release)
 
 
-class VariableInitTrace(VariableTraceBase):
+class VariableTraceInit(VariableTraceBase):
     def __init__(self, variable, version):
         VariableTraceBase.__init__(
             self,
@@ -171,7 +171,7 @@ class VariableInitTrace(VariableTraceBase):
         )
 
     def __repr__(self):
-        return "<VariableInitTrace {variable} {version}>".format(
+        return "<VariableTraceInit {variable} {version}>".format(
             variable = self.variable,
             version  = self.version
         )
@@ -198,7 +198,7 @@ class VariableInitTrace(VariableTraceBase):
         return True
 
 
-class VariableUnknownTrace(VariableTraceBase):
+class VariableTraceUnknown(VariableTraceBase):
     def __init__(self, variable, version, previous):
         VariableTraceBase.__init__(
             self,
@@ -208,7 +208,7 @@ class VariableUnknownTrace(VariableTraceBase):
         )
 
     def __repr__(self):
-        return "<VariableUnknownTrace {variable} {version}>".format(
+        return "<VariableTraceUnknown {variable} {version}>".format(
             variable = self.variable,
             version  = self.version
         )
@@ -235,7 +235,7 @@ class VariableUnknownTrace(VariableTraceBase):
         return True
 
 
-class VariableAssignTrace(VariableTraceBase):
+class VariableTraceAssign(VariableTraceBase):
     def __init__(self, assign_node, variable, version, previous):
         VariableTraceBase.__init__(
             self,
@@ -248,7 +248,7 @@ class VariableAssignTrace(VariableTraceBase):
 
     def __repr__(self):
         return """\
-<VariableAssignTrace {variable} {version} at {source_ref}>""".format(
+<VariableTraceAssign {variable} {version} at {source_ref}>""".format(
             variable   = self.variable,
             version    = self.version,
             source_ref = self.assign_node.getSourceReference().getAsString()
@@ -277,7 +277,7 @@ class VariableAssignTrace(VariableTraceBase):
         return self.assign_node
 
 
-class VariableMergeTrace(VariableTraceBase):
+class VariableTraceMerge(VariableTraceBase):
     """ Merge of two traces.
 
         Happens at the end of two conditional blocks. This is "phi" in

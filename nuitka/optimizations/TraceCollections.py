@@ -31,11 +31,11 @@ from nuitka.__past__ import iterItems
 from nuitka.utils import Utils
 
 from .VariableTraces import (
-    VariableAssignTrace,
-    VariableInitTrace,
-    VariableMergeTrace,
-    VariableUninitTrace,
-    VariableUnknownTrace
+    VariableTraceAssign,
+    VariableTraceInit,
+    VariableTraceMerge,
+    VariableTraceUninit,
+    VariableTraceUnknown
 )
 
 signalChange = None
@@ -136,7 +136,7 @@ class CollectionTracingMixin:
             self.addVariableTrace(
                 variable = variable,
                 version  = version,
-                trace    = VariableUnknownTrace(
+                trace    = VariableTraceUnknown(
                     variable = variable,
                     version  = version,
                     previous = current
@@ -189,7 +189,7 @@ class CollectionStartpointMixin:
 
     def addVariableMergeTrace(self, variable, trace_yes, trace_no):
         version = variable.allocateTargetNumber()
-        trace_merge = VariableMergeTrace(
+        trace_merge = VariableTraceMerge(
             variable  = variable,
             version   = version,
             trace_yes = trace_yes,
@@ -215,7 +215,7 @@ class CollectionStartpointMixin:
         self.addVariableTrace(
             variable = variable,
             version  = 0,
-            trace    = VariableUnknownTrace(
+            trace    = VariableTraceUnknown(
                 variable = variable,
                 version  = 0,
                 previous = None
@@ -228,7 +228,7 @@ class CollectionStartpointMixin:
         self.addVariableTrace(
             variable = variable,
             version  = 0,
-            trace    = VariableInitTrace(
+            trace    = VariableTraceInit(
                 variable = variable,
                 version  = 0,
             )
@@ -240,7 +240,7 @@ class CollectionStartpointMixin:
         self.addVariableTrace(
             variable = variable,
             version  = 0,
-            trace    = VariableUninitTrace(
+            trace    = VariableTraceUninit(
                 variable = variable,
                 version  = 0,
                 previous = None
@@ -334,7 +334,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         version = variable_ref.getVariableVersion()
         variable = variable_ref.getVariable()
 
-        variable_trace = VariableAssignTrace(
+        variable_trace = VariableTraceAssign(
             assign_node = assign_node,
             variable    = variable,
             version     = version,
@@ -365,7 +365,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         old_trace = self.getVariableCurrentTrace(variable)
 
-        variable_trace = VariableUninitTrace(
+        variable_trace = VariableTraceUninit(
             variable = variable,
             version  = version,
             previous = old_trace
