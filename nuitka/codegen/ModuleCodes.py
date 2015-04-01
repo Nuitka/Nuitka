@@ -19,7 +19,8 @@
 
 """
 
-from nuitka import Options, Utils
+from nuitka import Options
+from nuitka.utils import Utils
 
 from . import CodeTemplates
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode

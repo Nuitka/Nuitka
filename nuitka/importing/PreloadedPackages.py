@@ -24,7 +24,7 @@ package. Nuitka will pretend for those that there be one, but without content.
 
 import sys
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 
 def getLoadedPackages():

@@ -24,7 +24,7 @@ of operations allowed.
 
 import operator
 
-from .Utils import python_version
+from nuitka.utils.Utils import python_version
 
 if python_version >= 300:
     operator.div = operator.truediv

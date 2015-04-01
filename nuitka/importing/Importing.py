@@ -39,8 +39,9 @@ import os
 import sys
 from logging import warning
 
-from nuitka import Options, Utils
+from nuitka import Options
 from nuitka.containers import oset
+from nuitka.utils import Utils
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
 from .Whitelisting import isWhiteListedNotExistingModule

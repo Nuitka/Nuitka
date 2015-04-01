@@ -15,31 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" XML node tree handling
-
-Means to create XML elements from Nuitka tree nodes and to convert the
-XML tree to ASCII or output it.
-"""
-
-from nuitka.utils import Utils
-
-from . import Tracing
-
-try:
-    import lxml.etree
-
-    Element = lxml.etree.Element
-except ImportError:
-    lxml = None
-    Element = None
-
-def toString(xml):
-    return lxml.etree.tostring(xml, pretty_print = True)
-
-def dump(xml):
-    value = toString(xml).rstrip()
-
-    if Utils.python_version >= 300:
-        value = value.decode("utf-8")
-
-    Tracing.printLine(value)
+""" Dummy file to make this directory a package. """

@@ -25,7 +25,7 @@ that should be unified at some point.
 
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
 

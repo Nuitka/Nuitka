@@ -31,8 +31,9 @@ from logging import info, warning
 from nuitka.importing import Importing, Recursion
 from nuitka.plugins.PluginBase import Plugins
 from nuitka.tree import SyntaxErrors
+from nuitka.utils import InstanceCounters, Utils
 
-from . import ModuleRegistry, Options, Tracing, TreeXML, Utils
+from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
 from .codegen import CodeGeneration, ConstantCodes
 from .finalizations import Finalization
@@ -613,6 +614,8 @@ def compileTree(main_module):
                 memory = Utils.getHumanReadableProcessMemoryUsage()
             )
         )
+
+        InstanceCounters.printStats()
 
     if Options.shallNotDoExecCppCall():
         return True, {}

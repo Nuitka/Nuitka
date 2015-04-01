@@ -29,7 +29,7 @@ from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
 from nuitka.tree import SyntaxErrors
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage, isSharedLogically
 
 from .Operations import VisitorNoopMixin, visitTree

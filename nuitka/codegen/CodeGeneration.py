@@ -26,10 +26,11 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
-from nuitka import Constants, Options, Tracing, Utils
+from nuitka import Constants, Options, Tracing
 from nuitka.__past__ import iterItems
 from nuitka.codegen.AttributeCodes import generateAttributeLookupCode
 from nuitka.codegen.CallCodes import generateCallCode
+from nuitka.utils import Utils
 
 from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
 from .ConditionalCodes import generateConditionCode

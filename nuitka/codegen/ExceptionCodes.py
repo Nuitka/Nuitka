@@ -19,7 +19,7 @@
 
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 
 def getExceptionIdentifier(exception_type):

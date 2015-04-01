@@ -24,7 +24,7 @@ anymore, if we start to not know where their value goes.
 The "dir()" call without arguments is reformulated to locals or globals calls.
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,

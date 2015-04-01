@@ -61,6 +61,7 @@ PACKAGE_LIST = (
     "nuitka/finalizations",
     "nuitka/plugins",
     "nuitka/containers",
+    "nuitka/utils",
 )
 
 def diffRecursive(dir1, dir2):

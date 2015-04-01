@@ -23,8 +23,9 @@ It should be simple, but it is not yet. Not all the pickle modules are well beha
 import pickletools
 from logging import warning
 
-from nuitka import Constants, Utils
+from nuitka import Constants
 from nuitka.__past__ import unicode  # pylint: disable=W0622
+from nuitka.utils import Utils
 
 # Work around for CPython 3.x removal of cpickle.
 try:

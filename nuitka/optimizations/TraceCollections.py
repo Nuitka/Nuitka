@@ -26,9 +26,10 @@ This is about collecting these constraints and to manage them.
 # Python3 compatibility.
 from logging import debug
 
-from nuitka import Options, Tracing, Utils
+from nuitka import Options, Tracing
 from nuitka.__past__ import iterItems
 from nuitka.nodes.AssignNodes import StatementDelVariable
+from nuitka.utils import Utils
 from nuitka.VariableRegistry import isSharedLogically
 
 from .VariableTraces import (

@@ -17,7 +17,7 @@
 #
 """ Eval/exec/execfile/compile built-in related codes. """
 
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes

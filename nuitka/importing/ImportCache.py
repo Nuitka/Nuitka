@@ -27,8 +27,8 @@ not start anew.
 
 from logging import warning
 
-from nuitka import Utils
 from nuitka.plugins.PluginBase import Plugins
+from nuitka.utils import Utils
 
 imported_modules = {}
 imported_by_name = {}

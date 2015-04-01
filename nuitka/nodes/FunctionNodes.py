@@ -28,8 +28,9 @@ CPython reference, and may escape.
 
 """
 
-from nuitka import Utils, Variables
+from nuitka import Variables
 from nuitka.__past__ import iterItems
+from nuitka.utils import Utils
 
 from .IndicatorMixins import (
     MarkGeneratorIndicator,

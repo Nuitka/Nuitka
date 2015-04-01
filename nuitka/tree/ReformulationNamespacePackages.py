@@ -20,7 +20,7 @@ Namespace packages of Python3.3
 
 """
 
-from nuitka import Options, Utils
+from nuitka import Options
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
@@ -41,6 +41,7 @@ from nuitka.nodes.ModuleNodes import (
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 from nuitka.SourceCodeReferences import SourceCodeReference
+from nuitka.utils import Utils
 
 from .Helpers import makeStatementsSequenceFromStatement
 from .VariableClosure import completeVariableClosures

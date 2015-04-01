@@ -29,10 +29,10 @@ compile time constant.
 
 from logging import warning
 
-from nuitka import Utils
 from nuitka.importing.Importing import findModule
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
+from nuitka.utils import Utils
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import (

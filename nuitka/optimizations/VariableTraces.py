@@ -32,8 +32,11 @@ Variable version can start as:
 
 from logging import debug
 
+from nuitka.utils import InstanceCounters
+
 
 class VariableTraceBase:
+    @InstanceCounters.counted_init
     def __init__(self, variable, version, previous):
         self.variable = variable
         self.version = version
@@ -54,6 +57,8 @@ class VariableTraceBase:
 
         # Previous trace this is replacing.
         self.previous = previous
+
+    __del__ = InstanceCounters.counted_del()
 
     def getVariable(self):
         return self.variable

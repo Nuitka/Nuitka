@@ -23,7 +23,7 @@ inlining of exec statements with their own future imports, or inlining of code
 from other modules.
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 _future_division_default = Utils.python_version >= 300
 _future_absolute_import_default = Utils.python_version >= 300

@@ -28,7 +28,8 @@ import os
 import subprocess
 import sys
 
-from nuitka import Options, Tracing, Utils
+from nuitka import Options, Tracing
+from nuitka.utils import Utils
 
 
 def getSconsDataPath():

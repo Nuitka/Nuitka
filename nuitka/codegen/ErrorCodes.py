@@ -28,7 +28,7 @@ And releasing of values, as this is what the error case commonly does.
 
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 from . import CodeTemplates
 from .ExceptionCodes import getExceptionIdentifier

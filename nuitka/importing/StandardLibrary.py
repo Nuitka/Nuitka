@@ -28,7 +28,7 @@ module.
 
 import os
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 
 def getStandardLibraryPaths():

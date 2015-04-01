@@ -27,7 +27,8 @@ else.
 # These are here to be imported from here
 # pylint: disable=W0611
 
-from nuitka import Builtins, Utils
+from nuitka import Builtins
+from nuitka.utils import Utils
 
 from . import CodeTemplates, CppStrings, OperatorCodes
 from .AttributeCodes import (

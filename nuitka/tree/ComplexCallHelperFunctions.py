@@ -76,7 +76,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.SourceCodeReferences import fromFilename
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage
 
 from .Helpers import (

@@ -53,7 +53,7 @@ catching and passing in exceptions raised.
 import ast
 import sys
 
-from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing, Utils
+from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
@@ -91,6 +91,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.tree import SyntaxErrors
+from nuitka.utils import Utils
 
 from .Helpers import (
     applyLaterWrappers,

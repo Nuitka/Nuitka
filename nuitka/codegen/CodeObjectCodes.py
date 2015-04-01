@@ -20,7 +20,7 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 from .ConstantCodes import getConstantCode
 

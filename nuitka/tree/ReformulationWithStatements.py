@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Options, Utils
+from nuitka import Options
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
@@ -50,6 +50,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
+from nuitka.utils import Utils
 
 from .Helpers import (
     buildNode,

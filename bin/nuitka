@@ -65,7 +65,8 @@ else:
     )
 # LIBDIR trick end (marker for removal on platforms that don't need it)
 
-from nuitka import Options, Utils   # isort:skip
+from nuitka import Options       # isort:skip
+from nuitka.utils import Utils   # isort:skip pylint:disable=E0611
 
 logging.basicConfig(format = 'Nuitka:%(levelname)s:%(message)s')
 

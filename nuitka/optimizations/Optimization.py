@@ -25,10 +25,11 @@ make others possible.
 
 from logging import debug
 
-from nuitka import ModuleRegistry, Options, Utils, VariableRegistry
+from nuitka import ModuleRegistry, Options, VariableRegistry
 from nuitka.optimizations import TraceCollections
 from nuitka.plugins.PluginBase import Plugins
 from nuitka.Tracing import printLine
+from nuitka.utils import Utils
 
 from .Tags import TagSet
 

@@ -20,7 +20,7 @@
 This also includes writing back to locals for exec statements.
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitBoolCode

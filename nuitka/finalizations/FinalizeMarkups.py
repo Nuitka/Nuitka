@@ -33,8 +33,9 @@ are in another context.
 
 from logging import warning
 
-from nuitka import Options, Utils
+from nuitka import Options
 from nuitka.importing import StandardLibrary
+from nuitka.utils import Utils
 
 from .FinalizeBase import FinalizationVisitorBase
 

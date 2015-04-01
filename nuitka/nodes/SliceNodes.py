@@ -23,7 +23,7 @@ achieve more compact code, or predict results at compile time.
 There will be a method "computeExpressionSlice" to aid predicting them.
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import convertNoneConstantToNone

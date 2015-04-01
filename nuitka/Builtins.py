@@ -24,7 +24,7 @@ import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
 from nuitka.__past__ import iterItems
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 
 
 def _getBuiltinExceptionNames():

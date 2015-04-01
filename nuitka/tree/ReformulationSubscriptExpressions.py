@@ -26,10 +26,10 @@ Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
 """
 
-from nuitka import Utils
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.SliceNodes import ExpressionSliceLookup, ExpressionSliceObject
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.utils import Utils
 
 from .Helpers import buildNode, getKind
 from .ReformulationAssignmentStatements import buildExtSliceNode

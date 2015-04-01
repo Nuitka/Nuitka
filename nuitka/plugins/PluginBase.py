@@ -33,10 +33,10 @@ import shutil
 import subprocess
 import sys
 
-from nuitka import Utils
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.ModuleNodes import PythonModule
 from nuitka.SourceCodeReferences import fromFilename
+from nuitka.utils import Utils
 
 post_modules = {}
 
