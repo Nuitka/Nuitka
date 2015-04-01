@@ -79,7 +79,7 @@ class PythonModuleMixin:
         result = []
 
         if self.package_name is not None and self.package is None:
-            package_package, _package_module_name, package_filename = \
+            package_package, package_filename, _finding = \
               Importing.findModule(
                 source_ref     = self.getSourceReference(),
                 module_name    = self.package_name,

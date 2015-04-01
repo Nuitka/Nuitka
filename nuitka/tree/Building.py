@@ -321,6 +321,9 @@ def buildImportModulesNode(provider, node, source_ref):
         level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
 
         if local_name:
+            # If is gets a local name, the real name must be used as a
+            # temporary value only, being looked up recursively.
+
             import_node = ExpressionImportModule(
                 module_name = module_name,
                 import_list = None,

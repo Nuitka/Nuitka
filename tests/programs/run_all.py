@@ -70,7 +70,8 @@ for filename in sorted(os.listdir('.')):
         extra_flags = ["expect_failure"]
 
     if filename in ("reimport_main_static", "package_missing_init",
-                    "dash_import"):
+                    "dash_import", "package_contains_main",
+                    "import_variants", "package_init_import"):
         extra_flags.append("ignore_warnings")
 
     extra_flags.append("remove_output")

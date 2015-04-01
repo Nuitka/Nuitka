@@ -18,21 +18,18 @@
 """ Locating modules and package source on disk.
 
 The actual import of a module would already execute code that changes things.
-Imagine a module that does "os.system()", it will be done. People often connect
-to databases, and these kind of things, at import time. Not a good style, but
-it's being done.
+Consider a module that does "os.system()", it would be executed. People often
+connect to databases, and these kind of things, at import time. Not a good
+style, but it's being done.
 
-Therefore CPython exhibits the interfaces in an "imp" module in standard
-library, which one can use those to know ahead of time, what file import would
-load. For us unfortunately there is nothing in CPython that gives the fully
+Therefore CPython exhibits the interfaces in an "imp" module or more modern
+"importlib" in standard library, which one can use those to know ahead of time,
+to tell what filename an import would load from.
+
+For us unfortunately there is nothing in CPython that gives the fully
 compatible functionality we need for packages and search paths exactly like
-CPython does, so we implement here a multiple step search process that is
+CPython really does, so we implement here a multiple step search process that is
 compatible.
-
-This approach is much safer of course and there is no loss. To determine if it's
-from the standard library, we can abuse the attribute "__file__" of the "os"
-module like it's done in "isStandardLibraryPath" of this module.
-
 """
 
 from __future__ import print_function
@@ -81,6 +78,57 @@ def isPackageDir(dirname):
                isPreloadedPackagePath(dirname)
            )
 
+def getPackageNameFromFullName(full_name):
+    if '.' in full_name:
+        return full_name[:full_name.rfind('.')]
+    else:
+        return None
+
+def warnAbout(module_name, parent_package, level, source_ref):
+    # This probably should not be dealt with here.
+    if module_name == "":
+        return
+
+    if not isWhiteListedNotExistingModule(module_name):
+        key = module_name, parent_package, level
+
+        if key not in warned_about:
+            warned_about.add(key)
+
+            if level == 0:
+                level_desc = "as absolute import"
+            elif level == -1:
+                level_desc = "as relative or absolute import"
+            elif level == 1:
+                level_desc = "%d package level up" % level
+            else:
+                level_desc = "%d package levels up" % level
+
+            if parent_package is not None:
+                warning(
+                    "%s: Cannot find '%s' in package '%s' %s.",
+                    source_ref.getAsString(),
+                    module_name,
+                    parent_package,
+                    level_desc
+                )
+            else:
+                warning(
+                    "%s: Cannot find '%s' %s.",
+                    source_ref.getAsString(),
+                    module_name,
+                    level_desc
+                )
+
+def normalizePackageName(module_name):
+    # The "os.path" is strangely hacked into the "os" module, dispatching per
+    # platform, we either cannot look into it, or we require that we resolve it
+    # here correctly.
+    if module_name == "os.path":
+        module_name = Utils.basename(os.path.__name__)
+
+    return module_name
+
 
 def findModule(source_ref, module_name, parent_package, level, warn):
     """ Find a module with given package name as parent.
@@ -91,96 +139,107 @@ def findModule(source_ref, module_name, parent_package, level, warn):
         Returns a triple of package name the module is in, module name
         and filename of it, which can be a directory.
     """
+
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=R0912
     if _debug_module_finding:
         print(
-            "findModule: Enter to search '%s' in '%s' level %s." % (
+            "findModule: Enter to search %r in package %r level %s." % (
                 module_name,
                 parent_package,
                 level
             )
         )
 
-
+    # Do not allow star imports to get here. We just won't find modules with
+    # that name, but it would be wasteful.
     assert module_name != '*'
 
-    if level > 1 and parent_package is not None:
-        parent_package = '.'.join(parent_package.split('.')[:-level+1])
+    if level > 1:
+        # TODO: Should give a warning and return not found if the levels
+        # exceed the package name.
+        if parent_package is not None:
+            parent_package = '.'.join(parent_package.split('.')[:-level+1])
 
-        if parent_package == "":
-            parent_package = None
+            if parent_package == "":
+                parent_package = None
+        else:
+            return None, None, "not-found"
 
-    # It might be a pre-loaded package. If so, return that directly.
-    if parent_package is None:
-        preloaded_path = getPreloadedPackagePath(module_name)
+    # Try relative imports first if we have a parent package.
+    if level != 0 and parent_package is not None:
+        full_name = normalizePackageName(parent_package + '.' + module_name)
 
-        if preloaded_path is not None:
-            return None, module_name, preloaded_path[0]
+        package_name = getPackageNameFromFullName(full_name)
 
-    if module_name != "" or parent_package is not None:
         try:
-            module_filename, module_package_name = _findModule(
-                module_name    = module_name,
-                parent_package = parent_package
+            module_filename = _findModule(
+                module_name = full_name,
             )
         except ImportError:
-            if warn and not isWhiteListedNotExistingModule(module_name):
-                key = module_name, parent_package, level
-
-                if key not in warned_about:
-                    warned_about.add(key)
-
-                    if level == 0:
-                        level_desc = "as absolute import"
-                    elif level == -1:
-                        level_desc = "as relative or absolute import"
-                    elif level == 1:
-                        level_desc = "%d package level up" % level
-                    else:
-                        level_desc = "%d package levels up" % level
-
-                    if parent_package is not None:
-                        warning(
-                            "%s: Cannot find '%s' in package '%s' %s.",
-                            source_ref.getAsString(),
-                            module_name,
-                            parent_package,
-                            level_desc
-                        )
-                    else:
-                        warning(
-                            "%s: Cannot find '%s' %s.",
-                            source_ref.getAsString(),
-                            module_name,
-                            level_desc
-                        )
-
-
-            if '.' in module_name:
-                module_package_name = module_name[:module_name.rfind('.')]
-            else:
-                module_package_name = None
-
-            module_filename = None
-    else:
-        if '.' in module_name:
-            module_package_name = module_name[:module_name.rfind('.')]
+            # For relative import, that is OK, we will still try absolute.
+            pass
         else:
-            module_package_name = None
+            package_name = getPackageNameFromFullName(full_name)
+            found = "relative"
 
-        module_filename = None
+            if _debug_module_finding:
+                print(
+                    "findModule: Relative imported module '%s' as '%s' in filename '%s'    ':" % (
+                        module_name,
+                        full_name,
+                        module_filename
+                    )
+                )
 
-    if _debug_module_finding:
-        print(
-            "findModule: Result module '%s' in '%s' filename '%s':" % (
-                module_name,
-                module_package_name,
-                module_filename
+            return package_name, module_filename, found
+
+    if level <= 1 and module_name != "":
+        module_name = normalizePackageName(module_name)
+
+        package_name = getPackageNameFromFullName(module_name)
+
+        # Built-in module names must not be searched any further.
+        if module_name in sys.builtin_module_names:
+            if _debug_module_finding:
+                print(
+                    "findModule: Absolute imported module '%s' in as built-in':" % (
+                        module_name,
+                    )
+                )
+            return package_name, None, "built-in"
+
+        try:
+            module_filename = _findModule(
+                module_name = module_name,
             )
+        except ImportError:
+            # For relative import, that is OK, we will still try absolute.
+            pass
+        else:
+            found = "absolute"
+
+            if _debug_module_finding:
+                print(
+                    "findModule: Found absolute imported module '%s' in filename '%s':" % (
+                        module_name,
+                        module_filename
+                    )
+                )
+
+            return package_name, module_filename, found
+
+
+    if warn:
+        warnAbout(
+            module_name,
+            parent_package,
+            level,
+            source_ref
         )
 
-    return module_package_name, module_name, module_filename
+    return None, None, "not-found"
+
 
 # Some platforms are case insensitive.
 case_sensitive = not sys.platform.startswith(("win", "cygwin", "darwin"))
@@ -277,119 +336,94 @@ def _findModuleInPath2(module_name, search_path):
     raise ImportError
 
 
-def _findModuleInPath(module_name, package_name, try_absolute):
-    # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=R0912
+def getPackageSearchPath(package_name):
+    assert main_path is not None
+    if package_name is None:
+        return [os.getcwd(), main_path] + sys.path
+    elif '.' in package_name:
+        parent_package_name, package_name = package_name.rsplit('.', 1)
 
+        result = []
+        for element in getPackageSearchPath(parent_package_name):
+            package_dir = Utils.joinpath(
+                element,
+                package_name
+            )
+
+            if isPackageDir(package_dir):
+                result.append(package_dir)
+
+        return result
+
+    else:
+        preloaded_path = getPreloadedPackagePath(package_name)
+
+        if preloaded_path is not None:
+            return preloaded_path
+
+        def getPackageDirCandidates(element):
+            yield Utils.joinpath(element, package_name), False
+
+            # Hack for PyWin32. TODO: Move this __path__ extensions to
+            # plug-in decisions.
+            if package_name == "win32com":
+                yield Utils.joinpath(element, "win32comext"), True
+
+        result = []
+        for element in getPackageSearchPath(None):
+
+            for package_dir, force_package in getPackageDirCandidates(element):
+                if isPackageDir(package_dir) or force_package:
+                    result.append(package_dir)
+
+        return result
+
+
+def _findModuleInPath(module_name, package_name):
     if _debug_module_finding:
         print("_findModuleInPath: Enter", module_name, "in", package_name)
-
-    assert main_path is not None
-    extra_paths = [os.getcwd(), main_path]
-
-    if package_name is not None:
-        # Work around "_findModuleInPath2" bug on at least Windows. Won't handle
-        # module name empty in find_module. And thinking of it, how could it
-        # anyway.
-        if module_name == "":
-            module_name = package_name.split('.')[-1]
-            package_name = '.'.join(package_name.split('.')[:-1])
-
-        ext_path = getPreloadedPackagePath(package_name)
-
-        if ext_path is None:
-            def getPackageDirnames(element):
-                # It's easier to provide the arguments to "joinpath" like this.
-                # pylint: disable=W0142
-                package_elements = package_name.split('.')
-
-                yield Utils.joinpath(element,*package_elements), False
-
-                # Hack for PyWin32. TODO: Move this __path__ extensions to
-                # plug-in decisions.
-                if package_elements[0] == "win32com":
-                    package_elements[0] = "win32comext"
-
-                    yield Utils.joinpath(element,*package_elements), True
-
-            ext_path = []
-            for element in extra_paths + sys.path:
-                for package_dir, force_package in getPackageDirnames(element):
-                    if isPackageDir(package_dir) or force_package:
-                        ext_path.append(package_dir)
-
-        if _debug_module_finding:
-            print("_findModuleInPath: Package, using extended path", ext_path)
-
-        try:
-            module_filename = _findModuleInPath2(
-                module_name = module_name,
-                search_path = ext_path
-            )
-
-            if _debug_module_finding:
-                print(
-                    "_findModuleInPath: _findModuleInPath2 worked",
-                    module_filename,
-                    module_name,
-                    package_name
-                )
-
-            return module_filename, package_name
-        except ImportError:
-            if _debug_module_finding:
-                print("_findModuleInPath: _findModuleInPath2 failed to locate")
-        except SyntaxError:
-            # Warn user, as this is kind of unusual.
-            warning(
-                "%s: Module cannot be imported due to syntax errors.",
-                module_name,
-            )
-
-            return None, None
-    ext_path = extra_paths + sys.path
-
-    if _debug_module_finding:
-        print("_findModuleInPath: Non-package, using extended path", ext_path)
 
     # Free pass for built-in modules, the need not exist.
     if package_name is None and imp.is_builtin(module_name):
         return None, module_name
 
-    if not try_absolute:
-        raise ImportError
+    search_path = getPackageSearchPath(package_name)
+
+    if _debug_module_finding:
+        print("_findModuleInPath: Using search path", search_path)
 
     try:
         module_filename = _findModuleInPath2(
             module_name = module_name,
-            search_path = ext_path
+            search_path = search_path
         )
     except SyntaxError:
         # Warn user, as this is kind of unusual.
         warning(
             "%s: Module cannot be imported due to syntax errors.",
-            module_name,
+            module_name
+              if package_name is None else
+            package_name + '.' + module_name,
         )
 
-        return None, None
+        return None
 
     if _debug_module_finding:
         print("_findModuleInPath: _findModuleInPath2 gave", module_filename)
 
-    return module_filename, None
+    return module_filename
 
 module_search_cache = {}
 
-def _findModule(module_name, parent_package):
+def _findModule(module_name):
     if _debug_module_finding:
         print(
-            "_findModule: Enter to search '%s' in '%s'." % (
+            "_findModule: Enter to search '%s'." % (
                 module_name,
-                parent_package
             )
         )
 
-    key = module_name, parent_package
+    key = module_name
 
     if key in module_search_cache:
         result = module_search_cache[key]
@@ -403,166 +437,25 @@ def _findModule(module_name, parent_package):
             return result
 
     try:
-        module_search_cache[key] = _findModule2(module_name, parent_package)
+        module_search_cache[key] = _findModule2(module_name)
     except ImportError:
         module_search_cache[key] = ImportError
         raise
 
     return module_search_cache[key]
 
-def _findModule2(module_name, parent_package):
 
-    # The os.path is strangely hacked into the "os" module, dispatching per
-    # platform, we either cannot look into it, or we require that we resolve it
-    # here correctly.
-    if module_name == "os.path" and parent_package is None:
-        parent_package = "os"
-
-        module_name = Utils.basename(os.path.__file__)
-        if module_name.endswith(".pyc"):
-            module_name = module_name[:-4]
-
-    assert module_name != "" or parent_package is not None
-
-    # Built-in module names must not be searched any further.
-    if module_name in sys.builtin_module_names and parent_package is None:
-        return None, None
+def _findModule2(module_name):
+    # Need a real module name.
+    assert module_name != ""
 
     if '.' in module_name:
         package_part = module_name[ : module_name.rfind('.') ]
         module_name = module_name[ module_name.rfind('.') + 1 : ]
-
-        # Relative import
-        if parent_package is not None:
-            try:
-                if _debug_module_finding:
-                    print("_findModule: Try recurse relative:")
-
-                module_filename, found_package = _findModuleInPath(
-                    module_name  = module_name,
-                    package_name = parent_package + '.' + package_part,
-                    try_absolute = False
-                )
-
-                if module_filename is not None:
-                    return module_filename, found_package
-            except ImportError:
-                pass
-
-        # Absolute import
-        if _debug_module_finding:
-            print("_findModule: Try recurse absolute:")
-
-        return _findModule(
-            module_name    = module_name,
-            parent_package = package_part
-        )
     else:
-        module_filename, package = _findModuleInPath(
-            module_name  = module_name,
-            package_name = parent_package,
-            try_absolute = True
-        )
+        package_part = None
 
-        if package == "":
-            package = None
-
-        return module_filename, package
-
-
-def getStandardLibraryPaths():
-    """ Get the standard library paths.
-
-    """
-
-    # Using the function object to cache its result, avoiding global variable
-    # usage.
-    if not hasattr(getStandardLibraryPaths, "result"):
-        os_filename = os.__file__
-        if os_filename.endswith(".pyc"):
-            os_filename = os_filename[:-1]
-
-        os_path = Utils.normcase(Utils.dirname(os_filename))
-
-        stdlib_paths = set([os_path])
-
-        # Happens for virtualenv situation, some modules will come from the link
-        # this points to.
-        if Utils.isLink(os_filename):
-            os_filename = Utils.readLink(os_filename)
-            stdlib_paths.add(Utils.normcase(Utils.dirname(os_filename)))
-
-        # Another possibility is "orig-prefix.txt" file near the os.py, which
-        # points to the original install.
-        orig_prefix_filename = Utils.joinpath(os_path, "orig-prefix.txt")
-
-        if Utils.isFile(orig_prefix_filename):
-            # Scan upwards, until we find a "bin" folder, with "activate" to
-            # locate the structural path to be added. We do not know for sure
-            # if there is a sub-directory under "lib" to use or not. So we try
-            # to detect it.
-            search = os_path
-            lib_part = ""
-
-            while os.path.splitdrive(search)[1] not in (os.path.sep, ""):
-                if Utils.isFile(Utils.joinpath(search,"bin/activate")) or \
-                   Utils.isFile(Utils.joinpath(search,"scripts/activate")):
-                    break
-
-                lib_part = Utils.joinpath(Utils.basename(search), lib_part)
-
-                search = Utils.dirname(search)
-
-            assert search and lib_part
-
-            stdlib_paths.add(
-                Utils.normcase(
-                    Utils.joinpath(
-                        open(orig_prefix_filename).read(),
-                        lib_part,
-                    )
-                )
-            )
-
-        # And yet another possibility, for MacOS Homebrew created virtualenv
-        # at least is a link ".Python", which points to the original install.
-        python_link_filename = Utils.joinpath(os_path, "..", ".Python")
-        if Utils.isLink(python_link_filename):
-            stdlib_paths.add(
-                Utils.normcase(
-                    Utils.joinpath(
-                        Utils.readLink(python_link_filename),
-                        "lib"
-                    )
-                )
-            )
-
-        getStandardLibraryPaths.result = [
-            Utils.normcase(stdlib_path)
-            for stdlib_path in
-            stdlib_paths
-        ]
-
-    return getStandardLibraryPaths.result
-
-
-def isStandardLibraryPath(path):
-    """ Check if a path is in the standard library.
-
-    """
-
-    path = Utils.normcase(path)
-
-    # In virtualenv, the "site.py" lives in a place that suggests it is not in
-    # standard library, although it is.
-    if os.path.basename(path) == "site.py":
-        return True
-
-    # These never are in standard library paths.
-    if "dist-packages" in path or "site-packages" in path:
-        return False
-
-    for candidate in getStandardLibraryPaths():
-        if path.startswith(candidate):
-            return True
-    return False
+    return _findModuleInPath(
+        module_name  = module_name,
+        package_name = package_part
+    )

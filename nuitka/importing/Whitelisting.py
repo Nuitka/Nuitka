@@ -51,8 +51,14 @@ def getModuleWhiteList():
         # test_applesingle.py
         "applesingle",
 
+        # test_bsddb.py
+        "bsddb.test",
+
         # test_compile.py
         "__package__.module", "__mangled_mod",
+
+        # test_ctypes
+        "ctypes.test",
 
         # test_dbm.py
         "dbm.dumb",
@@ -66,6 +72,9 @@ def getModuleWhiteList():
         # test_emails.py
         "email.test.test_email", "email.test.test_email_renamed",
         "email.test.test_email_codecs",
+
+        # test_email_codecs.py
+        "email.test",
 
         # test/test_dbm_ndbm.py
         "dbm.ndbm",
@@ -85,6 +94,9 @@ def getModuleWhiteList():
         "reloadmodule", "hooktestpackage.sub.subber", "hooktestpackage.oldabs",
         "hooktestpackage.newrel", "hooktestpackage.sub.subber.subest",
         "hooktestpackage.futrel", "sub", "hooktestpackage.newabs",
+
+        # test_imporlib.py"
+        "importlib.test.__main__",
 
         # test_inspect.py
         "inspect_fodder3",
@@ -139,17 +151,23 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test_strop.py
         "strop",
 
+        # test_sqlite3.py
+        "sqlite3.test",
+
         # test_sundry.py
         "distutils.emxccompiler", "os2emxpath",
 
         # test_tk.py
-        "runtktests",
+        "runtktests", "tkinter.test", "tkinter.test.support",
 
         # test_tools.py
         "analyze_dxp", "test_unparse",
 
         # test_traceback.py
         "test_bug737473",
+
+        # test_unittest.py
+        "unittest.test",
 
         # test_xml_etree.py
         "xml.parsers.expat.errors",

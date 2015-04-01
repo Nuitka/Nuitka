@@ -136,7 +136,7 @@ class NuitkaPluginBase:
     def locateModule(module_name, module_package, source_ref):
         from nuitka.importing import Importing
 
-        _module_package, _module_name, module_filename = Importing.findModule(
+        _module_package, module_filename, _finding = Importing.findModule(
             source_ref     = source_ref,
             module_name    = module_name,
             parent_package = module_package,
@@ -226,7 +226,7 @@ for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
 
         result = []
 
-        for line in output.split("\n"):
+        for line in output.split('\n'):
             if not line:
                 continue
 
@@ -310,4 +310,3 @@ class Plugins:
     def onModuleDiscovered(module):
         for plugin in plugin_list:
             plugin.onModuleDiscovered(module)
-

@@ -147,6 +147,9 @@ from __future__ imports must occur at the beginning of the file""",
                     source_ref  = source_ref
                 )
             else:
+                # TODO: This ought to use a temporary variable for multiple
+                # names, instead of importing multiple times.
+
                 return ExpressionImportName(
                     module      = ExpressionImportModule(
                         module_name = module_name,

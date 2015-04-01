@@ -23,7 +23,7 @@ from logging import debug, warning
 
 from nuitka import ModuleRegistry, Options, Utils
 from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
-from nuitka.importing import ImportCache, Importing
+from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 
 
@@ -152,7 +152,7 @@ def decideRecursion(module_filename, module_name, module_package,
             "Requested to not recurse at all."
         )
 
-    if Importing.isStandardLibraryPath(module_filename):
+    if StandardLibrary.isStandardLibraryPath(module_filename):
         return (
             Options.shallFollowStandardLibrary(),
             "Requested to %srecurse to standard library." % (

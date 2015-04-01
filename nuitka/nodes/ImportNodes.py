@@ -176,16 +176,13 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         else:
             parent_package = self.getParentModule().getPackage()
 
-        module_package, _module_name, module_filename = findModule(
+        module_package, module_filename, _finding = findModule(
             source_ref     = self.source_ref,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
             level          = self.getLevel(),
             warn           = True
         )
-
-        # That would be an illegal package name, catch it.
-        assert module_package != ""
 
         if module_filename is not None:
             imported_module = self._consider(
@@ -205,7 +202,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         if import_item == '*':
                             continue
 
-                        module_package, _module_name, module_filename = findModule(
+                        module_package, module_filename, _finding = findModule(
                             source_ref     = self.source_ref,
                             module_name    = import_item,
                             parent_package = imported_module.getFullName(),

@@ -34,7 +34,7 @@ are in another context.
 from logging import warning
 
 from nuitka import Options, Utils
-from nuitka.importing import Importing
+from nuitka.importing import StandardLibrary
 
 from .FinalizeBase import FinalizationVisitorBase
 
@@ -42,7 +42,7 @@ from .FinalizeBase import FinalizationVisitorBase
 def isWhiteListedImport(node):
     module = node.getParentModule()
 
-    return Importing.isStandardLibraryPath(module.getFilename())
+    return StandardLibrary.isStandardLibraryPath(module.getFilename())
 
 class FinalizeMarkups(FinalizationVisitorBase):
     def onEnterNode(self, node):
