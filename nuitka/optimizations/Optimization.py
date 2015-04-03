@@ -66,18 +66,6 @@ def signalChange(tags, source_ref, message):
 # Use this globally from there, without cyclic dependency.
 TraceCollections.signalChange = signalChange
 
-def _optimizeModulePass(module):
-    module.computeModule()
-
-    # Pick up parent package if any.
-    _attemptRecursion(module)
-
-    for trace_collection in module.getTraceCollections():
-        for variable_trace in trace_collection.getVariableTracesAll():
-            VariableRegistry.addVariableTrace(
-                variable_trace
-            )
-
 
 def optimizePythonModule(module):
     if _progress:
@@ -100,9 +88,7 @@ def optimizePythonModule(module):
     while True:
         tag_set.clear()
 
-        _optimizeModulePass(
-            module = module
-        )
+        module.computeModule()
 
         if not tag_set:
             break
@@ -238,7 +224,6 @@ def optimize():
         finished = True
 
         ModuleRegistry.startTraversal()
-        VariableRegistry.startTraversal()
 
         while True:
             current_module = ModuleRegistry.nextModule()
@@ -264,6 +249,22 @@ after that. Memory usage {memory}:""".format(
 
                 if changed:
                     finished = False
+
+        # Unregister collection traces from now unused code.
+        for current_module in ModuleRegistry.getDoneModules():
+            if not current_module.isPythonShlibModule():
+                for function in current_module.getUnusedFunctions():
+                    VariableRegistry.updateFromCollection(
+                        old_collection = function.constraint_collection,
+                        new_collection = None
+                    )
+
+                    function.constraint_collection = None
+
+        if not VariableRegistry.complete:
+            VariableRegistry.complete = True
+
+            finished = False
 
         for current_module in ModuleRegistry.getDoneModules():
             if not current_module.isPythonShlibModule():

@@ -26,7 +26,7 @@ This is about collecting these constraints and to manage them.
 # Python3 compatibility.
 from logging import debug
 
-from nuitka import Tracing
+from nuitka import Tracing, VariableRegistry
 from nuitka.__past__ import iterItems
 from nuitka.utils import Utils
 
@@ -179,7 +179,7 @@ class CollectionStartpointMixin:
         return result
 
     def getVariableTracesAll(self):
-        return self.variable_traces.values()
+        return self.variable_traces
 
     def addVariableTrace(self, variable, version, trace):
         key = variable, version
@@ -197,10 +197,6 @@ class CollectionStartpointMixin:
         )
 
         self.addVariableTrace(variable, version, trace_merge)
-
-        # Merging is using, might imply releasing.
-        trace_yes.addUsage(trace_merge)
-        trace_no.addUsage(trace_merge)
 
         return version
 
@@ -254,6 +250,9 @@ class CollectionStartpointMixin:
 
     def hasUnclearLocals(self):
         return self.unclear_locals
+
+    def updateFromCollection(self, old_collection):
+        VariableRegistry.updateFromCollection(old_collection, self)
 
 
 class ConstraintCollectionBase(CollectionTracingMixin):
@@ -569,6 +568,9 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
         )
 
         self.function_body = function_body
+
+        # TODO: Move this to computeFunction method of functions.
+        old_collection = function_body.constraint_collection
         function_body.constraint_collection = self
 
         statements_sequence = function_body.getBody()
@@ -585,6 +587,8 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
             if result is not statements_sequence:
                 function_body.setBody(result)
+
+        function_body.constraint_collection.updateFromCollection(old_collection)
 
         self.makeVariableTraceOptimizations(function_body)
 

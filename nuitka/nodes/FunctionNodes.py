@@ -175,6 +175,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             *self.parameters.getVariables()
         )
 
+        self.constraint_collection = None
+
 
     def getDetails(self):
         return {
@@ -610,9 +612,6 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         self.function_body = function_body
 
-        # SSA trace based information about the function.
-        self.collection = None
-
     def getDetails(self):
         return {
             "function" : self.function_body.getCodeName()
@@ -640,11 +639,10 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
         from nuitka.optimizations.TraceCollections import \
             ConstraintCollectionFunction
 
-        collection = ConstraintCollectionFunction(
+        function_body.constraint_collection = ConstraintCollectionFunction(
             parent        = constraint_collection,
             function_body = function_body
         )
-        function_body.collection = collection
 
         # TODO: Function collection may now know something.
         return self, None, None
