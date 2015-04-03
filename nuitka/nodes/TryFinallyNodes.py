@@ -184,6 +184,14 @@ class StatementTryFinally(StatementChildrenHavingBase,
                 self.setBlockFinal(result)
                 final_statement_sequence = result
 
+            # If we are not aborting, we need to merge.
+            if not self.isStatementAborting():
+                # Merge back as a branch.
+                constraint_collection.mergeBranches(
+                    collection_yes = collection_exception_handling,
+                    collection_no  = None
+                )
+
         if tried_statement_sequence is None:
             # If the tried block is empty, go to the final block directly, if
             # any.
@@ -197,6 +205,10 @@ Removed try/finally with empty final block."""
         elif not tried_statement_sequence.mayRaiseExceptionOrAbort(
                 BaseException
             ):
+            # There may be no need to try/finally at all then. TODO: The code
+            # below, which reduces the scope, could do this too, but would be
+            # less elegant in its report.
+
             tried_statement_sequence.setChild(
                 "statements",
                 tried_statement_sequence.getStatements() +
@@ -206,13 +218,6 @@ Removed try/finally with empty final block."""
             return tried_statement_sequence, "new_statements", """\
 Removed try/finally with try block that cannot raise."""
         else:
-            # Otherwise keep it as it, merging the finally block back into
-            # the constraint collection.
-            constraint_collection.mergeBranches(
-                collection_yes = collection_exception_handling,
-                collection_no  = None
-            )
-
             new_statements = tried_statement_sequence.getStatements()
             # Determine statements inside the exception guard, that need not be in
             # a handler, because they wouldn't raise an exception. TODO: This
