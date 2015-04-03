@@ -28,11 +28,11 @@ language syntax.
 
 from nuitka import Constants, Options, Tracing
 from nuitka.__past__ import iterItems
-from nuitka.codegen.AttributeCodes import generateAttributeLookupCode
-from nuitka.codegen.CallCodes import generateCallCode
 from nuitka.utils import Utils
 
 from . import Contexts, Emission, Generator, Helpers, LineNumberCodes
+from .AttributeCodes import generateAttributeLookupCode
+from .CallCodes import generateCallCode
 from .ConditionalCodes import generateConditionCode
 from .ConstantCodes import generateConstantReferenceCode
 from .ErrorCodes import getErrorExitBoolCode

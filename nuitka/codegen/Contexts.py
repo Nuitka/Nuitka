@@ -73,21 +73,22 @@ class TempMixin:
 
     def allocateTempName(self, base_name, type_name, unique):
         if unique:
-            result = None
+            number = None
         else:
-            result = self.tmp_names.get(base_name, 0)
-            result += 1
+            number = self.tmp_names.get(base_name, 0)
+            number += 1
 
-        self.tmp_names[base_name] = result
+        self.tmp_names[base_name] = number
 
-        if result == 1 or result == None:
+        if base_name not in self.tmp_types:
             self.tmp_types[base_name] = type_name
         else:
-            assert self.tmp_types[base_name] == type_name, type_name
+            assert self.tmp_types[base_name] == type_name, \
+                (self.tmp_types[base_name], type_name)
 
         return self.formatTempName(
             base_name = base_name,
-            number    = result
+            number    = number
         )
 
     def hasTempName(self, base_name):
@@ -860,7 +861,7 @@ class PythonStatementCContext(PythonChildContextBase):
             return True
 
     def forgetTempName(self, tmp_name):
-        return self.parent.forgetTempName(tmp_name)
+        self.parent.forgetTempName(tmp_name)
 
     def getCleanupTempnames(self):
         return self.cleanup_names

@@ -16,33 +16,29 @@
 #     limitations under the License.
 #
 """
-Module like __future__ for things that are no more in CPython3,
+Module like __future__ for things that are changed between Python2 and Python3.
 
-but provide compatible fallbacks.
+These are here to provide compatible fall-backs. This is required to run the
+same code easily with both CPython2 and CPython3. Sometimes, we do not care
+about the actual types, or API, but would rather just check for something to
+be a "in (str, unicode)" rather than making useless version checks.
 
-This is required to run the same code easily with both CPython2 and CPython3.
 """
 
 
 # pylint: disable=W0622,C0103
 
-# Work around for CPython 3.x renaming long to int.
+# Work around for CPython 3.x renaming "long" to "int".
 try:
-    long = long  # lint:ok
+    long = long  # @ReservedAssignment
 except NameError:
-    long = int  # lint:ok
+    long = int   # @ReservedAssignment
 
-# Work around for CPython 3.x renaming unicode to str.
+# Work around for CPython 3.x renaming "unicode" to "str".
 try:
-    unicode = unicode  # lint:ok
+    unicode = unicode  # @ReservedAssignment
 except NameError:
-    unicode = str  # lint:ok
-
-# Work around for CPython 3.x removal of commands
-try:
-    import commands
-except ImportError:
-    import subprocess as commands  # lint:ok
+    unicode = str      # @ReservedAssignment
 
 def iterItems(d):
     try:
@@ -51,9 +47,9 @@ def iterItems(d):
         return d.items()
 
 if unicode is str:
-    raw_input = input
+    raw_input = input      # @ReservedAssignment
 else:
-    raw_input = raw_input
+    raw_input = raw_input  # @ReservedAssignment
 
 # pylint: disable=E0611
 try:
@@ -65,5 +61,4 @@ except ImportError:
 # For PyLint to be happy.
 assert long
 assert unicode
-assert commands
 assert urlretrieve

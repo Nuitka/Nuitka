@@ -39,9 +39,9 @@ from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
     ExpressionCaughtExceptionTypeRef,
-    ExpressionCaughtExceptionValueRef,
-    StatementRaiseException
+    ExpressionCaughtExceptionValueRef
 )
+from nuitka.nodes.NodeMakingHelpers import makeReraiseExceptionStatement
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
@@ -222,12 +222,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                                 source_ref = source_ref
                             ),
                             no_branch  = makeStatementsSequenceFromStatement(
-                                statement = StatementRaiseException(
-                                    exception_type  = None,
-                                    exception_value = None,
-                                    exception_trace = None,
-                                    exception_cause = None,
-                                    source_ref      = source_ref
+                                statement = makeReraiseExceptionStatement(
+                                    source_ref = source_ref
                                 )
                             ),
                             yes_branch = None,

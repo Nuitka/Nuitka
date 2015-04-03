@@ -43,7 +43,7 @@ def getSconsInlinePath():
 def getSconsBinaryCall():
     """ Return a way to execute Scons.
 
-        Using potentially inline copy if no system Scons is available
+        Using potentially in-line copy if no system Scons is available
         or if we are on Windows.
     """
     if Utils.isFile("/usr/bin/scons"):
@@ -85,7 +85,7 @@ def _getPython2ExePathWindows():
                     winreg.QueryValue(key, ""),
                     "python.exe"
                 )
-            except WindowsError:  # lint:ok
+            except WindowsError:  # @UndefinedVariable
                 pass
 
 

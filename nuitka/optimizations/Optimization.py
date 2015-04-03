@@ -220,6 +220,8 @@ def optimizeVariables(module):
 
 
 def optimize():
+    # This is somewhat complex with many cases, pylint: disable=R0912
+
     while True:
         finished = True
 

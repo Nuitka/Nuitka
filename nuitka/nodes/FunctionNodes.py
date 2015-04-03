@@ -75,6 +75,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
     def __init__(self, provider, name, doc, parameters, source_ref,
                  is_class = False):
+        # These got too many details to cover, pylint: disable=R0915
+
         if is_class:
             code_prefix = "class"
         else:

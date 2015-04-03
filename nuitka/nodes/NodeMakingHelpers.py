@@ -21,7 +21,9 @@ These are for use in optimizations and computations, and therefore cover
 mostly exceptions and constants.
 
 Often cyclic dependencies kicks in, which is why this module is mostly only
-imported locally.
+imported locally. Note: It's intended to be reversed, this module will make
+the local imports instead, as these local imports look ugly everywhere else,
+making it more difficult to use.
 """
 
 from logging import warning
@@ -37,7 +39,6 @@ from .ComparisonNodes import (
     ExpressionComparisonIsNOT
 )
 from .ConstantRefNodes import ExpressionConstantRef
-from .ExceptionNodes import ExpressionRaiseException
 from .SideEffectNodes import ExpressionSideEffects
 from .StatementNodes import StatementExpressionOnly, StatementsSequence
 
@@ -50,6 +51,8 @@ def makeConstantReplacementNode(constant, node):
 
 def makeRaiseExceptionReplacementExpression(expression, exception_type,
                                             exception_value):
+    from .ExceptionNodes import ExpressionRaiseException
+
     source_ref = expression.getSourceReference()
 
     assert type(exception_type) is str
@@ -90,6 +93,19 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
         exception_value = value
     )
 
+
+def makeReraiseExceptionStatement(source_ref):
+    from .ExceptionNodes import StatementRaiseException
+
+    return StatementRaiseException(
+        exception_type  = None,
+        exception_value = None,
+        exception_trace = None,
+        exception_cause = None,
+        source_ref      = source_ref
+    )
+
+
 def isCompileTimeConstantValue(value):
     # This needs to match code in makeCompileTimeConstantReplacementNode
     if isConstant(value):
@@ -98,6 +114,7 @@ def isCompileTimeConstantValue(value):
         return True
     else:
         return False
+
 
 def makeCompileTimeConstantReplacementNode(value, node):
     # This needs to match code in isCompileTimeConstantValue

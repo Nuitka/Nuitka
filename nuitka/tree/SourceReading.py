@@ -18,7 +18,7 @@
 """ Read source code from files.
 
 This is tremendously more complex than one might think, due to encoding issues
-and version differences of Python.
+and version differences of Python versions.
 """
 
 import re
@@ -33,7 +33,7 @@ def _readSourceCodeFromFilename3(source_filename):
 
     try:
         with open(source_filename, "rb") as source_file:
-            encoding = tokenize.detect_encoding(source_file.readline)[0]
+            encoding = tokenize.detect_encoding(source_file.readline)[0]  # @UndefinedVariable
 
             # Rewind to get the whole file.
             source_file.seek(0)
