@@ -316,22 +316,15 @@ def _findModuleInPath2(module_name, search_path):
         if case_sensitive:
             return candidates[0][2]
         else:
-            if len(candidates) == 1:
-                # Just one finding, good.
-                return candidates[0][2]
-            else:
-                for candidate in candidates:
-                    dir_listing = os.listdir(candidate[0])
+            for candidate in candidates:
+                dir_listing = os.listdir(candidate[0])
 
-                    for filename in dir_listing:
-                        if Utils.joinpath(candidate[0], filename) == candidate[2]:
-                            return candidate[2]
+                for filename in dir_listing:
+                    if Utils.joinpath(candidate[0], filename) == candidate[2]:
+                        return candidate[2]
 
-                # Please report this, but you may uncomment and have luck.
-                assert False, candidates
-
-                # If no case matches, just pick the first.
-                return candidates[0][2]
+            # Only excact case matches matter, all candidates were ignored,
+            # lets just fall through to raising the import error.
 
     # Nothing found.
     raise ImportError
