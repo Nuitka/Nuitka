@@ -57,7 +57,10 @@ from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementReleaseVariable
+)
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
@@ -87,7 +90,9 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
+    ExpressionTempVariableRef,
     ExpressionVariableRef
 )
 from nuitka.tree import SyntaxErrors
@@ -106,6 +111,7 @@ from .Helpers import (
     makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
+    makeTryFinallyStatement,
     mangleName,
     mergeStatements,
     setBuildingDispatchers
@@ -143,7 +149,7 @@ from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import (
     buildTryFinallyNode,
-    makeTryFinallyIndicator
+    makeTryFinallyIndicatorStatements
 )
 from .ReformulationWithStatements import buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
@@ -532,11 +538,20 @@ def buildStatementContinueLoop(node, source_ref):
         )
 
 
-    return makeTryFinallyIndicator(
-        statement    = StatementContinueLoop(
+    statements = makeTryFinallyIndicatorStatements(
+        is_loop_exit = True,
+        source_ref   = source_ref
+    )
+
+    statements.append(
+        StatementContinueLoop(
             source_ref = source_ref
-        ),
-        is_loop_exit = True
+        )
+    )
+
+    return makeStatementsSequenceOrStatement(
+        statements = statements,
+        source_ref = source_ref
     )
 
 
@@ -544,11 +559,20 @@ def buildStatementBreakLoop(provider, node, source_ref):
     # A bit unusual, we need the provider, but not the node,
     # pylint: disable=W0613
 
-    return makeTryFinallyIndicator(
-        statement    = StatementBreakLoop(
+    statements = makeTryFinallyIndicatorStatements(
+        is_loop_exit = True,
+        source_ref   = source_ref
+    )
+
+    statements.append(
+        StatementBreakLoop(
             source_ref = source_ref
-        ),
-        is_loop_exit = True
+        )
+    )
+
+    return makeStatementsSequenceOrStatement(
+        statements = statements,
+        source_ref = source_ref
     )
 
 
@@ -582,14 +606,56 @@ def buildReturnNode(provider, node, source_ref):
             user_provided = True
         )
 
-
-    return makeTryFinallyIndicator(
-        statement    = StatementReturn(
-            expression = expression,
-            source_ref = source_ref
-        ),
-        is_loop_exit = False
+    # Indicate exceptions to potentially try/finally structures.
+    indicator_statements = makeTryFinallyIndicatorStatements(
+        is_loop_exit = False,
+        source_ref   = source_ref
     )
+
+    if indicator_statements and expression.mayRaiseException(BaseException):
+        tmp_variable = provider.allocateTempVariable(
+            temp_scope = provider.allocateTempScope("return"),
+            name       = "value"
+        )
+
+        statements = [
+                StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_variable,
+                    source_ref = expression.getSourceReference()
+                ),
+                source       = expression,
+                source_ref   = source_ref
+            )
+        ] + indicator_statements + [
+            StatementReturn(
+                expression = ExpressionTempVariableRef(
+                    variable   = tmp_variable,
+                    source_ref = expression.getSourceReference()
+                ),
+                source_ref = source_ref
+            )
+        ]
+
+        return makeTryFinallyStatement(
+            tried      = statements,
+            final      = StatementReleaseVariable(
+                variable   = tmp_variable,
+                tolerant   = True,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+    else:
+        return makeStatementsSequenceOrStatement(
+            statements = indicator_statements + [
+                StatementReturn(
+                    expression = expression,
+                    source_ref = source_ref
+                )
+            ],
+            source_ref = source_ref
+        )
 
 
 def buildExprOnlyNode(provider, node, source_ref):
