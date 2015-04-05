@@ -29,7 +29,6 @@ CPython reference, and may escape.
 """
 
 from nuitka import Variables
-from nuitka.__past__ import iterItems
 from nuitka.utils import Utils
 
 from .IndicatorMixins import (
@@ -536,8 +535,26 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         # TODO: Until we have something to re-order the keyword arguments, we
         # need to skip this. For the immediate need, we avoid this complexity,
         # as a re-ordering will be needed.
-        if True:
+        call_kw = call_node.getCallKw()
+
+        # TODO: empty constant can happen too
+        if call_kw is not None:
             return call_node, None, None
+
+        call_args = call_node.getCallArgs()
+
+        if call_args is None:
+            args_tuple = ()
+        elif call_args.isExpressionConstantRef() or \
+             call_args.isExpressionMakeTuple():
+            args_tuple = call_args.getIterationValues()
+        else:
+            # TODO: Can this even happen, i.e. does the above check make
+            # sense.
+            assert False, call_args
+
+            return call_node, None, None
+
 
         # TODO: Actually the above disables it entirely, as it is at least
         # the empty dictionary node in any case. We will need some enhanced
@@ -552,16 +569,19 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
                 star_list_arg = call_spec.getStarListArgumentName(),
                 star_dict_arg = call_spec.getStarDictArgumentName(),
                 num_defaults  = call_spec.getDefaultCount(),
-                positional    = call_node.getCallArgsTuple(),
+                positional    = args_tuple,
                 pairs         = ()
             )
 
             values = []
 
-            for positional_arg in call_node.getCallArgs():
-                for _arg_name, arg_value in iterItems(args_dict):
+            for positional_arg in args_tuple:
+                for arg_value in args_dict.values():
                     if arg_value is positional_arg:
                         values.append(arg_value)
+                        break
+                else:
+                    assert False
 
             result = ExpressionFunctionCall(
                 function   = self,
