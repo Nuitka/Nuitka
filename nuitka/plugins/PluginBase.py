@@ -238,6 +238,9 @@ for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
         full_name = module.getFullName()
 
         if full_name in ("PyQt4", "PyQt5"):
+            if not Options.isExperimental():
+               return
+
             qt_version = int(full_name[-1])
 
             plugin_dir, = self.getPyQtPluginDirs(qt_version)
