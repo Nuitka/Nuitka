@@ -157,6 +157,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test_sundry.py
         "distutils.emxccompiler", "os2emxpath",
 
+        # test_tcl.py
+        "tkinter",
+
         # test_tk.py
         "runtktests", "tkinter.test", "tkinter.test.support",
 
