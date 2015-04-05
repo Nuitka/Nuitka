@@ -146,8 +146,8 @@ def compilePath(path):
 
 compilePath(os_path)
 
-if os_path != extra_path:
+if extra_path != os_path:
     compilePath(extra_path)
 
-if os_path != extra_path2:
+if extra_path2 not in (os_path, extra_path):
     compilePath(extra_path2)
