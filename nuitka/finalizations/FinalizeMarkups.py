@@ -151,7 +151,8 @@ of '--recurse-directory'.""" % (
             )
 
         if node.isExpressionFunctionCreation():
-            if not node.getParent().isExpressionFunctionCall():
+            if not node.getParent().isExpressionFunctionCall() or \
+                   node.getParent().getFunction() is not node:
                 node.getFunctionRef().getFunctionBody().markAsNeedsCreation()
 
         if node.isExpressionFunctionCall():
