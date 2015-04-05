@@ -195,7 +195,8 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         if exception_name == "ImportError" and python_version >= 330:
             kw = call_node.getCallKw()
 
-            if not kw.isExpressionConstantRef() or kw.getConstant() != {}:
+            if kw is not None and \
+               (not kw.isExpressionConstantRef() or kw.getConstant() != {}):
                 return call_node, None, None
 
         def createBuiltinMakeException(args, source_ref):

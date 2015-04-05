@@ -353,22 +353,28 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
 
         # TODO: Could check for too many / too few, even if they are unknown, we
         # might raise that error, but that need not be optimized immediately.
-        if not kw.isMappingWithConstantStringKeys():
-            return None
+        if kw is not None:
+            if not kw.isMappingWithConstantStringKeys():
+                return None
 
-        pairs = kw.getMappingStringKeyPairs()
+            pairs = kw.getMappingStringKeyPairs()
 
-        if pairs and not builtin_spec.allowsKeywords():
-            raise TooManyArguments(
-                TypeError(builtin_spec.getKeywordRefusalText())
-            )
+            if pairs and not builtin_spec.allowsKeywords():
+                raise TooManyArguments(
+                    TypeError(builtin_spec.getKeywordRefusalText())
+                )
+        else:
+            pairs = ()
 
         args = node.getCallArgs()
 
-        if not args.canPredictIterationValues():
-            return None
+        if args:
+            if not args.canPredictIterationValues():
+                return None
 
-        positional = args.getIterationValues()
+            positional = args.getIterationValues()
+        else:
+            positional = ()
 
         if not positional and not pairs and empty_special_class is not None:
             return empty_special_class(source_ref = node.getSourceReference())

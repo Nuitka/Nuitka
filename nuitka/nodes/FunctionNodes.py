@@ -533,12 +533,10 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         return True
 
     def computeExpressionCall(self, call_node, constraint_collection):
-        call_kw = call_node.getCallKw()
-
-        # TODO: Until we have something to re-order the arguments, we need to
-        # skip this. For the immediate need, we avoid this complexity, as a
-        # re-ordering will be needed.
-        if call_kw:
+        # TODO: Until we have something to re-order the keyword arguments, we
+        # need to skip this. For the immediate need, we avoid this complexity,
+        # as a re-ordering will be needed.
+        if True:
             return call_node, None, None
 
         # TODO: Actually the above disables it entirely, as it is at least
@@ -574,8 +572,9 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             return (
                 result,
                 "new_statements", # TODO: More appropriate tag maybe.
-                """Replaced call to created function body '%s' with direct \
-function call""" % self.getName()
+                """\
+Replaced call to created function body '%s' with direct \
+function call.""" % self.getName()
             )
 
         except TooManyArguments as e:
