@@ -102,8 +102,12 @@ def getPython2ExePath():
             sys.exit("""\
 Error, need to find Python2 executable under C:\\Python26 or \
 C:\\Python27 to execute scons which is not Python3 compatible.""")
-    elif os.path.exists("/usr/bin/python2"):
-        return "python2"
+    elif Utils.isFile("/usr/bin/python2.7"):
+        return "/usr/bin/python2.7"
+    elif Utils.isFile("/usr/bin/python2.6"):
+        return "/usr/bin/python2.6"
+    elif Utils.isFile("/usr/bin/python2"):
+        return "/usr/bin/python2"
     else:
         return "python"
 
