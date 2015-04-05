@@ -32,6 +32,7 @@ it being used.
 import shutil
 import subprocess
 import sys
+from logging import info
 
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.ModuleNodes import PythonModule
@@ -112,15 +113,23 @@ class NuitkaPluginBase:
                 addUsedModule(post_modules[full_name])
 
     def onModuleDiscovered(self, module):
-        post_code = self.createPostModuleLoadCode(module)
+        post_code, reason = self.createPostModuleLoadCode(module)
 
         if post_code:
+            info(
+                "Injecting plug-in based post load code for module '%s':" % \
+                    module.getFullName()
+            )
+            for line in reason.split('\n'):
+                info("    " + line)
+
+
             from nuitka.tree.Building import createModuleTree
 
             post_module = PythonModule(
                 name         = module.getName() + "-onLoad",
                 package_name = module.getPackage(),
-                source_ref   = fromFilename(module.getName() + "-onLoad")
+                source_ref   = fromFilename(module.getCompileTimeFilename() + "-onLoad")
             )
 
             createModuleTree(
@@ -214,9 +223,15 @@ class NuitkaPopularImplicitImports(NuitkaPluginBase):
     @staticmethod
     def getPyQtPluginDirs(qt_version):
         command = """\
+from __future__ import print_function
+
 import PyQt%(qt_version)d.QtCore
 for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
     print(v)
+import os
+guess_path = os.path.join(os.path.dirname(PyQt%(qt_version)d.__file__), "plugins")
+if os.path.exists(guess_path):
+    print("GUESS:", guess_path)
 """ % {
            "qt_version" : qt_version
         }
@@ -229,9 +244,16 @@ for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
 
         result = []
 
-        for line in output.split('\n'):
+        for line in output.replace('\r', "").split('\n'):
             if not line:
                 continue
+
+            # Take the guessed path only if necessary.
+            if line.startswith("GUESS: "):
+                if result:
+                    continue
+
+                line = line[len("GUESS: "):]
 
             result.append(Utils.normpath(line))
 
@@ -241,25 +263,27 @@ for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
         full_name = module.getFullName()
 
         if full_name in ("PyQt4", "PyQt5"):
-            if not Options.isExperimental():
-               return
-
             qt_version = int(full_name[-1])
 
             plugin_dir, = self.getPyQtPluginDirs(qt_version)
 
+            target_plugin_dir = Utils.joinpath(
+                dist_dir,
+                full_name,
+                "qt-plugins"
+            )
+
             shutil.copytree(
                 plugin_dir,
-                Utils.joinpath(
-                    dist_dir,
-                    "qt-plugins"
-                )
+                target_plugin_dir
             )
+
+            info("Copying all Qt plug-ins to '%s'." % target_plugin_dir)
 
             return [
                 (filename, full_name)
                 for filename in
-                Utils.getFileList(plugin_dir)
+                Utils.getFileList(target_plugin_dir)
             ]
 
         return ()
@@ -274,19 +298,29 @@ for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
 
         if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
             qt_version = int(full_name.split('.')[0][-1])
-            return """\
+
+            code = """\
 from PyQt%(qt_version)d.QtCore import QCoreApplication
 import os
 
 QCoreApplication.setLibraryPaths(
     [
-        os.path.join(os.path.dirname(__file__),
-        "qt-plugins")
+        os.path.join(
+           os.path.dirname(__file__),
+           "qt-plugins"
+        )
     ]
 )
 """ % {
                 "qt_version" : qt_version
             }
+
+            return code, """\
+Setting Qt library path to distribution folder. Need to avoid
+loading target system Qt plug-ins, which may be from another
+Qt version."""
+
+        return None, None
 
 
 class UserPluginBase(NuitkaPluginBase):
