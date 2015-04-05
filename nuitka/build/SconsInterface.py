@@ -156,4 +156,29 @@ def runScons(options, quiet):
     if Options.isShowScons():
         Tracing.printLine("Scons command:", ' '.join(scons_command))
 
-    return 0 == subprocess.call(scons_command, shell = False)
+    # Remove environment variables that can only harm if we have to switch
+    # major Python versions, these cannot help Python2 to execute scons, this
+    # is a bit of noise, but helpful, pylint: disable=R0912
+    if Utils.python_version >= 300:
+        if "PYTHONPATH" in os.environ:
+            old_pythonpath = os.environ["PYTHONPATH"]
+            del os.environ["PYTHONPATH"]
+        else:
+            old_pythonpath = None
+
+        if "PYTHONHOME" in os.environ:
+            old_pythonhome = os.environ["PYTHONHOME"]
+            del os.environ["PYTHONHOME"]
+        else:
+            old_pythonhome = None
+
+    result = 0 == subprocess.call(scons_command, shell = False)
+
+    if Utils.python_version >= 300:
+        if old_pythonpath is not None:
+            os.environ["PYTHONPATH"] = old_pythonpath
+
+        if old_pythonhome is not None:
+            os.environ["PYTHONHOME"] = old_pythonhome
+
+    return result
