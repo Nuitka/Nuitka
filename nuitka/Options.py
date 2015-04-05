@@ -557,6 +557,16 @@ Defaults to off."""
 )
 
 tracing_group.add_option(
+    "--show-memory",
+    action  = "store_true",
+    dest    = "show_memory",
+    default = False,
+    help    = """Provide memory information and statistics.
+Defaults to off."""
+)
+
+
+tracing_group.add_option(
     "--show-modules",
     action  = "store_true",
     dest    = "show_inclusion",
@@ -794,6 +804,9 @@ def isFullCompat():
 
 def isShowProgress():
     return options.show_progress
+
+def isShowMemory():
+    return options.show_memory
 
 def isShowInclusion():
     return options.show_inclusion

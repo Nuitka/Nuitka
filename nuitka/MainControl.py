@@ -608,13 +608,14 @@ def compileTree(main_module):
         if not Utils.isFile(Utils.joinpath(source_dir, "__helpers.hpp")):
             sys.exit("Error, no previous build directory exists.")
 
-    if Options.isShowProgress():
+    if Options.isShowProgress() or Options.isShowMemory():
         Tracing.printLine(
             "Total memory usage before running scons: {memory}:".format(
                 memory = Utils.getHumanReadableProcessMemoryUsage()
             )
         )
 
+    if Options.isShowMemory():
         InstanceCounters.printStats()
 
     if Options.shallNotDoExecCppCall():
