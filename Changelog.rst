@@ -1,5 +1,5 @@
-Nuitka Release 0.5.12 (Draft)
-=============================
+Nuitka Release 0.5.12
+=====================
 
 This release contains massive amounts of corrections for long standing issues
 in the import recursion mechanism, as well as for standalone issues now visible
