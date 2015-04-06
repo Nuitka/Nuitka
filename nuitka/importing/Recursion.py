@@ -21,14 +21,17 @@
 
 from logging import debug, warning
 
-from nuitka import Importing, ModuleRegistry, Options, Utils
+from nuitka import ModuleRegistry, Options
 from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
-
-from . import Building, ImportCache
+from nuitka.importing import ImportCache, Importing, StandardLibrary
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.utils import Utils
 
 
 def recurseTo(module_package, module_filename, module_relpath, module_kind,
              reason):
+    from nuitka.tree import Building
+
     if not ImportCache.isImportedModuleByPath(module_relpath):
         module, source_ref, source_filename = Building.decideModuleTree(
             filename = module_filename,
@@ -51,10 +54,10 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
             if module_kind == "py" and source_filename is not None:
                 try:
                     Building.createModuleTree(
-                        module          = module,
-                        source_ref      = source_ref,
-                        source_filename = source_filename,
-                        is_main         = False
+                        module      = module,
+                        source_ref  = source_ref,
+                        source_code = readSourceCodeFromFilename(source_filename),
+                        is_main     = False
                     )
                 except (SyntaxError, IndentationError) as e:
                     if module_filename not in Importing.warned_about:
@@ -150,7 +153,7 @@ def decideRecursion(module_filename, module_name, module_package,
             "Requested to not recurse at all."
         )
 
-    if Importing.isStandardLibraryPath(module_filename):
+    if StandardLibrary.isStandardLibraryPath(module_filename):
         return (
             Options.shallFollowStandardLibrary(),
             "Requested to %srecurse to standard library." % (

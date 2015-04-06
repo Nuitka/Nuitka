@@ -23,15 +23,20 @@ giving information about what really needs to be closure taken.
 
 """
 
+from nuitka.utils.InstanceCounters import counted_del, counted_init
+
 # The key is a plain variable object, not a reference. The value is a set
 # of information about that variable.
 variable_registry = {}
 
 
 class VariableInformation:
+    @counted_init
     def __init__(self, variable):
         self.variable = variable
         self.users = set()
+
+    __del__ = counted_del()
 
     def addUser(self, user):
         self.users.add(user)
@@ -86,14 +91,18 @@ def isSharedTechnically(variable):
 # The key is a variable name, and the value is a set of traces.
 variable_traces = {}
 
-variable_traces_full = {}
-
 class GlobalVariableTrace:
+    @counted_init
     def __init__(self):
         self.traces = set()
 
+    __del__ = counted_del()
+
     def add(self, variable_trace):
         self.traces.add(variable_trace)
+
+    def remove(self, variable_trace):
+        self.traces.remove(variable_trace)
 
     def hasDefiniteWrites(self):
         for trace in self.traces:
@@ -102,21 +111,27 @@ class GlobalVariableTrace:
 
         return False
 
-def addVariableTrace(variable_trace):
-    variable = variable_trace.getVariable()
 
-    if variable not in variable_traces:
-        variable_traces[variable] = GlobalVariableTrace()
+def updateFromCollection(old_collection, new_collection):
+    if old_collection is not None:
+        for variable_trace in old_collection.getVariableTracesAll().values():
+            variable = variable_trace.getVariable()
 
-    variable_traces[variable].add(variable_trace)
+            variable_traces[variable].remove(variable_trace)
 
-def startTraversal():
-    # Using global here, as this is really a singleton, in the form of a module,
-    # pylint: disable=W0603
-    global variable_traces_full, variable_traces
+    if new_collection is not None:
+        for variable_trace in new_collection.getVariableTracesAll().values():
+            variable = variable_trace.getVariable()
 
-    variable_traces_full = variable_traces
-    variable_traces = {}
+            if variable not in variable_traces:
+                variable_traces[variable] = GlobalVariableTrace()
+
+            variable_traces[variable].add(variable_trace)
+
+complete = False
 
 def getGlobalVariableTrace(variable):
-    return variable_traces_full.get(variable, None)
+    if not complete:
+        return None
+
+    return variable_traces.get(variable, None)

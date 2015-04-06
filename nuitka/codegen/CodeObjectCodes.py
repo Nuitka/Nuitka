@@ -20,7 +20,7 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 from .ConstantCodes import getConstantCode
 
@@ -42,23 +42,27 @@ def getCodeObjectsInitCode(context):
 
     # Create the always identical, but dynamic filename first thing.
     if code_objects:
+        context.markAsNeedsModuleFilenameObject()
+        filename_code = "module_filename_obj"
+
+    if context.needsModuleFilenameObject():
+        module_filename = context.getOwner().getRunTimeFilename()
+
         # We do not care about release of this object, as code object live
         # forever anyway.
         statements.append(
-            "PyObject *code_object_filename = MAKE_RELATIVE_PATH( %s );" % (
+            "module_filename_obj = MAKE_RELATIVE_PATH( %s );" % (
                 context.getConstantCode(
-                    constant = code_objects[0][0][0]
+                    constant = module_filename
                 )
             )
         )
-
-        filename_code = "code_object_filename"
 
     for code_object_key, code_identifier in code_objects:
         co_flags = []
 
         # Make sure the filename is always identical.
-        assert code_object_key[0] == code_objects[0][0][0]
+        assert code_object_key[0] == module_filename
 
         if code_object_key[2] != 0 and \
            (code_object_key[7] or Utils.python_version < 340):

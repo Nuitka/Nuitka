@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.11.2
+Nuitka V0.5.12
 Copyright (C) 2015 Kay Hayen."""
 
 import logging
@@ -26,7 +26,7 @@ import re
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
-from . import Utils
+from nuitka.utils import Utils
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -321,7 +321,7 @@ codegen_group.add_option(
     "--file-reference-choice",
     action  = "store",
     dest    = "file_reference_mode",
-    choices = ("original", "runtime"),
+    choices = ("original", "runtime", "frozen"),
     default = None,
     help    = """\
 Select what value "__file__" is going to be. With "runtime" (default for
@@ -330,8 +330,9 @@ use the location of themselves to deduct the value of "__file__". Included
 packages pretend to be in directories below that location. This allows you
 to include data files in deployments. If you merely seek acceleration, it's
 better for you to use the "original" value, where the source files location
-will be used. For compatibility reasons, the "__file__" value will always
-have ".py" suffix independent of what it really is."""
+will be used. With "frozen" a notation "<frozen module_name>" is used. For
+compatibility reasons, the "__file__" value will always have ".py" suffix
+independent of what it really is."""
 )
 
 codegen_group.add_option(
@@ -439,7 +440,6 @@ is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
 off."""
 )
 
-
 debug_group.add_option(
     "--experimental",
     action  = "store_true",
@@ -449,6 +449,15 @@ debug_group.add_option(
 Use features declared as 'experimental'. May have no effect if no experimental
 features are present in the code. Defaults to off."""
 )
+
+debug_group.add_option(
+    "--explain-imports",
+    action  = "store_true",
+    dest    = "explain_imports",
+    default = False,
+    help    = SUPPRESS_HELP
+)
+
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.
@@ -546,6 +555,16 @@ tracing_group.add_option(
     help    = """Provide progress information and statistics.
 Defaults to off."""
 )
+
+tracing_group.add_option(
+    "--show-memory",
+    action  = "store_true",
+    dest    = "show_memory",
+    default = False,
+    help    = """Provide memory information and statistics.
+Defaults to off."""
+)
+
 
 tracing_group.add_option(
     "--show-modules",
@@ -653,7 +672,7 @@ def shallNotDoExecCppCall():
 def shallHaveStatementLines():
     return options.statement_lines
 
-def shallHaveOriginalFileReference():
+def getFileReferenceMode():
     if options.file_reference_mode is None:
         value = ("runtime"
                    if shallMakeModule() or isStandaloneMode() else
@@ -661,7 +680,7 @@ def shallHaveOriginalFileReference():
     else:
         value = options.file_reference_mode
 
-    return value == "original"
+    return value
 
 def shallMakeModule():
     return not options.executable
@@ -786,6 +805,9 @@ def isFullCompat():
 def isShowProgress():
     return options.show_progress
 
+def isShowMemory():
+    return options.show_memory
+
 def isShowInclusion():
     return options.show_inclusion
 
@@ -797,6 +819,9 @@ def getIntendedPythonVersion():
 
 def isExperimental():
     return hasattr(options, "experimental") and options.experimental
+
+def shallExplainImports():
+    return options.explain_imports
 
 def isStandaloneMode():
     return options.is_standalone

@@ -22,10 +22,11 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import SyntaxErrors, Utils
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
+from nuitka.tree import SyntaxErrors
+from nuitka.utils import Utils
 
 from .Helpers import buildNode
 

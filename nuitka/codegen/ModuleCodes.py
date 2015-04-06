@@ -19,7 +19,8 @@
 
 """
 
-from nuitka import Options, Utils
+from nuitka import Options
+from nuitka.utils import Utils
 
 from . import CodeTemplates
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
@@ -170,6 +171,9 @@ def getModuleCode(module_context, template_values):
 
     decls, inits, checks = getConstantInitCodes(module_context)
 
+    if module_context.needsModuleFilenameObject():
+        decls.append("static PyObject *module_filename_obj;")
+
     template_values["constant_decl_codes"] = indented(
         decls,
         0
@@ -189,11 +193,13 @@ def getModuleCode(module_context, template_values):
 
 
 def generateModuleFileAttributeCode(to_name, expression, emit, context):
+    # The expression doesn't really matter, but it is part of the API for
+    # the expression registry, pylint: disable=W0613
+
     emit(
-        "%s = MAKE_RELATIVE_PATH( %s );" % (
+        "%s = module_filename_obj;" % (
             to_name,
-            context.getConstantCode(
-                constant = expression.getRunTimeFilename()
-            )
         )
     )
+
+    context.markAsNeedsModuleFilenameObject()

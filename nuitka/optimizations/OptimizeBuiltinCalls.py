@@ -114,7 +114,7 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.Options import isDebug, shallMakeModule
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage
 
 from . import BuiltinOptimization

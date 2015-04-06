@@ -29,7 +29,8 @@ flexible.
 
 """
 
-from nuitka import Utils, Variables
+from nuitka import Variables
+from nuitka.utils import Utils
 
 
 class TooManyArguments(Exception):

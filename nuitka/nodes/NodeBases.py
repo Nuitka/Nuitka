@@ -24,8 +24,9 @@ These classes provide the generic base classes available for nodes.
 
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
-from nuitka.odict import OrderedDict
-from nuitka.oset import OrderedSet
+from nuitka.containers.odict import OrderedDict
+from nuitka.containers.oset import OrderedSet
+from nuitka.utils.InstanceCounters import counted_del, counted_init
 from nuitka.VariableRegistry import addVariableUsage
 
 
@@ -78,9 +79,11 @@ class NodeCheckMetaClass(type):
 # used and doesn't require making a choice.
 NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object,), {})
 
+
 class NodeBase(NodeMetaClassBase):
     kind = None
 
+    @counted_init
     def __init__(self, source_ref):
         # The base class has no __init__ worth calling.
 
@@ -92,6 +95,8 @@ class NodeBase(NodeMetaClassBase):
         self.parent = None
 
         self.source_ref = source_ref
+
+    __del__ = counted_del()
 
     def __repr__(self):
         # This is to avoid crashes, because of bugs in detail.

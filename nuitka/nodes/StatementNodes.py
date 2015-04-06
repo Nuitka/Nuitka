@@ -19,7 +19,7 @@
 
 """
 
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
 

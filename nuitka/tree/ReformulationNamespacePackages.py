@@ -20,20 +20,107 @@ Namespace packages of Python3.3
 
 """
 
+from nuitka import Options
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import (
+    ExpressionMakeList,
+    ExpressionMakeTuple
+)
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
+    ExpressionImportModuleHard,
     ExpressionImportName
 )
-from nuitka.nodes.ModuleNodes import PythonPackage
+from nuitka.nodes.ModuleNodes import (
+    ExpressionModuleFileAttributeRef,
+    PythonPackage
+)
 from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 from nuitka.SourceCodeReferences import SourceCodeReference
+from nuitka.utils import Utils
 
 from .Helpers import makeStatementsSequenceFromStatement
 from .VariableClosure import completeVariableClosures
+
+
+def createPathAssignment(source_ref):
+    if Options.getFileReferenceMode() == "original":
+        path_value = ExpressionConstantRef(
+            constant      = [
+                Utils.dirname(source_ref.getFilename())
+            ],
+            source_ref    = source_ref,
+            user_provided = True
+        )
+    else:
+        path_value = ExpressionMakeList(
+            elements   = (
+                ExpressionCallNoKeywords(
+                    called     = ExpressionAttributeLookup(
+                        source         = ExpressionImportModuleHard(
+                            module_name = "os",
+                            import_name = "path",
+                            source_ref  = source_ref
+                        ),
+                        attribute_name = "dirname",
+                        source_ref     = source_ref
+                    ),
+                    args       = ExpressionMakeTuple(
+                        elements   = (
+                            ExpressionModuleFileAttributeRef(
+                                source_ref = source_ref,
+                            ),
+                        ),
+                        source_ref = source_ref,
+                    ),
+                    source_ref = source_ref,
+                ),
+            ),
+            source_ref = source_ref
+        )
+
+    return  StatementAssignmentVariable(
+        variable_ref = ExpressionTargetVariableRef(
+            variable_name = "__path__",
+            source_ref    = source_ref
+        ),
+        source       = path_value,
+        source_ref   = source_ref
+    )
+
+def createPython3NamespacePath(package_name, module_relpath, source_ref):
+    return StatementAssignmentVariable(
+        variable_ref = ExpressionTargetVariableRef(
+            variable_name = "__path__",
+            source_ref    = source_ref
+        ),
+        source       = ExpressionCallNoKeywords(
+            called     = ExpressionImportName(
+                module      = ExpressionImportModule(
+                    module_name = "_frozen_importlib",
+                    import_list = (),
+                    level       = 0,
+                    source_ref  = source_ref
+                ),
+                import_name = "_NamespacePath",
+                source_ref  = source_ref
+            ),
+            args       = ExpressionConstantRef(
+                constant   = (
+                    package_name,
+                    [module_relpath],
+                    None
+                ),
+                source_ref =  source_ref
+            ),
+            source_ref =  source_ref
+        ),
+        source_ref   = source_ref
+    )
 
 
 def createNamespacePackage(package_name, module_relpath):
@@ -53,38 +140,18 @@ def createNamespacePackage(package_name, module_relpath):
         source_ref   = source_ref,
     )
 
+    if Utils.python_version >= 300:
+        statement = createPython3NamespacePath(
+            package_name   = package_name,
+            module_relpath = module_relpath,
+            source_ref     = source_ref
+        )
+    else:
+        statement = createPathAssignment(source_ref)
+
     package.setBody(
         makeStatementsSequenceFromStatement(
-            statement = (
-                StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetVariableRef(
-                        variable_name = "__path__",
-                        source_ref    = source_ref
-                    ),
-                    source       = ExpressionCallNoKeywords(
-                        called     = ExpressionImportName(
-                            module      = ExpressionImportModule(
-                                module_name = "_frozen_importlib",
-                                import_list = (),
-                                level       = 0,
-                                source_ref  = source_ref
-                            ),
-                            import_name = "_NamespacePath",
-                            source_ref  = source_ref
-                        ),
-                        args       = ExpressionConstantRef(
-                            constant   = (
-                                package_name,
-                                [module_relpath],
-                                None
-                            ),
-                            source_ref =  source_ref
-                        ),
-                        source_ref =  source_ref
-                    ),
-                    source_ref   = source_ref
-                )
-            )
+            statement = statement
         )
     )
 

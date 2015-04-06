@@ -22,7 +22,7 @@ to eliminate or limit their impact as much as possible, but it's difficult
 to do.
 """
 
-from nuitka import Utils
+from nuitka.utils import Utils
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 

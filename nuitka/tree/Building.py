@@ -53,17 +53,14 @@ catching and passing in exceptions raised.
 import ast
 import sys
 
-from nuitka import (
-    Importing,
-    Options,
-    PythonVersions,
-    SourceCodeReferences,
-    SyntaxErrors,
-    Tracing,
-    Utils
-)
+from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.importing import Importing
+from nuitka.importing.ImportCache import addImportedModule
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementReleaseVariable
+)
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
@@ -71,7 +68,6 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
     ExpressionImportName
@@ -94,9 +90,13 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
+    ExpressionTempVariableRef,
     ExpressionVariableRef
 )
+from nuitka.tree import SyntaxErrors
+from nuitka.utils import Utils
 
 from .Helpers import (
     applyLaterWrappers,
@@ -111,11 +111,11 @@ from .Helpers import (
     makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
+    makeTryFinallyStatement,
     mangleName,
     mergeStatements,
     setBuildingDispatchers
 )
-from .ImportCache import addImportedModule
 from .ReformulationAssertStatements import buildAssertNode
 from .ReformulationAssignmentStatements import (
     buildAssignNode,
@@ -140,13 +140,16 @@ from .ReformulationImportStatements import (
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationLoopStatements import buildForLoopNode, buildWhileLoopNode
-from .ReformulationNamespacePackages import createNamespacePackage
+from .ReformulationNamespacePackages import (
+    createNamespacePackage,
+    createPathAssignment
+)
 from .ReformulationPrintStatements import buildPrintNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import (
     buildTryFinallyNode,
-    makeTryFinallyIndicator
+    makeTryFinallyIndicatorStatements
 )
 from .ReformulationWithStatements import buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
@@ -325,6 +328,9 @@ def buildImportModulesNode(provider, node, source_ref):
         level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
 
         if local_name:
+            # If is gets a local name, the real name must be used as a
+            # temporary value only, being looked up recursively.
+
             import_node = ExpressionImportModule(
                 module_name = module_name,
                 import_list = None,
@@ -532,11 +538,20 @@ def buildStatementContinueLoop(node, source_ref):
         )
 
 
-    return makeTryFinallyIndicator(
-        statement    = StatementContinueLoop(
+    statements = makeTryFinallyIndicatorStatements(
+        is_loop_exit = True,
+        source_ref   = source_ref
+    )
+
+    statements.append(
+        StatementContinueLoop(
             source_ref = source_ref
-        ),
-        is_loop_exit = True
+        )
+    )
+
+    return makeStatementsSequenceOrStatement(
+        statements = statements,
+        source_ref = source_ref
     )
 
 
@@ -544,11 +559,20 @@ def buildStatementBreakLoop(provider, node, source_ref):
     # A bit unusual, we need the provider, but not the node,
     # pylint: disable=W0613
 
-    return makeTryFinallyIndicator(
-        statement    = StatementBreakLoop(
+    statements = makeTryFinallyIndicatorStatements(
+        is_loop_exit = True,
+        source_ref   = source_ref
+    )
+
+    statements.append(
+        StatementBreakLoop(
             source_ref = source_ref
-        ),
-        is_loop_exit = True
+        )
+    )
+
+    return makeStatementsSequenceOrStatement(
+        statements = statements,
+        source_ref = source_ref
     )
 
 
@@ -582,14 +606,56 @@ def buildReturnNode(provider, node, source_ref):
             user_provided = True
         )
 
-
-    return makeTryFinallyIndicator(
-        statement    = StatementReturn(
-            expression = expression,
-            source_ref = source_ref
-        ),
-        is_loop_exit = False
+    # Indicate exceptions to potentially try/finally structures.
+    indicator_statements = makeTryFinallyIndicatorStatements(
+        is_loop_exit = False,
+        source_ref   = source_ref
     )
+
+    if indicator_statements and expression.mayRaiseException(BaseException):
+        tmp_variable = provider.allocateTempVariable(
+            temp_scope = provider.allocateTempScope("return"),
+            name       = "value"
+        )
+
+        statements = [
+                StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_variable,
+                    source_ref = expression.getSourceReference()
+                ),
+                source       = expression,
+                source_ref   = source_ref
+            )
+        ] + indicator_statements + [
+            StatementReturn(
+                expression = ExpressionTempVariableRef(
+                    variable   = tmp_variable,
+                    source_ref = expression.getSourceReference()
+                ),
+                source_ref = source_ref
+            )
+        ]
+
+        return makeTryFinallyStatement(
+            tried      = statements,
+            final      = StatementReleaseVariable(
+                variable   = tmp_variable,
+                tolerant   = True,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+    else:
+        return makeStatementsSequenceOrStatement(
+            statements = indicator_statements + [
+                StatementReturn(
+                    expression = expression,
+                    source_ref = source_ref
+                )
+            ],
+            source_ref = source_ref
+        )
 
 
 def buildExprOnlyNode(provider, node, source_ref):
@@ -819,23 +885,9 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         )
 
         if provider.isPythonPackage():
-            # TODO: __package__ is not set here, but automatically, which makes
-            # it invisible though
+            # This assigns "__path__" value.
             statements.append(
-                StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetVariableRef(
-                        variable_name = "__path__",
-                        source_ref    = internal_source_ref
-                    ),
-                    source       = ExpressionConstantRef(
-                        constant      = [
-                            Utils.dirname(source_ref.getFilename())
-                        ],
-                        source_ref    = internal_source_ref,
-                        user_provided = True
-                    ),
-                    source_ref   = internal_source_ref
-                )
+                createPathAssignment(internal_source_ref)
             )
 
     if Utils.python_version >= 300:
@@ -936,6 +988,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
 
     assert package is None or type(package) is str
+    assert filename is not None
 
     if is_main and Utils.isDir(filename):
         source_filename = Utils.joinpath(filename, "__main__.py")
@@ -959,8 +1012,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         source_filename = filename
 
         source_ref = SourceCodeReferences.fromFilename(
-            filename    = filename,
-            future_spec = FutureSpec()
+            filename = filename,
         )
 
         if is_main:
@@ -986,13 +1038,13 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         if is_shlib:
             result = PythonShlibModule(
                 name         = module_name,
-                source_ref   = source_ref,
                 package_name = package,
+                source_ref   = source_ref
             )
         elif is_main:
             result = PythonMainModule(
-                source_ref = source_ref,
-                main_added = main_added
+                main_added = main_added,
+                source_ref = source_ref
             )
         else:
             result = PythonModule(
@@ -1009,8 +1061,6 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         source_filename = Utils.joinpath(filename, "__init__.py")
 
         if not Utils.isFile(source_filename):
-            assert Utils.python_version >= 330, source_filename
-
             source_ref, result = createNamespacePackage(
                 package_name   = package_name,
                 module_relpath = filename
@@ -1018,8 +1068,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             source_filename = None
         else:
             source_ref = SourceCodeReferences.fromFilename(
-                filename    = Utils.abspath(source_filename),
-                future_spec = FutureSpec()
+                filename = Utils.abspath(source_filename),
             )
 
             result = PythonPackage(
@@ -1042,11 +1091,9 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     return result, source_ref, source_filename
 
 
-def createModuleTree(module, source_ref, source_filename, is_main):
+def createModuleTree(module, source_ref, source_code, is_main):
     if Options.isShowProgress():
         memory_watch = Utils.MemoryWatch()
-
-    source_code = readSourceCodeFromFilename(source_filename)
 
     module_body = buildParseTree(
         provider    = module,
@@ -1094,10 +1141,10 @@ def buildModuleTree(filename, package, is_top, is_main):
     # Python3.3 or higher, then read it.
     if source_filename is not None:
         createModuleTree(
-            module          = module,
-            source_ref      = source_ref,
-            source_filename = source_filename,
-            is_main         = is_main
+            module      = module,
+            source_ref  = source_ref,
+            source_code = readSourceCodeFromFilename(source_filename),
+            is_main     = is_main
         )
 
     return module

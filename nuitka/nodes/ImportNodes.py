@@ -18,19 +18,21 @@
 """ Nodes related to importing modules or names.
 
 Normally imports are mostly relatively static, but Nuitka also attempts to
-cover the uses of "__import__" builtin and other import techniques, that
+cover the uses of "__import__" built-in and other import techniques, that
 allow dynamic values.
 
 If other optimizations make it possible to predict these, the compiler can go
 deeper that what it normally could. The import expression node can recurse. An
-"__import__" builtin may be converted to it, once the module name becomes a
+"__import__" built-in may be converted to it, once the module name becomes a
 compile time constant.
 """
 
 from logging import warning
 
-from nuitka import Importing, Utils
-from nuitka.Importing import getModuleWhiteList
+from nuitka.importing.Importing import findModule
+from nuitka.importing.Recursion import decideRecursion, recurseTo
+from nuitka.importing.Whitelisting import getModuleWhiteList
+from nuitka.utils import Utils
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import (
@@ -116,9 +118,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
             module_name = None
 
         if module_kind is not None:
-            from nuitka.tree import Recursion
-
-            decision, reason = Recursion.decideRecursion(
+            decision, reason = decideRecursion(
                 module_filename = module_filename,
                 module_name     = module_name,
                 module_package  = module_package,
@@ -128,7 +128,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
             if decision:
                 module_relpath = Utils.relpath(module_filename)
 
-                imported_module, added_flag = Recursion.recurseTo(
+                imported_module, added_flag = recurseTo(
                     module_package  = module_package,
                     module_filename = module_filename,
                     module_relpath  = module_relpath,
@@ -176,16 +176,13 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         else:
             parent_package = self.getParentModule().getPackage()
 
-        module_package, _module_name, module_filename = Importing.findModule(
+        module_package, module_filename, _finding = findModule(
             source_ref     = self.source_ref,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
             level          = self.getLevel(),
             warn           = True
         )
-
-        # That would be an illegal package name, catch it.
-        assert module_package != ""
 
         if module_filename is not None:
             imported_module = self._consider(
@@ -202,9 +199,10 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                 if import_list and imported_module.isPythonPackage():
                     for import_item in import_list:
+                        if import_item == '*':
+                            continue
 
-                        module_package, _module_name, module_filename = \
-                          Importing.findModule(
+                        module_package, module_filename, _finding = findModule(
                             source_ref     = self.source_ref,
                             module_name    = import_item,
                             parent_package = imported_module.getFullName(),
@@ -334,8 +332,8 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         level = self.getLevel()
 
         # TODO: In fact, if the module is not a package, we don't have to insist
-        # on the fromlist that much, but normally it's not used for anything but
-        # packages, so it will be rare.
+        # on the "fromlist" that much, but normally it's not used for anything
+        # but packages, so it will be rare.
 
         if module_name.isExpressionConstantRef() and \
            fromlist.isExpressionConstantRef() and \

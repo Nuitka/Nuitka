@@ -52,3 +52,12 @@ def lambdaGenerator():
     print("Lambda generator gives", next(gen))
 
 lambdaGenerator()
+
+def lambdaDirectCall():
+    args = range(7)
+
+    x = (lambda *args:args)(*args)
+
+    print("Lambda direct call gave", x)
+
+lambdaDirectCall()

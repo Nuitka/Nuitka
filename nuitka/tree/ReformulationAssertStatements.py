@@ -21,13 +21,13 @@ Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
 
 """
-from nuitka import Utils
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.utils import Utils
 
 from .Helpers import buildNode
 

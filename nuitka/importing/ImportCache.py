@@ -27,7 +27,8 @@ not start anew.
 
 from logging import warning
 
-from nuitka import Utils
+from nuitka.plugins.PluginBase import Plugins
+from nuitka.utils import Utils
 
 imported_modules = {}
 imported_by_name = {}
@@ -41,6 +42,8 @@ Re-importing __main__ module via its filename duplicates the module.""")
 
     if key in imported_modules:
         assert imported_module is imported_modules[ key ], key
+    else:
+        Plugins.onModuleDiscovered(imported_module)
 
     imported_modules[ key ] = imported_module
     imported_by_name[ imported_module.getFullName() ] = imported_module

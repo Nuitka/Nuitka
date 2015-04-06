@@ -24,7 +24,7 @@ import hashlib
 from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.Constants import constant_builtin_types
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 
 from .Namify import namifyConstant
 
@@ -73,21 +73,22 @@ class TempMixin:
 
     def allocateTempName(self, base_name, type_name, unique):
         if unique:
-            result = None
+            number = None
         else:
-            result = self.tmp_names.get(base_name, 0)
-            result += 1
+            number = self.tmp_names.get(base_name, 0)
+            number += 1
 
-        self.tmp_names[base_name] = result
+        self.tmp_names[base_name] = number
 
-        if result == 1 or result == None:
+        if base_name not in self.tmp_types:
             self.tmp_types[base_name] = type_name
         else:
-            assert self.tmp_types[base_name] == type_name, type_name
+            assert self.tmp_types[base_name] == type_name, \
+                (self.tmp_types[base_name], type_name)
 
         return self.formatTempName(
             base_name = base_name,
-            number    = result
+            number    = number
         )
 
     def hasTempName(self, base_name):
@@ -546,6 +547,8 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
         self.frame_handle = None
 
+        self.needs_module_filename_object = False
+
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
@@ -632,6 +635,12 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
     def getConstants(self):
         return self.constants
+
+    def markAsNeedsModuleFilenameObject(self):
+        self.needs_module_filename_object = True
+
+    def needsModuleFilenameObject(self):
+        return self.needs_module_filename_object
 
 
 class PythonFunctionContext(PythonChildContextBase, TempMixin,
@@ -852,7 +861,7 @@ class PythonStatementCContext(PythonChildContextBase):
             return True
 
     def forgetTempName(self, tmp_name):
-        return self.parent.forgetTempName(tmp_name)
+        self.parent.forgetTempName(tmp_name)
 
     def getCleanupTempnames(self):
         return self.cleanup_names
@@ -903,3 +912,6 @@ class PythonStatementCContext(PythonChildContextBase):
         result = self.last_source_ref
         # self.last_source_ref = None
         return result
+
+    def markAsNeedsModuleFilenameObject(self):
+        self.parent.markAsNeedsModuleFilenameObject()

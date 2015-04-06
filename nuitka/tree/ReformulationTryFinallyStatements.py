@@ -22,7 +22,6 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Utils
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
@@ -41,11 +40,11 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
+from nuitka.utils import Utils
 
 from .Helpers import (
     buildStatementsNode,
     getIndicatorVariables,
-    makeStatementsSequenceOrStatement,
     makeTryFinallyStatement,
     mergeStatements,
     popBuildContext,
@@ -81,6 +80,9 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
             name       = "unhandled_indicator"
         )
 
+        # This makes sure, we set the indicator variables for "break",
+        # "continue" and "return" exits as well to true, so we can
+        # know if an exception occurred or not.
         pushIndicatorVariable(tmp_indicator_var)
 
         statements = (
@@ -103,13 +105,14 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                 ),
                 source       = ExpressionConstantRef(
                     constant   = True,
-                    source_ref = source_ref
+                    source_ref = source_ref.atLineNumber(99)
                 ),
                 source_ref   = source_ref.atInternal()
             )
         )
 
-        # Prevent "continue" statements in the final blocks
+        # Prevent "continue" statements in the final blocks, these have to
+        # become "SyntaxError".
         pushBuildContext("finally")
         final = buildStatementsNode(
             provider   = provider,
@@ -214,12 +217,12 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         )
 
 
-def makeTryFinallyIndicator(statement, is_loop_exit):
+def makeTryFinallyIndicatorStatements(is_loop_exit, source_ref):
     statements = []
 
     indicator_variables = getIndicatorVariables()
 
-    source_ref = statement.getSourceReference()
+
     indicator_value = True
 
     for indicator_variable in reversed(indicator_variables):
@@ -236,18 +239,10 @@ def makeTryFinallyIndicator(statement, is_loop_exit):
                         constant   = indicator_value,
                         source_ref = source_ref
                     ),
-                    source_ref   = source_ref.atInternal()
+                    source_ref   = source_ref.atInternal().atLineNumber(55)
                 )
             )
         elif is_loop_exit:
             indicator_value = False
 
-
-    statements.append(
-        statement
-    )
-
-    return makeStatementsSequenceOrStatement(
-        statements = statements,
-        source_ref = source_ref
-    )
+    return statements

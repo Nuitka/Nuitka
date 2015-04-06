@@ -22,7 +22,7 @@ of frames for different uses.
 """
 
 
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 
 from . import CodeTemplates, Emission
 from .ExceptionCodes import getTracebackMakingIdentifier

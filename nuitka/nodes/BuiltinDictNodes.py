@@ -21,7 +21,7 @@
 
 from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .ContainerMakingNodes import ExpressionKeyValuePair, ExpressionMakeDict

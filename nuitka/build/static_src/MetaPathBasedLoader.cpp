@@ -410,6 +410,25 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
             PySys_WriteStderr( "Loaded %s\n", name );
         }
 
+#ifdef _NUITKA_STANDALONE
+        // Execute any "onLoad" code produced for
+        char onLoadModuleName[4096];
+        strcpy( onLoadModuleName, name );
+        strcat( onLoadModuleName, "-onLoad");
+
+        struct Nuitka_MetaPathBasedLoaderEntry *onload_entry = find_entry( onLoadModuleName );
+
+        if ( onload_entry != NULL )
+        {
+            if ( Py_VerboseFlag )
+            {
+                PySys_WriteStderr( "Loading %s\n", onLoadModuleName );
+            }
+
+            onload_entry->python_initfunc();
+        }
+#endif
+
         return LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
     }
 

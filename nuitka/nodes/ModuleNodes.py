@@ -23,11 +23,14 @@ together and cross-module optimizations are the most difficult to tackle.
 
 import re
 
-from nuitka import Importing, Options, Utils, Variables
+from nuitka import Options, Variables
+from nuitka.containers.oset import OrderedSet
+from nuitka.importing import Importing
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
-from nuitka.oset import OrderedSet
 from nuitka.SourceCodeReferences import SourceCodeReference
+from nuitka.utils import Utils
 
+from .ConstantRefNodes import ExpressionConstantRef
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
@@ -71,13 +74,13 @@ class PythonModuleMixin:
 
     def attemptRecursion(self):
         # Make sure the package is recursed to.
-        from nuitka.tree import Recursion
+        from nuitka.importing import Recursion
 
         # Return the list of newly added modules.
         result = []
 
         if self.package_name is not None and self.package is None:
-            package_package, _package_module_name, package_filename = \
+            package_package, package_filename, _finding = \
               Importing.findModule(
                 source_ref     = self.getSourceReference(),
                 module_name    = self.package_name,
@@ -122,21 +125,29 @@ class PythonModuleMixin:
         return self.getSourceReference().getFilename()
 
     def getRunTimeFilename(self):
-        if Options.shallHaveOriginalFileReference():
+        reference_mode = Options.getFileReferenceMode()
+
+        if reference_mode == "original":
             return self.getCompileTimeFilename()
+        elif reference_mode == "frozen":
+            return "<frozen %s>" % self.getFullName()
+        else:
+            filename = self.getCompileTimeFilename()
 
-        filename = self.getCompileTimeFilename()
+            full_name = self.getFullName()
 
-        full_name = self.getFullName()
+            result = Utils.basename(filename)
+            current = filename
 
-        result = Utils.basename(filename)
-        current = filename
+            levels = full_name.count('.')
+            if self.isPythonPackage():
+                levels += 1
 
-        for _i in range(full_name.count('.')):
-            current = Utils.dirname(current)
-            result = Utils.joinpath(Utils.basename(current), result)
+            for _i in range(levels):
+                current = Utils.dirname(current)
+                result = Utils.joinpath(Utils.basename(current), result)
 
-        return result
+            return result
 
 
 class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
@@ -291,6 +302,11 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def getUsedFunctions(self):
         return self.active_functions
 
+    def getUnusedFunctions(self):
+        for function in self.functions:
+            if function not in self.active_functions:
+                yield function
+
     def addCrossUsedFunction(self, function_body):
         if function_body not in self.cross_used_functions:
             self.cross_used_functions.add(function_body)
@@ -317,6 +333,8 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return "copy"
 
     def computeModule(self):
+        old_collection = self.constraint_collection
+
         self.constraint_collection = ConstraintCollectionModule()
 
         module_body = self.getBody()
@@ -330,6 +348,18 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
                 self.setBody(result)
 
         self.constraint_collection.makeVariableTraceOptimizations(self)
+
+        new_modules = self.attemptRecursion()
+
+        for new_module in new_modules:
+            self.constraint_collection.signalChange(
+                source_ref = new_module.getSourceReference(),
+                tags       = "new_code",
+                message    = "Recursed to module package."
+            )
+
+        self.constraint_collection.updateFromCollection(old_collection)
+
 
     def getTraceCollections(self):
         yield self.constraint_collection
@@ -469,6 +499,13 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
     def computeExpression(self, constraint_collection):
         # There is not a whole lot to do here, the path will change at run
         # time
+        if Options.getFileReferenceMode() != "runtime":
+            result = ExpressionConstantRef(
+                constant   = self.getRunTimeFilename(),
+                source_ref = self.getSourceReference()
+            )
+
+            return result, "new_expression", "Resolved to fixed __file__ value."
 
         return self, None, None
 

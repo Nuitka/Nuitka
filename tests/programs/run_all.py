@@ -32,9 +32,9 @@ sys.path.insert(
 from test_common import (
     my_print,
     setup,
-    convertUsing2to3,
     createSearchMode,
-    compareWithCPython
+    compareWithCPython,
+    withPythonPathChange
 )
 
 python_version = setup(needs_io_encoding = True)
@@ -70,7 +70,8 @@ for filename in sorted(os.listdir('.')):
         extra_flags = ["expect_failure"]
 
     if filename in ("reimport_main_static", "package_missing_init",
-                    "dash_import"):
+                    "dash_import", "package_contains_main", "case_imports3",
+                    "import_variants", "package_init_import"):
         extra_flags.append("ignore_warnings")
 
     extra_flags.append("remove_output")
@@ -133,13 +134,21 @@ Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case.""" % (
                 )
             )
 
-        compareWithCPython(
-            dirname     = filename,
-            filename    = filename_main,
-            extra_flags = extra_flags,
-            search_mode = search_mode,
-            needs_2to3  = False
-        )
+        extra_python_path = [
+            os.path.abspath(os.path.join(filename,entry))
+            for entry in
+            os.listdir(filename)
+            if entry.startswith("path")
+        ]
+
+        with withPythonPathChange(extra_python_path):
+            compareWithCPython(
+                dirname     = filename,
+                filename    = filename_main,
+                extra_flags = extra_flags,
+                search_mode = search_mode,
+                needs_2to3  = False
+            )
     else:
         my_print("Skipping", filename)
 

@@ -288,6 +288,9 @@ def _addConstantInitCode(context, emit, check, constant_type, constant_value,
     if constant_identifier in done:
         return
 
+    if Options.shallTraceExecution():
+        emit("""puts("Creating constant: %s");""" % constant_identifier)
+
     # Then it's a real named constant not yet created.
     __addConstantInitCode(context, emit, check, constant_type, constant_value,
                           constant_identifier, module_level)

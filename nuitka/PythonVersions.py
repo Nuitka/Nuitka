@@ -18,7 +18,8 @@
 """ Python version specifics.
 
 This abstracts the Python version decisions. This makes decisions based on
-the numbers, and attempts to give them meaningful names.
+the numbers, and attempts to give them meaningful names. Where possible it
+should attempt to make run time detections.
 
 """
 
@@ -62,7 +63,7 @@ def getErrorMessageExecWithNestedFunction():
 
     assert python_version < 300
 
-    # Need to use exec to detect the syntax error, pylint: disable=W0122
+    # Need to use "exec" to detect the syntax error, pylint: disable=W0122
 
     try:
         exec("""

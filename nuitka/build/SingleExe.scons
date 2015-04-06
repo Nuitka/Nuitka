@@ -75,6 +75,9 @@ full_compat_mode = getBoolOption("full_compat", False)
 # Experimental mode. Do things that are not yet safe to do.
 experimental_mode = getBoolOption("experimental", False)
 
+# Tracing mode. Output program progress.
+trace_mode = getBoolOption("trace_mode", False)
+
 # LTO mode: Use link time optimizations of g++ compiler if available and known
 # good with the compiler in question. The 4.5 one didn't have good enough
 # support, the compiled result would not run correctly.
@@ -661,6 +664,11 @@ if full_compat_mode:
 if experimental_mode:
     env.Append(
         CPPDEFINES = ["_NUITKA_EXPERIMENTAL"]
+    )
+
+if trace_mode:
+    env.Append(
+        CPPDEFINES = ["_NUITKA_TRACE"]
     )
 
 if standalone_mode:
@@ -1310,8 +1318,12 @@ if target_arch == "x86_64" and "linux" in sys.platform:
 if gcc_mode:
     env.Append(CCFLAGS = "-pipe")
 
+if "CPPFLAGS" in os.environ:
+    env.Append(CCFLAGS = os.environ["CPPFLAGS"].split())
 if "CCFLAGS" in os.environ:
     env.Append(CCFLAGS = os.environ["CCFLAGS"].split())
+if "CXXFLAGS" in os.environ:
+    env.Append(CCFLAGS = os.environ["CXXFLAGS"].split())
 
 if "LDFLAGS" in os.environ:
     env.Append(LINKFLAGS = os.environ["LDFLAGS"].split())

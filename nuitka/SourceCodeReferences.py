@@ -21,7 +21,15 @@ All the information to lookup line and file of a code location, together with
 the future flags in use there.
 """
 
-class SourceCodeReference:
+from nuitka.nodes.FutureSpecs import FutureSpec
+from nuitka.utils.InstanceCounters import counted_del, counted_init
+
+
+class SourceCodeReference(object):
+    # TODO: Measure the access speed impact of slots. The memory savings is
+    # not worth it (only a few percent).
+    __slots__ = ["filename", "line", "future_spec", "set_line"]
+
     @classmethod
     def fromFilenameAndLine(cls, filename, line, future_spec):
         result = cls()
@@ -32,6 +40,9 @@ class SourceCodeReference:
 
         return result
 
+    __del__ = counted_del()
+
+    @counted_init
     def __init__(self):
         self.line = None
         self.filename = None
@@ -54,9 +65,12 @@ class SourceCodeReference:
         return result
 
     def atLineNumber(self, line):
-        assert int(line) == line
+        assert type(line) is int, line
 
-        return self.clone(line)
+        if self.line != line:
+            return self.clone(line)
+        else:
+            return self
 
     def getLineNumber(self):
         return self.line
@@ -96,9 +110,9 @@ class SourceCodeReference:
             return self
 
 
-def fromFilename(filename, future_spec):
+def fromFilename(filename):
     return SourceCodeReference.fromFilenameAndLine(
         filename    = filename,
         line        = 1,
-        future_spec = future_spec,
+        future_spec = FutureSpec(),
     )

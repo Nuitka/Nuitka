@@ -19,22 +19,27 @@
 
 A source reference also implies a specific set of future flags in use by the
 parser at that location. Can be different inside a module due to e.g. the
-inlining of exec statements with their own future imports, or inlining of code
-from other modules.
+in-lining of "exec" statements with their own future imports, or in-lining of
+code from other modules.
 """
 
-from nuitka import Utils
+from nuitka.PythonVersions import python_version
+from nuitka.utils.InstanceCounters import counted_del, counted_init
 
-_future_division_default = Utils.python_version >= 300
-_future_absolute_import_default = Utils.python_version >= 300
+# These defaults have changed with Python versions.
+_future_division_default = python_version >= 300
+_future_absolute_import_default = python_version >= 300
 
 class FutureSpec:
+    @counted_init
     def __init__(self):
         self.future_division   = _future_division_default
         self.unicode_literals  = False
         self.absolute_import   = _future_absolute_import_default
         self.future_print      = False
         self.barry_bdfl        = False
+
+    __del__ = counted_del()
 
     def clone(self):
         result = FutureSpec()
@@ -69,21 +74,26 @@ class FutureSpec:
         return self.absolute_import
 
     def asFlags(self):
+        """ Create a list of C identifiers to represent the flag values.
+
+            This is for use in code generation only.
+        """
+
         result = []
 
-        if self.future_division and Utils.python_version < 300:
+        if self.future_division and python_version < 300:
             result.append("CO_FUTURE_DIVISION")
 
         if self.unicode_literals:
             result.append("CO_FUTURE_UNICODE_LITERALS")
 
-        if self.absolute_import and Utils.python_version < 300:
+        if self.absolute_import and python_version < 300:
             result.append("CO_FUTURE_ABSOLUTE_IMPORT")
 
-        if self.future_print and Utils.python_version < 300:
+        if self.future_print and python_version < 300:
             result.append("CO_FUTURE_PRINT_FUNCTION")
 
-        if self.barry_bdfl and Utils.python_version >= 300:
+        if self.barry_bdfl and python_version >= 300:
             result.append("CO_FUTURE_BARRY_AS_BDFL")
 
         return tuple(result)

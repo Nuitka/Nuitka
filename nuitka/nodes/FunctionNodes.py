@@ -28,8 +28,9 @@ CPython reference, and may escape.
 
 """
 
-from nuitka import Utils, Variables
+from nuitka import Variables
 from nuitka.__past__ import iterItems
+from nuitka.utils import Utils
 
 from .IndicatorMixins import (
     MarkGeneratorIndicator,
@@ -74,6 +75,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
     def __init__(self, provider, name, doc, parameters, source_ref,
                  is_class = False):
+        # These got too many details to cover, pylint: disable=R0915
+
         if is_class:
             code_prefix = "class"
         else:
@@ -173,6 +176,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         self.registerProvidedVariables(
             *self.parameters.getVariables()
         )
+
+        self.constraint_collection = None
 
 
     def getDetails(self):
@@ -609,9 +614,6 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         self.function_body = function_body
 
-        # SSA trace based information about the function.
-        self.collection = None
-
     def getDetails(self):
         return {
             "function" : self.function_body.getCodeName()
@@ -639,11 +641,10 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
         from nuitka.optimizations.TraceCollections import \
             ConstraintCollectionFunction
 
-        collection = ConstraintCollectionFunction(
+        function_body.constraint_collection = ConstraintCollectionFunction(
             parent        = constraint_collection,
             function_body = function_body
         )
-        function_body.collection = collection
 
         # TODO: Function collection may now know something.
         return self, None, None

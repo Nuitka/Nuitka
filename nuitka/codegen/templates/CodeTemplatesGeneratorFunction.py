@@ -122,7 +122,8 @@ template_generator_exception_exit = """\
 
 template_generator_noexception_exit = """\
     // Return statement must be present.
-    assert(false);
+    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
+
     generator->m_yielded = NULL;
     return;
 """

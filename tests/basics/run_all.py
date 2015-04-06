@@ -100,6 +100,11 @@ for filename in sorted(os.listdir('.')):
     if filename == "OrderChecks.py":
         extra_flags.append("ignore_warnings")
 
+    # This tests warns about an package relative import despite
+    # being in no package.
+    if filename == "Importing.py":
+        extra_flags.append("ignore_warnings")
+
     # TODO: Nuitka does not give output for ignored exception in dtor, this is
     # not fully compatible and potentially an error.
     if filename == "YieldFrom33.py":

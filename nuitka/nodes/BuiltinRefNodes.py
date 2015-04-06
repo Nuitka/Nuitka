@@ -32,7 +32,7 @@ from nuitka.Builtins import (
     builtin_names
 )
 from nuitka.optimizations import BuiltinOptimization
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase

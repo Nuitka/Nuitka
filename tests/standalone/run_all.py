@@ -91,7 +91,7 @@ for filename in sorted(os.listdir(".")):
         # For the warnings.
         extra_flags.append( "ignore_stderr" )
 
-    if filename == "PyQt4Using.py":
+    if "PyQt4" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
@@ -99,7 +99,7 @@ for filename in sorted(os.listdir(".")):
             my_print("Skipping", filename, "not relevant.")
             continue
 
-        if not hasModule("PyQt4"):
+        if not hasModule("PyQt4.QtGui"):
             my_print(
                 "Skipping", filename, "PyQt4 not installed for",
                 python_version, "but test needs it."
@@ -109,7 +109,7 @@ for filename in sorted(os.listdir(".")):
         # For the warnings.
         extra_flags.append( "ignore_stderr" )
 
-    if filename == "PyQt5Using.py":
+    if "PyQt5" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
@@ -117,7 +117,7 @@ for filename in sorted(os.listdir(".")):
             my_print("Skipping", filename, "not relevant.")
             continue
 
-        if not hasModule("PyQt5.QtCore"):
+        if not hasModule("PyQt5.QtGui"):
             my_print(
                 "Skipping", filename, "PyQt5 not installed for",
                 python_version, "but test needs it."
@@ -126,6 +126,10 @@ for filename in sorted(os.listdir(".")):
 
         # For the warnings.
         extra_flags.append( "ignore_stderr" )
+
+    # TODO: Temporary only
+    if os.name == "nt" and "PyQt" in filename:
+        continue
 
     if filename == "GtkUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
@@ -167,7 +171,8 @@ for filename in sorted(os.listdir(".")):
             continue
 
     if filename not in ("PySideUsing.py", "PyQt4Using.py", "PyQt5Using.py",
-                        "GtkUsing.py", "LxmlUsing.py", "Win32ComUsing.py"):
+                        "PyQt4Plugins.py", "PyQt5Plugins.py", "GtkUsing.py",
+                        "LxmlUsing.py", "Win32ComUsing.py"):
         extra_flags += [
             "no_site"
         ]
@@ -280,6 +285,13 @@ for filename in sorted(os.listdir(".")):
             continue
 
         if os.path.basename(loaded_filename) == "gconv-modules.cache":
+            continue
+
+        # TODO: Unclear, loading gconv from filesystem of installed system
+        # may be OK or not. I think it should be.
+        if "/gconv/" in loaded_filename:
+            continue
+        if os.path.basename(loaded_filename).startswith("libicu"):
             continue
 
         # Loading from caches is OK.

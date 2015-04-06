@@ -76,9 +76,13 @@
 
 #ifdef __GNUC__
 #define NUITKA_NO_RETURN __attribute__((__noreturn__))
+#elif defined(_MSC_VER)
+#define NUITKA_NO_RETURN __declspec(noreturn)
 #else
 #define NUITKA_NO_RETURN
 #endif
+
+#define NUITKA_CANNOT_GET_HERE(NAME) assert(false && #NAME);abort();
 
 #ifdef __GNUC__
 #define NUITKA_FORCE_INLINE __attribute__((always_inline))

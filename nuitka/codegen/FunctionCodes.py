@@ -19,7 +19,8 @@
 
 """
 
-from nuitka import Options, Utils
+from nuitka import Options
+from nuitka.utils import Utils
 
 from . import CodeTemplates
 from .ConstantCodes import getConstantCode
@@ -466,14 +467,17 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
 
     if needs_exception_exit:
         function_exit = CodeTemplates.template_function_exception_exit % {
-            "function_cleanup" : function_cleanup
+            "function_cleanup"    : function_cleanup,
+            "function_identifier" : function_identifier
         }
     else:
-        function_exit = CodeTemplates.template_function_noexception_exit % {}
+        function_exit = CodeTemplates.template_function_noexception_exit % {
+            "function_identifier" : function_identifier
+        }
 
     if context.hasTempName("return_value"):
         function_exit += CodeTemplates.template_function_return_exit % {
-            "function_cleanup" : function_cleanup
+            "function_cleanup" : function_cleanup,
         }
 
     if context.isForDirectCall():

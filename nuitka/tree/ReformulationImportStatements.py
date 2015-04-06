@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Options, SyntaxErrors, Utils
+from nuitka import Options
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
@@ -32,6 +32,8 @@ from nuitka.nodes.ImportNodes import (
 )
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
+from nuitka.tree import SyntaxErrors
+from nuitka.utils import Utils
 
 from .Helpers import mangleName
 
@@ -146,6 +148,9 @@ from __future__ imports must occur at the beginning of the file""",
                     source_ref  = source_ref
                 )
             else:
+                # TODO: This ought to use a temporary variable for multiple
+                # names, instead of importing multiple times.
+
                 return ExpressionImportName(
                     module      = ExpressionImportModule(
                         module_name = module_name,

@@ -23,10 +23,11 @@ module variable references.
 
 """
 
-from nuitka import Utils
+from nuitka.utils import InstanceCounters, Utils
 
 
 class Variable:
+    @InstanceCounters.counted_init
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
         assert type(owner) not in (tuple, list), owner
@@ -38,6 +39,8 @@ class Variable:
         self.read_only_indicator = None
 
         self.version_number = 0
+
+    __del__ = InstanceCounters.counted_del()
 
     def getName(self):
         return self.variable_name

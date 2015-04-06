@@ -65,7 +65,8 @@ else:
     )
 # LIBDIR trick end (marker for removal on platforms that don't need it)
 
-from nuitka import Options, Utils   # isort:skip
+from nuitka import Options       # isort:skip
+from nuitka.utils import Utils   # isort:skip pylint:disable=E0611
 
 logging.basicConfig(format = 'Nuitka:%(levelname)s:%(message)s')
 
@@ -103,6 +104,12 @@ python_flags = Options.getPythonFlags()
 if sys.flags.no_site == 0 and "no_site" in python_flags:
     needs_reexec = True
 
+    # False alarm, pylint: disable=E0611
+    from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths
+    os.environ["NUITKA_NAMESPACES"] = repr(
+        detectPreLoadedPackagePaths()
+    )
+
 # The hash randomization totally changes the created source code created,
 # changing it every single time Nuitka is run. This kills any attempt at
 # caching it, and comparing generated source code. While the created binary
@@ -132,7 +139,9 @@ if needs_reexec:
     args += sys.argv + list(Options.getMainArgs())
 
     if current_version == intended_version:
-        os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
+        os.environ["NUITKA_PYTHONPATH"] = repr(
+            sys.path
+        )
 
     Utils.callExec(args)
 
@@ -152,6 +161,15 @@ if "NUITKA_PYTHONPATH" in os.environ:
     # to have imported. pylint: disable=W0123
     sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
     del os.environ["NUITKA_PYTHONPATH"]
+
+if "NUITKA_NAMESPACES" in os.environ:
+    # Restore the detected name space packages, that were force loaded in
+    # site.py, and will need a free pass later on. pylint: disable=W0123,E0611
+
+    from nuitka.importing.PreloadedPackages import setPreloadedPackagePaths
+
+    setPreloadedPackagePaths(eval(os.environ["NUITKA_NAMESPACES"]))
+    del os.environ["NUITKA_NAMESPACES"]
 
 # Now the main program.
 from nuitka import MainControl  # isort:skip

@@ -49,6 +49,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
         self.constant = constant
 
+        # Memory saving method, have the attribute only where necessary.
         if user_provided:
             self.user_provided = user_provided
 

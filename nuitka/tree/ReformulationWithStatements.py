@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Options, Utils
+from nuitka import Options
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
@@ -39,9 +39,9 @@ from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
     ExpressionCaughtExceptionTypeRef,
-    ExpressionCaughtExceptionValueRef,
-    StatementRaiseException
+    ExpressionCaughtExceptionValueRef
 )
+from nuitka.nodes.NodeMakingHelpers import makeReraiseExceptionStatement
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
@@ -50,6 +50,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
+from nuitka.utils import Utils
 
 from .Helpers import (
     buildNode,
@@ -221,12 +222,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                                 source_ref = source_ref
                             ),
                             no_branch  = makeStatementsSequenceFromStatement(
-                                statement = StatementRaiseException(
-                                    exception_type  = None,
-                                    exception_value = None,
-                                    exception_trace = None,
-                                    exception_cause = None,
-                                    source_ref      = source_ref
+                                statement = makeReraiseExceptionStatement(
+                                    source_ref = source_ref
                                 )
                             ),
                             yes_branch = None,

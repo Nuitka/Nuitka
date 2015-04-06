@@ -26,7 +26,7 @@ from nuitka.nodes.ParameterSpecs import (
     TooManyArguments,
     matchCall
 )
-from nuitka.Utils import python_version
+from nuitka.utils.Utils import python_version
 
 
 class BuiltinParameterSpec(ParameterSpec):

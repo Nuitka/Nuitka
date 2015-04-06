@@ -268,8 +268,10 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
         result = 2
 
     # Cleanup, some tests apparently forget that.
-    if os.path.exists("@test"):
-        shutil.rmtree("@test", ignore_errors = True)
+    if os.path.isdir("@test"):
+        shutil.rmtree("@test")
+    elif os.path.isfile("@test"):
+        os.unlink("@test")
 
     if result != 0 and \
        result != 2 and \
@@ -703,16 +705,21 @@ from contextlib import contextmanager
 
 @contextmanager
 def withPythonPathChange(python_path):
-    if "PYTHONPATH" in os.environ:
-        old_path = os.environ["PYTHONPATH"]
-        os.environ["PYTHONPATH"] += ":" + python_path
-    else:
-        old_path = None
-        os.environ["PYTHONPATH"] = python_path
+    if type(python_path) in (tuple, list):
+        python_path = os.pathsep.join(python_path)
+
+    if python_path:
+        if "PYTHONPATH" in os.environ:
+            old_path = os.environ["PYTHONPATH"]
+            os.environ["PYTHONPATH"] += os.pathsep + python_path
+        else:
+            old_path = None
+            os.environ["PYTHONPATH"] = python_path
 
     yield
 
-    if old_path is None:
-        del os.environ["PYTHONPATH"]
-    else:
-        os.environ["PYTHONPATH"] = old_path
+    if python_path:
+        if old_path is None:
+            del os.environ["PYTHONPATH"]
+        else:
+            os.environ["PYTHONPATH"] = old_path

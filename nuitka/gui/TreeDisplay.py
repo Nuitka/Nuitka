@@ -25,7 +25,8 @@ import sys
 
 from PyQt4 import QtCore, QtGui, uic
 
-from nuitka import SourceCodeReferences, Utils
+from nuitka import SourceCodeReferences
+from nuitka.utils import Utils
 
 
 # The API requires a signature, sometimes we don't use it, pylint: disable=R0201
@@ -278,8 +279,7 @@ class InspectNodeTreeDialog(QtGui.QDialog):
         self.moving = False
 
         self.displayed = SourceCodeReferences.fromFilename(
-            filename    = filename,
-            future_spec = None
+            filename = filename
         )
 
 

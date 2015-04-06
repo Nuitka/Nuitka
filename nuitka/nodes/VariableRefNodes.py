@@ -181,7 +181,9 @@ Replaced read-only module attribute '__package__' with constant value."""
         return not self.variable_trace.mustHaveValue()
 
     def mayRaiseException(self, exception_type):
-        return not self.variable_trace.mustHaveValue()
+        variable_trace = self.variable_trace
+
+        return variable_trace is None or not self.variable_trace.mustHaveValue()
 
 
 class ExpressionTempVariableRef(NodeBase, ExpressionMixin):

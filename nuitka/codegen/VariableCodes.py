@@ -19,7 +19,8 @@
 
 """
 
-from nuitka import Options, Utils, Variables
+from nuitka import Options, Variables
+from nuitka.utils import Utils
 
 from . import CodeTemplates
 from .ConstantCodes import getConstantCode
