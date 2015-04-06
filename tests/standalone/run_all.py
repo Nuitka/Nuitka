@@ -127,6 +127,10 @@ for filename in sorted(os.listdir(".")):
         # For the warnings.
         extra_flags.append( "ignore_stderr" )
 
+    # TODO: Temporary only
+    if os.name == "nt" and "PyQt" in filename:
+        continue
+
     if filename == "GtkUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
