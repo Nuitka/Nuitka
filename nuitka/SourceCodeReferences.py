@@ -22,9 +22,14 @@ the future flags in use there.
 """
 
 from nuitka.nodes.FutureSpecs import FutureSpec
+from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 
-class SourceCodeReference:
+class SourceCodeReference(object):
+    # TODO: Measure the access speed impact of slots. The memory savings is
+    # not worth it (only a few percent).
+    __slots__ = ["filename", "line", "future_spec", "set_line"]
+
     @classmethod
     def fromFilenameAndLine(cls, filename, line, future_spec):
         result = cls()
@@ -35,6 +40,9 @@ class SourceCodeReference:
 
         return result
 
+    __del__ = counted_del()
+
+    @counted_init
     def __init__(self):
         self.line = None
         self.filename = None
@@ -57,9 +65,12 @@ class SourceCodeReference:
         return result
 
     def atLineNumber(self, line):
-        assert int(line) == line
+        assert type(line) is int, line
 
-        return self.clone(line)
+        if self.line != line:
+            return self.clone(line)
+        else:
+            return self
 
     def getLineNumber(self):
         return self.line
