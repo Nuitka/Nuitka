@@ -323,9 +323,6 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionBuiltin(self):
         return self.kind.startswith("EXPRESSION_BUILTIN_")
 
-    def isOperation(self):
-        return self.kind.startswith("EXPRESSION_OPERATION_")
-
     def isStatementReraiseException(self):
         # Virtual method, pylint: disable=R0201
         return False
