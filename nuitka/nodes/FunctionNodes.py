@@ -660,10 +660,35 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
         from nuitka.optimizations.TraceCollections import \
             ConstraintCollectionFunction
 
+        # TODO: Doesn't this mean, we can do this multiple times by doing it
+        # in the reference. We should do it in the body, and there we should
+        # limit us to only doing it once per module run, e.g. being based on
+        # presence in used functions of the module already.
+        old_collection = function_body.constraint_collection
+
         function_body.constraint_collection = ConstraintCollectionFunction(
             parent        = constraint_collection,
             function_body = function_body
         )
+
+        statements_sequence = function_body.getBody()
+
+        if statements_sequence is not None and \
+           not statements_sequence.getStatements():
+            function_body.setStatements(None)
+            statements_sequence = None
+
+        if statements_sequence is not None:
+            result = statements_sequence.computeStatementsSequence(
+                constraint_collection = function_body.constraint_collection
+            )
+
+            if result is not statements_sequence:
+                function_body.setBody(result)
+
+        function_body.constraint_collection.updateFromCollection(old_collection)
+
+        function_body.constraint_collection.makeVariableTraceOptimizations(function_body)
 
         # TODO: Function collection may now know something.
         return self, None, None

@@ -567,30 +567,8 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
             parent = parent
         )
 
+        # TODO: Useless cyclic dependency.
         self.function_body = function_body
-
-        # TODO: Move this to computeFunction method of functions.
-        old_collection = function_body.constraint_collection
-        function_body.constraint_collection = self
-
-        statements_sequence = function_body.getBody()
-
-        if statements_sequence is not None and \
-           not statements_sequence.getStatements():
-            function_body.setStatements(None)
-            statements_sequence = None
-
-        if statements_sequence is not None:
-            result = statements_sequence.computeStatementsSequence(
-                constraint_collection = self
-            )
-
-            if result is not statements_sequence:
-                function_body.setBody(result)
-
-        function_body.constraint_collection.updateFromCollection(old_collection)
-
-        self.makeVariableTraceOptimizations(function_body)
 
     def __repr__(self):
         return "<ConstraintCollectionFunction for %s>" % self.function_body
