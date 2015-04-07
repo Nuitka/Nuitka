@@ -22,10 +22,14 @@ Nuitka V0.5.13pre1
 Copyright (C) 2015 Kay Hayen."""
 
 import logging
-import re
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
+from nuitka.PythonVersions import (
+    getSupportedPythonVersions,
+    getSupportedPythonVersionStr,
+    python_version_str
+)
 from nuitka.utils import Utils
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
@@ -91,21 +95,6 @@ as bytecode. As a result compilation time will increase very much.
     )
 
 
-def getSupportedPythonVersions():
-    return ("2.6", "2.7", "3.2", "3.3", "3.4")
-
-def getSupportedPythonVersionStr():
-    supported_python_versions = getSupportedPythonVersions()
-
-    supported_python_versions_str = repr(supported_python_versions)[1:-1]
-    supported_python_versions_str = re.sub(
-        r"(.*),(.*)$",
-        r"\1, or\2",
-        supported_python_versions_str
-    )
-
-    return supported_python_versions_str
-
 parser.add_option(
     "--python-version",
     action  = "store",
@@ -114,8 +103,9 @@ parser.add_option(
     default = None,
     help    = """\
 Major version of Python to be used, one of %s.
-Defaults to what you run Nuitka with.""" % (
-       getSupportedPythonVersionStr()
+Defaults to what you run Nuitka with (currently %s)""" % (
+       getSupportedPythonVersionStr(),
+       python_version_str
     )
 )
 
