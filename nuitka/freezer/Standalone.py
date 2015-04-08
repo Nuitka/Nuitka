@@ -103,6 +103,9 @@ def _detectedSourceFile(filename, module_name, result, is_late):
         filename = filename.decode("utf-8")
 
     if module_name == "site":
+        if source_code.startswith("def ") or source_code.startswith("class "):
+            source_code = '\n' + source_code
+
         source_code = """\
 __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
             os.path.sep,
