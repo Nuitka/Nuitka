@@ -137,7 +137,9 @@ class FinalizeMarkups(FinalizationVisitorBase):
         if node.isStatementTryFinally():
             if Utils.python_version >= 300 and node.public_exc:
                 parent_frame = node.getParentStatementsFrame()
-                parent_frame.markAsFrameExceptionPreserving()
+
+                if parent_frame is not None:
+                    parent_frame.markAsFrameExceptionPreserving()
 
         if node.isExpressionBuiltinImport() and \
            not Options.getShallFollowExtra() and \
