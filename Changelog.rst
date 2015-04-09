@@ -3,6 +3,92 @@ Nuitka Release 0.5.13 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Standalone MacOS: Added support for homebrew installations with a leading
+  ``def`` statement.
+
+- Compatibility: In full compatibility mode, the tracebacks of ``or`` and
+  ``and`` expressions are now as wrong as they are in CPython. Does not apply
+  to ``--improved`` mode.
+
+- Standalone: Added missing dependency on ``QtGui`` by ``QtWidgets`` for PyQt5.
+
+- MacOS: Improved parsing of ``otool`` output to avoid duplicate entries, which
+  can also be entirely wrong in the case of Qt plugins at least.
+
+- Avoid relative paths for main program with file reference mode ``original``,
+  as it otherwise changes as the file moves.
+
+- Loops were not properly degrading knowledge from inside the loop at loop
+  exit, and therefore could lead missing checks and releases in code generation.
+
+- The ``or`` and ``and`` re-formulation could trigger false assertions, due to
+  early releases for compatibility.
+
+Optimization
+------------
+
+- Make direct calls out of called function creations. Initially this applies
+  to lambda functions only, but it's expected to become common place in coming
+  releases. This is now 20x faster than CPython.
+
+  .. code-block:: python
+
+      # Nuitka avoids creating a function object, parsing function arguments:
+      (lambda x:x)(something)
+
+- Specialized the creation of call nodes at creation, avoiding to have all kinds
+  be the most flexible form (keyword and plain arguments), but instead only what
+  kind of call they really are. This saves lots of memory, and makes the tree
+  faster to visit.
+
+- Lower in-place operations on immutable types to normal operations. This will
+  allow to compile time compute these more accurately.
+
+New Features
+------------
+
+- Added experimental support for Python 3.5, which seems to be passing the
+  test suites just fine. The new ``@`` matrix multiplicator operators are
+  not yet supported though.
+
+Organizational
+--------------
+
+- Added package for Ubuntu 15.04 for download.
+
+- Make it more clear in the documentation that in order to compile Python3, a
+  Python2 is needed to execute Scons, but that the end result is a Python3
+  binary.
+
+- The PyLint checker tool now can operate on directories given on the command
+  line, and whitelists an error that is Windows only.
+
+Cleanups
+--------
+
+- Split up standalone code further, moving ``depends.exe`` handling to a
+  separate module.
+
+- Reduced code complexity of scons interface.
+
+- Cleaned up where trace collection is being done. It was partially still done
+  inside the collection itself instead in the owner.
+
+Tests
+-----
+
+- Made ``BuiltinsTest`` directly executable with Python3.
+
+- Added construct test to demonstrate the speed up of direct lambda calls.
+
+Summary
+-------
+
+This release is not done yet.
+
 
 Nuitka Release 0.5.12
 =====================
