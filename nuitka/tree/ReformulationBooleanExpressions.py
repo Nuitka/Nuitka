@@ -46,18 +46,32 @@ def buildBoolOpNode(provider, node, source_ref):
     bool_op = getKind(node.op)
 
     if bool_op == "Or":
-        # The "or" may be short circuit and is therefore not a plain operation
+        # The "or" may be short circuit and is therefore not a plain operation.
+        values = buildNodeList(provider, node.values, source_ref)
+
+        for value in values[:-1]:
+            value.setCompatibleSourceReference(values[-1].getSourceReference())
+
+        source_ref = values[-1].getSourceReference()
+
         return buildOrNode(
             provider   = provider,
-            values     = buildNodeList(provider, node.values, source_ref),
+            values     = values,
             source_ref = source_ref
         )
 
     elif bool_op == "And":
-        # The "and" may be short circuit and is therefore not a plain operation
+        # The "and" may be short circuit and is therefore not a plain operation.
+        values = buildNodeList(provider, node.values, source_ref)
+
+        for value in values[:-1]:
+            value.setCompatibleSourceReference(values[-1].getSourceReference())
+
+        source_ref = values[-1].getSourceReference()
+
         return buildAndNode(
             provider   = provider,
-            values     = buildNodeList(provider, node.values, source_ref),
+            values     = values,
             source_ref = source_ref
         )
     elif bool_op == "Not":
