@@ -452,23 +452,23 @@ def _detectBinaryPathDLLsMacOS(binary_filename):
 
     stdout, _stderr = process.communicate()
     system_paths = (b"/usr/lib/", b"/System/Library/Frameworks/")
-    for line in stdout.split(b"\n"):
+
+    for line in stdout.split(b"\n")[2:]:
         if not line:
             continue
 
-        if line.startswith(b"\t"):
-            filename = line.split(b" (")[0].strip()
-            stop = False
-            for w in system_paths:
-                if filename.startswith(w):
-                    stop = True
-                    break
-            if not stop:
-                if Utils.python_version >= 300:
-                    filename = filename.decode("utf-8")
+        filename = line.split(b" (")[0].strip()
+        stop = False
+        for w in system_paths:
+            if filename.startswith(w):
+                stop = True
+                break
+        if not stop:
+            if Utils.python_version >= 300:
+                filename = filename.decode("utf-8")
 
-                # print "adding", filename
-                result.add(filename)
+            # print "adding", filename
+            result.add(filename)
 
     return result
 
