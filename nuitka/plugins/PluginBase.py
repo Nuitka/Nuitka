@@ -308,7 +308,10 @@ class Plugins:
         result = []
 
         for plugin in plugin_list:
-            result.extend(plugin.considerExtraDlls(dist_dir, module))
+            for extra_dll in plugin.considerExtraDlls(dist_dir, module):
+                assert Utils.isFile(extra_dll[0])
+
+                result.append(extra_dll)
 
         return result
 
