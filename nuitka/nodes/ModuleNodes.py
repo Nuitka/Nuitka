@@ -122,7 +122,7 @@ class PythonModuleMixin:
         return None
 
     def getCompileTimeFilename(self):
-        return self.getSourceReference().getFilename()
+        return Utils.abspath(self.getSourceReference().getFilename())
 
     def getRunTimeFilename(self):
         reference_mode = Options.getFileReferenceMode()
