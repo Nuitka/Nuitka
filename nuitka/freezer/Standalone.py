@@ -662,6 +662,9 @@ def detectUsedDLLs(standalone_entry_points):
         )
 
         for dll_filename in used_dlls:
+            # We want these to be absolute paths.
+            assert Utils.isAbsolutePath(dll_filename), dll_filename
+
             if dll_filename not in result:
                 result[dll_filename] = []
 

@@ -63,6 +63,10 @@ def abspath(path):
     return os.path.abspath(path)
 
 
+def isAbsolutePath(path):
+    return os.path.isabs(path)
+
+
 def joinpath(*parts):
     return os.path.join(*parts)
 
