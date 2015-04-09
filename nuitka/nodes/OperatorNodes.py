@@ -327,16 +327,16 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
 
 
             result = ExpressionOperationBinary(
-                left  = left,
-                right = right,
-                operator = self.getOperator()[1:],
+                left       = left,
+                right      = right,
+                operator   = self.getOperator()[1:],
                 source_ref = source_ref
             )
 
             constraint_collection.signalChange(
-                tags = "new_expression",
+                tags       = "new_expression",
                 source_ref = source_ref,
-                message = """\
+                message    = """\
 Lowered in-place binary operation of compile time constant to binary operation."""
             )
 

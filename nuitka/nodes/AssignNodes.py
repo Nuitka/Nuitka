@@ -25,6 +25,7 @@ that should be unified at some point.
 
 """
 
+from nuitka import VariableRegistry
 from nuitka.utils import Utils
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
@@ -150,10 +151,12 @@ Removed assignment of variable from itself which is known to be defined."""
 
             statements.append(self)
 
+            parent = self.parent
             result = makeStatementsSequenceReplacementNode(
                 statements = statements,
                 node       = self,
             )
+            result.parent = parent
 
             # Need to update it.
             self.setAssignSource(source.getExpression())
@@ -164,9 +167,25 @@ Side effects of assignments promoted to statements."""
         else:
             result = self, None, None
 
+        # Set-up the trace to the trace collection, so future references will
+        # find this assignment.
         self.variable_trace = constraint_collection.onVariableSet(
             assign_node = self
         )
+
+        global_trace = VariableRegistry.getGlobalVariableTrace(variable)
+
+        if global_trace is not None:
+            if variable.isTempVariable():
+                if source.isCompileTimeConstant() and not source.isMutable():
+                    self.variable_trace.setReplacementNode(source)
+            elif variable.isLocalVariable():
+                if source.isCompileTimeConstant() and not source.isMutable():
+                    provider = self.getParentVariableProvider()
+
+                    if provider.isPythonModule() or \
+                       (not provider.isUnoptimized() and not provider.isClassDictCreation()):
+                        self.variable_trace.setReplacementNode(source)
 
         return result
 
