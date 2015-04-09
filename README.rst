@@ -803,6 +803,9 @@ The order is sorted by time.
   provided application icons, as well as MSVC support for large constants and
   console applications.
 
+- David Cortesi: Submitted patches and test cases to make MacOS port more
+  usable, specifically for the Python3 standalone support of Qt.
+
 Projects used by Nuitka
 -----------------------
 
