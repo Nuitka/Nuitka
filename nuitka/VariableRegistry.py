@@ -131,6 +131,8 @@ def updateFromCollection(old_collection, new_collection):
 complete = False
 
 def getGlobalVariableTrace(variable):
+    # Global variable traces are not being handed out, before the first total
+    # run was completed.
     if not complete:
         return None
 

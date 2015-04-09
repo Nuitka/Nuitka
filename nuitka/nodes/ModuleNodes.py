@@ -505,7 +505,7 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
                 source_ref = self.getSourceReference()
             )
 
-            return result, "new_expression", "Resolved to fixed __file__ value."
+            return result, "new_expression", "Using original '__file__' value."
 
         return self, None, None
 

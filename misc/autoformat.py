@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import sys, os, shutil
 
-from redbaron import RedBaron
+from redbaron import RedBaron  # @UnresolvedImport
 
 print("Consider", sys.argv[1], end = ": ")
 

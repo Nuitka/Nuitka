@@ -2006,7 +2006,7 @@ def generateExpressionCode(to_name, expression, emit, context,
             context    = context,
             allow_none = allow_none
         )
-    except:
+    except Exception:
         Tracing.printError(
             "Problem with %r at %s" % (
                 expression,

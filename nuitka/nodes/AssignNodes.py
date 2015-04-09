@@ -28,6 +28,11 @@ that should be unified at some point.
 from nuitka.utils import Utils
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeMakingHelpers import (
+    makeStatementExpressionOnlyReplacementNode,
+    makeStatementOnlyNodesFromExpressions,
+    makeStatementsSequenceReplacementNode
+)
 
 
 class StatementAssignmentVariable(StatementChildrenHavingBase):
@@ -90,11 +95,6 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         constraint_collection.onExpression(self.getAssignSource())
         source = self.getAssignSource()
 
-        from .NodeMakingHelpers import (
-            makeStatementExpressionOnlyReplacementNode,
-            makeStatementsSequenceReplacementNode
-        )
-
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
         if source.willRaiseException(BaseException):
@@ -121,7 +121,8 @@ Assignment raises exception in assigned value, removed assignment."""
              source.getVariable() == variable:
 
             # A variable access that has a side effect, must be preserved,
-            # otherwise we can be fully removed.
+            # so it can e.g. raise an exception, otherwise we can be fully
+            # removed.
             if source.mayHaveSideEffects():
                 result = makeStatementExpressionOnlyReplacementNode(
                     expression = source,
@@ -224,9 +225,6 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
         if source.willRaiseException(BaseException):
-            from .NodeMakingHelpers import \
-                makeStatementExpressionOnlyReplacementNode
-
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
                 node       = self
@@ -239,9 +237,6 @@ Attribute assignment raises exception in assigned value, removed assignment."""
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException(BaseException):
-            from .NodeMakingHelpers import \
-                makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
@@ -291,9 +286,6 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
         if source.willRaiseException(BaseException):
-            from .NodeMakingHelpers import \
-                makeStatementExpressionOnlyReplacementNode
-
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
                 node       = self
@@ -306,8 +298,6 @@ Subscript assignment raises exception in assigned value, removed assignment."""
         subscribed = self.getSubscribed()
 
         if subscribed.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
@@ -324,8 +314,6 @@ Subscript assignment raises exception in subscribed, removed assignment."""
         subscript = self.getSubscript()
 
         if subscript.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
@@ -380,8 +368,6 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
         if source.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
-
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
                 node       = self
@@ -394,8 +380,6 @@ Slice assignment raises exception in assigned value, removed assignment."""
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
@@ -410,8 +394,6 @@ Slice assignment raises exception in sliced value, removed assignment."""
         lower = self.getLower()
 
         if lower is not None and lower.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
@@ -428,8 +410,6 @@ assignment."""
         upper = self.getUpper()
 
         if upper is not None and upper.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
@@ -631,8 +611,6 @@ class StatementDelAttribute(StatementChildrenHavingBase):
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
-
             return makeStatementExpressionOnlyReplacementNode(
                 expression = lookup_source,
                 node       = self
@@ -667,8 +645,6 @@ class StatementDelSubscript(StatementChildrenHavingBase):
         subscribed = self.getSubscribed()
 
         if subscribed.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
-
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = subscribed,
                 node       = self
@@ -681,8 +657,6 @@ Subscript 'del' raises exception in subscribed value, removed del."""
         subscript = self.getSubscript()
 
         if subscript.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     subscribed,
@@ -725,8 +699,6 @@ class StatementDelSlice(StatementChildrenHavingBase):
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
-
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = lookup_source,
                 node       = self
@@ -740,8 +712,6 @@ Slice del raises exception in sliced value, removed del"""
         lower = self.getLower()
 
         if lower is not None and lower.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     lookup_source,
@@ -756,8 +726,6 @@ Slice del raises exception in lower slice boundary value, removed del"""
         upper = self.getUpper()
 
         if upper is not None and upper.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     lookup_source,
