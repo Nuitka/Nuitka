@@ -198,6 +198,9 @@ class NuitkaPopularImplicitImports(NuitkaPluginBase):
 
             if elements[1] == "QtGui":
                 yield elements[0] + ".QtCore"
+
+            if elements[1] == "QtWidgets":
+                yield elements[0] + ".QtGui"
         elif full_name == "lxml.etree":
             yield "gzip"
             yield "lxml._elementpath"
