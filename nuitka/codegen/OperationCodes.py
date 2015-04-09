@@ -34,11 +34,16 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
         context    = context
     )
 
+    inplace = expression.isInplaceSuspect()
+
+    assert not inplace or not expression.getLeft().isCompileTimeConstant(),  \
+        expression
+
     getOperationCode(
         to_name   = to_name,
         operator  = expression.getOperator(),
         arg_names = (left_arg_name, right_arg_name),
-        in_place  = expression.isInplaceSuspect(),
+        in_place  = inplace,
         emit      = emit,
         context   = context
     )
@@ -51,11 +56,16 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         context    = context
     )
 
+    inplace = expression.isInplaceSuspect()
+
+    assert not inplace or not expression.getOperand().isCompileTimeConstant(), \
+        expression
+
     getOperationCode(
         to_name   = to_name,
         operator  = expression.getOperator(),
         arg_names = (arg_name,),
-        in_place  = expression.isInplaceSuspect(),
+        in_place  = inplace,
         emit      = emit,
         context   = context
     )

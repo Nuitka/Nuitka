@@ -1090,6 +1090,9 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
         """
         return True
 
+    def isMutable(self):
+        return False
+
     def mayHaveSideEffects(self):
         # Virtual method, pylint: disable=R0201
         return False
