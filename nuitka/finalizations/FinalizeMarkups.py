@@ -33,7 +33,7 @@ are in another context.
 
 from logging import warning
 
-from nuitka import Options
+from nuitka import Options, Tracing
 from nuitka.importing import StandardLibrary
 from nuitka.utils import Utils
 
@@ -47,8 +47,24 @@ def isWhiteListedImport(node):
 
 class FinalizeMarkups(FinalizationVisitorBase):
     def onEnterNode(self, node):
+        try:
+            self._onEnterNode(node)
+        except Exception:
+            Tracing.printError(
+                "Problem with %r at %s" % (
+                    node,
+                    node.getSourceReference().getAsString()
+                )
+            )
+            raise
+
+    def _onEnterNode(self, node):
         # This has many different things it deals with, so there need to be a
         # lot of branches and statements, pylint: disable=R0912,R0915
+
+        # Also all self specific things have been done on the outside,
+        # pylint: disable=R0201
+
         if node.isExpressionFunctionBody():
             if node.isUnoptimized():
                 node.markAsLocalsDict()
