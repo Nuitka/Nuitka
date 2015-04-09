@@ -202,6 +202,13 @@ class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
         while args and args[-1] is None:
             del args[-1]
 
+        for arg in args:
+            # The value of that node escapes and could change its contents.
+            constraint_collection.removeKnowledge(arg)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
         return self.computeBuiltinSpec(
             given_values = tuple(args)
         )

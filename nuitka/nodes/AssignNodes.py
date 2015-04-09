@@ -616,6 +616,9 @@ class StatementDelAttribute(StatementChildrenHavingBase):
                 node       = self
             )
 
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
         return self, None, None
 
 
@@ -666,6 +669,9 @@ Subscript 'del' raises exception in subscribed value, removed del."""
 
             return result, "new_raise", """\
 Subscript 'del' raises exception in subscript value, removed del."""
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
 
         return self, None, None
 
@@ -736,5 +742,8 @@ Slice del raises exception in lower slice boundary value, removed del"""
 
             return result, "new_raise", """
 Slice del raises exception in upper slice boundary value, removed del"""
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
 
         return self, None, None
