@@ -24,6 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
+    StatementDelVariable,
     StatementReleaseVariable
 )
 from nuitka.nodes.ConditionalNodes import ExpressionConditional
@@ -129,10 +130,13 @@ def buildOrNode(provider, values, source_ref):
                 no_expression  = makeTryFinallyExpression(
                     expression = result,
                     final      = None,
-                    tried      = StatementReleaseVariable(
-                        variable   = keeper_variable,
-                        tolerant   = False,
-                        source_ref = source_ref,
+                    tried      = StatementDelVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
+                            variable   = keeper_variable,
+                            source_ref = source_ref
+                        ),
+                        tolerant     = False,
+                        source_ref   = source_ref,
                     ),
                     source_ref = source_ref
                 ),
@@ -144,7 +148,7 @@ def buildOrNode(provider, values, source_ref):
         wrapTryFinallyLater(
             result,
             StatementReleaseVariable(
-                keeper_variable,
+                variable   = keeper_variable,
                 tolerant   = True,
                 source_ref = source_ref,
             )
@@ -200,10 +204,13 @@ def buildAndNode(provider, values, source_ref):
                 yes_expression = makeTryFinallyExpression(
                     expression = result,
                     final      = None,
-                    tried      = StatementReleaseVariable(
-                        keeper_variable,
-                        tolerant   = False,
-                        source_ref = source_ref,
+                    tried      = StatementDelVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
+                            variable   = keeper_variable,
+                            source_ref = source_ref
+                        ),
+                        tolerant     = False,
+                        source_ref   = source_ref,
                     ),
                     source_ref = source_ref
                 ),
