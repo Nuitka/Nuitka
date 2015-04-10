@@ -180,7 +180,7 @@ def callExec(args):
 
     # On Windows os.execl does not work properly
     if getOS() != "Windows":
-        # The star arguments is the API of execl, pylint: disable=W0142
+        # The star arguments is the API of execl
         os.execl(*args)
     else:
         args = list(args)

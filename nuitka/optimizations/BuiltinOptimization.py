@@ -62,7 +62,7 @@ class BuiltinParameterSpec(ParameterSpec):
 
     def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really
-        # fatal, pylint: disable=W0142,W0703
+        # fatal, pylint: disable=W0703
 
         try:
             given_normal_args = given_values[:len(self.normal_args)]
@@ -112,7 +112,7 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
 
     def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really fatal,
-        # pylint: disable=W0142,W0703
+        # pylint: disable=W0703
 
         try:
             if self.list_star_arg:
@@ -415,7 +415,6 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
         args_list.append(args_dict[builtin_spec.getStarDictArgumentName()])
 
     # Using list reference for passing the arguments without names,
-    # pylint: disable=W0142
     result = builtin_class(
         *args_list,
         source_ref = node.getSourceReference()

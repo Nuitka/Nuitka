@@ -702,7 +702,7 @@ class ChildrenHavingMixin:
 
         try:
             # Using star dictionary arguments here for generic use,
-            # pylint: disable=W0142,E1123
+            # pylint: disable=E1123
             return self.__class__(
                 source_ref = source_ref,
                 **values
