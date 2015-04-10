@@ -120,6 +120,10 @@ class StatementLoop(StatementChildrenHavingBase):
 Removed useless terminal 'continue' as last statement of loop."""
                 )
 
+        if not self.isStatementAborting():
+            # After the loop, need to degrade again.
+            constraint_collection.degradePartiallyFromCode(loop_body)
+
         # Consider leading "break" statements, they should be the only, and
         # should lead to removing the whole loop statement. Trailing "break"
         # statements could also be handled, but that would need to consider if
