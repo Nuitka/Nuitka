@@ -146,7 +146,6 @@ def executePyLint(filename):
     assert not _stderr
     if stdout:
         stdout = stdout.replace("\r\n", "\n")
-        our_exit_code = 1
 
         # Remove hard to disable error line given under Windows.
         lines = stdout.split(b"\n")
@@ -159,10 +158,29 @@ def executePyLint(filename):
         except ValueError:
             pass
 
-        for line in lines:
-            output = line.decode()
+        lines = [
+            line.decode()
+            for line in
+            lines
+        ]
 
-            print(output)
+        lines = [
+            line
+            for line in
+            lines
+            if "Unable to import 'resource'" not in line
+        ]
+
+        # If we filtered everything away, remove the leading file name report.
+        if len(lines) == 1:
+            assert lines[0].startswith("*****")
+            lines = []
+
+        for line in lines:
+            print(line)
+
+        if lines:
+            our_exit_code = 1
 
     sys.stdout.flush()
 
@@ -174,12 +192,8 @@ if "PYTHONPATH" not in os.environ:
 os.environ["PATH"] = os.environ["PATH"] + os.pathsep + \
                      os.path.join(os.path.dirname(sys.executable),"scripts")
 
-if positional_args:
-    check_filenames = positional_args
-else:
-    check_filenames = ["bin/nuitka"]
-
-    for dirpath, dirnames, filenames in os.walk("nuitka"):
+def addFromDirectory(path):
+    for dirpath, dirnames, filenames in os.walk(path):
         dirnames.sort()
 
         if "inline_copy" in dirnames:
@@ -205,6 +219,19 @@ else:
             check_filenames.append(
                 os.path.join(dirpath, filename)
             )
+
+
+if not positional_args:
+    positional_args = ["bin/nuitka", "nuitka"]
+
+
+check_filenames = []
+
+for positional_arg in positional_args:
+    if os.path.isdir(positional_arg):
+        addFromDirectory(positional_arg)
+    else:
+        check_filenames.append(positional_arg)
 
 for check_filename in check_filenames:
     executePyLint(check_filename)
