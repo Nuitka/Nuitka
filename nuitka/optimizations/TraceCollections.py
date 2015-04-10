@@ -406,7 +406,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         assert expression.parent, expression
 
         # Now compute this expression, allowing it to replace itself with
-        # something else as part of a local peephole optimization.
+        # something else as part of a local peep hole optimization.
         r = expression.computeExpressionRaw(
             constraint_collection = self
         )

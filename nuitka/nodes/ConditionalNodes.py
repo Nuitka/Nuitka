@@ -26,6 +26,11 @@ from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
 from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeMakingHelpers import (
+    makeStatementExpressionOnlyReplacementNode,
+    wrapExpressionWithNodeSideEffects,
+    wrapStatementWithSideEffects
+)
 
 
 class ExpressionConditional(ExpressionChildrenHavingBase):
@@ -141,8 +146,6 @@ Conditional expression raises in condition."""
         )
 
         if truth_value is True:
-            from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-
             return (
                 wrapExpressionWithNodeSideEffects(
                     new_node = self.getExpressionYes(),
@@ -152,8 +155,6 @@ Conditional expression raises in condition."""
                 "Conditional expression predicted to yes case"
             )
         elif truth_value is False:
-            from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-
             return (
                 wrapExpressionWithNodeSideEffects(
                     new_node = self.getExpressionNo(),
@@ -320,8 +321,6 @@ class StatementConditional(StatementChildrenHavingBase):
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
         if condition.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
-
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = condition,
                 node       = self
@@ -399,9 +398,6 @@ branches."""
 
         # Both branches may have become empty.
         if yes_branch is None and no_branch is None:
-            from .NodeMakingHelpers import \
-                makeStatementExpressionOnlyReplacementNode
-
             if truth_value is None:
                 condition = ExpressionBuiltinBool(
                     value      = condition,
@@ -443,8 +439,6 @@ Empty 'yes' branch for condition was replaced with inverted condition check."""
         # results. TODO: Could pretend the other branch didn't exist to save
         # complexity the merging of processing.
         if truth_value is not None:
-            from .NodeMakingHelpers import wrapStatementWithSideEffects
-
             if truth_value is True:
                 choice = "true"
 
