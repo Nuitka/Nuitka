@@ -42,7 +42,7 @@ from test_common import (
     createSearchMode
 )
 
-python_version = setup( needs_io_encoding = True)
+python_version = setup(needs_io_encoding = True)
 
 search_mode = createSearchMode()
 
@@ -52,7 +52,7 @@ search_mode.mayFailFor(
     "PySideUsing.py"
 )
 
-for filename in sorted(os.listdir(".")):
+for filename in sorted(os.listdir('.')):
     if not filename.endswith(".py"):
         continue
 
@@ -89,7 +89,7 @@ for filename in sorted(os.listdir(".")):
             continue
 
         # For the warnings.
-        extra_flags.append( "ignore_stderr" )
+        extra_flags.append("ignore_stderr")
 
     if "PyQt4" in filename:
         # Don't test on platforms not supported by current Debian testing, and
@@ -106,8 +106,8 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
-        # For the warnings.
-        extra_flags.append( "ignore_stderr" )
+        # For the plug-in information.
+        extra_flags.append("ignore_infos")
 
     if "PyQt5" in filename:
         # Don't test on platforms not supported by current Debian testing, and
@@ -124,8 +124,8 @@ for filename in sorted(os.listdir(".")):
             )
             continue
 
-        # For the warnings.
-        extra_flags.append( "ignore_stderr" )
+        # For the plug-in information.
+        extra_flags.append("ignore_infos")
 
     # TODO: Temporary only
     if os.name == "nt" and "PyQt" in filename:
@@ -147,7 +147,7 @@ for filename in sorted(os.listdir(".")):
             continue
 
         # For the warnings.
-        extra_flags.append( "ignore_stderr" )
+        extra_flags.append("ignore_stderr")
 
     if filename.startswith("Win"):
         if os.name != "nt":
