@@ -97,7 +97,7 @@ def _detectedSourceFile(filename, module_name, result, is_late):
             is_late     = is_late
         )
 
-    source_code = readSourceCodeFromFilename(filename)
+    source_code = readSourceCodeFromFilename(module_name, filename)
 
     if Utils.python_version >= 300:
         filename = filename.decode("utf-8")

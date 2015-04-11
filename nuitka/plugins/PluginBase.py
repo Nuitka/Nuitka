@@ -112,6 +112,10 @@ class NuitkaPluginBase:
             if full_name in post_modules:
                 addUsedModule(post_modules[full_name])
 
+    def onModuleSourceCode(self, module_name, source_code):
+        # Virtual method, pylint: disable=R0201,W0613
+        return source_code
+
     def onModuleDiscovered(self, module):
         post_code, reason = self.createPostModuleLoadCode(module)
 
@@ -322,6 +326,20 @@ Qt version."""
 
         return None, None
 
+    def onModuleSourceCode(self, module_name, source_code):
+        if module_name == "numexpr.cpuinfo":
+
+            # We cannot intercept "is" tests, but need it to be "isinstance",
+            # so we patch it on the file. TODO: This is only temporary, in
+            # the future, we may use optimization that understands the right
+            # hand size of the "is" argument well enough to allow for our
+            # type too.
+            return source_code.replace(
+                "type(attr) is types.MethodType",
+                "isinstance(attr, types.MethodType)"
+            )
+        # Do nothing by default.
+        return source_code
 
 class UserPluginBase(NuitkaPluginBase):
     pass
@@ -353,3 +371,10 @@ class Plugins:
     def onModuleDiscovered(module):
         for plugin in plugin_list:
             plugin.onModuleDiscovered(module)
+
+    @staticmethod
+    def onModuleSourceCode(module_name, source_code):
+        for plugin in plugin_list:
+            source_code = plugin.onModuleSourceCode(module_name, source_code)
+
+        return source_code

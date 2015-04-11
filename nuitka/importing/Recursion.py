@@ -56,7 +56,10 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
                     Building.createModuleTree(
                         module      = module,
                         source_ref  = source_ref,
-                        source_code = readSourceCodeFromFilename(source_filename),
+                        source_code = readSourceCodeFromFilename(
+                            module_name     = module.getFullName(),
+                            source_filename = source_filename
+                        ),
                         is_main     = False
                     )
                 except (SyntaxError, IndentationError) as e:
