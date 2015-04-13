@@ -28,7 +28,7 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 class SourceCodeReference(object):
     # TODO: Measure the access speed impact of slots. The memory savings is
     # not worth it (only a few percent).
-    __slots__ = ["filename", "line", "future_spec", "set_line"]
+    __slots__ = ["filename", "line", "future_spec", "internal"]
 
     @classmethod
     def fromFilenameAndLine(cls, filename, line, future_spec):
@@ -47,28 +47,67 @@ class SourceCodeReference(object):
         self.line = None
         self.filename = None
         self.future_spec = None
-
-        self.set_line = True
+        self.internal = False
 
     def __repr__(self):
         return "<%s to %s:%s>" % (self.__class__.__name__, self.filename, self.line)
 
-    def clone(self, line):
+    def __cmp__(self, other):
+        if other is None:
+            return -1
+
+        assert isinstance(other, SourceCodeReference), other
+
+        result = cmp(self.filename, other.filename)
+
+        if result == 0:
+            result = cmp(self.line, other.line)
+
+        if result == 0:
+            result = cmp(self.internal, other.internal)
+
+        return result
+
+    def _clone(self, line):
+        """ Make a copy it itself.
+
+        """
         result = SourceCodeReference.fromFilenameAndLine(
             filename    = self.filename,
             line        = line,
             future_spec = self.future_spec
         )
 
-        result.set_line = self.set_line
+        result.internal = self.internal
 
         return result
 
+    def atInternal(self):
+        """ Make a copy it itself but mark as internal code.
+
+            Avoids useless copies, by returning an internal object again if
+            it is already internal.
+        """
+        if not self.internal:
+            result = self._clone(self.line)
+            result.internal = True
+
+            return result
+        else:
+            return self
+
+
     def atLineNumber(self, line):
+        """ Make a reference to the same file, but different line.
+
+            Avoids useless copies, by returning same object if the line is
+            the same.
+        """
+
         assert type(line) is int, line
 
         if self.line != line:
-            return self.clone(line)
+            return self._clone(line)
         else:
             return self
 
@@ -84,30 +123,9 @@ class SourceCodeReference(object):
     def getAsString(self):
         return "%s:%s" % (self.filename, self.line)
 
-    def shallSetCurrentLine(self):
-        return self.set_line
 
-    def __cmp__(self, other):
-        if other is None:
-            return -1
-
-        assert isinstance(other, SourceCodeReference), other
-
-        result = cmp(self.filename, other.filename)
-
-        if result == 0:
-            result = cmp(self.line, other.line)
-
-        return result
-
-    def atInternal(self):
-        if self.set_line:
-            result = self.clone(self.line)
-            result.set_line = False
-
-            return result
-        else:
-            return self
+    def isInternal(self):
+        return not self.internal
 
 
 def fromFilename(filename):
