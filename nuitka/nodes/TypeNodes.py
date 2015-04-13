@@ -31,6 +31,7 @@ from .NodeBases import (
     ExpressionChildrenHavingBase
 )
 
+from .NodeMakingHelpers import getComputationResult
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_TYPE1"
@@ -124,11 +125,33 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
                 "classes"  : classes
 
             },
-            source_ref = source_ref )
+            source_ref = source_ref
+        )
 
     getInstance = ExpressionChildrenHavingBase.childGetter("instance")
     getCls = ExpressionChildrenHavingBase.childGetter("classes")
 
     def computeExpression(self, constraint_collection):
         # TODO: Quite some cases should be possible to predict.
-        return self, None, None
+
+        instance = self.getInstance()
+
+        # TODO: Should be possible to query run time type instead, but we don't
+        # have that method yet. Later this will be essential.
+        if not instance.isCompileTimeConstant():
+            return self, None, None
+
+        cls = self.getCls()
+
+        if not cls.isCompileTimeConstant():
+            return self, None, None
+
+        # So if both are compile time constant, we are able to compute it.
+        return getComputationResult(
+            node        = self,
+            computation = lambda : isinstance(
+                instance.getCompileTimeConstant(),
+                cls.getCompileTimeConstant()
+            ),
+            description = "Built-in call to 'isinstance' computed."
+        )
