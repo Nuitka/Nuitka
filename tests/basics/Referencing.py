@@ -801,6 +801,13 @@ def simpleFunction99():
 
     h(f)
 
+def simpleFunction100():
+    def orMaking(a, b):
+        x = 'axa'
+        x += a or b
+
+
+    orMaking("x", "")
 
 
 # These need stderr to be wrapped.
