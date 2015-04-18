@@ -171,6 +171,9 @@ def findModule(source_ref, module_name, parent_package, level, warn):
     if level != 0 and parent_package is not None:
         full_name = normalizePackageName(parent_package + '.' + module_name)
 
+        if full_name.endswith('.'):
+            full_name = full_name[:-1]
+
         package_name = getPackageNameFromFullName(full_name)
 
         try:
@@ -416,6 +419,8 @@ def _findModule(module_name):
                 module_name,
             )
         )
+
+    assert not module_name.endswith('.'), module_name
 
     key = module_name
 
