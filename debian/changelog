@@ -4,6 +4,12 @@ nuitka (0.5.13~pre3+ds-1) UNRELEASED; urgency=medium
 
  -- Kay Hayen <kay.hayen@gmail.com>  Wed, 15 Apr 2015 08:18:52 +0200
 
+nuitka (0.5.12.1+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 18 Apr 2015 09:35:06 +0200
+
 nuitka (0.5.12+ds-1) experimental; urgency=medium
 
   * New upstream release.

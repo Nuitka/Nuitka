@@ -191,6 +191,9 @@ of '--recurse-directory'.""" % (
             target_var = node.getTargetVariableRef().getVariable()
             assign_source = node.getAssignSource()
 
+            while assign_source.isExpressionTryFinally():
+                assign_source = assign_source.getExpression()
+
             if assign_source.isExpressionOperationBinary():
                 left_arg = assign_source.getLeft()
 
