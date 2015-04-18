@@ -30,8 +30,8 @@ from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
-
 from .NodeMakingHelpers import getComputationResult
+
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_TYPE1"

@@ -217,7 +217,7 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
     elif variable.isLocalVariable():
         if in_place:
             # Releasing is not an issue here, local variable reference never
-            # gave a reference, and the inplace code deals with possible
+            # gave a reference, and the in-place code deals with possible
             # replacement/release.
             if variable.isSharedTechnically():
                 template = CodeTemplates.template_write_shared_inplace

@@ -85,6 +85,9 @@ def getModuleWhiteList():
         # test_fork1.py
         "fake test module",
 
+        # test_http_cookiejar.py
+        "urllib.request",
+
         # test_imp.py
         "importlib.test.import_", "pep3147.foo", "pep3147",
 

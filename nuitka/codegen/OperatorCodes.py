@@ -29,8 +29,8 @@ binary_operator_codes = {
 #    "Div"       : "PyNumber_Divide",
 #    "Mult"      : "PyNumber_Multiply",
 #    "Mod"       : "PyNumber_Remainder",
-# These have their own variants only to make sure the generic code is inlined
-# but the CPython code is not inlined.
+# These have their own variants only to make sure the generic code is in-lined
+# but the CPython code is not in-lined.
 
 #    "Pow"       : "PyNumber_Power",
 #    "IPow"      : "PyNumber_InPlacePower",
