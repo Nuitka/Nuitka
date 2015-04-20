@@ -548,6 +548,10 @@ SxS
         if '?' in line[:line.find(']')]:
             continue
 
+        # Skip DLLs that failed to load, apparently not needed anyway.
+        if 'E' in line[:line.find(']')]:
+            continue
+
         dll_filename = line[line.find(']')+2:-1]
         assert Utils.isFile(dll_filename), dll_filename
 
