@@ -1200,17 +1200,26 @@ if win_target:
             assert os.path.exists(python_exe), python_exe
 
             if msvc_mode:
-                result = subprocess.call(
-                    (
-                        env["MT"],
-                        "-inputresource:%s;#1" % python_exe,
-                        "-out:%s" % manifest_filename
-                    ),
-                    stdout = subprocess.PIPE
-                )
+                try:
+                    result = subprocess.call(
+                        (
+                            env["MT"],
+                            "-inputresource:%s;#1" % python_exe,
+                            "-out:%s" % manifest_filename
+                        ),
+                        stdout = subprocess.PIPE
+                    )
+                except OSError:
+                    result = -1
 
                 if result != 0:
-                    sys.exit("Error, call to 'mt.exe' to extract manifest failed.")
+                    sys.exit(
+                        """\
+Error, call to 'mt.exe' (%s) to extract manifest failed (error code %d.""" % (
+                            env["MT"],
+                            result
+                        )
+                    )
             else:
                 result = subprocess.call(
                     (
