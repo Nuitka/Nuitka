@@ -27,6 +27,8 @@ from .NodeBases import (
     SideEffectsFromChildrenMixin
 )
 
+from .NodeMakingHelpers import getComputationResult
+
 
 class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
                                  ExpressionChildrenHavingBase):
@@ -85,8 +87,6 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
 
         simulator = self.getSimulator()
         assert simulator is not None
-
-        from .NodeMakingHelpers import getComputationResult
 
         # The simulator is in fact callable if not None, pylint: disable=E1102
         return getComputationResult(

@@ -341,11 +341,10 @@ static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
 
 MOD_INIT_DECL( %(module_identifier)s )
 {
-
 #if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
     static bool _init_done = false;
 
-    // Packages can be imported recursively in deep executables.
+    // Modules might be imported repeatedly, which is to be ignored.
     if ( _init_done )
     {
         return MOD_RETURN_VALUE( module_%(module_identifier)s );
