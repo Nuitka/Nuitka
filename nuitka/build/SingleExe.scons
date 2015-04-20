@@ -611,6 +611,13 @@ if msvc_mode:
     env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
     env.Append(LINKFLAGS = ["/INCREMENTAL:NO"])
 
+# The 32 bits MinGW does not default for API level properly, so help it.
+if mingw_mode:
+    # Windows XP
+    env.Append(
+        CPPDEFINES = ["_WIN32_WINNT=0x0501"]
+    )
+
 if debug_mode:
 
     if gcc_mode:
