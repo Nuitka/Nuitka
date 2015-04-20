@@ -793,14 +793,19 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
                 del used_dlls[dll_filename2]
                 continue
 
+            # So we have conflicting DLLs, in which case we do not proceed.
             sys.exit(
-                """Error, conflicting DLLs for '%s' \
-(%s used by %s different from %s used by %s).""" % (
+                """Error, conflicting DLLs for '%s'.
+%s used by:
+   %s
+different from
+%s used by
+   %s""" % (
                     dll_name,
                     dll_filename1,
-                    ", ".join(sources1),
+                    "\n   ".join(sources1),
                     dll_filename2,
-                    ", ".join(sources2)
+                    "\n   ".join(sources2)
                 )
             )
 
