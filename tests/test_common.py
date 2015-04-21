@@ -268,10 +268,18 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
         result = 2
 
     # Cleanup, some tests apparently forget that.
-    if os.path.isdir("@test"):
-        shutil.rmtree("@test")
-    elif os.path.isfile("@test"):
-        os.unlink("@test")
+    try:
+        if os.path.isdir("@test"):
+            shutil.rmtree("@test")
+        elif os.path.isfile("@test"):
+            os.unlink("@test")
+    except OSError:
+        # This seems to work for broken "lnk" files.
+        if os.name == "nt":
+            os.system("rmdir /S /Q @test")
+
+        if os.path.exists("@test"):
+            raise
 
     if result != 0 and \
        result != 2 and \
