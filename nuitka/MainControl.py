@@ -557,9 +557,6 @@ def executeMain(binary_filename, tree, clean_path):
 def executeModule(tree, clean_path):
     python_command = "__import__('%s')" % tree.getName()
 
-    if Utils.getOS() == "Windows":
-        python_command = '"%s"' % python_command
-
     args = (
         sys.executable,
         "python",
