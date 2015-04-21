@@ -1312,19 +1312,21 @@ if module_mode:
         source_files  + source_targets
     )
 else:
-    # Avoid dependency on MinGW libraries.
-    if win_target and gcc_mode:
-        env.Append(
-            LINKFLAGS = [
-                "-static-libgcc",
-                "-static-libstdc++"
-            ]
-        )
 
     target = env.Program(
         result_basepath + ".exe",
         source_files + source_targets
     )
+
+# Avoid dependency on MinGW libraries.
+if win_target and gcc_mode:
+    env.Append(
+        LINKFLAGS = [
+            "-static-libgcc",
+            "-static-libstdc++"
+        ]
+    )
+
 
 # On some architectures, makecontext cannot pass pointers reliably.
 if target_arch == "x86_64" and "linux" in sys.platform:
