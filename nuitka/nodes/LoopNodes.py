@@ -22,6 +22,8 @@ statements for it. These re-formulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
+from nuitka.optimizations.TraceCollections import ConstraintCollectionLoop
+
 from .NodeBases import (
     NodeBase,
     StatementChildrenHavingBase,
@@ -80,6 +82,9 @@ class StatementLoop(StatementChildrenHavingBase):
             return not loop_body.mayBreak()
 
     def computeStatement(self, constraint_collection):
+        outer_constraint_collection = constraint_collection
+        constraint_collection = ConstraintCollectionLoop(constraint_collection)
+
         loop_body = self.getLoopBody()
 
         if loop_body is not None:
@@ -120,9 +125,16 @@ class StatementLoop(StatementChildrenHavingBase):
 Removed useless terminal 'continue' as last statement of loop."""
                 )
 
-        if not self.isStatementAborting():
-            # After the loop, need to degrade again.
-            constraint_collection.degradePartiallyFromCode(loop_body)
+        break_collections = constraint_collection.getLoopBreakCollections()
+
+        if break_collections:
+            outer_constraint_collection.replaceBranch(break_collections[0])
+
+            for break_collection in break_collections[1:]:
+                outer_constraint_collection.mergeBranches(
+                    collection_yes = break_collection,
+                    collection_no  = None
+                )
 
         # Consider leading "break" statements, they should be the only, and
         # should lead to removing the whole loop statement. Trailing "break"
@@ -151,17 +163,17 @@ class StatementContinueLoop(NodeBase):
     def isStatementAborting(self):
         return True
 
-    def computeStatement(self, constraint_collection):
-        # This statement being aborting, will already tell everything. TODO: The
-        # fine difference that this jumps to loop start for sure, should be
-        # represented somehow one day.
-        return self, None, None
-
     def mayRaiseException(self, exception_type):
         return False
 
     def mayContinue(self):
         return True
+
+    def computeStatement(self, constraint_collection):
+        # This statement being aborting, will already tell everything.
+        constraint_collection.onLoopContinue(constraint_collection)
+
+        return self, None, None
 
 
 class StatementBreakLoop(NodeBase):
@@ -180,7 +192,7 @@ class StatementBreakLoop(NodeBase):
         return True
 
     def computeStatement(self, constraint_collection):
-        # This statement being aborting, will already tell everything. TODO: The
-        # fine difference that this exits the loop for sure, should be
-        # represented somehow one day.
+        # This statement being aborting, will already tell everything.
+        constraint_collection.onLoopBreak(constraint_collection)
+
         return self, None, None

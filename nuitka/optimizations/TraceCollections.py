@@ -479,13 +479,16 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
                     self.markCurrentVariableTrace(variable, version)
 
+    def replaceBranch(self, collection_replace):
+        self.variable_actives.update(collection_replace.variable_actives)
+        collection_replace.variable_actives = None
+
     def degradePartiallyFromCode(self, statement_sequence):
         from nuitka.tree.Extractions import getVariablesWritten
 
         variable_writes = getVariablesWritten(
             statement_sequence
         )
-
 
         # Mark all variables as unknown that are written in the statement
         # sequence, so it destroys the assumptions for final block. TODO: To
@@ -495,6 +498,12 @@ class ConstraintCollectionBase(CollectionTracingMixin):
             self.markActiveVariableAsUnknown(
                 variable = variable
             )
+
+    def onLoopBreak(self, collection):
+        self.parent.onLoopBreak(collection)
+
+    def onLoopContinue(self, state):
+        self.parent.onLoopContinue(state)
 
 
 class ConstraintCollectionBranch(ConstraintCollectionBase):
@@ -523,6 +532,28 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
         variable_trace = self.parent.getVariableCurrentTrace(variable)
 
         self.variable_actives[variable] = variable_trace.getVersion()
+
+
+class ConstraintCollectionLoop(ConstraintCollectionBranch):
+    def __init__(self, parent):
+        ConstraintCollectionBranch.__init__(
+            self,
+            parent = parent
+        )
+
+        self.loop_break_collections = []
+
+    def getLoopBreakCollections(self):
+        return self.loop_break_collections
+
+    def onLoopBreak(self, collection):
+        self.loop_break_collections.append(
+            ConstraintCollectionBranch(collection)
+        )
+
+    def onLoopContinue(self, collection):
+        # Not useful yet.
+        pass
 
 
 class ConstraintCollectionFunction(CollectionStartpointMixin,

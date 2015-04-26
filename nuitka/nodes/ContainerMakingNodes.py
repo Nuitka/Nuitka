@@ -26,7 +26,6 @@ from .NodeBases import (
     ExpressionChildrenHavingBase,
     SideEffectsFromChildrenMixin
 )
-
 from .NodeMakingHelpers import getComputationResult
 
 
