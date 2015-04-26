@@ -173,7 +173,7 @@ Dictionary remove already raises implicitly accessing dictionary."""
                 )
             )
 
-            return result, "new_node", """
+            return result, "new_raise", """
 Dictionary remove already raises implicitly building key."""
 
         # TODO: Be less lossly about it.
