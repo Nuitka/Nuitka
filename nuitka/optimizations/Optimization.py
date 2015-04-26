@@ -54,13 +54,15 @@ def signalChange(tags, source_ref, message):
     """ Indicate a change to the optimization framework.
 
     """
-    debug(
-        "{source_ref} : {tags} : {message}".format(
-            source_ref = source_ref.getAsString(),
-            tags       = tags,
-            message    = message
+    if message is not None:
+        debug(
+            "{source_ref} : {tags} : {message}".format(
+                source_ref = source_ref.getAsString(),
+                tags       = tags,
+                message    = message
+            )
         )
-    )
+
     tag_set.onSignal(tags)
 
 # Use this globally from there, without cyclic dependency.
