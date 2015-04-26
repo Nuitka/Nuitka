@@ -170,6 +170,14 @@ for filename in sorted(os.listdir('.')):
             )
             continue
 
+    if filename == "TkInterUsing.py":
+        if not hasModule("tkinter"):
+            my_print(
+                "Skipping", filename, "tkinter not installed for",
+                python_version, "but test needs it."
+            )
+            continue
+
     if filename not in ("PySideUsing.py", "PyQt4Using.py", "PyQt5Using.py",
                         "PyQt4Plugins.py", "PyQt5Plugins.py", "GtkUsing.py",
                         "LxmlUsing.py", "Win32ComUsing.py"):
