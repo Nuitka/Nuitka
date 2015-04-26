@@ -139,19 +139,19 @@ def areEmptyTraces(variable_traces):
 
                 empty = False
                 break
-            elif variable_trace.getDefiniteUsages():
+            elif variable_trace.hasDefiniteUsages():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 empty = False
                 break
         elif variable_trace.isUnknownTrace():
-            if variable_trace.getDefiniteUsages():
+            if variable_trace.hasDefiniteUsages():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 empty = False
                 break
         elif variable_trace.isMergeTrace():
-            if variable_trace.getDefiniteUsages():
+            if variable_trace.hasDefiniteUsages():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
                 empty = False

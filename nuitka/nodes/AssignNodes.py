@@ -92,6 +92,8 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         return self.getAssignSource().mayRaiseException(exception_type)
 
     def computeStatement(self, constraint_collection):
+        # This is very complex stuff, pylint: disable=R0912
+
         # Assignment source may re-compute here:
         constraint_collection.onExpression(self.getAssignSource())
         source = self.getAssignSource()
@@ -162,10 +164,8 @@ Removed assignment of variable from itself which is known to be defined."""
             self.setAssignSource(source.getExpression())
             source = self.getAssignSource()
 
-            result = result, "new_statements", """\
+            return result, "new_statements", """\
 Side effects of assignments promoted to statements."""
-        else:
-            result = self, None, None
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
@@ -176,18 +176,48 @@ Side effects of assignments promoted to statements."""
         global_trace = VariableRegistry.getGlobalVariableTrace(variable)
 
         if global_trace is not None:
-            if variable.isTempVariable():
-                if source.isCompileTimeConstant() and not source.isMutable():
-                    self.variable_trace.setReplacementNode(source)
-            elif variable.isLocalVariable():
-                if source.isCompileTimeConstant() and not source.isMutable():
-                    provider = self.getParentVariableProvider()
+            last_trace = global_trace.getMatchingAssignTrace(self)
 
-                    if provider.isPythonModule() or \
-                       (not provider.isUnoptimized() and not provider.isClassDictCreation()):
-                        self.variable_trace.setReplacementNode(source)
+            if last_trace is not None:
+                if variable.isTempVariable():
+                    if source.isCompileTimeConstant():
 
-        return result
+                        # Can forward we forward propagate.
+                        if not source.isMutable():
+                            if last_trace.hasDefiniteUsages():
+                                self.variable_trace.setReplacementNode(source)
+
+                            # TODO: Enable later, once try/finally issues were resolved.
+                            if False and not last_trace.hasPotentialUsages():
+                                # This limitation may fall later.
+                                if not self.getTargetVariableRef().variable.isSharedTechnically():
+
+                                    # TODO: We could well decide, if that's even necessary.
+                                    result = StatementDelVariable(
+                                        variable_ref = self.getTargetVariableRef(),
+                                        tolerant     = True,
+                                        source_ref   = self.getSourceReference()
+                                    )
+
+                                    return (
+                                        result,
+                                        "new_statements",
+                                        "Dropped dead assignment statement to '%s'." % \
+                                           self.getTargetVariableRef().getVariableName()
+                                    )
+                        else:
+                            # Something might be possible still.
+
+                            pass
+                elif variable.isLocalVariable():
+                    if source.isCompileTimeConstant() and not source.isMutable():
+                        provider = self.getParentVariableProvider()
+
+                        if provider.isPythonModule() or \
+                           (not provider.isUnoptimized() and not provider.isClassDictCreation()):
+                            self.variable_trace.setReplacementNode(source)
+
+        return self, None, None
 
     def needsReleaseValue(self):
         previous = self.variable_trace.getPrevious()

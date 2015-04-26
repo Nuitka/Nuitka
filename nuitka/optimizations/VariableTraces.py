@@ -41,8 +41,11 @@ class VariableTraceBase:
         self.variable = variable
         self.version = version
 
-        # List of references.
+        # List of definite references.
         self.usages = []
+
+        # List of potential references beyond the definite ones.
+        self.potential_usages = []
 
         # List of releases of the node.
         self.releases = []
@@ -66,6 +69,9 @@ class VariableTraceBase:
     def addUsage(self, ref_node):
         self.usages.append(ref_node)
 
+    def addPotentialUsage(self, ref_node):
+        self.potential_usages.append(ref_node)
+
     def addRelease(self, release_node):
         self.releases.append(release_node)
 
@@ -77,6 +83,15 @@ class VariableTraceBase:
 
     def getDefiniteUsages(self):
         return self.usages
+
+    def hasDefiniteUsages(self):
+        return bool(self.usages)
+
+    def getPotentialUsages(self):
+        return self.potential_usages
+
+    def hasPotentialUsages(self):
+        return bool(self.potential_usages)
 
     def getPrevious(self):
         return self.previous
@@ -238,6 +253,18 @@ class VariableTraceUnknown(VariableTraceBase):
     def isUnknownTrace():
         return True
 
+    def addUsage(self, ref_node):
+        VariableTraceBase.addUsage(self, ref_node)
+
+        if self.previous is not None:
+            self.previous.addPotentialUsage(ref_node)
+
+    def addPotentialUsage(self, ref_node):
+        VariableTraceBase.addPotentialUsage(self, ref_node)
+
+        if self.previous is not None:
+            self.previous.addPotentialUsage(ref_node)
+
 
 class VariableTraceAssign(VariableTraceBase):
     def __init__(self, assign_node, variable, version, previous):
@@ -349,3 +376,19 @@ class VariableTraceMerge(VariableTraceBase):
                 return False
 
         return True
+
+    def addUsage(self, ref_node):
+        VariableTraceBase.addUsage(self, ref_node)
+
+        a, b = self.previous
+
+        a.addPotentialUsage(ref_node)
+        b.addPotentialUsage(ref_node)
+
+    def addPotentialUsage(self, ref_node):
+        VariableTraceBase.addPotentialUsage(self, ref_node)
+
+        a, b = self.previous
+
+        a.addPotentialUsage(ref_node)
+        b.addPotentialUsage(ref_node)

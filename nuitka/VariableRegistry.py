@@ -111,6 +111,13 @@ class GlobalVariableTrace:
 
         return False
 
+    def getMatchingAssignTrace(self, assign_node):
+        for trace in self.traces:
+            if trace.isAssignTrace() and trace.getAssignNode() is assign_node:
+                return trace
+
+        return None
+
 
 def updateFromCollection(old_collection, new_collection):
     if old_collection is not None:
