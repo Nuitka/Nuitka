@@ -116,7 +116,7 @@ Explicit raise already raises implicitly building exception type."""
                 )
             )
 
-            return result, "new_node", """\
+            return result, "new_raise", """\
 Explicit raise already raises implicitly building exception value."""
 
         constraint_collection.onExpression(
