@@ -347,8 +347,6 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
             if result is not module_body:
                 self.setBody(result)
 
-        self.constraint_collection.makeVariableTraceOptimizations(self)
-
         new_modules = self.attemptRecursion()
 
         for new_module in new_modules:

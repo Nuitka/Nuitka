@@ -71,35 +71,6 @@ class VariableUsageTrackingMixin:
             assert False, variable
 
 
-    def _makeVariableTraceOptimization(self, owner, variable_trace):
-        variable = variable_trace.getVariable()
-
-        # TODO: Remove unused variables, does not work, why?
-        if variable.isTempVariable():
-            if variable.getOwner() is owner:
-
-                if variable_trace.isUninitTrace() and \
-                   variable_trace.getVersion() == 0:
-                    if self.getVariableCurrentTrace(variable) is variable_trace:
-                        # TODO: Removing them now breaks merging, could be
-                        # done not at all before code generation.
-                        # owner.removeTempVariable( variable )
-                        pass
-
-
-    def makeVariableTraceOptimizations(self, owner):
-        # Reliable trace based optimization goes here:
-        for variable_trace in self.variable_traces.values():
-            try:
-                self._makeVariableTraceOptimization(
-                    owner          = owner,
-                    variable_trace = variable_trace
-                )
-            except:
-                print("Problem with", variable_trace, "in", owner)
-                raise
-
-
 class CollectionTracingMixin:
     def __init__(self):
         # For functions, when we are in here, the currently active one,

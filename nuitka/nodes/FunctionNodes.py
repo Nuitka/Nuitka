@@ -688,8 +688,6 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         function_body.constraint_collection.updateFromCollection(old_collection)
 
-        function_body.constraint_collection.makeVariableTraceOptimizations(function_body)
-
         # TODO: Function collection may now know something.
         return self, None, None
 

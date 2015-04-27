@@ -128,6 +128,11 @@ def updateFromCollection(old_collection, new_collection):
 
             variable_traces[variable].add(variable_trace)
 
+        # Release the memory, and prevent the "active" state from being ever
+        # inspected, it's useless now.
+        new_collection.variable_actives.clear()
+        del new_collection.variable_actives
+
 complete = False
 
 def getGlobalVariableTrace(variable):
