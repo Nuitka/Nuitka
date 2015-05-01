@@ -266,7 +266,8 @@ if os.path.exists(guess_path):
     def considerExtraDlls(self, dist_dir, module):
         full_name = module.getFullName()
 
-        if full_name in ("PyQt4", "PyQt5"):
+        # TODO: Disabled for now.
+        if full_name in ("PyQt4", "PyQt5") and False:
             qt_version = int(full_name[-1])
 
             plugin_dir, = self.getPyQtPluginDirs(qt_version)

@@ -177,6 +177,11 @@ for filename in sorted(os.listdir('.')):
             "no_site"
         ]
 
+    # TODO: Plugins are deactivated now.
+    if "Plugins" in filename:
+        my_print("Skipping", filename, "not ready.")
+        continue
+
     my_print("Consider output of recursively compiled program:", filename)
 
     # First compare so we know the program behaves identical.
