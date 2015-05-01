@@ -34,6 +34,7 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
@@ -319,12 +320,15 @@ def buildWhileLoopNode(provider, node, source_ref):
     loop_body = makeStatementsSequence(
         statements = (
             StatementConditional(
-                condition  = buildNode(provider, node.test, source_ref),
-                no_branch  = StatementsSequence(
+                condition  = ExpressionOperationNOT(
+                    operand    = buildNode(provider, node.test, source_ref),
+                    source_ref = source_ref,
+                ),
+                yes_branch = StatementsSequence(
                     statements = statements,
                     source_ref = source_ref
                 ),
-                yes_branch = None,
+                no_branch  = None,
                 source_ref = source_ref
             ),
             loop_statements

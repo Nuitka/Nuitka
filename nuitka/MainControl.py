@@ -422,24 +422,24 @@ def runScons(main_module, quiet):
         return "true" if value else "false"
 
     options = {
-        "name"           : Utils.basename(
+        "name"            : Utils.basename(
             getTreeFilenameWithSuffix(main_module, "")
         ),
-        "result_name"    : getResultBasepath(main_module),
-        "source_dir"     : getSourceDirectoryPath(main_module),
-        "debug_mode"     : asBoolStr(Options.isDebug()),
-        "python_debug"   : asBoolStr(Options.isPythonDebug()),
+        "result_name"     : getResultBasepath(main_module),
+        "source_dir"      : getSourceDirectoryPath(main_module),
+        "debug_mode"      : asBoolStr(Options.isDebug()),
+        "python_debug"    : asBoolStr(Options.isPythonDebug()),
         "unstripped_mode" : asBoolStr(Options.isUnstripped()),
-        "module_mode"    : asBoolStr(Options.shallMakeModule()),
-        "optimize_mode"  : asBoolStr(Options.isOptimize()),
-        "full_compat"    : asBoolStr(Options.isFullCompat()),
-        "experimental"   : asBoolStr(Options.isExperimental()),
-        "trace_mode"     : asBoolStr(Options.shallTraceExecution()),
-        "python_version" : python_version,
-        "target_arch"    : Utils.getArchitecture(),
-        "python_prefix"  : sys.prefix,
-        "nuitka_src"     : SconsInterface.getSconsDataPath(),
-        "module_count"   : "%d" % (
+        "module_mode"     : asBoolStr(Options.shallMakeModule()),
+        "optimize_mode"   : asBoolStr(Options.isOptimize()),
+        "full_compat"     : asBoolStr(Options.isFullCompat()),
+        "experimental"    : asBoolStr(Options.isExperimental()),
+        "trace_mode"      : asBoolStr(Options.shallTraceExecution()),
+        "python_version"  : python_version,
+        "target_arch"     : Utils.getArchitecture(),
+        "python_prefix"   : sys.prefix,
+        "nuitka_src"      : SconsInterface.getSconsDataPath(),
+        "module_count"    : "%d" % (
             len(ModuleRegistry.getDoneUserModules()) + 1
         )
     }
@@ -556,9 +556,6 @@ def executeMain(binary_filename, tree, clean_path):
 
 def executeModule(tree, clean_path):
     python_command = "__import__('%s')" % tree.getName()
-
-    if Utils.getOS() == "Windows":
-        python_command = '"%s"' % python_command
 
     args = (
         sys.executable,

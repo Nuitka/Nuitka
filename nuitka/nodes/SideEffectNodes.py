@@ -83,7 +83,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
 
             expression.setSideEffects(new_side_effects)
 
-            return expression, "new_expression", "Remove nested side effects"
+            return expression, "new_expression", "Remove nested side effects."
 
         if new_side_effects != side_effects:
             self.setSideEffects(new_side_effects)

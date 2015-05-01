@@ -187,7 +187,11 @@ def _getAnonBuiltins():
 builtin_anon_names, builtin_anon_codes = _getAnonBuiltins()
 
 def calledWithBuiltinArgumentNamesDecorator(f):
-    # Accepting all arguments for a decorator, pylint: disable=W0142
+    """ Allow a function to be called with an "_arg" if a built-in name.
+
+        This avoids using built-in names in Nuitka source, while enforcing
+        a policy how to make them pretty.
+    """
 
     @functools.wraps(f)
     def wrapper(*args, **kw):

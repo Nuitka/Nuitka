@@ -82,6 +82,12 @@ def getModuleWhiteList():
         # test_frozen.py
         "__hello__", "__phello__", "__phello__.spam", "__phello__.foo",
 
+        # test_fork1.py
+        "fake test module",
+
+        # test_http_cookiejar.py
+        "urllib.request",
+
         # test_imp.py
         "importlib.test.import_", "pep3147.foo", "pep3147",
 

@@ -179,7 +179,7 @@ def isMutable(constant):
     elif constant in constant_builtin_types:
         return True
     else:
-        assert False, constant_type
+        assert False, repr(constant)
 
 
 def isHashable(constant):

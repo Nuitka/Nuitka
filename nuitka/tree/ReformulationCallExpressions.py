@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.CallNodes import ExpressionCall
+from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
@@ -78,7 +78,7 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
     # pylint: disable=R0914
 
     if list_star_arg is None and dict_star_arg is None:
-        result = ExpressionCall(
+        result = makeExpressionCall(
             called     = called,
             args       = makeSequenceCreationOrConstant(
                 sequence_kind = "tuple",

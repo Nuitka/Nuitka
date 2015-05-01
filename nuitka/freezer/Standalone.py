@@ -30,96 +30,14 @@ from logging import debug, info, warning
 
 import marshal
 from nuitka import Options, SourceCodeReferences, Tracing
-from nuitka.__past__ import (  # pylint: disable=W0622
-    iterItems,
-    raw_input,
-    urlretrieve
-)
+from nuitka.__past__ import iterItems
 from nuitka.codegen.ConstantCodes import needsPickleInit
 from nuitka.importing.StandardLibrary import getStandardLibraryPaths
 from nuitka.nodes.ModuleNodes import PythonShlibModule
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 
-
-def getDependsExePath():
-    """ Return the path of depends.exe (for Windows).
-
-        Will prompt the user to download if not already cached in AppData
-        directory for Nuitka.
-    """
-    if Utils.getArchitecture() == "x86":
-        depends_url = "http://dependencywalker.com/depends22_x86.zip"
-    else:
-        depends_url = "http://dependencywalker.com/depends22_x64.zip"
-
-    if "APPDATA" not in os.environ:
-        sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
-
-    nuitka_app_dir = Utils.joinpath(os.environ["APPDATA"], "nuitka")
-    if not Utils.isDir(nuitka_app_dir):
-        Utils.makePath(nuitka_app_dir)
-
-    nuitka_depends_zip = Utils.joinpath(
-        nuitka_app_dir,
-        Utils.basename(depends_url)
-    )
-
-    if not Utils.isFile(nuitka_depends_zip):
-        Tracing.printLine("""\
-Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
-to analyze the dependencies of Python extension modules. Is it OK to download
-and put it in APPDATA (no installer needed, cached, one time question).""")
-
-        reply = raw_input("Proceed and download? [Yes]/No ")
-
-        if reply.lower() in ("no", 'n'):
-            sys.exit("Nuitka does not work in --standalone on Windows without.")
-
-        info("Downloading '%s'" % depends_url)
-
-        urlretrieve(
-            depends_url,
-            nuitka_depends_zip
-        )
-
-    nuitka_depends_dir = Utils.joinpath(
-        nuitka_app_dir,
-        Utils.getArchitecture()
-    )
-
-    if not Utils.isDir(nuitka_depends_dir):
-        os.makedirs(nuitka_depends_dir)
-
-    depends_exe = os.path.join(
-        nuitka_depends_dir,
-        "depends.exe"
-    )
-
-    if not Utils.isFile(depends_exe):
-        info("Extracting to '%s'" % depends_exe)
-
-        import zipfile
-
-        try:
-            depends_zip = zipfile.ZipFile(nuitka_depends_zip)
-            depends_zip.extractall(nuitka_depends_dir)
-        except Exception: # Catching anything zip throws, pylint:disable=W0703
-            info("Problem with the downloaded zip file, deleting it.")
-
-            Utils.deleteFile(depends_exe, must_exist = False)
-            Utils.deleteFile(nuitka_depends_zip, must_exist = True)
-
-            sys.exit(
-                "Error, need '%s' as extracted from '%s'." % (
-                    depends_exe,
-                    depends_url
-                )
-            )
-
-    assert Utils.isFile(depends_exe)
-
-    return depends_exe
+from .DependsExe import getDependsExePath
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -179,12 +97,15 @@ def _detectedSourceFile(filename, module_name, result, is_late):
             is_late     = is_late
         )
 
-    source_code = readSourceCodeFromFilename(filename)
+    source_code = readSourceCodeFromFilename(module_name, filename)
 
     if Utils.python_version >= 300:
         filename = filename.decode("utf-8")
 
     if module_name == "site":
+        if source_code.startswith("def ") or source_code.startswith("class "):
+            source_code = '\n' + source_code
+
         source_code = """\
 __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
             os.path.sep,
@@ -531,23 +452,23 @@ def _detectBinaryPathDLLsMacOS(binary_filename):
 
     stdout, _stderr = process.communicate()
     system_paths = (b"/usr/lib/", b"/System/Library/Frameworks/")
-    for line in stdout.split(b"\n"):
+
+    for line in stdout.split(b"\n")[2:]:
         if not line:
             continue
 
-        if line.startswith(b"\t"):
-            filename = line.split(b" (")[0].strip()
-            stop = False
-            for w in system_paths:
-                if filename.startswith(w):
-                    stop = True
-                    break
-            if not stop:
-                if Utils.python_version >= 300:
-                    filename = filename.decode("utf-8")
+        filename = line.split(b" (")[0].strip()
+        stop = False
+        for w in system_paths:
+            if filename.startswith(w):
+                stop = True
+                break
+        if not stop:
+            if Utils.python_version >= 300:
+                filename = filename.decode("utf-8")
 
-                # print "adding", filename
-                result.add(filename)
+            # print "adding", filename
+            result.add(filename)
 
     return result
 
@@ -625,6 +546,10 @@ SxS
 
         # Skip missing DLLs, apparently not needed anyway.
         if '?' in line[:line.find(']')]:
+            continue
+
+        # Skip DLLs that failed to load, apparently not needed anyway.
+        if 'E' in line[:line.find(']')]:
             continue
 
         dll_filename = line[line.find(']')+2:-1]
@@ -741,6 +666,9 @@ def detectUsedDLLs(standalone_entry_points):
         )
 
         for dll_filename in used_dlls:
+            # We want these to be absolute paths.
+            assert Utils.isAbsolutePath(dll_filename), dll_filename
+
             if dll_filename not in result:
                 result[dll_filename] = []
 
@@ -865,14 +793,19 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
                 del used_dlls[dll_filename2]
                 continue
 
+            # So we have conflicting DLLs, in which case we do not proceed.
             sys.exit(
-                """Error, conflicting DLLs for '%s' \
-(%s used by %s different from %s used by %s).""" % (
+                """Error, conflicting DLLs for '%s'.
+%s used by:
+   %s
+different from
+%s used by
+   %s""" % (
                     dll_name,
                     dll_filename1,
-                    ", ".join(sources1),
+                    "\n   ".join(sources1),
                     dll_filename2,
-                    ", ".join(sources2)
+                    "\n   ".join(sources2)
                 )
             )
 

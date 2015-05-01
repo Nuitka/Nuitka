@@ -32,6 +32,7 @@ it being used.
 import shutil
 import subprocess
 import sys
+from logging import info
 
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.ModuleNodes import PythonModule
@@ -111,16 +112,28 @@ class NuitkaPluginBase:
             if full_name in post_modules:
                 addUsedModule(post_modules[full_name])
 
+    def onModuleSourceCode(self, module_name, source_code):
+        # Virtual method, pylint: disable=R0201,W0613
+        return source_code
+
     def onModuleDiscovered(self, module):
-        post_code = self.createPostModuleLoadCode(module)
+        post_code, reason = self.createPostModuleLoadCode(module)
 
         if post_code:
+            info(
+                "Injecting plug-in based post load code for module '%s':" % \
+                    module.getFullName()
+            )
+            for line in reason.split('\n'):
+                info("    " + line)
+
+
             from nuitka.tree.Building import createModuleTree
 
             post_module = PythonModule(
                 name         = module.getName() + "-onLoad",
                 package_name = module.getPackage(),
-                source_ref   = fromFilename(module.getName() + "-onLoad")
+                source_ref   = fromFilename(module.getCompileTimeFilename() + "-onLoad")
             )
 
             createModuleTree(
@@ -198,6 +211,9 @@ class NuitkaPopularImplicitImports(NuitkaPluginBase):
 
             if elements[1] == "QtGui":
                 yield elements[0] + ".QtCore"
+
+            if elements[1] == "QtWidgets":
+                yield elements[0] + ".QtGui"
         elif full_name == "lxml.etree":
             yield "gzip"
             yield "lxml._elementpath"
@@ -211,9 +227,15 @@ class NuitkaPopularImplicitImports(NuitkaPluginBase):
     @staticmethod
     def getPyQtPluginDirs(qt_version):
         command = """\
+from __future__ import print_function
+
 import PyQt%(qt_version)d.QtCore
 for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
     print(v)
+import os
+guess_path = os.path.join(os.path.dirname(PyQt%(qt_version)d.__file__), "plugins")
+if os.path.exists(guess_path):
+    print("GUESS:", guess_path)
 """ % {
            "qt_version" : qt_version
         }
@@ -226,9 +248,16 @@ for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
 
         result = []
 
-        for line in output.split('\n'):
+        for line in output.replace('\r', "").split('\n'):
             if not line:
                 continue
+
+            # Take the guessed path only if necessary.
+            if line.startswith("GUESS: "):
+                if result:
+                    continue
+
+                line = line[len("GUESS: "):]
 
             result.append(Utils.normpath(line))
 
@@ -237,26 +266,29 @@ for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
     def considerExtraDlls(self, dist_dir, module):
         full_name = module.getFullName()
 
-        if full_name in ("PyQt4", "PyQt5"):
-            if not Options.isExperimental():
-               return
-
+        # TODO: Disabled for now.
+        if full_name in ("PyQt4", "PyQt5") and False:
             qt_version = int(full_name[-1])
 
             plugin_dir, = self.getPyQtPluginDirs(qt_version)
 
+            target_plugin_dir = Utils.joinpath(
+                dist_dir,
+                full_name,
+                "qt-plugins"
+            )
+
             shutil.copytree(
                 plugin_dir,
-                Utils.joinpath(
-                    dist_dir,
-                    "qt-plugins"
-                )
+                target_plugin_dir
             )
+
+            info("Copying all Qt plug-ins to '%s'." % target_plugin_dir)
 
             return [
                 (filename, full_name)
                 for filename in
-                Utils.getFileList(plugin_dir)
+                Utils.getFileList(target_plugin_dir)
             ]
 
         return ()
@@ -271,20 +303,44 @@ for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
 
         if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
             qt_version = int(full_name.split('.')[0][-1])
-            return """\
+
+            code = """\
 from PyQt%(qt_version)d.QtCore import QCoreApplication
 import os
 
 QCoreApplication.setLibraryPaths(
     [
-        os.path.join(os.path.dirname(__file__),
-        "qt-plugins")
+        os.path.join(
+           os.path.dirname(__file__),
+           "qt-plugins"
+        )
     ]
 )
 """ % {
                 "qt_version" : qt_version
             }
 
+            return code, """\
+Setting Qt library path to distribution folder. Need to avoid
+loading target system Qt plug-ins, which may be from another
+Qt version."""
+
+        return None, None
+
+    def onModuleSourceCode(self, module_name, source_code):
+        if module_name == "numexpr.cpuinfo":
+
+            # We cannot intercept "is" tests, but need it to be "isinstance",
+            # so we patch it on the file. TODO: This is only temporary, in
+            # the future, we may use optimization that understands the right
+            # hand size of the "is" argument well enough to allow for our
+            # type too.
+            return source_code.replace(
+                "type(attr) is types.MethodType",
+                "isinstance(attr, types.MethodType)"
+            )
+        # Do nothing by default.
+        return source_code
 
 class UserPluginBase(NuitkaPluginBase):
     pass
@@ -305,7 +361,10 @@ class Plugins:
         result = []
 
         for plugin in plugin_list:
-            result.extend(plugin.considerExtraDlls(dist_dir, module))
+            for extra_dll in plugin.considerExtraDlls(dist_dir, module):
+                assert Utils.isFile(extra_dll[0])
+
+                result.append(extra_dll)
 
         return result
 
@@ -313,3 +372,10 @@ class Plugins:
     def onModuleDiscovered(module):
         for plugin in plugin_list:
             plugin.onModuleDiscovered(module)
+
+    @staticmethod
+    def onModuleSourceCode(module_name, source_code):
+        for plugin in plugin_list:
+            source_code = plugin.onModuleSourceCode(module_name, source_code)
+
+        return source_code

@@ -43,6 +43,7 @@ arguments = list(args)
 silent_mode        = hasArg("silent")
 ignore_stderr      = hasArg("ignore_stderr")
 ignore_warnings    = hasArg("ignore_warnings")
+ignore_infos       = hasArg("ignore_infos")
 expect_success     = hasArg("expect_success")
 expect_failure     = hasArg("expect_failure")
 python_debug       = hasArg("python_debug")
@@ -451,6 +452,9 @@ def makeDiffable(output):
             continue
 
         if ignore_warnings and line.startswith("Nuitka:WARNING"):
+            continue
+
+        if ignore_infos and line.startswith("Nuitka:INFO"):
             continue
 
         if line.startswith("Nuitka:WARNING:Cannot recurse to import"):

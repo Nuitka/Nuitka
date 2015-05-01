@@ -29,7 +29,6 @@ CPython reference, and may escape.
 """
 
 from nuitka import Variables
-from nuitka.__past__ import iterItems
 from nuitka.utils import Utils
 
 from .IndicatorMixins import (
@@ -533,13 +532,29 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         return True
 
     def computeExpressionCall(self, call_node, constraint_collection):
+        # TODO: Until we have something to re-order the keyword arguments, we
+        # need to skip this. For the immediate need, we avoid this complexity,
+        # as a re-ordering will be needed.
         call_kw = call_node.getCallKw()
 
-        # TODO: Until we have something to re-order the arguments, we need to
-        # skip this. For the immediate need, we avoid this complexity, as a
-        # re-ordering will be needed.
-        if call_kw:
+        # TODO: empty constant can happen too
+        if call_kw is not None:
             return call_node, None, None
+
+        call_args = call_node.getCallArgs()
+
+        if call_args is None:
+            args_tuple = ()
+        elif call_args.isExpressionConstantRef() or \
+             call_args.isExpressionMakeTuple():
+            args_tuple = call_args.getIterationValues()
+        else:
+            # TODO: Can this even happen, i.e. does the above check make
+            # sense.
+            assert False, call_args
+
+            return call_node, None, None
+
 
         # TODO: Actually the above disables it entirely, as it is at least
         # the empty dictionary node in any case. We will need some enhanced
@@ -554,16 +569,19 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
                 star_list_arg = call_spec.getStarListArgumentName(),
                 star_dict_arg = call_spec.getStarDictArgumentName(),
                 num_defaults  = call_spec.getDefaultCount(),
-                positional    = call_node.getCallArgsTuple(),
+                positional    = args_tuple,
                 pairs         = ()
             )
 
             values = []
 
-            for positional_arg in call_node.getCallArgs():
-                for _arg_name, arg_value in iterItems(args_dict):
+            for positional_arg in args_tuple:
+                for arg_value in args_dict.values():
                     if arg_value is positional_arg:
                         values.append(arg_value)
+                        break
+                else:
+                    assert False
 
             result = ExpressionFunctionCall(
                 function   = self,
@@ -574,8 +592,9 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             return (
                 result,
                 "new_statements", # TODO: More appropriate tag maybe.
-                """Replaced call to created function body '%s' with direct \
-function call""" % self.getName()
+                """\
+Replaced call to created function body '%s' with direct \
+function call.""" % self.getName()
             )
 
         except TooManyArguments as e:
@@ -641,10 +660,33 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
         from nuitka.optimizations.TraceCollections import \
             ConstraintCollectionFunction
 
+        # TODO: Doesn't this mean, we can do this multiple times by doing it
+        # in the reference. We should do it in the body, and there we should
+        # limit us to only doing it once per module run, e.g. being based on
+        # presence in used functions of the module already.
+        old_collection = function_body.constraint_collection
+
         function_body.constraint_collection = ConstraintCollectionFunction(
             parent        = constraint_collection,
             function_body = function_body
         )
+
+        statements_sequence = function_body.getBody()
+
+        if statements_sequence is not None and \
+           not statements_sequence.getStatements():
+            function_body.setStatements(None)
+            statements_sequence = None
+
+        if statements_sequence is not None:
+            result = statements_sequence.computeStatementsSequence(
+                constraint_collection = function_body.constraint_collection
+            )
+
+            if result is not statements_sequence:
+                function_body.setBody(result)
+
+        function_body.constraint_collection.updateFromCollection(old_collection)
 
         # TODO: Function collection may now know something.
         return self, None, None

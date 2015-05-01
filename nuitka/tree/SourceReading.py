@@ -24,6 +24,7 @@ and version differences of Python versions.
 import re
 
 from nuitka import Options, PythonVersions, SourceCodeReferences
+from nuitka.plugins.PluginBase import Plugins
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
 
@@ -129,8 +130,13 @@ see http://python.org/dev/peps/pep-0263/ for details""" % (
 
     return source_code
 
-def readSourceCodeFromFilename(source_filename):
+def readSourceCodeFromFilename(module_name, source_filename):
     if Utils.python_version < 300:
-        return _readSourceCodeFromFilename2(source_filename)
+        source_code = _readSourceCodeFromFilename2(source_filename)
     else:
-        return _readSourceCodeFromFilename3(source_filename)
+        source_code = _readSourceCodeFromFilename3(source_filename)
+
+    # Allow plug-ins to mess with source code.
+    source_code = Plugins.onModuleSourceCode(module_name, source_code)
+
+    return source_code

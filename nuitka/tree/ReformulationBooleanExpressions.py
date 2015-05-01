@@ -24,6 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
+    StatementDelVariable,
     StatementReleaseVariable
 )
 from nuitka.nodes.ConditionalNodes import ExpressionConditional
@@ -46,18 +47,32 @@ def buildBoolOpNode(provider, node, source_ref):
     bool_op = getKind(node.op)
 
     if bool_op == "Or":
-        # The "or" may be short circuit and is therefore not a plain operation
+        # The "or" may be short circuit and is therefore not a plain operation.
+        values = buildNodeList(provider, node.values, source_ref)
+
+        for value in values[:-1]:
+            value.setCompatibleSourceReference(values[-1].getSourceReference())
+
+        source_ref = values[-1].getSourceReference()
+
         return buildOrNode(
             provider   = provider,
-            values     = buildNodeList(provider, node.values, source_ref),
+            values     = values,
             source_ref = source_ref
         )
 
     elif bool_op == "And":
-        # The "and" may be short circuit and is therefore not a plain operation
+        # The "and" may be short circuit and is therefore not a plain operation.
+        values = buildNodeList(provider, node.values, source_ref)
+
+        for value in values[:-1]:
+            value.setCompatibleSourceReference(values[-1].getSourceReference())
+
+        source_ref = values[-1].getSourceReference()
+
         return buildAndNode(
             provider   = provider,
-            values     = buildNodeList(provider, node.values, source_ref),
+            values     = values,
             source_ref = source_ref
         )
     elif bool_op == "Not":
@@ -115,10 +130,13 @@ def buildOrNode(provider, values, source_ref):
                 no_expression  = makeTryFinallyExpression(
                     expression = result,
                     final      = None,
-                    tried      = StatementReleaseVariable(
-                        variable   = keeper_variable,
-                        tolerant   = False,
-                        source_ref = source_ref,
+                    tried      = StatementDelVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
+                            variable   = keeper_variable,
+                            source_ref = source_ref
+                        ),
+                        tolerant     = False,
+                        source_ref   = source_ref,
                     ),
                     source_ref = source_ref
                 ),
@@ -130,7 +148,7 @@ def buildOrNode(provider, values, source_ref):
         wrapTryFinallyLater(
             result,
             StatementReleaseVariable(
-                keeper_variable,
+                variable   = keeper_variable,
                 tolerant   = True,
                 source_ref = source_ref,
             )
@@ -186,10 +204,13 @@ def buildAndNode(provider, values, source_ref):
                 yes_expression = makeTryFinallyExpression(
                     expression = result,
                     final      = None,
-                    tried      = StatementReleaseVariable(
-                        keeper_variable,
-                        tolerant   = False,
-                        source_ref = source_ref,
+                    tried      = StatementDelVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
+                            variable   = keeper_variable,
+                            source_ref = source_ref
+                        ),
+                        tolerant     = False,
+                        source_ref   = source_ref,
                     ),
                     source_ref = source_ref
                 ),

@@ -27,7 +27,7 @@ def getLineNumberUpdateCode(context):
     else:
         source_ref = context.getCurrentSourceCodeReference()
 
-        if source_ref.shallSetCurrentLine():
+        if source_ref.isInternal():
             return "%s->f_lineno = %d;" % (
                 frame_handle,
                 source_ref.getLineNumber()

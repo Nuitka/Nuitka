@@ -33,7 +33,7 @@ are in another context.
 
 from logging import warning
 
-from nuitka import Options
+from nuitka import Options, Tracing
 from nuitka.importing import StandardLibrary
 from nuitka.utils import Utils
 
@@ -47,8 +47,45 @@ def isWhiteListedImport(node):
 
 class FinalizeMarkups(FinalizationVisitorBase):
     def onEnterNode(self, node):
+        try:
+            self._onEnterNode(node)
+        except Exception:
+            Tracing.printError(
+                "Problem with %r at %s" % (
+                    node,
+                    node.getSourceReference().getAsString()
+                )
+            )
+            raise
+
+    def _onEnterNode(self, node):
         # This has many different things it deals with, so there need to be a
         # lot of branches and statements, pylint: disable=R0912,R0915
+
+        # Also all self specific things have been done on the outside,
+        # pylint: disable=R0201
+
+        # Find nodes with only compile time constant children, these are
+        # missing some obvious optimization potentially.
+        if False:
+            if not node.isStatementReturn() and \
+               not node.isExpressionYield() and \
+               not node.isStatementRaiseException() and \
+               not node.isExpressionCall() and \
+               not node.isExpressionBuiltinIter1():
+
+                children = node.getVisitableNodes()
+
+                if children:
+                    for child in children:
+                        if child.isStatement() or child.isStatementsSequence():
+                            break
+
+                        if not child.isCompileTimeConstant():
+                            break
+                    else:
+                        assert False, (node, node.parent, children)
+
         if node.isExpressionFunctionBody():
             if node.isUnoptimized():
                 node.markAsLocalsDict()
@@ -137,7 +174,9 @@ class FinalizeMarkups(FinalizationVisitorBase):
         if node.isStatementTryFinally():
             if Utils.python_version >= 300 and node.public_exc:
                 parent_frame = node.getParentStatementsFrame()
-                parent_frame.markAsFrameExceptionPreserving()
+
+                if parent_frame is not None:
+                    parent_frame.markAsFrameExceptionPreserving()
 
         if node.isExpressionBuiltinImport() and \
            not Options.getShallFollowExtra() and \

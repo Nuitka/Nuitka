@@ -315,6 +315,38 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
         return True
 
     def computeExpression(self, constraint_collection):
-        # TODO: Inplace operation requires extra care to avoid corruption of
+        # In-place operation requires extra care to avoid corruption of
         # values.
-        return self, None, None
+        left = self.getLeft()
+        right = self.getRight()
+
+        if left.isCompileTimeConstant():
+            # Then we made a mistake currently.
+            assert not left.isMutable(), self
+            source_ref = self.getSourceReference()
+
+
+            result = ExpressionOperationBinary(
+                left       = left,
+                right      = right,
+                operator   = self.getOperator()[1:],
+                source_ref = source_ref
+            )
+
+            constraint_collection.signalChange(
+                tags       = "new_expression",
+                source_ref = source_ref,
+                message    = """\
+Lowered in-place binary operation of compile time constant to binary operation."""
+            )
+
+            return result.computeExpression(constraint_collection)
+        else:
+            # The value of these nodes escaped and could change its contents.
+            constraint_collection.removeKnowledge(left)
+            constraint_collection.removeKnowledge(right)
+
+            # Any code could be run, note that.
+            constraint_collection.onControlFlowEscape(self)
+
+            return self, None, None

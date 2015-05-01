@@ -26,7 +26,7 @@ There will be a method "computeExpressionSlice" to aid predicting them.
 from nuitka.utils import Utils
 
 from .NodeBases import ExpressionChildrenHavingBase
-from .NodeMakingHelpers import convertNoneConstantToNone
+from .NodeMakingHelpers import convertNoneConstantToNone, getComputationResult
 
 
 class ExpressionSliceLookup(ExpressionChildrenHavingBase):
@@ -104,5 +104,27 @@ class ExpressionSliceObject(ExpressionChildrenHavingBase):
     getStep  = ExpressionChildrenHavingBase.childGetter("step")
 
     def computeExpression(self, constraint_collection):
-        # TODO: Not much to do, potentially simplify to slice instead?
-        return self, None, None
+        lower = self.getLower()
+
+        if lower is not None and not lower.isCompileTimeConstant():
+            return self, None, None
+
+        upper = self.getUpper()
+
+        if upper is not None and not upper.isCompileTimeConstant():
+            return self, None, None
+
+        step = self.getStep()
+
+        if step is not None and not step.isCompileTimeConstant():
+            return self, None, None
+
+        return getComputationResult(
+            node        = self,
+            computation = lambda : slice(
+                lower.getCompileTimeConstant() if lower is not None else None,
+                upper.getCompileTimeConstant() if upper is not None else None,
+                step.getCompileTimeConstant()  if step is not None else None
+            ),
+            description = "Built-in call to 'slice' computed."
+        )

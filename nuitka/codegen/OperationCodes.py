@@ -34,11 +34,16 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
         context    = context
     )
 
+    inplace = expression.isInplaceSuspect()
+
+    assert not inplace or not expression.getLeft().isCompileTimeConstant(),  \
+        expression
+
     getOperationCode(
         to_name   = to_name,
         operator  = expression.getOperator(),
         arg_names = (left_arg_name, right_arg_name),
-        in_place  = expression.isInplaceSuspect(),
+        in_place  = inplace,
         emit      = emit,
         context   = context
     )
@@ -51,11 +56,16 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         context    = context
     )
 
+    inplace = expression.isInplaceSuspect()
+
+    assert not inplace or not expression.getOperand().isCompileTimeConstant(), \
+        expression
+
     getOperationCode(
         to_name   = to_name,
         operator  = expression.getOperator(),
         arg_names = (arg_name,),
-        in_place  = expression.isInplaceSuspect(),
+        in_place  = inplace,
         emit      = emit,
         context   = context
     )
@@ -101,12 +111,13 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
     else:
         assert False, operator
 
-    # This is not working, as we do assertions that are broken.
+    # We must assume to write to a variable is "in_place" is active, not e.g.
+    # a constant reference. That was asserted before calling us.
     if in_place:
         res_name = context.getBoolResName()
 
         # We may have not specialized this one yet, so lets use generic in-place
-        # code, or the helper specificed.
+        # code, or the helper specified.
         if helper == "BINARY_OPERATION":
             emit(
                 "%s = BINARY_OPERATION_INPLACE( %s, &%s, %s );" % (

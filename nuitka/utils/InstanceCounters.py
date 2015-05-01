@@ -77,4 +77,4 @@ def printStats():
 
     for name, count in sorted(counted_inits.items()):
         dels = counted_dels.get(name, 0)
-        printIndented(1, name, count, dels)
+        printIndented(1, name, count, dels, count - dels)

@@ -56,7 +56,7 @@ if not hasModule("lxml.etree"):
 
 search_mode = createSearchMode()
 
-def getKind( node ):
+def getKind(node):
     result = node.attrib[ "kind" ]
 
     result = result.replace("Statements", "")
@@ -65,7 +65,7 @@ def getKind( node ):
 
     return result
 
-def getRole( node, role ):
+def getRole(node, role):
     for child in node:
         if child.tag == "role" and child.attrib["name"] == role:
             return child
@@ -104,7 +104,7 @@ def checkSequence(statements):
         if kind == "Only":
             only_expression = getRole(statement, "expression")[0]
 
-            if getKind(only_expression) == "Call":
+            if getKind(only_expression) == "CallNoKeywords":
                 called_expression = getRole(only_expression, "called")[0]
 
                 if getKind(called_expression) == "BuiltinRef":
@@ -132,7 +132,7 @@ def checkSequence(statements):
         sys.exit("Error, non-print statement of unknown kind '%s'." % kind)
 
 
-for filename in sorted(os.listdir(".")):
+for filename in sorted(os.listdir('.')):
     if not filename.endswith(".py") or filename.startswith("run_"):
         continue
 
@@ -145,12 +145,12 @@ for filename in sorted(os.listdir(".")):
 
     if active:
         # Apply 2to3 conversion if necessary.
-        if python_version.startswith("3"):
+        if python_version.startswith('3'):
             filename, changed = convertUsing2to3(filename)
         else:
             changed = False
 
-        my_print("Consider", filename, end = " ")
+        my_print("Consider", filename, end = ' ')
 
         command = [
             os.environ["PYTHON"],
@@ -164,7 +164,7 @@ for filename in sorted(os.listdir(".")):
         if search_mode.isCoverage():
             # To avoid re-execution, which is not acceptable to coverage.
             if "PYTHONHASHSEED" not in os.environ:
-                os.environ["PYTHONHASHSEED"] = "0"
+                os.environ["PYTHONHASHSEED"] = '0'
 
             command.insert(2, "--must-not-re-execute")
 

@@ -60,6 +60,13 @@ Requirements
      The created binaries can be made executable independent of the Python
      installation, with ``--standalone`` option.
 
+  .. note::
+
+     To get at Python3 executable, you need a Python2 during the compile time
+     only, and that is for Scons (which orchestrates the C++ compilation), and
+     is not yet ported. So for Python 3.x, there is currently a requirement to
+     also have a Python 2.x installed.
+
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
 
   Others may work as well. The portability is expected to be generally good, but
@@ -68,9 +75,9 @@ Requirements
 - Architectures: x86, x86_64 (amd64), and arm.
 
   Other architectures may also work, out of the box, as Nuitka is generally not
-  using much   hardware specifics. These are just the ones tested and known to
+  using any hardware specifics. These are just the ones tested and known to
   be good. Feedback is welcome. Generally the architectures that Debian supports
-  should be considered good.
+  can be considered good and tested too.
 
 .. [#] Support for this C++03 language standard is practically a given on any
        C++ compiler you encounter. Nuitka used to have higher requirements in
@@ -795,6 +802,9 @@ The order is sorted by time.
 - Umbra: Submitted patches to make the Windows port more usable, adding user
   provided application icons, as well as MSVC support for large constants and
   console applications.
+
+- David Cortesi: Submitted patches and test cases to make MacOS port more
+  usable, specifically for the Python3 standalone support of Qt.
 
 Projects used by Nuitka
 -----------------------

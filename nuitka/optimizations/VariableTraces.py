@@ -122,6 +122,10 @@ class VariableTraceBase:
 
         return self.isUninitTrace()
 
+    def getReplacementNode(self, usage):
+        # Virtual method, pylint: disable=W0613,R0201
+
+        return None
 
 
 class VariableTraceUninit(VariableTraceBase):
@@ -245,6 +249,7 @@ class VariableTraceAssign(VariableTraceBase):
         )
 
         self.assign_node = assign_node
+        self.replace_it = None
 
     def __repr__(self):
         return """\
@@ -275,6 +280,18 @@ class VariableTraceAssign(VariableTraceBase):
 
     def getAssignNode(self):
         return self.assign_node
+
+    def setReplacementNode(self, replacement):
+        self.replace_it = replacement
+
+    def getReplacementNode(self, usage):
+
+        if self.replace_it is not None:
+            return self.replace_it.makeCloneAt(
+                self.assign_node.getSourceReference()
+            )
+        else:
+            return None
 
 
 class VariableTraceMerge(VariableTraceBase):

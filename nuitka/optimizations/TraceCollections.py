@@ -71,35 +71,6 @@ class VariableUsageTrackingMixin:
             assert False, variable
 
 
-    def _makeVariableTraceOptimization(self, owner, variable_trace):
-        variable = variable_trace.getVariable()
-
-        # TODO: Remove unused variables, does not work, why?
-        if variable.isTempVariable():
-            if variable.getOwner() is owner:
-
-                if variable_trace.isUninitTrace() and \
-                   variable_trace.getVersion() == 0:
-                    if self.getVariableCurrentTrace(variable) is variable_trace:
-                        # TODO: Removing them now breaks merging, could be
-                        # done not at all before code generation.
-                        # owner.removeTempVariable( variable )
-                        pass
-
-
-    def makeVariableTraceOptimizations(self, owner):
-        # Reliable trace based optimization goes here:
-        for variable_trace in self.variable_traces.values():
-            try:
-                self._makeVariableTraceOptimization(
-                    owner          = owner,
-                    variable_trace = variable_trace
-                )
-            except:
-                print("Problem with", variable_trace, "in", owner)
-                raise
-
-
 class CollectionTracingMixin:
     def __init__(self):
         # For functions, when we are in here, the currently active one,
@@ -406,7 +377,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         assert expression.parent, expression
 
         # Now compute this expression, allowing it to replace itself with
-        # something else as part of a local peephole optimization.
+        # something else as part of a local peep hole optimization.
         r = expression.computeExpressionRaw(
             constraint_collection = self
         )
@@ -508,13 +479,16 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
                     self.markCurrentVariableTrace(variable, version)
 
+    def replaceBranch(self, collection_replace):
+        self.variable_actives.update(collection_replace.variable_actives)
+        collection_replace.variable_actives = None
+
     def degradePartiallyFromCode(self, statement_sequence):
         from nuitka.tree.Extractions import getVariablesWritten
 
         variable_writes = getVariablesWritten(
             statement_sequence
         )
-
 
         # Mark all variables as unknown that are written in the statement
         # sequence, so it destroys the assumptions for final block. TODO: To
@@ -524,6 +498,12 @@ class ConstraintCollectionBase(CollectionTracingMixin):
             self.markActiveVariableAsUnknown(
                 variable = variable
             )
+
+    def onLoopBreak(self, collection):
+        self.parent.onLoopBreak(collection)
+
+    def onLoopContinue(self, state):
+        self.parent.onLoopContinue(state)
 
 
 class ConstraintCollectionBranch(ConstraintCollectionBase):
@@ -554,6 +534,28 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
         self.variable_actives[variable] = variable_trace.getVersion()
 
 
+class ConstraintCollectionLoop(ConstraintCollectionBranch):
+    def __init__(self, parent):
+        ConstraintCollectionBranch.__init__(
+            self,
+            parent = parent
+        )
+
+        self.loop_break_collections = []
+
+    def getLoopBreakCollections(self):
+        return self.loop_break_collections
+
+    def onLoopBreak(self, collection):
+        self.loop_break_collections.append(
+            ConstraintCollectionBranch(collection)
+        )
+
+    def onLoopContinue(self, collection):
+        # Not useful yet.
+        pass
+
+
 class ConstraintCollectionFunction(CollectionStartpointMixin,
                                    ConstraintCollectionBase,
                                    VariableUsageTrackingMixin):
@@ -567,30 +569,8 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
             parent = parent
         )
 
+        # TODO: Useless cyclic dependency.
         self.function_body = function_body
-
-        # TODO: Move this to computeFunction method of functions.
-        old_collection = function_body.constraint_collection
-        function_body.constraint_collection = self
-
-        statements_sequence = function_body.getBody()
-
-        if statements_sequence is not None and \
-           not statements_sequence.getStatements():
-            function_body.setStatements(None)
-            statements_sequence = None
-
-        if statements_sequence is not None:
-            result = statements_sequence.computeStatementsSequence(
-                constraint_collection = self
-            )
-
-            if result is not statements_sequence:
-                function_body.setBody(result)
-
-        function_body.constraint_collection.updateFromCollection(old_collection)
-
-        self.makeVariableTraceOptimizations(function_body)
 
     def __repr__(self):
         return "<ConstraintCollectionFunction for %s>" % self.function_body

@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-import os, sys, shutil, tempfile, time, difflib, subprocess
+import os, sys, shutil, time, difflib, subprocess
 
 # Find common code relative in file system. Not using packages for test stuff.
 sys.path.insert(
@@ -29,6 +29,7 @@ sys.path.insert(
         )
     )
 )
+
 from test_common import (
     my_print,
     setup,
@@ -121,6 +122,7 @@ def diffRecursive(dir1, dir2):
 
         if not os.path.exists(path1):
             sys.exit("Only in %s: %s" % (dir2, filename))
+
 
 def executePASS1():
     my_print("PASS 1: Compiling from compiler running from .py files.")
@@ -221,6 +223,7 @@ def executePASS1():
         os.path.join(base_dir, "nuitka", "build", "include"),
         os.path.join("nuitka", "build", "include")
     )
+
 
 def compileAndCompareWith( nuitka ):
     base_dir = os.path.join("..", "..")

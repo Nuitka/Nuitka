@@ -611,6 +611,13 @@ if msvc_mode:
     env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
     env.Append(LINKFLAGS = ["/INCREMENTAL:NO"])
 
+# The 32 bits MinGW does not default for API level properly, so help it.
+if mingw_mode:
+    # Windows XP
+    env.Append(
+        CPPDEFINES = ["_WIN32_WINNT=0x0501"]
+    )
+
 if debug_mode:
 
     if gcc_mode:
@@ -1193,17 +1200,26 @@ if win_target:
             assert os.path.exists(python_exe), python_exe
 
             if msvc_mode:
-                result = subprocess.call(
-                    (
-                        env["MT"],
-                        "-inputresource:%s;#1" % python_exe,
-                        "-out:%s" % manifest_filename
-                    ),
-                    stdout = subprocess.PIPE
-                )
+                try:
+                    result = subprocess.call(
+                        (
+                            env["MT"],
+                            "-inputresource:%s;#1" % python_exe,
+                            "-out:%s" % manifest_filename
+                        ),
+                        stdout = subprocess.PIPE
+                    )
+                except OSError:
+                    result = -1
 
                 if result != 0:
-                    sys.exit("Error, call to 'mt.exe' to extract manifest failed.")
+                    sys.exit(
+                        """\
+Error, call to 'mt.exe' (%s) to extract manifest failed (error code %d.""" % (
+                            env["MT"],
+                            result
+                        )
+                    )
             else:
                 result = subprocess.call(
                     (
@@ -1258,25 +1274,26 @@ if win_target:
 
             rc_file_dependencies.append(icon_path)
 
-    rc_filename = os.path.join(source_dir, "resources.rc")
+    if rc_content:
+        rc_filename = os.path.join(source_dir, "resources.rc")
 
-    rc_file = open(rc_filename, 'w')
+        rc_file = open(rc_filename, 'w')
 
-    rc_content.insert(
-        0,
-        '#include "winuser.h"'
-    )
-    rc_file.write('\n'.join(rc_content))
-    rc_file.close()
+        rc_content.insert(
+            0,
+            '#include "winuser.h"'
+        )
+        rc_file.write('\n'.join(rc_content))
+        rc_file.close()
 
-    res_target = env.RES(rc_filename)
+        res_target = env.RES(rc_filename)
 
-    for rc_file_dependency in rc_file_dependencies:
-        Depends(res_target, rc_file_dependency)
+        for rc_file_dependency in rc_file_dependencies:
+            Depends(res_target, rc_file_dependency)
 
-    source_targets.append(
-        res_target
-    )
+        source_targets.append(
+            res_target
+        )
 
 source_files = discoverSourceFiles()
 
@@ -1295,19 +1312,21 @@ if module_mode:
         source_files  + source_targets
     )
 else:
-    # Avoid dependency on MinGW libraries.
-    if win_target and gcc_mode:
-        env.Append(
-            LINKFLAGS = [
-                "-static-libgcc",
-                "-static-libstdc++"
-            ]
-        )
 
     target = env.Program(
         result_basepath + ".exe",
         source_files + source_targets
     )
+
+# Avoid dependency on MinGW libraries.
+if win_target and gcc_mode:
+    env.Append(
+        LINKFLAGS = [
+            "-static-libgcc",
+            "-static-libstdc++"
+        ]
+    )
+
 
 # On some architectures, makecontext cannot pass pointers reliably.
 if target_arch == "x86_64" and "linux" in sys.platform:

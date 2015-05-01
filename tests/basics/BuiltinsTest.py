@@ -15,6 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
 def someFunctionWritingLocals():
     x = 1
@@ -30,7 +31,7 @@ def someFunctionWritingLocals():
     try:
         z
     except Exception as e:
-        print "Accessing z writing to locals gives Exception", e
+        print("Accessing z writing to locals gives Exception", e)
 
     return r, y
 
@@ -47,17 +48,17 @@ def someFunctionWritingLocalsContainingExec():
     try:
         z
     except Exception as e:
-        print "Accessing z writing to locals in exec function gives Exception", e
+        print("Accessing z writing to locals in exec function gives Exception", e)
 
     return r, y
 
     # Note: This exec is dead code, and still changes the behaviour of
     # CPython, because it detects exec during parse already.
-    exec ""
+    exec("")
 
-print "Testing locals():"
-print someFunctionWritingLocals()
-print someFunctionWritingLocalsContainingExec()
+print("Testing locals():")
+print(someFunctionWritingLocals())
+print(someFunctionWritingLocalsContainingExec())
 
 def displayDict(d):
     if "__loader__" in d:
@@ -70,7 +71,7 @@ def displayDict(d):
 
     return repr(d)
 
-print "Vars on module level", displayDict(vars())
+print("Vars on module level", displayDict(vars()))
 
 module_locals = locals()
 
@@ -80,7 +81,7 @@ import os
 module_locals["__file__"] = os.path.basename(module_locals[ "__file__" ])
 del module_locals
 
-print "Use of locals on the module level", displayDict(locals())
+print("Use of locals on the module level", displayDict(locals()))
 
 def someFunctionUsingGlobals():
     g = globals()
@@ -88,217 +89,227 @@ def someFunctionUsingGlobals():
     g["hallo"] = "du"
 
     global hallo
-    print "hallo", hallo
+    print("hallo", hallo)
 
 
-print "Testing globals():"
+print("Testing globals():")
 someFunctionUsingGlobals()
 
-print "Testing dir():"
+print("Testing dir():")
 
-print "Module dir",
+print("Module dir", end=' ')
 
 def someFunctionUsingDir():
     x = someFunctionUsingGlobals()
 
-    print "Function dir", dir()
+    print("Function dir", dir())
 
 someFunctionUsingDir()
 
-print "Making a new type, with type() and 3 args:",
+print("Making a new type, with type() and 3 args:", end=' ')
 new_class = type("Name", (object,), {})
-print new_class, new_class()
+print(new_class, new_class())
 
-print "None has type", type(None)
+print("None has type", type(None))
 
-print "Constant ranges", range(2), range(1, 6), range(3, 0, -1), range(3, 8, 2), range(5, -5, -3)
-print "Border cases", range(0), range(-1), range(-1, 1)
+print("Constant ranges", range(2), range(1, 6), range(3, 0, -1), range(3, 8, 2), range(5, -5, -3))
+print("Border cases", range(0), range(-1), range(-1, 1))
 
-print "Corner case large negative value", range(-2**100)
-print "Corner case with large start/end values in small range", range(2**100,2**100+2)
-
-try:
-    print "Range with 0 step gives:",
-    print range(3, 8, 0)
-except ValueError, e:
-    print e
+print("Corner case large negative value", range(-2**100))
+print("Corner case with large start/end values in small range", range(2**100,2**100+2))
 
 try:
-    print "Range with float:",
-    print range(1.0)
-except TypeError, e:
-    print "Gives exception:", e
+    print("Range with 0 step gives:", end = " ")
+    print(range(3, 8, 0))
+except ValueError as e:
+    print(repr(e))
 
 try:
-    print "Empty range call",
-    print range()
-except TypeError, e:
-    print "Gives exception:", e
+    print("Range with float:", end = " ")
+    print(range(1.0))
+except TypeError as e:
+    print("Gives exception:", repr(e))
 
-print "List from iterable", list("abc"), list()
-print "List from sequence", list(sequence = (0, 1, 2))
-print "Tuple from iterable", tuple("cda"), tuple()
-print "Tuple from sequence", tuple(sequence = (0, 1, 2))
+try:
+    print("Empty range call", end=' ')
+    print(range())
+except TypeError as e:
+    print("Gives exception:", e)
 
-print "Dictionary from iterable and keywords", dict(("ab", (1, 2)), f = 1, g = 1)
-print "More constant dictionaries", {"two": 2, "one": 1}, {}, dict()
+print("List from iterable", list("abc"), list())
+print("List from sequence", list(sequence = (0, 1, 2)))
+print("Tuple from iterable", tuple("cda"), tuple())
+print("Tuple from sequence", tuple(sequence = (0, 1, 2)))
+
+print("Dictionary from iterable and keywords", dict(("ab", (1, 2)), f = 1, g = 1))
+print("More constant dictionaries", {"two": 2, "one": 1}, {}, dict())
 g = {"two": 2, "one": 1}
-print "Variable dictionary", dict(g)
-print "Found during optimization", dict(dict({"le": 2, "la": 1}), fu = 3), dict(named = dict({"le": 2, "la": 1}))
+print("Variable dictionary", dict(g))
+print("Found during optimization", dict(dict({"le": 2, "la": 1}), fu = 3), dict(named = dict({"le": 2, "la": 1})))
 
-print "Floats from constants", float("3.0"), float(x = 9.0), float()
-print "Found during optimization", float(float("3.2")), float(x = float(11.0))
+print("Floats from constants", float("3.0"), float(x = 9.0), float())
+print("Found during optimization", float(float("3.2")), float(x = float(11.0)))
 
-print "Complex from constants", complex("3.0j"), complex(real = 9.0), complex(imag=9.0), complex(1,2), complex()
-print "Found during optimization", complex(float("3.2")), complex(real = float(11.0)), complex(imag = float(11.0))
+print("Complex from constants", complex("3.0j"), complex(real = 9.0), complex(imag=9.0), complex(1,2), complex())
+print("Found during optimization", complex(float("3.2")), complex(real = float(11.0)), complex(imag = float(11.0)))
 
-print "Strs from constants", str("3.3"), str(object = 9.1), str()
-print "Found during optimization", str(float("3.3")), str(object = float(12.0))
+print("Strs from constants", str("3.3"), str(object = 9.1), str())
+print("Found during optimization", str(float("3.3")), str(object = float(12.0)))
 
-print "Bools from constants", bool("3.3"), bool(x = 9.1), bool(0), bool()
-print "Found during optimization", bool(float("3.3")), bool(x = float(0.0))
+print("Bools from constants", bool("3.3"), bool(x = 9.1), bool(0), bool())
+print("Found during optimization", bool(float("3.3")), bool(x = float(0.0)))
 
-print "Ints from constants", int('3'), int(x = '9' ), int('f', 16), int(x = 'e', base = 16), int("0101", base = 2), int(0), int()
-print "Found ints during optimization", int(int('3')), int(x = int(0.0))
-
-print "Longs from constants", long('3'), long(x = '9'), long('f', 16), long(x = 'e', base = 16), long("0101", base = 2), long(0), long()
-print "Found longs during optimization", long(long('3')), long(x = long(0.0))
+print("Ints from constants", int('3'), int(x = '9' ), int('f', 16), int(x = 'e', base = 16), int("0101", base = 2), int(0), int())
+print("Found ints during optimization", int(int('3')), int(x = int(0.0)))
 
 try:
-    print "Int with only base", int(base = 2),
-except Exception as e:
-    print "Caused", repr(e)
-else:
-    print "Worked"
+    print("Longs from constants", long('3'), long(x = '9'), long('f', 16), long(x = 'e', base = 16), long("0101", base = 2), long(0), long())
+    print("Found longs during optimization", long(long('3')), long(x = long(0.0)))
+except NameError:
+    print("Python3 has no long type.")
+    pass
+
 
 try:
-    print "Int with large base", int(2, 37),
+    print("Int with only base", int(base = 2), end=' ')
 except Exception as e:
-    print "Caused", repr(e)
+    print("Caused", repr(e))
 else:
-    print "Worked"
+    print("Worked")
 
 try:
-    print "Long with only base", long(base = 2),
+    print("Int with large base", int(2, 37), end=' ')
 except Exception as e:
-    print "Caused", repr(e)
+    print("Caused", repr(e))
 else:
-    print "Worked"
+    print("Worked")
+
+try:
+    print("Long with only base", int(base = 2), end=' ')
+except Exception as e:
+    print("Caused", repr(e))
+else:
+    print("Worked")
 
 
-print "Oct from constants", oct(467), oct(0)
-print "Found during optimization", oct(int('3'))
+print("Oct from constants", oct(467), oct(0))
+print("Found during optimization", oct(int('3')))
 
-print "Hex from constants", hex(467), hex(0)
-print "Found during optimization", hex(int('3'))
+print("Hex from constants", hex(467), hex(0))
+print("Found during optimization", hex(int('3')))
 
 
-print "Bin from constants", bin(467), bin(0)
-print "Found during optimization", bin(int('3'))
+print("Bin from constants", bin(467), bin(0))
+print("Found during optimization", bin(int('3')))
 
 try:
     int(1,2,3)
 except Exception as e:
-    print "Too many args gave", repr(e)
+    print("Too many args gave", repr(e))
 
 try:
     int(y = 1)
 except Exception as e:
-    print "Wrong arg", repr(e)
+    print("Wrong arg", repr(e))
 
 f = 3
-print "Unoptimized call of int", int('0' * f, base = 16)
+print("Unoptimized call of int", int('0' * f, base = 16))
 
 d = { 'x' : "12", "base" : 8 }
-print "Dict call of int", int(**d)
+print("Dict star argument call of int", int(**d))
 
 
 base = 16
-value = u"20"
 
-print "Unoptimized calls of int with unicode args", int(value, base), int(value)
+try:
+    value = unicode("20")
+except NameError:
+    print("Python3: Has unicode by default.")
+    value = "20"
+
+print("Unoptimized calls of int with unicode args", int(value, base), int(value))
 
 base = 37
 try:
-    print "Int with large base", int(2, base),
+    print("Int with large base", int(2, base), end=' ')
 except Exception as e:
-    print "Caused", repr(e)
+    print("Caused", repr(e))
 else:
-    print "Worked"
+    print("Worked")
 
 
 try:
-    print chr()
+    print(chr())
 except Exception as e:
-    print "Disallowed without args", repr(e)
+    print("Disallowed without args", repr(e))
 
 try:
-    print ord()
+    print(ord())
 except Exception as e:
-    print "Disallowed without args", repr(e)
+    print("Disallowed without args", repr(e))
 
 try:
-    print ord(s = 1)
+    print(ord(s = 1))
 except Exception as e:
-    print "Disallowed keyword args", repr(e)
+    print("Disallowed keyword args", repr(e))
 
 try:
-    print ord(1, 2)
+    print(ord(1, 2))
 except Exception as e:
-    print "Too many plain args", repr(e)
+    print("Too many plain args", repr(e))
 
 try:
-    print ord(1, s = 2)
+    print(ord(1, s = 2))
 except Exception as e:
-    print "Too many args, some keywords", repr(e)
+    print("Too many args, some keywords", repr(e))
 
 try:
-    print str('1', offer = 2)
+    print(str('1', offer = 2))
 except Exception as e:
-    print "Too many args, some keywords", repr(e)
+    print("Too many args, some keywords", repr(e))
 
 # TODO: This is calls, not really builtins.
 a = 2
 
-print "Can optimize the star list argness away", int(*(a,)),
-print "Can optimize the empty star list arg away", int(*tuple()),
-print "Can optimize the empty star dict arg away", long(**dict())
+print("Can optimize the star list argness away", int(*(a,)), end=' ')
+print("Can optimize the empty star list arg away", int(*tuple()), end=' ')
+print("Can optimize the empty star dict arg away", int(**dict()))
 
-print "Dict building with keyword arguments", dict(), dict(a = f)
-print "Dictionary entirely from constant args", dict(q = "Guido", w = "van", e = "Rossum", r = "invented", t = "Python", y = "")
+print("Dict building with keyword arguments", dict(), dict(a = f))
+print("Dictionary entirely from constant args", dict(q = "Guido", w = "van", e = "Rossum", r = "invented", t = "Python", y = ""))
 
 a = 5
-print "Instance check recognises", isinstance(a, int)
+print("Instance check recognises", isinstance(a, int))
 
 try:
-    print "Instance check with too many arguments", isinstance(a, long, int)
+    print("Instance check with too many arguments", isinstance(a, long, int))
 except Exception as e:
-    print "Too many args", repr(e)
+    print("Too many args", repr(e))
 
 try:
-    print "Instance check with too many arguments", isinstance(a)
+    print("Instance check with too many arguments", isinstance(a))
 except Exception as e:
-    print "Too few args", repr(e)
+    print("Too few args", repr(e))
 
 def usingIterToCheckIterable(a):
     try:
         iter(a)
     except TypeError:
-        print "not iterable"
+        print("not iterable")
     else:
-        print "ok"
+        print("ok")
 
 usingIterToCheckIterable(1)
 
-print "Nested constant, dict inside a list, referencing a built-in compile time constant",
+print("Nested constant, dict inside a list, referencing a built-in compile time constant", end=' ')
 print( [dict(type = int)] )
 
-print "nan and -nan sign checks:"
+print("nan and -nan sign checks:")
 from math import copysign
-print copysign(1.0, float("nan"))
-print copysign(1.0, float("-nan"))
+print(copysign(1.0, float("nan")))
+print(copysign(1.0, float("-nan")))
 
-print "Using != to detect nan floats:"
+print("Using != to detect nan floats:")
 a = float("nan")
 if a != a:
     print("is nan")
@@ -319,23 +330,25 @@ values = [
 
 for x in values:
     try:
-        print "int", repr(x), int(x), int(x,2)
+        print("int", repr(x), int(x), int(x,2))
     except TypeError as e:
-        print "caught", repr(e)
+        print("caught", repr(e))
 
     try:
-        print "long", repr(x), long(x), long(x,2)
+        print("long", repr(x), long(x), long(x,2))
     except TypeError as e:
-        print "caught", repr(e)
+        print("caught", repr(e))
+    except NameError:
+        print("Python3 has no long")
 
 
 z = range(5)
 try:
     next(z)
 except TypeError as e:
-    print "caught", repr(e)
+    print("caught", repr(e))
 
 try:
     open()
 except TypeError as e:
-    print "Open without arguments gives", repr(e)
+    print("Open without arguments gives", repr(e))

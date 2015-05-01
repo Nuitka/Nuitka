@@ -26,6 +26,10 @@ There will be a method "computeExpressionAttribute" to aid predicting them.
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
 from .NodeBases import ExpressionChildrenHavingBase
+from .NodeMakingHelpers import (
+    getComputationResult,
+    wrapExpressionWithNodeSideEffects
+)
 
 
 class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
@@ -147,8 +151,6 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
                     source_ref     = self.source_ref
                 )
 
-                from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-
                 result = wrapExpressionWithNodeSideEffects(
                     new_node = result,
                     old_node = attribute
@@ -234,8 +236,6 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
                 # now, we give up in this case. TODO: Replace source with a
                 # temporary variable assignment as a side effect.
 
-                from .NodeMakingHelpers import getComputationResult
-
                 result, tags, change_desc = getComputationResult(
                     node        = self,
                     computation = lambda : hasattr(
@@ -244,8 +244,6 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
                     ),
                     description = "Call to 'hasattr' pre-computed."
                 )
-
-                from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
                 result = wrapExpressionWithNodeSideEffects(
                     new_node = result,

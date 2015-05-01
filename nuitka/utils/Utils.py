@@ -63,6 +63,10 @@ def abspath(path):
     return os.path.abspath(path)
 
 
+def isAbsolutePath(path):
+    return os.path.isabs(path)
+
+
 def joinpath(*parts):
     return os.path.join(*parts)
 
@@ -176,7 +180,7 @@ def callExec(args):
 
     # On Windows os.execl does not work properly
     if getOS() != "Windows":
-        # The star arguments is the API of execl, pylint: disable=W0142
+        # The star arguments is the API of execl
         os.execl(*args)
     else:
         args = list(args)

@@ -1647,7 +1647,12 @@ void setCommandLineParameters( int argc, char *argv[], bool initial )
 #ifdef __APPLE__
             argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
 #else
+#if PYTHON_VERSION < 350
             argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
+#else
+            argv_copy[i] = Py_DecodeLocale( argv[ i ], NULL );
+#endif
+
 #endif
             assert ( argv_copy[ i ] );
         }

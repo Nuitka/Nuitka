@@ -542,8 +542,8 @@ def applyLaterWrappers():
 
             assert parent.parent.isExpressionTryFinally()
         elif parent.isStatement():
-            # Replacement wrapper node, with no tried initially, to not
-            # reparent already.
+            # Replacement wrapper node, with no "tried" block initially, to not
+            # have to re-parent already.
             new_node = makeTryFinallyStatement(
                 tried      = None, # see below
                 final      = final,

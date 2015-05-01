@@ -45,33 +45,14 @@ def generateCallCode(to_name, expression, emit, context):
     call_args = expression.getCallArgs()
     call_kw = expression.getCallKw()
 
-    if call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}:
-        if call_args.isExpressionMakeTuple():
-            call_arg_names = []
+    if call_kw is None or \
+       (call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}):
+        if call_args is None or call_args.isExpressionConstantRef():
+            if call_args is not None:
+                call_args_value = call_args.getConstant()
+            else:
+                call_args_value = ()
 
-            for call_arg_element in call_args.getElements():
-                call_arg_name = generateChildExpressionCode(
-                    child_name = call_args.getChildName() + "_element",
-                    expression = call_arg_element,
-                    emit       = emit,
-                    context    = context,
-                )
-
-                call_arg_names.append(call_arg_name)
-
-            context.setCurrentSourceCodeReference(
-                expression.getCompatibleSourceReference()
-            )
-
-            getCallCodePosArgsQuick(
-                to_name     = to_name,
-                called_name = called_name,
-                arg_names   = call_arg_names,
-                emit        = emit,
-                context     = context
-            )
-        elif call_args.isExpressionConstantRef():
-            call_args_value = call_args.getConstant()
             assert type(call_args_value) is tuple
 
             call_arg_names = []
@@ -107,6 +88,30 @@ def generateCallCode(to_name, expression, emit, context):
                     emit        = emit,
                     context     = context
                 )
+        elif call_args.isExpressionMakeTuple():
+            call_arg_names = []
+
+            for call_arg_element in call_args.getElements():
+                call_arg_name = generateChildExpressionCode(
+                    child_name = call_args.getChildName() + "_element",
+                    expression = call_arg_element,
+                    emit       = emit,
+                    context    = context,
+                )
+
+                call_arg_names.append(call_arg_name)
+
+            context.setCurrentSourceCodeReference(
+                expression.getCompatibleSourceReference()
+            )
+
+            getCallCodePosArgsQuick(
+                to_name     = to_name,
+                called_name = called_name,
+                arg_names   = call_arg_names,
+                emit        = emit,
+                context     = context
+            )
         else:
             args_name = generateChildExpressionCode(
                 expression = call_args,
@@ -126,8 +131,9 @@ def generateCallCode(to_name, expression, emit, context):
                 context     = context
             )
     else:
-        if call_args.isExpressionConstantRef() and \
-           call_args.getConstant() == ():
+        if call_args is None or \
+           (call_args.isExpressionConstantRef() and \
+            call_args.getConstant() == ()):
             call_kw_name = generateChildExpressionCode(
                 expression = call_kw,
                 emit       = emit,

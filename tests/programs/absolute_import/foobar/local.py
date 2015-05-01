@@ -15,13 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from __future__ import absolute_import, print_function
-
-from foobar import util
-
-from . import local
-
-class Foobar(object):
-
-    def __init__(self):
-        print(util.foo())
+print("This is for relative import.")

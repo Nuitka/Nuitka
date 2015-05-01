@@ -365,14 +365,25 @@ static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
 
 #if PYTHON_VERSION < 300
         PyObject *result = PyString_FromFormat(
-#else
-        PyObject *result = PyUnicode_FromFormat(
-#endif
             "<bound compiled_method %s.%s of %s>",
             GET_CLASS_NAME( method->m_class ),
             Nuitka_String_AsString( method->m_function->m_name ),
             Nuitka_String_AsString_Unchecked( object_repr )
         );
+#elif PYTHON_VERSION < 350
+        PyObject *result = PyUnicode_FromFormat(
+            "<bound compiled_method %s.%s of %s>",
+            GET_CLASS_NAME( method->m_class ),
+            Nuitka_String_AsString( method->m_function->m_name ),
+            Nuitka_String_AsString_Unchecked( object_repr )
+        );
+#else
+        PyObject *result = PyUnicode_FromFormat(
+            "<bound compiled_method %s of %s>",
+            Nuitka_String_AsString( method->m_function->m_qualname ),
+            Nuitka_String_AsString_Unchecked( object_repr )
+        );
+#endif
 
         Py_DECREF( object_repr );
 
