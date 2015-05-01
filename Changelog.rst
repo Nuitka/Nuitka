@@ -1,5 +1,5 @@
-Nuitka Release 0.5.13 (Draft)
-=============================
+Nuitka Release 0.5.13
+=====================
 
 This release contains the first use of SSA for value propagation and massive
 amounts of bug fixes and optimization. Some of the bugs that were delivered
