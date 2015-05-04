@@ -64,8 +64,15 @@ extern PyObject *const_str_plain_ignore;
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmdLine, int nCmdShow )
 {
+#if defined(__MINGW32__) && !defined(_W64)
+    /* MINGW32 */
+    int argc = _argc;
+    char** argv = _argv;
+#else
+    /* MSVC, MINGW64 */
     int argc = __argc;
     char** argv = __argv;
+#endif
 #else
 int main( int argc, char *argv[] )
 {
