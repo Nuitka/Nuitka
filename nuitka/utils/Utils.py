@@ -269,7 +269,7 @@ def getOwnProcessMemoryUsage():
 
         counters = PROCESS_MEMORY_COUNTERS_EX()
         rv = GetProcessMemoryInfo(
-            ctypes.windll.kernel32.GetCurrentProcess(),
+            ctypes.windll.kernel32.GetCurrentProcess(),  # @UndefinedVariable
             ctypes.byref(counters),
             ctypes.sizeof(counters)
         )
