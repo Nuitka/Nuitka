@@ -82,7 +82,7 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         # not matter at all.
         if condition.willRaiseException(BaseException):
             return condition, "new_raise", """\
-Conditional statements already raises implicitly in condition, removing \
+Conditional expression already raises implicitly in condition, removing \
 branches."""
 
         # If the condition raises, we let that escape instead, and the
@@ -204,10 +204,16 @@ Conditional expression raises in condition."""
         return False
 
     def mayRaiseExceptionBool(self, exception_type):
-        if self.getCondition().mayRaiseExceptionBool():
+        if self.getCondition().mayRaiseExceptionBool(exception_type):
             return True
 
-        if self.getExpressionYes().mayRaiseExceptionBool():
+        if self.getExpressionYes().mayRaiseExceptionBool(exception_type):
+            return True
+
+        if self.getExpressionNo().mayRaiseExceptionBool(exception_type):
+            return True
+
+        return False
             return True
 
         if self.getExpressionNo().mayRaiseExceptionBool():
