@@ -1301,6 +1301,98 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             emit          = emit,
             context       = context
         )
+    elif expression.isExpressionConditionalOR() or \
+         expression.isExpressionConditionalAND():
+
+        if expression.isExpressionConditionalOR():
+            prefix = "or_"
+        else:
+            prefix = "and_"
+
+        true_target = context.allocateLabel(prefix + "end")
+        false_target = context.allocateLabel(prefix + "right")
+
+        old_true_target = context.getTrueBranchTarget()
+        old_false_target = context.getFalseBranchTarget()
+
+        truth_name = context.allocateTempName(prefix + "left_truth", "int")
+
+        makeExpressionCode(
+            to_name    = to_name,
+            expression = expression.getLeft()
+        )
+
+        Generator.getConditionCheckTrueCode(
+            to_name    = truth_name,
+            value_name = to_name,
+            emit       = emit
+        )
+
+        if expression.getLeft().mayRaiseExceptionBool(BaseException):
+            Generator.getErrorExitBoolCode(
+                condition = "%s == -1" % truth_name,
+                emit      = emit,
+                context   = context
+            )
+
+        needs_ref1 = context.needsCleanup(to_name)
+
+        # Cleanup for the stage of creating "right" expression already, so we
+        # know if they share the same reference count.
+        if needs_ref1:
+            context.removeCleanupTempName(to_name)
+
+        right_emit = Emission.SourceCodeCollector()
+
+        generateExpressionCode(
+            to_name    = to_name,
+            expression = expression.getRight(),
+            emit       = right_emit,
+            context    = context
+        )
+
+        needs_ref2 = context.needsCleanup(to_name)
+
+        if needs_ref2:
+            context.removeCleanupTempName(to_name)
+
+        if not needs_ref1 and needs_ref2:
+            emit("Py_INCREF( %s );" % to_name)
+
+        if expression.isExpressionConditionalOR():
+            context.setTrueBranchTarget(true_target)
+            context.setFalseBranchTarget(false_target)
+        else:
+            context.setTrueBranchTarget(false_target)
+            context.setFalseBranchTarget(true_target)
+
+        Generator.getBranchingCode(
+            condition = "%s == 1" % truth_name,
+            emit      = emit,
+            context   = context
+        )
+
+        Generator.getLabelCode(false_target,emit)
+
+        # Before we compute right, we need to release the left value that is
+        # still in "to_name" according to what we saved.
+        if needs_ref1:
+            context.addCleanupTempName(to_name)
+            Generator.getReleaseCode(to_name, emit, context)
+
+        for line in right_emit.codes:
+            emit(line)
+
+        if not needs_ref2 and needs_ref1:
+            emit("Py_INCREF( %s );" % to_name)
+
+        Generator.getLabelCode(true_target,emit)
+
+        if needs_ref1 or needs_ref2:
+            context.addCleanupTempName(to_name)
+
+        context.setTrueBranchTarget(old_true_target)
+        context.setFalseBranchTarget(old_false_target)
     elif expression.isExpressionConditional():
         true_target = context.allocateLabel("condexpr_true")
         false_target = context.allocateLabel("condexpr_false")

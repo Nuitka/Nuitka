@@ -22,25 +22,13 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable,
-    StatementReleaseVariable
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditionalAND,
+    ExpressionConditionalOR
 )
-from nuitka.nodes.ConditionalNodes import ExpressionConditional
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
-)
 
-from .Helpers import (
-    buildNode,
-    buildNodeList,
-    getKind,
-    makeTryFinallyExpression,
-    wrapTryFinallyLater
-)
+from .Helpers import buildNode, buildNodeList, getKind
 
 
 def buildBoolOpNode(provider, node, source_ref):
@@ -56,7 +44,6 @@ def buildBoolOpNode(provider, node, source_ref):
         source_ref = values[-1].getSourceReference()
 
         return buildOrNode(
-            provider   = provider,
             values     = values,
             source_ref = source_ref
         )
@@ -71,7 +58,6 @@ def buildBoolOpNode(provider, node, source_ref):
         source_ref = values[-1].getSourceReference()
 
         return buildAndNode(
-            provider   = provider,
             values     = values,
             source_ref = source_ref
         )
@@ -85,73 +71,19 @@ def buildBoolOpNode(provider, node, source_ref):
         assert False, bool_op
 
 
-def buildOrNode(provider, values, source_ref):
+def buildOrNode(values, source_ref):
     values = list(values)
 
     result = values[-1]
     del values[-1]
 
-    temp_scope = None
-    count = 1
+    assert values
 
     while values:
-        if temp_scope is None:
-            temp_scope = provider.allocateTempScope(
-                name = "or"
-            )
-
-        keeper_variable = provider.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = "value_%d" % count
-        )
-        count += 1
-
-        tried = StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = keeper_variable,
-                source_ref = source_ref
-            ),
-            source       = values[-1],
-            source_ref   = source_ref,
-        )
-
-        result = makeTryFinallyExpression(
-            tried      = tried,
-            final      = None,
-            expression = ExpressionConditional(
-                condition      = ExpressionTempVariableRef(
-                    variable   = keeper_variable,
-                    source_ref = source_ref
-                ),
-                yes_expression = ExpressionTempVariableRef(
-                    variable   = keeper_variable,
-                    source_ref = source_ref
-                ),
-                no_expression  = makeTryFinallyExpression(
-                    expression = result,
-                    final      = None,
-                    tried      = StatementDelVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = keeper_variable,
-                            source_ref = source_ref
-                        ),
-                        tolerant     = False,
-                        source_ref   = source_ref,
-                    ),
-                    source_ref = source_ref
-                ),
-                source_ref     = source_ref
-            ),
+        result = ExpressionConditionalOR(
+            left       = values[-1],
+            right      = result,
             source_ref = source_ref
-        )
-
-        wrapTryFinallyLater(
-            result,
-            StatementReleaseVariable(
-                variable   = keeper_variable,
-                tolerant   = True,
-                source_ref = source_ref,
-            )
         )
 
         del values[-1]
@@ -159,75 +91,18 @@ def buildOrNode(provider, values, source_ref):
     return result
 
 
-def buildAndNode(provider, values, source_ref):
+def buildAndNode(values, source_ref):
     values = list(values)
 
     result = values[-1]
     del values[-1]
 
-    temp_scope = None
-    count = 1
-
     while values:
-        if temp_scope is None:
-            temp_scope = provider.allocateTempScope(
-                name = "and"
-            )
-
-        keeper_variable = provider.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = "value_%d" % count
-        )
-        count += 1
-
-        tried = StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = keeper_variable,
-                source_ref = source_ref
-            ),
-            source       = values[-1],
-            source_ref   = source_ref,
-        )
-
-        result = makeTryFinallyExpression(
-            tried      = tried,
-            final      = None,
-            expression = ExpressionConditional(
-                condition      = ExpressionTempVariableRef(
-                    variable   = keeper_variable,
-                    source_ref = source_ref
-                ),
-                no_expression  = ExpressionTempVariableRef(
-                    variable   = keeper_variable,
-                    source_ref = source_ref
-                ),
-                yes_expression = makeTryFinallyExpression(
-                    expression = result,
-                    final      = None,
-                    tried      = StatementDelVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = keeper_variable,
-                            source_ref = source_ref
-                        ),
-                        tolerant     = False,
-                        source_ref   = source_ref,
-                    ),
-                    source_ref = source_ref
-                ),
-                source_ref     = source_ref
-            ),
+        result = ExpressionConditionalAND(
+            left       = values[-1],
+            right      = result,
             source_ref = source_ref
         )
-
-        wrapTryFinallyLater(
-            result,
-            StatementReleaseVariable(
-                variable   = keeper_variable,
-                tolerant   = True,
-                source_ref = source_ref,
-            )
-        )
-
 
         del values[-1]
 

@@ -118,6 +118,15 @@ class GlobalVariableTrace:
 
         return None
 
+    def hasWritesOutsideOf(self, provider):
+        for trace in self.traces:
+            if trace.isAssignTrace():
+                if trace.getAssignNode().getParentVariableProvider() is not provider:
+                    return True
+
+        return False
+
+
 
 def updateFromCollection(old_collection, new_collection):
     if old_collection is not None:

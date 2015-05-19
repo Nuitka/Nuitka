@@ -132,7 +132,6 @@ def buildComparisonNode(provider, node, source_ref):
     assert keeper_variable is None
 
     result = buildAndNode(
-        provider   = provider,
         values     = values,
         source_ref = source_ref
     )

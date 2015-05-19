@@ -418,7 +418,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             loop_statements.append(
                 StatementConditional(
                     condition  = buildAndNode(
-                        provider   = function_body,
                         values     = conditions,
                         source_ref = source_ref
                     ),
