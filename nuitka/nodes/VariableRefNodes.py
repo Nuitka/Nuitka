@@ -196,6 +196,8 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__(self, variable, source_ref):
+        assert variable.isTempVariable()
+
         NodeBase.__init__(self, source_ref = source_ref)
 
         self.variable = variable

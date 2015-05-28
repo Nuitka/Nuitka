@@ -261,7 +261,8 @@ int main( int argc, char *argv[] )
         Py_Exit( 0 );
     }
 
-    // The above branches both do Py_Exit() which is not supposed to return.
+    // The above branches both do "Py_Exit()" calls which are not supposed to
+    // return.
     NUITKA_CANNOT_GET_HERE( main );
 }
 """

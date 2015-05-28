@@ -578,6 +578,8 @@ class StatementReleaseVariable(NodeBase):
     kind = "STATEMENT_RELEASE_VARIABLE"
 
     def __init__(self, variable, tolerant, source_ref):
+        assert variable is not None, source_ref
+
         NodeBase.__init__(
             self,
             source_ref = source_ref

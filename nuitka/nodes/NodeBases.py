@@ -714,7 +714,7 @@ class ChildrenHavingMixin:
 
 
 class ClosureGiverNodeBase(CodeNodeBase):
-    """ Mixin for nodes that provide variables for closure takers. """
+    """ Mix-in for nodes that provide variables for closure takers. """
     def __init__(self, name, code_prefix, source_ref):
         CodeNodeBase.__init__(
             self,

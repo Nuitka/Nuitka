@@ -71,7 +71,8 @@ class TempMixin:
                 number = number
             )
 
-    def allocateTempName(self, base_name, type_name, unique):
+    def allocateTempName(self, base_name, type_name = "PyObject *",
+                         unique = False):
         if unique:
             number = None
         else:

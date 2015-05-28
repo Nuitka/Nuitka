@@ -3067,7 +3067,10 @@ def generateReturnCode(statement, emit, context):
             "Py_INCREF( %s );" % return_value_name
         )
 
-    Generator.getGotoCode(context.getReturnTarget(), emit)
+    Generator.getGotoCode(
+        label = context.getReturnTarget(),
+        emit  = emit
+    )
 
 
 def generateGeneratorReturnCode(statement, emit, context):
@@ -3130,7 +3133,7 @@ def generateAssignmentVariableCode(statement, emit, context):
 
     assert emit.emit
 
-    # Ownership of that reference should be transfered.
+    # Ownership of that reference must have been transfered.
     assert not context.needsCleanup(tmp_name)
 
 
