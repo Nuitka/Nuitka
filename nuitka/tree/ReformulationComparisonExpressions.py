@@ -26,122 +26,207 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionOutline,
+    ExpressionOutlineBody
+)
+from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
+from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
+from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
 
-from .Helpers import buildNode, getKind, makeTryFinallyExpression
-from .ReformulationBooleanExpressions import buildAndNode
+from .Helpers import (
+    buildNode,
+    getKind,
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement
+)
 
 
 def buildComparisonNode(provider, node, source_ref):
-    from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
 
     assert len(node.comparators) == len(node.ops)
 
     # Comparisons are re-formulated as described in the developer manual. When
-    # having multiple compators, things require assignment expressions and
+    # having multiple comparators, things require assignment expressions and
     # references of them to work properly. Then they can become normal "and"
     # code.
 
-    # The operands are split out
+    # The operands are split out in two parts strangely.
     left = buildNode(provider, node.left, source_ref)
     rights = [
         buildNode(provider, comparator, source_ref)
         for comparator in
         node.comparators
     ]
+    comparators = [
+        getKind(comparator)
+        for comparator in
+        node.ops
+    ]
+    # Normal, and simple case, we only have one comparison, which is what our
+    # node handles only. Then we can handle it
+    if len(rights) == 1:
+        return makeComparisonNode(
+            left       = left,
+            right      = rights[0],
+            # TODO: The terminology of Nuitka might be messed up here.
+            comparator = comparators[0],
+            source_ref = source_ref
+        )
 
-    # Only the first comparison has as left operands as the real thing, the
-    # others must reference the previous comparison right one temp variable ref.
-    values = []
+    return buildComplexComparisonNode(provider, left, rights, comparators,
+                                      source_ref)
 
-    # For PyLint to like it, this will hold the previous one, normally.
-    keeper_variable = None
 
-    temp_scope = None
+def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
 
-    final = []
+    # This is a bit complex, due to the many details, pylint: disable=R0914
 
-    for comparator, right in zip(node.ops, rights):
-        if values:
-            # Now we know it's not the only one, so we change the "left" to be a
-            # reference to the previously saved right side.
-            left = ExpressionTempVariableRef(
-                variable   = keeper_variable,
+    outline_body = ExpressionOutlineBody(
+        provider   = provider,
+        name       = "comparison_chain",
+        source_ref = source_ref
+    )
+
+
+    variables = [
+        outline_body.allocateTempVariable(
+            temp_scope = None,
+            name       = "operand_%d" % count
+        )
+        for count in
+        range(2, len(rights)+2)
+    ]
+
+    tmp_variable = outline_body.allocateTempVariable(
+        temp_scope = None,
+        name       = "comparison_result"
+    )
+
+    def makeTempAssignment(count, value):
+        return StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = variables[count],
                 source_ref = source_ref
-            )
+            ),
+            source       = value,
+            source_ref   = source_ref,
+        )
 
-            keeper_variable = None
+    def makeReleaseStatement(count):
+        return StatementReleaseVariable(
+            variable   = variables[count],
+            tolerant   = True,
+            source_ref = source_ref
+        )
 
-        if right is not rights[-1]:
-            # Now we know it's not the last one, so we ought to preseve the
-            # "right" so it can be referenced by the next part that will
-            # come. We do it by assining it to a temp variable to be shared with
-            # the next part.
-            if temp_scope is None:
-                temp_scope = provider.allocateTempScope(
-                    name = "comparison"
-                )
-
-            keeper_variable = provider.allocateTempVariable(
-                temp_scope = temp_scope,
-                name       = "value_%d" % (rights.index(right)+2),
-            )
-
-            tried = StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = keeper_variable,
-                    source_ref = source_ref
-                ),
-                source       = right,
-                source_ref   = source_ref,
-            )
-
-            # TODO: The release ought to be placed later.
-            final.append(
-                StatementReleaseVariable(
-                    variable   = keeper_variable,
-                    tolerant   = True,
-                    source_ref = source_ref,
-                )
-            )
-
-            right = makeTryFinallyExpression(
-                tried      = tried,
-                final      = None,
-                expression = ExpressionTempVariableRef(
-                    variable   = keeper_variable,
-                    source_ref = source_ref
-                ),
+    def makeValueComparisonReturn(left, right, comparator):
+        yield StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_variable,
                 source_ref = source_ref
-            )
-
-        comparator = getKind(comparator)
-
-        values.append(
-            makeComparisonNode(
+            ),
+            source       = makeComparisonNode(
                 left       = left,
                 right      = right,
                 comparator = comparator,
                 source_ref = source_ref
-            )
+            ),
+            source_ref   = source_ref,
         )
 
-    assert keeper_variable is None
-
-    result = buildAndNode(
-        values     = values,
-        source_ref = source_ref
-    )
-
-    if final:
-        return makeTryFinallyExpression(
-            tried      = None,
-            expression = result,
-            final      = final,
+        yield StatementConditional(
+            condition  = ExpressionOperationNOT(
+                operand    = ExpressionTempVariableRef(
+                    variable   = tmp_variable,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = makeStatementsSequenceFromStatement(
+                statement = StatementReturn(
+                    expression = ExpressionTempVariableRef(
+                        variable   = tmp_variable,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                )
+            ),
+            no_branch  = None,
             source_ref = source_ref
         )
-    else:
-        return result
+
+    statements = []
+    final = []
+
+    for count, value in enumerate(rights):
+        if value is not rights[-1]:
+            statements.append(
+                makeTempAssignment(count, value)
+            )
+            final.append(
+                makeReleaseStatement(count)
+            )
+            right = ExpressionTempVariableRef(
+                variable   = variables[count],
+                source_ref = source_ref
+            )
+        else:
+            right = value
+
+        if count != 0:
+            left = ExpressionTempVariableRef(
+                variable   = variables[count-1],
+                source_ref = source_ref
+            )
+
+        comparator = comparators[count]
+
+        if value is not rights[-1]:
+            statements.extend(
+                makeValueComparisonReturn(
+                    left,
+                    right,
+                    comparator
+                )
+            )
+        else:
+            statements.append(
+                StatementReturn(
+                    expression = makeComparisonNode(
+                        left       = left,
+                        right      = right,
+                        comparator = comparator,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                )
+            )
+            final.append(
+                StatementReleaseVariable(
+                    variable   = tmp_variable,
+                    tolerant   = True,
+                    source_ref = source_ref
+                )
+            )
+
+    outline_body.setBody(
+        makeStatementsSequenceFromStatement(
+            statement = makeTryFinallyStatement(
+                tried      = statements,
+                final      = final,
+                source_ref = source_ref
+            )
+        )
+    )
+
+    return ExpressionFunctionOutline(
+        outline    = outline_body,
+        values     = (),
+        source_ref = source_ref
+    )

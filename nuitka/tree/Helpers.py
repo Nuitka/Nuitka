@@ -38,10 +38,7 @@ from nuitka.nodes.StatementNodes import (
     StatementsFrame,
     StatementsSequence
 )
-from nuitka.nodes.TryFinallyNodes import (
-    ExpressionTryFinally,
-    StatementTryFinally
-)
+from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 
 
 def dump(node):
@@ -443,30 +440,6 @@ def makeTryFinallyStatement(tried, final, source_ref):
         source_ref = source_ref
     )
 
-
-def makeTryFinallyExpression(expression, tried, final, source_ref):
-    if type(tried) in (tuple, list):
-        tried = StatementsSequence(
-            statements = tried,
-            source_ref = source_ref
-        )
-    if type(final) in (tuple, list):
-        final = StatementsSequence(
-            statements = final,
-            source_ref = source_ref
-        )
-
-    if tried is not None and not tried.isStatementsSequence():
-        tried = makeStatementsSequenceFromStatement(tried)
-    if final is not None and not final.isStatementsSequence():
-        final = makeStatementsSequenceFromStatement(final)
-
-    return ExpressionTryFinally(
-        expression = expression,
-        tried      = tried,
-        final      = final,
-        source_ref = source_ref
-    )
 
 
 def mangleName(variable_name, owner):
