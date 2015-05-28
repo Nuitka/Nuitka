@@ -38,3 +38,6 @@ def indented(codes, level = 1, vert_block = False):
         codes.append("")
 
     return _indentedCode(codes, level * 4)
+
+def getCommentCode(comment, emit):
+    emit("// " + comment)

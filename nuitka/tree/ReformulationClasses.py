@@ -134,10 +134,6 @@ def _buildClassNode3(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    # Hack: This allows some APIs to work although this is not yet officially a
-    # child yet.
-    class_creation_function.parent = provider
-
     body = buildStatementsNode(
         provider   = class_creation_function,
         nodes      = class_statements,

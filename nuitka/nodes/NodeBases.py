@@ -215,6 +215,15 @@ class NodeBase(NodeMetaClassBase):
 
         return parent
 
+    def getParentReturnConsumer(self):
+        parent = self.getParent()
+
+        while not parent.isParentVariableProvider() and \
+              not parent.isExpressionOutlineBody():
+            parent = parent.getParent()
+
+        return parent
+
     def getParentStatementsFrame(self):
         current = self.getParent()
 
@@ -999,6 +1008,8 @@ class ExpressionMixin:
         sub_expressions = self.getVisitableNodes()
 
         for sub_expression in sub_expressions:
+            assert sub_expression.isExpression(), (self, sub_expression)
+
             constraint_collection.onExpression(
                 expression = sub_expression
             )

@@ -67,11 +67,9 @@ def buildFunctionNode(provider, node, source_ref):
         name       = node.name,
         doc        = function_doc,
         parameters = buildParameterSpec(provider, node.name, node, source_ref),
+        is_class   = False,
         source_ref = source_ref
     )
-
-    # Hack:
-    function_body.parent = provider
 
     decorators = buildNodeList(
         provider   = provider,

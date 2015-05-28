@@ -32,7 +32,7 @@ from nuitka.utils import Utils
 
 from . import CodeTemplates
 from .ExceptionCodes import getExceptionIdentifier
-from .Indentation import indented
+from .Indentation import getCommentCode, indented
 from .LineNumberCodes import getLineNumberUpdateCode
 
 
@@ -159,3 +159,24 @@ def getReleaseCodes(release_names, emit, context):
             emit         = emit,
             context      = context
         )
+
+
+def getMustNotGetHereCode(reason, context, emit):
+    getCommentCode(reason, emit)
+
+    provider = context.getOwner()
+
+    emit(
+        "NUITKA_CANNOT_GET_HERE( %(function_identifier)s );" % {
+            "function_identifier" :  provider.getCodeName()
+        }
+    )
+
+    if provider.isExpressionFunctionBody() and not provider.isGenerator():
+        emit("return NULL;")
+    elif provider.isPythonModule():
+        emit("PyErr_SetObject( PyExc_RuntimeError, Py_None );")
+        emit("return MOD_RETURN_VALUE( NULL );")
+    else:
+        emit("PyErr_SetObject( PyExc_RuntimeError, Py_None );")
+        emit("return;")

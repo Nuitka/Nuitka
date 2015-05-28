@@ -99,7 +99,6 @@ from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
 
 from .Helpers import (
-    applyLaterWrappers,
     buildNode,
     buildNodeList,
     buildStatementsNode,
@@ -971,15 +970,11 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
 
     if is_module:
-        result = makeModuleFrame(
+        return makeModuleFrame(
             module     = provider,
             statements = statements,
             source_ref = source_ref
         )
-
-        applyLaterWrappers()
-
-        return result
     else:
         assert False
 

@@ -99,20 +99,10 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 """
 
 template_function_exception_exit = """\
-    // Return statement must have exited already.
-    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
-
 function_exception_exit:
 %(function_cleanup)s\
     assert( exception_type );
     RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
-
-    return NULL;
-"""
-
-template_function_noexception_exit = """\
-    // Return statement must have exited already.
-    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
 
     return NULL;
 """

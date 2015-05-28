@@ -68,6 +68,7 @@ def buildLambdaNode(provider, node, source_ref):
         name       = "<lambda>",
         doc        = None,
         parameters = parameters,
+        is_class   = False,
         source_ref = source_ref,
     )
 

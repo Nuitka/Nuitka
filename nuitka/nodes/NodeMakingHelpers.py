@@ -41,6 +41,12 @@ from .ComparisonNodes import (
 from .ConstantRefNodes import ExpressionConstantRef
 from .SideEffectNodes import ExpressionSideEffects
 from .StatementNodes import StatementExpressionOnly, StatementsSequence
+from .VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTargetVariableRef,
+    ExpressionTempVariableRef,
+    ExpressionVariableRef
+)
 
 
 def makeConstantReplacementNode(constant, node):
@@ -300,3 +306,31 @@ def makeComparisonNode(left, right, comparator, source_ref):
     )
 
     return result
+
+
+def makeVariableRefNode(variable, source_ref):
+    if variable.isTempVariable():
+        return ExpressionTempVariableRef(
+            variable   = variable,
+            source_ref = source_ref
+        )
+    else:
+        return ExpressionVariableRef(
+            variable_name = variable.getName(),
+            variable      = variable,
+            source_ref    = source_ref
+        )
+
+
+def makeVariableTargetRefNode(variable, source_ref):
+    if variable.isTempVariable():
+        return ExpressionTargetTempVariableRef(
+            variable   = variable,
+            source_ref = source_ref
+        )
+    else:
+        return ExpressionTargetVariableRef(
+            variable_name = variable.getName(),
+            variable      = variable,
+            source_ref    = source_ref
+        )

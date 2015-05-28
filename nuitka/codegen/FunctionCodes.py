@@ -24,7 +24,8 @@ from nuitka.utils import Utils
 
 from . import CodeTemplates
 from .ConstantCodes import getConstantCode
-from .ErrorCodes import getErrorExitCode
+from .Emission import SourceCodeCollector
+from .ErrorCodes import getErrorExitCode, getMustNotGetHereCode
 from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .ParameterParsing import (
@@ -447,6 +448,9 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     # occur.
     if context.hasTempName("return_value"):
         local_var_inits.append("tmp_return_value = NULL;")
+    for tmp_name, tmp_type in context.getTempNameInfos():
+        if tmp_name.startswith("tmp_outline_return_value_"):
+            local_var_inits.append("%s = NULL;" % tmp_name)
 
     function_doc = getConstantCode(
         context  = context,
@@ -465,14 +469,20 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
 
     result = ""
 
+    emit = SourceCodeCollector()
+
+    getMustNotGetHereCode(
+        reason  = "Return statement must have exited already.",
+        context = context,
+        emit    = emit
+    )
+
+    function_exit = '\n'.join(emit.codes)
+    del emit
+
     if needs_exception_exit:
-        function_exit = CodeTemplates.template_function_exception_exit % {
+        function_exit += CodeTemplates.template_function_exception_exit % {
             "function_cleanup"    : function_cleanup,
-            "function_identifier" : function_identifier
-        }
-    else:
-        function_exit = CodeTemplates.template_function_noexception_exit % {
-            "function_identifier" : function_identifier
         }
 
     if context.hasTempName("return_value"):
@@ -607,6 +617,10 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
         function_locals.append("tmp_generator_return = false;")
     if context.hasTempName("return_value"):
         function_locals.append("tmp_return_value = NULL;")
+    for tmp_name, tmp_type in context.getTempNameInfos():
+        if tmp_name.startswith("tmp_outline_return_value_"):
+            function_locals.append("%s = NULL;" % tmp_name)
+
 
     if needs_exception_exit:
         generator_exit = CodeTemplates.template_generator_exception_exit % {}

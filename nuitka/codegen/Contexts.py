@@ -546,7 +546,13 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
         self.constants = set()
 
+        self.return_release_mode = False
+
         self.frame_handle = None
+
+        self.return_exit = True
+
+        self.return_name = None
 
         self.needs_module_filename_object = False
 
@@ -610,17 +616,29 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     def getDeclarations(self):
         return self.declaration_codes
 
+    def getReturnValueName(self):
+        return self.return_name
+
+    def setReturnValueName(self, value):
+        result = self.return_name
+        self.return_name = value
+        return result
+
     def setReturnReleaseMode(self, value):
-        pass
+        result = self.return_release_mode
+        self.return_release_mode = value
+        return result
 
     def getReturnReleaseMode(self):
-        pass
+        return self.return_release_mode
 
     def getReturnTarget(self):
-        return None
+        return self.return_exit
 
     def setReturnTarget(self, label):
-        pass
+        result = self.return_exit
+        self.return_exit = label
+        return result
 
     def mayRecurse(self):
         return False
@@ -663,6 +681,7 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin,
         self.setReturnTarget("function_return_exit")
 
         self.return_release_mode = False
+        self.return_name = None
 
         self.frame_handle = None
 
@@ -693,14 +712,29 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin,
     def setFrameHandle(self, frame_handle):
         self.frame_handle = frame_handle
 
+    def getReturnValueName(self):
+        if self.return_name is None:
+            self.return_name = self.allocateTempName("return_value", unique = True)
+
+        return self.return_name
+
+    def setReturnValueName(self, value):
+        result = self.return_name
+        self.return_name = value
+        return result
+
     def getReturnTarget(self):
         return self.return_exit
 
     def setReturnTarget(self, label):
+        result = self.return_exit
         self.return_exit = label
+        return result
 
     def setReturnReleaseMode(self, value):
+        result = self.return_release_mode
         self.return_release_mode = value
+        return result
 
     def getReturnReleaseMode(self):
         return self.return_release_mode
@@ -722,7 +756,6 @@ class PythonFunctionDirectContext(PythonFunctionContext):
 
     def isForCreatedFunction(self):
         return False
-
 
 class PythonFunctionCreatedContext(PythonFunctionContext):
     def isForDirectCall(self):
@@ -770,7 +803,10 @@ class PythonStatementCContext(PythonChildContextBase):
         return self.allocateTempName("result", "bool", unique = True)
 
     def getReturnValueName(self):
-        return self.allocateTempName("return_value", unique = True)
+        return self.parent.getReturnValueName()
+
+    def setReturnValueName(self, value):
+        return self.parent.setReturnValueName(value)
 
     def getGeneratorReturnValueName(self):
         if python_version >= 330:
@@ -832,7 +868,7 @@ class PythonStatementCContext(PythonChildContextBase):
         return self.parent.getReturnTarget()
 
     def setReturnTarget(self, label):
-        self.parent.setReturnTarget(label)
+        return self.parent.setReturnTarget(label)
 
     def getReturnReleaseMode(self):
         return self.parent.getReturnReleaseMode()

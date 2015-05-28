@@ -113,7 +113,7 @@ if ( %(keeper_type)s != NULL )
 
 template_final_handler_return_reraise = """\
 // Return value if any.
-if ( tmp_return_value != NULL )
+if ( %(return_value_name)s != NULL )
 {
     goto %(parent_return_target)s;
 }

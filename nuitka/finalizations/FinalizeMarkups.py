@@ -143,9 +143,13 @@ class FinalizeMarkups(FinalizationVisitorBase):
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
             search = node
 
+            in_tried_block = False
+
             # Search up to the containing function, and check for a try/finally
             # containing the "return" statement.
-            while not search.isExpressionFunctionBody():
+            while not search.isExpressionFunctionBody() and \
+                  not search.isExpressionOutlineBody():
+
                 last_search = search
                 search = search.getParent()
 
@@ -153,16 +157,17 @@ class FinalizeMarkups(FinalizationVisitorBase):
                     if last_search == search.getBlockTry():
                         search.markAsNeedsReturnHandling(1)
 
-                        provider = search.getParentVariableProvider()
-                        if provider.isGenerator():
-                            provider.markAsNeedsGeneratorReturnHandling(2)
+                        in_tried_block = True
 
                     if last_search == search.getBlockFinal():
                         if search.needsReturnHandling():
                             search.markAsNeedsReturnHandling(2)
 
-            if search.isGenerator():
-                search.markAsNeedsGeneratorReturnHandling(1)
+            if search.isExpressionFunctionBody() and search.isGenerator():
+                if in_tried_block:
+                    search.markAsNeedsGeneratorReturnHandling(2)
+                else:
+                    search.markAsNeedsGeneratorReturnHandling(1)
 
         if node.isStatementTryExcept():
             if node.public_exc:

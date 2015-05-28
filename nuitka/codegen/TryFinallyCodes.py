@@ -134,7 +134,7 @@ def generateTryFinallyCode(to_name, statement, emit, context):
     # So this is when we completed the handler without exiting.
     if statement.needsReturnHandling() and Utils.python_version >= 330:
         emit(
-            "tmp_return_value = NULL;"
+            "%s = NULL;" % context.getReturnValueName()
         )
 
     if handler_start_target is not None:
@@ -267,26 +267,31 @@ def generateTryFinallyCode(to_name, statement, emit, context):
             }
         )
 
-    if Utils.python_version >= 330:
-        return_template = Generator.CodeTemplates.\
-          template_final_handler_return_reraise
-    else:
-        provider = statement.getParentVariableProvider()
-
-        if not provider.isExpressionFunctionBody() or \
-           not provider.isGenerator():
-            return_template = Generator.CodeTemplates.\
-              template_final_handler_return_reraise
-        else:
-            return_template = Generator.CodeTemplates.\
-              template_final_handler_generator_return_reraise
-
     if statement.needsReturnHandling():
-        emit(
-            return_template % {
-                "parent_return_target" : old_return
-            }
-        )
+        if Utils.python_version >= 330:
+            emit(
+                Generator.CodeTemplates.template_final_handler_return_reraise % {
+                    "parent_return_target" : old_return,
+                    "return_value_name"    : context.getReturnValueName()
+                }
+            )
+        else:
+            return_consumer = statement.getParentReturnConsumer()
+
+            if not return_consumer.isExpressionFunctionBody() or \
+               not return_consumer.isGenerator():
+                emit(
+                    Generator.CodeTemplates.template_final_handler_return_reraise  % {
+                        "parent_return_target" : old_return,
+                        "return_value_name"    : context.getReturnValueName()
+                    }
+                )
+            else:
+                emit(
+                    Generator.CodeTemplates.template_final_handler_generator_return_reraise  % {
+                        "parent_return_target" : old_return,
+                    }
+                )
 
     if statement.needsContinueHandling():
         emit(

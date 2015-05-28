@@ -47,7 +47,64 @@ from .NodeBases import (
     SideEffectsFromChildrenMixin,
     checkStatementsSequenceOrNone
 )
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    makeRaiseExceptionReplacementExpressionFromInstance,
+    wrapExpressionWithSideEffects
+)
 from .ParameterSpecs import TooManyArguments, matchCall
+
+
+class ExpressionOutlineBody(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_OUTLINE_BODY"
+
+    named_children = (
+        "body",
+    )
+
+    def __init__(self, provider, name, source_ref):
+        assert name != ""
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "body" : None
+            },
+            source_ref = source_ref
+        )
+
+        self.provider = provider
+        self.name = name
+
+        self.temp_scope = None
+
+        # Hack: This allows some APIs to work although this is not yet
+        # officially a child yet. Important during building.
+        self.parent = provider
+
+    getBody = ChildrenHavingMixin.childGetter("body")
+    setBody = ChildrenHavingMixin.childSetter("body")
+
+    def allocateTempVariable(self, temp_scope, name):
+        # We use our own name as a temp_scope, cached from the parent, if the
+        # scope is None.
+        if temp_scope is None:
+            if self.temp_scope is None:
+                self.temp_scope = self.provider.allocateTempScope(self.name)
+
+            temp_scope = self.temp_scope
+
+        return self.provider.allocateTempVariable(
+            temp_scope = temp_scope,
+            name       = name
+        )
+
+    def allocateTempScope(self, name):
+
+        # Let's scope the temporary scopes by the outline they come from.
+        return self.provider.allocateTempScope(
+            name = self.name + '$' + name
+        )
 
 
 class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
@@ -73,8 +130,10 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         qualname_setup = None
 
     def __init__(self, provider, name, doc, parameters, source_ref,
-                 is_class = False):
+                 is_class):
         # These got too many details to cover, pylint: disable=R0915
+        while provider.isExpressionOutlineBody():
+            provider = provider.getParentVariableProvider()
 
         if is_class:
             code_prefix = "class"
@@ -176,8 +235,13 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             *self.parameters.getVariables()
         )
 
+        self.references = 0
+
         self.constraint_collection = None
 
+        # Hack: This allows some APIs to work although this is not yet
+        # officially a child yet. Important during building.
+        self.parent = provider
 
     def getDetails(self):
         return {
@@ -243,6 +307,15 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     def getParameters(self):
         return self.parameters
 
+    def addReference(self):
+        self.references += 1
+
+    def removeReference(self):
+        self.references -= 1
+
+    def getReferenceCount(self):
+        return self.references
+
     def getLocalVariableNames(self):
         return Variables.getNames(self.getLocalVariables())
 
@@ -284,10 +357,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         assert not variable.isParameterVariable() or \
                variable.getOwner() is not self
 
-
     def getVariableForAssignment(self, variable_name):
         # print ("ASS func", self, variable_name)
-
         if self.hasTakenVariable(variable_name):
             result = self.getTakenVariable(variable_name)
         else:
@@ -448,6 +519,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             doc        = self.name,
             # TODO: Clone parameters too, when we start to mutate them.
             parameters = self.parameters,
+            is_class   = self.is_class,
             source_ref =  source_ref
         )
 
@@ -598,11 +670,6 @@ function call.""" % self.getName()
             )
 
         except TooManyArguments as e:
-            from .NodeMakingHelpers import (
-                makeRaiseExceptionReplacementExpressionFromInstance,
-                wrapExpressionWithSideEffects
-            )
-
             result = wrapExpressionWithSideEffects(
                 new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
                     expression = call_node,
@@ -633,6 +700,8 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         self.function_body = function_body
 
+        self.function_body.addReference()
+
     def getDetails(self):
         return {
             "function" : self.function_body.getCodeName()
@@ -652,6 +721,9 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         owning_module = function_body.getParentModule()
 
+        # Make sure the owning module is added to the used set. This is most
+        # important for helper functions, or modules, which otherwise have
+        # become unused.
         from nuitka.ModuleRegistry import addUsedModule
         addUsedModule(owning_module)
 
@@ -697,6 +769,13 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
 
 class ExpressionFunctionCall(ExpressionChildrenHavingBase):
+    """ Shared function call.
+
+        This is for calling created function bodies with multiple users. Not
+        clear if such a thing should exist. But what this will do is to have
+        respect for the fact that there are multiple such calls.
+    """
+
     kind = "EXPRESSION_FUNCTION_CALL"
 
     named_children = (
@@ -726,8 +805,6 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
         for count, value in enumerate(values):
             if value.willRaiseException(BaseException):
-                from .NodeMakingHelpers import wrapExpressionWithSideEffects
-
                 result = wrapExpressionWithSideEffects(
                     side_effects = [function] + list(values[:count]),
                     new_node     = value,
@@ -742,6 +819,95 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
 
+class ExpressionFunctionOutline(ExpressionChildrenHavingBase):
+    """ Outlined code.
+
+        This is for a call to a piece of code to be executed in a specific
+        context. It contains an exclusively owned function body, that has
+        no other references, and can be considered part of the calling
+        context.
+
+        It may return a value, although if that value is not used, it also
+        may not do that. We might use a similar statement for that case.
+    """
+
+    kind = "EXPRESSION_FUNCTION_OUTLINE"
+
+    named_children = (
+        "outline",
+        "values"
+    )
+
+    def __init__(self, outline, values, source_ref):
+        assert outline.isExpressionOutlineBody()
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "outline" : outline,
+                "values"  : tuple(values),
+            },
+            source_ref = source_ref
+        )
+
+    def computeExpressionRaw(self, constraint_collection):
+        values = self.getArgumentValues()
+
+        # TODO: The base class compute expression should do the same, and the
+        # checks in other classes should be moved to there.
+        for count, value in enumerate(values):
+            value = constraint_collection.onExpression(
+                expression = value
+            )
+
+            if value.willRaiseException(BaseException):
+                values = self.getArgumentValues()
+
+                result = wrapExpressionWithSideEffects(
+                    side_effects = list(values[:count]),
+                    new_node     = value,
+                    old_node     = self
+                )
+
+                return result, "new_raise", "Called outline arguments raise"
+
+        # Might have changed.
+        values = self.getArgumentValues()
+
+        outline_body = self.getOutlineBody()
+
+        owning_module = outline_body.getParentModule()
+
+        # Make sure the owning module is added to the used set. This is most
+        # important for helper functions, or modules, which otherwise have
+        # become unused.
+        from nuitka.ModuleRegistry import addUsedModule
+        addUsedModule(owning_module)
+
+        statements_sequence = outline_body.getBody()
+
+        if statements_sequence is not None and \
+           not statements_sequence.getStatements():
+            outline_body.setStatements(None)
+            statements_sequence = None
+
+        assert statements_sequence is not None
+
+        if statements_sequence is not None:
+            result = statements_sequence.computeStatementsSequence(
+                constraint_collection = constraint_collection
+            )
+
+            if result is not statements_sequence:
+                outline_body.setBody(result)
+
+        # TODO: Function outline may become too trivial to outline..
+        return self, None, None
+
+    getOutlineBody = ExpressionChildrenHavingBase.childGetter("outline")
+    getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
+
+
 # Needed for Python3.3 and higher
 class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
                                     NodeBase):
@@ -753,8 +919,6 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
         self.function_body = function_body
 
     def computeExpression(self, constraint_collection):
-        from .NodeMakingHelpers import makeConstantReplacementNode
-
         result = makeConstantReplacementNode(
             node     = self,
             constant = self.function_body.getFunctionQualname()

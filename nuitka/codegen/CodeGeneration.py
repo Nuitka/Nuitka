@@ -35,7 +35,7 @@ from .AttributeCodes import generateAttributeLookupCode
 from .CallCodes import generateCallCode
 from .ConditionalCodes import generateConditionCode
 from .ConstantCodes import generateConstantReferenceCode
-from .ErrorCodes import getErrorExitBoolCode
+from .ErrorCodes import getErrorExitBoolCode, getMustNotGetHereCode
 from .ModuleCodes import generateModuleFileAttributeCode
 from .OperationCodes import (
     generateOperationBinaryCode,
@@ -383,6 +383,47 @@ def generateFunctionCallCode(to_name, call_node, emit, context):
         emit                = emit,
         context             = context
     )
+
+
+def generateFunctionOutlineCode(to_name, outline_node, emit, context):
+    outline_body = outline_node.getOutlineBody()
+    assert outline_body.isExpressionOutlineBody()
+
+    old_return_release_mode = context.getReturnReleaseMode()
+
+    return_target = context.allocateLabel("outline_result")
+    old_return_target = context.setReturnTarget(return_target)
+
+    return_value_name = context.allocateTempName("outline_return_value")
+    old_return_value_name = context.setReturnValueName(return_value_name)
+
+    # TODO: Need to set return target, to assign to_name from.
+    generateStatementSequenceCode(
+        statement_sequence = outline_body.getBody(),
+        emit               = emit,
+        context            = context,
+        allow_none         = False
+    )
+
+    getMustNotGetHereCode(
+        reason  = "Return statement must have exited already.",
+        context = context,
+        emit    = emit
+    )
+
+    Generator.getLabelCode(return_target, emit)
+    emit(
+        "%s = %s;" % (
+            to_name,
+            return_value_name
+        )
+    )
+
+    context.addCleanupTempName(to_name)
+
+    context.setReturnTarget(old_return_target)
+    context.setReturnReleaseMode(old_return_release_mode)
+    context.setReturnValueName(old_return_value_name)
 
 _generated_functions = {}
 
@@ -871,6 +912,13 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             call_node = expression,
             emit      = emit,
             context   = context
+        )
+    elif expression.isExpressionFunctionOutline():
+        generateFunctionOutlineCode(
+            to_name      = to_name,
+            outline_node = expression,
+            emit         = emit,
+            context      = context
         )
     elif expression.isExpressionBuiltinNext1():
         value_name = context.allocateTempName("next1_arg")
@@ -3702,8 +3750,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             context               = context
         ).split('\n')
     elif guard_mode == "pass_through":
-        assert provider.isExpressionFunctionBody()
-
         # This case does not care about "needs_preserve", as for that kind
         # of frame, it is an empty code stub anyway.
         codes = '\n'.join(local_emit.codes),

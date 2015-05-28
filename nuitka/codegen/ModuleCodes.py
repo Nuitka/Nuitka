@@ -112,6 +112,9 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
         for tmp_name, tmp_type in
         context.getTempNameInfos()
     ]
+    for tmp_name, tmp_type in context.getTempNameInfos():
+        if tmp_name.startswith("tmp_outline_return_value_"):
+            local_var_inits.append("%s = NULL;" % tmp_name)
 
     local_var_inits += context.getFrameDeclarations()
 
