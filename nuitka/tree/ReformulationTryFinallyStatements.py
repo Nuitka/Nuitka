@@ -66,10 +66,9 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         )
         popBuildContext()
 
-        return StatementTryFinally(
+        return makeTryFinallyStatement(
             tried      = build_tried(),
             final      = final,
-            public_exc = Utils.python_version >= 300, # TODO: Use below code
             source_ref = source_ref
         )
     else:

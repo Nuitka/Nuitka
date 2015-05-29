@@ -37,7 +37,6 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
@@ -51,6 +50,7 @@ from .Helpers import (
     makeDictCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement,
     mangleName,
     popIndicatorVariable,
     pushIndicatorVariable
@@ -403,14 +403,9 @@ def addFunctionVariableReleases(function):
                 statement = body
             )
 
-        body = StatementTryFinally(
+        body = makeTryFinallyStatement(
             tried      = body,
-            final      = makeStatementsSequence(
-                statements = releases,
-                allow_none = False,
-                source_ref = source_ref
-            ),
-            public_exc = False,
+            final      = releases,
             source_ref = source_ref
         )
 

@@ -44,7 +44,6 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
     ExpressionBuiltinLocals
 )
-from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
@@ -56,7 +55,8 @@ from .Helpers import (
     getKind,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
-    makeStatementsSequenceFromStatements
+    makeStatementsSequenceFromStatements,
+    makeTryFinallyStatement
 )
 
 
@@ -487,51 +487,46 @@ exec: arg 1 must be a string, file, or code object""",
             no_branch  = None,
             source_ref = source_ref
         ),
-        StatementTryFinally(
-            tried      = makeStatementsSequenceFromStatement(
-                statement = StatementExec(
-                    source_code = ExpressionTempVariableRef(
-                        variable   = source_variable,
-                        source_ref = source_ref
-                    ),
-                    globals_arg = ExpressionTempVariableRef(
-                        variable   = globals_keeper_variable,
-                        source_ref = source_ref
-                    ),
-                    locals_arg  = ExpressionTempVariableRef(
-                        variable   = locals_keeper_variable,
-                        source_ref = source_ref
-                    ),
-                    source_ref  = source_ref
-                )
-            ),
-            final      = makeStatementsSequenceFromStatements(
-                StatementConditional(
-                    condition  = ExpressionComparisonIs(
-                        left       = ExpressionTempVariableRef(
-                            variable   = plain_indicator_variable,
-                            source_ref = source_ref
-                        ),
-                        right      = ExpressionConstantRef(
-                            constant   = True,
-                            source_ref = source_ref
-                        ),
-                        source_ref = source_ref
-                    ),
-                    yes_branch = makeStatementsSequenceFromStatement(
-                        statement = StatementLocalsDictSync(
-                            locals_arg = ExpressionTempVariableRef(
-                                variable   = locals_keeper_variable,
-                                source_ref = source_ref,
-                            ),
-                            source_ref = source_ref.atInternal()
-                        )
-                    ),
-                    no_branch  = None,
+        makeTryFinallyStatement(
+            tried      = StatementExec(
+                source_code = ExpressionTempVariableRef(
+                    variable   = source_variable,
                     source_ref = source_ref
                 ),
+                globals_arg = ExpressionTempVariableRef(
+                    variable   = globals_keeper_variable,
+                    source_ref = source_ref
+                ),
+                locals_arg  = ExpressionTempVariableRef(
+                    variable   = locals_keeper_variable,
+                    source_ref = source_ref
+                ),
+                source_ref  = source_ref
             ),
-            public_exc = False,
+            final      = StatementConditional(
+                condition  = ExpressionComparisonIs(
+                    left       = ExpressionTempVariableRef(
+                        variable   = plain_indicator_variable,
+                        source_ref = source_ref
+                    ),
+                    right      = ExpressionConstantRef(
+                        constant   = True,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_branch = makeStatementsSequenceFromStatement(
+                    statement = StatementLocalsDictSync(
+                        locals_arg = ExpressionTempVariableRef(
+                            variable   = locals_keeper_variable,
+                            source_ref = source_ref,
+                        ),
+                        source_ref = source_ref.atInternal()
+                    )
+                ),
+                no_branch  = None,
+                source_ref = source_ref
+            ),
             source_ref = source_ref
         )
     )
@@ -555,10 +550,9 @@ exec: arg 1 must be a string, file, or code object""",
         ),
     )
 
-    return StatementTryFinally(
+    return makeTryFinallyStatement(
         tried      = tried,
         final      = final,
-        public_exc = False,
         source_ref = source_ref
     )
 

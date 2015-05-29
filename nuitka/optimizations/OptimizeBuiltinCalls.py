@@ -108,7 +108,6 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinSuper,
@@ -122,7 +121,8 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.Options import isDebug, shallMakeModule
 from nuitka.tree.Helpers import (
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement
+    makeStatementsSequenceFromStatement,
+    makeTryFinallyStatement
 )
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.utils.Utils import python_version
@@ -560,10 +560,9 @@ if python_version < 300:
 
             outline_body.setBody(
                 makeStatementsSequenceFromStatement(
-                    statement = StatementTryFinally(
+                    statement = makeTryFinallyStatement(
                         tried      = tried,
                         final      = final,
-                        public_exc = False,
                         source_ref = source_ref
                     )
                 )
@@ -727,10 +726,9 @@ def eval_extractor(node):
 
         outline_body.setBody(
             makeStatementsSequenceFromStatement(
-                statement = StatementTryFinally(
+                statement = makeTryFinallyStatement(
                     tried      = tried,
                     final      = final,
-                    public_exc = False,
                     source_ref = source_ref
                 )
             )
@@ -793,10 +791,9 @@ if python_version >= 300:
 
             outline_body.setBody(
                 makeStatementsSequenceFromStatement(
-                    statement = StatementTryFinally(
+                    statement = makeTryFinallyStatement(
                         tried      = tried,
                         final      = final,
-                        public_exc = False,
                         source_ref = source_ref
                     )
                 )
