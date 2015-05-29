@@ -156,7 +156,6 @@ def buildPrintNode(provider, node, source_ref):
                 tried      = print_statements,
                 final      = StatementReleaseVariable(
                     variable   = tmp_target_variable,
-                    tolerant   = False,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref

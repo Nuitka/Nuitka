@@ -640,7 +640,6 @@ def buildReturnNode(provider, node, source_ref):
             tried      = statements,
             final      = StatementReleaseVariable(
                 variable   = tmp_variable,
-                tolerant   = True,
                 source_ref = source_ref
             ),
             source_ref = source_ref

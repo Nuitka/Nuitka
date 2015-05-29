@@ -380,7 +380,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             nested_statements.append(
                 StatementReleaseVariable(
                     variable   = tmp_iter_variable,
-                    tolerant   = False,
                     source_ref = source_ref
                 )
             )
@@ -404,7 +403,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
     release_statements = [
         StatementReleaseVariable(
             variable   = tmp_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
         for tmp_variable in

@@ -281,7 +281,6 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         final_statements.append(
             StatementReleaseVariable(
                 variable   = source_iter_var,
-                tolerant   = True,
                 source_ref = source_ref
             )
         )
@@ -291,7 +290,6 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             final_statements.append(
                 StatementReleaseVariable(
                     variable   = element_var,
-                    tolerant   = True,
                     source_ref = source_ref
                 )
             )
@@ -482,15 +480,12 @@ def buildAssignNode(provider, node, source_ref):
                 )
             )
 
-        final_statements = StatementReleaseVariable(
-            variable   = tmp_source,
-            tolerant   = True,
-            source_ref = source_ref
-        )
-
         return makeTryFinallyStatement(
             tried      = statements,
-            final      = final_statements,
+            final      = StatementReleaseVariable(
+                variable   = tmp_source,
+                source_ref = source_ref
+            ),
             source_ref = source_ref
         )
 
@@ -696,7 +691,6 @@ def _buildInplaceAssignAttributeNode(lookup_source, attribute_name,
         tried      = copy_back_from_tmp,
         final      = StatementReleaseVariable(
             variable   = tmp_variable2,
-            tolerant   = False,
             source_ref = source_ref
         ),
         source_ref = source_ref
@@ -712,7 +706,6 @@ def _buildInplaceAssignAttributeNode(lookup_source, attribute_name,
             ),
             final      = StatementReleaseVariable(
                 variable   = tmp_variable1,
-                tolerant   = False,
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -782,12 +775,10 @@ def _buildInplaceAssignSubscriptNode(subscribed, subscript, tmp_variable1,
             final      = (
                 StatementReleaseVariable(
                     variable   = tmp_variable1,
-                    tolerant   = False,
                     source_ref = source_ref
                 ),
                 StatementReleaseVariable(
                     variable   = tmp_variable2,
-                    tolerant   = True,
                     source_ref = source_ref
                 )
             ),
@@ -817,7 +808,6 @@ def _buildInplaceAssignSliceNode(lookup_source, lower, upper, tmp_variable1,
     final_statements = [
         StatementReleaseVariable(
             variable   = tmp_variable1,
-            tolerant   = False,
             source_ref = source_ref
         )
     ]
@@ -837,7 +827,6 @@ def _buildInplaceAssignSliceNode(lookup_source, lower, upper, tmp_variable1,
         final_statements.append(
             StatementReleaseVariable(
                 variable   = tmp_variable2,
-                tolerant   = True,
                 source_ref = source_ref
             )
         )
@@ -869,7 +858,6 @@ def _buildInplaceAssignSliceNode(lookup_source, lower, upper, tmp_variable1,
         final_statements.append(
             StatementReleaseVariable(
                 variable   = tmp_variable3,
-                tolerant   = True,
                 source_ref = source_ref
             )
         )

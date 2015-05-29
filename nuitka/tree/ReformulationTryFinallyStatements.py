@@ -172,7 +172,6 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                     statements = (
                         StatementReleaseVariable(
                             variable   = tmp_indicator_var,
-                            tolerant   = False,
                             source_ref = source_ref.atInternal()
                         ),
                         StatementReraiseFrameException(
@@ -185,7 +184,6 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
                     statements = (
                         StatementReleaseVariable(
                             variable   = tmp_indicator_var,
-                            tolerant   = False,
                             source_ref = source_ref.atInternal()
                         ),
                     ),

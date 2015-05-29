@@ -134,7 +134,6 @@ def buildLambdaNode(provider, node, source_ref):
                 tried      = statements,
                 final      = StatementReleaseVariable(
                     variable   = tmp_return_value,
-                    tolerant   = True,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref

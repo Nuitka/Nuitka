@@ -391,7 +391,6 @@ def addFunctionVariableReleases(function):
         releases.append(
             StatementReleaseVariable(
                 variable   = variable,
-                tolerant   = True,
                 source_ref = source_ref
             )
         )

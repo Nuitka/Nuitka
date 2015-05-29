@@ -562,22 +562,18 @@ def _buildClassNode3(provider, node, source_ref):
     final = (
         StatementReleaseVariable(
             variable   = tmp_bases,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_class_decl_dict,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_metaclass,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_prepared,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -835,22 +831,18 @@ def _buildClassNode2(provider, node, source_ref):
     final = (
         StatementReleaseVariable(
             variable   = tmp_class,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_bases,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_class_dict,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_metaclass,
-            tolerant   = True,
             source_ref = source_ref
         )
     )

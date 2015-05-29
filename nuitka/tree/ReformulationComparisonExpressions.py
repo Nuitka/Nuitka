@@ -93,7 +93,6 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
         source_ref = source_ref
     )
 
-
     variables = [
         outline_body.allocateTempVariable(
             temp_scope = None,
@@ -121,7 +120,6 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     def makeReleaseStatement(count):
         return StatementReleaseVariable(
             variable   = variables[count],
-            tolerant   = True,
             source_ref = source_ref
         )
 
@@ -210,7 +208,6 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
             final.append(
                 StatementReleaseVariable(
                     variable   = tmp_variable,
-                    tolerant   = True,
                     source_ref = source_ref
                 )
             )

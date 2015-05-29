@@ -275,22 +275,18 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         final      = (
             StatementReleaseVariable(
                 variable   = tmp_source_variable,
-                tolerant   = True,
                 source_ref = source_ref
             ),
             StatementReleaseVariable(
                 variable   = tmp_enter_variable,
-                tolerant   = True,
                 source_ref = source_ref
             ),
             StatementReleaseVariable(
                 variable   = tmp_exit_variable,
-                tolerant   = True,
                 source_ref = source_ref
             ),
             StatementReleaseVariable(
                 variable   = tmp_indicator_variable,
-                tolerant   = True,
                 source_ref = source_ref
             ),
         ),

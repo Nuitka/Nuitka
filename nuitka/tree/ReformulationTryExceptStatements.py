@@ -132,7 +132,6 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
 
     final = StatementReleaseVariable(
         variable   = tmp_handler_indicator_variable,
-        tolerant   = False,
         source_ref = source_ref.atInternal()
     ),
 

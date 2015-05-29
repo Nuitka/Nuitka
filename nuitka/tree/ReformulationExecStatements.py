@@ -106,12 +106,10 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
     post_statements += [
         StatementReleaseVariable(
             variable   = globals_keeper_variable,
-            tolerant   = False,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = locals_keeper_variable,
-            tolerant   = False,
             source_ref = source_ref
         )
     ]
@@ -541,22 +539,18 @@ exec: arg 1 must be a string, file, or code object""",
     final = makeStatementsSequenceFromStatements(
         StatementReleaseVariable(
             variable   = source_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = globals_keeper_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = locals_keeper_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = plain_indicator_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
     )

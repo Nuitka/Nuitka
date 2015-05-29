@@ -171,12 +171,10 @@ def buildForLoopNode(provider, node, source_ref):
     cleanup_statements = [
         StatementReleaseVariable(
             variable   = tmp_value_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_iter_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     ]
@@ -249,7 +247,6 @@ def buildForLoopNode(provider, node, source_ref):
                 tried      = statements,
                 final      = StatementReleaseVariable(
                     variable   = tmp_break_indicator,
-                    tolerant   = False,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -381,7 +378,6 @@ def buildWhileLoopNode(provider, node, source_ref):
                 tried      = statements,
                 final      = StatementReleaseVariable(
                     variable   = tmp_break_indicator,
-                    tolerant   = False,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref

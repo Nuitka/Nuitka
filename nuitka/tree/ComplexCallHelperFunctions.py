@@ -669,22 +669,18 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     final = (
         StatementReleaseVariable(
             variable   = tmp_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_iter_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_keys_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_key_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -766,22 +762,18 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     final = [
         StatementReleaseVariable(
             variable   = tmp_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_iter_variable,
-            tolerant   = True,
             source_ref = source_ref,
         ),
         StatementReleaseVariable(
             variable   = tmp_keys_variable,
-            tolerant   = True,
             source_ref = source_ref,
         ),
         StatementReleaseVariable(
             variable   = tmp_key_variable,
-            tolerant   = True,
             source_ref = source_ref,
         )
     ]
@@ -992,17 +984,14 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     final += [
         StatementReleaseVariable(
             variable   = tmp_iter_variable,
-            tolerant   = True,
             source_ref = source_ref,
         ),
         StatementReleaseVariable(
             variable   = tmp_item_variable,
-            tolerant   = True,
             source_ref = source_ref,
         ),
         StatementReleaseVariable(
             variable   = tmp_key_variable,
-            tolerant   = True,
             source_ref = source_ref,
         )
     ]
@@ -1310,12 +1299,10 @@ def getFunctionCallHelperStarList():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1426,17 +1413,14 @@ def getFunctionCallHelperKeywordsStarList():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1551,17 +1535,14 @@ def getFunctionCallHelperPosStarList():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1685,22 +1666,18 @@ def getFunctionCallHelperPosKeywordsStarList():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1815,12 +1792,10 @@ def getFunctionCallHelperStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1945,17 +1920,14 @@ def getFunctionCallHelperPosStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2105,17 +2077,14 @@ def getFunctionCallHelperKeywordsStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2275,22 +2244,18 @@ def getFunctionCallHelperPosKeywordsStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2403,17 +2368,14 @@ def getFunctionCallHelperStarListStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2541,22 +2503,18 @@ def getFunctionCallHelperPosStarListStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2680,22 +2638,18 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2832,27 +2786,22 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
