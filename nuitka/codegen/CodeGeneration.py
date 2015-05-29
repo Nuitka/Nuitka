@@ -2066,13 +2066,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             emit              = emit,
             context           = context
         )
-    elif expression.isExpressionTryFinally():
-        generateTryFinallyCode(
-            to_name   = to_name,
-            statement = expression,
-            emit      = emit,
-            context   = context
-        )
     elif expression.isExpressionRaiseException():
         # Missed optimization opportunity, please report.
         if Options.isDebug():
@@ -3451,7 +3444,7 @@ def _generateStatementCode(statement, emit, context):
         )
     elif statement.isStatementTryFinally():
         generateTryFinallyCode(
-            to_name   = None, # Not a try/finally expression.
+            to_name   = None,
             statement = statement,
             emit      = emit,
             context   = context
