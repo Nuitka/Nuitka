@@ -27,10 +27,7 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionOutline,
-    ExpressionOutlineBody
-)
+from nuitka.nodes.FunctionNodes import ExpressionOutlineBody
 from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -222,8 +219,4 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
         )
     )
 
-    return ExpressionFunctionOutline(
-        outline    = outline_body,
-        values     = (),
-        source_ref = source_ref
-    )
+    return outline_body

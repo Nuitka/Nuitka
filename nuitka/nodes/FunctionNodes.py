@@ -56,6 +56,16 @@ from .ParameterSpecs import TooManyArguments, matchCall
 
 
 class ExpressionOutlineBody(ExpressionChildrenHavingBase):
+    """ Outlined code.
+
+        This is for a call to a piece of code to be executed in a specific
+        context. It contains an exclusively owned function body, that has
+        no other references, and can be considered part of the calling
+        context.
+
+        It must return a value, to use as expression value.
+    """
+
     kind = "EXPRESSION_OUTLINE_BODY"
 
     named_children = (
@@ -85,14 +95,17 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
 
-    def allocateTempVariable(self, temp_scope, name):
+    def getOutlineTempScope(self):
         # We use our own name as a temp_scope, cached from the parent, if the
         # scope is None.
-        if temp_scope is None:
-            if self.temp_scope is None:
-                self.temp_scope = self.provider.allocateTempScope(self.name)
+        if self.temp_scope is None:
+            self.temp_scope = self.provider.allocateTempScope(self.name)
 
-            temp_scope = self.temp_scope
+        return self.temp_scope
+
+    def allocateTempVariable(self, temp_scope, name):
+        if temp_scope is None:
+            temp_scope = self.getOutlineTempScope()
 
         return self.provider.allocateTempVariable(
             temp_scope = temp_scope,
@@ -105,6 +118,29 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         return self.provider.allocateTempScope(
             name = self.name + '$' + name
         )
+
+    def computeExpressionRaw(self, constraint_collection):
+        owning_module = self.getParentModule()
+
+        # Make sure the owning module is added to the used set. This is most
+        # important for helper functions, or modules, which otherwise have
+        # become unused.
+        from nuitka.ModuleRegistry import addUsedModule
+        addUsedModule(owning_module)
+
+        statements_sequence = self.getBody()
+        assert statements_sequence is not None
+
+        if statements_sequence is not None:
+            result = statements_sequence.computeStatementsSequence(
+                constraint_collection = constraint_collection
+            )
+
+            if result is not statements_sequence:
+                self.setBody(result)
+
+        # TODO: Function outline may become too trivial to outline..
+        return self, None, None
 
 
 class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
@@ -816,95 +852,6 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         return self, None, None
 
     getFunction = ExpressionChildrenHavingBase.childGetter("function")
-    getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
-
-
-class ExpressionFunctionOutline(ExpressionChildrenHavingBase):
-    """ Outlined code.
-
-        This is for a call to a piece of code to be executed in a specific
-        context. It contains an exclusively owned function body, that has
-        no other references, and can be considered part of the calling
-        context.
-
-        It may return a value, although if that value is not used, it also
-        may not do that. We might use a similar statement for that case.
-    """
-
-    kind = "EXPRESSION_FUNCTION_OUTLINE"
-
-    named_children = (
-        "outline",
-        "values"
-    )
-
-    def __init__(self, outline, values, source_ref):
-        assert outline.isExpressionOutlineBody()
-
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "outline" : outline,
-                "values"  : tuple(values),
-            },
-            source_ref = source_ref
-        )
-
-    def computeExpressionRaw(self, constraint_collection):
-        values = self.getArgumentValues()
-
-        # TODO: The base class compute expression should do the same, and the
-        # checks in other classes should be moved to there.
-        for count, value in enumerate(values):
-            value = constraint_collection.onExpression(
-                expression = value
-            )
-
-            if value.willRaiseException(BaseException):
-                values = self.getArgumentValues()
-
-                result = wrapExpressionWithSideEffects(
-                    side_effects = list(values[:count]),
-                    new_node     = value,
-                    old_node     = self
-                )
-
-                return result, "new_raise", "Called outline arguments raise"
-
-        # Might have changed.
-        values = self.getArgumentValues()
-
-        outline_body = self.getOutlineBody()
-
-        owning_module = outline_body.getParentModule()
-
-        # Make sure the owning module is added to the used set. This is most
-        # important for helper functions, or modules, which otherwise have
-        # become unused.
-        from nuitka.ModuleRegistry import addUsedModule
-        addUsedModule(owning_module)
-
-        statements_sequence = outline_body.getBody()
-
-        if statements_sequence is not None and \
-           not statements_sequence.getStatements():
-            outline_body.setStatements(None)
-            statements_sequence = None
-
-        assert statements_sequence is not None
-
-        if statements_sequence is not None:
-            result = statements_sequence.computeStatementsSequence(
-                constraint_collection = constraint_collection
-            )
-
-            if result is not statements_sequence:
-                outline_body.setBody(result)
-
-        # TODO: Function outline may become too trivial to outline..
-        return self, None, None
-
-    getOutlineBody = ExpressionChildrenHavingBase.childGetter("outline")
     getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
 

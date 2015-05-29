@@ -385,10 +385,10 @@ def generateFunctionCallCode(to_name, call_node, emit, context):
     )
 
 
-def generateFunctionOutlineCode(to_name, outline_node, emit, context):
-    outline_body = outline_node.getOutlineBody()
+def generateFunctionOutlineCode(to_name, outline_body, emit, context):
     assert outline_body.isExpressionOutlineBody()
 
+    # Need to set return target, to assign to_name from.
     old_return_release_mode = context.getReturnReleaseMode()
 
     return_target = context.allocateLabel("outline_result")
@@ -397,7 +397,6 @@ def generateFunctionOutlineCode(to_name, outline_node, emit, context):
     return_value_name = context.allocateTempName("outline_return_value")
     old_return_value_name = context.setReturnValueName(return_value_name)
 
-    # TODO: Need to set return target, to assign to_name from.
     generateStatementSequenceCode(
         statement_sequence = outline_body.getBody(),
         emit               = emit,
@@ -421,6 +420,7 @@ def generateFunctionOutlineCode(to_name, outline_node, emit, context):
 
     context.addCleanupTempName(to_name)
 
+    # Restore previous "return" handling.
     context.setReturnTarget(old_return_target)
     context.setReturnReleaseMode(old_return_release_mode)
     context.setReturnValueName(old_return_value_name)
@@ -913,10 +913,10 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             emit      = emit,
             context   = context
         )
-    elif expression.isExpressionFunctionOutline():
+    elif expression.isExpressionOutlineBody():
         generateFunctionOutlineCode(
             to_name      = to_name,
-            outline_node = expression,
+            outline_body = expression,
             emit         = emit,
             context      = context
         )

@@ -41,7 +41,6 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
-    ExpressionFunctionOutline,
     ExpressionFunctionRef,
     ExpressionOutlineBody
 )
@@ -536,8 +535,4 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             source_ref = source_ref
         )
     else:
-        return ExpressionFunctionOutline(
-            outline    = function_body,
-            values     = (),
-            source_ref = source_ref
-        )
+        return function_body
