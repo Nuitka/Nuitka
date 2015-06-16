@@ -237,7 +237,7 @@ else
         {
             PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[ i ];
 
-            if (unlikely( !PyUnicode_Check( entry->me_key ) ))
+            if ( ( entry->me_key != NULL ) && unlikely( !PyUnicode_Check( entry->me_key ) ))
             {
                 PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
                 goto error_exit;
