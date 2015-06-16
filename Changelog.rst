@@ -1,7 +1,156 @@
 Nuitka Release 0.5.14 (Draft)
 =============================
 
-This release is not done yet.
+This release has a focus on working towards eliminating the ``try``/``finally``
+as it imposes complications for SSA trace optimization, and shall be replaced
+by other means. There are also a few bug fixes.
+
+Bug Fixes
+---------
+
+- Python3: Added support assignments trailing star assignment.
+
+  .. code-block:: python
+
+      *a, b = 1, 2
+
+  This raised ``ValueError`` before.
+
+- Python3: Properly detect illegal double star assignments.
+
+  .. code-block:: python
+
+      *a, *b = c
+
+- Python3: Properly detect the syntax error to star assign from non-tuple/list.
+
+  .. code-block:: python
+
+      *a = 1
+
+- Python3.4: Fixed a crash of the binary when copying dictionaries with split
+  tables received as star arguments.
+
+- Windows: Fix, the flag ``--disable-windows-console`` was not properly handled
+  for MinGW32 run time resulting in a crash.
+
+- Python2.7.10: Was not recognizing this as a 2.7.x variant and therefore not
+  applying minor version compatibility levels properly.
+
+Optimization
+------------
+
+- The re-formulation for ``or`` and ``and`` has been giving up, eliminating the
+  use of a ``try``/``finally`` expression, at the cost of dedicated boolean
+  nodes and code generation for these.
+
+  This saves around 8% of compile time memory for Nuitka, and allows for faster
+  and more complete optimization, and gets rid of a complicated structure for
+  analysis.
+
+- When a frame is used in an exception, its locals are detached. This was done
+  more often than necessary and even for frames that are not necessary our own
+  ones. This will speed up some exception cases.
+
+- When the default arguments, or the keyword default arguments (Python3) or
+  the annotations (Python3) were raising an exception, the function definition
+  is now replaced with the exception, saving a code generation. This happens
+  frequently with Python2/Python3 compatible code guarded by version checks.
+
+- The SSA analysis for loops now properly traces "break" statement situations
+  and merges the post-loop situation from all of them. This significantly
+  allows for and improves optimization of code following the loop.
+
+- The SSA analysis of ``try``/``finally`` statements has been greatly enhanced.
+  The handler for ``finally`` is now optimized for exception raise and no
+  exception raise individually, as well as for ``break``, ``continue`` and
+  ``return`` in the tried code. The SSA analysis for after the statement is now
+  the result of merging these different cases, should they not abort.
+
+- The code generation for `del` statements is now taking advantage should there
+  be definite knowledge of previous value. This speed them up slightly.
+
+- The SSA analysis of `del` statements now properly decided if the statement
+  can raise or not, allowing for more optimization.
+
+
+Cleanups
+--------
+
+- Moved more parts of code generation to their own modules, and used registry
+  for code generation for more expression kinds.
+
+- Unified ``try``/``except`` and ``try``/``finally`` into a single construct
+  that handles both through ``try``/``except``/``break``/``continue``/``return``
+  semantics. Finally is now solved via duplicating the handler into cases
+  necessary.
+
+  No longer are nodes annotated with information if they need to publish the
+  exception or not, this is now all done with the dedicated nodes.
+
+- The ``try``/``finally`` expressions have been replaced with outline function
+  bodies, that instead of side effect statements, are more like functions with
+  return values, allowing for easier analysis and dedicated code generation of
+  much lower complexity.
+
+- No more "tolerant" flag for release nodes, we now decide this fully based on
+  SSA information.
+
+- Added helper for assertions that code flow does not reach certain positions,
+  e.g. a function must return or raise, aborting statements do not continue and
+  so on.
+
+- To keep cloning of code parts as simple as possible, the limited use of
+  ``makeCloneAt`` has been changed to a new ``makeClone`` which produces
+  identical copies, which is what we always do. And a generic cloning based
+  on "details" has been added, requiring to make constructor arguments and
+  details complete and consistent.
+
+- The re-formulation code helpers have been improved to be more convenient at
+  creating nodes.
+
+- The old ``nuitka.codegen`` module ``Generator`` was still used for many
+  things. These now all got moved to appropriate code generation modules, and
+  their users got updated, also moving some code generator functions in the
+  process.
+
+- The module ``nuitka.codegen.CodeTemplates`` got replaces with direct uses
+  of the proper topic module from ``nuitka.codegen.templates``, with some
+  more added, and their names harmonized to be more easily recognizable.
+
+- Added more assertions to the generated code, to aid bug finding.
+
+Tests
+-----
+
+- The CPython3.2, CPython3.3, and CPython3.4 test suite now run with Python2
+  giving the same errors. Previously there were a few specific errors, some
+  with line numbers, some with different ``SyntaxError`` be raised, due to
+  different order of checks.
+
+  This increases the coverage of the exception raising tests somewhat.
+
+- Also the CPython3.x test suites now all pass with debug Python, as does the
+  CPython 2.6 test suite with 2.6 now.
+
+- Added tests to cover all forms of unpacking assignments supported in Python3,
+  to be sure there are no other errors unknown to us.
+
+- Started to document the reference count tests, and to make it more robust
+  against SSA optimization. This will take some time and is work in progress.
+
+- Made the compile library test robust against modules that raise a syntax
+  error, checking that Nuitka does the same.
+
+- Refined more tests to be directly execuable with Python3.
+
+Summary
+-------
+
+This release is clearly major. It represents a huge step forward for Nuitka as
+it improves nearly every aspect of code generation and analysis. Removing the
+``try``/``finally`` nodes proved to be necessary in order to even have the
+correct SSA in their cases. Very important optimization was blocked by it.
 
 
 Nuitka Release 0.5.13
