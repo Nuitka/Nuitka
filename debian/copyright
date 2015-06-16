@@ -5,7 +5,7 @@ Source: http://nuitka.net/
 
 Files: *
 Copyright: 2015 Kay Hayen <kay.hayen@gmail.com>
-License: Apache
+License: Apache+Nuitka_comment
  Part of "Nuitka", an optimizing Python compiler that is compatible and
  integrates with CPython, but also works on its own.
  .
@@ -26,7 +26,7 @@ License: Apache
 
 Files: tests/basics/* tests/programs/* tests/reflected/* tests/type_inference/*
 Copyright: 2015 Kay Hayen <kay.hayen@gmail.com>
-License: Apache
+License: Apache+Nuitka_test_origin
  Python tests originally created or extracted from other peoples work. The
  parts were too small to be protected.
  .
@@ -72,7 +72,7 @@ License: BSD-3-clause
 
 Files: nuitka/containers/oset.py
 Copyright: 2009 Raymond Hettinger
-License: MIT
+License: MIT+Hettinger
  Permission is hereby granted, free of charge, to any person obtaining
  a copy of this software and associated documentation files (the
  "Software"), to deal in the Software without restriction, including
@@ -94,7 +94,7 @@ License: MIT
 
 Files: nuitka/build/static_src/arm_ucontext_src/*
 Copyright: Russ Cox, Massachusetts Institute of Technology
-License: MIT
+License: MIT+Cox
  This software was developed as part of a project at MIT.
  .
  Copyright (c) 2005-2007 Russ Cox,

@@ -55,6 +55,11 @@ python_version_full_str = '.'.join(str(s) for s in sys.version_info[0:3])
 python_version_str = '.'.join(str(s) for s in sys.version_info[0:2])
 
 def isAtLeastSubVersion(version):
+    if version < 280 and \
+       python_version >= 280 and \
+       python_version < 300:
+        return True
+
     if version // 10 != python_version // 10:
         return False
 

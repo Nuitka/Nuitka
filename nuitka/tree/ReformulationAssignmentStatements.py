@@ -53,6 +53,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
+from nuitka.tree.SyntaxErrors import raiseSyntaxError
 from nuitka.utils import Utils
 
 from .Helpers import (
@@ -299,6 +300,12 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             tried      = statements,
             final      = final_statements,
             source_ref = source_ref
+        )
+    elif kind == "Starred":
+        raiseSyntaxError(
+            reason = "starred assignment target must be in a list or tuple",
+            source_ref = source_ref,
+            col_offset = 0
         )
     else:
         assert False, (kind, source_ref, detail)

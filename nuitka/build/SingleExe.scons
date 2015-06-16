@@ -410,8 +410,8 @@ if os.name != "nt" and env["CXX"] is None:
     # Try out the Debian names, as no "gcc" default compiler package needs to
     # be installed.
 
-    for candidate in ("g++-4.9", "g++-4.8", "g++-4.7", "g++-4.6", "g++-4.5",
-                      "g++-4.4", "g++44", "clang", "eg++"):
+    for candidate in ("g++-5.1", "g++-4.9", "g++-4.8", "g++-4.7", "g++-4.6",
+                      "g++-4.5", "g++-4.4", "g++44", "clang", "eg++"):
 
         for system_path in ("/usr/bin", "/usr/local/bin"):
             if os.path.exists(os.path.join(system_path, candidate)):
