@@ -123,9 +123,8 @@ class SourceCodeReference(object):
     def getAsString(self):
         return "%s:%s" % (self.filename, self.line)
 
-
     def isInternal(self):
-        return not self.internal
+        return self.internal
 
 
 def fromFilename(filename):
