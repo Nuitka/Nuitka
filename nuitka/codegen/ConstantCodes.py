@@ -328,7 +328,7 @@ def __addConstantInitCode(context, emit, check, constant_type, constant_value,
         constants belong into the same scope.
     """
     # This has many cases, that all return, and do a lot.
-    # pylint: disable=R0911,R0912,R0915,R0914
+    # pylint: disable=R0911,R0912,R0914,R0915
 
     # For the module level, we only mean to create constants that are used only
     # inside of it. For the global level, it must must be single use.

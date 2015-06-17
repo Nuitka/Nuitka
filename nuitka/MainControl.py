@@ -266,7 +266,7 @@ standalone_entry_points = []
 
 def makeSourceDirectory(main_module):
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0914,R0912
+    # no sense, pylint: disable=R0912,R0914
 
     assert main_module.isPythonModule()
 

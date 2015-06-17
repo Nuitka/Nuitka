@@ -27,7 +27,7 @@ from . import Generator
 
 def generateConditionCode(condition, emit, context):
     # The complexity is needed to avoid unnecessary complex generated C++
-    # pylint: disable=R0915,R0914
+    # pylint: disable=R0914,R0915
 
     # TODO: This will move to Helper module
     from .CodeGeneration import generateExpressionCode

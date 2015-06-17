@@ -29,7 +29,7 @@ Python at all.
 It was originally downloaded from http://code.activestate.com/recipes/576694/
 """
 
-# pylint: disable=W0622,W0221
+# pylint: disable=W0221,W0622
 
 import collections
 

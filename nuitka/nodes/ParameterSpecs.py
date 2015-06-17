@@ -334,7 +334,7 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
               positional, pairs, improved = False):
     # This is of incredible code complexity, but there really is no other way to
     # express this with less statements, branches, or variables.
-    # pylint: disable=R0914,R0912,R0915
+    # pylint: disable=R0912,R0914,R0915
 
     assert type(positional) is tuple, positional
     assert type(pairs) in (tuple, list), pairs

@@ -19,7 +19,7 @@
 
 from __future__ import print_function
 
-import sys, os, shutil
+import sys, os, shutil, re
 
 from redbaron import RedBaron  # @UnresolvedImport
 
@@ -127,6 +127,14 @@ def updateDefNode(def_node):
         argument_node.first_formatting = " "
         argument_node.second_formatting = " "
 
+def updateCommentNode(comment_node):
+
+    if "pylint:" in str(comment_node.value):
+        def replacer(part):
+            return part.group(1) + ",".join(sorted(part.group(2).split(",")))
+
+        new_value = re.sub(r"(pylint\: disable=)(.*)", replacer, str(comment_node.value), flags = re.M)
+        comment_node.value = new_value
 
 for node in red.find_all("CallNode"):
     try:
@@ -167,6 +175,15 @@ for node in red.find_all("DefNode"):
         print("Problem with", node)
         node.help(deep = True, with_formatting = True)
         raise
+
+for node in red.find_all("CommentNode"):
+    try:
+        updateCommentNode(node)
+    except Exception:
+        print("Problem with", node)
+        node.help(deep = True, with_formatting = True)
+        raise
+
 
 new_code = red.dumps()
 
