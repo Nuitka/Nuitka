@@ -256,7 +256,8 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
         "silent"
     ]
 
-    command += extra_flags
+    if extra_flags is not None:
+        command += extra_flags
 
     command += search_mode.getExtraFlags(dirname, filename)
 
