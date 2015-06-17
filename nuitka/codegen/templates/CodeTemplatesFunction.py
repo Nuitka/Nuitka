@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Normal function (no yield) related templates.
+""" Normal function (no generator, not yielding) related templates.
 
 """
 
@@ -27,7 +27,7 @@ template_function_direct_declaration = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s );
 """
 
-make_function_with_context_template = """
+template_make_function_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     // Copy the parameter default values and closure values over.
@@ -56,7 +56,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 }
 """
 
-make_function_without_context_template = """
+template_make_function_without_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     PyObject *result = Nuitka_Function_New(
@@ -133,8 +133,10 @@ function_direct_body_template = """\
 }
 """
 
-
 function_dict_setup = """\
 // Locals dictionary setup.
 PyObject *locals_dict = PyDict_New();
 """
+
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

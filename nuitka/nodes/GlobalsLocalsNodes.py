@@ -77,7 +77,7 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
                     variable
                 )
 
-                variable_trace.addUsage(self)
+                variable_trace.addUsage()
 
         return self, None, None
 

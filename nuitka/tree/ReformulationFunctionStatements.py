@@ -48,13 +48,12 @@ from .Helpers import (
     extractDocFromBody,
     getKind,
     makeDictCreationOrConstant,
-    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement,
     mangleName,
     popIndicatorVariable,
     pushIndicatorVariable
 )
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildFunctionNode(provider, node, source_ref):
@@ -105,10 +104,11 @@ def buildFunctionNode(provider, node, source_ref):
         function_statements_body = makeStatementsSequenceFromStatement(
             statement = StatementReturn(
                 expression = ExpressionConstantRef(
-                    constant   = None,
-                    source_ref = source_ref.atInternal()
+                    constant      = None,
+                    user_provided = True,
+                    source_ref    = source_ref
                 ),
-                source_ref = source_ref.atInternal()
+                source_ref = source_ref
             )
         )
     elif not function_statements_body.isStatementAborting():
@@ -117,10 +117,11 @@ def buildFunctionNode(provider, node, source_ref):
             (
                 StatementReturn(
                     expression = ExpressionConstantRef(
-                        constant   = None,
-                        source_ref = source_ref
+                        constant      = None,
+                        user_provided = True,
+                        source_ref    = source_ref
                     ),
-                    source_ref = source_ref.atInternal()
+                    source_ref = source_ref
                 ),
             )
         )
@@ -404,6 +405,7 @@ def addFunctionVariableReleases(function):
             )
 
         body = makeTryFinallyStatement(
+            provider   = function,
             tried      = body,
             final      = releases,
             source_ref = source_ref
@@ -414,3 +416,5 @@ def addFunctionVariableReleases(function):
                 statement = body
             )
         )
+
+        # assert body.isStatementAborting(), body.asXmlText()

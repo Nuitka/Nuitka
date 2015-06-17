@@ -121,10 +121,11 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.Options import isDebug, shallMakeModule
 from nuitka.tree.Helpers import (
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement
+    makeStatementsSequenceFromStatement
 )
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
+from nuitka.tree. \
+    ReformulationTryFinallyStatements import makeTryFinallyStatement
 from nuitka.utils.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage
 
@@ -222,9 +223,9 @@ def iter_extractor(node):
             )
         else:
             return ExpressionBuiltinIter2(
-                callable   = callable_arg,
-                sentinel   = sentinel,
-                source_ref = source_ref
+                callable_arg = callable_arg,
+                sentinel     = sentinel,
+                source_ref   = source_ref
             )
 
     return BuiltinOptimization.extractBuiltinArgs(
@@ -515,6 +516,7 @@ if python_version < 300:
             outline_body = ExpressionOutlineBody(
                 provider   = node.getParentVariableProvider(),
                 name       = "execfile_call",
+                body       = None, # later
                 source_ref = source_ref
             )
 
@@ -561,6 +563,7 @@ if python_version < 300:
             outline_body.setBody(
                 makeStatementsSequenceFromStatement(
                     statement = makeTryFinallyStatement(
+                        provider   = outline_body,
                         tried      = tried,
                         final      = final,
                         source_ref = source_ref
@@ -584,6 +587,7 @@ def eval_extractor(node):
         outline_body = ExpressionOutlineBody(
             provider   = node.getParentVariableProvider(),
             name       = "eval_call",
+            body       = None, # later
             source_ref = source_ref
         )
 
@@ -642,11 +646,11 @@ def eval_extractor(node):
                     ),
                     source_ref = source_ref
                 ),
-                yes_expression = ExpressionConstantRef(
+                expression_yes = ExpressionConstantRef(
                     constant   = (b" \t",),
                     source_ref = source_ref
                 ),
-                no_expression  = strip_choice,
+                expression_no  = strip_choice,
                 source_ref     = source_ref
             )
 
@@ -720,13 +724,18 @@ def eval_extractor(node):
             )
         )
 
-        tried.setStatements(
-            tried.getStatements() + statements
+        tried = makeStatementsSequence(
+            statements = (
+                tried,
+            ) + statements,
+            allow_none = False,
+            source_ref = source_ref
         )
 
         outline_body.setBody(
             makeStatementsSequenceFromStatement(
                 statement = makeTryFinallyStatement(
+                    provider   = outline_body,
                     tried      = tried,
                     final      = final,
                     source_ref = source_ref
@@ -754,6 +763,7 @@ if python_version >= 300:
             outline_body = ExpressionOutlineBody(
                 provider   = provider,
                 name       = "exec_call",
+                body       = None, # later
                 source_ref = source_ref
             )
 
@@ -789,9 +799,13 @@ if python_version >= 300:
                 source_ref = source_ref
             )
 
+            # Hack: Allow some APIs to work already
+            tried.parent = outline_body
+
             outline_body.setBody(
                 makeStatementsSequenceFromStatement(
                     statement = makeTryFinallyStatement(
+                        provider   = provider,
                         tried      = tried,
                         final      = final,
                         source_ref = source_ref
@@ -1131,8 +1145,8 @@ Replaced call to built-in '%s' with outlined call.""" % builtin_name
                     ),
                     source_ref = source_ref
                 ),
-                yes_expression = new_node,
-                no_expression  = makeRaiseExceptionReplacementExpression(
+                expression_yes = new_node,
+                expression_no  = makeRaiseExceptionReplacementExpression(
                     exception_type  = "RuntimeError",
                     exception_value = "Built-in '%s' cannot be replaced." % (
                         builtin_name

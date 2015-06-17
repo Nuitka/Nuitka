@@ -32,12 +32,6 @@ from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.Options import isDebug, shallWarnImplicitRaises
 
-from .BuiltinRefNodes import ExpressionBuiltinExceptionRef, ExpressionBuiltinRef
-from .ComparisonNodes import (
-    ExpressionComparison,
-    ExpressionComparisonIs,
-    ExpressionComparisonIsNOT
-)
 from .ConstantRefNodes import ExpressionConstantRef
 from .SideEffectNodes import ExpressionSideEffects
 from .StatementNodes import StatementExpressionOnly, StatementsSequence
@@ -58,6 +52,7 @@ def makeConstantReplacementNode(constant, node):
 def makeRaiseExceptionReplacementExpression(expression, exception_type,
                                             exception_value):
     from .ExceptionNodes import ExpressionRaiseException
+    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
     source_ref = expression.getSourceReference()
 
@@ -102,18 +97,7 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
     )
 
 
-def makeReraiseExceptionStatement(source_ref):
-    from .ExceptionNodes import StatementRaiseException
-
-    return StatementRaiseException(
-        exception_type  = None,
-        exception_value = None,
-        exception_trace = None,
-        exception_cause = None,
-        source_ref      = source_ref
-    )
-
-
+# TODO: How is this helping to make nodes.
 def isCompileTimeConstantValue(value):
     # This needs to match code in makeCompileTimeConstantReplacementNode
     if isConstant(value):
@@ -133,6 +117,8 @@ def makeCompileTimeConstantReplacementNode(value, node):
         )
     elif type(value) is type:
         if value.__name__ in builtin_names:
+            from .BuiltinRefNodes import ExpressionBuiltinRef
+
             return ExpressionBuiltinRef(
                 builtin_name = value.__name__,
                 source_ref   = node.getSourceReference()
@@ -185,12 +171,16 @@ def makeStatementExpressionOnlyReplacementNode(expression, node):
     )
 
 
-def mergeStatements(statements):
+def mergeStatements(statements, allow_none = False):
     """ Helper function that merges nested statement sequences. """
     merged_statements = []
 
     for statement in statements:
-        if statement.isStatement() or statement.isStatementsFrame():
+        if statement is None and allow_none:
+            pass
+        elif type(statement) is tuple:
+            merged_statements += mergeStatements(statement, allow_none)
+        elif statement.isStatement() or statement.isStatementsFrame():
             merged_statements.append(statement)
         elif statement.isStatementsSequence():
             merged_statements.extend(mergeStatements(statement.getStatements()))
@@ -281,6 +271,12 @@ def makeStatementOnlyNodesFromExpressions(expressions):
 
 
 def makeComparisonNode(left, right, comparator, source_ref):
+    from .ComparisonNodes import (
+        ExpressionComparison,
+        ExpressionComparisonIs,
+        ExpressionComparisonIsNOT
+    )
+
     if comparator == "Is":
         result = ExpressionComparisonIs(
             left       = left,

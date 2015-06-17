@@ -89,3 +89,6 @@ void createGlobalConstants( void )
     }
 }
 """
+
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

@@ -36,12 +36,8 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef
 )
 
-from .Helpers import (
-    buildNode,
-    getKind,
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement
-)
+from .Helpers import buildNode, getKind, makeStatementsSequenceFromStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildComparisonNode(provider, node, source_ref):
@@ -87,6 +83,7 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     outline_body = ExpressionOutlineBody(
         provider   = provider,
         name       = "comparison_chain",
+        body       = None, # later
         source_ref = source_ref
     )
 
@@ -212,6 +209,7 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     outline_body.setBody(
         makeStatementsSequenceFromStatement(
             statement = makeTryFinallyStatement(
+                provider   = outline_body,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref

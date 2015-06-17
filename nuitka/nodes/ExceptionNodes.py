@@ -25,6 +25,7 @@ from .NodeBases import (
     NodeBase,
     StatementChildrenHavingBase
 )
+from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
 class StatementRaiseException(StatementChildrenHavingBase):
@@ -107,8 +108,6 @@ Explicit raise already raises implicitly building exception type."""
         exception_value = self.getExceptionValue()
 
         if exception_value is not None and exception_value.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     exception_type,
@@ -127,8 +126,6 @@ Explicit raise already raises implicitly building exception value."""
 
         if exception_trace is not None and \
            exception_trace.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     exception_type,
@@ -148,8 +145,6 @@ Explicit raise already raises implicitly building exception traceback."""
 
         if exception_cause is not None and \
            exception_cause.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     exception_type,
@@ -301,12 +296,6 @@ class ExpressionCaughtExceptionValueRef(NodeBase, ExpressionMixin):
     def mayHaveSideEffects(self):
         # Referencing the expression type has no side effect
         return False
-
-    @staticmethod
-    def makeCloneAt(source_ref):
-        return ExpressionCaughtExceptionValueRef(
-            source_ref = source_ref
-        )
 
 
 class ExpressionCaughtExceptionTracebackRef(NodeBase, ExpressionMixin):

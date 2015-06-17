@@ -56,7 +56,6 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
-from nuitka.nodes.ModuleNodes import PythonInternalModule
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationNOT
@@ -77,44 +76,13 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils.Utils import python_version
-from nuitka.VariableRegistry import addVariableUsage
 
-from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement
-)
+from .Helpers import makeStatementsSequenceFromStatement
+from .InternalModule import getInternalModule, once_decorator
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 source_ref = fromFilename("internal").atInternal()
-
-
-# Cache result.
-def once_decorator(func):
-    func.cached_value = None
-
-    def replacement():
-        if func.cached_value is None:
-            func.cached_value = func()
-
-        for variable in func.cached_value.getVariables():
-            addVariableUsage(variable, func.cached_value)
-
-        return func.cached_value
-
-    return replacement
-
-
-internal_module = None
-
-def getInternalModule():
-    # Using global here, as this is really a about the internal module as a
-    # singleton, pylint: disable=W0603
-    global internal_module
-
-    if internal_module is None:
-        internal_module = PythonInternalModule()
-
-    return internal_module
 
 
 @once_decorator
@@ -381,7 +349,7 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
                             ),
                             ExpressionAttributeLookup(
                                 source         = ExpressionBuiltinType1(
-                                    value      = star_list_variable_ref.makeCloneAt(source_ref),
+                                    value      = star_list_variable_ref.makeClone(),
                                     source_ref = source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -408,7 +376,7 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
     return StatementConditional(
         condition  = ExpressionOperationNOT(
             operand    = ExpressionBuiltinIsinstance(
-                instance   = star_list_variable_ref.makeCloneAt(source_ref),
+                instance   = star_list_variable_ref.makeClone(),
                 classes    = ExpressionBuiltinRef(
                     builtin_name = "tuple",
                     source_ref   = source_ref
@@ -419,13 +387,12 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
         ),
         yes_branch = makeStatementsSequenceFromStatement(
             statement = makeTryExceptSingleHandlerNode(
+                provider       = handler_body,
                 tried          =  makeStatementsSequenceFromStatement(
                     statement = StatementAssignmentVariable(
-                        variable_ref = star_list_target_variable_ref.makeCloneAt(source_ref),
+                        variable_ref = star_list_target_variable_ref.makeClone(),
                         source       = ExpressionBuiltinTuple(
-                            value      = star_list_variable_ref.makeCloneAt(
-                                source_ref
-                            ),
+                            value      = star_list_variable_ref.makeClone(),
                             source_ref = source_ref
                         ),
                         source_ref   = source_ref
@@ -433,7 +400,6 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
                 ),
                 exception_name = "TypeError",
                 handler_body   = handler_body,
-                public_exc     = False,
                 source_ref     = source_ref
             ),
         ),
@@ -477,7 +443,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                             ),
                             ExpressionAttributeLookup(
                                 source         = ExpressionBuiltinType1(
-                                    value      = star_dict_variable_ref.makeCloneAt(source_ref),
+                                    value      = star_dict_variable_ref.makeClone(),
                                     source_ref = source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -506,6 +472,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
 
     statements = (
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -528,7 +495,6 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                     source_ref = source_ref
                 )
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentSubscript(
@@ -541,7 +507,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
-                subscribed = star_dict_variable_ref.makeCloneAt(source_ref),
+                subscribed = star_dict_variable_ref.makeClone(),
                 subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = source_ref
@@ -574,6 +540,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             source_ref   = source_ref
         ),
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -582,9 +549,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                     ),
                     source       = ExpressionCallEmpty(
                         called     = ExpressionAttributeLookup(
-                            source         = star_dict_variable_ref.makeCloneAt(
-                                source_ref
-                            ),
+                            source         = star_dict_variable_ref.makeClone(),
                             attribute_name = "keys",
                             source_ref     = source_ref
                         ),
@@ -597,7 +562,6 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             handler_body   = makeStatementsSequenceFromStatement(
                 statement = raise_statement
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentVariable(
@@ -631,9 +595,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = star_dict_target_variable_ref.makeCloneAt(
-                source_ref = source_ref
-            ),
+            variable_ref = star_dict_target_variable_ref.makeClone(),
             source       = ExpressionTempVariableRef(
                 variable   = tmp_dict_variable,
                 source_ref = source_ref
@@ -650,9 +612,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     tried = StatementConditional(
         condition  = ExpressionOperationNOT(
             operand    = ExpressionBuiltinIsinstance(
-                instance   = star_dict_variable_ref.makeCloneAt(
-                    source_ref = source_ref
-                ),
+                instance   = star_dict_variable_ref.makeClone(),
                 classes    = ExpressionBuiltinRef(
                     builtin_name = "dict",
                     source_ref   = source_ref
@@ -686,6 +646,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     )
 
     return makeTryFinallyStatement(
+        provider   = result,
         tried      = tried,
         final      = final,
         source_ref = source_ref
@@ -724,15 +685,13 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                     source_ref   = source_ref
                                 ),
                                 values     = (
-                                    called_variable_ref.makeCloneAt(
-                                        source_ref
-                                    ),
+                                    called_variable_ref.makeClone(),
                                 ),
                                 source_ref = source_ref
                             ),
                             ExpressionAttributeLookup(
                                 source         = ExpressionBuiltinType1(
-                                    value      = star_dict_variable_ref.makeCloneAt(source_ref),
+                                    value      = star_dict_variable_ref.makeClone(),
                                     source_ref = source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -805,9 +764,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                     source_ref   = source_ref
                                 ),
                                 values     = (
-                                    called_variable_ref.makeCloneAt(
-                                        source_ref
-                                    ),
+                                    called_variable_ref.makeClone(),
                                 ),
                                 source_ref = source_ref
                             ),
@@ -831,6 +788,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -853,7 +811,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     source_ref = source_ref
                 )
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementConditional(
@@ -863,7 +820,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     variable   = tmp_key_variable,
                     source_ref = source_ref
                 ),
-                right      = kw_variable_ref.makeCloneAt(source_ref),
+                right      = kw_variable_ref.makeClone(),
                 source_ref = source_ref
             ),
             yes_branch = makeStatementsSequenceFromStatement(
@@ -873,13 +830,13 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentSubscript(
-            expression = kw_variable_ref.makeCloneAt(source_ref),
+            expression = kw_variable_ref.makeClone(),
             subscript  = ExpressionTempVariableRef(
                 variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
-                subscribed = star_dict_variable_ref.makeCloneAt(source_ref),
+                subscribed = star_dict_variable_ref.makeClone(),
                 subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = source_ref
@@ -912,6 +869,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source_ref   = source_ref
         ),
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -920,9 +878,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     ),
                     source       = ExpressionCallEmpty(
                         called     = ExpressionAttributeLookup(
-                            source         = star_dict_variable_ref.makeCloneAt(
-                                source_ref
-                            ),
+                            source         = star_dict_variable_ref.makeClone(),
                             attribute_name = "keys",
                             source_ref     = source_ref
                         ),
@@ -935,7 +891,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             handler_body   = makeStatementsSequenceFromStatement(
                 statement = raise_statement
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentVariable(
@@ -1024,9 +979,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                     source_ref   = source_ref
                                 ),
                                 values     = (
-                                    called_variable_ref.makeCloneAt(
-                                        source_ref
-                                    ),
+                                    called_variable_ref.makeClone(),
                                 ),
                                 source_ref = source_ref
                             ),
@@ -1050,6 +1003,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -1070,7 +1024,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             handler_body   = makeStatementsSequenceFromStatement(
                 statement = StatementBreakLoop(source_ref)
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentVariable(
@@ -1099,7 +1052,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     variable   = tmp_key_variable,
                     source_ref = source_ref
                 ),
-                right      = kw_variable_ref.makeCloneAt(source_ref),
+                right      = kw_variable_ref.makeClone(),
                 source_ref = source_ref
             ),
             yes_branch = makeStatementsSequenceFromStatement(
@@ -1109,7 +1062,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentSubscript(
-            expression = kw_variable_ref.makeCloneAt(source_ref),
+            expression = kw_variable_ref.makeClone(),
             subscript  = ExpressionTempVariableRef(
                 variable   = tmp_key_variable,
                 source_ref = source_ref
@@ -1137,9 +1090,9 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         StatementAssignmentVariable(
-            variable_ref = kw_target_variable_ref.makeCloneAt(source_ref),
+            variable_ref = kw_target_variable_ref.makeClone(),
             source       = ExpressionBuiltinDict(
-                pos_arg    = kw_variable_ref.makeCloneAt(source_ref),
+                pos_arg    = kw_variable_ref.makeClone(),
                 pairs      = (),
                 source_ref = source_ref
             ),
@@ -1153,9 +1106,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source       = ExpressionBuiltinIter1(
                 value      = ExpressionCallEmpty(
                     called     = ExpressionAttributeLookup(
-                        source         = star_dict_variable_ref.makeCloneAt(
-                            source_ref
-                        ),
+                        source         = star_dict_variable_ref.makeClone(),
                         attribute_name = "iteritems"
                                            if python_version < 300 else
                                          "items",
@@ -1180,7 +1131,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         StatementConditional(
-            condition  = star_dict_variable_ref.makeCloneAt(source_ref),
+            condition  = star_dict_variable_ref.makeClone(),
             yes_branch = dict_case,
             no_branch  = None,
             source_ref = source_ref
@@ -1195,7 +1146,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     tried = StatementConditional(
         condition  = ExpressionOperationNOT(
             operand    = ExpressionBuiltinIsinstance(
-                instance   = star_dict_variable_ref.makeCloneAt(source_ref),
+                instance   = star_dict_variable_ref.makeClone(),
                 classes    = ExpressionBuiltinRef(
                     builtin_name = "dict",
                     source_ref   = source_ref
@@ -1210,6 +1161,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     )
 
     return makeTryFinallyStatement(
+        provider   = result,
         tried      = tried,
         final      = final,
         source_ref = source_ref
@@ -1310,6 +1262,7 @@ def getFunctionCallHelperStarList():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1428,6 +1381,7 @@ def getFunctionCallHelperKeywordsStarList():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1550,6 +1504,7 @@ def getFunctionCallHelperPosStarList():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1685,6 +1640,7 @@ def getFunctionCallHelperPosKeywordsStarList():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1803,6 +1759,7 @@ def getFunctionCallHelperStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1935,6 +1892,7 @@ def getFunctionCallHelperPosStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2092,6 +2050,7 @@ def getFunctionCallHelperKeywordsStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2263,6 +2222,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2383,6 +2343,7 @@ def getFunctionCallHelperStarListStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2522,6 +2483,7 @@ def getFunctionCallHelperPosStarListStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2657,6 +2619,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2809,6 +2772,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref

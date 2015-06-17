@@ -35,7 +35,7 @@ from nuitka.utils import InstanceCounters, Utils
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
-from .codegen import CodeGeneration, ConstantCodes
+from .codegen import CodeGeneration, ConstantCodes, MainCodes
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import (
     addFrozenModule,
@@ -341,7 +341,7 @@ def makeSourceDirectory(main_module):
 
             # The main of an executable module gets a bit different code.
             if module is main_module and not Options.shallMakeModule():
-                source_code = CodeGeneration.generateMainCode(
+                source_code = MainCodes.generateMainCode(
                     main_module = main_module,
                     context     = module_context,
                     codes       = source_code

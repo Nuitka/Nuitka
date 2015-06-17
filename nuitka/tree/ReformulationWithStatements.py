@@ -41,7 +41,6 @@ from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef
 )
-from nuitka.nodes.NodeMakingHelpers import makeReraiseExceptionStatement
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
@@ -50,21 +49,25 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
 )
+from nuitka.tree.Helpers import makeReraiseExceptionStatement
 from nuitka.utils import Utils
 
 from .Helpers import (
     buildNode,
     buildStatementsNode,
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement
+    makeStatementsSequenceFromStatement
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     with_source = buildNode(provider, context_expr, source_ref)
+
+    if Options.isFullCompat():
+        source_ref = with_source.getCompatibleSourceReference()
 
     temp_scope = provider.allocateTempScope("with")
 
@@ -106,11 +109,9 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     )
 
     if Options.isFullCompat() and with_body is not None:
-        with_exit_source_ref = with_body.getStatements()[-1].\
-          getSourceReference()
+        with_exit_source_ref = with_body.getStatements()[-1].getSourceReference()
     else:
         with_exit_source_ref = source_ref
-
 
     # The "__enter__" and "__exit__" were normal attribute lookups under
     # CPython2.6, but that changed with CPython2.7.
@@ -177,11 +178,11 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         ),
     ]
 
-    source_ref = source_ref.atInternal()
-
     statements += [
         makeTryFinallyStatement(
+            provider   = provider,
             tried      = makeTryExceptSingleHandlerNode(
+                provider       = provider,
                 tried          = with_body,
                 exception_name = "BaseException",
                 handler_body   = StatementsSequence(
@@ -219,7 +220,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
                                     ),
                                     source_ref = source_ref
                                 ),
-                                source_ref = source_ref
+                                source_ref = with_exit_source_ref
                             ),
                             no_branch  = makeStatementsSequenceFromStatement(
                                 statement = makeReraiseExceptionStatement(
@@ -271,6 +272,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
     ]
 
     return makeTryFinallyStatement(
+        provider   = provider,
         tried      = statements,
         final      = (
             StatementReleaseVariable(

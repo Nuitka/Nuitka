@@ -42,13 +42,13 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         "expression_no"
     )
 
-    def __init__(self, condition, yes_expression, no_expression, source_ref):
+    def __init__(self, condition, expression_yes, expression_no, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "condition"      : condition,
-                "expression_yes" : yes_expression,
-                "expression_no"  : no_expression
+                "expression_yes" : expression_yes,
+                "expression_no"  : expression_no
             },
             source_ref = source_ref
         )
@@ -97,6 +97,7 @@ branches."""
         if truth_value is not False:
             branch_yes_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+                name   = "conditional expression yes branch"
             )
 
             branch_yes_collection.computeBranch(
@@ -118,6 +119,7 @@ branches."""
         if truth_value is not True:
             branch_no_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+                name   = "conditional expression no branch"
             )
 
             branch_no_collection.computeBranch(
@@ -263,6 +265,7 @@ branches.""" % self.conditional_kind
             # branch that.
             branch_yes_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+                name   = "boolean %s right branch" % self.conditional_kind
             )
 
             branch_yes_collection.computeBranch(
@@ -499,6 +502,7 @@ branches."""
         if yes_branch is not None and truth_value is not False:
             branch_yes_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+                name   = "conditional yes branch",
             )
 
             branch_yes_collection.computeBranch(
@@ -525,6 +529,7 @@ branches."""
         if no_branch is not None and truth_value is not True:
             branch_no_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+                name   = "conditional no branch"
             )
 
             branch_no_collection.computeBranch(

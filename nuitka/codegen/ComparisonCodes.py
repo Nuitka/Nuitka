@@ -28,6 +28,7 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
+from .LabelCodes import getBranchingCode
 
 
 def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
@@ -256,44 +257,6 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, emit,
     )
 
     getBranchingCode(condition, emit, context)
-
-
-def getBranchingCode(condition, emit, context):
-    true_target = context.getTrueBranchTarget()
-    false_target = context.getFalseBranchTarget()
-
-    if true_target is not None and false_target is None:
-        emit(
-            "if ( %s ) goto %s;" % (
-                condition,
-                true_target
-            )
-        )
-    elif true_target is None and false_target is not None:
-        emit(
-            "if (!( %s )) goto %s;" % (
-                condition,
-                false_target
-            )
-        )
-    else:
-        assert true_target is not None and false_target is not None
-
-        emit(
-            """\
-if ( %s )
-{
-    goto %s;
-}
-else
-{
-    goto %s;
-}""" % (
-                condition,
-                true_target,
-                false_target
-            )
-        )
 
 
 def getBuiltinIsinstanceBoolCode(inst_name, cls_name, emit, context):

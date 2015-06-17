@@ -20,16 +20,28 @@
 """
 
 from nuitka import Options
-from nuitka.utils import Utils
 
-from . import CodeTemplates
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import (
     allocateNestedConstants,
     getConstantCode,
     getConstantInitCodes
 )
+from .ErrorCodes import (
+    getErrorVariableDeclarations,
+    getExceptionKeeperVariableNames,
+    getExceptionPreserverVariableNames
+)
 from .Indentation import indented
+from .templates.CodeTemplatesModules import (
+    template_global_copyright,
+    template_metapath_loader_compiled_module_entry,
+    template_metapath_loader_compiled_package_entry,
+    template_metapath_loader_shlib_module_entry,
+    template_module_body_template,
+    template_module_exception_exit,
+    template_module_noexception_exit
+)
 from .VariableCodes import getLocalVariableInitCode
 
 
@@ -43,25 +55,25 @@ def getModuleMetapathLoaderEntryCode(module_name, module_identifier,
         assert module_name != "__main__"
         assert not is_package
 
-        return CodeTemplates.template_metapath_loader_shlib_module_entry % {
+        return template_metapath_loader_shlib_module_entry % {
             "module_name" : module_name
         }
     elif is_package:
-        return CodeTemplates.template_metapath_loader_compiled_package_entry % {
+        return template_metapath_loader_compiled_package_entry % {
             "module_name"       : module_name,
             "module_identifier" : module_identifier,
         }
     else:
-        return CodeTemplates.template_metapath_loader_compiled_module_entry % {
+        return template_metapath_loader_compiled_module_entry % {
             "module_name"       : module_name,
             "module_identifier" : module_identifier,
         }
 
 
-def prepareModuleCode(context, module_name, module_identifier, codes,
-                      metapath_loader_inittab, metapath_module_decls,
-                      function_decl_codes, function_body_codes, temp_variables,
-                      is_main_module, is_internal_module):
+def getModuleValues(context, module_name, module_identifier, codes,
+                    metapath_loader_inittab, metapath_module_decls,
+                    function_decl_codes, function_body_codes, temp_variables,
+                    is_main_module, is_internal_module):
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=R0913,R0914
 
@@ -75,33 +87,13 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
     ]
 
     if context.needsExceptionVariables():
-        local_var_inits += [
-            "PyObject *exception_type, *exception_value;",
-            "PyTracebackObject *exception_tb;"
-        ]
+        local_var_inits.extend(getErrorVariableDeclarations())
 
-    for keeper_variable in range(1, context.getKeeperVariableCount()+1):
-        # For finally handlers of Python3, which have conditions on assign and
-        # use.
-        if Options.isDebug() and Utils.python_version >= 300:
-            keeper_init = " = NULL"
-        else:
-            keeper_init = ""
+    for keeper_index in range(1, context.getKeeperVariableCount()+1):
+        local_var_inits.extend(getExceptionKeeperVariableNames(keeper_index))
 
-        local_var_inits += [
-            "PyObject *exception_keeper_type_%d%s;" % (
-                keeper_variable,
-                keeper_init
-            ),
-            "PyObject *exception_keeper_value_%d%s;" % (
-                keeper_variable,
-                keeper_init
-            ),
-            "PyTracebackObject *exception_keeper_tb_%d%s;" % (
-                keeper_variable,
-                keeper_init
-            )
-        ]
+    for preserver_id in context.getExceptionPreserverCounts():
+        local_var_inits.extend(getExceptionPreserverVariableNames(preserver_id))
 
     local_var_inits += [
         "%s%s%s;" % (
@@ -119,9 +111,9 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
     local_var_inits += context.getFrameDeclarations()
 
     if context.needsExceptionVariables():
-        module_exit = CodeTemplates.template_module_exception_exit
+        module_exit = template_module_exception_exit
     else:
-        module_exit = CodeTemplates.template_module_noexception_exit
+        module_exit = template_module_noexception_exit
 
     module_body_template_values = {
         "module_name"              : module_name,
@@ -166,7 +158,7 @@ def prepareModuleCode(context, module_name, module_identifier, codes,
 
 
 def getModuleCode(module_context, template_values):
-    header = CodeTemplates.global_copyright % {
+    header = template_global_copyright % {
         "name"    : module_context.getName(),
         "version" : Options.getVersion(),
         "year"    : Options.getYear()
@@ -192,7 +184,7 @@ def getModuleCode(module_context, template_values):
         1
     )
 
-    return header + CodeTemplates.module_body_template % template_values
+    return header + template_module_body_template % template_values
 
 
 def generateModuleFileAttributeCode(to_name, expression, emit, context):

@@ -22,31 +22,28 @@ statements for it. These re-formulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
-from nuitka.optimizations.TraceCollections import ConstraintCollectionLoop
+from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
 
-from .NodeBases import (
-    NodeBase,
-    StatementChildrenHavingBase,
-    checkStatementsSequenceOrNone
-)
+from .Checkers import checkStatementsSequenceOrNone
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 class StatementLoop(StatementChildrenHavingBase):
     kind = "STATEMENT_LOOP"
 
     named_children = (
-        "frame",
+        "body",
     )
 
     checkers = {
-        "frame" : checkStatementsSequenceOrNone
+        "body" : checkStatementsSequenceOrNone
     }
 
     def __init__(self, body, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
-                "frame" : body
+                "body" : body
             },
             source_ref = source_ref
         )
@@ -54,8 +51,8 @@ class StatementLoop(StatementChildrenHavingBase):
         # For code generation, so it knows if an exit target is needed.
         self.has_break = False
 
-    getLoopBody = StatementChildrenHavingBase.childGetter("frame")
-    setLoopBody = StatementChildrenHavingBase.childSetter("frame")
+    getLoopBody = StatementChildrenHavingBase.childGetter("body")
+    setLoopBody = StatementChildrenHavingBase.childSetter("body")
 
     def mayReturn(self):
         loop_body = self.getLoopBody()
@@ -83,22 +80,36 @@ class StatementLoop(StatementChildrenHavingBase):
 
     def computeStatement(self, constraint_collection):
         outer_constraint_collection = constraint_collection
-        constraint_collection = ConstraintCollectionLoop(constraint_collection)
+        constraint_collection = ConstraintCollectionBranch(
+            parent = constraint_collection,
+            name   = "loop"
+        )
 
-        loop_body = self.getLoopBody()
+        abort_context = constraint_collection.makeAbortStackContext(
+            catch_breaks    = True,
+            catch_continues = True,
+            catch_returns   = False
+        )
 
-        if loop_body is not None:
-            # Look ahead. what will be written and degrade about that.
-            constraint_collection.degradePartiallyFromCode(loop_body)
+        with abort_context:
+            loop_body = self.getLoopBody()
 
-            result = loop_body.computeStatementsSequence(
-                constraint_collection = constraint_collection
-            )
+            if loop_body is not None:
+                # Look ahead. what will be written and degrade about that.
+                constraint_collection.degradePartiallyFromCode(loop_body)
 
-            # Might be changed.
-            if result is not loop_body:
-                self.setLoopBody(result)
-                loop_body = result
+                result = loop_body.computeStatementsSequence(
+                    constraint_collection = constraint_collection
+                )
+
+                # Might be changed.
+                if result is not loop_body:
+                    self.setLoopBody(result)
+                    loop_body = result
+
+            # If we break, the outer collections becomes a merge of all those breaks
+            # or just the one, if there is only one.
+            break_collections = constraint_collection.getLoopBreakCollections()
 
         # Consider trailing "continue" statements, these have no effect, so we
         # can remove them.
@@ -125,16 +136,9 @@ class StatementLoop(StatementChildrenHavingBase):
 Removed useless terminal 'continue' as last statement of loop."""
                 )
 
-        break_collections = constraint_collection.getLoopBreakCollections()
 
         if break_collections:
-            outer_constraint_collection.replaceBranch(break_collections[0])
-
-            for break_collection in break_collections[1:]:
-                outer_constraint_collection.mergeBranches(
-                    collection_yes = break_collection,
-                    collection_no  = None
-                )
+            outer_constraint_collection.mergeMultipleBranches(break_collections)
 
         # Consider leading "break" statements, they should be the only, and
         # should lead to removing the whole loop statement. Trailing "break"
@@ -171,7 +175,7 @@ class StatementContinueLoop(NodeBase):
 
     def computeStatement(self, constraint_collection):
         # This statement being aborting, will already tell everything.
-        constraint_collection.onLoopContinue(constraint_collection)
+        constraint_collection.onLoopContinue()
 
         return self, None, None
 
@@ -193,6 +197,6 @@ class StatementBreakLoop(NodeBase):
 
     def computeStatement(self, constraint_collection):
         # This statement being aborting, will already tell everything.
-        constraint_collection.onLoopBreak(constraint_collection)
+        constraint_collection.onLoopBreak()
 
         return self, None, None

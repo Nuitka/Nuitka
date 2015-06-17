@@ -19,7 +19,7 @@
 
 """
 
-make_genfunc_with_context_template = """
+template_make_genfunc_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     // Copy the parameter default values and closure values over.
@@ -46,7 +46,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 }
 """
 
-make_genfunc_without_context_template = """
+template_make_genfunc_without_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     return Nuitka_Function_New(
@@ -70,7 +70,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 
 # TODO: Make the try/catch below unnecessary by detecting the presence
 # or return statements in generators.
-genfunc_yielder_template = """
+template_genfunc_yielder_template = """
 static void %(function_identifier)s_context2( Nuitka_GeneratorObject *generator )
 {
     // Local variable initialization
@@ -145,20 +145,20 @@ template_generator_return_exit = """\
     return;
 """
 
-genfunc_generator_no_parameters = """\
+template_genfunc_generator_no_parameters = """\
     PyObject **parameters = NULL;
 """
 
-genfunc_generator_with_parameters = """\
+template_genfunc_generator_with_parameters = """\
     PyObject **parameters = (PyObject **)malloc(%(parameter_count)d * sizeof(PyObject *));
 %(parameter_copy)s
 """
 
-genfunc_generator_no_closure = """\
+template_genfunc_generator_no_closure = """\
     PyCellObject **closure = NULL;
 """
 
-genfunc_generator_with_parent_closure = """\
+template_genfunc_generator_with_parent_closure = """\
     PyCellObject **closure = (PyCellObject **)malloc(%(closure_count)d * sizeof(PyCellObject *));
     for( Py_ssize_t i = 0; i < %(closure_count)d; i++ )
     {
@@ -166,12 +166,13 @@ genfunc_generator_with_parent_closure = """\
         Py_INCREF( closure[ i ] );
     }
 """
-genfunc_generator_with_own_closure = """\
+
+template_genfunc_generator_with_own_closure = """\
     PyCellObject **closure = (PyCellObject **)malloc(%(closure_count)d * sizeof(PyCellObject *));
 %(closure_copy)s
 """
 
-genfunc_function_impl_template = """
+template_genfunc_function_impl_template = """
 static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 {
 %(parameter_decl)s
@@ -195,3 +196,6 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
     return result;
 }
 """
+
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

@@ -29,6 +29,7 @@ def _indentedCode(codes, count):
         line for line in codes
     )
 
+
 def indented(codes, level = 1, vert_block = False):
     if type(codes) is str:
         codes = codes.split('\n')
@@ -38,6 +39,7 @@ def indented(codes, level = 1, vert_block = False):
         codes.append("")
 
     return _indentedCode(codes, level * 4)
+
 
 def getCommentCode(comment, emit):
     emit("// " + comment)

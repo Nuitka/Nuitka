@@ -59,12 +59,12 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
     def getDetails(self):
         if self.variable is None:
             return {
-                "name" : self.variable_name
+                "variable_name" : self.variable_name
             }
         else:
             return {
-                "name"     : self.variable_name,
-                "variable" : self.variable
+                "variable_name" : self.variable_name,
+                "variable"      : self.variable
             }
 
     def getDetail(self):
@@ -72,16 +72,6 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
             return self.variable_name
         else:
             return repr(self.variable)
-
-    def makeCloneAt(self, source_ref):
-        result = self.__class__(
-            variable_name = self.variable_name,
-            source_ref    = source_ref
-        )
-
-        result.variable = self.variable
-
-        return result
 
     @staticmethod
     def isTargetVariableRef():
@@ -203,19 +193,18 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         self.variable = variable
         self.variable_trace = None
 
-    def getDetails(self):
+    def getDetailsForDisplay(self):
         return {
             "name" : self.variable.getName()
         }
 
+    def getDetails(self):
+        return {
+            "variable" : self.variable
+        }
+
     def getDetail(self):
         return self.variable.getName()
-
-    def makeCloneAt(self, source_ref):
-        return self.__class__(
-            variable   = self.variable,
-            source_ref = source_ref
-        )
 
     def getVariableName(self):
         return self.variable.getName()
@@ -279,7 +268,7 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
             self.setVariable(variable)
             assert variable.getName() == variable_name
 
-    def getDetails(self):
+    def getDetailsForDisplay(self):
         if self.variable is None:
             return {
                 "name" : self.variable_name
@@ -291,14 +280,6 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
                 "version"  : self.variable_version
             }
 
-    def makeCloneAt(self, source_ref):
-        result = self.__class__(
-            variable_name = self.variable_name,
-            source_ref    = source_ref,
-            variable      = self.variable
-        )
-
-        return result
 
     def computeExpression(self, constraint_collection):
         assert False

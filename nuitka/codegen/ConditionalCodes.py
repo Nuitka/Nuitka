@@ -22,7 +22,13 @@ Branches, conditions, truth checks.
 
 from nuitka import Options
 
-from . import Generator
+from .AttributeCodes import getAttributeCheckBoolCode
+from .ComparisonCodes import (
+    getBuiltinIsinstanceBoolCode,
+    getComparisonExpressionBoolCode
+)
+from .ErrorCodes import getErrorExitBoolCode, getReleaseCode
+from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 
 def generateConditionCode(condition, emit, context):
@@ -39,9 +45,9 @@ def generateConditionCode(condition, emit, context):
         value = condition.getConstant()
 
         if value:
-            Generator.getGotoCode(context.getTrueBranchTarget(), emit)
+            getGotoCode(context.getTrueBranchTarget(), emit)
         else:
-            Generator.getGotoCode(context.getFalseBranchTarget(), emit)
+            getGotoCode(context.getFalseBranchTarget(), emit)
     elif condition.isExpressionComparison():
         left_name = context.allocateTempName("compare_left")
 
@@ -62,7 +68,7 @@ def generateConditionCode(condition, emit, context):
         )
 
         old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
-        Generator.getComparisonExpressionBoolCode(
+        getComparisonExpressionBoolCode(
             comparator = condition.getComparator(),
             left_name  = left_name,
             right_name = right_name,
@@ -114,20 +120,20 @@ def generateConditionCode(condition, emit, context):
         context.setTrueBranchTarget(old_true_target)
         context.setFalseBranchTarget(old_false_target)
 
-        Generator.getLabelCode(select_true,emit)
+        getLabelCode(select_true,emit)
         generateConditionCode(
             condition = expression_yes,
             emit      = emit,
             context   = context,
         )
-        Generator.getGotoCode(select_end, emit)
-        Generator.getLabelCode(select_false,emit)
+        getGotoCode(select_end, emit)
+        getLabelCode(select_false,emit)
         generateConditionCode(
             condition = expression_no,
             emit      = emit,
             context   = context,
         )
-        Generator.getLabelCode(select_end,emit)
+        getLabelCode(select_end,emit)
     elif condition.isExpressionBuiltinHasattr():
         source_name = context.allocateTempName("hasattr_source")
         attr_name = context.allocateTempName("hasattr_attr")
@@ -151,7 +157,7 @@ def generateConditionCode(condition, emit, context):
             condition.getSourceReference()
         )
 
-        Generator.getAttributeCheckBoolCode(
+        getAttributeCheckBoolCode(
             source_name = source_name,
             attr_name   = attr_name,
             emit        = emit,
@@ -178,7 +184,7 @@ def generateConditionCode(condition, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
 
-        Generator.getBuiltinIsinstanceBoolCode(
+        getBuiltinIsinstanceBoolCode(
             inst_name = inst_name,
             cls_name  = cls_name,
             emit      = emit,
@@ -197,7 +203,7 @@ def generateConditionCode(condition, emit, context):
             context    = context
         )
 
-        Generator.getConditionCheckTrueCode(
+        getConditionCheckTrueCode(
             to_name    = truth_name,
             value_name = condition_name,
             emit       = emit
@@ -205,7 +211,7 @@ def generateConditionCode(condition, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
 
-        Generator.getErrorExitBoolCode(
+        getErrorExitBoolCode(
             condition = "%s == -1" % truth_name,
             emit      = emit,
             context   = context
@@ -213,14 +219,23 @@ def generateConditionCode(condition, emit, context):
 
         context.setCurrentSourceCodeReference(old_source_ref)
 
-        Generator.getReleaseCode(
+        getReleaseCode(
             release_name = condition_name,
             emit         = emit,
             context      = context
         )
 
-        Generator.getBranchingCode(
+        getBranchingCode(
             condition = "%s == 1" % truth_name,
             emit      = emit,
             context   = context
         )
+
+
+def getConditionCheckTrueCode(to_name, value_name, emit):
+    emit(
+        "%s = CHECK_IF_TRUE( %s );" % (
+            to_name,
+            value_name
+        )
+    )

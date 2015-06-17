@@ -24,6 +24,56 @@ added later on.
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
 
 
+def generateSetCreationCode(to_name, elements, emit, context):
+    emit(
+        "%s = PySet_New( NULL );" % (
+            to_name,
+        )
+    )
+
+    from .CodeGeneration import generateExpressionCode
+
+    context.addCleanupTempName(to_name)
+
+    element_name = context.allocateTempName("set_element")
+
+    for element in elements:
+        generateExpressionCode(
+            to_name    = element_name,
+            expression = element,
+            emit       = emit,
+            context    = context
+        )
+
+        if element.isKnownToBeHashable():
+            emit(
+                "PySet_Add( %s, %s );" % (
+                    to_name,
+                    element_name
+                )
+            )
+        else:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = PySet_Add( %s, %s );" % (
+                    res_name,
+                    to_name,
+                    element_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition = "%s != 0" % res_name,
+                emit      = emit,
+                context   = context
+            )
+
+        if context.needsCleanup(element_name):
+            emit("Py_DECREF( %s );" % element_name)
+            context.removeCleanupTempName(element_name)
+
+
 def getSetOperationAddCode(to_name, set_name, value_name, emit, context):
     res_name = context.getIntResName()
 

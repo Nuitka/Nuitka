@@ -24,6 +24,7 @@ The length of things is an important optimization issue for these to be
 good.
 """
 
+from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.optimizations import BuiltinOptimization
 
 from .NodeBases import (
@@ -141,15 +142,7 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
         )
 
     def getDetails(self):
-        return {
-            "iter" : self.getValue()
-        }
-
-    def makeCloneAt(self, source_ref):
-        return self.__class__(
-            value      = self.getValue(),
-            source_ref = source_ref
-        )
+        return {}
 
     def computeExpression(self, constraint_collection):
         # TODO: Predict iteration result if possible via SSA variable trace of
@@ -169,16 +162,9 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
 
         self.count = count
 
-    def makeCloneAt(self, source_ref):
-        return self.__class__(
-            value      = self.getValue(),
-            count      = self.getCount(),
-            source_ref = source_ref
-        )
-
     def getDetails(self):
         result = ExpressionBuiltinNext1.getDetails(self)
-        result[ "element_index" ] = self.getCount()
+        result["count"] = self.getCount()
 
         return result
 
@@ -246,14 +232,12 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
         "sentinel",
     )
 
-    # Need to accept 'callable' keyword argument, that is just the API of iter,
-    # pylint: disable=W0622
-
-    def __init__(self, callable, sentinel, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, callable_arg, sentinel, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "callable" : callable,
+                "callable" : callable_arg,
                 "sentinel" : sentinel,
             },
             source_ref = source_ref

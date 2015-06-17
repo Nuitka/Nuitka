@@ -23,6 +23,7 @@ allow to propagate knowledge forward or not.
 This is about collecting these constraints and to manage them.
 """
 
+import contextlib
 from logging import debug
 
 from nuitka import Tracing, VariableRegistry
@@ -33,41 +34,33 @@ from .VariableTraces import (
     VariableTraceAssign,
     VariableTraceInit,
     VariableTraceMerge,
+    VariableTraceMergeMultiple,
     VariableTraceUninit,
     VariableTraceUnknown
 )
 
 signalChange = None
 
-# TODO: This will be removed, to be replaced by variable trace information.
-class VariableUsageProfile:
-    def __init__(self, variable):
-        self.variable = variable
-
-        self.written_to = False
-
-    def markAsWrittenTo(self):
-        self.written_to = True
-
-    def isReadOnly(self):
-        return not self.written_to
-
 
 class VariableUsageTrackingMixin:
 
-    def _initVariable(self, variable):
+    def initVariable(self, variable):
         if variable.isParameterVariable():
-            self._initVariableInit(variable)
+            result = self._initVariableInit(variable)
         elif variable.isLocalVariable():
-            self._initVariableUninit(variable)
+            result = self._initVariableUninit(variable)
         elif variable.isMaybeLocalVariable():
-            self._initVariableUnknown(variable)
+            result = self._initVariableUnknown(variable)
         elif variable.isModuleVariable():
-            self._initVariableUnknown(variable)
+            result = self._initVariableUnknown(variable)
         elif variable.isTempVariable():
-            self._initVariableUninit(variable)
+            result = self._initVariableUninit(variable)
         else:
             assert False, variable
+
+        assert result.getVariable() is variable
+
+        return result
 
 
 class CollectionTracingMixin:
@@ -76,10 +69,6 @@ class CollectionTracingMixin:
         self.variable_actives = {}
 
     def getVariableCurrentTrace(self, variable):
-        # Initialize variables on the fly.
-        if variable not in self.variable_actives:
-            self._initVariable(variable)
-
         return self.getVariableTrace(
             variable = variable,
             version  = self.getCurrentVariableVersion(variable)
@@ -89,6 +78,13 @@ class CollectionTracingMixin:
         self.variable_actives[variable] = version
 
     def getCurrentVariableVersion(self, variable):
+        # Initialize variables on the fly.
+        if variable not in self.variable_actives:
+            if not self.hasVariableTrace(variable, 0):
+                self.initVariable(variable)
+
+            self.markCurrentVariableTrace(variable, 0)
+
         assert variable in self.variable_actives, (variable, self)
         return self.variable_actives[variable]
 
@@ -134,6 +130,56 @@ class CollectionStartpointMixin:
         # calls may not yet be known.
         self.unclear_locals = False
 
+        self.break_collections = None
+        self.continue_collections = None
+        self.return_collections = None
+
+    def getLoopBreakCollections(self):
+        return self.break_collections
+
+    def onLoopBreak(self, collection = None):
+        if collection is None:
+            collection = self
+
+        self.break_collections.append(
+            ConstraintCollectionBranch(
+                parent = collection,
+                name   = "loop break"
+            )
+        )
+
+    def getLoopContinueCollections(self):
+        return self.continue_collections
+
+    def onLoopContinue(self, collection = None):
+        if collection is None:
+            collection = self
+
+        self.continue_collections.append(
+            ConstraintCollectionBranch(
+                parent = collection,
+                name   = "loop continue"
+            )
+        )
+
+    def onFunctionReturn(self, collection = None):
+        if collection is None:
+            collection = self
+
+        if self.return_collections is not None:
+            self.return_collections.append(
+                ConstraintCollectionBranch(
+                    parent = collection,
+                    name   = "return"
+                )
+            )
+
+    def getFunctionReturnCollections(self):
+        return self.return_collections
+
+    def hasVariableTrace(self, variable, version):
+        return (variable, version) in self.variable_traces
+
     def getVariableTrace(self, variable, version):
         return self.variable_traces[(variable, version)]
 
@@ -170,6 +216,19 @@ class CollectionStartpointMixin:
 
         return version
 
+    def addVariableMergeMultipleTrace(self, variable, traces):
+        version = variable.allocateTargetNumber()
+
+        trace_merge = VariableTraceMergeMultiple(
+            variable = variable,
+            version  = version,
+            traces   = traces
+        )
+
+        self.addVariableTrace(variable, version, trace_merge)
+
+        return version
+
     def dumpTraces(self):
         debug("Constraint collection state: %s", self)
         for _variable_desc, variable_trace in sorted(iterItems(self.variable_traces)):
@@ -177,43 +236,57 @@ class CollectionStartpointMixin:
             # debug( "%r: %r", variable_trace )
             variable_trace.dump()
 
+    def dumpActiveTraces(self):
+        Tracing.printSeparator()
+        Tracing.printLine("Active are:")
+        for variable, _version in sorted(self.variable_actives.iteritems()):
+            self.getVariableCurrentTrace(variable).dump()
+
+        Tracing.printSeparator()
+
     def _initVariableUnknown(self, variable):
+        trace = VariableTraceUnknown(
+            variable = variable,
+            version  = 0,
+            previous = None
+        )
+
         self.addVariableTrace(
             variable = variable,
             version  = 0,
-            trace    = VariableTraceUnknown(
-                variable = variable,
-                version  = 0,
-                previous = None
-            )
+            trace    = trace
         )
 
-        self.markCurrentVariableTrace(variable, 0)
+        return trace
 
     def _initVariableInit(self, variable):
+        trace = VariableTraceInit(
+            variable = variable,
+            version  = 0,
+        )
+
         self.addVariableTrace(
             variable = variable,
             version  = 0,
-            trace    = VariableTraceInit(
-                variable = variable,
-                version  = 0,
-            )
+            trace    = trace
         )
 
-        self.markCurrentVariableTrace(variable, 0)
+        return trace
 
     def _initVariableUninit(self, variable):
+        trace = VariableTraceUninit(
+            variable = variable,
+            version  = 0,
+            previous = None
+        )
+
         self.addVariableTrace(
             variable = variable,
             version  = 0,
-            trace    = VariableTraceUninit(
-                variable = variable,
-                version  = 0,
-                previous = None
-            )
+            trace    = trace
         )
 
-        self.markCurrentVariableTrace(variable, 0)
+        return trace
 
     def assumeUnclearLocals(self):
         self.unclear_locals = True
@@ -224,16 +297,46 @@ class CollectionStartpointMixin:
     def updateFromCollection(self, old_collection):
         VariableRegistry.updateFromCollection(old_collection, self)
 
+    @contextlib.contextmanager
+    def makeAbortStackContext(self, catch_breaks, catch_continues,
+                              catch_returns):
+        if catch_breaks:
+            old_break_collections = self.break_collections
+            self.break_collections = []
+        if catch_continues:
+            old_continue_collections = self.continue_collections
+            self.continue_collections = []
+        if catch_returns:
+            old_return_collections = self.return_collections
+            self.return_collections = []
+
+        yield
+
+        if catch_breaks:
+            self.break_collections = old_break_collections
+        if catch_continues:
+            self.continue_collections = old_continue_collections
+        if catch_returns:
+            self.return_collections = old_return_collections
+
 
 class ConstraintCollectionBase(CollectionTracingMixin):
-    def __init__(self, parent):
+    def __init__(self, name, parent):
         CollectionTracingMixin.__init__(self)
 
         self.parent = parent
+        self.name = name
 
         # Trust variable_traces, should go away later on, for now we use it to
         # disable optimization.
         self.removes_knowledge = False
+
+    def __repr__(self):
+        return "<%s for %s %d>" % (
+            self.__class__.__name__,
+            self.name,
+            id(self)
+        )
 
     @staticmethod
     def signalChange(tags, source_ref, message):
@@ -287,15 +390,17 @@ class ConstraintCollectionBase(CollectionTracingMixin):
     def getVariableTrace(self, variable, version):
         return self.parent.getVariableTrace(variable, version)
 
-    def addVariableTrace(self, variable, version, trace):
-        assert self.parent is not None, self
+    def hasVariableTrace(self, variable, version):
+        return self.parent.hasVariableTrace(variable, version)
 
+    def addVariableTrace(self, variable, version, trace):
         self.parent.addVariableTrace(variable, version, trace)
 
     def addVariableMergeTrace(self, variable, trace_yes, trace_no):
-        assert self.parent is not None, self
-
         return self.parent.addVariableMergeTrace(variable, trace_yes, trace_no)
+
+    def addVariableMergeMultipleTrace(self, variable, traces):
+        return self.parent.addVariableMergeMultipleTrace(variable, traces)
 
     def onVariableSet(self, assign_node):
         variable_ref = assign_node.getTargetVariableRef()
@@ -352,15 +457,11 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         return old_trace
 
-    def onVariableRelease(self, release_node):
-        variable = release_node.getVariable()
-
+    def onVariableRelease(self, variable):
         current = self.getVariableCurrentTrace(variable)
 
-        # Annotate that release node. It's an unimportant usage, but one we
-        # would like to be able to remove, should we remove the assignment
-        # that underlies it.
-        current.addRelease(release_node)
+        # Annotate that releases to the trace, it may be important knowledge.
+        current.addRelease()
 
         return current
 
@@ -403,13 +504,13 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         if new_node.isExpressionVariableRef() or \
            new_node.isExpressionTempVariableRef():
             # Remember the reference for constraint collection.
-            new_node.variable_trace.addUsage(new_node)
+            new_node.variable_trace.addUsage()
 
             if new_node.getVariable().isMaybeLocalVariable():
                 variable_trace = self.getVariableCurrentTrace(
                     variable = new_node.getVariable().getMaybeVariable()
                 )
-                variable_trace.addUsage(new_node)
+                variable_trace.addUsage()
 
         return new_node
 
@@ -437,46 +538,66 @@ class ConstraintCollectionBase(CollectionTracingMixin):
             raise
 
     def mergeBranches(self, collection_yes, collection_no):
+        """ Merge two alternative branches into this trace.
+
+            This is mostly for merging conditional branches, or other ways
+            of having alternative control flow. This deals with up to two
+            alternative branches to both change this collection.
+        """
+
         # Refuse to do stupid work
         if collection_yes is None and collection_no is None:
             pass
         elif collection_yes is None or collection_no is None:
             # Handle one branch case, we need to merge versions backwards as
             # they may make themselves obsolete.
-            collection = collection_yes or collection_no
-
-            for variable in collection.getActiveVariables():
-                # print "ACTIVE", variable, self.getCurrentVariableVersion( variable )
-
-                trace_old = self.getVariableCurrentTrace(variable)
-                trace_new = collection.getVariableCurrentTrace(variable)
-
-                assert trace_old is not None
-                assert trace_new is not None
-
-                if trace_old is not trace_new:
-                    version = self.addVariableMergeTrace(
-                        variable  = variable,
-                        trace_yes = trace_new,
-                        trace_no  = trace_old
-                    )
-
-                    self.markCurrentVariableTrace(variable, version)
-
-            return
+            self.mergeMultipleBranches(
+                collections = (self, collection_yes or collection_no)
+            )
         else:
-            for variable in collection_yes.getActiveVariables():
-                trace_yes = collection_yes.getVariableCurrentTrace(variable)
-                trace_no = collection_no.getVariableCurrentTrace(variable)
+            self.mergeMultipleBranches(
+                collections = (collection_yes,collection_no)
+            )
 
-                if trace_yes is not trace_no:
-                    version = self.addVariableMergeTrace(
-                        variable  = variable,
-                        trace_yes = trace_yes,
-                        trace_no  = trace_no
-                    )
+    def mergeMultipleBranches(self, collections):
+        assert len(collections) > 0
 
-                    self.markCurrentVariableTrace(variable, version)
+        # Optimize for length 1, which is trivial merge and needs not a
+        # lot of work.
+        if len(collections) == 1:
+            self.replaceBranch(collections[0])
+            return
+
+        variable_versions = {}
+
+        for collection in collections:
+            for variable, version in iterItems(collection.variable_actives):
+                if variable not in variable_versions:
+                    variable_versions[variable] = set([version])
+                else:
+                    variable_versions[variable].add(version)
+
+        for collection in collections:
+            for variable, versions in iterItems(variable_versions):
+                if variable not in collection.variable_actives:
+                    versions.add(0)
+
+        self.variable_actives = {}
+
+        for variable, versions in iterItems(variable_versions):
+            if len(versions) == 1:
+                version, = versions
+            else:
+                version = self.addVariableMergeMultipleTrace(
+                    variable = variable,
+                    traces   = [
+                        self.getVariableTrace(variable, version)
+                        for version in
+                        versions
+                    ]
+                )
+
+            self.markCurrentVariableTrace(variable, version)
 
     def replaceBranch(self, collection_replace):
         self.variable_actives.update(collection_replace.variable_actives)
@@ -498,17 +619,46 @@ class ConstraintCollectionBase(CollectionTracingMixin):
                 variable = variable
             )
 
-    def onLoopBreak(self, collection):
-        self.parent.onLoopBreak(collection)
+    def onLoopBreak(self, collection = None):
+        if collection is None:
+            collection = self
 
-    def onLoopContinue(self, state):
-        self.parent.onLoopContinue(state)
+        return self.parent.onLoopBreak(collection)
+
+    def onLoopContinue(self, collection = None):
+        if collection is None:
+            collection = self
+
+        return self.parent.onLoopContinue(collection)
+
+    def onFunctionReturn(self, collection = None):
+        if collection is None:
+            collection = self
+
+        return self.parent.onFunctionReturn(collection)
+
+    def getLoopBreakCollections(self):
+        return self.parent.getLoopBreakCollections()
+
+    def getLoopContinueCollections(self):
+        return self.parent.getLoopContinueCollections()
+
+    def getFunctionReturnCollections(self):
+        return self.parent.getFunctionReturnCollections()
+
+    def makeAbortStackContext(self, catch_breaks, catch_continues,
+                              catch_returns):
+        return self.parent.makeAbortStackContext(
+                                           catch_breaks, catch_continues,
+                              catch_returns
+        )
 
 
 class ConstraintCollectionBranch(ConstraintCollectionBase):
-    def __init__(self, parent):
+    def __init__(self, name, parent):
         ConstraintCollectionBase.__init__(
             self,
+            name   = name,
             parent = parent
         )
 
@@ -527,32 +677,28 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
                 expression = branch
             )
 
-    def _initVariable(self, variable):
-        variable_trace = self.parent.getVariableCurrentTrace(variable)
+    def initVariable(self, variable):
+        variable_trace = self.parent.initVariable(variable)
+        assert variable_trace.getVersion() == 0
 
-        self.variable_actives[variable] = variable_trace.getVersion()
+        self.variable_actives[variable] = 0
+
+        return variable_trace
+
+    def dumpTraces(self):
+        Tracing.printSeparator()
+        self.parent.dumpTraces()
+        Tracing.printSeparator()
+
+    def dumpActiveTraces(self):
+        Tracing.printSeparator()
+        Tracing.printLine("Active are:")
+        for variable, _version in sorted(self.variable_actives.iteritems()):
+            self.getVariableCurrentTrace(variable).dump()
+
+        Tracing.printSeparator()
 
 
-class ConstraintCollectionLoop(ConstraintCollectionBranch):
-    def __init__(self, parent):
-        ConstraintCollectionBranch.__init__(
-            self,
-            parent = parent
-        )
-
-        self.loop_break_collections = []
-
-    def getLoopBreakCollections(self):
-        return self.loop_break_collections
-
-    def onLoopBreak(self, collection):
-        self.loop_break_collections.append(
-            ConstraintCollectionBranch(collection)
-        )
-
-    def onLoopContinue(self, collection):
-        # Not useful yet.
-        pass
 
 
 class ConstraintCollectionFunction(CollectionStartpointMixin,
@@ -565,14 +711,12 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
         ConstraintCollectionBase.__init__(
             self,
+            name   = "function " + str(function_body),
             parent = parent
         )
 
         # TODO: Useless cyclic dependency.
         self.function_body = function_body
-
-    def __repr__(self):
-        return "<ConstraintCollectionFunction for %s>" % self.function_body
 
 
 class ConstraintCollectionModule(CollectionStartpointMixin,
@@ -583,5 +727,6 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
 
         ConstraintCollectionBase.__init__(
             self,
+            name   = "module",
             parent = None
         )

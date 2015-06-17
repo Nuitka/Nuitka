@@ -356,6 +356,7 @@ print("Testing exception changes between generator switches:")
 
 def yieldExceptionInteraction():
     def yield_raise():
+        print("Yield finds at generator entry", sys.exc_info()[0])
         try:
             raise KeyError("caught")
         except KeyError:
@@ -387,18 +388,21 @@ def yieldExceptionInteraction2():
         yield sys.exc_info()[0]
 
     try:
-        z
+        undefined_global
     except Exception:
         print("Checking from outside of generator with", sys.exc_info()[0])
         g = yield_raise()
         v = next(g)
-        print("Initial yield from catch in generator", v)
-        print("Checking from outside the generation ", sys.exc_info()[0])
-        print("Second yield from the catch reentered", next(g))
-        print("Checking from outside the generation again ", sys.exc_info()[0])
-        print("After leaving the catch generator yielded", next(g))
+        print("Initial yield from catch in generator:", v)
+        print("Checking from outside the generator:", sys.exc_info()[0])
+        print("Second yield from the catch reentered:", next(g))
+        print("Checking from outside the generation again:", sys.exc_info()[0])
+        print("After leaving the catch generator yielded:", next(g))
+
+    print("After exiting the trying branch:", sys.exc_info()[0])
 
 yieldExceptionInteraction2()
+print("After function exit, no exception", sys.exc_info())
 print('*' * 20)
 
 print("Check what happens if a function attempts to clear the exception in a handler")
@@ -442,7 +446,7 @@ def raiseValueWithValue():
 
 print("Check exception given when value is raised with value", raiseValueWithValue())
 
-# Make sure the repr of exceptions is fine
+# Make sure the "repr" of exceptions is fine
 
 a = IOError
 print("IOError is represented correctly:", repr(a))
@@ -465,12 +469,16 @@ def raiseWithFinallyNotCorruptingLineNumber():
 raiseWithFinallyNotCorruptingLineNumber()
 
 def wideCatchMustPublishException():
+    print("At entry, no exception", sys.exc_info())
+
     try:
         raisy(3)
     except:
+        print("Inside handler:", sys.exc_info())
+
         pass
 
-    print("Exited with", sys.exc_info())
+    print("Outside handler:", sys.exc_info())
 
 print("Check that a unqualified catch properly preserves exception")
 wideCatchMustPublishException()

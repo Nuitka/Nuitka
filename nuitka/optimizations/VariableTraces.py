@@ -41,19 +41,17 @@ class VariableTraceBase:
         self.variable = variable
         self.version = version
 
-        # List of definite references.
-        self.usages = []
+        # Definite usage indicator.
+        self.has_usages = False
 
-        # List of potential references beyond the definite ones.
-        self.potential_usages = []
+        # Potential usages indicator that an assignment value may be used.
+        self.has_potential_usages = False
 
-        # List of releases of the node.
-        self.releases = []
+        # If False, this indicates the trace has no explicit releases.
+        self.has_releases = False
 
-        # If not None, this indicates the last usage, where the value was not
-        # yet escaped. If it is 0, it escaped immediately. Escaping is a one
-        # time action.
-        self.escaped_at = None
+        # If False, this indicates that the value is not yet escaped.
+        self.is_escaped = False
 
         # Previous trace this is replacing.
         self.previous = previous
@@ -66,38 +64,29 @@ class VariableTraceBase:
     def getVersion(self):
         return self.version
 
-    def addUsage(self, ref_node):
-        self.usages.append(ref_node)
+    def addUsage(self):
+        self.has_usages = True
 
-    def addPotentialUsage(self, ref_node):
-        self.potential_usages.append(ref_node)
+    def addPotentialUsage(self):
+        self.has_potential_usages = True
 
-    def addRelease(self, release_node):
-        self.releases.append(release_node)
+    def addRelease(self):
+        self.has_releases = True
 
     def onValueEscape(self):
-        self.escaped_at = len(self.usages)
+        self.is_escaped = True
 
     def isEscaped(self):
-        return self.escaped_at is not None
-
-    def getDefiniteUsages(self):
-        return self.usages
+        return self.is_escaped
 
     def hasDefiniteUsages(self):
-        return bool(self.usages)
-
-    def getPotentialUsages(self):
-        return self.potential_usages
+        return self.has_usages
 
     def hasPotentialUsages(self):
-        return bool(self.potential_usages)
+        return self.has_potential_usages
 
     def getPrevious(self):
         return self.previous
-
-    def getReleases(self):
-        return self.releases
 
     @staticmethod
     def isAssignTrace():
@@ -138,7 +127,7 @@ class VariableTraceBase:
         return self.isUninitTrace()
 
     def getReplacementNode(self, usage):
-        # Virtual method, pylint: disable=W0613,R0201
+        # Virtual method, pylint: disable=R0201,W0613
 
         return None
 
@@ -170,14 +159,14 @@ class VariableTraceUninit(VariableTraceBase):
         )
         debug("  Starts out uninitialized")
 
-        for count, usage in enumerate(self.usages):
-            if count == self.escaped_at:
-                debug("  Escaped value")
+        if self.has_usages:
+            debug("  -> has usages")
 
-            debug("  Used at %s", usage)
+        if self.is_escaped:
+            debug("  -> value escapes")
 
-        for release in self.releases:
-            debug("   Release by %s", release)
+        if self.has_releases:
+            debug("   -> has released")
 
 
 class VariableTraceInit(VariableTraceBase):
@@ -203,14 +192,14 @@ class VariableTraceInit(VariableTraceBase):
         )
         debug("  Starts initialized")
 
-        for count, usage in enumerate(self.usages):
-            if count == self.escaped_at:
-                debug("  Escaped value")
+        if self.has_usages:
+            debug("  -> has usages")
 
-            debug("  Used at %s", usage)
+        if self.is_escaped:
+            debug("  -> value escapes")
 
-        for release in self.releases:
-            debug("   Release by %s", release)
+        if self.has_releases:
+            debug("   -> has released")
 
     @staticmethod
     def isInitTrace():
@@ -240,30 +229,33 @@ class VariableTraceUnknown(VariableTraceBase):
         )
         debug("  Starts unknown")
 
-        for count, usage in enumerate(self.usages):
-            if count == self.escaped_at:
-                debug("  Escaped value")
+        if self.has_usages:
+            debug("  -> has usages")
 
-            debug("  Used at %s", usage)
+        if self.is_escaped:
+            debug("  -> value escapes")
 
-        for release in self.releases:
-            debug("   Release by %s", release)
+        if self.has_releases:
+            debug("   -> has released")
 
     @staticmethod
     def isUnknownTrace():
         return True
 
-    def addUsage(self, ref_node):
-        VariableTraceBase.addUsage(self, ref_node)
+    def addUsage(self):
+        self.has_usages = True
 
         if self.previous is not None:
-            self.previous.addPotentialUsage(ref_node)
+            self.previous.addPotentialUsage()
 
-    def addPotentialUsage(self, ref_node):
-        VariableTraceBase.addPotentialUsage(self, ref_node)
+    def addPotentialUsage(self):
+        old = self.has_potential_usages
 
-        if self.previous is not None:
-            self.previous.addPotentialUsage(ref_node)
+        if not old:
+            self.has_potential_usages = True
+
+            if self.previous is not None:
+                self.previous.addPotentialUsage()
 
 
 class VariableTraceAssign(VariableTraceBase):
@@ -292,14 +284,14 @@ class VariableTraceAssign(VariableTraceBase):
             self.version)
         debug("  Starts assigned")
 
-        for count, usage in enumerate(self.usages):
-            if count == self.escaped_at:
-                debug("  Escaped value")
+        if self.has_usages:
+            debug("  -> has usages")
 
-            debug("  Used at %s", usage)
+        if self.is_escaped:
+            debug("  -> value escapes")
 
-        for release in self.releases:
-            debug("   Release by %s", release)
+        if self.has_releases:
+            debug("   -> has released")
 
     @staticmethod
     def isAssignTrace():
@@ -377,18 +369,92 @@ class VariableTraceMerge(VariableTraceBase):
 
         return True
 
-    def addUsage(self, ref_node):
-        VariableTraceBase.addUsage(self, ref_node)
+    def addUsage(self):
+        self.has_usages = True
 
         a, b = self.previous
 
-        a.addPotentialUsage(ref_node)
-        b.addPotentialUsage(ref_node)
+        a.addPotentialUsage()
+        b.addPotentialUsage()
 
-    def addPotentialUsage(self, ref_node):
-        VariableTraceBase.addPotentialUsage(self, ref_node)
+    def addPotentialUsage(self):
+        old = self.has_potential_usages
 
-        a, b = self.previous
+        if not old:
+            self.has_potential_usages = True
 
-        a.addPotentialUsage(ref_node)
-        b.addPotentialUsage(ref_node)
+            a, b = self.previous
+
+            a.addPotentialUsage()
+            b.addPotentialUsage()
+
+
+class VariableTraceMergeMultiple(VariableTraceBase):
+    """ Merge of two or more traces.
+
+        Happens at the end of conditional blocks. This is "phi" in
+        SSA theory. Also used for merging multiple "return", "break" or
+        "continue" exits.
+    """
+    def __init__(self, variable, version, traces):
+        VariableTraceBase.__init__(
+            self,
+            variable = variable,
+            version  = version,
+            previous = tuple(traces)
+        )
+
+    @staticmethod
+    def isMergeTrace():
+        return True
+
+    def dump(self):
+        debug(
+            "Trace of %s %d:",
+            self.variable,
+            self.version
+        )
+
+        debug(
+            "  Merge of %s",
+            " <-> ".join(self.previous),
+        )
+
+    def mustHaveValue(self):
+        # TODO: Temporarily disable far reaching of assumptions, until value
+        # escaping can be trusted.
+        if self.variable.isModuleVariable() or \
+           self.variable.isSharedTechnically():
+            return False
+
+        for previous in self.previous:
+            if not previous.isInitTrace() and not previous.isAssignTrace():
+                return False
+
+        return True
+
+    def mustNotHaveValue(self):
+        if self.variable.isModuleVariable() or \
+           self.variable.isSharedTechnically():
+            return False
+
+        for previous in self.previous:
+            if not previous.isUninitTrace():
+                return False
+
+        return True
+
+    def addUsage(self):
+        self.has_usages = True
+
+        for previous in self.previous:
+            previous.addPotentialUsage()
+
+    def addPotentialUsage(self):
+        old = self.has_potential_usages
+
+        if not old:
+            self.has_potential_usages = True
+
+            for previous in self.previous:
+                previous.addPotentialUsage()

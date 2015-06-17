@@ -77,18 +77,30 @@ template_frame_guard_full_exception_handler = """\
 RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
 #endif
 
-if ( exception_tb == NULL )
 {
-    exception_tb = %(tb_making)s;
-}
-else if ( exception_tb->tb_frame != %(frame_identifier)s )
-{
-    PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s );
-    traceback_new->tb_next = exception_tb;
-    exception_tb = traceback_new;
-}
+    bool needs_detach = false;
 
+    if ( exception_tb == NULL )
+    {
+        exception_tb = %(tb_making)s;
+        needs_detach = true;
+    }
+    else if ( exception_lineno != -1 )
+    {
+        PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s, exception_lineno );
+        traceback_new->tb_next = exception_tb;
+        exception_tb = traceback_new;
+
+        needs_detach = true;
+    }
+
+    if (needs_detach)
+    {
 %(store_frame_locals)s
+
+        detachFrame( exception_tb, %(frame_locals_name)s );
+    }
+}
 
 popFrameStack();
 
@@ -100,11 +112,6 @@ Py_DECREF( %(frame_identifier)s );
 // Return the error.
 goto %(parent_exception_exit)s;
 """
-
-template_frame_guard_once_decl = """\
-static PyFrameObject *cache_%(frame_identifier)s = NULL;
-"""
-
 
 # Frame for a module. TODO: Use it for functions called only once.
 # TODO: The once guard need not take a reference count in its frame class.
@@ -145,7 +152,7 @@ if ( exception_tb == NULL )
 }
 else if ( exception_tb->tb_frame != %(frame_identifier)s )
 {
-    PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s );
+    PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s, exception_lineno );
     traceback_new->tb_next = exception_tb;
     exception_tb = traceback_new;
 }
@@ -213,6 +220,21 @@ Py_INCREF( generator->m_frame );
 %(frame_identifier)s->f_executing += 1;
 #endif
 
+#if PYTHON_VERSION >= 300
+// Accept currently existing exception as the one to publish again when we
+// yield or yield from.
+
+PyThreadState *thread_state = PyThreadState_GET();
+
+%(frame_identifier)s->f_exc_type = thread_state->exc_type;
+if ( %(frame_identifier)s->f_exc_type == Py_None ) %(frame_identifier)s->f_exc_type = NULL;
+Py_XINCREF( %(frame_identifier)s->f_exc_type );
+%(frame_identifier)s->f_exc_value = thread_state->exc_value;
+Py_XINCREF( %(frame_identifier)s->f_exc_value );
+%(frame_identifier)s->f_exc_traceback = thread_state->exc_traceback;
+Py_XINCREF( %(frame_identifier)s->f_exc_traceback );
+#endif
+
 // Framed code:
 %(codes)s
 
@@ -220,42 +242,65 @@ Py_INCREF( generator->m_frame );
 %(frame_identifier)s->f_executing -= 1;
 #endif
 
+#if PYTHON_VERSION >= 300
+Py_CLEAR( %(frame_identifier)s->f_exc_type );
+Py_CLEAR( %(frame_identifier)s->f_exc_value );
+Py_CLEAR( %(frame_identifier)s->f_exc_traceback );
+#endif
+
 Py_DECREF( %(frame_identifier)s );
 goto %(no_exception_exit)s;
 """
 
+# TODO: This cannot happen, can it?
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
-#if PYTHON_VERSION > 300
-RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
+
+#if PYTHON_VERSION >= 300
+Py_CLEAR( %(frame_identifier)s->f_exc_type );
+Py_CLEAR( %(frame_identifier)s->f_exc_value );
+Py_CLEAR( %(frame_identifier)s->f_exc_traceback );
 #endif
+
 Py_DECREF( %(frame_identifier)s );
 goto %(return_exit)s;
 """
 
 
-# TODO: Should we check type of value.
 template_frame_guard_generator_exception_handler = """\
 %(frame_exception_exit)s:;
 
+// If it's not an exit exception, consider and create a traceback for it.
 if ( !EXCEPTION_MATCH_GENERATOR( exception_type ) )
 {
+    int needs_detach = false;
+
     if ( exception_tb == NULL )
     {
         exception_tb = %(tb_making)s;
+        needs_detach = true;
     }
     else if ( exception_tb->tb_frame != %(frame_identifier)s )
     {
-        PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s );
+        PyTracebackObject *traceback_new = MAKE_TRACEBACK( %(frame_identifier)s, exception_lineno );
         traceback_new->tb_next = exception_tb;
         exception_tb = traceback_new;
+
+        needs_detach = true;
     }
 
+    if (needs_detach)
+    {
 %(store_frame_locals)s
+
+        detachFrame( exception_tb, %(frame_locals_name)s );
+    }
 }
 
-#if PYTHON_VERSION > 300
-RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
+#if PYTHON_VERSION >= 300
+Py_CLEAR( %(frame_identifier)s->f_exc_type );
+Py_CLEAR( %(frame_identifier)s->f_exc_value );
+Py_CLEAR( %(frame_identifier)s->f_exc_traceback );
 #endif
 
 Py_DECREF( %(frame_identifier)s );
@@ -264,5 +309,5 @@ goto %(parent_exception_exit)s;
 %(no_exception_exit)s:;
 """
 
-template_frame_locals_update = """\
-detachFrame( exception_tb, %(locals_identifier)s );"""
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

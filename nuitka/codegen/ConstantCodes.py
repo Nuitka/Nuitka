@@ -42,11 +42,11 @@ from nuitka.Constants import (
     isMutable
 )
 
-from . import CodeTemplates
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Indentation import indented
 from .Pickling import getStreamedConstant
+from .templates.CodeTemplatesConstants import template_constants_reading
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
@@ -1012,7 +1012,7 @@ def getConstantsDefinitionCode(context):
         context = context
     )
 
-    return CodeTemplates.template_constants_reading % {
+    return template_constants_reading % {
         "constant_declarations" : '\n'.join(constant_declarations),
         "constant_inits"        : indented(constant_inits),
         "constant_checks"       : indented(constant_checks)

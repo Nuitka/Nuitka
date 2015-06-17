@@ -68,7 +68,8 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
     def getDetails(self):
         return {
             "module_name" : self.module_name,
-            "level"       : self.level
+            "level"       : self.level,
+            "import_list" : self.import_list
         }
 
     def getModuleName(self):

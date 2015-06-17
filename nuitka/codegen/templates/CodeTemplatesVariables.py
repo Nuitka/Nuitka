@@ -211,3 +211,6 @@ template_del_global_unclear = """\
 %(res_name)s = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, %(var_name)s );
 if ( %(res_name)s == -1 ) CLEAR_ERROR_OCCURRED();
 """
+
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

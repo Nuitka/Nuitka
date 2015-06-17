@@ -23,12 +23,19 @@ able to execute them without creating the argument dictionary at all.
 
 """
 
-from . import CodeTemplates
 from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 from .ExceptionCodes import getExceptionIdentifier
 from .Helpers import generateChildExpressionCode
 from .LineNumberCodes import emitLineNumberUpdateCode
+from .templates.CodeTemplatesCalls import (
+    template_call_function_with_args_decl,
+    template_call_function_with_args_impl
+)
+from .templates.CodeTemplatesModules import (
+    template_header_guard,
+    template_helper_impl_decl
+)
 
 
 def generateCallCode(to_name, expression, emit, context):
@@ -331,13 +338,13 @@ def getCallsDecls():
         ]
 
         result.append(
-            CodeTemplates.template_call_function_with_args_decl % {
+            template_call_function_with_args_decl % {
                 "args_decl"  : ", ".join(args_decl),
                 "args_count" : quick_call_used
             }
         )
 
-    return CodeTemplates.template_header_guard % {
+    return template_header_guard % {
         "header_guard_name" : "__NUITKA_CALLS_H__",
         "header_body"       : '\n'.join(result)
     }
@@ -347,7 +354,7 @@ def getCallsCode():
     result = []
 
     result.append(
-        CodeTemplates.template_helper_impl_decl % {}
+        template_helper_impl_decl % {}
     )
 
     for quick_call_used in sorted(quick_calls_used):
@@ -361,7 +368,7 @@ def getCallsCode():
         ]
 
         result.append(
-            CodeTemplates.template_call_function_with_args_impl % {
+            template_call_function_with_args_impl % {
                 "args_decl"  : ", ".join(args_decl),
                 "args_list"  : ", ".join(args_list),
                 "args_count" : quick_call_used

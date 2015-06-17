@@ -263,8 +263,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 return_value = node.getExpression()
 
                 if python_version < 330:
-                    if not return_value.isExpressionConstantRef() or \
-                       return_value.getConstant() is not None:
+                    if not return_value.isExpressionReturnedValueRef() and \
+                       (not return_value.isExpressionConstantRef() or \
+                        return_value.getConstant() is not None):
                         SyntaxErrors.raiseSyntaxError(
                             "'return' with argument inside generator",
                             source_ref = node.getSourceReference(),

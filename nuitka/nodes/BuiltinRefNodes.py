@@ -35,6 +35,7 @@ from nuitka.optimizations import BuiltinOptimization
 from nuitka.utils.Utils import python_version
 
 from .ConstantRefNodes import ExpressionConstantRef
+from .ExceptionNodes import ExpressionBuiltinMakeException
 from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
 
 
@@ -44,9 +45,6 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
         CompileTimeConstantExpressionMixin.__init__(self)
 
         self.builtin_name = builtin_name
-
-    def makeCloneAt(self, source_ref):
-        return self.__class__(self.builtin_name, source_ref)
 
     def getDetails(self):
         return {
@@ -94,7 +92,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
             )
 
             return new_node, "new_constant", """\
-Built-in constant %s resolved""" % self.builtin_name
+Built-in constant '%s' resolved.""" % self.builtin_name
 
         return self, None, None
 
@@ -200,8 +198,6 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
                 return call_node, None, None
 
         def createBuiltinMakeException(args, source_ref):
-            from .ExceptionNodes import ExpressionBuiltinMakeException
-
             return ExpressionBuiltinMakeException(
                 exception_name = exception_name,
                 args           = args,

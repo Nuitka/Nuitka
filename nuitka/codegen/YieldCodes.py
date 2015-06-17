@@ -17,17 +17,27 @@
 #
 """ Yield related codes.
 
-The normal yield, and the Python 3.3 or higher yield from variant.
+The normal "yield", and the Python 3.3 or higher "yield from" variant.
 """
 
 from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .Helpers import generateChildExpressionsCode
 
 
-def getYieldCode(to_name, value_name, in_handler, emit, context):
+def generateYieldCode(to_name, expression, emit, context):
+    value_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    # In handlers, we must preserve/restore the exception.
+    preserve_exception = expression.isExceptionPreserving()
+
     emit(
         "%s = %s( generator, %s );" % (
             to_name,
-            "YIELD" if not in_handler else "YIELD_IN_HANDLER",
+            "YIELD" if not preserve_exception else "YIELD_IN_HANDLER",
             value_name
               if context.needsCleanup(value_name) else
             "INCREASE_REFCOUNT( %s )" % value_name
@@ -46,11 +56,21 @@ def getYieldCode(to_name, value_name, in_handler, emit, context):
     # Comes as only borrowed.
     # context.addCleanupTempName(to_name)
 
-def getYieldFromCode(to_name, value_name, in_handler, emit, context):
+
+def generateYieldFromCode(to_name, expression, emit, context):
+    value_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    # In handlers, we must preserve/restore the exception.
+    preserve_exception = expression.isExceptionPreserving()
+
     emit(
         "%s = %s( generator, %s );" % (
             to_name,
-            "YIELD_FROM" if not in_handler else "YIELD_FROM_IN_HANDLER",
+            "YIELD_FROM" if not preserve_exception else "YIELD_FROM_IN_HANDLER",
             value_name
               if context.needsCleanup(value_name) else
             "INCREASE_REFCOUNT( %s )" % value_name

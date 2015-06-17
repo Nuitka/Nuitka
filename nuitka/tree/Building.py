@@ -85,10 +85,7 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationUnary
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.StatementNodes import (
-    StatementExpressionOnly,
-    StatementsSequence
-)
+from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
@@ -108,9 +105,9 @@ from .Helpers import (
     makeDictCreationOrConstant,
     makeModuleFrame,
     makeSequenceCreationOrConstant,
+    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
-    makeTryFinallyStatement,
     mangleName,
     mergeStatements,
     setBuildingDispatchers
@@ -148,7 +145,8 @@ from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import (
     buildTryFinallyNode,
-    makeTryFinallyIndicatorStatements
+    makeTryFinallyIndicatorStatements,
+    makeTryFinallyStatement
 )
 from .ReformulationWithStatements import buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
@@ -246,7 +244,7 @@ def buildTryNode(provider, node, source_ref):
 
     return buildTryFinallyNode(
         provider    = provider,
-        build_tried = lambda : StatementsSequence(
+        build_tried = lambda : makeStatementsSequence(
             statements = mergeStatements(
                 (
                     buildTryExceptionNode(
@@ -254,8 +252,10 @@ def buildTryNode(provider, node, source_ref):
                         node       = node,
                         source_ref = source_ref
                     ),
-                )
+                ),
+                allow_none = True
             ),
+            allow_none = True,
             source_ref = source_ref
         ),
         node        = node,
@@ -637,6 +637,7 @@ def buildReturnNode(provider, node, source_ref):
         ]
 
         return makeTryFinallyStatement(
+            provider   = provider,
             tried      = statements,
             final      = StatementReleaseVariable(
                 variable   = tmp_variable,
@@ -712,8 +713,8 @@ def buildReprNode(provider, node, source_ref):
 def buildConditionalExpressionNode(provider, node, source_ref):
     return ExpressionConditional(
         condition      = buildNode(provider, node.test, source_ref),
-        yes_expression = buildNode(provider, node.body, source_ref),
-        no_expression  = buildNode(provider, node.orelse, source_ref),
+        expression_yes = buildNode(provider, node.body, source_ref),
+        expression_no  = buildNode(provider, node.orelse, source_ref),
         source_ref     = source_ref
     )
 

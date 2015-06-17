@@ -15,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 """ Helper functions for parsing the AST nodes and building the Nuitka node tree.
 
 """
@@ -32,13 +31,14 @@ from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeSet,
     ExpressionMakeTuple
 )
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.NodeBases import NodeBase
+from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import (
     StatementGeneratorEntry,
-    StatementsFrame,
     StatementsSequence
 )
-from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 
 
 def dump(node):
@@ -217,23 +217,6 @@ def buildStatementsNode(provider, nodes, source_ref, frame = False):
         )
 
 
-def mergeStatements(statements, allow_none = False):
-    """ Helper function that merges nested statement sequences. """
-    merged_statements = []
-
-    for statement in statements:
-        if statement is None and allow_none:
-            pass
-        elif statement.isStatement() or statement.isStatementsFrame():
-            merged_statements.append(statement)
-        elif statement.isStatementsSequence():
-            merged_statements.extend(mergeStatements(statement.getStatements()))
-        else:
-            assert False, statement
-
-    return merged_statements
-
-
 def makeStatementsSequenceOrStatement(statements, source_ref):
     """ Make a statement sequence, but only if more than one statement
 
@@ -281,6 +264,8 @@ def makeStatementsSequenceFromStatement(statement):
 def makeStatementsSequenceFromStatements(*statements):
     assert statements
     assert None not in statements
+
+    statements = mergeStatements(statements, allow_none = False)
 
     return StatementsSequence(
         statements = statements,
@@ -416,30 +401,34 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     return result
 
 
-def makeTryFinallyStatement(tried, final, source_ref):
-    if type(tried) in (tuple, list):
-        tried = StatementsSequence(
-            statements = tried,
-            source_ref = source_ref
-        )
-    if type(final) in (tuple, list):
-        final = StatementsSequence(
-            statements = final,
-            source_ref = source_ref
-        )
-
-    if tried is not None and not tried.isStatementsSequence():
-        tried = makeStatementsSequenceFromStatement(tried)
-    if final is not None and not final.isStatementsSequence():
-        final = makeStatementsSequenceFromStatement(final)
-
-    return StatementTryFinally(
-        tried      = tried,
-        final      = final,
-        public_exc = False,
-        source_ref = source_ref
+def getStatementsAppended(statement_sequence, statements):
+    return makeStatementsSequence(
+        statements = (statement_sequence, statements),
+        allow_none = False,
+        source_ref = statement_sequence.getSourceReference()
     )
 
+def getStatementsPrepended(statement_sequence, statements):
+    return makeStatementsSequence(
+        statements = (statements, statement_sequence),
+        allow_none = False,
+        source_ref = statement_sequence.getSourceReference()
+    )
+
+
+def makeReraiseExceptionStatement(source_ref):
+    return StatementsSequence(
+        statements = (
+            StatementRaiseException(
+                exception_type  = None,
+                exception_value = None,
+                exception_trace = None,
+                exception_cause = None,
+                source_ref      = source_ref
+            ),
+        ),
+        source_ref = source_ref
+    )
 
 
 def mangleName(variable_name, owner):

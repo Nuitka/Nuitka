@@ -252,7 +252,7 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
 
     def getDetails(self):
         return {
-            "attribute" : self.attribute_name
+            "attribute_name" : self.attribute_name
         }
 
     def getDetail(self):
@@ -555,21 +555,21 @@ class StatementDelVariable(StatementChildrenHavingBase):
         if self.tolerant:
             return False
         else:
-            variable = self.getTargetVariableRef().getVariable()
+            if self.variable_trace is not None:
+                variable = self.getTargetVariableRef().getVariable()
+                # TODO: This condition must become unnecessary, but enhancing
+                # SSA to notice potential escapes.
+                if not variable.isSharedTechnically():
 
-            # TODO: This condition must become unnecessary, but enhancing
-            # SSA to notice potential escapes.
-            if not variable.isSharedTechnically():
+                    # Temporary variables deletions won't raise, just because we don't
+                    # create them that way. We can avoid going through SSA in these
+                    # cases.
+                    if variable.isTempVariable():
+                        return False
 
-                # Temporary variables deletions won't raise, just because we don't
-                # create them that way. We can avoid going through SSA in these
-                # cases.
-                if variable.isTempVariable():
-                    return False
-
-                # If SSA knows, that's fine.
-                if self.variable_trace.mustHaveValue():
-                    return False
+                    # If SSA knows, that's fine.
+                    if self.variable_trace.mustHaveValue():
+                        return False
 
             return True
 
@@ -597,16 +597,28 @@ class StatementReleaseVariable(NodeBase):
             "variable" : self.variable
         }
 
+    def getDetailsForDisplay(self):
+        if self.variable.getOwner() is not self.getParentVariableProvider():
+            return {
+                "variable" : self.variable.getName(),
+                "owner"    : self.variable.getOwner().getCodeName()
+            }
+        else:
+            return {
+                "variable" : self.variable.getName(),
+            }
+
+
     def getVariable(self):
         return self.variable
 
     def computeStatement(self, constraint_collection):
         self.variable_trace = constraint_collection.onVariableRelease(
-            release_node = self
+            variable = self.variable
         )
 
         if self.variable_trace.isUninitTrace():
-            return None, "new_statements", None
+            return None, "new_statements", "un-init %s is not released" % self.variable.getName()
 
         # TODO: We might be able to remove ourselves based on the trace
         # we belong to.
@@ -640,7 +652,7 @@ class StatementDelAttribute(StatementChildrenHavingBase):
 
     def getDetails(self):
         return {
-            "attribute" : self.attribute_name
+            "attribute_name" : self.attribute_name
         }
 
     def getDetail(self):

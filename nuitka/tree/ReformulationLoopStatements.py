@@ -46,7 +46,8 @@ from .Helpers import (
     buildStatementsNode,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement,
+    makeStatementsSequenceFromStatements,
+    mergeStatements,
     popBuildContext,
     popIndicatorVariable,
     pushBuildContext,
@@ -54,6 +55,7 @@ from .Helpers import (
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildForLoopNode(provider, node, source_ref):
@@ -118,6 +120,7 @@ def buildForLoopNode(provider, node, source_ref):
 
     statements = (
         makeTryExceptSingleHandlerNode(
+            provider       = handler_body,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -136,7 +139,6 @@ def buildForLoopNode(provider, node, source_ref):
             ),
             exception_name = "StopIteration",
             handler_body   = handler_body,
-            public_exc     = False,
             source_ref     = source_ref
         ),
         buildAssignmentStatements(
@@ -210,6 +212,7 @@ def buildForLoopNode(provider, node, source_ref):
             source_ref   = source_ref
         ),
         makeTryFinallyStatement(
+            provider   = provider,
             tried      = StatementLoop(
                 body       = loop_body,
                 source_ref = source_ref
@@ -244,6 +247,7 @@ def buildForLoopNode(provider, node, source_ref):
 
         statements = (
             makeTryFinallyStatement(
+                provider   = provider,
                 tried      = statements,
                 final      = StatementReleaseVariable(
                     variable   = tmp_break_indicator,
@@ -253,9 +257,8 @@ def buildForLoopNode(provider, node, source_ref):
             ),
         )
 
-    return StatementsSequence(
-        statements = statements,
-        source_ref = source_ref
+    return makeStatementsSequenceFromStatements(
+        *statements
     )
 
 
@@ -375,6 +378,7 @@ def buildWhileLoopNode(provider, node, source_ref):
 
         statements = (
             makeTryFinallyStatement(
+                provider   = provider,
                 tried      = statements,
                 final      = StatementReleaseVariable(
                     variable   = tmp_break_indicator,
@@ -385,6 +389,6 @@ def buildWhileLoopNode(provider, node, source_ref):
         )
 
         return StatementsSequence(
-            statements = statements,
+            statements = mergeStatements(statements, False),
             source_ref = source_ref
         )

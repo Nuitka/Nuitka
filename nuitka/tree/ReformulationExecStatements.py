@@ -55,9 +55,9 @@ from .Helpers import (
     getKind,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
-    makeStatementsSequenceFromStatements,
-    makeTryFinallyStatement
+    makeStatementsSequenceFromStatements
 )
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
@@ -127,11 +127,11 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             ),
             source_ref = source_ref
         ),
-        no_expression  = ExpressionTempVariableRef(
+        expression_no  = ExpressionTempVariableRef(
             variable   = globals_keeper_variable,
             source_ref = source_ref
         ),
-        yes_expression = ExpressionBuiltinLocals(
+        expression_yes = ExpressionBuiltinLocals(
             source_ref = source_ref
         ),
         source_ref     = source_ref
@@ -315,7 +315,7 @@ exec: arg 1 must be a string, file, or code object""",
         name       = "plain"
     )
 
-    tried = makeStatementsSequenceFromStatements(
+    tried = (
         # First evaluate the source code expressions.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
@@ -488,6 +488,7 @@ exec: arg 1 must be a string, file, or code object""",
             source_ref = source_ref
         ),
         makeTryFinallyStatement(
+            provider   = provider,
             tried      = StatementExec(
                 source_code = ExpressionTempVariableRef(
                     variable   = source_variable,
@@ -531,7 +532,7 @@ exec: arg 1 must be a string, file, or code object""",
         )
     )
 
-    final = makeStatementsSequenceFromStatements(
+    final = (
         StatementReleaseVariable(
             variable   = source_variable,
             source_ref = source_ref
@@ -551,10 +552,11 @@ exec: arg 1 must be a string, file, or code object""",
     )
 
     return makeTryFinallyStatement(
+        provider   = provider,
         tried      = tried,
         final      = final,
         source_ref = source_ref
     )
 
 # This is here, to make sure it can register, pylint: disable=W0611
-import nuitka.optimizations.OptimizeBuiltinCalls # isort:skip
+import nuitka.optimizations.OptimizeBuiltinCalls # isort:skip @UnusedImport

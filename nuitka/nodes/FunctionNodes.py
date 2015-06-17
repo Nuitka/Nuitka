@@ -31,6 +31,7 @@ CPython reference, and may escape.
 from nuitka import Variables
 from nuitka.utils import Utils
 
+from .Checkers import checkStatementsSequenceOrNone
 from .IndicatorMixins import (
     MarkGeneratorIndicator,
     MarkLocalsDictIndicator,
@@ -44,8 +45,7 @@ from .NodeBases import (
     ExpressionChildrenHavingBase,
     ExpressionMixin,
     NodeBase,
-    SideEffectsFromChildrenMixin,
-    checkStatementsSequenceOrNone
+    SideEffectsFromChildrenMixin
 )
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
@@ -72,13 +72,13 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         "body",
     )
 
-    def __init__(self, provider, name, source_ref):
+    def __init__(self, provider, name, body, source_ref):
         assert name != ""
 
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "body" : None
+                "body" : body
             },
             source_ref = source_ref
         )
@@ -91,6 +91,12 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         # Hack: This allows some APIs to work although this is not yet
         # officially a child yet. Important during building.
         self.parent = provider
+
+    def getDetails(self):
+        return {
+            "provider" : self.provider,
+            "name"     : self.name
+        }
 
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
@@ -128,10 +134,15 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         from nuitka.ModuleRegistry import addUsedModule
         addUsedModule(owning_module)
 
-        statements_sequence = self.getBody()
-        assert statements_sequence is not None
+        abort_context = constraint_collection.makeAbortStackContext(
+            catch_breaks    = False,
+            catch_continues = False,
+            catch_returns   = True
+        )
 
-        if statements_sequence is not None:
+        with abort_context:
+            statements_sequence = self.getBody()
+
             result = statements_sequence.computeStatementsSequence(
                 constraint_collection = constraint_collection
             )
@@ -139,7 +150,12 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
             if result is not statements_sequence:
                 self.setBody(result)
 
-        # TODO: Function outline may become too trivial to outline..
+            return_collections = constraint_collection.getFunctionReturnCollections()
+
+        constraint_collection.mergeMultipleBranches(return_collections)
+
+        # TODO: Function outline may become too trivial to outline and return
+        # collections may tell us something.
         return self, None, None
 
 
@@ -159,6 +175,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     )
 
     checkers = {
+        # TODO: Is "None" really an allowed value.
         "body" : checkStatementsSequenceOrNone
     }
 
@@ -548,23 +565,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     def isClassClosureTaker(self):
         return self.has_super
 
-    def makeCloneAt(self, source_ref):
-        result = self.__class__(
-            provider   = self.provider,
-            name       = self.name,
-            doc        = self.name,
-            # TODO: Clone parameters too, when we start to mutate them.
-            parameters = self.parameters,
-            is_class   = self.is_class,
-            source_ref =  source_ref
-        )
-
-        result.setBody(
-            self.getBody().makeCloneAt(source_ref)
-        )
-
-        return result
-
     def markAsExceptionReturnValue(self):
         self.return_exception = True
 
@@ -778,14 +778,13 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
     def getDetails(self):
         return {
-            "function" : self.function_body.getCodeName()
+            "function_body" : self.function_body
         }
 
-    def makeCloneAt(self, source_ref):
-        return ExpressionFunctionRef(
-            function_body = self.function_body,
-            source_ref    = source_ref
-        )
+    def getDetailsForDisplay(self):
+        return {
+            "function" : self.function_body.getCodeName()
+        }
 
     def getFunctionBody(self):
         return self.function_body

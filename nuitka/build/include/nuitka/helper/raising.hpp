@@ -338,10 +338,19 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT( PyObject **exception_
 
     if ( PyExceptionClass_Check( *exception_type ) )
     {
+#if PYTHON_VERSION >= 340
+        NORMALIZE_EXCEPTION( exception_type, exception_value, exception_tb );
+        CHAIN_EXCEPTION( *exception_type, *exception_value );
+#endif
+
         return;
     }
     else if ( PyExceptionInstance_Check( *exception_type ) )
     {
+#if PYTHON_VERSION >= 340
+        CHAIN_EXCEPTION( *exception_type, *exception_value );
+#endif
+
         // The type is rather a value, so we are overriding it here.
         *exception_value = *exception_type;
         *exception_type = PyExceptionInstance_Class( *exception_type );
@@ -353,6 +362,11 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT( PyObject **exception_
     {
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
         FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+
+#if PYTHON_VERSION >= 340
+        CHAIN_EXCEPTION( *exception_type, *exception_value );
+#endif
+
         return;
     }
 }

@@ -81,16 +81,15 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
             self.user_provided
         )
 
-    def makeCloneAt(self, source_ref):
-        return ExpressionConstantRef(
-            constant      = self.constant,
-            source_ref    = source_ref,
-            user_provided = self.user_provided
-        )
-
     def getDetails(self):
         return {
-            "value"         : repr(self.constant),
+            "constant"      : self.constant,
+            "user_provided" : self.user_provided
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "constant"      : repr(self.constant),
             "user_provided" : self.user_provided
         }
 

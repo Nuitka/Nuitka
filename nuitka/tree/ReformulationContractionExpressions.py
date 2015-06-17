@@ -37,6 +37,7 @@ from nuitka.nodes.ContainerOperationNodes import (
     ExpressionListOperationAppend,
     ExpressionSetOperationAdd
 )
+from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCall,
@@ -54,7 +55,6 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementGeneratorEntry,
-    StatementsFrame,
     StatementsSequence
 )
 from nuitka.nodes.VariableRefNodes import (
@@ -69,12 +69,12 @@ from .Helpers import (
     buildNodeList,
     getKind,
     makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement,
     mergeStatements
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationBooleanExpressions import buildAndNode
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildListContractionNode(provider, node, source_ref):
@@ -228,8 +228,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
     else:
         assert emit_class is ExpressionDictOperationSet
 
-        current_body = emit_class(
-            ExpressionTempVariableRef(
+        current_body = ExpressionDictOperationSet(
+            dict_arg   = ExpressionTempVariableRef(
                 variable   = container_tmp,
                 source_ref = source_ref
             ),
@@ -308,6 +308,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
+                provider       = function_body,
                 tried          = makeStatementsSequenceFromStatement(
                     statement = StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
@@ -327,7 +328,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                         source_ref = source_ref.atInternal()
                     )
                 ),
-                public_exc     = False,
                 source_ref     = source_ref
             ),
             buildAssignmentStatements(
@@ -384,7 +384,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             )
 
         current_body = StatementsSequence(
-            statements = nested_statements,
+            statements = mergeStatements(nested_statements, False),
             source_ref = source_ref
         )
 
@@ -423,6 +423,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         function_body = ExpressionOutlineBody(
             provider   = provider,
             name       = name,
+            body       = None, # later
             source_ref = source_ref
         )
 
@@ -486,6 +487,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
     statements = (
         makeTryFinallyStatement(
+            provider   = function_body,
             tried      = statements,
             final      = release_statements,
             source_ref = source_ref.atInternal()
@@ -495,7 +497,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     function_body.setBody(
         makeStatementsSequenceFromStatement(
             statement = StatementsFrame(
-                statements    = statements,
+                statements    = mergeStatements(statements, False),
                 guard_mode    = "pass_through"
                                   if emit_class is not ExpressionYield else
                                 "generator",

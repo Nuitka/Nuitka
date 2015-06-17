@@ -1133,7 +1133,16 @@ bool PRINT_NULL( void )
 void PRINT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb )
 {
     PRINT_REPR( exception_type );
+    PRINT_STRING("|");
     PRINT_REPR( exception_value );
+#if PYTHON_VERSION >= 300
+    if ( exception_value != NULL )
+    {
+        PRINT_STRING(" <- ");
+        PRINT_REPR( PyException_GetContext( exception_value ) );
+    }
+#endif
+    PRINT_STRING("|");
     PRINT_REPR( exception_tb );
 
     PRINT_NEW_LINE();
@@ -3768,7 +3777,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
         PyObject *exception_type, *exception_value;
         PyTracebackObject *exception_tb;
 
-        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+        FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
 
         // Use string to hash the long value, which relies on that to not
         // use the object address.
@@ -3776,7 +3785,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
         result ^= DEEP_HASH( str );
         Py_DECREF( str );
 
-        RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+        RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
 
         return result;
     }
@@ -3787,7 +3796,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
         PyObject *exception_type, *exception_value;
         PyTracebackObject *exception_tb;
 
-        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+        FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
 
 #if PYTHON_PYTHON >= 330
         Py_ssize_t size;
@@ -3809,7 +3818,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
         Py_DECREF( str );
 #endif
-        RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+        RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
 
         return result;
     }

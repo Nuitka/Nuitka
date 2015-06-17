@@ -156,6 +156,11 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
     thread_state->exc_value = thread_state->frame->f_exc_value;
     thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
 
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("YIELD exit:\n");
+    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
+#endif
+
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
@@ -178,6 +183,11 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
     saved_exception_type = thread_state->exc_type;
     saved_exception_value = thread_state->exc_value;
     saved_exception_traceback = thread_state->exc_traceback;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("YIELD return:\n");
+    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
+#endif
 
     thread_state->exc_type = thread_state->frame->f_exc_type;
     thread_state->exc_value = thread_state->frame->f_exc_value;

@@ -39,6 +39,7 @@ def getModuleWhiteList():
         "cl", "gdbm", "gl", "GL", "aetools", "_bisect", "_heapq", "_symtable",
         "syslog", "_datetime", "_elementtree", "_pickle", "_posixsubprocess",
         "_thread", "atexit", "pyexpat", "_imp", "_sha1", "faulthandler",
+        "_osx_support", "sysconfig", "html.entities", "copyreg",
 
         # Python-Qt4 does these if missing python3 parts:
         "PyQt4.uic.port_v3.string_io", "PyQt4.uic.port_v3.load_plugin",
@@ -54,6 +55,9 @@ def getModuleWhiteList():
         # test_bsddb.py
         "bsddb.test",
 
+        # test_collections.py
+        "collections.abc",
+
         # test_compile.py
         "__package__.module", "__mangled_mod",
 
@@ -62,6 +66,9 @@ def getModuleWhiteList():
 
         # test_dbm.py
         "dbm.dumb",
+
+        # test_dbm_ndbm.py
+        "dbm.ndbm",
 
         # test_distutils.py
         "distutils.tests", "distutils.mwerkscompiler",
@@ -76,8 +83,8 @@ def getModuleWhiteList():
         # test_email_codecs.py
         "email.test",
 
-        # test/test_dbm_ndbm.py
-        "dbm.ndbm",
+        # test_file.py
+        "_pyio",
 
         # test_frozen.py
         "__hello__", "__phello__", "__phello__.spam", "__phello__.foo",
@@ -102,7 +109,7 @@ def getModuleWhiteList():
         "hooktestpackage.futrel", "sub", "hooktestpackage.newabs",
 
         # test_imporlib.py"
-        "importlib.test.__main__",
+        "importlib.test.__main__", "importlib",
 
         # test_inspect.py
         "inspect_fodder3",
@@ -118,6 +125,9 @@ def getModuleWhiteList():
 
         # test_logging.py
         "win32evtlog", "win32evtlogutil",
+
+        # test_lzma.py
+        "lzma",
 
         # test_macostools.py
         "macostools",
@@ -141,12 +151,18 @@ def getModuleWhiteList():
         # test_pkgutil.py
         "foo", "zipimport",
 
+        # test_urllib.py
+        "urllib.parse",
+
+        # test_urllib_response.py
+        "urllib.response",
+
         # test_repr.py
         """areallylongpackageandmodulenametotestreprtruncation.\
 areallylongpackageandmodulenametotestreprtruncation""",
 
         # test_robotparser.py
-        "urllib.error",
+        "urllib.error", "urllib.robotparser",
 
         # test_runpy.py
         "test.script_helper",
@@ -170,7 +186,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "runtktests", "tkinter.test", "tkinter.test.support",
 
         # test_tools.py
-        "analyze_dxp", "test_unparse",
+        "analyze_dxp", "test_unparse", "importlib.machinery",
 
         # test_traceback.py
         "test_bug737473",
@@ -209,7 +225,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "sgi", "ctypes.macholib.dyld", "bsddb3", "_pybsddb", "_xmlrpclib",
         "netbios", "win32wnet", "email.Parser", "elementree.cElementTree",
         "elementree.ElementTree", "_gbdm", "resource", "crypt", "bz2", "dbm",
-        "mmap",
+        "mmap", "Mailman",
 
         # Nuitka tests
         "test_common",
@@ -217,6 +233,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # Mercurial test
         "statprof", "email.Generator", "email.Utils",
     )
+
 
 def isWhiteListedNotExistingModule(module_name):
     result = module_name in getModuleWhiteList()

@@ -24,9 +24,9 @@ from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 from .GlobalsLocalsCodes import getStoreLocalsCode
 
 
-def getCompileCode(to_name, source_name, filename_name, mode_name,
-                   flags_name, dont_inherit_name, optimize_name, emit, context):
-
+def getBuiltinCompileCode(to_name, source_name, filename_name, mode_name,
+                          flags_name, dont_inherit_name, optimize_name, emit,
+                          context):
     if python_version < 300:
         args = (
             source_name,
@@ -68,11 +68,11 @@ def getCompileCode(to_name, source_name, filename_name, mode_name,
     context.addCleanupTempName(to_name)
 
 
-def getEvalCode(to_name, source_name, filename_name, globals_name, locals_name,
-                mode_name, emit, context):
+def getBuiltinEvalCode(to_name, source_name, filename_name, globals_name,
+                       locals_name, mode_name, emit, context):
     compiled_name = context.allocateTempName("eval_compiled")
 
-    getCompileCode(
+    getBuiltinCompileCode(
         to_name           = compiled_name,
         source_name       = source_name,
         filename_name     = filename_name,
@@ -108,11 +108,11 @@ def getEvalCode(to_name, source_name, filename_name, globals_name, locals_name,
     context.addCleanupTempName(to_name)
 
 
-def getExecCode(source_name, globals_name, filename_name, locals_name,
-                emit, context):
+def getBuiltinExecCode(source_name, globals_name, filename_name, locals_name,
+                       emit, context):
     compiled_name = context.allocateTempName("exec_compiled")
 
-    getCompileCode(
+    getBuiltinCompileCode(
         to_name           = compiled_name,
         source_name       = source_name,
         filename_name     = filename_name,

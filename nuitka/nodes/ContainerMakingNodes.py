@@ -289,6 +289,11 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
 
         self.lazy_order = lazy_order
 
+    def getDetails(self):
+        return {
+            "lazy_order" : self.lazy_order
+        }
+
     getPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
     def computeExpression(self, constraint_collection):

@@ -45,6 +45,16 @@ def getLineNumberUpdateCode(context):
     else:
         return ""
 
+def getErrorLineNumberUpdateCode(context):
+    lineno_value = getCurrentLineNumberCode(context)
+
+    if lineno_value:
+        return "exception_lineno = %s;" % (
+            lineno_value
+        )
+    else:
+        return ""
+
 
 def emitLineNumberUpdateCode(context, emit):
     code = getLineNumberUpdateCode(context)

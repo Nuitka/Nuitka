@@ -30,14 +30,14 @@ from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils import Utils
 
+from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import ExpressionConstantRef
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeBase,
     ExpressionMixin,
-    NodeBase,
-    checkStatementsSequenceOrNone
+    NodeBase
 )
 
 

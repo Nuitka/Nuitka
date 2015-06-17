@@ -21,9 +21,31 @@
 
 from nuitka.utils.Utils import python_version
 
-from . import CodeTemplates
 from .ConstantCodes import getConstantCode
 from .Indentation import indented
+from .templates.CodeTemplatesParameterParsing import (
+    template_argparse_assign_from_dict_finding,
+    template_argparse_assign_from_dict_parameter_quick_path,
+    template_argparse_assign_from_dict_parameter_quick_path_kw_only,
+    template_argparse_assign_from_dict_parameter_slow_path,
+    template_argparse_assign_from_dict_parameter_slow_path_kw_only,
+    template_argparse_assign_from_dict_parameters,
+    template_argparse_nested_argument,
+    template_argparse_plain_argument,
+    template_parameter_dparser_entry_point,
+    template_parameter_function_entry_point,
+    template_parameter_function_refuses,
+    template_parse_argument_check_counts_without_list_star_arg,
+    template_parse_argument_check_dict_parameter_with_star_dict,
+    template_parse_argument_copy_list_star_args,
+    template_parse_argument_dict_star_copy,
+    template_parse_argument_nested_argument_assign,
+    template_parse_argument_nested_argument_unpack,
+    template_parse_argument_usable_count,
+    template_parse_arguments_check,
+    template_parse_kwonly_argument_default,
+    template_parse_kwonly_arguments_check
+)
 
 
 def getParameterEntryPointIdentifier(function_identifier):
@@ -69,7 +91,7 @@ def _getParameterParsingCode(context, parameters, function_name):
         # In the case of star dict arguments, we need to check what is for it
         # and which arguments with names we have.
 
-        parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {
+        parameter_parsing_code += template_parse_argument_dict_star_copy % {
             "dict_star_parameter_name" : parameters.getStarDictArgumentName(),
             "function_name"            : function_name,
         }
@@ -77,7 +99,7 @@ def _getParameterParsingCode(context, parameters, function_name):
         # Check for each variable.
         for variable in top_level_parameters:
             if not variable.isNestedParameterVariable():
-                parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_with_star_dict % {
+                parameter_parsing_code += template_parse_argument_check_dict_parameter_with_star_dict % {
                     "parameter_name"           : variable.getCodeName(),
                     "parameter_name_object"    : getConstantCode(
                         constant = variable.getName(),
@@ -99,16 +121,16 @@ def _getParameterParsingCode(context, parameters, function_name):
                 context  = context
             )
 
-            parameter_assign_from_kw = CodeTemplates.argparse_template_assign_from_dict_finding % {
+            parameter_assign_from_kw = template_argparse_assign_from_dict_finding % {
                 "parameter_name" : variable.getCodeName(),
             }
 
             if variable.isParameterVariableKwOnly():
-                assign_quick = CodeTemplates.argparse_template_assign_from_dict_parameter_quick_path_kw_only
-                assign_slow = CodeTemplates.argparse_template_assign_from_dict_parameter_slow_path_kw_only
+                assign_quick = template_argparse_assign_from_dict_parameter_quick_path_kw_only
+                assign_slow = template_argparse_assign_from_dict_parameter_slow_path_kw_only
             else:
-                assign_quick = CodeTemplates.argparse_template_assign_from_dict_parameter_quick_path
-                assign_slow = CodeTemplates.argparse_template_assign_from_dict_parameter_slow_path
+                assign_quick = template_argparse_assign_from_dict_parameter_quick_path
+                assign_slow = template_argparse_assign_from_dict_parameter_slow_path
 
 
             quick_path_code += assign_quick % {
@@ -121,34 +143,34 @@ def _getParameterParsingCode(context, parameters, function_name):
                 "parameter_assign_from_kw" : indented(parameter_assign_from_kw)
             }
 
-        parameter_parsing_code += CodeTemplates.argparse_template_assign_from_dict_parameters % {
+        parameter_parsing_code += template_argparse_assign_from_dict_parameters % {
             "function_name"         : function_name,
             "parameter_quick_path"  : indented(quick_path_code, 2),
             "parameter_slow_path"   : indented(slow_path_code, 2)
         }
 
     if parameters.isEmpty():
-        parameter_parsing_code += CodeTemplates.template_parameter_function_refuses % {}
+        parameter_parsing_code += template_parameter_function_refuses % {}
     elif python_version < 330:
         if parameters.getListStarArgVariable() is None:
-            parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts_without_list_star_arg % {
+            parameter_parsing_code += template_parse_argument_check_counts_without_list_star_arg % {
                 "top_level_parameter_count" : plain_possible_count,
             }
 
     if plain_possible_count > 0:
         plain_var_names = []
 
-        parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {}
+        parameter_parsing_code += template_parse_argument_usable_count % {}
 
         for count, variable in enumerate(top_level_parameters):
             if variable.isNestedParameterVariable():
-                parameter_parsing_code += CodeTemplates.argparse_template_nested_argument % {
+                parameter_parsing_code += template_argparse_nested_argument % {
                     "parameter_name"            : variable.getCodeName(),
                     "parameter_position"        : count,
                     "top_level_parameter_count" : plain_possible_count,
                 }
             elif not variable.isParameterVariableKwOnly():
-                parameter_parsing_code += CodeTemplates.argparse_template_plain_argument % {
+                parameter_parsing_code += template_argparse_plain_argument % {
                     "parameter_name"            : variable.getCodeName(),
                     "parameter_position"        : count,
                     "top_level_parameter_count" : plain_possible_count,
@@ -156,7 +178,7 @@ def _getParameterParsingCode(context, parameters, function_name):
 
                 plain_var_names.append("_python_par_" + variable.getCodeName())
 
-        parameter_parsing_code += CodeTemplates.template_arguments_check % {
+        parameter_parsing_code += template_parse_arguments_check % {
             "parameter_test" : " || ".join(
                 "%s == NULL" % plain_var_name
                 for plain_var_name in
@@ -167,12 +189,12 @@ def _getParameterParsingCode(context, parameters, function_name):
 
 
     if parameters.getListStarArgVariable() is not None:
-        parameter_parsing_code += CodeTemplates.parse_argument_template_copy_list_star_args % {
+        parameter_parsing_code += template_parse_argument_copy_list_star_args % {
             "list_star_parameter_name"  : parameters.getStarListArgumentName(),
             "top_level_parameter_count" : plain_possible_count
         }
     elif python_version >= 330:
-        parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts_without_list_star_arg % {
+        parameter_parsing_code += template_parse_argument_check_counts_without_list_star_arg % {
             "top_level_parameter_count" : plain_possible_count,
         }
 
@@ -188,13 +210,13 @@ def _getParameterParsingCode(context, parameters, function_name):
                 child_variables = variable.getTopLevelVariables()
 
                 for count, child_variable in enumerate(child_variables):
-                    unpack_code += CodeTemplates.parse_argument_template_nested_argument_assign % {
+                    unpack_code += template_parse_argument_nested_argument_assign % {
                         "parameter_name" : child_variable.getCodeName(),
                         "iter_name"      : variable.getName(),
                         "unpack_count"   : count
                     }
 
-                result += CodeTemplates.parse_argument_template_nested_argument_unpack % {
+                result += template_parse_argument_nested_argument_unpack % {
                     "unpack_source_identifier" : assign_source,
                     "parameter_name" : variable.getCodeName(),
                     "unpack_code"    : unpack_code
@@ -216,7 +238,7 @@ def _getParameterParsingCode(context, parameters, function_name):
     kw_only_var_names = []
 
     for variable in parameters.getKwOnlyVariables():
-        parameter_parsing_code += CodeTemplates.template_kwonly_argument_default % {
+        parameter_parsing_code += template_parse_kwonly_argument_default % {
             "function_name"         : function_name,
             "parameter_name"        : variable.getCodeName(),
             "parameter_name_object" : getConstantCode(
@@ -228,7 +250,7 @@ def _getParameterParsingCode(context, parameters, function_name):
         kw_only_var_names.append("_python_par_" + variable.getCodeName())
 
     if kw_only_var_names:
-        parameter_parsing_code += CodeTemplates.template_kwonly_arguments_check % {
+        parameter_parsing_code += template_parse_kwonly_arguments_check % {
             "parameter_test" : " || ".join(
                 "%s == NULL" % kw_only_var_name
                 for kw_only_var_name in
@@ -273,7 +295,7 @@ def getParameterParsingCode(context, function_identifier, function_name,
         ]
     )
 
-    parameter_entry_point_code = CodeTemplates.template_parameter_function_entry_point % {
+    parameter_entry_point_code = template_parameter_function_entry_point % {
         "parameter_parsing_code"    : _getParameterParsingCode(
             context       = context,
             function_name = function_name,
@@ -316,7 +338,7 @@ def getParameterParsingCode(context, function_identifier, function_name,
 
         # print args_forward
 
-        parameter_entry_point_code += CodeTemplates.template_dparser % {
+        parameter_entry_point_code += template_parameter_dparser_entry_point % {
             "function_identifier" : function_identifier,
             "arg_count"           : len(function_parameter_variables),
             "args_forward"        : "".join(args_forward)

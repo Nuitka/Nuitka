@@ -28,11 +28,11 @@ import sys
 
 from nuitka import Options
 
-from . import CodeTemplates
 from .ConstantCodes import getModuleConstantCode
+from .templates.CodeTemplatesMain import template_main_program
 
 
-def getMainCode(main_module, codes, context):
+def generateMainCode(main_module, codes, context):
     python_flags = Options.getPythonFlags()
 
     if context.isEmptyModule():
@@ -54,7 +54,7 @@ def getMainCode(main_module, codes, context):
                               asFlags()
         )
 
-    main_code        = CodeTemplates.main_program % {
+    main_code        = template_main_program % {
         "sys_executable"       : getModuleConstantCode(
             constant = sys.executable,
         ),

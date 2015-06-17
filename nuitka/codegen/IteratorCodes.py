@@ -20,7 +20,6 @@
 Next variants and unpacking with related checks.
 """
 
-from . import CodeTemplates
 from .ErrorCodes import (
     getErrorExitCode,
     getErrorExitReleaseCode,
@@ -28,6 +27,10 @@ from .ErrorCodes import (
 )
 from .Indentation import indented
 from .LineNumberCodes import getLineNumberUpdateCode
+from .templates.CodeTemplatesIterators import (
+    template_iterator_check,
+    template_loop_break_next
+)
 
 
 def getBuiltinNext1Code(to_name, value, emit, context):
@@ -76,7 +79,7 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
         break_indicator_code = ""
 
     emit(
-        CodeTemplates.template_loop_break_next % {
+        template_loop_break_next % {
             "to_name" : to_name,
             "break_indicator_code" : break_indicator_code,
             "break_target" : break_target,
@@ -127,7 +130,7 @@ def getUnpackCheckCode(iterator_name, count, emit, context):
     release_code = getErrorExitReleaseCode(context)
 
     emit(
-        CodeTemplates.template_iterator_check % {
+        template_iterator_check % {
             "iterator_name"   : iterator_name,
             "attempt_name"    : attempt_name,
             "count"           : count,

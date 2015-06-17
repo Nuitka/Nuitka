@@ -29,13 +29,14 @@ from nuitka.nodes.AssignNodes import (
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.StatementNodes import StatementExpressionOnly, StatementsFrame
+from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
@@ -48,7 +49,6 @@ from .Helpers import (
     buildNodeList,
     getKind,
     makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement,
     mergeStatements
 )
 from .ReformulationFunctionStatements import (
@@ -56,6 +56,7 @@ from .ReformulationFunctionStatements import (
     buildParameterKwDefaults,
     buildParameterSpec
 )
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildLambdaNode(provider, node, source_ref):
@@ -131,6 +132,7 @@ def buildLambdaNode(provider, node, source_ref):
                 )
             )
             body = makeTryFinallyStatement(
+                provider   = provider,
                 tried      = statements,
                 final      = StatementReleaseVariable(
                     variable   = tmp_return_value,
