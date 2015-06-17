@@ -23,11 +23,10 @@ allow to propagate knowledge forward or not.
 This is about collecting these constraints and to manage them.
 """
 
-# Python3 compatibility.
 from logging import debug
 
 from nuitka import Tracing, VariableRegistry
-from nuitka.__past__ import iterItems
+from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.utils import Utils
 
 from .VariableTraces import (

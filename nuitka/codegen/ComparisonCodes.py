@@ -264,14 +264,14 @@ def getBranchingCode(condition, emit, context):
 
     if true_target is not None and false_target is None:
         emit(
-            "if (%s) goto %s;" % (
+            "if ( %s ) goto %s;" % (
                 condition,
                 true_target
             )
         )
     elif true_target is None and false_target is not None:
         emit(
-            "if (!(%s)) goto %s;" % (
+            "if (!( %s )) goto %s;" % (
                 condition,
                 false_target
             )
@@ -281,7 +281,7 @@ def getBranchingCode(condition, emit, context):
 
         emit(
             """\
-if (%s)
+if ( %s )
 {
     goto %s;
 }

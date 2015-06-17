@@ -36,7 +36,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
         assert left.isExpression()
         assert right.isExpression()
 
-        assert comparator in PythonOperators.all_comparison_functions
+        assert comparator in PythonOperators.all_comparison_functions, comparator
 
         ExpressionChildrenHavingBase.__init__(
             self,

@@ -95,7 +95,7 @@ def _getLocalVariableCode(context, variable):
 
     if owner is user:
         result = getVariableCodeName(
-            in_context = owner is not user,
+            in_context = False,
             variable   = variable
         )
 
