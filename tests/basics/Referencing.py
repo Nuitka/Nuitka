@@ -38,33 +38,45 @@ if not hasattr(sys, "gettotalrefcount"):
 
 x = 17
 
+# Just a function return a constant. Functions don't become any smaller. Let's
+# get that right.
 def simpleFunction1():
     return 1
 
+# Do a bit of math with a local variable, assigning to its value and then doing
+# an overwrite of that, trying that math again. This should cover local access
+# a bit.
 def simpleFunction2():
     y = 3 * x
     y = 3
-    y = 2
 
     return x*2
 
+# A local function is being returned. This covers creation of local functions
+# and their release. No closure variables involved yet.
 def simpleFunction3():
     def contained():
         return x
 
     return contained
 
-def simpleFunction4():
-    y = 1
+# Again, local function being return, but this time with local variable taken
+# as a closure. We use value from defaulted argument, so it cannot be replaced.
+def simpleFunction4(a = 1):
+    y = a
 
     def contained():
         return y
 
     return contained
 
-def simpleFunction5(a = 1*2):
+# Default argument and building a list as local variables. Also return them,
+# so they are not optimized away.
+def simpleFunction5(a = 2):
     c = 1
     f = [a, a + c]
+
+    return c, f
 
 def simpleFunction6():
     for b in range(6):
@@ -365,7 +377,7 @@ def simpleFunction48():
     class BlockExceptions:
         def __enter__(self):
             pass
-        def __exit__( self, exc, val, tb):
+        def __exit__(self, exc, val, tb):
             return True
 
     with BlockExceptions():
@@ -449,7 +461,7 @@ def simpleFunction57():
     x = 1
     y = 2
 
-    def f( a = x, b = y):
+    def f(a = x, b = y):
         return a, b
 
     f()
@@ -537,14 +549,14 @@ def simpleFunction69():
 def simpleFunction70():
     def gen():
         try:
-            yyyy
+            undefined_yyyy
         except Exception:
             pass
 
         yield sys.exc_info()
 
     try:
-        xxxx
+        undefined_xxxx
     except Exception:
         return list(gen())
 
@@ -650,7 +662,7 @@ def simpleFunction81():
         j
 
     j = 1
-    x = list( f() )
+    x = list(f())
 
 def simpleFunction82():
     def f():
@@ -673,20 +685,20 @@ def simpleFunction84():
     j = 3
     x += tuple([h*2 for h in range(j)])
 
-def simpleFunction84():
+def simpleFunction85():
     x = list(range(7))
     x[2] = 3
     x *= 2
 
-def simpleFunction85():
+def simpleFunction86():
     x = "something"
     x += ""
 
-def simpleFunction86():
+def simpleFunction87():
     x = 7
     x += 2000
 
-def simpleFunction87():
+def simpleFunction88():
     class C:
         def __iadd__(self, other):
             return self
@@ -694,14 +706,14 @@ def simpleFunction87():
     x = C()
     x += C()
 
-def simpleFunction88():
+def simpleFunction89():
     x = [1,2]
     x += [3,4]
 
 def anyArgs(*args, **kw):
     pass
 
-def simpleFunction89():
+def simpleFunction90():
     some_tuple = (
         simpleFunction89,
         simpleFunction89,
@@ -710,23 +722,12 @@ def simpleFunction89():
 
     anyArgs(*some_tuple)
 
-def simpleFunction90():
+def simpleFunction91():
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
     anyArgs(**some_dict)
-
-def simpleFunction91():
-    some_tuple = (
-        simpleFunction89,
-    )
-
-    some_dict = {
-        "a" : simpleFunction90,
-    }
-
-    anyArgs(*some_tuple, **some_dict)
 
 def simpleFunction92():
     some_tuple = (
@@ -734,10 +735,10 @@ def simpleFunction92():
     )
 
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
-    anyArgs(some_tuple, *some_tuple, **some_dict)
+    anyArgs(*some_tuple, **some_dict)
 
 def simpleFunction93():
     some_tuple = (
@@ -745,10 +746,10 @@ def simpleFunction93():
     )
 
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
-    anyArgs(*some_tuple, b = some_dict, **some_dict)
+    anyArgs(some_tuple, *some_tuple, **some_dict)
 
 def simpleFunction94():
     some_tuple = (
@@ -756,40 +757,53 @@ def simpleFunction94():
     )
 
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
-    anyArgs(some_tuple, *some_tuple, b = some_dict, **some_dict)
+    anyArgs(*some_tuple, b = some_dict, **some_dict)
 
 def simpleFunction95():
     some_tuple = (
         simpleFunction89,
     )
 
-    anyArgs(some_tuple, *some_tuple)
-
-def simpleFunction96():
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
-    anyArgs(b = some_dict, **some_dict)
+    anyArgs(some_tuple, *some_tuple, b = some_dict, **some_dict)
 
+def simpleFunction96():
+    some_tuple = (
+        simpleFunction89,
+    )
+
+    anyArgs(some_tuple, *some_tuple)
+
+# Complex call with dictionary and key arguments only.
 def simpleFunction97():
+    some_dict = {
+        'a' : simpleFunction90,
+        'd' : simpleFunction91
+    }
+
+    anyArgs(b = some_dict, c = 1, **some_dict)
+
+def simpleFunction98():
     some_tuple = (
         simpleFunction89,
     )
 
     anyArgs(*some_tuple, b = some_tuple)
 
-def simpleFunction98():
+def simpleFunction99():
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
     anyArgs(some_dict, **some_dict)
 
-def simpleFunction99():
+def simpleFunction100():
     def h(f):
         def g():
             return f
@@ -801,13 +815,13 @@ def simpleFunction99():
 
     h(f)
 
-def simpleFunction100():
+def simpleFunction101():
     def orMaking(a, b):
-        x = 'axa'
+        x = "axa"
         x += a or b
 
 
-    orMaking("x", "")
+    orMaking('x', "")
 
 
 # These need stderr to be wrapped.
