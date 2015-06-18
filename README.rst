@@ -47,25 +47,35 @@ Requirements
 
   * The MinGW [#]_ or MinGW64 [#]_ compiler on Windows
 
-  * Visual Studion 2013 or higher on Windows [#]_
+  * Visual Studio 2013 or higher on Windows [#]_
 
-- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4
+- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4 (yes, but read below)
 
-  You need the standard Python implementation, called "CPython", to execute
-  Nuitka, because it is closely tied to using it. On Windows, the so called
-  "WinPython" distribution is also supported.
 
-  .. note::
+  .. admonition:: Python3, yes but Python2 compile time dependency
+
+     For Python3 you *need* a Python2, but only during the compile time
+     only, and that is for Scons (which orchestrates the C++ compilation), and
+     is not yet ported. So for Python 3.x, there is currently a requirement to
+     also have a Python 2.x installed.
+
+  .. admonition:: Moving to other machines
 
      The created binaries can be made executable independent of the Python
      installation, with ``--standalone`` option.
 
-  .. note::
+  .. admonition:: Binary filename suffix ".exe" even on Linux
 
-     To get at Python3 executable, you need a Python2 during the compile time
-     only, and that is for Scons (which orchestrates the C++ compilation), and
-     is not yet ported. So for Python 3.x, there is currently a requirement to
-     also have a Python 2.x installed.
+     The created binaries have an ".exe" suffix, that you are free to remove
+     and no, that doesn't make them executable on Windows. They can be normal
+     Linux binaries.
+
+  .. admonition:: It has to be CPython, maybe WinPython
+
+     You need the standard Python implementation, called "CPython", to execute
+     Nuitka, because it is closely tied to using it. On Windows, the so called
+     "WinPython" distribution is also supported, but only for binaries, to make
+     modules.
 
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
 
