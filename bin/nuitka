@@ -104,19 +104,12 @@ python_flags = Options.getPythonFlags()
 if sys.flags.no_site == 0 and "no_site" in python_flags:
     needs_reexec = True
 
-    # False alarm, pylint: disable=E0611
-    from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths
-    os.environ["NUITKA_NAMESPACES"] = repr(
-        detectPreLoadedPackagePaths()
-    )
-
 # The hash randomization totally changes the created source code created,
 # changing it every single time Nuitka is run. This kills any attempt at
 # caching it, and comparing generated source code. While the created binary
 # actually may still use it, during compilation we don't want to. So lets
 # disable it.
 if os.environ.get("PYTHONHASHSEED", "-1") != "0":
-    os.environ["PYTHONHASHSEED"] = "0"
     needs_reexec = True
 
 # In case we need to re-execute.
@@ -142,6 +135,17 @@ if needs_reexec:
         os.environ["NUITKA_PYTHONPATH"] = repr(
             sys.path
         )
+
+        # False alarm, pylint: disable=E0611
+        from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths
+        os.environ["NUITKA_NAMESPACES"] = repr(
+            detectPreLoadedPackagePaths()
+        )
+
+        if "site" in sys.modules:
+            os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
+
+    os.environ["PYTHONHASHSEED"] = "0"
 
     Utils.callExec(args)
 

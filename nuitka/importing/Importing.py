@@ -380,6 +380,15 @@ def _findModuleInPath(module_name, package_name):
     if _debug_module_finding:
         print("_findModuleInPath: Enter", module_name, "in", package_name)
 
+    # The "site" module must be located based on PYTHONPATH before it was
+    # executed, while we normally search in PYTHONPATH after it was executed,
+    # and on some systems, that fails.
+    if package_name is None and module_name == "site":
+        candidate = os.environ.get("NUITKA_SITE_FILENAME", "")
+
+        if candidate:
+            return candidate
+
     # Free pass for built-in modules, the need not exist.
     if package_name is None and imp.is_builtin(module_name):
         return None, module_name
