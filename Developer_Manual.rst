@@ -33,7 +33,9 @@ Milestones
    has been reached. We do not target the older and practically unused CPython
    3.1 and 3.0 releases.
 
-   This milestone was reached.
+   This milestone was reached. Dropping support for Python 2.6 and 3.2 is an
+   option, should this prove to be any benefit. Currently it is not, as it
+   extends the test coverage only.
 
 2. Create the most efficient native code from this. This means to be fast with
    the basic Python object handling.
@@ -102,8 +104,8 @@ Nuitka top level works like this:
 - ``nuitka.tree.Building`` outputs node tree
 - ``nuitka.optimization`` enhances it as best as it can
 - ``nuitka.finalization`` marks the tree for code generation
-- ``nuitka.codegen.CodeGeneration`` creates code snippets and joins them
-- ``nuitka.codegen.Generator`` knows how identifiers and code are constructed
+- ``nuitka.codegen.CodeGeneration`` orchestrates the creation of code snippets
+- ``nuitka.codegen.*Codes`` knows how specific code kinds are created
 - ``nuitka.MainControl`` keeps it all together
 
 This design is intended to last.
@@ -128,6 +130,12 @@ These rules should generally be adhered when working on Nuitka code. It's not
 library code and it's optimized for readability, and avoids all performance
 optimization for itself.
 
+Tool to format
+--------------
+
+There is a tool ``misc/autoformat.py`` which is to apply automatic formatting
+to code as much as possible.
+
 
 Line Length
 -----------
@@ -149,7 +157,7 @@ Identifiers
 Classes are camel case with leading upper case. Methods are with leading verb in
 lower case, but also camel case. Around braces there are no spaces, but after
 comma, there is spaces for better readability. Variables and arguments are
-lower case with "_" as a separator.
+lower case with ``_`` as a separator.
 
 .. code-block:: python
 
@@ -226,7 +234,7 @@ requirements on changes to the ``sys.path`` if necessary.
    as you see fit.
 
 Names of modules should be plurals if they contain classes. Example is ``Nodes``
-contains ``Node`` classes.
+contains ``Node`` class.
 
 
 Prefer list contractions over built-ins
@@ -314,7 +322,8 @@ The "git flow" model
   Code under construction. We publish commits there, that may not hold up in
   testing, and before it enters develop branch. Factory may have severe
   regressions frequently, and commits become **rebased all the time**, so do
-  not base your patches on it, prefer develop branch for that.
+  not base your patches on it, please prefer the ``develop`` branch for that,
+  unless of course, it's about factory code itself.
 
 * Feature Branches
 
@@ -336,10 +345,7 @@ So, we currently use "PyLint" with options defined in a script.
 
    ./misc/check-with-pylint --hide-todos
 
-Ideally the above command gives no warnings, but that has never been true so
-far. This has not yet been reached. The existing warnings often still serve as a
-kind of "TODO" items. We are not white listing them, because they indicate a
-problem that should be solved.
+Ideally the above command gives no warnings. This is currently the case.
 
 If you submit a patch, it would be good if you checked that it doesn't introduce
 new warnings, but that is not strictly required. it will happen before release,
@@ -362,7 +368,6 @@ The top level access to the tests is as simple as this:
 
 For fine grained control, it has the following options::
 
-  -h, --help            show this help message and exit
   --skip-basic-tests    The basic tests, execute these to check if Nuitka is
                         healthy. Default is True.
   --skip-syntax-tests   The syntax tests, execute these to check if Nuitka
@@ -370,27 +375,64 @@ For fine grained control, it has the following options::
   --skip-program-tests  The programs tests, execute these to check if Nuitka
                         handles programs, e.g. import recursions, etc. fine.
                         Default is True.
+  --skip-package-tests  The packages tests, execute these to check if Nuitka
+                        handles packages, e.g. import recursions, etc. fine.
+                        Default is True.
+  --skip-optimizations-tests
+                        The optimization tests, execute these to check if
+                        Nuitka does optimize certain constructs fully away.
+                        Default is True.
+  --skip-standalone-tests
+                        The standalone tests, execute these to check if Nuitka
+                        standalone mode, e.g. not referring to outside,
+                        important 3rd library packages like PyQt fine. Default
+                        is True.
   --skip-reflection-test
                         The reflection test compiles Nuitka with Nuitka, and
                         then Nuitka with the compile Nuitka and compares the
                         outputs. Default is True.
-  --skip-cpython26      The standard CPython2.6 test suite. Execute this for
+  --skip-cpython26-tests
+                        The standard CPython2.6 test suite. Execute this for
                         all corner cases to be covered. With Python 2.7 this
                         covers exception behavior quite well. Default is True.
-  --skip-cpython27      The standard CPython2.7 test suite. Execute this for
+  --skip-cpython27-tests
+                        The standard CPython2.7 test suite. Execute this for
                         all corner cases to be covered. With Python 2.6 these
                         are not run. Default is True.
-  --skip-cpython32      The standard CPython3.2 test suite. Execute this for all
-                        corner cases to be covered. With Python 2.x these are
-                        not run. Default is True.
+  --skip-cpython32-tests
+                        The standard CPython3.2 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.6 these
+                        are not run. Default is True.
+  --skip-cpython33-tests
+                        The standard CPython3.3 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.x these
+                        are not run. Default is True.
+  --skip-cpython34-tests
+                        The standard CPython3.4 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.x these
+                        are not run. Default is True.
+  --no-python2.6        Do not use Python2.6 even if available on the system.
+                        Default is False.
+  --no-python2.7        Do not use Python2.7 even if available on the system.
+                        Default is False.
+  --no-python3.2        Do not use Python3.2 even if available on the system.
+                        Default is False.
+  --no-python3.3        Do not use Python3.3 even if available on the system.
+                        Default is False.
+  --no-python3.4        Do not use Python3.4 even if available on the system.
+                        Default is False.
+  --coverage            Make a coverage analysis, that does not really check.
+                        Default is False.
 
 
 You will only run the CPython test suites, if you have the submodules of the
-Nuitka git repository checked out. Otherwise, these will be skipped
-automatically with a warning that they are not available.
+Nuitka git repository checked out. Otherwise, these will be skipped with a
+warning that they are not available.
 
 The policy is generally, that ``./test/run-tests`` running and passing all
-the tests on Linux and Windows shall be considered sufficient for a release.
+the tests on Linux and Windows shall be considered sufficient for a release,
+but of course, depending on changes going on, that might have to be expanded.
+
 
 Basic Tests
 -----------
@@ -406,8 +448,9 @@ correct, if these "basic" tests pass. The most important constructs and
 built-ins are excercised.
 
 To control the Python version used for testing, you can set the ``PYTHON``
-environment variable to e.g. "python3.2", or execute the "run_all.py" with the
-intended version, it is portable across all supported Python versions.
+environment variable to e.g. ``python3.2`` (can only be a path), or execute
+the ``run_all.py`` script directly with the intended version, it is portable
+across all supported Python versions.
 
 Syntax Tests
 ------------
@@ -430,7 +473,7 @@ the same for this:
 Program Tests
 -------------
 
-Then there are small programs tests, that e.g. exercise all kinds of import
+Then there are small "programs" tests, that e.g. exercise many kinds of import
 tricks and are designed to reveal problems with inter-module behavior. These can
 be run like this:
 
@@ -449,7 +492,7 @@ The test compiles every module of Nuitka into an extension module and all of
 Nuitka into a single binary.
 
 That test case also gives good coverage of the ``import`` mechanisms, because
-Nuitka uses a lot of packages.
+Nuitka uses a lot of packages and imports between them.
 
 .. code-block:: sh
 
@@ -586,8 +629,8 @@ Nuitka does not involve Scons in its user interface at all; Scons is purely used
 internally. Nuitka itself, being pure Python, will run without any build process
 just fine.
 
-Nuitka prepares ".build" folders with lots of files and tasks scons to execute
-the final build.
+Nuitka simply prepares ``<program>.build`` folders with lots of files and tasks
+scons to execute the final build.
 
 .. note::
 
@@ -596,7 +639,7 @@ the final build.
    module.
 
 For interfacing to Scons, there is the module ``nuitka.build.SconsInterface``
-that will support calling scons - potentially from an inline copy, mainly on
+that will support calling ``scons`` - potentially from an inline copy, mainly on
 Windows or when using source releases - and passing arguments to it. These
 arguments are passed as ``key=value``, and decoded in the scons file of Nuitka.
 
@@ -774,7 +817,7 @@ changed.
 
         def f2(self):
            print( locals() )
-           super
+           super # Just using the name, not even calling it.
 
      x = X()
      x.f1()
@@ -889,6 +932,11 @@ cases, it might be removed completely. Also this will play a role when in-lining
 function. The frame stack entry will then be automatically preserved without
 extra care.
 
+.. note::
+
+    In the actual code, ``nuitka.nodes.FrameNodes.StatementsFrame`` is represents
+    this as a set of statements to be guarded by a frame presence.
+
 Parameter Parsing
 -----------------
 
@@ -946,7 +994,7 @@ position and if possible, values should be taken from there. If it's already set
 Code Generation towards C
 -------------------------
 
-Currently, Nuitka use C++ as a glorified C, it will tend to use less and less
+Currently, Nuitka uses C++ as a glorified C, it will tend to use less and less
 actual C++ patterns. Nuitka needs to control the order of releases fully, and
 may have objects becoming illegal references by e.g. in-place operations.
 
@@ -1012,18 +1060,16 @@ Frames are containers for variable declarations and cleanups. As such, frames
 provide error exits and success exits, which remove the frame from the frame
 stack, and then proceed to the parent exit.
 
-
 Abortive Statements
 +++++++++++++++++++
 
-The ``return``, ``continue``, and ``break`` of Python must be treated like an
-exception to ``try``/``finally``. So for success exit paths, a "return value
-variable" is maintained as well. It being set, causes ``finally`` exit to
-``return`` it again.
+The way ``try``/``finally`` is handled, copies of the ``finally`` block are
+made, and optimized independently for each abort method. The ones there are
+of course, ``return``, ``continue``, and ``break``, but also implicit and
+explicit ``raise`` of an exception.
 
-Similarly their are flags that make the ``continue`` or ``break`` happen at the
-end the end of a ``finally`` handler, but these are mere ``bool`` indicator
-flags.
+Code trailing an abortive statement can be discarded, and the control flow
+will follow these "exits".
 
 Constant Preparation
 --------------------
@@ -1098,22 +1144,43 @@ have the branch statically executed or removed.
 The "comparison chain" expressions
 ++++++++++++++++++++++++++++++++++
 
+
+In Nuitka we have the concept of an outline, and therefore we can make
+the following re-formulation instead:
+
 .. code-block:: python
 
-   a < b > c < d
-   # With "temp variables" and "assignment expressions", absolutely
-   # the same as:
-   a < ( tmp_b = b ) and tmp_b > ( tmp_c = c ) and ( tmp_c < d )
+   a < b() > c < d
+
+   def _comparison_chain(): # So called "outline" function
+       tmp_a = a
+       tmp_b = b()
+
+       tmp = tmp_a < tmp_b
+
+       if not tmp:
+           return tmp
+
+       del tmp_a
+       tmp_c = c
+
+       tmp = tmp_b > tmp_c
+
+       if not tmp:
+           return tmp
+
+       del tmp_b
+
+       return tmp_c < d
+
+   _comparison_chain()
 
 This transformation is performed at tree building already. The temporary
-variables keep the value for the potential read in the same expression. The
-syntax is not Python, and only pseudo language to expression the internal
-structure of the node tree after the transformation.
+variables keep the value for the use of the same expression. Only the last
+expression needs no temporary variable to keep it.
 
-These useful "keeper" variables that enable this transformation and allow to
-express the short circuit nature of comparison chains by using ``and``
-operations. There are implicit ``del`` added to when a temporary variable
-"keeper" is no longer needed with ``try/finally`` constructs.
+What we got from this, is making the checks of the comparison chain explicit
+and comparisons in Nuitka to be internally always about two operands only.
 
 
 The ``execfile`` built-in
@@ -1133,7 +1200,7 @@ Handling is:
    apply file embedding or whatever we will have there one day.
 
 This transformation is performed when the ``execfile`` built-in is detected as
-such during optimization. It does not have the implications
+such during optimization.
 
 
 Generator expressions with ``yield``
@@ -1523,6 +1590,7 @@ all, nodes called ``CaughtExceptionTypeRef`` and ``CaughtExceptionValueRef``.
 This means, that the different handlers and their catching run time behavior are
 all explicit and reduced the branches.
 
+
 Statement ``try``/``except`` with ``else``
 ++++++++++++++++++++++++++++++++++++++++++
 
@@ -1687,12 +1755,8 @@ ever exists.
     list_value = _listcontr_helper(range(8))
 
 The difference is that with Python3, the function "_listcontr_helper" is really
-there and named ``<listcomp>``, whereas with Python2 the function is to be
-considered in-lined.
-
-This in-lining in case of Python2 causes difficulties, because it's statements
-that occur inside an expression, which means a lot of side effects, that may or
-may not be possible to unroll to outside.
+there and named ``<listcomp>``, whereas with Python2 the function is only an
+outline, so it can readily access the name space.
 
 
 Set Contractions
@@ -1747,37 +1811,11 @@ Boolean expressions ``and`` and ``or``
 ++++++++++++++++++++++++++++++++++++++
 
 The short circuit operators ``or`` and ``and`` tend to be only less general that
-the ``if``/``else`` expressions and are therefore re-formulated as such:
+the ``if``/``else`` expressions, but have dedicated nodes. We used to have a
+re-formulation towards those, but we now do these via dedicated nodes too.
 
-.. code-block:: python
-
-    expr1() or expr2()
-
-.. code-block:: python
-
-   _tmp if (_tmp = expr1()) else expr2()
-
-.. code-block:: python
-
-    expr1() and expr2()
-
-.. code-block:: python
-
-   expr2() if (_tmp = expr1()) else _tmp
-
-In this form, the differences between these two operators becomes very apparent,
-the operands are simply switching sides.
-
-With this the branch that the "short-circuit" expresses, becomes obvious, at the
-expense of having the assignment expression to the temporary variable, that one
-needs to create anyway.
-
-.. note::
-
-   The release of "_tmp" should happen as soon as the expression using the value
-   of the ``or``/``and`` expression is finished. This is achieving by wrapping
-   that one with a ``del`` statement in a ``ExpressionTryFinally``.
-
+These new nodes, present the evaluation of the left value, checking for its
+truth value, and depending on it, to pick it, or use the right value.
 
 Simple Calls
 ++++++++++++
@@ -1936,6 +1974,17 @@ This expression is reformulated to ``locals().keys()`` for Python2, and
 Nodes that serve special purposes
 ---------------------------------
 
+Try statements
+++++++++++++++
+
+In Python, there is ``try``/``except`` and ``try``/``finally``. In Nuitka there
+is only a ``try``, which then has blocks to handle exceptions, ``continue``, or
+``break``, or ``return``. There is no ``else`` to this node type.
+
+This is more low level and universal. Code for the different handlers can be
+different. User provided ``finally`` blocks become copied into the different
+handlers.
+
 Releases
 ++++++++
 
@@ -2003,13 +2052,9 @@ only to release it.
 Caught Exception Type/Value References
 ++++++++++++++++++++++++++++++++++++++
 
-When catching an exception, in C++, an exception object is used. Exception
-handler code is being re-formulated to assign the caught exception to a name, to
-check its type for values, etc.
-
-For these, not ``sys.exc_info()`` is used, instead there are special nodes
-dedicated to these values: ``CaughtExceptionTypeRef`` and
-``CaughtExceptionValueRef``.
+When catching an exception, these are not directly put to ``sys.exc_info()``,
+but remain as mere C variables. From there, they can be accessed with these
+nodes, or if published then from the thread state.
 
 
 Hard Module Imports
@@ -2268,7 +2313,7 @@ variable, and therefore have only one version of that variable.
 
 For module variables, when the execution leaves the module to unknown code, or
 unclear code, it might change the variable. Therefore, likely we will often only
-assume that it could still be ctypes, or something else.
+assume that it could still be ctypes, but also something else.
 
 Depending on how well we control module variable assignment, we can decide this
 more of less quickly. With "compiled modules" types, the expectation is that
@@ -2322,9 +2367,9 @@ one has no ``append`` method, and would have raised an exception therefore.
 
    On the other hand, types without ``append`` attribute can be eliminated.
 
-It would be great, if functions provided some sort of analysis on their return
-type, or a quick way to predict return value properties, based on input value
-knowledge.
+Therefore, functions through SSA provide an automatic analysis on their return
+state, or return value types, or a quick way to predict return value properties,
+based on input value knowledge.
 
 So this could work:
 
@@ -2395,13 +2440,12 @@ So the collection for loops needs to be two pass for loops. First, to collect
 assignments, and merge these into the start state, before entering the loop
 body. The need to make two passes is special to loops.
 
-For a start, it could be done like this though: At loop entry, all knowledge is
-removed about everything, and so is at loop exit. That way, only the loop inner
-working is optimized, and before and after the loop are separate things. The
-optimal handling of ``a`` in the example code will take a while.
-
-For a general solution, it would be sweet to trace different exit paths
-differently. One loop exit may be good enough, as it will be the common case.
+For a start, it is done like this. At loop entry, all knowledge is removed about
+everything assigned or changed in the loop. From that basis, the ``break`` exits
+are analysed, and merged. Then, coming back, ``continue`` exits of the loop
+resulting from this, can replace the initial wide reaching removal of knowledge
+with a far smaller one. Merging this will state before loop, we got close to
+no degradation of knowledge, except what's necessary.
 
 Excursion to Conditions
 -----------------------
@@ -2420,7 +2464,7 @@ exiting the conditional block, a merge must be done, of the ``x`` versions. It
 could be either one. The merge may trace the condition under which a choice is
 taken. That way, we could decide pairs of traces under the same condition.
 
-These merges of SSA variable versions, represent alternatives. They pose
+These merges of SSA variable "versions", represent alternative values. They pose
 difficulties, and might have to be reduced to commonality. In the above example,
 the ``<`` operator will have to check for each version, and then to decide that
 both indeed give the same result.
@@ -2493,19 +2537,8 @@ to control flow. It is always the last statement of inspected block. When there
 statements to follow it, optimization will remove it as "dead code".
 
 If all branches of a conditional statement are "aborting", the statement is
-decided "aborting" too. If a loop doesn't break, it should be considered
-"aborting" too.
-
-.. note::
-
-   The removal of statements following "aborting" statements is implemented, and
-   so is the discovery of abortive conditional statements. It's not yet done for
-   loops, temp blocks, etc. though.
-
-So, ``return`` statements are easy for local optimization. In the general
-picture, it would be sweet to collect all return statements, and analyze the
-commonality of them. The goal to predict function results, might be solvable by
-looking at their values traces.
+decided "aborting" too. If a loop doesn't abort with a break, it should be
+considered "aborting" too.
 
 
 Excursion to ``yield`` expressions
@@ -2514,7 +2547,7 @@ Excursion to ``yield`` expressions
 The ``yield`` expression can be treated like a normal function call, and as such
 invalidates some known constraints just as much as they do. It executes outside
 code for an unknown amount of time, and then returns, with little about the
-outside world known anymore.
+outside world known anymore, if it's accessible from there.
 
 
 Mixed Types
@@ -2593,7 +2626,7 @@ The following is the intended interface:
   potential replacements of themselves, together with "tags" (meaningless now),
   and a "message", used for verbose tracing.
 
-  The replacement node of "+" operator, may e.g. be the pre-computed constant
+  The replacement node of ``+`` operator, may e.g. be the pre-computed constant
   result, wrapped in side effects of the node, or the expression raised, again
   wrapped in side effects.
 
