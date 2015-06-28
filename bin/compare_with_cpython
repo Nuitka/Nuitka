@@ -413,6 +413,10 @@ non_ascii_error_rt           = re.compile(
 python_win_lib_re            = re.compile(
     r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib"
 )
+local_port_re = re.compile(
+    r"(127\.0\.0\.1):\d{2,5}"
+)
+
 
 traceback_re                 = re.compile(
     r'(F|f)ile "(.*?)", line (\d+)'
@@ -513,6 +517,9 @@ def makeDiffable(output):
         # This is also a bug potentially, but only visible under
         # CPython
         line = python_win_lib_re.sub(r"C:\Python\1Lib", line)
+
+        # Port numbers can be random, lets ignore them
+        line = local_port_re.sub(r"\1:xxxxx", line)
 
         # This is a bug with clang potentially, can't find out why it says that.
         if line == "/usr/bin/ld: warning: .init_array section has zero size":
