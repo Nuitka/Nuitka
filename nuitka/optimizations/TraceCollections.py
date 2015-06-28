@@ -433,11 +433,11 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
         variable_ref = del_node.getTargetVariableRef()
-
-        version = variable_ref.getVariableVersion()
         variable = variable_ref.getVariable()
 
         old_trace = self.getVariableCurrentTrace(variable)
+
+        version = variable_ref.getVariableVersion()
 
         variable_trace = VariableTraceUninit(
             variable = variable,

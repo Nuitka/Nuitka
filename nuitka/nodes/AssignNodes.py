@@ -499,6 +499,8 @@ class StatementDelVariable(StatementChildrenHavingBase):
         )
 
         self.variable_trace = None
+        self.previous_trace = None
+
         self.tolerant = tolerant
 
     def getDetail(self):
@@ -524,12 +526,12 @@ class StatementDelVariable(StatementChildrenHavingBase):
     )
 
     def computeStatement(self, constraint_collection):
-        variable_trace = constraint_collection.onVariableDel(
+        self.previous_trace = constraint_collection.onVariableDel(
             del_node = self
         )
 
         if self.isTolerant():
-            if variable_trace.isUninitTrace():
+            if self.previous_trace.isUninitTrace():
                 return (
                     None,
                     "new_statements",
@@ -556,6 +558,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
             return False
         else:
             if self.variable_trace is not None:
+
                 variable = self.getTargetVariableRef().getVariable()
                 # TODO: This condition must become unnecessary, but enhancing
                 # SSA to notice potential escapes.
@@ -568,7 +571,8 @@ class StatementDelVariable(StatementChildrenHavingBase):
                         return False
 
                     # If SSA knows, that's fine.
-                    if self.variable_trace.mustHaveValue():
+                    if self.previous_trace is not None and \
+                       self.previous_trace.mustHaveValue():
                         return False
 
             return True
