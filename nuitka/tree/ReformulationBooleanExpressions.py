@@ -74,19 +74,17 @@ def buildBoolOpNode(provider, node, source_ref):
 def buildOrNode(values, source_ref):
     values = list(values)
 
-    result = values[-1]
-    del values[-1]
+    result = values.pop()
 
+    # When we encounter, "or", we expect it to be at least two values.
     assert values
 
     while values:
         result = ExpressionConditionalOR(
-            left       = values[-1],
+            left       = values.pop(),
             right      = result,
             source_ref = source_ref
         )
-
-        del values[-1]
 
     return result
 
@@ -94,16 +92,15 @@ def buildOrNode(values, source_ref):
 def buildAndNode(values, source_ref):
     values = list(values)
 
-    result = values[-1]
-    del values[-1]
+    result = values.pop()
+
+    # Unlike "or", for "and", this is used with only one value.
 
     while values:
         result = ExpressionConditionalAND(
-            left       = values[-1],
+            left       = values.pop(),
             right      = result,
             source_ref = source_ref
         )
-
-        del values[-1]
 
     return result
