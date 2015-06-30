@@ -89,7 +89,7 @@ if "PYTHON" not in os.environ:
 
 extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
-if "--python-debug" in extra_options:
+if "--python-debug" in extra_options or "--python-dbg" in extra_options:
     python_debug = True
 
 if python_debug:
