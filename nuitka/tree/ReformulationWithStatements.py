@@ -63,7 +63,10 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
-def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
+def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
+                   source_ref):
+    # Many details, pylint: disable=R0914
+
     with_source = buildNode(provider, context_expr, source_ref)
 
     if Options.isFullCompat():
@@ -108,8 +111,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, source_ref):
         source_ref = source_ref
     )
 
-    if Options.isFullCompat() and with_body is not None:
-        with_exit_source_ref = with_body.getStatements()[-1].getSourceReference()
+    if Options.isFullCompat():
+        with_exit_source_ref = source_ref.atLineNumber(body_lineno)
     else:
         with_exit_source_ref = source_ref
 
@@ -324,6 +327,7 @@ def buildWithNode(provider, node, source_ref):
         body = _buildWithNode(
             provider      = provider,
             body          = body,
+            body_lineno   = node.body[-1].lineno,
             context_expr  = context_expr,
             assign_target = assign_target,
             source_ref    = source_ref
