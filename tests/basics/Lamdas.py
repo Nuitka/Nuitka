@@ -23,6 +23,9 @@ def lamdaContainer(x):
     # h = lambda c: 'a' <= c <= 'z'
 
     y = f(x)
+    z = g(4)
+
+    print("Lambda with conditional expression gives", z)
 
     if 'a' <= x <= y <= 'z':
         print("Four")
@@ -36,7 +39,7 @@ def lamdaContainer(x):
     if 'a' <= ('1' if x else '2') > 'z':
         print("Yes2")
 
-    if 'a' <= ('1' if x else '2') > 'z' > i:
+    if 'a' <= ('1' if x else '2') > 'z' > undefined_global:  # @UndefinedVariable
         print("Yes3")
 
     z = lambda huhu = y : huhu

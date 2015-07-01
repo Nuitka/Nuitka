@@ -23,7 +23,7 @@ class X:
         print "X.__del__ occurred"
 
 def raising(doit):
-    x = X()
+    _x = X()
 
     if doit:
         1 / 0

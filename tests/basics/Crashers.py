@@ -28,7 +28,7 @@ def optimizerCrashIssue13():
         print("Caught it")
         raise
         print("Should not reach this")
-        raise
+        raise x
 
 # Just so it won't be optimized away entirely, the run time has no issue.
 optimizerCrashIssue13()

@@ -126,14 +126,14 @@ def inOperatorChain():
     print(3 in [3,4] not in [[3,4]])
 
     if 3 in [3,4] in [[3,4]]:
-       print("Yes")
+        print("Yes")
     else:
-       print("No")
+        print("No")
 
     if 3 in [3,4] not in [[3,4]]:
-       print("Yes")
+        print("Yes")
     else:
-       print("No")
+        print("No")
 
 
 inOperatorChain()

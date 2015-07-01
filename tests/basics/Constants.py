@@ -22,7 +22,7 @@ from __future__ import print_function
 try:
     long
 except NameError:
-    long = int
+    long = int  # @ReservedAssignment
 
 
 def displayDict(d):

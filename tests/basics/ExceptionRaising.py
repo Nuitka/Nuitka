@@ -49,15 +49,14 @@ print('*' * 20)
 
 print("Raising an exception, then catch it to re-raise it:")
 
-def raiseExceptionAndReraise():
+def raiseExceptionAndReraise(arg):
     try:
-        x = 0
-        y = x / x
+        return arg / arg
     except:
         raise
 
 try:
-    raiseExceptionAndReraise()
+    raiseExceptionAndReraise(0)
 except:
     print("Catched reraised", sys.exc_info())
 
@@ -67,7 +66,7 @@ print('*' * 20)
 print("Access an undefined global variable in a function:")
 
 def raiseNonGlobalError():
-    return undefined_value
+    return undefined_value  # @UndefinedVariable
 
 try:
     raiseNonGlobalError()
@@ -339,10 +338,15 @@ print('*' * 20)
 
 print("Testing exception that escapes __del__ and therefore cannot be raised")
 
+def devide(a,b):
+    return a / b
+
+
 def unraisableExceptionInDel():
     class C:
         def __del__(self):
-            c = 1 / 0
+            c = devide(1,0)
+            print(c)
 
     def f():
         C()
@@ -388,7 +392,7 @@ def yieldExceptionInteraction2():
         yield sys.exc_info()[0]
 
     try:
-        undefined_global
+        undefined_global  # @UndefinedVariable
     except Exception:
         print("Checking from outside of generator with", sys.exc_info()[0])
         g = yield_raise()
@@ -472,7 +476,7 @@ def wideCatchMustPublishException():
     print("At entry, no exception", sys.exc_info())
 
     try:
-        raisy(3)
+        undefined_global  # @UndefinedVariable
     except:
         print("Inside handler:", sys.exc_info())
 
@@ -483,7 +487,7 @@ def wideCatchMustPublishException():
 print("Check that a unqualified catch properly preserves exception")
 wideCatchMustPublishException()
 
-print("Check if a nested exception handler does overwrite reraised")
+print("Check if a nested exception handler does overwrite re-raised")
 def checkReraiseAfterNestedTryExcept():
     def reraise():
         try:
@@ -564,6 +568,8 @@ def checkNoRaiseExceptionDictBuilding(arg):
          type : arg
     }
 
+    return a, b, c, d, e, f, g, h
+
 checkNoRaiseExceptionDictBuilding(1)
 
 def checkRaiseExceptionDictBuildingRange(arg):
@@ -576,6 +582,8 @@ def checkRaiseExceptionDictBuildingRange(arg):
     else:
         print("No exception, OK for Python2")
 
+        return i
+
 print("Check if range raises:")
 checkRaiseExceptionDictBuildingRange(2)
 
@@ -586,6 +594,8 @@ def checkRaiseExceptionDictBuildingTuple(arg):
         }
     except Exception as e:
         print("Raised", repr(e))
+    else:
+        return i
 
 print("Check if mutable tuple raises:")
 checkRaiseExceptionDictBuildingTuple(3)
@@ -597,6 +607,8 @@ def checkRaiseExceptionDictBuildingList(arg):
         }
     except Exception as e:
         print("Raised", repr(e))
+    else:
+        return i
 
 print("Check if list raises:")
 checkRaiseExceptionDictBuildingList(4)

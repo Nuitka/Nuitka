@@ -69,7 +69,7 @@ def iteratorCreationTiming():
 
         try:
             import inspect
-            print("Generator state then is", inspect.getgeneratorstate(gen))
+            print("Generator state then is", inspect.getgeneratorstate(gen))  # @UndefinedVariable
         except AttributeError:
             pass
 

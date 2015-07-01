@@ -39,7 +39,6 @@ from collections import OrderedDict
 
 def m():
     class M(type):
-        # @classmethod
         def __new__(cls, class_name, bases, attrs, **over):
             print("Metaclass M.__new__ cls", cls, "name", class_name, "bases", bases, "dict", attrs, "extra class defs", over)
 
@@ -49,10 +48,8 @@ def m():
             print("Metaclass M.__init__", name, bases, attrs, over)
             super().__init__(name, bases, attrs)
 
-        # TODO: Removing this
-        # @classmethod
-        def __prepare__(name, bases, **over):
-            print("Metaclass M.__prepare__", name, bases, over)
+        def __prepare__(metacls, bases, **over):  # @NoSelf
+            print("Metaclass M.__prepare__", metacls, bases, over)
             return OrderedDict()
 
     print("Called", m)

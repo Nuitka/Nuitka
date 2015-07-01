@@ -104,6 +104,8 @@ def someFunctionUsingDir():
 
     print("Function dir", dir())
 
+    return x
+
 someFunctionUsingDir()
 
 print("Making a new type, with type() and 3 args:", end=' ')

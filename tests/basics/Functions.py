@@ -104,7 +104,6 @@ def defaultValueTest4a( no_default, funced_defaulted = lambda x: x**2):
 print("Call function that has a lambda calculated default parameter and a generator expression", defaultValueTest4a("ignored"))
 
 def defaultValueTest4b( no_default, funced_defaulted = lambda x: x**3):
-    c = 1
     d = funced_defaulted(1)
 
     # Nested generators
@@ -139,8 +138,8 @@ def in_test(a):
     # if 7 in a:
     #   print "hey"
 
-    8 in a
-    9 not in a
+    8 in a  # @NoEffect
+    9 not in a  # @NoEffect
 
 def printing():
     print("Hallo")
@@ -268,8 +267,6 @@ print(someLoopYieldFunctionUser())
 
 def someGeneratorClosureUser():
     def someGenerator():
-        result = []
-
         def userOfGeneratorLocalVar():
             return x+1
 

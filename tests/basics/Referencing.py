@@ -47,10 +47,10 @@ def simpleFunction1():
 # an overwrite of that, trying that math again. This should cover local access
 # a bit.
 def simpleFunction2():
-    y = 3 * x
+    y = 3 * x  # @UnusedVariable
     y = 3
 
-    return x*2
+    return x*2*y
 
 # A local function is being returned. This covers creation of local functions
 # and their release. No closure variables involved yet.
@@ -79,15 +79,15 @@ def simpleFunction5(a = 2):
     return c, f
 
 def simpleFunction6():
-    for b in range(6):
+    for _b in range(6):
         pass
 
-    for c in (1, 2, 3, 4, 5, 6):
+    for _c in (1, 2, 3, 4, 5, 6):
         pass
 
 
 def simpleFunction7(b = 1):
-    for b in range(6):
+    for _b in range(6):
         pass
 
 def simpleFunction8():
@@ -114,6 +114,8 @@ v = None
 def simpleFunction12():
     a = [(u,v) for (u,v) in zip(range(8),range(8))]
 
+    return a
+
 def cond():
     return 1
 
@@ -123,7 +125,7 @@ def simpleFunction13(a = 1*2):
 def simpleFunction14p(x):
     try:
         simpleFunction14p(1,1)
-    except TypeError as e:
+    except TypeError as _e:
         pass
 
     try:
@@ -142,7 +144,7 @@ def simpleFunction15p(x):
             try:
                 x *= 1
             finally:
-                z = 1
+                _z = 1
     except:
         pass
 
@@ -183,7 +185,7 @@ def simpleFunction20():
     try:
         a = []
         a[1]
-    except IndexError as e:
+    except IndexError as _e:
         pass
 
 
@@ -199,7 +201,7 @@ def simpleFunction21():
 
     c = result.base()
 
-    return result
+    return result, c
 
 def simpleFunction22():
     return True is False and False is not None
@@ -316,7 +318,7 @@ def simpleFunction37():
     l = [1, 2, 3]
 
     try:
-        a, b = l
+        _a, _b = l
     except ValueError:
         pass
 
@@ -342,10 +344,13 @@ def simpleFunction40():
 def simpleFunction41():
     a = b = 2
 
+    return a, b
+
 
 def simpleFunction42():
     a = b = 2 * x
 
+    return a, b
 
 def simpleFunction43():
     class D:
@@ -389,7 +394,9 @@ def simpleFunction49():
     c = 3
     d = 4
 
-    a = x, y = b,e = (c,d)
+    a = x, y = b, e = (c,d)
+
+    return a, y, b, e
 
 b = range(10)
 
@@ -404,14 +411,14 @@ def simpleFunction50():
     f = getF()
 
     for x in range(2):
-        r = list(f())
+        _r = list(f())
 
 def simpleFunction51():
     g = ( x for x in range(9) )
 
     try:
         g.throw(ValueError, 9)
-    except ValueError as e:
+    except ValueError as _e:
         pass
 
 def simpleFunction52():
@@ -419,7 +426,7 @@ def simpleFunction52():
 
     try:
         g.throw(ValueError(9))
-    except ValueError as e:
+    except ValueError as _e:
         pass
 
 def simpleFunction53():
@@ -427,7 +434,7 @@ def simpleFunction53():
 
     try:
         g.send(9)
-    except TypeError as e:
+    except TypeError as _e:
         pass
 
 def simpleFunction54():
@@ -436,7 +443,7 @@ def simpleFunction54():
 
     try:
         g.send(9)
-    except TypeError as e:
+    except TypeError as _e:
         pass
 
 
@@ -445,7 +452,7 @@ def simpleFunction55():
 
     try:
         g.close()
-    except ValueError as e:
+    except ValueError as _e:
         pass
 
 def simpleFunction56():
@@ -510,8 +517,10 @@ def simpleFunction63():
 
 def simpleFunction64():
     x = 2
-    y = 3
+    y = 3  # @UnusedVariable
     z = eval("x * y")
+
+    return z
 
 def simpleFunction65():
     import array
@@ -523,7 +532,10 @@ def simpleFunction65():
         'x' : 2,
         'y' : 3
     }
+
     z = eval(repr(d), d)
+
+    return z
 
 
 def simpleFunction66():
@@ -537,6 +549,8 @@ def simpleFunction67():
     q, r = divmod(length, len(pattern))
     teststring = pattern * q + pattern[:r]
 
+    return teststring
+
 def simpleFunction68():
     from random import randrange
     x = randrange(18)
@@ -549,49 +563,49 @@ def simpleFunction69():
 def simpleFunction70():
     def gen():
         try:
-            undefined_yyyy
+            undefined_yyy  # @UndefinedVariable
         except Exception:
             pass
 
         yield sys.exc_info()
 
     try:
-        undefined_xxxx
+        undefined_xxx  # @UndefinedVariable
     except Exception:
         return list(gen())
 
 def simpleFunction71():
     try:
-        undefined
+        undefined_global  # @UndefinedVariable
     except Exception:
         try:
             try:
                 raise
             finally:
-                undefined
+                undefined_global  # @UndefinedVariable
         except Exception:
             pass
 
 def simpleFunction72():
     try:
-        for i in range(10):
+        for _i in range(10):
             try:
-                undefined
+                undefined_global  # @UndefinedVariable
             finally:
                 break
     except Exception:
         pass
 
 def simpleFunction73():
-    for i in range(10):
+    for _i in range(10):
         try:
-            undefined
+            undefined_global  # @UndefinedVariable
         finally:
             return 7
 
 
 def simpleFunction74():
-    import os
+    import os  # @Reimport
 
     return os
 

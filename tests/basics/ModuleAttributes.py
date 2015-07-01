@@ -29,7 +29,7 @@ print "debug in builtins", __builtins__.__debug__
 
 print "__initializing__",
 try:
-    print __initializing__
+    print __initializing__  # @UndefinedVariable
 except NameError:
     print "not found"
 

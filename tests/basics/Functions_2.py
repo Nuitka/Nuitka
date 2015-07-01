@@ -22,11 +22,11 @@ def local_function(a,z=9):
 
     c = (a,b,a**32,a+a)
 
-    d = long('0')
-    e = int("77")
+    d = long('0')  # @UnusedVariable
+    e = int("77")  # @UnusedVariable
 
-    d= long(b)
-    e= long(1+1)
+    d = long(b)
+    e = long(1+1)
 
     return a, b, c, d, e, z
 

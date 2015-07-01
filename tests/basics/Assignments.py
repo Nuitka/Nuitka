@@ -162,6 +162,8 @@ def interuptedUnpack():
             print(c)
         except UnboundLocalError as e:
             print("and then nothing is assigned", repr(e))
+    else:
+        del d
 
     del a, b
 
@@ -178,7 +180,7 @@ def multiTargetInterrupt():
 
     print("Multiple, overlapping targets", end = "")
 
-    d = c, d = a, b
+    d = c, d = a, b  # @UnusedVariable
     print(d, c, end = "")
 
     del c

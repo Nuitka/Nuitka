@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-# All of these should be identical with correct software behaviour.
+# All of these should be identical with correct software behavior.
 
 print "Output with newline."
 print "Output", "with", "newline."
@@ -29,7 +29,7 @@ print "Output\twith tab"
 print "Output\t",
 print "with tab"
 
-# These ones gave errors with previos literal bugs:
+# These ones gave errors with previous literal bugs:
 print "changed 2"
 print "foo%sbar%sfred%sbob?????"
 
@@ -37,7 +37,7 @@ a = "partial print"
 # b doesn't exist
 
 try:
-    print a, b
+    print a, undefined_global  # @UndefinedVariable
 except Exception, e:
     print "then occurred", repr(e)
 
