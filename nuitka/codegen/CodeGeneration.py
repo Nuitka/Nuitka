@@ -455,6 +455,7 @@ def generateFunctionBodyCode(function_body, context):
         function_code = getGeneratorFunctionCode(
             context                = function_context,
             function_name          = function_body.getFunctionName(),
+            function_qualname      = function_body.getFunctionQualname(),
             function_identifier    = function_identifier,
             code_identifier        = code_identifier,
             parameters             = parameters,

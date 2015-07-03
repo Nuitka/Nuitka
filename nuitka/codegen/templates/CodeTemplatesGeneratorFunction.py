@@ -181,6 +181,9 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
     PyObject *result = Nuitka_Generator_New(
         %(function_identifier)s_context,
         %(function_name_obj)s,
+#if PYTHON_VERSION >= 350
+        %(function_qualname_obj)s,
+#endif
         %(code_identifier)s,
         closure,
         %(closure_count)d,

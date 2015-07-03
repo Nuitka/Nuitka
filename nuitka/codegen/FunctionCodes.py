@@ -528,11 +528,10 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     return result
 
 
-def getGeneratorFunctionCode(context, function_name, function_identifier,
-                             code_identifier, parameters, closure_variables,
-                             user_variables,
-                             temp_variables, function_codes,
-                             function_doc, needs_exception_exit,
+def getGeneratorFunctionCode(context, function_name, function_qualname,
+                             function_identifier, code_identifier, parameters,
+                             closure_variables, user_variables, temp_variables,
+                             function_codes, function_doc, needs_exception_exit,
                              needs_generator_return):
     # We really need this many parameters here. pylint: disable=R0913
 
@@ -692,9 +691,18 @@ def getGeneratorFunctionCode(context, function_name, function_identifier,
     else:
         closure_decl = template_genfunc_generator_no_closure % {}
 
+    if Utils.python_version < 350:
+        function_qualname_obj = "NULL"
+    else:
+        function_qualname_obj = getConstantCode(
+            constant = function_qualname,
+            context  = context
+        )
+
     result += template_genfunc_function_impl_template % {
         "function_name"          : function_name,
         "function_name_obj"      : getConstantCode(context, function_name),
+        "function_qualname_obj"  : function_qualname_obj,
         "function_identifier"    : function_identifier,
         "code_identifier"        : code_identifier,
         "parameter_decl"         : parameters_decl,

@@ -22,13 +22,21 @@ static PyObject *Nuitka_Generator_tp_repr( Nuitka_GeneratorObject *generator )
 {
 #if PYTHON_VERSION < 300
     return PyString_FromFormat(
-#else
-    return PyUnicode_FromFormat(
-#endif
         "<compiled generator object %s at %p>",
         Nuitka_String_AsString( generator->m_name ),
         generator
     );
+#else
+    return PyUnicode_FromFormat(
+        "<compiled generator object %s at %p>",
+#if PYTHON_VERSION < 350
+        Nuitka_String_AsString( generator->m_name ),
+#else
+        Nuitka_String_AsString( generator->m_qualname ),
+#endif
+        generator
+    );
+#endif
 }
 
 static long Nuitka_Generator_tp_traverse( PyObject *function, visitproc visit, void *arg )
@@ -318,6 +326,12 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
         assert( !ERROR_OCCURRED() );
     }
 
+    Py_DECREF( generator->m_name );
+
+#if PYTHON_VERSION >= 350
+    Py_DECREF( generator->m_qualname );
+#endif
+
     PyObject_GC_Del( generator );
     RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
@@ -426,6 +440,56 @@ static PyObject *Nuitka_Generator_get_name( Nuitka_GeneratorObject *generator )
     return INCREASE_REFCOUNT( generator->m_name );
 }
 
+#if PYTHON_VERSION >= 350
+static int Nuitka_Generator_set_name( Nuitka_GeneratorObject *object, PyObject *value )
+{
+    // Cannot be deleted, not be non-unicode value.
+    if (unlikely( (value == NULL) || !PyUnicode_Check( value ) ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "__name__ must be set to a string object"
+        );
+
+        return -1;
+    }
+
+    PyObject *tmp = object->m_name;
+    Py_INCREF( value );
+    object->m_name = value;
+    Py_DECREF( tmp );
+
+    return 0;
+}
+
+static PyObject *Nuitka_Generator_get_qualname( Nuitka_GeneratorObject *generator )
+{
+    return INCREASE_REFCOUNT( generator->m_qualname );
+}
+
+static int Nuitka_Generator_set_qualname( Nuitka_GeneratorObject *object, PyObject *value )
+{
+    // Cannot be deleted, not be non-unicode value.
+    if (unlikely( (value == NULL) || !PyUnicode_Check( value ) ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "__qualname__ must be set to a string object"
+        );
+
+        return -1;
+    }
+
+    PyObject *tmp = object->m_qualname;
+    Py_INCREF( value );
+    object->m_qualname = value;
+    Py_DECREF( tmp );
+
+    return 0;
+}
+
+#endif
+
 static PyObject *Nuitka_Generator_get_code( Nuitka_GeneratorObject *object )
 {
     return INCREASE_REFCOUNT( (PyObject *)object->m_code_object );
@@ -457,7 +521,12 @@ static int Nuitka_Generator_set_frame( Nuitka_GeneratorObject *object, PyObject 
 
 static PyGetSetDef Nuitka_Generator_getsetlist[] =
 {
+#if PYTHON_VERSION < 350
     { (char *)"__name__", (getter)Nuitka_Generator_get_name, NULL, NULL },
+#else
+    { (char *)"__name__", (getter)Nuitka_Generator_get_name, (setter)Nuitka_Generator_set_name, NULL },
+    { (char *)"__qualname__", (getter)Nuitka_Generator_get_qualname, (setter)Nuitka_Generator_set_qualname, NULL },
+#endif
     { (char *)"gi_code",  (getter)Nuitka_Generator_get_code, (setter)Nuitka_Generator_set_code, NULL },
     { (char *)"gi_frame", (getter)Nuitka_Generator_get_frame, (setter)Nuitka_Generator_set_frame, NULL },
 
@@ -540,7 +609,11 @@ PyTypeObject Nuitka_Generator_Type =
 #endif
 };
 
+#if PYTHON_VERSION < 350
 PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given )
+#else
+PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given )
+#endif
 {
     Nuitka_GeneratorObject *result = PyObject_GC_New( Nuitka_GeneratorObject, &Nuitka_Generator_Type );
 
@@ -558,6 +631,12 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
     result->m_code = (void *)code;
 
     result->m_name = name;
+    Py_INCREF( name );
+
+#if PYTHON_VERSION >= 350
+    result->m_qualname = qualname;
+    Py_INCREF( qualname );
+#endif
 
     // We take ownership of those and received the reference count from the
     // caller.
