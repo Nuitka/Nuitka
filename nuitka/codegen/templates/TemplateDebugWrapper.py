@@ -54,7 +54,10 @@ def enableDebug(globals_dict):
                         self.name
                     )
 
-            return self.value % other
+            try:
+                return self.value % other
+            except KeyError as e:
+                raise KeyError(self.name, *e.args)
 
         def split(self, sep):
             return self.value.split(sep)
