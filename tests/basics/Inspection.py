@@ -18,7 +18,7 @@
 
 from __future__ import print_function
 
-import inspect, types, sys
+import inspect, types, sys, pprint
 
 def compiledFunction(a, b):
     pass
@@ -101,7 +101,7 @@ def displayDict(d):
         d = dict(d)
         d["__file__"] = "<__file__ removed>"
 
-    return repr(d)
+    return pprint.pformat(d)
 
 print("Module frame locals", displayDict(sys._getframe().f_locals))
 print("Module flags", sys._getframe().f_code.co_flags)

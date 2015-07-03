@@ -25,11 +25,13 @@ from logging import warning
 from nuitka import Constants, Tracing
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeDict,
     ExpressionMakeList,
     ExpressionMakeSet,
     ExpressionMakeTuple
+)
+from nuitka.nodes.DictionaryNodes import (
+    ExpressionKeyValuePair,
+    ExpressionMakeDict
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.FrameNodes import StatementsFrame

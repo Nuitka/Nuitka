@@ -19,12 +19,15 @@
 
 """
 
+from nuitka.nodes.DictionaryNodes import (
+    ExpressionKeyValuePair,
+    ExpressionMakeDict
+)
 from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 from nuitka.utils.Utils import python_version
 
 from .ConstantRefNodes import ExpressionConstantRef
-from .ContainerMakingNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
 

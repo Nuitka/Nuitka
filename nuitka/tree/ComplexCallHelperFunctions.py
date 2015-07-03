@@ -84,6 +84,23 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 source_ref = fromFilename("internal").atInternal()
 
+def orderArgs(*args):
+    if python_version >= 350:
+        def weight(arg):
+            result = args.index(arg)
+
+            if arg == "kw":
+                result += 1.5
+            elif arg == "star_arg_list":
+                result -= 1.5
+
+            return result
+
+        return tuple(
+            sorted(args, key = weight)
+        )
+
+    return args
 
 @once_decorator
 def getCallableNameDescBody():
@@ -1300,7 +1317,7 @@ def getFunctionCallHelperKeywordsStarList():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "kw", "star_arg_list"),
+            normal_args   = orderArgs("called", "kw", "star_arg_list"),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
@@ -1541,7 +1558,7 @@ def getFunctionCallHelperPosKeywordsStarList():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "args", "kw", "star_arg_list"),
+            normal_args   = orderArgs("called", "args", "kw", "star_arg_list"),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
@@ -2505,7 +2522,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = (
+            normal_args   = orderArgs(
                 "called", "kw", "star_arg_list", "star_arg_dict"
             ),
             list_star_arg = None,
@@ -2641,7 +2658,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = (
+            normal_args   = orderArgs(
                 "called", "args", "kw", "star_arg_list", "star_arg_dict"
             ),
             list_star_arg = None,

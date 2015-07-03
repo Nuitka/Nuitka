@@ -71,19 +71,35 @@ def _generateDictionaryCreationCode340(to_name, pairs, emit, context):
         dict_key_name = context.allocateTempName("dict_key")
         dict_value_name = context.allocateTempName("dict_value")
 
-        generateExpressionCode(
-            to_name    = dict_value_name,
-            expression = pair.getValue(),
-            emit       = emit,
-            context    = context
-        )
+        if python_version < 350:
+            generateExpressionCode(
+                to_name    = dict_value_name,
+                expression = pair.getValue(),
+                emit       = emit,
+                context    = context
+            )
 
-        generateExpressionCode(
-            to_name    = dict_key_name,
-            expression = pair.getKey(),
-            emit       = emit,
-            context    = context
-        )
+            generateExpressionCode(
+                to_name    = dict_key_name,
+                expression = pair.getKey(),
+                emit       = emit,
+                context    = context
+            )
+        else:
+            generateExpressionCode(
+                to_name    = dict_key_name,
+                expression = pair.getKey(),
+                emit       = emit,
+                context    = context
+            )
+
+            generateExpressionCode(
+                to_name    = dict_value_name,
+                expression = pair.getValue(),
+                emit       = emit,
+                context    = context
+            )
+
 
         dict_key_names.append(dict_key_name)
         dict_value_names.append(dict_value_name)
