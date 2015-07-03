@@ -39,7 +39,7 @@ def getModuleWhiteList():
         "cl", "gdbm", "gl", "GL", "aetools", "_bisect", "_heapq", "_symtable",
         "syslog", "_datetime", "_elementtree", "_pickle", "_posixsubprocess",
         "_thread", "atexit", "pyexpat", "_imp", "_sha1", "faulthandler",
-        "_osx_support", "sysconfig", "html.entities", "copyreg",
+        "_osx_support", "sysconfig", "copyreg", "ipaddress", "reprlib",
 
         # Python-Qt4 does these if missing python3 parts:
         "PyQt4.uic.port_v3.string_io", "PyQt4.uic.port_v3.load_plugin",
@@ -92,8 +92,11 @@ def getModuleWhiteList():
         # test_fork1.py
         "fake test module",
 
+        # test_html.py
+        "html", "html.entities",
+
         # test_http_cookiejar.py
-        "urllib.request",
+        "urllib.request", "http",
 
         # test_imp.py
         "importlib.test.import_", "pep3147.foo", "pep3147",

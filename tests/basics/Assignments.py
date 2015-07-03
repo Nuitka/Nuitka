@@ -149,19 +149,19 @@ def interuptedUnpack():
     a = 1
     b = 2
 
-    print("Assignment from a too short tuple to multiple targets", end = "")
+    print("Assignment from a too short tuple to multiple targets:", end = " ")
 
     try:
         s = a,
 
         c, d = s
     except ValueError as e:
-        print("gives ValueError", repr(e), end = "")
+        print("gives ValueError", repr(e))
 
         try:
             print(c)
         except UnboundLocalError as e:
-            print("and then nothing is assigned", repr(e))
+            print("and then nothing is assigned:", repr(e))
     else:
         del d
 
