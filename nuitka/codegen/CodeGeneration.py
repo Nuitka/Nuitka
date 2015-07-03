@@ -779,11 +779,12 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         )
 
         getUnpackNextCode(
-            to_name = to_name,
-            value   = value_name,
-            count   = expression.getCount(),
-            emit    = emit,
-            context = context
+            to_name  = to_name,
+            value    = value_name,
+            count    = expression.getCount(),
+            expected = expression.getExpected(),
+            emit     = emit,
+            context  = context
         )
     elif expression.isExpressionBuiltinGlobals():
         getLoadGlobalsCode(
@@ -1237,8 +1238,8 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         # is not needed, but we remember if it should be added above.
         getReleaseCode(
            release_name = left_name,
-           emit = emit,
-           context = context
+           emit         = emit,
+           context      = context
         )
 
         # Evaluate the "right" value then.

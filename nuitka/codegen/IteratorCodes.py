@@ -20,6 +20,8 @@
 Next variants and unpacking with related checks.
 """
 
+from nuitka.PythonVersions import python_version
+
 from .ErrorCodes import (
     getErrorExitCode,
     getErrorExitReleaseCode,
@@ -98,14 +100,24 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
     context.addCleanupTempName(to_name)
 
 
-def getUnpackNextCode(to_name, value, count, emit, context):
-    emit(
-        "%s = UNPACK_NEXT( %s, %s );" % (
-            to_name,
-            value,
-            count - 1
+def getUnpackNextCode(to_name, value, expected, count, emit, context):
+    if python_version < 350:
+        emit(
+            "%s = UNPACK_NEXT( %s, %s );" % (
+                to_name,
+                value,
+                count - 1
+            )
         )
-    )
+    else:
+        emit(
+            "%s = UNPACK_NEXT( %s, %s, %s );" % (
+                to_name,
+                value,
+                count - 1,
+                expected
+            )
+        )
 
     getErrorExitCode(
         check_name      = to_name,

@@ -247,6 +247,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                                 source_ref = source_ref
                             ),
                             count      = element_index + 1,
+                            expected   = len(detail),
                             source_ref = source_ref
                         ),
                         source_ref   = source_ref

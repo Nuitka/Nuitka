@@ -153,7 +153,7 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
 class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
     kind = "EXPRESSION_SPECIAL_UNPACK"
 
-    def __init__(self, value, count, source_ref):
+    def __init__(self, value, count, expected, source_ref):
         ExpressionBuiltinNext1.__init__(
             self,
             value      = value,
@@ -161,15 +161,20 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
         )
 
         self.count = count
+        self.expected = expected
 
     def getDetails(self):
         result = ExpressionBuiltinNext1.getDetails(self)
         result["count"] = self.getCount()
+        result["expected"] = self.getExpected()
 
         return result
 
     def getCount(self):
         return self.count
+
+    def getExpected(self):
+        return self.expected
 
 
 class StatementSpecialUnpackCheck(StatementChildrenHavingBase):

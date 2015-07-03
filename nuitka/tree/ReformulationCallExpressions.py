@@ -29,24 +29,48 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     buildNode,
     buildNodeList,
+    getKind,
     makeDictCreationOrConstant,
     makeSequenceCreationOrConstant
 )
 
 
 def buildCallNode(provider, node, source_ref):
-    positional_args = buildNodeList(provider, node.args, source_ref)
+    if python_version >= 350:
+        list_star_arg = None
+        dict_star_arg = None
+
+    positional_args = []
+
+    for node_arg in node.args:
+        if getKind(node_arg) == "Starred":
+            assert python_version >= 350
+
+            list_star_arg = buildNode(provider, node_arg.value, source_ref)
+            continue
+
+        positional_args.append(
+            buildNode(provider, node_arg, source_ref)
+        )
 
     # Only the values of keyword pairs have a real source ref, and those only
     # really matter, so that makes sense.
     keys = []
     values = []
 
+
     for keyword in node.keywords:
+        if keyword.arg is None:
+            assert python_version >= 350
+
+            dict_star_arg = buildNode(provider, keyword.value, source_ref)
+            continue
+
         keys.append(
             ExpressionConstantRef(
                 constant      = keyword.arg,
@@ -58,8 +82,9 @@ def buildCallNode(provider, node, source_ref):
             buildNode(provider, keyword.value, source_ref)
         )
 
-    list_star_arg = buildNode(provider, node.starargs, source_ref, True)
-    dict_star_arg = buildNode(provider, node.kwargs, source_ref, True)
+    if python_version < 350:
+        list_star_arg = buildNode(provider, node.starargs, source_ref, True)
+        dict_star_arg = buildNode(provider, node.kwargs, source_ref, True)
 
     return _makeCallNode(
         called          = buildNode(provider, node.func, source_ref),
