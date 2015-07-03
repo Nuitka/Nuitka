@@ -15,6 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
 def closureTest1():
     # Assign, but the value is not supposed to be used by the function, instead the later
@@ -56,27 +57,27 @@ def scopeTest4():
         return d
 
         d = 1
-    except UnboundLocalError, e:
+    except UnboundLocalError as e:
         return repr(e)
 
 
-print "Test closure where value is overwritten:", closureTest1()
-print "Test closure where value is assigned only late:", closureTest2()
+print("Test closure where value is overwritten:", closureTest1())
+print("Test closure where value is assigned only late:", closureTest2())
 
-print "Test function where closured value is never assigned:", closureTest3()
+print("Test function where closured value is never assigned:", closureTest3())
 
-print "Scope test where UnboundLocalError is expected:", scopeTest4()
+print("Scope test where UnboundLocalError is expected:", scopeTest4())
 
 
 def function():
     pass
 
 class ClosureLocalizerClass:
-    print "Function before assigned in a class", function
+    print("Function before assigned in a class:", function)
 
     function = 1
 
-    print "Function after it was assigned in class", function
+    print("Function after it was assigned in class:", function)
 
 ClosureLocalizerClass()
 
@@ -84,9 +85,9 @@ def ClosureLocalizerFunction():
     try:
         function = function
 
-        print "Function didn't give unbound local error"
-    except UnboundLocalError, e:
-        print "Function gave unbound local error when accessing function before assignment.", repr(e)
+        print("Function didn't give unbound local error")
+    except UnboundLocalError as e:
+        print("Function gave unbound local error when accessing function before assignment:", repr(e))
 
 ClosureLocalizerFunction()
 
@@ -95,6 +96,8 @@ class X:
         self.x = x
 
 def changingClosure():
+    print("Changing a closure taken value after it was taken.")
+
     a = 1
 
     def closureTaker():
@@ -102,8 +105,8 @@ def changingClosure():
 
     x = closureTaker()
     a=2
-    print x.x
+    print("Closure value first time:", x.x)
     x = closureTaker()
-    print x.x
+    print("Closure value second time:", x.x)
 
 changingClosure()
