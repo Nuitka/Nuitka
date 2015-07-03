@@ -549,8 +549,8 @@ def makeDiffable(output):
 
 
 def compareOutput(kind, out_cpython, out_nuitka):
-    fromdate = None
-    todate = None
+    fromdate = ""
+    todate = ""
 
     diff = difflib.unified_diff(
         makeDiffable(out_cpython),
