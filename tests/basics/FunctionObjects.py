@@ -44,7 +44,7 @@ print("__code__ dir")
 print(dir(func.__code__))
 
 def func2(arg1, arg2 = "default_arg2", arg3 = "default_arg3"):
-    x = 1
+    x = arg2 + arg3
     return x
 
 print("func __defaults__", func2.__defaults__)
