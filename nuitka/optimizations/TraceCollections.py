@@ -436,6 +436,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         variable = variable_ref.getVariable()
 
         old_trace = self.getVariableCurrentTrace(variable)
+        old_trace.addPotentialUsage()
 
         version = variable_ref.getVariableVersion()
 
