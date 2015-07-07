@@ -50,6 +50,9 @@ class VariableTraceBase:
         # If False, this indicates the trace has no explicit releases.
         self.has_releases = False
 
+        # If False, this indicates, the variable name needs to be assigned.
+        self.has_name_usages = False
+
         # If False, this indicates that the value is not yet escaped.
         self.is_escaped = False
 
@@ -73,6 +76,10 @@ class VariableTraceBase:
     def addRelease(self):
         self.has_releases = True
 
+    def addNameUsage(self):
+        self.has_usages = True
+        self.has_name_usages = True
+
     def onValueEscape(self):
         self.is_escaped = True
 
@@ -84,6 +91,9 @@ class VariableTraceBase:
 
     def hasPotentialUsages(self):
         return self.has_potential_usages
+
+    def hasNameUsages(self):
+        return self.has_name_usages
 
     def getPrevious(self):
         return self.previous
@@ -248,6 +258,12 @@ class VariableTraceUnknown(VariableTraceBase):
         if self.previous is not None:
             self.previous.addPotentialUsage()
 
+    def addNameUsage(self):
+        self.addUsage()
+
+        if self.previous is not None:
+            self.previous.addNameUsage()
+
     def addPotentialUsage(self):
         old = self.has_potential_usages
 
@@ -377,6 +393,17 @@ class VariableTraceMerge(VariableTraceBase):
         a.addPotentialUsage()
         b.addPotentialUsage()
 
+    def addNameUsage(self):
+        self.has_usages = True
+
+        a, b = self.previous
+
+        a.addPotentialUsage()
+        b.addPotentialUsage()
+
+        a.addNameUsage()
+        b.addNameUsage()
+
     def addPotentialUsage(self):
         old = self.has_potential_usages
 
@@ -449,6 +476,13 @@ class VariableTraceMergeMultiple(VariableTraceBase):
 
         for previous in self.previous:
             previous.addPotentialUsage()
+
+    def addNameUsage(self):
+        self.has_usages = True
+
+        for previous in self.previous:
+            previous.addPotentialUsage()
+            previous.addNameUsage()
 
     def addPotentialUsage(self):
         old = self.has_potential_usages

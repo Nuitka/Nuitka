@@ -457,6 +457,21 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         return old_trace
 
+
+    def onLocalsUsage(self):
+        for variable in self.getActiveVariables():
+
+            # TODO: Currently this is a bit difficult to express in a positive
+            # way, but we want to have only local variables.
+            if not variable.isTempVariable() and \
+               not variable.isModuleVariable():
+                variable_trace = self.getVariableCurrentTrace(
+                    variable
+                )
+
+                variable_trace.addNameUsage()
+
+
     def onVariableRelease(self, variable):
         current = self.getVariableCurrentTrace(variable)
 

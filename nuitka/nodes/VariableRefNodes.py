@@ -101,15 +101,21 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         replacement = self.variable_trace.getReplacementNode(self)
 
         if replacement is not None:
-            return replacement, "new_expression", "Value propagated for '%s'." % self.variable.getName()
+            return (
+                replacement,
+                "new_expression",
+                "Value propagated for '%s' from '%s'." % (
+                    self.variable.getName(),
+                    replacement.getSourceReference().getAsString()
+                )
+            )
 
-        global_trace = VariableRegistry.getGlobalVariableTrace(variable)
-
+        self.global_trace = VariableRegistry.getGlobalVariableTrace(variable)
 
         # TODO: Maybe local variables are factored into this strangely.
-        if global_trace is None and variable.isModuleVariable():
+        if self.global_trace is None and variable.isModuleVariable():
             constraint_collection.assumeUnclearLocals()
-        elif (variable.isModuleVariable() and not global_trace.hasDefiniteWrites() ) or \
+        elif (variable.isModuleVariable() and not self.global_trace.hasDefiniteWrites() ) or \
              variable.isMaybeLocalVariable():
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -166,6 +172,15 @@ Replaced read-only module attribute '__package__' with constant value."""
             return new_node, change_tags, change_desc
 
         return self, None, None
+
+    def computeExpressionCall(self, call_node, constraint_collection):
+        if self.global_trace is None and \
+           self.variable_name in ("eval", "exec", "execfile", "locals") and \
+           self.variable.isModuleVariable():
+            # Just inform the collection that all escaped.
+            constraint_collection.onLocalsUsage()
+
+        return call_node, None, None
 
     def onContentEscapes(self, constraint_collection):
         constraint_collection.onVariableContentEscapes(self.variable)

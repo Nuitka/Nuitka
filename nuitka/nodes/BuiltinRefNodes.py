@@ -104,6 +104,10 @@ Built-in constant '%s' resolved.""" % self.builtin_name
             called    = self
         )
 
+        if self.builtin_name in ("eval", "exec", "execfile", "locals"):
+            # Just inform the collection that all escaped.
+            constraint_collection.onLocalsUsage()
+
         return new_node, tags, message
 
     def getStringValue(self):
