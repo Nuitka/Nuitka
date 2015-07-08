@@ -530,12 +530,16 @@ class StatementDelVariable(StatementChildrenHavingBase):
             del_node = self
         )
 
+        variable = self.getTargetVariableRef().getVariable()
+
         if self.isTolerant():
             if self.previous_trace.isUninitTrace():
                 return (
                     None,
                     "new_statements",
-                    "Removed tolerant 'del' statement without effect."
+                    "Removed tolerant 'del' statement of '%s' without effect." % (
+                        variable.getName(),
+                    )
                 )
 
 
@@ -545,7 +549,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
         # Need to fetch the potentially invalidated variable. A "del" on a
         # or shared value, may easily assign the global variable in "__del__".
         self.variable_trace = constraint_collection.getVariableCurrentTrace(
-            variable = self.getTargetVariableRef().getVariable()
+            variable = variable
         )
 
         return self, None, None
@@ -622,7 +626,13 @@ class StatementReleaseVariable(NodeBase):
         )
 
         if self.variable_trace.isUninitTrace():
-            return None, "new_statements", "un-init %s is not released" % self.variable.getName()
+            return (
+                None,
+                "new_statements",
+                "Uninitialized variable '%s' is not released." % (
+                    self.variable.getName()
+                )
+            )
 
         # TODO: We might be able to remove ourselves based on the trace
         # we belong to.

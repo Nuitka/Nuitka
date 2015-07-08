@@ -293,7 +293,7 @@ branches.""" % self.conditional_kind
             return (
                 left,
                 "new_expression",
-                "Conditional %s expression predicted to left value" % self.conditional_kind
+                "Conditional '%s' expression predicted to left value." % self.conditional_kind
             )
         elif truth_value is truth_value_use_right:
             return (
@@ -302,7 +302,7 @@ branches.""" % self.conditional_kind
                     old_node = left
                 ),
                 "new_expression",
-                "Conditional %s expression predicted right value" % self.conditional_kind
+                "Conditional '%s' expression predicted right value." % self.conditional_kind
             )
         else:
             return self, None, None

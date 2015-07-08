@@ -17,7 +17,7 @@
 #
 """ Control the flow of optimizations applied to node tree.
 
-Applies constraint collection on all so far known modules until no more
+Applies abstract execution on all so far known modules until no more
 optimization is possible. Every successful optimization to anything might
 make others possible.
 """
