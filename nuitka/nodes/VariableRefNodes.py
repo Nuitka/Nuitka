@@ -171,6 +171,8 @@ Replaced read-only module attribute '__package__' with constant value."""
 
             return new_node, change_tags, change_desc
 
+        self.variable_trace.addUsage()
+
         return self, None, None
 
     def computeExpressionCall(self, call_node, constraint_collection):
