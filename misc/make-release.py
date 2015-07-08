@@ -194,14 +194,6 @@ assert 0 == os.system(
 assert 0 == os.system( "rm *.dsc *.debian.tar.xz" )
 os.chdir( entry )
 
-# Check for licenses and do not accept "UNKNOWN", because that means a proper
-# license string is missing. Not the case for current Nuitka and it shall remain
-# that way.
-print( "Checking licenses... " )
-for line in subprocess.check_output( "licensecheck -r .", shell = True ).\
-  strip().split( b"\n" ):
-    assert b"UNKNOWN" not in line, line
-
 # Build the debian package, but disable the running of tests, will be done later
 # in the pbuilders.
 assert 0 == os.system( "debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck" )
