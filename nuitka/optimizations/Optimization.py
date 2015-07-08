@@ -180,6 +180,12 @@ def optimizeUnusedClosureVariables(function_body):
 
         empty = areEmptyTraces(variable_traces)
         if empty:
+            signalChange(
+                "var_usage",
+                function_body.getSourceReference(),
+                message = "Remove unused closure variable."
+            )
+
             function_body.removeClosureVariable(closure_variable)
 
 
