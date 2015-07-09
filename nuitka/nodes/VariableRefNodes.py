@@ -56,6 +56,8 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
         self.variable_trace = None
 
+        self.global_trace = None
+
     def getDetails(self):
         if self.variable is None:
             return {
@@ -85,7 +87,6 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
     def setVariable(self, variable):
         assert isinstance(variable, Variables.Variable), repr(variable)
-        assert self.variable is None
 
         self.variable = variable
 

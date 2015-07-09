@@ -170,6 +170,22 @@ def areEmptyTraces(variable_traces):
     return empty
 
 
+def areReadOnlyTraces(variable_traces):
+    read_only = True
+
+    for variable_trace in variable_traces:
+        if variable_trace.isAssignTrace():
+            read_only = False
+            break
+        elif variable_trace.isInitTrace():
+            read_only = False
+            break
+
+    return read_only
+
+
+
+
 def optimizeUnusedClosureVariables(function_body):
     for closure_variable in function_body.getClosureVariables():
         # print "VAR", closure_variable
@@ -187,6 +203,21 @@ def optimizeUnusedClosureVariables(function_body):
             )
 
             function_body.removeClosureVariable(closure_variable)
+        else:
+            read_only = areReadOnlyTraces(variable_traces)
+
+            if read_only:
+                global_trace = VariableRegistry.getGlobalVariableTrace(closure_variable)
+
+                if global_trace is not None:
+                    if not global_trace.hasWritesOutsideOf(function_body):
+                        function_body.demoteClosureVariable(closure_variable)
+
+                        signalChange(
+                            "var_usage",
+                            function_body.getSourceReference(),
+                            message = "Turn read-only usage of unassigned closure variable to local variable."
+                        )
 
 
 def optimizeUnusedUserVariables(function_body):
