@@ -76,9 +76,7 @@ from .Helpers import (
     makeDictCreationOrConstant,
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement,
-    popIndicatorVariable,
-    pushIndicatorVariable
+    makeStatementsSequenceFromStatement
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
@@ -859,21 +857,15 @@ def _buildClassNode2(provider, node, source_ref):
 def buildClassNode(provider, node, source_ref):
     assert getKind(node) == "ClassDef"
 
+    # There appears to be a inconsistency with the top level line number
+    # not being the one really the class has, if there are bases, and a
+    # decorator.
+    if node.bases:
+        source_ref = source_ref.atLineNumber(node.bases[-1].lineno)
+
     # Python2 and Python3 are similar, but fundamentally different, so handle
     # them in dedicated code.
-
-    pushIndicatorVariable(Ellipsis)
-
-    try:
-        # There appears to be a inconsistency with the top level line number
-        # not being the one really the class has, if there are bases, and a
-        # decorator.
-        if node.bases:
-            source_ref = source_ref.atLineNumber(node.bases[-1].lineno)
-
-        if Utils.python_version >= 300:
-            return _buildClassNode3(provider, node, source_ref)
-        else:
-            return _buildClassNode2(provider, node, source_ref)
-    finally:
-        popIndicatorVariable()
+    if Utils.python_version < 300:
+        return _buildClassNode2(provider, node, source_ref)
+    else:
+        return _buildClassNode3(provider, node, source_ref)

@@ -460,16 +460,3 @@ def popBuildContext():
 
 def getBuildContext():
     return build_contexts[-1]
-
-indicator_variables = [Ellipsis]
-
-def getIndicatorVariables():
-    return indicator_variables
-
-def popIndicatorVariable():
-    result = indicator_variables[-1]
-    del indicator_variables[-1]
-    return result
-
-def pushIndicatorVariable(indicator_variable):
-    indicator_variables.append(indicator_variable)

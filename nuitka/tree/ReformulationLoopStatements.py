@@ -49,9 +49,7 @@ from .Helpers import (
     makeStatementsSequenceFromStatements,
     mergeStatements,
     popBuildContext,
-    popIndicatorVariable,
-    pushBuildContext,
-    pushIndicatorVariable
+    pushBuildContext
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
@@ -153,7 +151,6 @@ def buildForLoopNode(provider, node, source_ref):
     )
 
     pushBuildContext("loop_body")
-    pushIndicatorVariable(None)
     statements += (
         buildStatementsNode(
             provider   = provider,
@@ -161,7 +158,6 @@ def buildForLoopNode(provider, node, source_ref):
             source_ref = source_ref
         ),
     )
-    popIndicatorVariable()
     popBuildContext()
 
     loop_body = makeStatementsSequence(
@@ -306,13 +302,11 @@ def buildWhileLoopNode(provider, node, source_ref):
         )
 
     pushBuildContext("loop_body")
-    pushIndicatorVariable(None)
     loop_statements = buildStatementsNode(
         provider   = provider,
         nodes      = node.body,
         source_ref = source_ref
     )
-    popIndicatorVariable()
     popBuildContext()
 
     # The loop body contains a conditional statement at the start that breaks

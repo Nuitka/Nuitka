@@ -57,10 +57,7 @@ from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable
-)
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
@@ -87,9 +84,7 @@ from nuitka.nodes.OperatorNodes import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
-    ExpressionTempVariableRef,
     ExpressionVariableRef
 )
 from nuitka.tree import SyntaxErrors
@@ -143,11 +138,7 @@ from .ReformulationNamespacePackages import (
 from .ReformulationPrintStatements import buildPrintNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
-from .ReformulationTryFinallyStatements import (
-    buildTryFinallyNode,
-    makeTryFinallyIndicatorStatements,
-    makeTryFinallyStatement
-)
+from .ReformulationTryFinallyStatements import buildTryFinallyNode
 from .ReformulationWithStatements import buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
 from .SourceReading import readSourceCodeFromFilename
@@ -189,6 +180,7 @@ def buildDictionaryNode(provider, node, source_ref):
         lazy_order = False,
         source_ref = source_ref
     )
+
 
 def buildConditionNode(provider, node, source_ref):
     # Conditional statements may have one or two branches. We will never see an
@@ -518,6 +510,8 @@ def buildEllipsisNode(source_ref):
 
 
 def buildStatementContinueLoop(node, source_ref):
+    # Python forbids this, although technically it's probably not much of
+    # an issue.
     if getBuildContext() == "finally":
         if not Options.isFullCompat() or Utils.python_version >= 300:
             col_offset = node.col_offset - 9
@@ -536,20 +530,7 @@ def buildStatementContinueLoop(node, source_ref):
             source_line = source_line
         )
 
-
-    statements = makeTryFinallyIndicatorStatements(
-        is_loop_exit = True,
-        source_ref   = source_ref
-    )
-
-    statements.append(
-        StatementContinueLoop(
-            source_ref = source_ref
-        )
-    )
-
-    return makeStatementsSequenceOrStatement(
-        statements = statements,
+    return StatementContinueLoop(
         source_ref = source_ref
     )
 
@@ -558,19 +539,7 @@ def buildStatementBreakLoop(provider, node, source_ref):
     # A bit unusual, we need the provider, but not the node,
     # pylint: disable=W0613
 
-    statements = makeTryFinallyIndicatorStatements(
-        is_loop_exit = True,
-        source_ref   = source_ref
-    )
-
-    statements.append(
-        StatementBreakLoop(
-            source_ref = source_ref
-        )
-    )
-
-    return makeStatementsSequenceOrStatement(
-        statements = statements,
+    return StatementBreakLoop(
         source_ref = source_ref
     )
 
@@ -605,56 +574,10 @@ def buildReturnNode(provider, node, source_ref):
             user_provided = True
         )
 
-    # Indicate exceptions to potentially try/finally structures.
-    indicator_statements = makeTryFinallyIndicatorStatements(
-        is_loop_exit = False,
-        source_ref   = source_ref
+    return StatementReturn(
+        expression = expression,
+        source_ref = source_ref
     )
-
-    if indicator_statements and expression.mayRaiseException(BaseException):
-        tmp_variable = provider.allocateTempVariable(
-            temp_scope = provider.allocateTempScope("return"),
-            name       = "value"
-        )
-
-        statements = [
-                StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_variable,
-                    source_ref = expression.getSourceReference()
-                ),
-                source       = expression,
-                source_ref   = source_ref
-            )
-        ] + indicator_statements + [
-            StatementReturn(
-                expression = ExpressionTempVariableRef(
-                    variable   = tmp_variable,
-                    source_ref = expression.getSourceReference()
-                ),
-                source_ref = source_ref
-            )
-        ]
-
-        return makeTryFinallyStatement(
-            provider   = provider,
-            tried      = statements,
-            final      = StatementReleaseVariable(
-                variable   = tmp_variable,
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
-        )
-    else:
-        return makeStatementsSequenceOrStatement(
-            statements = indicator_statements + [
-                StatementReturn(
-                    expression = expression,
-                    source_ref = source_ref
-                )
-            ],
-            source_ref = source_ref
-        )
 
 
 def buildExprOnlyNode(provider, node, source_ref):

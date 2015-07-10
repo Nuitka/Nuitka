@@ -49,9 +49,7 @@ from .Helpers import (
     getKind,
     makeDictCreationOrConstant,
     makeStatementsSequenceFromStatement,
-    mangleName,
-    popIndicatorVariable,
-    pushIndicatorVariable
+    mangleName
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
@@ -86,16 +84,12 @@ def buildFunctionNode(provider, node, source_ref):
         provider, node, function_body, source_ref
     )
 
-    pushIndicatorVariable(Ellipsis)
-
     function_statements_body = buildStatementsNode(
         provider   = function_body,
         nodes      = function_statements,
         frame      = True,
         source_ref = source_ref
     )
-
-    popIndicatorVariable()
 
     if function_body.isGenerator():
         # TODO: raise generator exit?

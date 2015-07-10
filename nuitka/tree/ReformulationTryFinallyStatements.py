@@ -22,8 +22,6 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
 from nuitka.nodes.ReturnNodes import ExpressionReturnedValueRef, StatementReturn
 from nuitka.nodes.StatementNodes import (
@@ -33,13 +31,11 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.TryNodes import StatementTry
-from nuitka.nodes.VariableRefNodes import ExpressionTargetTempVariableRef
 from nuitka.Options import isDebug
 from nuitka.utils import Utils
 
 from .Helpers import (
     buildStatementsNode,
-    getIndicatorVariables,
     getStatementsAppended,
     getStatementsPrepended,
     makeReraiseExceptionStatement,
@@ -243,35 +239,3 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
             public_exc = True,
             source_ref = source_ref
         )
-
-
-def makeTryFinallyIndicatorStatements(is_loop_exit, source_ref):
-    statements = []
-
-    indicator_variables = getIndicatorVariables()
-
-    indicator_value = True
-
-    for indicator_variable in reversed(indicator_variables):
-        if indicator_variable is Ellipsis:
-            break
-        elif indicator_variable is not None:
-            assert False
-
-            statements.append(
-                StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = indicator_variable,
-                        source_ref = source_ref.atInternal()
-                    ),
-                    source       = ExpressionConstantRef(
-                        constant   = indicator_value,
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref.atInternal().atLineNumber(55)
-                )
-            )
-        elif is_loop_exit:
-            indicator_value = False
-
-    return statements
