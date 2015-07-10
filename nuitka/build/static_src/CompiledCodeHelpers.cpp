@@ -3679,18 +3679,26 @@ static Py_hash_t DEEP_HASH_INIT( PyObject *value )
 {
     Py_hash_t result = Py_hash_t( value );
 
-    result ^= DEEP_HASH( (PyObject *)Py_TYPE( value ) );
+    if ( Py_TYPE( value ) != &PyType_Type )
+    {
+        result ^= DEEP_HASH( (PyObject *)Py_TYPE( value ) );
+    }
 
     return result;
 }
 
-static void DEEP_HASH_BLOB( Py_hash_t *hash, char *s, Py_ssize_t size )
+static void DEEP_HASH_BLOB( Py_hash_t *hash, char const *s, Py_ssize_t size )
 {
     while( size > 0 )
     {
         *hash = ( 1000003 * (*hash) ) ^ Py_hash_t( *s++ );
         size--;
     }
+}
+
+static void DEEP_HASH_CSTR( Py_hash_t *hash, char const *s )
+{
+    DEEP_HASH_BLOB( hash, s, strlen( s ) );
 }
 
 // Hash function that actually verifies things done to the bit level. Can be
@@ -3701,7 +3709,10 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
     if ( PyType_Check( value ) )
     {
-        return (Py_hash_t)((PyTypeObject *)value)->tp_name;
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        DEEP_HASH_CSTR( &result, ((PyTypeObject *)value)->tp_name );
+        return result;
     }
     else if ( PyDict_Check( value ) )
     {
