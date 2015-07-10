@@ -77,7 +77,10 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils.Utils import python_version
 
-from .Helpers import makeStatementsSequenceFromStatement
+from .Helpers import (
+    makeConditionalStatement,
+    makeStatementsSequenceFromStatement
+)
 from .InternalModule import getInternalModule, once_decorator
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -173,117 +176,107 @@ def getCallableNameDescBody():
         )
     )
 
-    no_branch = makeStatementsSequenceFromStatement(
-        statement = StatementReturn(
-            expression = ExpressionOperationBinary(
-                operator   = "Add",
-                right      = ExpressionConstantRef(
-                    constant      = " object",
-                    source_ref    = source_ref,
-                    user_provided = True
-                ),
-                left       = makeNameAttributeLookup(
-                    ExpressionBuiltinType1(
-                        value      = ExpressionVariableRef(
-                            variable_name = "called",
-                            variable      = called_variable,
-                            source_ref    = source_ref
-                        ),
-                        source_ref = source_ref
-                    )
-                ),
-                source_ref = source_ref
+    no_branch = StatementReturn(
+        expression = ExpressionOperationBinary(
+            operator   = "Add",
+            right      = ExpressionConstantRef(
+                constant      = " object",
+                source_ref    = source_ref,
+                user_provided = True
             ),
-            source_ref = source_ref
-        ),
-    )
-
-    if python_version < 300:
-        instance_case = makeStatementsSequenceFromStatement(
-            statement = StatementReturn(
-                expression = ExpressionOperationBinary(
-                    operator   = "Add",
-                    right      = ExpressionConstantRef(
-                        constant      = " instance",
-                        source_ref    = source_ref,
-                        user_provided = True
-                    ),
-                    left       = makeNameAttributeLookup(
-                        makeNameAttributeLookup(
-                            ExpressionVariableRef(
-                                variable_name = "called",
-                                variable      = called_variable,
-                                source_ref    = source_ref
-                            ),
-                            attribute_name = "__class__",
-                        )
-                    ),
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            )
-        )
-
-        no_branch = makeStatementsSequenceFromStatement(
-            statement = StatementConditional(
-                condition  = ExpressionBuiltinIsinstance(
-                    instance   = ExpressionVariableRef(
+            left       = makeNameAttributeLookup(
+                ExpressionBuiltinType1(
+                    value      = ExpressionVariableRef(
                         variable_name = "called",
                         variable      = called_variable,
                         source_ref    = source_ref
                     ),
-                    classes    = ExpressionBuiltinAnonymousRef(
-                        builtin_name = "instance",
-                        source_ref   = source_ref
-                    ),
                     source_ref = source_ref
-                ),
-                yes_branch = instance_case,
-                no_branch  = no_branch,
-                source_ref = source_ref
-            )
-        )
+                )
+            ),
+            source_ref = source_ref
+        ),
+        source_ref = source_ref
+    )
 
-        class_case = makeStatementsSequenceFromStatement(
-            statement = StatementReturn(
-                expression = ExpressionOperationBinary(
-                    operator   = "Add",
-                    right      = ExpressionConstantRef(
-                        constant      = " constructor",
-                        source_ref    = source_ref,
-                        user_provided = True
-                    ),
-                    left       = makeNameAttributeLookup(
+    if python_version < 300:
+        instance_case = StatementReturn(
+            expression = ExpressionOperationBinary(
+                operator   = "Add",
+                right      = ExpressionConstantRef(
+                    constant      = " instance",
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                left       = makeNameAttributeLookup(
+                    makeNameAttributeLookup(
                         ExpressionVariableRef(
                             variable_name = "called",
                             variable      = called_variable,
                             source_ref    = source_ref
                         ),
-                    ),
-                    source_ref = source_ref
+                        attribute_name = "__class__",
+                    )
                 ),
                 source_ref = source_ref
-            )
+            ),
+            source_ref = source_ref
         )
 
-        no_branch = makeStatementsSequenceFromStatement(
-            statement = StatementConditional(
-                condition  = ExpressionBuiltinIsinstance(
-                    instance   = ExpressionVariableRef(
+        no_branch = makeConditionalStatement(
+            condition  = ExpressionBuiltinIsinstance(
+                instance   = ExpressionVariableRef(
+                    variable_name = "called",
+                    variable      = called_variable,
+                    source_ref    = source_ref
+                ),
+                classes    = ExpressionBuiltinAnonymousRef(
+                    builtin_name = "instance",
+                    source_ref   = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = instance_case,
+            no_branch  = no_branch,
+            source_ref = source_ref
+        )
+
+        class_case = StatementReturn(
+            expression = ExpressionOperationBinary(
+                operator   = "Add",
+                right      = ExpressionConstantRef(
+                    constant      = " constructor",
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                left       = makeNameAttributeLookup(
+                    ExpressionVariableRef(
                         variable_name = "called",
                         variable      = called_variable,
                         source_ref    = source_ref
                     ),
-                    classes    = ExpressionBuiltinAnonymousRef(
-                        builtin_name = "classobj",
-                        source_ref   = source_ref
-                    ),
-                    source_ref = source_ref
                 ),
-                yes_branch = class_case,
-                no_branch  = no_branch,
                 source_ref = source_ref
-            )
+            ),
+            source_ref = source_ref
+        )
+
+        no_branch = makeConditionalStatement(
+            condition  = ExpressionBuiltinIsinstance(
+                instance   = ExpressionVariableRef(
+                    variable_name = "called",
+                    variable      = called_variable,
+                    source_ref    = source_ref
+                ),
+                classes    = ExpressionBuiltinAnonymousRef(
+                    builtin_name = "classobj",
+                    source_ref   = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = class_case,
+            no_branch  = no_branch,
+            source_ref = source_ref
         )
 
     if python_version < 300:
@@ -295,37 +288,32 @@ def getCallableNameDescBody():
             "function", "builtin_function_or_method"
         )
 
-    statements = (
-        StatementConditional(
-            condition  = ExpressionBuiltinIsinstance(
-                instance   = ExpressionVariableRef(
-                    variable_name = "called",
-                    variable      = called_variable,
-                    source_ref    = source_ref
-                ),
-                classes    = ExpressionMakeTuple(
-                    elements   = tuple(
-                        ExpressionBuiltinAnonymousRef(
-                            builtin_name = builtin_name,
-                            source_ref   = source_ref
-                        )
-                        for builtin_name in
-                        normal_cases
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            statement = makeConditionalStatement(
+                condition  = ExpressionBuiltinIsinstance(
+                    instance   = ExpressionVariableRef(
+                        variable_name = "called",
+                        variable      = called_variable,
+                        source_ref    = source_ref
+                    ),
+                    classes    = ExpressionMakeTuple(
+                        elements   = tuple(
+                            ExpressionBuiltinAnonymousRef(
+                                builtin_name = builtin_name,
+                                source_ref   = source_ref
+                            )
+                            for builtin_name in
+                            normal_cases
+                        ),
+                        source_ref = source_ref
                     ),
                     source_ref = source_ref
                 ),
+                yes_branch = functions_case,
+                no_branch  = no_branch,
                 source_ref = source_ref
-            ),
-            yes_branch = functions_case,
-            no_branch  = no_branch,
-            source_ref = source_ref
-        ),
-    )
-
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
-            source_ref = source_ref
+            )
         )
     )
 
@@ -390,7 +378,7 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
         statement = raise_statement
     )
 
-    return StatementConditional(
+    return makeConditionalStatement(
         condition  = ExpressionOperationNOT(
             operand    = ExpressionBuiltinIsinstance(
                 instance   = star_list_variable_ref.makeClone(),
@@ -402,23 +390,21 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        yes_branch = makeStatementsSequenceFromStatement(
-            statement = makeTryExceptSingleHandlerNode(
-                provider       = handler_body,
-                tried          =  makeStatementsSequenceFromStatement(
-                    statement = StatementAssignmentVariable(
-                        variable_ref = star_list_target_variable_ref.makeClone(),
-                        source       = ExpressionBuiltinTuple(
-                            value      = star_list_variable_ref.makeClone(),
-                            source_ref = source_ref
-                        ),
-                        source_ref   = source_ref
-                    )
-                ),
-                exception_name = "TypeError",
-                handler_body   = handler_body,
-                source_ref     = source_ref
+        yes_branch = makeTryExceptSingleHandlerNode(
+            provider       = handler_body,
+            tried          =  makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentVariable(
+                    variable_ref = star_list_target_variable_ref.makeClone(),
+                    source       = ExpressionBuiltinTuple(
+                        value      = star_list_variable_ref.makeClone(),
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
+                )
             ),
+            exception_name = "TypeError",
+            handler_body   = handler_body,
+            source_ref     = source_ref
         ),
         no_branch  = None,
         source_ref = source_ref
