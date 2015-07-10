@@ -1099,14 +1099,14 @@ class ExpressionMixin:
         return lookup_node, None, None
 
     def computeExpressionCall(self, call_node, constraint_collection):
-        # Virtual method, pylint: disable=R0201
-        call_node.getCalled().onContentEscapes(constraint_collection)
+        self.onContentEscapes(constraint_collection)
 
         return call_node, None, None
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
-        # Virtual method, pylint: disable=R0201
-        iter_node.getValue().onContentEscapes(constraint_collection)
+        self.onContentEscapes(constraint_collection)
+
+        assert iter_node.getValue() is self
 
         return iter_node, None, None
 
