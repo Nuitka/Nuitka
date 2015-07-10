@@ -21,6 +21,12 @@
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
 {
+    CHECK_OBJECT( klass );
+    CHECK_OBJECT( attr_name );
+
+    assert( PyClass_Check( klass ));
+    assert( PyString_Check( attr_name ) );
+
     PyObject *result = GET_STRING_DICT_VALUE( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name );
 
     if ( result == NULL )
@@ -31,7 +37,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *kl
         {
             result = FIND_ATTRIBUTE_IN_CLASS( (PyClassObject *)PyTuple_GetItem( klass->cl_bases, i ), attr_name );
 
-            if ( result )
+            if ( result != NULL )
             {
                 break;
             }

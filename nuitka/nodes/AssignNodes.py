@@ -640,9 +640,12 @@ class StatementReleaseVariable(NodeBase):
         return self, None, None
 
     def mayHaveSideEffects(self):
+        # May execute __del__ code, it would be sweet to be able to predict
+        # that another reference will still be active for a value though.
         return True
 
     def mayRaiseException(self, exception_type):
+        # By default, __del__ is not allowed to raise an exception.
         return False
 
 

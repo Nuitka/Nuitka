@@ -368,7 +368,7 @@ parser.add_option_group(outputdir_group)
 
 windows_group = OptionGroup(
     parser,
-    "Windows specific output control:"
+    "Windows specific output control"
 )
 
 

@@ -36,6 +36,8 @@ from nuitka.utils import InstanceCounters
 
 
 class VariableTraceBase:
+    # We are going to have many instance attributes, pylint: disable=R0902
+
     @InstanceCounters.counted_init
     def __init__(self, variable, version, previous):
         self.variable = variable
