@@ -411,7 +411,7 @@ non_ascii_error_rt           = re.compile(
     r"(SyntaxError: Non-ASCII character.*? on line) \d+"
 )
 python_win_lib_re            = re.compile(
-    r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib"
+    r"[a-zA-Z]:\\\\?[Pp]ython(.*?\\\\?)[Ll]ib"
 )
 local_port_re = re.compile(
     r"(127\.0\.0\.1):\d{2,5}"
