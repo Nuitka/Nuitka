@@ -55,6 +55,7 @@ from nuitka.utils import Utils
 from .Helpers import (
     buildNode,
     buildStatementsNode,
+    makeConditionalStatement,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
 )
@@ -203,7 +204,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                             ),
                             source_ref   = source_ref
                         ),
-                        StatementConditional(
+                        makeConditionalStatement(
                             condition  = ExpressionCallNoKeywords(
                                 called     = ExpressionTempVariableRef(
                                     variable   = tmp_exit_variable,
@@ -225,10 +226,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                                 ),
                                 source_ref = with_exit_source_ref
                             ),
-                            no_branch  = makeStatementsSequenceFromStatement(
-                                statement = makeReraiseExceptionStatement(
-                                    source_ref = source_ref
-                                )
+                            no_branch  = makeReraiseExceptionStatement(
+                                source_ref = source_ref
                             ),
                             yes_branch = None,
                             source_ref = source_ref

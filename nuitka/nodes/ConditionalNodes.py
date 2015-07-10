@@ -25,6 +25,7 @@ expressed via nesting of conditional statements.
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
 from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
 
+from .Checkers import checkStatementsSequenceOrNone
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
@@ -378,6 +379,11 @@ class StatementConditional(StatementChildrenHavingBase):
         "yes_branch",
         "no_branch"
     )
+
+    checkers = {
+        "yes_branch" : checkStatementsSequenceOrNone,
+        "no_branch" : checkStatementsSequenceOrNone,
+    }
 
     def __init__(self, condition, yes_branch, no_branch, source_ref):
         StatementChildrenHavingBase.__init__(
