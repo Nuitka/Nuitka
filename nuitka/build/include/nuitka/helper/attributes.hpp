@@ -568,26 +568,4 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
     return NULL;
 }
 
-// Necessary to abstract the with statement lookup difference between
-// pre-Python2.7 and others. Since Python 2.7 the code does no full attribute
-// lookup anymore, but instead treats enter and exit as specials.
-NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source )
-{
-#if PYTHON_VERSION < 270
-    return LOOKUP_ATTRIBUTE( source, const_str_plain___enter__ );
-#else
-    return LOOKUP_SPECIAL( source, const_str_plain___enter__ );
-#endif
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source )
-{
-#if PYTHON_VERSION < 270
-    return LOOKUP_ATTRIBUTE( source, const_str_plain___exit__ );
-#else
-    return LOOKUP_SPECIAL( source, const_str_plain___exit__ );
-#endif
-}
-
-
 #endif
