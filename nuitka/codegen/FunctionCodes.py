@@ -487,7 +487,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         emit    = emit
     )
 
-    function_exit = indented(emit.codes) + "\n    "
+    function_exit = indented(emit.codes) + "\n\n"
     del emit
 
     if needs_exception_exit:
@@ -496,9 +496,11 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         }
 
     if context.hasTempName("return_value"):
-        function_exit += template_function_return_exit % {
-            "function_cleanup" : function_cleanup,
-        }
+        function_exit += indented(
+            template_function_return_exit % {
+                "function_cleanup" : indented(function_cleanup),
+            }
+        )
 
     if context.isForDirectCall():
         parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)

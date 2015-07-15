@@ -108,11 +108,11 @@ function_exception_exit:
 """
 
 template_function_return_exit = """\
-    function_return_exit:
-%(function_cleanup)s\
-    CHECK_OBJECT( tmp_return_value );
-    assert( had_error || !ERROR_OCCURRED() );
-    return tmp_return_value;
+function_return_exit:
+%(function_cleanup)s
+CHECK_OBJECT( tmp_return_value );
+assert( had_error || !ERROR_OCCURRED() );
+return tmp_return_value;
 """
 
 function_direct_body_template = """\
