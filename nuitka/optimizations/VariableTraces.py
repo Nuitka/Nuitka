@@ -494,3 +494,62 @@ class VariableTraceMergeMultiple(VariableTraceBase):
 
             for previous in self.previous:
                 previous.addPotentialUsage()
+
+
+class VariableTraceLoopMerge(VariableTraceBase):
+    """ Merge of loop wrap around with loop start value.
+
+        Happens at the start of loop blocks. This is for loop closed SSA, to
+        make it clear, that the entered value, cannot be trusted inside the
+        loop.
+
+        They will start out with just one previous, and later be updated with
+        all of the variable versions at loop continue times.
+        .
+    """
+    def __init__(self, variable, version, previous):
+        VariableTraceBase.__init__(
+            self,
+            variable = variable,
+            version  = version,
+            previous = previous
+        )
+
+        self.loop_finished = False
+
+        previous.addPotentialUsage()
+
+    def hasDefiniteUsages(self):
+        if not self.loop_finished:
+            return True
+
+        return self.has_usages
+
+    def hasPotentialUsages(self):
+        if not self.loop_finished:
+            return True
+
+        return self.has_potential_usages
+
+    def hasNameUsages(self):
+        if not self.loop_finished:
+            return True
+
+        return self.has_name_usages
+
+    def getPrevious(self):
+        assert self.loop_finished
+
+        return self.previous
+
+    @staticmethod
+    def isMergeTrace():
+        return True
+
+    def addLoopContinueTraces(self, continue_traces):
+        self.previous.addPotentialUsage()
+
+        for continue_trace in continue_traces:
+            continue_trace.addPotentialUsage()
+
+        self.previous = (self.previous,) + tuple(continue_traces)

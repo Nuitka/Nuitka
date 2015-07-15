@@ -178,7 +178,7 @@ Replaced read-only module attribute '__package__' with constant value."""
 
     def computeExpressionCall(self, call_node, constraint_collection):
         if self.global_trace is None and \
-           self.variable_name in ("eval", "exec", "execfile", "locals") and \
+           self.variable_name in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
            self.variable.isModuleVariable():
             # Just inform the collection that all escaped.
             constraint_collection.onLocalsUsage()

@@ -88,6 +88,10 @@ class Variable:
         return False
     # pylint: enable=R0201
 
+    def isSharedLogically(self):
+        from nuitka.VariableRegistry import isSharedLogically
+        return isSharedLogically(self)
+
     def isSharedTechnically(self):
         from nuitka.VariableRegistry import isSharedTechnically
         return isSharedTechnically(self)

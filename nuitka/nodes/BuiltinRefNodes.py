@@ -104,7 +104,7 @@ Built-in constant '%s' resolved.""" % self.builtin_name
             called    = self
         )
 
-        if self.builtin_name in ("eval", "exec", "execfile", "locals"):
+        if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
             # Just inform the collection that all escaped.
             constraint_collection.onLocalsUsage()
 

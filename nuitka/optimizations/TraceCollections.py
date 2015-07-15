@@ -28,11 +28,13 @@ from logging import debug
 
 from nuitka import Tracing, VariableRegistry
 from nuitka.__past__ import iterItems  # Python3 compatibility.
+from nuitka.tree.Extractions import getVariablesWritten
 from nuitka.utils import Utils
 
 from .VariableTraces import (
     VariableTraceAssign,
     VariableTraceInit,
+    VariableTraceLoopMerge,
     VariableTraceMerge,
     VariableTraceMergeMultiple,
     VariableTraceUninit,
@@ -110,6 +112,29 @@ class CollectionTracingMixin:
             )
 
             self.markCurrentVariableTrace(variable, version)
+
+    def markActiveVariableAsLoopMerge(self, variable):
+        current = self.getVariableCurrentTrace(
+            variable = variable,
+        )
+
+        version = variable.allocateTargetNumber()
+
+        result = VariableTraceLoopMerge(
+            variable = variable,
+            version  = version,
+            previous = current
+        )
+
+        self.addVariableTrace(
+            variable = variable,
+            version  = version,
+            trace    = result
+        )
+
+        self.markCurrentVariableTrace(variable, version)
+
+        return result
 
     def markActiveVariablesAsUnknown(self):
         for variable in self.getActiveVariables():
@@ -619,21 +644,18 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         self.variable_actives.update(collection_replace.variable_actives)
         collection_replace.variable_actives = None
 
-    def degradePartiallyFromCode(self, statement_sequence):
-        from nuitka.tree.Extractions import getVariablesWritten
-
+    def degradePartiallyFromTriedCode(self, statement_sequence):
         variable_writes = getVariablesWritten(
             statement_sequence
         )
 
         # Mark all variables as unknown that are written in the statement
-        # sequence, so it destroys the assumptions for final block. TODO: To
-        # unknown is a bit harsh, in case it is known assigned before and
-        # not deleted.
-        for variable, _variable_version in variable_writes:
+        # sequence, so it destroys the assumptions for except block.
+        for variable in variable_writes:
             self.markActiveVariableAsUnknown(
                 variable = variable
             )
+
 
     def onLoopBreak(self, collection = None):
         if collection is None:

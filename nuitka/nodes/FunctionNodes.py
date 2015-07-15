@@ -28,11 +28,9 @@ CPython reference, and may escape.
 
 """
 
-from nuitka import Variables
+from nuitka import VariableRegistry, Variables
+from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.utils import Utils
-from nuitka.tree.Extractions import VariableUsageUpdater
-from nuitka.tree.Operations import visitTree
-from nuitka import VariableRegistry
 
 from .Checkers import checkStatementsSequenceOrNone
 from .IndicatorMixins import (
@@ -413,21 +411,19 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         assert variable.getOwner() is not self
 
         new_variable = Variables.LocalVariable(
-            owner = self,
+            owner         = self,
             variable_name = variable.getName()
         )
 
         self.providing[variable.getName()] = new_variable
 
-        visitor = VariableUsageUpdater(
+        updateVariableUsage(
+            provider     = self,
             old_variable = variable,
             new_variable = new_variable
         )
 
-        visitTree(self, visitor)
-
         VariableRegistry.addVariableUsage(new_variable, self)
-
 
     def removeUserVariable(self, variable):
         assert variable in self.providing.values(), (self.providing, variable)

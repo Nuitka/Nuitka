@@ -155,7 +155,7 @@ class StatementTry(StatementChildrenHavingBase):
                 name   = "except handler"
             )
 
-            collection_exception_handling.degradePartiallyFromCode(tried)
+            collection_exception_handling.degradePartiallyFromTriedCode(tried)
 
             if except_handler is not None:
                 result = except_handler.computeStatementsSequence(
