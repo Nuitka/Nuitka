@@ -837,6 +837,17 @@ def simpleFunction101():
 
     orMaking('x', "")
 
+class SomeClassWithAttributeAccess(object):
+    READING = 1
+
+    def use(self):
+        return self.READING
+
+def simpleFunction102():
+    SomeClassWithAttributeAccess().use()
+    SomeClassWithAttributeAccess().use()
+
+
 
 # These need stderr to be wrapped.
 tests_stderr = (63,)

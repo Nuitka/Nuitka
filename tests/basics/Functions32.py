@@ -16,6 +16,12 @@
 #     limitations under the License.
 #
 
+def displayDict(d):
+    result = '{'
+    for key, value in sorted(d.items()):
+        result += "%s: %s" % (key, value)
+    result += '}'
+
 def kwonlysimple(*, a):
     return a
 
@@ -95,7 +101,7 @@ print("Defining function with annotations, and defaults as functions for everyth
 def kwonlyfunc(x: annotation1(), y: annotation2() = default1(), z: annotation3() = default2(), *, a: annotation4(), b: annotation5() = default3(), c: annotation6() = default4(), d: annotation7(), **kw: annotation8()) -> annotation9():
     print(x, y, z, a, b, c, d)
 
-print("__kwdefaults__", kwonlyfunc.__kwdefaults__)
+print("__kwdefaults__", displayDict(kwonlyfunc.__kwdefaults__))
 
 print("Keyword only function")
 kwonlyfunc( 7, a = 8, d = 12 )
