@@ -131,6 +131,11 @@ msvc_version = ARGUMENTS.get("msvc_version", None)
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
 
+# Self-compiled Windows has different paths somewhat.
+win_from_source_mode = win_target and \
+                       os.path.exists(os.path.join(python_prefix, "PCBuild"))
+
+
 def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
 
@@ -804,9 +809,19 @@ not satisfied!""" % (
 
 env.Append(CPPPATH = [python_header_path])
 
+# To support self built Python on Windows, need to also add the "PC" directory,
+# that a normal install won't have.
+if win_from_source_mode:
+    env.Append(CPPPATH = [os.path.join(python_prefix, "PC")])
+
+
 if win_target:
     # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
-    win_lib_path = os.path.join(python_prefix, "libs")
+
+    if win_from_source_mode:
+        win_lib_path = os.path.join(python_prefix, "PCBuild")
+    else:
+        win_lib_path = os.path.join(python_prefix, "libs")
 
     if os.name == "nt" and target_arch == "x86_64" and gcc_mode:
         new_win_lib_path = os.path.join(source_dir, "libs")
@@ -903,7 +918,13 @@ if win_target:
         win_lib_path = new_win_lib_path
 
     env.Append(LIBPATH = [win_lib_path])
-    env.Append(LIBS = ["python" + python_version.replace('.', "")])
+
+    if python_debug:
+        env.Append(LIBS = ["python" + python_version.replace('.', "") + "_d"])
+    else:
+        env.Append(LIBS = ["python" + python_version.replace('.', "")])
+
+
 else:
     # Debian and Ubuntu distinguish the system libraries like this.
     if python_debug and \
@@ -1190,12 +1211,20 @@ if win_target:
                 "resources.manifest"
             )
 
-            # Find the "python.exe" in a normal install, this is assuming we
-            # broke out of the virtualenv already.
-            python_exe = os.path.join(
-                 python_prefix,
-                 "python.exe"
-            )
+            if win_from_source_mode:
+                # Also consider a Python built from source.
+                python_exe = os.path.join(
+                     python_prefix,
+                     "PCBuild",
+                     "python_d.exe" if python_debug else "python.exe"
+                )
+            else:
+                # Find the "python.exe" in a normal install, this is assuming we
+                # broke out of the virtualenv already.
+                python_exe = os.path.join(
+                     python_prefix,
+                     "python.exe"
+                )
 
             assert os.path.exists(python_exe), python_exe
 
