@@ -55,6 +55,7 @@ from nuitka.utils import Utils
 from .Helpers import (
     buildNode,
     buildStatementsNode,
+    getKind,
     makeConditionalStatement,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
@@ -208,15 +209,15 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                             condition  = ExpressionCallNoKeywords(
                                 called     = ExpressionTempVariableRef(
                                     variable   = tmp_exit_variable,
-                                    source_ref = source_ref
+                                    source_ref = with_exit_source_ref
                                 ),
                                 args       = ExpressionMakeTuple(
                                     elements   = (
                                         ExpressionCaughtExceptionTypeRef(
-                                            source_ref = source_ref
+                                            source_ref = with_exit_source_ref
                                         ),
                                         ExpressionCaughtExceptionValueRef(
-                                            source_ref = source_ref
+                                            source_ref = with_exit_source_ref
                                         ),
                                         ExpressionCaughtExceptionTracebackRef(
                                             source_ref = source_ref
@@ -227,10 +228,10 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                                 source_ref = with_exit_source_ref
                             ),
                             no_branch  = makeReraiseExceptionStatement(
-                                source_ref = source_ref
+                                source_ref = with_exit_source_ref
                             ),
                             yes_branch = None,
-                            source_ref = source_ref
+                            source_ref = with_exit_source_ref
                         ),
                     ),
                     source_ref = source_ref
@@ -322,11 +323,18 @@ def buildWithNode(provider, node, source_ref):
     context_exprs.reverse()
     assign_targets.reverse()
 
+    # For compatibility, we need to gather a line number for the body here
+    # already, but only the full compatibilty mode will use it.
+    terminal_statement = node.body[-1]
+    while getKind(terminal_statement) == "With":
+        terminal_statement = terminal_statement.body[-1]
+    body_lineno = terminal_statement.lineno
+
     for context_expr, assign_target in zip(context_exprs, assign_targets):
         body = _buildWithNode(
             provider      = provider,
             body          = body,
-            body_lineno   = node.body[-1].lineno,
+            body_lineno   = body_lineno,
             context_expr  = context_expr,
             assign_target = assign_target,
             source_ref    = source_ref
