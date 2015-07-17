@@ -638,6 +638,10 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             source_ref = source_ref
         )
 
+    def getName(self):
+        return self.getFunctionRef().getName()
+
+
     def computeExpression(self, constraint_collection):
         defaults = self.getDefaults()
 
@@ -786,6 +790,9 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         self.function_body = function_body
 
+
+    def getName(self):
+        return self.function_body.getName()
 
     def getDetails(self):
         return {
