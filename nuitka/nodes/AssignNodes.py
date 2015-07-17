@@ -192,9 +192,7 @@ Side effects of assignments promoted to statements."""
 
                                 if last_trace.hasDefiniteUsages():
                                     self.variable_trace.setReplacementNode(
-                                        lambda usage : source.makeCloneAt(
-                                            usage.getSourceReference()
-                                        )
+                                        lambda usage : source.makeClone()
                                     )
                                     propagated = True
                                 else:
