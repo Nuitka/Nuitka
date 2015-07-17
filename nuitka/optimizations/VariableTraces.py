@@ -44,7 +44,7 @@ class VariableTraceBase:
         self.version = version
 
         # Definite usage indicator.
-        self.has_usages = False
+        self.usage_count = 0
 
         # Potential usages indicator that an assignment value may be used.
         self.has_potential_usages = False
@@ -70,7 +70,7 @@ class VariableTraceBase:
         return self.version
 
     def addUsage(self):
-        self.has_usages = True
+        self.usage_count += 1
 
     def addPotentialUsage(self):
         self.has_potential_usages = True
@@ -79,7 +79,7 @@ class VariableTraceBase:
         self.has_releases = True
 
     def addNameUsage(self):
-        self.has_usages = True
+        self.usage_count += 1
         self.has_name_usages = True
 
     def onValueEscape(self):
@@ -89,7 +89,10 @@ class VariableTraceBase:
         return self.is_escaped
 
     def hasDefiniteUsages(self):
-        return self.has_usages
+        return self.usage_count > 0
+
+    def getDefiniteUsages(self):
+        return self.usage_count
 
     def hasPotentialUsages(self):
         return self.has_potential_usages
@@ -171,8 +174,8 @@ class VariableTraceUninit(VariableTraceBase):
         )
         debug("  Starts out uninitialized")
 
-        if self.has_usages:
-            debug("  -> has usages")
+        if self.usage_count:
+            debug("  -> has %s usages" % self.usage_count)
 
         if self.is_escaped:
             debug("  -> value escapes")
@@ -204,8 +207,8 @@ class VariableTraceInit(VariableTraceBase):
         )
         debug("  Starts initialized")
 
-        if self.has_usages:
-            debug("  -> has usages")
+        if self.usage_count:
+            debug("  -> has %s usages" % self.usage_count)
 
         if self.is_escaped:
             debug("  -> value escapes")
@@ -241,8 +244,8 @@ class VariableTraceUnknown(VariableTraceBase):
         )
         debug("  Starts unknown")
 
-        if self.has_usages:
-            debug("  -> has usages")
+        if self.usage_count:
+            debug("  -> has %s usages" % self.usage_count)
 
         if self.is_escaped:
             debug("  -> value escapes")
@@ -255,7 +258,7 @@ class VariableTraceUnknown(VariableTraceBase):
         return True
 
     def addUsage(self):
-        self.has_usages = True
+        self.usage_count += 1
 
         if self.previous is not None:
             self.previous.addPotentialUsage()
@@ -302,8 +305,8 @@ class VariableTraceAssign(VariableTraceBase):
             self.version)
         debug("  Starts assigned")
 
-        if self.has_usages:
-            debug("  -> has usages")
+        if self.usage_count:
+            debug("  -> has %s usages" % self.usage_count)
 
         if self.is_escaped:
             debug("  -> value escapes")
@@ -330,93 +333,6 @@ class VariableTraceAssign(VariableTraceBase):
 
 
 class VariableTraceMerge(VariableTraceBase):
-    """ Merge of two traces.
-
-        Happens at the end of two conditional blocks. This is "phi" in
-        SSA theory.
-    """
-    def __init__(self, variable, version, trace_yes, trace_no):
-        assert trace_no is not trace_yes, (variable, version, trace_no)
-
-        VariableTraceBase.__init__(
-            self,
-            variable = variable,
-            version  = version,
-            previous = (trace_yes, trace_no)
-        )
-
-    @staticmethod
-    def isMergeTrace():
-        return True
-
-    def dump(self):
-        debug(
-            "Trace of %s %d:",
-            self.variable,
-            self.version
-        )
-        debug(
-            "  Merge of %s <-> %s",
-            self.previous[0],
-            self.previous[1]
-        )
-
-    def mustHaveValue(self):
-        # TODO: Temporarily disable far reaching of assumptions, until value
-        # escaping can be trusted.
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically():
-            return False
-
-        for previous in self.previous:
-            if not previous.isInitTrace() and not previous.isAssignTrace():
-                return False
-
-        return True
-
-    def mustNotHaveValue(self):
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically():
-            return False
-
-        for previous in self.previous:
-            if not previous.isUninitTrace():
-                return False
-
-        return True
-
-    def addUsage(self):
-        self.has_usages = True
-
-        a, b = self.previous
-
-        a.addPotentialUsage()
-        b.addPotentialUsage()
-
-    def addNameUsage(self):
-        self.has_usages = True
-
-        a, b = self.previous
-
-        a.addPotentialUsage()
-        b.addPotentialUsage()
-
-        a.addNameUsage()
-        b.addNameUsage()
-
-    def addPotentialUsage(self):
-        old = self.has_potential_usages
-
-        if not old:
-            self.has_potential_usages = True
-
-            a, b = self.previous
-
-            a.addPotentialUsage()
-            b.addPotentialUsage()
-
-
-class VariableTraceMergeMultiple(VariableTraceBase):
     """ Merge of two or more traces.
 
         Happens at the end of conditional blocks. This is "phi" in
@@ -430,6 +346,15 @@ class VariableTraceMergeMultiple(VariableTraceBase):
             version  = version,
             previous = tuple(traces)
         )
+
+    def __repr__(self):
+        return """\
+<VariableTraceMerge {variable} {version} of {previous}>""".format(
+            variable = self.variable,
+            version  = self.version,
+            previous = tuple(previous.getVersion() for previous in self.previous)
+        )
+
 
     @staticmethod
     def isMergeTrace():
@@ -472,13 +397,13 @@ class VariableTraceMergeMultiple(VariableTraceBase):
         return True
 
     def addUsage(self):
-        self.has_usages = True
+        self.usage_count += 1
 
         for previous in self.previous:
             previous.addPotentialUsage()
 
     def addNameUsage(self):
-        self.has_usages = True
+        self.usage_count += 1
 
         for previous in self.previous:
             previous.addPotentialUsage()
@@ -521,7 +446,7 @@ class VariableTraceLoopMerge(VariableTraceBase):
         if not self.loop_finished:
             return True
 
-        return self.has_usages
+        return self.usage_count > 0
 
     def hasPotentialUsages(self):
         if not self.loop_finished:

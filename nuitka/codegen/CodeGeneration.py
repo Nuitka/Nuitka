@@ -430,7 +430,7 @@ def generateFunctionBodyCode(function_body, context):
     if function_body.isGenerator():
         source_ref = function_body.getSourceReference()
 
-        code_identifier = context.getCodeObjectHandle(
+        code_identifier = function_context.getCodeObjectHandle(
             filename      = function_body.getParentModule().getRunTimeFilename(),
             var_names     = parameters.getCoArgNames(),
             arg_count     = parameters.getArgumentCount(),
@@ -438,7 +438,7 @@ def generateFunctionBodyCode(function_body, context):
             line_number   = source_ref.getLineNumber(),
             code_name     = function_body.getFunctionName(),
             is_generator  = True,
-            is_optimized  = not context.hasLocalsDict(),
+            is_optimized  = not function_context.hasLocalsDict(),
             has_starlist  = parameters.getStarListArgumentName() is not None,
             has_stardict  = parameters.getStarDictArgumentName() is not None,
             has_closure   = function_body.getClosureVariables() != (),

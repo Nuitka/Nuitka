@@ -154,7 +154,7 @@ def _getLocalVariableCode(context, variable):
                 variable   = variable
             )
 
-            return result, False
+            return result, variable.isSharedTechnically()
     else:
         closure_index = user.getClosureVariables().index(variable)
 

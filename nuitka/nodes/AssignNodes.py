@@ -25,7 +25,7 @@ that should be unified at some point.
 
 """
 
-from nuitka import VariableRegistry
+from nuitka import Options, VariableRegistry
 from nuitka.utils import Utils
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
@@ -93,6 +93,9 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
 
     def computeStatement(self, constraint_collection):
         # This is very complex stuff, pylint: disable=R0912
+
+        # TODO: Way too ugly to have global trace kinds just here, and needs to
+        # be abstracted somehow. But for now we let it live here: pylint: disable=R0911,R0915
 
         # Assignment source may re-compute here:
         constraint_collection.onExpression(self.getAssignSource())
@@ -175,14 +178,14 @@ Side effects of assignments promoted to statements."""
 
         global_trace = VariableRegistry.getGlobalVariableTrace(variable)
 
-        if global_trace is not None and False:
+        if global_trace is not None and Options.isExperimental():
             last_trace = global_trace.getMatchingAssignTrace(self)
 
             if last_trace is not None:
                 if variable.isLocalVariable() or variable.isTempVariable():
                     if source.isCompileTimeConstant():
 
-                        # Can forward we forward propagate.
+                        # Can safely forward propagate only non-mutable constants.
                         if not source.isMutable():
                             provider = self.getParentVariableProvider()
 
@@ -224,6 +227,58 @@ Side effects of assignments promoted to statements."""
                             # Something might be possible still.
 
                             pass
+                    elif Options.isExperimental() and \
+                        source.isExpressionFunctionCreation() and \
+                        not source.getFunctionRef().getFunctionBody().isGenerator() and \
+                        not source.getFunctionRef().getFunctionBody().isClassDictCreation() and \
+                        not source.getDefaults() and  \
+                        not source.getKwDefaults() and \
+                        not source.getAnnotations():
+                        # TODO: These are very mutable, right?
+
+                        provider = self.getParentVariableProvider()
+
+                        if variable.isTempVariable() or \
+                           (not provider.isUnoptimized() and \
+                            not provider.isClassDictCreation()):
+
+                            # This limitation may fall later.
+                            if not variable.isSharedLogically():
+
+                                if last_trace.getDefiniteUsages() <= 1 and \
+                                   not last_trace.hasPotentialUsages() and \
+                                   not last_trace.hasNameUsages():
+
+                                    if last_trace.getDefiniteUsages() == 1:
+                                        self.variable_trace.setReplacementNode(
+                                            lambda usage : source.makeClone()
+                                        )
+                                        propagated = True
+                                    else:
+                                        propagated = False
+
+                                    if not last_trace.getPrevious().isUninitTrace():
+                                        # TODO: We could well decide, if that's even necessary.
+                                        result = StatementDelVariable(
+                                            variable_ref = self.getTargetVariableRef(),
+                                            tolerant     = True,
+                                            source_ref   = self.getSourceReference()
+                                        )
+                                    else:
+                                        result = None
+
+                                    return (
+                                        result,
+                                        "new_statements",
+                                        "Dropped %s assignment statement to '%s'." % (
+                                           "propagated" if propagated else "dead",
+                                           self.getTargetVariableRef().getVariableName()
+                                        )
+                                    )
+
+                    else:
+                        # More cases thinkable.
+                        pass
 
         return self, None, None
 

@@ -36,7 +36,6 @@ from .VariableTraces import (
     VariableTraceInit,
     VariableTraceLoopMerge,
     VariableTraceMerge,
-    VariableTraceMergeMultiple,
     VariableTraceUninit,
     VariableTraceUnknown
 )
@@ -228,23 +227,10 @@ class CollectionStartpointMixin:
         assert key not in self.variable_traces, (key, self)
         self.variable_traces[key] = trace
 
-    def addVariableMergeTrace(self, variable, trace_yes, trace_no):
-        version = variable.allocateTargetNumber()
-        trace_merge = VariableTraceMerge(
-            variable  = variable,
-            version   = version,
-            trace_yes = trace_yes,
-            trace_no  = trace_no
-        )
-
-        self.addVariableTrace(variable, version, trace_merge)
-
-        return version
-
     def addVariableMergeMultipleTrace(self, variable, traces):
         version = variable.allocateTargetNumber()
 
-        trace_merge = VariableTraceMergeMultiple(
+        trace_merge = VariableTraceMerge(
             variable = variable,
             version  = version,
             traces   = traces
@@ -421,9 +407,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
     def addVariableTrace(self, variable, version, trace):
         self.parent.addVariableTrace(variable, version, trace)
 
-    def addVariableMergeTrace(self, variable, trace_yes, trace_no):
-        return self.parent.addVariableMergeTrace(variable, trace_yes, trace_no)
-
     def addVariableMergeMultipleTrace(self, variable, traces):
         return self.parent.addVariableMergeMultipleTrace(variable, traces)
 
@@ -538,15 +521,17 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         if new_node is not expression:
             expression.replaceWith(new_node)
 
+            if new_node.isExpressionVariableRef() or \
+               new_node.isExpressionTempVariableRef():
+                # Remember the reference for constraint collection.
+                assert new_node.variable_trace.hasDefiniteUsages()
+
         # We add variable reference nodes late to their traces, only after they
         # are actually produced, and not resolved to something else, so we do
         # not have them dangling, and the code complexity inside of their own
         # "computeExpression" functions.
         if new_node.isExpressionVariableRef() or \
            new_node.isExpressionTempVariableRef():
-            # Remember the reference for constraint collection.
-            new_node.variable_trace.addUsage()
-
             if new_node.getVariable().isMaybeLocalVariable():
                 variable_trace = self.getVariableCurrentTrace(
                     variable = new_node.getVariable().getMaybeVariable()

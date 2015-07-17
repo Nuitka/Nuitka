@@ -355,7 +355,7 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
             # Tuple argument case:
 
             assigned_tuple_params.append(arg)
-            value = iter(value)
+            value = iter(value.getIterationValues())
 
             for i, subarg in enumerate(arg):
                 try:

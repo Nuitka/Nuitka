@@ -165,6 +165,8 @@ Replaced read-only module attribute '__name__' with constant value."""
                 change_desc = """\
 Replaced read-only module attribute '__package__' with constant value."""
             else:
+                self.variable_trace.addUsage()
+
                 # Probably should give a warning once about it.
                 new_node = self
                 change_tags = None
@@ -244,6 +246,7 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         if replacement is not None:
             return replacement, "new_expression", "Value propagated for temp '%s'." % self.variable.getName()
 
+        self.variable_trace.addUsage()
         # Nothing to do here.
         return self, None, None
 

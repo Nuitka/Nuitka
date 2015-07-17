@@ -15,6 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Outline nodes.
+
+We use them for re-formulations and for inlining of code. They are expressions
+that get their value from return statements in their code body. They do not
+own anything by themselves. It's just a way of having try/finally for the
+expressions.
+"""
+
+
 
 from .NodeBases import ChildrenHavingMixin, ExpressionChildrenHavingBase
 
@@ -120,7 +129,11 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         constraint_collection.mergeMultipleBranches(return_collections)
 
         if body.getStatements()[0].isStatementReturn():
-            return body.getStatements()[0].getExpression(), "new_expression", "Outline is now simple expression, use directly."
+            return (
+                body.getStatements()[0].getExpression(),
+                "new_expression",
+                "Outline is now simple expression, use directly."
+            )
 
         # TODO: Function outline may become too trivial to outline and return
         # collections may tell us something.

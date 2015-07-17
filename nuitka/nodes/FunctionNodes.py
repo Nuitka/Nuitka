@@ -28,7 +28,8 @@ CPython reference, and may escape.
 
 """
 
-from nuitka import VariableRegistry, Variables
+from nuitka import Options, VariableRegistry, Variables
+from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.utils import Utils
 
@@ -415,8 +416,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     setBody = ChildrenHavingMixin.childSetter("body")
 
     def needsCreation(self):
-        # TODO: This looks kind of arbitrary, the users should decide, if they
-        # need it.
         return self.needs_creation
 
     def markAsNeedsCreation(self):
@@ -627,12 +626,13 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
             return call_node, None, None
 
+        function_body = self.getFunctionRef().getFunctionBody()
 
         # TODO: Actually the above disables it entirely, as it is at least
         # the empty dictionary node in any case. We will need some enhanced
         # interfaces for "matchCall" to work on.
 
-        call_spec = self.getFunctionRef().getFunctionBody().getParameters()
+        call_spec = function_body.getParameters()
 
         try:
             args_dict = matchCall(
@@ -645,15 +645,11 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
                 pairs         = ()
             )
 
-            values = []
-
-            for positional_arg in args_tuple:
-                for arg_value in args_dict.values():
-                    if arg_value is positional_arg:
-                        values.append(arg_value)
-                        break
-                else:
-                    assert False
+            values = [
+                args_dict[name]
+                for name in
+                call_spec.getAllNames()
+            ]
 
             result = ExpressionFunctionCall(
                 function   = self,
@@ -681,10 +677,39 @@ function call.""" % self.getName()
 
             return (
                 result,
-                "new_statements,new_raise", # TODO: More appropriate tag maybe.
+                "new_raise", # TODO: More appropriate tag maybe.
                 """Replaced call to created function body '%s' to argument \
 error""" % self.getName()
             )
+
+    def getCallCost(self, values):
+        # TODO: Ought to use values. If they are all constant, how about we
+        # assume no cost, pylint: disable=W0613
+
+        if not Options.isExperimental():
+            return None
+
+        function_body = self.getFunctionRef().getFunctionBody()
+
+        if function_body.isGenerator():
+            return None
+
+        if function_body.isClassDictCreation():
+            return None
+
+        # TODO: Lying for the demo.
+        if function_body.mayRaiseException(BaseException):
+            return 60
+
+        return 20
+
+    def createOutlineFromCall(self, provider, values):
+        return convertFunctionCallToOutline(
+            provider     = provider,
+            function_ref = self.getFunctionRef(),
+            values       = values
+        )
+
 
 
 class ExpressionFunctionRef(NodeBase, ExpressionMixin):
@@ -799,7 +824,9 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         function = self.getFunction()
 
         if function.willRaiseException(BaseException):
-            return function, "new_raise", "Called function is a raise"
+            # TODO: Seriously, how could it be. We need to get defaults and
+            # annotations out of the picture, then this cannot happen.
+            return function, "new_raise", "Called function is a raise."
 
         values = self.getArgumentValues()
 
@@ -811,7 +838,18 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
                     old_node     = self
                 )
 
-                return result, "new_raise", "Called function arguments raise"
+                return result, "new_raise", "Called function arguments raise."
+
+        # TODO: This needs some design.
+        cost = function.getCallCost(values)
+
+        if cost is not None and cost < 50:
+            result = function.createOutlineFromCall(
+                provider = self.getParentVariableProvider(),
+                values   = values
+            )
+
+            return result, "new_statements", "Function call inlined."
 
         return self, None, None
 
