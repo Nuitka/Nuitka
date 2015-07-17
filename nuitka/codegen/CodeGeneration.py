@@ -65,7 +65,6 @@ from .DictCodes import (
 )
 from .ErrorCodes import (
     getErrorExitBoolCode,
-    getErrorExitCode,
     getMustNotGetHereCode,
     getReleaseCode
 )
@@ -393,12 +392,6 @@ def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
         release_name = annotations_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
 

@@ -587,7 +587,21 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
     getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
     def mayRaiseException(self, exception_type):
-        return True
+        for default in self.getDefaults():
+            if default.mayRaiseException(exception_type):
+                return True
+
+        kw_defaults = self.getKwDefaults()
+
+        if kw_defaults is not None and kw_defaults.mayRaiseException(exception_type):
+            return True
+
+        annotations = self.getAnnotations()
+
+        if annotations is not None and annotations.mayRaiseException(exception_type):
+            return True
+
+        return False
 
     def computeExpressionCall(self, call_node, constraint_collection):
         # TODO: Until we have something to re-order the keyword arguments, we
