@@ -178,7 +178,7 @@ def mergeStatements(statements, allow_none = False):
     for statement in statements:
         if statement is None and allow_none:
             pass
-        elif type(statement) is tuple:
+        elif type(statement) in (tuple, list):
             merged_statements += mergeStatements(statement, allow_none)
         elif statement.isStatement() or statement.isStatementsFrame():
             merged_statements.append(statement)

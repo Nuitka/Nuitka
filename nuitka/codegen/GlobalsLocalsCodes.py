@@ -94,22 +94,21 @@ def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
     if is_dict:
         emit(
             """\
-    %s = PyDict_SetItem(
-        %s,
-        %s,
-        %s
+    %(tmp_name)s = PyDict_SetItem(
+        %(dict_name)s,
+        %(var_name)s,
+        %(access_code)s
     );
-    assert( %s != -1 );
-""" % (
-                context.getIntResName(),
-                dict_name,
-                getConstantCode(
+    assert( %(tmp_name)s != -1 );
+""" % {
+                "tmp_name"    : context.getIntResName(),
+                "dict_name"   : dict_name,
+                "var_name"    : getConstantCode(
                     constant = variable.getName(),
                     context  = context
                 ),
-                access_code,
-                context.getIntResName(),
-            )
+                "access_code" : access_code,
+            }
         )
     else:
         res_name = context.getIntResName()

@@ -22,7 +22,7 @@
 
 template_main_program = """\
 // The main program for C++. It needs to prepare the interpreter and then
-// calls the initialization code of the __main__ module.
+// calls the initialization code of the "__main__" module.
 
 #include "structseq.h"
 

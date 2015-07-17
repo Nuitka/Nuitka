@@ -343,6 +343,7 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
     context.addCleanupTempName(to_name)
 
+
 def getFunctionDirectClosureArgs(closure_variables):
     result = []
 

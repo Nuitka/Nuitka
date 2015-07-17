@@ -58,7 +58,7 @@ class VariableUsageUpdater(VisitorNoopMixin):
            node.isExpressionTargetTempVariableRef() or \
            node.isExpressionVariableRef() or \
            node.isExpressionTempVariableRef() or \
-           node.isStatementVariableRelease():
+           node.isStatementReleaseVariable():
             if node.getVariable() is self.old_variable:
                 node.setVariable(self.new_variable)
 

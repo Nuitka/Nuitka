@@ -170,7 +170,7 @@ goto %(parent_exception_exit)s;
 %(no_exception_exit)s:;"""
 
 template_generator_initial_throw = """\
-// Throwing into unstarted generators is possible. As they don't stand any
+// Throwing into not started generators is possible. As they don't stand any
 // chance to deal with them, we might as well create traceback on the
 // outside,
 if ( generator->m_exception_type )

@@ -30,9 +30,9 @@ from logging import info, warning
 
 from nuitka.importing import Importing, Recursion
 from nuitka.plugins.PluginBase import Plugins
+from nuitka.PythonVersions import isUninstalledPython
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import InstanceCounters, Utils
-from nuitka.PythonVersions import isUninstalledPython
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface

@@ -136,7 +136,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
 
     def __init__(self, builtin_name, source_ref):
-        assert builtin_name in builtin_anon_names
+        assert builtin_name in builtin_anon_names, builtin_name
 
         ExpressionBuiltinRefBase.__init__(
             self,

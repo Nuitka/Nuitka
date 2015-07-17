@@ -51,13 +51,14 @@ Requirements
 
 - Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4 (yes, but read below)
 
-
-  .. admonition:: Python3, yes but Python2 compile time dependency
+  .. admonition:: Python3, yes but Python2 *compile time* dependency
 
      For Python3 you *need* a Python2, but only during the compile time
      only, and that is for Scons (which orchestrates the C++ compilation), and
      is not yet ported. So for Python 3.x, there is currently a requirement to
      also have a Python 2.x installed.
+
+     Nuitka itself is fully Python3 compatible except for Scons.
 
   .. admonition:: Moving to other machines
 
@@ -85,12 +86,12 @@ Requirements
   Others may work as well. The portability is expected to be generally good, but
   the e.g. Scons usage may have to be adapted.
 
-- Architectures: x86, x86_64 (amd64), and arm.
+- Architectures: x86, x86_64 (amd64), and arm, likely more
 
-  Other architectures may also work, out of the box, as Nuitka is generally not
-  using any hardware specifics. These are just the ones tested and known to
-  be good. Feedback is welcome. Generally the architectures that Debian supports
-  can be considered good and tested too.
+  Other architectures are expected to also work, out of the box, as Nuitka is
+  generally not using any hardware specifics. These are just the ones tested
+  and known to be good. Feedback is welcome. Generally the architectures that
+  Debian supports can be considered good and tested too.
 
 .. [#] Support for this C++03 language standard is practically a given on any
        C++ compiler you encounter. Nuitka used to have higher requirements in
@@ -106,7 +107,7 @@ Requirements
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-       the Express edition will do.
+       (the Express editions will normally work just fine).
 
 
 Command Line
