@@ -26,6 +26,7 @@ from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
 
 from .Checkers import checkStatementsSequence, checkStatementsSequenceOrNone
 from .NodeBases import StatementChildrenHavingBase
+from .StatementNodes import StatementsSequence
 
 
 class StatementTry(StatementChildrenHavingBase):
@@ -233,6 +234,12 @@ class StatementTry(StatementChildrenHavingBase):
                 self.setBlockReturnHandler(result)
                 return_handler = result
 
+        if return_handler is not None:
+            if return_handler.getStatements()[0].isStatementReturn() and \
+               return_handler.getStatements()[0].getExpression().isExpressionReturnedValueRef():
+                self.setBlockReturnHandler(None)
+                return_handler = None
+
 
         # Merge exception handler only if it is used. Empty means it is not
         # aborting, as it swallows the exception.
@@ -250,7 +257,73 @@ class StatementTry(StatementChildrenHavingBase):
            break_handler is None and \
            continue_handler is None and \
            return_handler is None:
-            return tried, "new_statements", "Removed all try handlers"
+            return tried, "new_statements", "Removed all try handlers."
+
+        tried_statements = tried.getStatements()
+
+        pre_statements = []
+
+        while tried_statements:
+            tried_statement = tried_statements[0]
+
+            if tried_statement.mayRaiseException(BaseException):
+                break
+
+            if break_handler is not None and \
+               tried_statement.mayBreak():
+                break
+
+            if continue_handler is not None and \
+               tried_statement.mayContinue():
+                break
+
+            if return_handler is not None and \
+               tried_statement.mayReturn():
+                break
+
+            pre_statements.append(tried_statement)
+            tried_statements = list(tried_statements)
+
+            del tried_statements[0]
+
+        post_statements = []
+
+        if except_handler is not None and except_handler.isStatementAborting():
+            while tried_statements:
+                tried_statement = tried_statements[-1]
+
+                if tried_statement.mayRaiseException(BaseException):
+                    break
+
+                if break_handler is not None and \
+                   tried_statement.mayBreak():
+                    break
+
+                if continue_handler is not None and \
+                   tried_statement.mayContinue():
+                    break
+
+                if return_handler is not None and \
+                   tried_statement.mayReturn():
+                    break
+
+                post_statements.insert(0, tried_statement)
+                tried_statements = list(tried_statements)
+
+                del tried_statements[-1]
+
+        if pre_statements or post_statements:
+            assert tried_statements # Should be dealt with already
+
+            tried.setStatements(tried_statements)
+
+            result = StatementsSequence(
+                statements = pre_statements + [self] + post_statements,
+                source_ref = self.getSourceReference()
+            )
+
+            # TODO: We probably don't want to say this for re-formulation ones.
+            return result, "new_statements", "Reduced scope of tried block."
 
         return self, None, None
 
