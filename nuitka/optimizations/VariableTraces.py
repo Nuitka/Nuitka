@@ -324,9 +324,7 @@ class VariableTraceAssign(VariableTraceBase):
     def getReplacementNode(self, usage):
 
         if self.replace_it is not None:
-            return self.replace_it.makeCloneAt(
-                self.assign_node.getSourceReference()
-            )
+            return self.replace_it(usage)
         else:
             return None
 

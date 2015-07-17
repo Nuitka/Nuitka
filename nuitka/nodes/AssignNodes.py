@@ -191,7 +191,11 @@ Side effects of assignments promoted to statements."""
                                 not provider.isClassDictCreation()):
 
                                 if last_trace.hasDefiniteUsages():
-                                    self.variable_trace.setReplacementNode(source)
+                                    self.variable_trace.setReplacementNode(
+                                        lambda usage : source.makeCloneAt(
+                                            usage.getSourceReference()
+                                        )
+                                    )
                                     propagated = True
                                 else:
                                     propagated = False
