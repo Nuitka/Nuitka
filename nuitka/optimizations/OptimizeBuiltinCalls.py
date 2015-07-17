@@ -90,7 +90,6 @@ from nuitka.nodes.ExecEvalNodes import (
     ExpressionBuiltinCompile,
     ExpressionBuiltinEval
 )
-from nuitka.nodes.FunctionNodes import ExpressionOutlineBody
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinDir1,
     ExpressionBuiltinGlobals,
@@ -106,6 +105,7 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationNOT,
     ExpressionOperationUnary
 )
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.TypeNodes import (

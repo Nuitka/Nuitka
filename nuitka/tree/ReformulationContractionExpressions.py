@@ -42,14 +42,14 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef,
-    ExpressionOutlineBody
+    ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
 from nuitka.nodes.NodeMakingHelpers import (
     makeVariableRefNode,
     makeVariableTargetRefNode
 )
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import (
