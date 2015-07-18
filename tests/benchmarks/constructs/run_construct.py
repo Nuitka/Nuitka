@@ -27,7 +27,7 @@ sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname(os.path.abspath( __file__ )),
+            os.path.dirname(os.path.abspath(__file__)),
             "..",
             "..",
         )
@@ -93,19 +93,17 @@ from test_common import (
     convertUsing2to3,
     getTempDir,
     decideFilenameVersionSkip,
-    compareWithCPython,
-    hasDebugPython
 )
 
 python_version = setup(silent = True)
 
 assert os.path.exists(test_case), (test_case, os.getcwd())
 
-print("PYTHON='%s'" % python_version)
-print("TEST_CASE_HASH='%s'" % md5.md5(open(test_case).read()).hexdigest())
+my_print("PYTHON='%s'" % python_version)
+my_print("TEST_CASE_HASH='%s'" % md5.md5(open(test_case).read()).hexdigest())
 
 
-needs_2to3 = python_version.startswith("3") and \
+needs_2to3 = python_version.startswith('3') and \
              not test_case.endswith("32.py") and \
              not test_case.endswith("33.py")
 
@@ -118,10 +116,10 @@ if options.target_dir:
 if needs_2to3:
     test_case = convertUsing2to3(test_case)
 
-def runValgrind( descr, test_case, args ):
-    print(descr, file=sys.stderr, end="... ")
+def runValgrind(descr, test_case, args):
+    my_print(descr, file = sys.stderr, end = "... ")
 
-    log_base = test_case[:-3] if test_case.endswith( ".py" ) else test_case
+    log_base = test_case[:-3] if test_case.endswith(".py") else test_case
     log_file = log_base + ".log"
 
     valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s" % log_file
@@ -138,10 +136,10 @@ def runValgrind( descr, test_case, args ):
     exit_valgrind = process.returncode
 
     assert exit_valgrind == 0, stderr_valgrind
-    print("OK", file=sys.stderr)
+    my_print("OK", file = sys.stderr)
     try:
         for line in open(log_file):
-            if line.startswith( "summary:" ):
+            if line.startswith("summary:"):
                 return int(line.split()[1])
 
         else:
@@ -163,8 +161,8 @@ test_case_2 = os.path.join(
     "Variant2_" + os.path.basename(test_case)
 )
 
-case_1_file = open(test_case_1, "w")
-case_2_file = open(test_case_2, "w")
+case_1_file = open(test_case_1, 'w')
+case_2_file = open(test_case_2, 'w')
 
 inside = False
 case = 0
@@ -173,7 +171,7 @@ for line in open(test_case):
     if not inside or case == 1:
         case_1_file.write(line)
     else:
-        case_1_file.write("\n")
+        case_1_file.write('\n')
 
     if "# construct_end" in line:
         inside = False
@@ -184,7 +182,7 @@ for line in open(test_case):
     if not inside or case == 2:
         case_2_file.write(line)
     else:
-        case_2_file.write("\n")
+        case_2_file.write('\n')
 
     if "# construct_begin" in line:
         inside = True
@@ -193,22 +191,23 @@ for line in open(test_case):
 case_1_file.close()
 case_2_file.close()
 
-os.environ["PYTHONHASHSEED"] = "0"
+os.environ["PYTHONHASHSEED"] = '0'
 
 if nuitka:
     nuitka_id = commands.getoutput(
         "cd %s; git rev-parse HEAD" % os.path.dirname(nuitka)
     )
-    print("NUITKA_COMMIT='%s'" % nuitka_id)
+    my_print("NUITKA_COMMIT='%s'" % nuitka_id)
 
 os.chdir(getTempDir())
 
 if nuitka:
-    shutil.copy(test_case_1, os.path.basename(test_case))
+    nuitka_call = [nuitka, "--python-flag=-S", os.path.basename(test_case) ]
+    nuitka_call.extend(os.environ.get("NUITKA_EXTRA_OPTIONS", "").split())
 
-    subprocess.check_call(
-        [ nuitka, "--python-flag=-S", os.path.basename(test_case) ]
-    )
+    shutil.copy(test_case_1, os.path.basename(test_case))
+    subprocess.check_call(nuitka_call)
+
     os.rename(
         os.path.basename(test_case).replace(".py", ".build"),
         os.path.basename(test_case_1).replace(".py", ".build")
@@ -219,9 +218,9 @@ if nuitka:
     )
 
     shutil.copy(test_case_2, os.path.basename(test_case))
-    subprocess.check_call(
-        [ nuitka, "--python-flag=-S", os.path.basename(test_case) ]
-    )
+
+    subprocess.check_call(nuitka_call)
+
     os.rename(
         os.path.basename(test_case).replace(".py", ".build"),
         os.path.basename(test_case_2).replace(".py", ".build")
@@ -241,7 +240,7 @@ if nuitka:
             "module.__main__.cpp",
         )
         import difflib
-        open(options.diff_filename,"w").write(
+        open(options.diff_filename,'w').write(
             difflib.HtmlDiff().make_table(
                 open(cpp_1).readlines(),
                 open(cpp_2).readlines(),
@@ -265,9 +264,9 @@ if nuitka:
 
     nuitka_diff = nuitka_1 - nuitka_2
 
-    print("NUITKA_RAW=%s" % nuitka_1)
-    print("NUITKA_BASE=%s" % nuitka_2)
-    print("NUITKA_CONSTRUCT=%s" % nuitka_diff)
+    my_print("NUITKA_RAW=%s" % nuitka_1)
+    my_print("NUITKA_BASE=%s" % nuitka_2)
+    my_print("NUITKA_CONSTRUCT=%s" % nuitka_diff)
 
 if options.cpython:
     cpython_1 = runValgrind(
@@ -283,22 +282,25 @@ if options.cpython:
 
     cpython_diff = cpython_1 - cpython_2
 
-    print("CPYTHON_RAW=%d" % cpython_1)
-    print("CPYTHON_BASE=%d" % cpython_2)
-    print("CPYTHON_CONSTRUCT=%d" % cpython_diff)
+    my_print("CPYTHON_RAW=%d" % cpython_1)
+    my_print("CPYTHON_BASE=%d" % cpython_2)
+    my_print("CPYTHON_CONSTRUCT=%d" % cpython_diff)
 
 if options.cpython and options.nuitka:
-    print(
-        "NUITKA_GAIN=%.3f" % (
-            float(100 * cpython_diff) / nuitka_diff
-        )
+    if nuitka_diff == 0:
+        nuitka_gain = float("inf")
+    else:
+        nuitka_gain = float(100 * cpython_diff) / nuitka_diff
+
+    my_print(
+        "NUITKA_GAIN=%.3f" % nuitka_gain
     )
-    print(
+    my_print(
         "RAW_GAIN=%.3f" % (
             float(100 * cpython_1) / nuitka_1
         )
     )
-    print(
+    my_print(
         "BASE_GAIN=%.3f" % (
             float(100 * cpython_2) / nuitka_2
         )

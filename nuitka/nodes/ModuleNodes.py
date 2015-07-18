@@ -211,7 +211,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def asXml(self):
         result = super(PythonModule, self).asXml()
 
-        for function_body in self.functions:
+        for function_body in self.active_functions:
             result.append(function_body.asXml())
 
         return result

@@ -144,7 +144,7 @@ def getComputationResult(node, computation, description):
         )
 
         change_tags = "new_raise"
-        change_desc = description + " Was predicted to raise an exception."
+        change_desc = description + " Predicted to raise an exception."
     else:
         new_node = makeCompileTimeConstantReplacementNode(
             value = result,
@@ -156,7 +156,7 @@ def getComputationResult(node, computation, description):
 
         if new_node is not node:
             change_tags = "new_constant"
-            change_desc = description + " Was predicted to constant result."
+            change_desc = description + " Predicted constant result."
         else:
             change_tags = None
             change_desc = None
