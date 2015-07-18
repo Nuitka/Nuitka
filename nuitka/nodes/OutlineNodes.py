@@ -105,18 +105,22 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         )
 
         with abort_context:
-            statements_sequence = self.getBody()
+            body = self.getBody()
 
-            result = statements_sequence.computeStatementsSequence(
+            result = body.computeStatementsSequence(
                 constraint_collection = constraint_collection
             )
 
-            if result is not statements_sequence:
+            if result is not body:
                 self.setBody(result)
+                body = result
 
             return_collections = constraint_collection.getFunctionReturnCollections()
 
         constraint_collection.mergeMultipleBranches(return_collections)
+
+        if body.getStatements()[0].isStatementReturn():
+            return body.getStatements()[0].getExpression(), "new_expression", "Outline is now simple expression, use directly."
 
         # TODO: Function outline may become too trivial to outline and return
         # collections may tell us something.
