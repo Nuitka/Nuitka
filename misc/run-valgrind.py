@@ -20,7 +20,10 @@
 import os, sys, commands, subprocess, shutil, tempfile
 
 input_file = sys.argv[1]
-nuitka_binary = os.environ.get("NUITKA_BINARY", "nuitka")
+nuitka_binary = os.environ.get(
+    "NUITKA_BINARY",
+    os.path.join(os.path.dirname(__file__), "../bin/nuitka")
+)
 
 basename = os.path.basename(input_file)
 
@@ -47,8 +50,7 @@ os.system(
 )
 
 if not os.path.exists(output_binary):
-    print "Seeming failure of Nuitka to compile."
-
+    sys.exit("Seeming failure of Nuitka to compile.")
 
 log_base = basename[:-3] if input_file.endswith(".py") else basename
 log_file = log_base + ".log"
