@@ -109,7 +109,7 @@ def save_strings(val):
 # tells us whether or not os.path.splitdrive() actually does anything
 # on this system, and therefore whether we need to bother calling it
 # when looking up path names in various methods below.
-# 
+#
 
 do_splitdrive = None
 _my_splitdrive =None
@@ -144,7 +144,7 @@ def initialize_do_splitdrive():
     global OS_SEP
     global UNC_PREFIX
     global os_sep_is_slash
-    
+
     OS_SEP = os.sep
     UNC_PREFIX = OS_SEP + OS_SEP
     os_sep_is_slash = OS_SEP == '/'
@@ -165,7 +165,7 @@ needs_normpath_check = re.compile(
       #    b) The path starts with '..'. E.g. '../' or '../moredirs'
       #       but we not match '..abc/'.
       #    c) The path ends with '..'. E.g. '/..' or 'dirs/..'
-      #    d) The path contains a '..' in the middle. 
+      #    d) The path contains a '..' in the middle.
       #       E.g. dirs/../moredirs
 
       (.*/)?\.\.(?:/|$) |
@@ -187,7 +187,7 @@ needs_normpath_check = re.compile(
 
       \./|.*/\.(?:/|$)
 
-    ''', 
+    ''',
     re.VERBOSE
     )
 needs_normpath_match = needs_normpath_check.match
@@ -755,7 +755,7 @@ class Base(SCons.Node.Node):
         path_elems = self.path_elements
         pathname = ''
         try: i = path_elems.index(dir)
-        except ValueError: 
+        except ValueError:
             for p in path_elems[:-1]:
                 pathname += p.dirname
         else:
@@ -1134,7 +1134,7 @@ class FS(LocalFS):
 
         DirNodeInfo.fs = self
         FileNodeInfo.fs = self
-    
+
     def set_SConstruct_dir(self, dir):
         self.SConstruct_dir = dir
 
@@ -1246,7 +1246,7 @@ class FS(LocalFS):
             p = p.strip('/')
 
             needs_normpath = needs_normpath_match(p)
-            
+
             # The path is relative to the top-level SCons directory.
             if p in ('', '.'):
                 p = directory.labspath
@@ -1405,7 +1405,7 @@ class FS(LocalFS):
         """
         Globs
 
-        This is mainly a shim layer 
+        This is mainly a shim layer
         """
         if cwd is None:
             cwd = self.getcwd()
@@ -1497,7 +1497,7 @@ class Dir(Base):
             # Prepend MkdirBuilder action to existing action list
             l = self.get_executor().action_list
             a = get_MkdirBuilder().action
-            l.insert(0, a) 
+            l.insert(0, a)
             self.get_executor().set_action_list(l)
 
     def diskcheck_match(self):
@@ -1647,7 +1647,7 @@ class Dir(Base):
 
             path_elems = ['..'] * (len(self.path_elements) - i) \
                          + [n.name for n in other.path_elements[i:]]
-             
+
             result = OS_SEP.join(path_elems)
 
         memo_dict[other] = result
@@ -2129,7 +2129,7 @@ class RootDir(Dir):
         # Handle all the types of drives:
         if drive == '':
             # No drive, regular UNIX root or Windows default drive.
-            name = OS_SEP 
+            name = OS_SEP
             dirname = OS_SEP
         elif drive == '//':
             # UNC path
@@ -2463,7 +2463,7 @@ class File(Base):
                 e.filename = fname
             raise
         return cs
-        
+
 
     memoizer_counters.append(SCons.Memoize.CountValue('get_size'))
 
@@ -2752,11 +2752,11 @@ class File(Base):
     def release_target_info(self):
         """Called just after this node has been marked
          up-to-date or was built completely.
-         
+
          This is where we try to release as many target node infos
          as possible for clean builds and update runs, in order
          to minimize the overall memory consumption.
-         
+
          We'd like to remove a lot more attributes like self.sources
          and self.sources_set, but they might get used
          in a next build step. For example, during configuration
@@ -2764,18 +2764,18 @@ class File(Base):
          which linker to use for the resulting Program (gcc vs. g++)!
          That's why we check for the 'keep_targetinfo' attribute,
          config Nodes and the Interactive mode just don't allow
-         an early release of most variables. 
+         an early release of most variables.
 
          In the same manner, we can't simply remove the self.attributes
          here. The smart linking relies on the shared flag, and some
          parts of the java Tool use it to transport information
          about nodes...
-         
+
          @see: built() and Node.release_target_info()
          """
         if (self.released_target_info or SCons.Node.interactive):
             return
-        
+
         if not hasattr(self.attributes, 'keep_targetinfo'):
             # Cache some required values, before releasing
             # stuff like env, executor and builder...
@@ -3013,37 +3013,37 @@ class File(Base):
 
     def built(self):
         """Called just after this File node is successfully built.
-        
+
          Just like for 'release_target_info' we try to release
          some more target node attributes in order to minimize the
          overall memory consumption.
-         
+
          @see: release_target_info
         """
 
         SCons.Node.Node.built(self)
 
-        if (not SCons.Node.interactive and 
+        if (not SCons.Node.interactive and
             not hasattr(self.attributes, 'keep_targetinfo')):
-            # Ensure that the build infos get computed and cached...        
+            # Ensure that the build infos get computed and cached...
             self.store_info()
             # ... then release some more variables.
             self._specific_sources = False
             self.labspath = None
             self._save_str()
             self.cwd = None
-             
+
             self.scanner_paths = None
 
     def changed(self, node=None, allowcache=False):
         """
         Returns if the node is up-to-date with respect to the BuildInfo
-        stored last time it was built. 
-        
+        stored last time it was built.
+
         For File nodes this is basically a wrapper around Node.changed(),
         but we allow the return value to get cached after the reference
         to the Executor got released in release_target_info().
-        
+
         @see: Node.changed()
         """
         if node is None:
@@ -3051,7 +3051,7 @@ class File(Base):
                 return self._memo['changed']
             except KeyError:
                 pass
-        
+
         has_changed = SCons.Node.Node.changed(self, node)
         if allowcache:
             self._memo['changed'] = has_changed
@@ -3114,7 +3114,7 @@ class File(Base):
                         # ...and they'd like a local copy.
                         e = LocalCopy(self, r, None)
                         if isinstance(e, SCons.Errors.BuildError):
-                            raise 
+                            raise
                         self.store_info()
                     if T: Trace(' 1\n')
                     return 1
@@ -3197,12 +3197,12 @@ class File(Base):
         It computes and returns the signature for this
         node's contents.
         """
-        
+
         try:
             return self.contentsig
         except AttributeError:
             pass
-        
+
         executor = self.get_executor()
 
         result = self.contentsig = SCons.Util.MD5signature(executor.get_contents())
@@ -3222,7 +3222,7 @@ class File(Base):
             return self.cachesig
         except AttributeError:
             pass
-        
+
         # Collect signatures for all children
         children = self.children()
         sigs = [n.get_cachedir_csig() for n in children]
@@ -3290,7 +3290,7 @@ class FileFinder(object):
 
     def _find_file_key(self, filename, paths, verbose=None):
         return (filename, paths)
-        
+
     memoizer_counters.append(SCons.Memoize.CountDict('find_file', _find_file_key))
 
     def find_file(self, filename, paths, verbose=None):
@@ -3407,7 +3407,7 @@ def invalidate_node_memos(targets):
 
     if not SCons.Util.is_List(targets):
         targets = [targets]
-    
+
     for entry in targets:
         # If the target is a Node object, clear the cache. If it is a
         # filename, look up potentially existing Node object first.
@@ -3419,7 +3419,7 @@ def invalidate_node_memos(targets):
             # do not correspond to an existing Node object.
             node = get_default_fs().Entry(entry)
             if node:
-                node.clear_memoized_values()                        
+                node.clear_memoized_values()
 
 # Local Variables:
 # tab-width:4

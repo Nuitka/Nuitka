@@ -126,7 +126,7 @@ def generate(env):
     env['SHCXXFLAGS']   = SCons.Util.CLVar('$CXXFLAGS -KPIC')
     env['SHOBJPREFIX']  = 'so_'
     env['SHOBJSUFFIX']  = '.o'
-    
+
 def exists(env):
     path, cxx, shcxx, version = get_cppc(env)
     if path and cxx:

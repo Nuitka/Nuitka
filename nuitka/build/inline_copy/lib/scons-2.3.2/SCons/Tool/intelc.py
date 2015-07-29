@@ -37,7 +37,7 @@ __revision__ = "src/engine/SCons/Tool/intelc.py  2014/07/05 09:42:21 garyo"
 import math, sys, os.path, glob, string, re
 
 is_windows = sys.platform == 'win32'
-is_win64 = is_windows and (os.environ['PROCESSOR_ARCHITECTURE'] == 'AMD64' or 
+is_win64 = is_windows and (os.environ['PROCESSOR_ARCHITECTURE'] == 'AMD64' or
                            ('PROCESSOR_ARCHITEW6432' in os.environ and
                             os.environ['PROCESSOR_ARCHITEW6432'] == 'AMD64'))
 is_linux = sys.platform.startswith('linux')

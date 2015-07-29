@@ -56,7 +56,7 @@ for dir in dirs:
         acc = cc
         break
 
-        
+
 def generate(env):
     """Add Builders and construction variables for g++ to an Environment."""
     cplusplus.generate(env)

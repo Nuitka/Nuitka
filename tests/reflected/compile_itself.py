@@ -187,6 +187,7 @@ def executePASS1():
         nuitka_main_path,
         "--recurse-none",
         "--output-dir=.",
+        "--python-flag=-S",
         "nuitka.py"
     ]
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
@@ -323,7 +324,7 @@ def executePASS3():
         nuitka_main_path,
         path,
         "--output-dir=%s" % tmp_dir,
-        "--exe",
+        "--python-flag=-S",
         "--recurse-all"
     ]
     result = subprocess.call(

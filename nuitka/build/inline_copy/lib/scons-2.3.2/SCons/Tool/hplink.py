@@ -62,7 +62,7 @@ def generate(env):
     an Environment.
     """
     link.generate(env)
-    
+
     env['LINKFLAGS']   = SCons.Util.CLVar('-Wl,+s -Wl,+vnocompatwarnings')
     env['SHLINKFLAGS'] = SCons.Util.CLVar('$LINKFLAGS -b')
     env['SHLIBSUFFIX'] = '.sl'

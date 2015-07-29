@@ -40,7 +40,7 @@ import SCons.Util
 def generate(env):
     """Add Builders and construction variables for ilink to an Environment."""
     SCons.Tool.createProgBuilder(env)
-    
+
     env['LINK']        = 'ilink'
     env['LINKFLAGS']   = SCons.Util.CLVar('')
     env['LINKCOM']     = '$LINK $LINKFLAGS /O:$TARGET $SOURCES $_LIBDIRFLAGS $_LIBFLAGS'

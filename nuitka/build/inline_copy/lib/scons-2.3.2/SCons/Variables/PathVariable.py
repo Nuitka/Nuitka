@@ -82,7 +82,7 @@ class _PathVariableClass(object):
     def PathAccept(self, key, val, env):
         """Accepts any path, no checking done."""
         pass
-    
+
     def PathIsDir(self, key, val, env):
         """Validator to check if Path is a directory."""
         if not os.path.isdir(val):

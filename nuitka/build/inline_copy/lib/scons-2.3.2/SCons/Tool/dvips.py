@@ -75,7 +75,7 @@ def generate(env):
                                           single_source=True)
 
     env['BUILDERS']['PostScript'] = PSBuilder
-    
+
     env['DVIPS']      = 'dvips'
     env['DVIPSFLAGS'] = SCons.Util.CLVar('')
     # I'm not quite sure I got the directories and filenames right for variant_dir

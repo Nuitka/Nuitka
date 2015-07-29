@@ -1,10 +1,10 @@
-""" msginit tool 
+""" msginit tool
 
 Tool specific initialization of msginit tool.
 """
 
 # Copyright (c) 2001 - 2014 The SCons Foundation
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -12,10 +12,10 @@ Tool specific initialization of msginit tool.
 # distribute, sublicense, and/or sell copies of the Software, and to
 # permit persons to whom the Software is furnished to do so, subject to
 # the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included
 # in all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
 # KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
 # WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -53,15 +53,15 @@ def _POInitBuilder(env, **kw):
   action = SCons.Action.Action(_init_po_files, None)
   return _POFileBuilder(env, action=action, target_alias='$POCREATE_ALIAS')
 #############################################################################
-  
+
 #############################################################################
 from SCons.Environment import _null
 #############################################################################
 def _POInitBuilderWrapper(env, target=None, source=_null, **kw):
   """ Wrapper for _POFileBuilder. We use it to make user's life easier.
-  
+
   This wrapper checks for `$POTDOMAIN` construction variable (or override in
-  `**kw`) and treats it appropriatelly. 
+  `**kw`) and treats it appropriatelly.
   """
   if source is _null:
     if 'POTDOMAIN' in kw:

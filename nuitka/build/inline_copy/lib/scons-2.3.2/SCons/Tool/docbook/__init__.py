@@ -82,7 +82,7 @@ def __extend_targets_sources(target, source):
         source = [source]
     if len(target) < len(source):
         target.extend(source[len(target):])
-        
+
     return target, source
 
 def __init_xsl_stylesheet(kw, env, user_xsl_var, default_path):
@@ -92,12 +92,12 @@ def __init_xsl_stylesheet(kw, env, user_xsl_var, default_path):
             path_args = [scriptpath, db_xsl_folder] + default_path
             xsl_style = os.path.join(*path_args)
         kw['DOCBOOK_XSL'] =  xsl_style
-    
+
 def __select_builder(lxml_builder, libxml2_builder, cmdline_builder):
     """ Selects a builder, based on which Python modules are present. """
     if prefer_xsltproc:
         return cmdline_builder
-    
+
     if not has_libxml2:
         # At the moment we prefer libxml2 over lxml, the latter can lead
         # to conflicts when installed together with libxml2.
@@ -113,7 +113,7 @@ def __ensure_suffix(t, suffix):
     tpath = str(t)
     if not tpath.endswith(suffix):
         return tpath+suffix
-    
+
     return t
 
 def __ensure_suffix_stem(t, suffix):
@@ -122,11 +122,11 @@ def __ensure_suffix_stem(t, suffix):
     if not tpath.endswith(suffix):
         stem = tpath
         tpath += suffix
-        
+
         return tpath, stem
     else:
         stem, ext = os.path.splitext(tpath)
-    
+
     return t, stem
 
 def __get_xml_text(root):
@@ -149,7 +149,7 @@ def __create_output_dir(base_dir):
     else:
         if base_dir.endswith('/'):
             dir = base_dir
-    
+
     if dir and not os.path.isdir(dir):
         os.makedirs(dir)
 
@@ -186,10 +186,10 @@ def _detect(env):
     the requested output formats.
     """
     global prefer_xsltproc
-    
+
     if env.get('DOCBOOK_PREFER_XSLTPROC',''):
         prefer_xsltproc = True
-        
+
     if ((not has_libxml2 and not has_lxml) or (prefer_xsltproc)):
         # Try to find the XSLT processors
         __detect_cl_tool(env, 'DOCBOOK_XSLTPROC', xsltproc_com)
@@ -202,15 +202,15 @@ def _detect(env):
 #
 include_re = re.compile('fileref\\s*=\\s*["|\']([^\\n]*)["|\']')
 sentity_re = re.compile('<!ENTITY\\s+%*\\s*[^\\s]+\\s+SYSTEM\\s+["|\']([^\\n]*)["|\']>')
- 
+
 def __xml_scan(node, env, path, arg):
     """ Simple XML file scanner, detecting local images and XIncludes as implicit dependencies. """
     # Does the node exist yet?
     if not os.path.isfile(str(node)):
         return []
-    
+
     if env.get('DOCBOOK_SCANENT',''):
-        # Use simple pattern matching for system entities..., no support 
+        # Use simple pattern matching for system entities..., no support
         # for recursion yet.
         contents = node.get_text_contents()
         return sentity_re.findall(contents)
@@ -218,9 +218,9 @@ def __xml_scan(node, env, path, arg):
     xsl_file = os.path.join(scriptpath,'utils','xmldepend.xsl')
     if not has_libxml2 or prefer_xsltproc:
         if has_lxml and not prefer_xsltproc:
-            
+
             from lxml import etree
-            
+
             xsl_tree = etree.parse(xsl_file)
             doc = etree.parse(str(node))
             result = doc.xslt(xsl_tree)
@@ -249,7 +249,7 @@ def __xml_scan(node, env, path, arg):
     for x in str(result).splitlines():
         if x.strip() != "" and not x.startswith("<?xml "):
             depfiles.extend(x.strip().split())
-    
+
     style.freeStylesheet()
     doc.freeDoc()
     result.freeDoc()
@@ -265,7 +265,7 @@ docbook_xml_scanner = SCons.Script.Scanner(function = __xml_scan,
 # Action generators
 #
 def __generate_xsltproc_action(source, target, env, for_signature):
-    cmd = env['DOCBOOK_XSLTPROCCOM']    
+    cmd = env['DOCBOOK_XSLTPROCCOM']
     # Does the environment have a base_dir defined?
     base_dir = env.subst('$base_dir')
     if base_dir:
@@ -283,7 +283,7 @@ def __emit_xsl_basedir(target, source, env):
     if base_dir:
         # Yes, so prepend it to each target
         return [os.path.join(base_dir, str(t)) for t in target], source
-    
+
     # No, so simply pass target and source names through
     return target, source
 
@@ -317,11 +317,11 @@ def __build_lxml(target, source, env):
     General XSLT builder (HTML/FO), using the lxml module.
     """
     from lxml import etree
-    
-    xslt_ac = etree.XSLTAccessControl(read_file=True, 
-                                      write_file=True, 
-                                      create_dir=True, 
-                                      read_network=False, 
+
+    xslt_ac = etree.XSLTAccessControl(read_file=True,
+                                      write_file=True,
+                                      create_dir=True,
+                                      read_network=False,
                                       write_network=False)
     xsl_style = env.subst('$DOCBOOK_XSL')
     xsl_tree = etree.parse(xsl_style)
@@ -333,7 +333,7 @@ def __build_lxml(target, source, env):
         result = transform(doc, **parampass)
     else:
         result = transform(doc)
-        
+
     try:
         of = open(str(target[0]), "w")
         of.write(of.write(etree.tostring(result, pretty_print=True)))
@@ -359,11 +359,11 @@ def __xinclude_lxml(target, source, env):
     Resolving XIncludes, using the lxml module.
     """
     from lxml import etree
-    
+
     doc = etree.parse(str(source[0]))
     doc.xinclude()
     try:
-        doc.write(str(target[0]), xml_declaration=True, 
+        doc.write(str(target[0]), xml_declaration=True,
                   encoding="UTF-8", pretty_print=True)
     except:
         pass
@@ -415,11 +415,11 @@ def DocbookEpub(env, target, source=None, *args, **kw):
     """
     import zipfile
     import shutil
-    
+
     def build_open_container(target, source, env):
         """Generate the *.epub file from intermediate outputs
 
-        Constructs the epub file according to the Open Container Format. This 
+        Constructs the epub file according to the Open Container Format. This
         function could be replaced by a call to the SCons Zip builder if support
         was added for different compression formats for separate source nodes.
         """
@@ -441,7 +441,7 @@ def DocbookEpub(env, target, source=None, *args, **kw):
                         zf.write(path, os.path.relpath(path, str(env.get('ZIPROOT', ''))),
                             zipfile.ZIP_DEFLATED)
         zf.close()
-        
+
     def add_resources(target, source, env):
         """Add missing resources to the OEBPS directory
 
@@ -451,7 +451,7 @@ def DocbookEpub(env, target, source=None, *args, **kw):
         content_file = os.path.join(source[0].abspath, 'content.opf')
         if not os.path.isfile(content_file):
             return
-        
+
         hrefs = []
         if has_libxml2:
             nsmap = {'opf' : 'http://www.idpf.org/2007/opf'}
@@ -478,51 +478,51 @@ def DocbookEpub(env, target, source=None, *args, **kw):
                     hrefs.append(item.attrib['href'])
 
             doc.freeDoc()
-            xpath_context.xpathFreeContext()            
+            xpath_context.xpathFreeContext()
         elif has_lxml:
             from lxml import etree
-            
+
             opf = etree.parse(content_file)
             # All the opf:item elements are resources
-            for item in opf.xpath('//opf:item', 
+            for item in opf.xpath('//opf:item',
                     namespaces= { 'opf': 'http://www.idpf.org/2007/opf' }):
                 hrefs.append(item.attrib['href'])
-        
+
         for href in hrefs:
-            # If the resource was not already created by DocBook XSL itself, 
+            # If the resource was not already created by DocBook XSL itself,
             # copy it into the OEBPS folder
             referenced_file = os.path.join(source[0].abspath, href)
             if not os.path.exists(referenced_file):
                 shutil.copy(href, os.path.join(source[0].abspath, href))
-        
+
     # Init list of targets/sources
     target, source = __extend_targets_sources(target, source)
-    
+
     # Init XSL stylesheet
     __init_xsl_stylesheet(kw, env, '$DOCBOOK_DEFAULT_XSL_EPUB', ['epub','docbook.xsl'])
 
     # Setup builder
     __builder = __select_builder(__lxml_builder, __libxml2_builder, __xsltproc_builder)
-    
+
     # Create targets
     result = []
-    if not env.GetOption('clean'):        
+    if not env.GetOption('clean'):
         # Ensure that the folders OEBPS and META-INF exist
         __create_output_dir('OEBPS/')
         __create_output_dir('META-INF/')
     dirs = env.Dir(['OEBPS', 'META-INF'])
-    
+
     # Set the fixed base_dir
     kw['base_dir'] = 'OEBPS/'
     tocncx = __builder.__call__(env, 'toc.ncx', source[0], **kw)
     cxml = env.File('META-INF/container.xml')
     env.SideEffect(cxml, tocncx)
-    
+
     env.Depends(tocncx, kw['DOCBOOK_XSL'])
     result.extend(tocncx+[cxml])
 
-    container = env.Command(__ensure_suffix(str(target[0]), '.epub'), 
-        tocncx+[cxml], [add_resources, build_open_container])    
+    container = env.Command(__ensure_suffix(str(target[0]), '.epub'),
+        tocncx+[cxml], [add_resources, build_open_container])
     mimetype = env.File('mimetype')
     env.SideEffect(mimetype, container)
 
@@ -538,13 +538,13 @@ def DocbookHtml(env, target, source=None, *args, **kw):
     """
     # Init list of targets/sources
     target, source = __extend_targets_sources(target, source)
-    
+
     # Init XSL stylesheet
     __init_xsl_stylesheet(kw, env, '$DOCBOOK_DEFAULT_XSL_HTML', ['html','docbook.xsl'])
 
     # Setup builder
     __builder = __select_builder(__lxml_builder, __libxml2_builder, __xsltproc_builder)
-    
+
     # Create targets
     result = []
     for t,s in zip(target,source):
@@ -566,18 +566,18 @@ def DocbookHtmlChunked(env, target, source=None, *args, **kw):
         target = ['index.html']
     elif not SCons.Util.is_List(source):
         source = [source]
-        
+
     # Init XSL stylesheet
     __init_xsl_stylesheet(kw, env, '$DOCBOOK_DEFAULT_XSL_HTMLCHUNKED', ['html','chunkfast.xsl'])
 
     # Setup builder
     __builder = __select_builder(__lxml_builder, __libxml2_builder, __xsltproc_builder)
-    
+
     # Detect base dir
     base_dir = kw.get('base_dir', '')
     if base_dir:
         __create_output_dir(base_dir)
-   
+
     # Create targets
     result = []
     r = __builder.__call__(env, __ensure_suffix(str(target[0]), '.html'), source[0], **kw)
@@ -600,8 +600,8 @@ def DocbookHtmlhelp(env, target, source=None, *args, **kw):
         source = target
         target = ['index.html']
     elif not SCons.Util.is_List(source):
-        source = [source]    
-    
+        source = [source]
+
     # Init XSL stylesheet
     __init_xsl_stylesheet(kw, env, '$DOCBOOK_DEFAULT_XSL_HTMLHELP', ['htmlhelp','htmlhelp.xsl'])
 
@@ -612,7 +612,7 @@ def DocbookHtmlhelp(env, target, source=None, *args, **kw):
     base_dir = kw.get('base_dir', '')
     if base_dir:
         __create_output_dir(base_dir)
-    
+
     # Create targets
     result = []
     r = __builder.__call__(env, __ensure_suffix(str(target[0]), '.html'), source[0], **kw)
@@ -670,30 +670,30 @@ def DocbookMan(env, target, source=None, *args, **kw):
         if os.path.isfile(srcfile):
             try:
                 import xml.dom.minidom
-                
+
                 dom = xml.dom.minidom.parse(__ensure_suffix(str(s),'.xml'))
                 # Extract volume number, default is 1
                 for node in dom.getElementsByTagName('refmeta'):
                     for vol in node.getElementsByTagName('manvolnum'):
                         volnum = __get_xml_text(vol)
-                        
+
                 # Extract output filenames
                 for node in dom.getElementsByTagName('refnamediv'):
                     for ref in node.getElementsByTagName('refname'):
                         outfiles.append(__get_xml_text(ref)+'.'+volnum)
-                        
+
             except:
-                # Use simple regex parsing 
+                # Use simple regex parsing
                 f = open(__ensure_suffix(str(s),'.xml'), 'r')
                 content = f.read()
                 f.close()
-                
+
                 for m in re_manvolnum.finditer(content):
                     volnum = m.group(1)
-                    
+
                 for m in re_refname.finditer(content):
                     outfiles.append(m.group(1)+'.'+volnum)
-            
+
             if not outfiles:
                 # Use stem of the source file
                 spath = str(s)
@@ -705,14 +705,14 @@ def DocbookMan(env, target, source=None, *args, **kw):
         else:
             # We have to completely rely on the given target name
             outfiles.append(t)
-            
+
         __builder.__call__(env, outfiles[0], s, **kw)
         env.Depends(outfiles[0], kw['DOCBOOK_XSL'])
         result.append(outfiles[0])
         if len(outfiles) > 1:
             env.Clean(outfiles[0], outfiles[1:])
 
-        
+
     return result
 
 def DocbookSlidesPdf(env, target, source=None, *args, **kw):
@@ -733,7 +733,7 @@ def DocbookSlidesPdf(env, target, source=None, *args, **kw):
     for t,s in zip(target,source):
         t, stem = __ensure_suffix_stem(t, '.pdf')
         xsl = __builder.__call__(env, stem+'.fo', s, **kw)
-        env.Depends(xsl, kw['DOCBOOK_XSL'])        
+        env.Depends(xsl, kw['DOCBOOK_XSL'])
         result.extend(xsl)
         result.extend(__fop_builder.__call__(env, t, xsl, **kw))
 
@@ -750,7 +750,7 @@ def DocbookSlidesHtml(env, target, source=None, *args, **kw):
         source = target
         target = ['index.html']
     elif not SCons.Util.is_List(source):
-        source = [source]    
+        source = [source]
 
     # Init XSL stylesheet
     __init_xsl_stylesheet(kw, env, '$DOCBOOK_DEFAULT_XSL_SLIDESHTML', ['slides','html','plain.xsl'])
@@ -783,12 +783,12 @@ def DocbookXInclude(env, target, source, *args, **kw):
 
     # Setup builder
     __builder = __select_builder(__xinclude_lxml_builder,__xinclude_libxml2_builder,__xmllint_builder)
-            
+
     # Create targets
     result = []
     for t,s in zip(target,source):
         result.extend(__builder.__call__(env, t, s, **kw))
-        
+
     return result
 
 def DocbookXslt(env, target, source=None, *args, **kw):
@@ -797,13 +797,13 @@ def DocbookXslt(env, target, source=None, *args, **kw):
     """
     # Init list of targets/sources
     target, source = __extend_targets_sources(target, source)
-    
+
     # Init XSL stylesheet
     kw['DOCBOOK_XSL'] = kw.get('xsl', 'transform.xsl')
 
     # Setup builder
     __builder = __select_builder(__lxml_builder, __libxml2_builder, __xsltproc_builder)
-    
+
     # Create targets
     result = []
     for t,s in zip(target,source):
@@ -827,18 +827,18 @@ def generate(env):
         DOCBOOK_DEFAULT_XSL_MAN = '',
         DOCBOOK_DEFAULT_XSL_SLIDESPDF = '',
         DOCBOOK_DEFAULT_XSL_SLIDESHTML = '',
-        
+
         # Paths to the detected executables
         DOCBOOK_XSLTPROC = '',
         DOCBOOK_XMLLINT = '',
         DOCBOOK_FOP = '',
-        
+
         # Additional flags for the text processors
         DOCBOOK_XSLTPROCFLAGS = SCons.Util.CLVar(''),
         DOCBOOK_XMLLINTFLAGS = SCons.Util.CLVar(''),
         DOCBOOK_FOPFLAGS = SCons.Util.CLVar(''),
         DOCBOOK_XSLTPROCPARAMS = SCons.Util.CLVar(''),
-        
+
         # Default command lines for the detected executables
         DOCBOOK_XSLTPROCCOM = xsltproc_com['xsltproc'],
         DOCBOOK_XMLLINTCOM = xmllint_com['xmllint'],
@@ -848,7 +848,7 @@ def generate(env):
         DOCBOOK_XSLTPROCCOMSTR = None,
         DOCBOOK_XMLLINTCOMSTR = None,
         DOCBOOK_FOPCOMSTR = None,
-        
+
         )
     _detect(env)
 
@@ -866,7 +866,7 @@ def generate(env):
     except AttributeError:
         # Looks like we use a pre-0.98 version of SCons...
         from SCons.Script.SConscript import SConsEnvironment
-        SConsEnvironment.DocbookEpub = DocbookEpub        
+        SConsEnvironment.DocbookEpub = DocbookEpub
         SConsEnvironment.DocbookHtml = DocbookHtml
         SConsEnvironment.DocbookHtmlChunked = DocbookHtmlChunked
         SConsEnvironment.DocbookHtmlhelp = DocbookHtmlhelp

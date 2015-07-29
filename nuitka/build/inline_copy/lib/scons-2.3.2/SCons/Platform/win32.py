@@ -84,7 +84,7 @@ else:
 try:
     import threading
     spawn_lock = threading.Lock()
-    
+
     # This locked version of spawnve works around a Windows
     # MSVCRT bug, because its spawnve is not thread-safe.
     # Without this, python can randomly crash while using -jN.
@@ -113,7 +113,7 @@ except ImportError:
     # simulating a non-existent package.
     def spawnve(mode, file, args, env):
         return os.spawnve(mode, file, args, env)
-    
+
 # The upshot of all this is that, if you are using Python 1.5.2,
 # you had better have cmd or command.com in your PATH when you run
 # scons.
@@ -263,7 +263,7 @@ def get_program_files_dir():
         # A reasonable default if we can't read the registry
         # (Actually, it's pretty reasonable even if we can :-)
         val = os.path.join(os.path.dirname(get_system_root()),"Program Files")
-        
+
     return val
 
 
@@ -348,7 +348,7 @@ def generate(env):
                    os.path.join(systemroot,'System32')
         tmp_pathext = '.com;.exe;.bat;.cmd'
         if 'PATHEXT' in os.environ:
-            tmp_pathext = os.environ['PATHEXT'] 
+            tmp_pathext = os.environ['PATHEXT']
         cmd_interp = SCons.Util.WhereIs('cmd', tmp_path, tmp_pathext)
         if not cmd_interp:
             cmd_interp = SCons.Util.WhereIs('command', tmp_path, tmp_pathext)
@@ -358,7 +358,7 @@ def generate(env):
         if not cmd_interp:
             cmd_interp = env.Detect('command')
 
-    
+
     if 'ENV' not in env:
         env['ENV']        = {}
 
@@ -403,10 +403,10 @@ def generate(env):
     env['TEMPFILEPREFIX'] = '@'
     env['MAXLINELENGTH']  = 2048
     env['ESCAPE']         = escape
-    
+
     env['HOST_OS']        = 'win32'
     env['HOST_ARCH']      = get_architecture().arch
-    
+
 
 # Local Variables:
 # tab-width:4

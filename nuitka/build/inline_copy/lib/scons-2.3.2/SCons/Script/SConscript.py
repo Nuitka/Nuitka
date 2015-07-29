@@ -79,7 +79,7 @@ def get_calling_namespaces():
     """Return the locals and globals for the function that called
     into this module in the current call stack."""
     try: 1//0
-    except ZeroDivisionError: 
+    except ZeroDivisionError:
         # Don't start iterating with the current stack-frame to
         # prevent creating reference cycles (f_back is safe).
         frame = sys.exc_info()[2].tb_frame.f_back

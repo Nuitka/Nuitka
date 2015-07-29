@@ -57,7 +57,7 @@ def midl_emitter(target, source, env):
     if midlcom.find('/dlldata') != -1:
         dlldata = base + '_data.c'
         t.append(dlldata)
-    
+
     return (t,source)
 
 idl_scanner = SCons.Scanner.IDL.IDLScan()

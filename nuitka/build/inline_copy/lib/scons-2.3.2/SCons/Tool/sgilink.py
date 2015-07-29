@@ -42,7 +42,7 @@ linkers = ['CC', 'cc']
 def generate(env):
     """Add Builders and construction variables for MIPSPro to an Environment."""
     link.generate(env)
-    
+
     env['LINK'] = env.Detect(linkers) or 'cc'
     env['SHLINKFLAGS'] = SCons.Util.CLVar('$LINKFLAGS -shared')
 

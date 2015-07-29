@@ -99,3 +99,7 @@ def f():
       return closure""")
     except SyntaxError as e:
         return e.message.replace("'f'", "'%s'")
+
+
+def isUninstalledPython():
+    return "Anaconda" in sys.version or "WinPython" in sys.version

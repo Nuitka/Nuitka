@@ -5,7 +5,7 @@ The msi packager.
 
 #
 # Copyright (c) 2001 - 2014 The SCons Foundation
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -90,7 +90,7 @@ def is_dos_short_file_name(file):
 def gen_dos_short_file_name(file, filename_set):
     """ see http://support.microsoft.com/default.aspx?scid=kb;en-us;Q142982
 
-    These are no complete 8.3 dos short names. The ~ char is missing and 
+    These are no complete 8.3 dos short names. The ~ char is missing and
     replaced with one character from the filename. WiX warns about such
     filenames, since a collision might occur. Google for "CNDL1014" for
     more information.
@@ -299,7 +299,7 @@ def build_wxsfile_file_section(root, files, NAME, VERSION, VENDOR, filename_set,
         for d in dir_parts[:]:
             already_created = [c for c in Directory.childNodes
                                if c.nodeName == 'Directory'
-                               and c.attributes['LongName'].value == escape(d)] 
+                               and c.attributes['LongName'].value == escape(d)]
 
             if already_created != []:
                 Directory = already_created[0]

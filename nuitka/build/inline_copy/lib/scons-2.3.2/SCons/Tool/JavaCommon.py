@@ -115,7 +115,7 @@ if java_parsing:
                 ret = SkipState(1, self)
                 self.skipState = ret
                 return ret
-        
+
         def __getAnonStack(self):
             return self.anonStacksStack[-1]
 

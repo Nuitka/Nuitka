@@ -101,7 +101,7 @@ else:
 
 python_flags = Options.getPythonFlags()
 
-if sys.flags.no_site == 0 and "no_site" in python_flags:
+if sys.flags.no_site == 0:
     needs_reexec = True
 
     # False alarm, pylint: disable=E0611
@@ -132,8 +132,7 @@ if needs_reexec:
     ]
 
     # Potentially give Python command line flags as necessary.
-    if "no_site" in python_flags:
-        args.append("-S")
+    args.append("-S")
 
     # Same arguments as before.
     args += sys.argv + list(Options.getMainArgs())
@@ -142,6 +141,11 @@ if needs_reexec:
         os.environ["NUITKA_PYTHONPATH"] = repr(
             sys.path
         )
+
+
+    os.environ["NUITKA_SITE_FLAG"] = str(sys.flags.no_site) \
+                                       if "no_site" not in Options.getPythonFlags() \
+                                     else "1"
 
     Utils.callExec(args)
 

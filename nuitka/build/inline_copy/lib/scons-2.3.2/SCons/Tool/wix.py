@@ -66,7 +66,7 @@ def exists(env):
     env['WIXCANDLE'] = 'candle.exe'
     env['WIXLIGHT']  = 'light.exe'
 
-    # try to find the candle.exe and light.exe tools and 
+    # try to find the candle.exe and light.exe tools and
     # add the install directory to light libpath.
     for path in os.environ['PATH'].split(os.pathsep):
         if not path:
