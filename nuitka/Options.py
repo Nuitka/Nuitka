@@ -417,6 +417,15 @@ Enable vmprof based profiling of time spent. Defaults to off."""
 )
 
 debug_group.add_option(
+    "--graph",
+    action  = "store_true",
+    dest    = "graph",
+    default = False,
+    help    = """\
+Create graph of optimization process. Defaults to off."""
+)
+
+debug_group.add_option(
     "--trace-execution",
     action  = "store_true",
     dest    = "trace_execution",
@@ -772,6 +781,8 @@ def isUnstripped():
 def isProfile():
     return options.profile
 
+def shouldCreateGraph():
+    return options.graph
 
 def getOutputPath(path):
     if options.output_dir:

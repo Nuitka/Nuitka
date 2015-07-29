@@ -229,6 +229,48 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         return result
 
+    def asGraph(self, computation_counter):
+        from graphviz import Digraph # @UnresolvedImport pylint: disable=F0401,I0021
+
+        graph = Digraph("cluster_%d" % computation_counter, comment = "Graph for %s" % self.getName())
+        graph.body.append("style=filled")
+        graph.body.append("color=lightgrey")
+        graph.body.append("label=Iteration_%d" % computation_counter)
+
+
+        def makeTraceNodeName(variable_trace):
+            return "%d/ %s %s %s" % (
+                computation_counter,
+                variable_trace.getVariable(),
+                variable_trace.getVersion(),
+                variable_trace.__class__.__name__
+            )
+
+        for function_body in self.active_functions:
+            constraint_collection = function_body.constraint_collection
+
+            for (_variable, _version), variable_trace in constraint_collection.getVariableTracesAll().items():
+                node = makeTraceNodeName(variable_trace)
+
+                previous = variable_trace.getPrevious()
+
+                if variable_trace.hasDefiniteUsages():
+                    graph.attr("node", style = "filled", color = "blue")
+                elif variable_trace.hasPotentialUsages():
+                    graph.attr("node", style = "filled", color = "yellow")
+                else:
+                    graph.attr("node", style = "filled", color = "red")
+
+                graph.node(node)
+
+                if type(previous) is tuple:
+                    for previous in previous:
+                        graph.edge(makeTraceNodeName(previous), node)
+                elif previous is not None:
+                    graph.edge(makeTraceNodeName(previous), node)
+
+        return graph
+
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
 
