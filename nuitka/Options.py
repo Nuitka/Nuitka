@@ -408,6 +408,15 @@ Defaults to off."""
 )
 
 debug_group.add_option(
+    "--profile",
+    action  = "store_true",
+    dest    = "profile",
+    default = False,
+    help    = """\
+Enable vmprof based profiling of time spent. Defaults to off."""
+)
+
+debug_group.add_option(
     "--trace-execution",
     action  = "store_true",
     dest    = "trace_execution",
@@ -758,7 +767,11 @@ def isOptimize():
     return not options.no_optimize
 
 def isUnstripped():
-    return options.unstripped
+    return options.unstripped or options.profile
+
+def isProfile():
+    return options.profile
+
 
 def getOutputPath(path):
     if options.output_dir:

@@ -214,8 +214,16 @@ int main( int argc, char *argv[] )
     }
 #endif
 
+#if _NUITKA_PROFILE
+    startProfiling();
+#endif
+
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__ )();
+
+#if _NUITKA_PROFILE
+    stopProfiling();
+#endif
 
 #ifndef __NUITKA_NO_ASSERT__
     checkGlobalConstants();

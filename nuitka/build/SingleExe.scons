@@ -66,6 +66,9 @@ module_mode = getBoolOption("module_mode", False)
 # Debug mode: Less optimizations, debug information in the resulting binary.
 debug_mode = getBoolOption("debug_mode", False)
 
+# Profiling mode: Outputs vmprof based information from program run.
+profile_mode = getBoolOption("profile_mode", False)
+
 # Python version to target.
 python_version = ARGUMENTS["python_version"]
 
@@ -681,6 +684,11 @@ if full_compat_mode:
 if experimental_mode:
     env.Append(
         CPPDEFINES = ["_NUITKA_EXPERIMENTAL"]
+    )
+
+if profile_mode:
+    env.Append(
+        CPPDEFINES = ["_NUITKA_PROFILE"]
     )
 
 if trace_mode:

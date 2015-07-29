@@ -517,6 +517,9 @@ def runScons(main_module, quiet):
     if Options.getIconPath():
         options["icon_path"] = Options.getIconPath()
 
+    if Options.isProfile():
+        options["profile_mode"] = "true"
+
     return SconsInterface.runScons(options, quiet), options
 
 

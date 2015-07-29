@@ -71,6 +71,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 extern Py_hash_t DEEP_HASH( PyObject *value );
 #endif
 
+// For profiling of Nuitka compiled binaries
+#if _NUITKA_PROFILE
+extern void startProfiling( void );
+extern void stopProfiling( void );
+#endif
+
+
 #include "nuitka/helper/boolean.hpp"
 
 #include "nuitka/helper/dictionaries.hpp"
