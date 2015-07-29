@@ -24,6 +24,7 @@ Examples of these are sys.executable, and sys.flags, but of course also the
 frame object data (filename, etc).
 """
 
+import os
 import sys
 
 from nuitka import Options
@@ -68,7 +69,10 @@ def getMainCode(main_module, codes, context):
         "python_sysflag_interactive" : sys.flags.interactive,
         "python_sysflag_optimize" : sys.flags.optimize,
         "python_sysflag_dont_write_bytecode" : sys.flags.dont_write_bytecode,
-        "python_sysflag_no_site" : sys.flags.no_site,
+        "python_sysflag_no_site" : os.environ.get(
+            "NUITKA_SITE_FLAG",
+            1 if "no_site" in Options.getPythonFlags() else 0
+        ),
         "python_sysflag_no_user_site" : sys.flags.no_user_site,
         "python_sysflag_ignore_environment" : sys.flags.ignore_environment,
         "python_sysflag_tabcheck" : ( sys.flags.tabcheck
