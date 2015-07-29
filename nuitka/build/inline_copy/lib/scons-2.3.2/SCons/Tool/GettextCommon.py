@@ -4,7 +4,7 @@ Used by several tools of `gettext` toolset.
 """
 
 # Copyright (c) 2001 - 2014 The SCons Foundation
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -12,10 +12,10 @@ Used by several tools of `gettext` toolset.
 # distribute, sublicense, and/or sell copies of the Software, and to
 # permit persons to whom the Software is furnished to do so, subject to
 # the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included
 # in all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
 # KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
 # WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -52,7 +52,7 @@ SCons.Warnings.enableWarningClass(MsgfmtNotFound)
 #############################################################################
 class _POTargetFactory(object):
   """ A factory of `PO` target files.
-  
+
   Factory defaults differ from these of `SCons.Node.FS.FS`.  We set `precious`
   (this is required by builders and actions gettext) and `noclean` flags by
   default for all produced nodes.
@@ -117,14 +117,14 @@ def _read_linguas_from_files(env, linguas_files = None):
     # If, linguas_files==True or such, then read 'LINGUAS' file.
     linguas_files = [ 'LINGUAS' ]
   if linguas_files is None:
-    return []  
+    return []
   fnodes = env.arg2nodes(linguas_files)
   linguas = []
   for fnode in fnodes:
     contents =  _re_comment.sub("", fnode.get_text_contents())
     ls = [ l for l in _re_lang.findall(contents) if l ]
     linguas.extend(ls)
-  return linguas 
+  return linguas
 #############################################################################
 
 #############################################################################
@@ -138,7 +138,7 @@ class _POFileBuilder(BuilderBase):
   targets to be updated from this `POT`. We must run
   `SCons.Builder.BuilderBase._execute()` separatelly for each target to track
   dependencies separatelly for each target file.
-  
+
   **NOTE**: if we call `SCons.Builder.BuilderBase._execute(.., target, ...)`
   with target being list of all targets, all targets would be rebuilt each time
   one of the targets from this list is missing. This would happen, for example,
@@ -154,7 +154,7 @@ class _POFileBuilder(BuilderBase):
   #  free.
   #* The argument against using 'emitter': The emitter is called too late
   #  by BuilderBase._execute(). If user calls, for example:
-  #  
+  #
   #    env.POUpdate(LINGUAS_FILE = 'LINGUAS')
   #
   #  the builder throws error, because it is called with target=None,
@@ -165,7 +165,7 @@ class _POFileBuilder(BuilderBase):
   #
   #  the env.BuilderWrapper() calls our builder with target=None,
   #  source=['foo', 'baz']. The BuilderBase._execute() then splits execution
-  #  and execute iterativelly (recursion) self._execute(None, source[i]). 
+  #  and execute iterativelly (recursion) self._execute(None, source[i]).
   #  After that it calls emitter (which is quite too late). The emitter is
   #  also called in each iteration, what makes things yet worse.
   def __init__(self, env, **kw):
@@ -187,18 +187,18 @@ class _POFileBuilder(BuilderBase):
 
   def _execute(self, env, target, source, *args, **kw):
     """ Execute builder's actions.
-    
-    Here we append to `target` the languages read from `$LINGUAS_FILE` and 
+
+    Here we append to `target` the languages read from `$LINGUAS_FILE` and
     apply `SCons.Builder.BuilderBase._execute()` separatelly to each target.
     The arguments and return value are same as for
-    `SCons.Builder.BuilderBase._execute()`. 
+    `SCons.Builder.BuilderBase._execute()`.
     """
     import SCons.Util
     import SCons.Node
     linguas_files = None
     if env.has_key('LINGUAS_FILE') and env['LINGUAS_FILE']:
       linguas_files = env['LINGUAS_FILE']
-      # This prevents endless recursion loop (we'll be invoked once for 
+      # This prevents endless recursion loop (we'll be invoked once for
       # each target appended here, we must not extend the list again).
       env['LINGUAS_FILE'] = None
       linguas = _read_linguas_from_files(env,linguas_files)
@@ -279,7 +279,7 @@ class RPaths(object):
   # simplicity we compute path relative to current working directory, this
   # seems be enough for our purposes (don't need TARGET variable and
   # SCons.Defaults.Variable_Caller stuff).
-  
+
   def __init__(self, env):
     """ Initialize `RPaths` callable object.
 
@@ -293,8 +293,8 @@ class RPaths(object):
   # FIXME: I'm not sure, how it should be implemented (what the *args are in
   # general, what is **kw).
   def __call__(self, nodes, *args, **kw):
-    """ Return nodes' paths (strings) relative to current working directory. 
-    
+    """ Return nodes' paths (strings) relative to current working directory.
+
       **Arguments**:
 
         - *nodes* ([`SCons.Node.FS.Base`]) - list of nodes.
@@ -323,7 +323,7 @@ class RPaths(object):
         if not rel_list:
            return posixpath.curdir
         return posixpath.join(*rel_list)
-    import os 
+    import os
     import SCons.Node.FS
     rpaths = ()
     cwd =  self.env.fs.getcwd().get_abspath()
@@ -336,7 +336,7 @@ class RPaths(object):
         rpaths += (rpath,)
     return rpaths
 #############################################################################
-   
+
 #############################################################################
 def _init_po_files(target, source, env):
   """ Action function for `POInit` builder. """

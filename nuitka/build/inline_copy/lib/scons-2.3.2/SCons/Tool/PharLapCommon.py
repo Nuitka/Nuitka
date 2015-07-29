@@ -58,7 +58,7 @@ def getPharLapPath():
         idx=val.find('\0')
         if idx >= 0:
             val = val[:idx]
-                    
+
         return os.path.normpath(val)
     except SCons.Util.RegError:
         raise SCons.Errors.UserError("Cannot find Phar Lap ETS path in the registry.  Is it installed properly?")
@@ -125,10 +125,10 @@ def addPharLapPaths(env):
                        os.path.join(ph_path, 'lib'))
     addPathIfNotExists(env_dict, 'LIB',
                        os.path.join(ph_path, os.path.normpath('lib/vclib')))
-    
+
     env['PHARLAP_PATH'] = getPharLapPath()
     env['PHARLAP_VERSION'] = str(getPharLapVersion())
-    
+
 
 # Local Variables:
 # tab-width:4

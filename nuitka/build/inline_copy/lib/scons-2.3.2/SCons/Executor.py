@@ -348,9 +348,9 @@ class Executor(object):
             elif status:
                 msg = "Error %s" % status
                 raise SCons.Errors.BuildError(
-                    errstr=msg, 
+                    errstr=msg,
                     node=self.batches[0].targets,
-                    executor=self, 
+                    executor=self,
                     action=act)
         return status
 
@@ -613,7 +613,7 @@ class Null(object):
         """Morph this Null executor to a real Executor object."""
         batches = self.batches
         self.__class__ = Executor
-        self.__init__([])            
+        self.__init__([])
         self.batches = batches
 
     # The following methods require morphing this Null Executor to a

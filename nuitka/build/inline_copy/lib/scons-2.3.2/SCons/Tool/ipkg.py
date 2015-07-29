@@ -6,7 +6,7 @@ There normally shouldn't be any need to import this module directly.
 It will usually be imported through the generic SCons.Tool.Tool()
 selection method.
 
-The ipkg tool calls the ipkg-build. Its only argument should be the 
+The ipkg tool calls the ipkg-build. Its only argument should be the
 packages fake_root.
 """
 

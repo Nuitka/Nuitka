@@ -640,7 +640,7 @@ def ScanFiles(theFile, target, paths, file_tests, file_tests_search, env, graphi
                     newglossary_suffix.append(suffix_list)
                 if Verbose:
                     print " new suffixes for newglossary ",newglossary_suffix
-                
+
 
     incResult = includeOnly_re.search(content)
     if incResult:
@@ -859,7 +859,7 @@ def generate_darwin(env):
     except KeyError:
         environ = {}
         env['ENV'] = environ
-    
+
     if (platform.system() == 'Darwin'):
         try:
             ospath = env['ENV']['PATHOSX']

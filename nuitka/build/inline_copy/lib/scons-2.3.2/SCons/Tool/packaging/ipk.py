@@ -3,7 +3,7 @@
 
 #
 # Copyright (c) 2001 - 2014 The SCons Foundation
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -145,7 +145,7 @@ Description: $X_IPK_DESCRIPTION
     control_file.write(env.subst(content))
 
     #
-    # now handle the various other files, which purpose it is to set post-, 
+    # now handle the various other files, which purpose it is to set post-,
     # pre-scripts and mark files as config files.
     #
     # We do so by filtering the source files for files which are marked with

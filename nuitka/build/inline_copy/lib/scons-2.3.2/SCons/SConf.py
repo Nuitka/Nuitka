@@ -135,7 +135,7 @@ def CreateConfigHBuilder(env):
     for k in _ac_config_hs.keys():
         env.SConfigHBuilder(k, env.Value(_ac_config_hs[k]))
 
-    
+
 class SConfWarning(SCons.Warnings.Warning):
     pass
 SCons.Warnings.enableWarningClass(SConfWarning)
@@ -217,7 +217,7 @@ class Streamer(object):
         if self.orig:
             self.orig.flush()
         self.s.flush()
-        
+
 
 class SConfBuildTask(SCons.Taskmaster.AlwaysTask):
     """
@@ -318,7 +318,7 @@ class SConfBuildTask(SCons.Taskmaster.AlwaysTask):
             binfo = self.targets[0].get_stored_info().binfo
             self.display_cached_string(binfo)
             raise SCons.Errors.BuildError # will be 'caught' in self.failed
-        elif is_up_to_date:            
+        elif is_up_to_date:
             self.display("\"%s\" is up to date." % str(self.targets[0]))
             binfo = self.targets[0].get_stored_info().binfo
             self.display_cached_string(binfo)
@@ -403,7 +403,7 @@ class SConfBase(object):
     """
 
     def __init__(self, env, custom_tests = {}, conf_dir='$CONFIGUREDIR',
-                 log_file='$CONFIGURELOG', config_h = None, _depth = 0): 
+                 log_file='$CONFIGURELOG', config_h = None, _depth = 0):
         """Constructor. Pass additional tests in the custom_tests-dictinary,
         e.g. custom_tests={'CheckPrivate':MyPrivateTest}, where MyPrivateTest
         defines a custom test.
@@ -463,7 +463,7 @@ class SConfBase(object):
 
         If value is None (default), then #define name is written. If value is not
         none, then #define name value is written.
-        
+
         comment is a string which will be put as a C comment in the
         header, to explain the meaning of the value (appropriate C comments /* and
         */ will be put automatically."""
@@ -696,7 +696,7 @@ class SConfBase(object):
         global _ac_config_logs
         global sconf_global
         global SConfFS
-        
+
         self.lastEnvFs = self.env.fs
         self.env.fs = SConfFS
         self._createDir(self.confdir)
@@ -723,7 +723,7 @@ class SConfBase(object):
             self.logstream.write('file %s,line %d:\n\tConfigure(confdir = %s)\n' %
                                  (tb[0], tb[1], str(self.confdir)) )
             SConfFS.chdir(old_fs_dir)
-        else: 
+        else:
             self.logstream = None
         # we use a special builder to create source files from TEXT
         action = SCons.Action.Action(_createSource,
@@ -920,14 +920,14 @@ def CheckType(context, type_name, includes = "", language = None):
 
 def CheckTypeSize(context, type_name, includes = "", language = None, expect = None):
     res = SCons.Conftest.CheckTypeSize(context, type_name,
-                                       header = includes, language = language, 
+                                       header = includes, language = language,
                                        expect = expect)
     context.did_show_result = 1
     return res
 
 def CheckDeclaration(context, declaration, includes = "", language = None):
     res = SCons.Conftest.CheckDeclaration(context, declaration,
-                                          includes = includes, 
+                                          includes = includes,
                                           language = language)
     context.did_show_result = 1
     return not res
@@ -1011,7 +1011,7 @@ def CheckLib(context, library = None, symbol = "main",
 
     if not SCons.Util.is_List(library):
         library = [library]
-    
+
     # ToDo: accept path for the library
     res = SCons.Conftest.CheckLib(context, library, symbol, header = header,
                                         language = language, autoadd = autoadd)

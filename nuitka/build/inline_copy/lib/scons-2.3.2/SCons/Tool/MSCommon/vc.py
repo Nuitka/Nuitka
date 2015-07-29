@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2001 - 2014 The SCons Foundation
+# Copyright (c) 2001 - 2015 The SCons Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -30,7 +30,7 @@
 #   * test on 64 bits XP +  VS 2005 (and VS 6 if possible)
 #   * SDK
 #   * Assembly
-__revision__ = "src/engine/SCons/Tool/MSCommon/vc.py  2014/07/05 09:42:21 garyo"
+__revision__ = "src/engine/SCons/Tool/MSCommon/vc.py rel_2.3.5:3329:275e75118ad4 2015/06/20 11:18:26 bdbaddog"
 
 __doc__ = """Module for Visual C/C++ detection and configuration.
 """
@@ -134,9 +134,11 @@ def get_host_target(env):
 
 # If you update this, update SupportedVSList in Tool/MSCommon/vs.py, and the
 # MSVC_VERSION documentation in Tool/msvc.xml.
-_VCVER = ["12.0", "12.0Exp", "11.0", "11.0Exp", "10.0", "10.0Exp", "9.0", "9.0Exp","8.0", "8.0Exp","7.1", "7.0", "6.0"]
+_VCVER = ["14.0", "14.0Exp", "12.0", "12.0Exp", "11.0", "11.0Exp", "10.0", "10.0Exp", "9.0", "9.0Exp","8.0", "8.0Exp","7.1", "7.0", "6.0"]
 
 _VCVER_TO_PRODUCT_DIR = {
+        '14.0' : [
+            r'Microsoft\VisualStudio\14.0\Setup\VC\ProductDir'],
         '12.0' : [
             r'Microsoft\VisualStudio\12.0\Setup\VC\ProductDir'],
         '12.0Exp' : [

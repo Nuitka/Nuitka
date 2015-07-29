@@ -47,7 +47,7 @@ def generate(env):
     env['SHCXX']       = '$CXX'
     env['SHOBJSUFFIX'] = '.o'
     env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = 1
-    
+
 def exists(env):
     return env.Detect('CC')
 

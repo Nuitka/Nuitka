@@ -69,7 +69,7 @@ def xmlify(s):
 # Returns a tuple of nodes.
 def processIncludes(includes, env, target, source):
     return SCons.PathList.PathList(includes).subst_path(env, target, source)
-    
+
 
 external_makefile_guid = '{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}'
 
@@ -375,16 +375,16 @@ V6DSPHeader = """\
 CFG=%(name)s - Win32 %(confkey)s
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
-!MESSAGE 
+!MESSAGE
 !MESSAGE NMAKE /f "%(name)s.mak".
-!MESSAGE 
+!MESSAGE
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
-!MESSAGE 
+!MESSAGE
 !MESSAGE NMAKE /f "%(name)s.mak" CFG="%(name)s - Win32 %(confkey)s"
-!MESSAGE 
+!MESSAGE
 !MESSAGE Possible choices for configuration are:
-!MESSAGE 
+!MESSAGE
 """
 
 class _GenerateV6DSP(_DSPGenerator):
@@ -718,7 +718,7 @@ class _GenerateV7DSP(_DSPGenerator):
             preprocdefs = xmlify(';'.join(processDefines(self.env.get('CPPDEFINES', []))))
             includepath_Dirs = processIncludes(self.env.get('CPPPATH', []), self.env, None, None)
             includepath = xmlify(';'.join([str(x) for x in includepath_Dirs]))
-            
+
             if not env_has_buildtarget:
                 del self.env['MSVSBUILDTARGET']
 
@@ -867,7 +867,7 @@ class _GenerateV7DSP(_DSPGenerator):
             self.PrintHeader()
             self.PrintProject()
             self.file.close()
-			
+
 V10DSPHeader = """\
 <?xml version="1.0" encoding="%(encoding)s"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -918,7 +918,7 @@ class _GenerateV10DSP(_DSPGenerator):
 
     def __init__(self, dspfile, source, env):
         _DSPGenerator.__init__(self, dspfile, source, env)
-        
+
         self.dspheader = V10DSPHeader
         self.dspconfiguration = V10DSPProjectConfiguration
         self.dspglobals = V10DSPGlobals
@@ -951,27 +951,27 @@ class _GenerateV10DSP(_DSPGenerator):
                          '\t\t<SccLocalPath>%s</SccLocalPath>\n' % (scc_project_name, scc_local_path_legacy))
         else:
             self.dspglobals = self.dspglobals.replace('%(scc_attrs)s', '')
-            
+
         self.file.write(self.dspheader % locals())
-        
+
         self.file.write('\t<ItemGroup Label="ProjectConfigurations">\n')
-        
+
         confkeys = sorted(self.configs.keys())
         for kind in confkeys:
             variant = self.configs[kind].variant
             platform = self.configs[kind].platform
             self.file.write(self.dspconfiguration % locals())
-        
+
         self.file.write('\t</ItemGroup>\n')
-        
+
         self.file.write(self.dspglobals % locals())
-    
+
     def PrintProject(self):
         name = self.name
         confkeys = sorted(self.configs.keys())
-             
+
         self.file.write('\t<Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />\n')
-        
+
         for kind in confkeys:
             variant = self.configs[kind].variant
             platform = self.configs[kind].platform
@@ -980,16 +980,16 @@ class _GenerateV10DSP(_DSPGenerator):
         self.file.write('\t<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />\n')
         self.file.write('\t<ImportGroup Label="ExtensionSettings">\n')
         self.file.write('\t</ImportGroup>\n')
-        
+
         for kind in confkeys:
             variant = self.configs[kind].variant
             platform = self.configs[kind].platform
             self.file.write(V10DSPImportGroupCondition % locals())
-        
+
         self.file.write('\t<PropertyGroup Label="UserMacros" />\n')
         self.file.write('\t<PropertyGroup>\n')
         self.file.write('\t<_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>\n')
-        
+
         for kind in confkeys:
             variant = self.configs[kind].variant
             platform = self.configs[kind].platform
@@ -997,7 +997,7 @@ class _GenerateV10DSP(_DSPGenerator):
             buildtarget = self.configs[kind].buildtarget
             runfile     = self.configs[kind].runfile
             cmdargs = self.configs[kind].cmdargs
-            
+
             env_has_buildtarget = 'MSVSBUILDTARGET' in self.env
             if not env_has_buildtarget:
                 self.env['MSVSBUILDTARGET'] = buildtarget
@@ -1022,29 +1022,29 @@ class _GenerateV10DSP(_DSPGenerator):
                 del self.env['MSVSBUILDTARGET']
 
             self.file.write(V10DSPCommandLine % locals())
-        
+
         self.file.write('\t</PropertyGroup>\n')
-        
+
         #filter settings in MSVS 2010 are stored in separate file
         self.filtersabs = self.dspabs + '.filters'
         try:
             self.filters_file = open(self.filtersabs, 'w')
         except IOError, detail:
             raise SCons.Errors.InternalError('Unable to open "' + self.filtersabs + '" for writing:' + str(detail))
-            
+
         self.filters_file.write('<?xml version="1.0" encoding="utf-8"?>\n'
                                 '<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">\n')
-                                
+
         self.PrintSourceFiles()
-        
+
         self.filters_file.write('</Project>')
         self.filters_file.close()
-        
+
         self.file.write('\t<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />\n'
                         '\t<ImportGroup Label="ExtensionTargets">\n'
                         '\t</ImportGroup>\n'
                         '</Project>\n')
-                        
+
         if self.nokeep == 0:
             # now we pickle some data and add it to the file -- MSDEV will ignore it.
             pdata = pickle.dumps(self.configs,1)
@@ -1056,7 +1056,7 @@ class _GenerateV10DSP(_DSPGenerator):
 
     def printFilters(self, hierarchy, name):
         sorteditems = sorted(hierarchy.items(), key = lambda a: a[0].lower())
-        
+
         for key, value in sorteditems:
             if SCons.Util.is_Dict(value):
                 filter_name = name + '\\' + key
@@ -1064,14 +1064,14 @@ class _GenerateV10DSP(_DSPGenerator):
                                         '\t\t\t<UniqueIdentifier>%s</UniqueIdentifier>\n'
                                         '\t\t</Filter>\n' % (filter_name, _generateGUID(self.dspabs, filter_name)))
                 self.printFilters(value, filter_name)
-        
+
     def printSources(self, hierarchy, kind, commonprefix, filter_name):
         keywords = {'Source Files': 'ClCompile',
                     'Header Files': 'ClInclude',
                     'Local Headers': 'ClInclude',
                     'Resource Files': 'None',
                     'Other Files': 'None'}
-                    
+
         sorteditems = sorted(hierarchy.items(), key = lambda a: a[0].lower())
 
         # First folders, then files
@@ -1085,7 +1085,7 @@ class _GenerateV10DSP(_DSPGenerator):
                 if commonprefix:
                     file = os.path.join(commonprefix, value)
                 file = os.path.normpath(file)
-                
+
                 self.file.write('\t\t<%s Include="%s" />\n' % (keywords[kind], file))
                 self.filters_file.write('\t\t<%s Include="%s">\n'
                                         '\t\t\t<Filter>%s</Filter>\n'
@@ -1097,10 +1097,10 @@ class _GenerateV10DSP(_DSPGenerator):
                       'Local Headers': 'h;hpp;hxx;hm;inl',
                       'Resource Files': 'r;rc;ico;cur;bmp;dlg;rc2;rct;bin;cnt;rtf;gif;jpg;jpeg;jpe',
                       'Other Files': ''}
-        
+
         cats = sorted([k for k in categories.keys() if self.sources[k]],
 		              key = lambda a: a.lower())
-        
+
         # print vcxproj.filters file first
         self.filters_file.write('\t<ItemGroup>\n')
         for kind in cats:
@@ -1108,7 +1108,7 @@ class _GenerateV10DSP(_DSPGenerator):
                                     '\t\t\t<UniqueIdentifier>{7b42d31d-d53c-4868-8b92-ca2bc9fc052f}</UniqueIdentifier>\n'
                                     '\t\t\t<Extensions>%s</Extensions>\n'
                                     '\t\t</Filter>\n' % (kind, categories[kind]))
-                                    
+
             # First remove any common prefix
             sources = self.sources[kind]
             commonprefix = None
@@ -1121,17 +1121,17 @@ class _GenerateV10DSP(_DSPGenerator):
                 # +1 because the filename starts after the separator
                 sources = [s[len(cp)+1:] for s in sources]
                 commonprefix = cp
-            
+
             hierarchy = makeHierarchy(sources)
             self.printFilters(hierarchy, kind)
-            
+
         self.filters_file.write('\t</ItemGroup>\n')
-            
+
         # then print files and filters
         for kind in cats:
             self.file.write('\t<ItemGroup>\n')
             self.filters_file.write('\t<ItemGroup>\n')
-                
+
             # First remove any common prefix
             sources = self.sources[kind]
             commonprefix = None
@@ -1144,13 +1144,13 @@ class _GenerateV10DSP(_DSPGenerator):
                 # +1 because the filename starts after the separator
                 sources = [s[len(cp)+1:] for s in sources]
                 commonprefix = cp
-            
+
             hierarchy = makeHierarchy(sources)
             self.printSources(hierarchy, kind, commonprefix, kind)
-                        
+
             self.file.write('\t</ItemGroup>\n')
             self.filters_file.write('\t</ItemGroup>\n')
-                
+
         # add the SConscript file outside of the groups
         self.file.write('\t<ItemGroup>\n'
                         '\t\t<None Include="%s" />\n'
@@ -1275,7 +1275,7 @@ class _GenerateV7DSW(_DSWGenerator):
                                 'SLN_RELATIVE_FOLDER_PATH': dsp_relative_folder_path,
                                 'SLN_RELATIVE_FILE_PATH': dsp_relative_file_path}
                 self.dspfiles_info.append(dspfile_info)
-                
+
         self.dspfiles_info = []
         GenerateProjectFilesInfo(self)
 
@@ -1319,7 +1319,7 @@ class _GenerateV7DSW(_DSWGenerator):
             self.file.write('# Visual Studio 2008\n')
         elif self.version_num >= 8.0:
             self.file.write('# Visual Studio 2005\n')
-            
+
         for dspinfo in self.dspfiles_info:
             name = dspinfo['NAME']
             base, suffix = SCons.Util.splitext(name)
@@ -1781,7 +1781,7 @@ def generate(env):
     else:
         env['MSVS']['PROJECTSUFFIX']  = '.vcxproj'
         env['MSVS']['SOLUTIONSUFFIX'] = '.sln'
-		
+
     if (version_num >= 10.0):
         env['MSVSENCODING'] = 'utf-8'
     else:

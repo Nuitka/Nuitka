@@ -55,7 +55,7 @@ def generate(env):
     env['PDFPREFIX'] = ''
     env['PDFSUFFIX'] = '.pdf'
 
-# put the epstopdf builder in this routine so we can add it after 
+# put the epstopdf builder in this routine so we can add it after
 # the pdftex builder so that one is the default for no source suffix
 def generate2(env):
     bld = env['BUILDERS']['PDF']
