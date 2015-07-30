@@ -343,7 +343,7 @@ class SConsOptionParser(optparse.OptionParser):
         in self.largs, so that any value overridden on the
         command line is immediately available if the user turns
         around and does a GetOption() right away.
-        
+
         We mimic the processing of the single args
         in the original OptionParser._process_args(), but here we
         allow exact matches for long-opts only (no partial
@@ -354,7 +354,7 @@ class SConsOptionParser(optparse.OptionParser):
         command-line arguments that
           1. haven't been processed so far (self.largs), but
           2. are possibly not added to the list of options yet.
-          
+
         So, when we only have a value for "--myargument" yet,
         a command-line argument of "--myarg=test" would set it.
         Responsible for this behaviour is the method
@@ -363,7 +363,7 @@ class SConsOptionParser(optparse.OptionParser):
         be unique.
         This would lead to further confusion, because we might want
         to add another option "--myarg" later on (see issue #2929).
-        
+
         """
         rargs = []
         largs_restore = []
@@ -380,7 +380,7 @@ class SConsOptionParser(optparse.OptionParser):
                     if "=" in l:
                         # Split into option and value
                         lopt = l.split("=", 1)
-                        
+
                     if lopt[0] in self._long_opt:
                         # Argument is already known
                         rargs.append('='.join(lopt))
@@ -395,7 +395,7 @@ class SConsOptionParser(optparse.OptionParser):
                         skip = True
                     else:
                         rargs.append(l)
-        
+
         # Parse the filtered list
         self.parse_args(rargs, self.values)
         # Restore the list of remaining arguments for the

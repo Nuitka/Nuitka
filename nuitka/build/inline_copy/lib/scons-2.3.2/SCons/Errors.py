@@ -74,11 +74,11 @@ class BuildError(Exception):
         ---------------------------------------------------------
 
         node : the error occured while building this target node(s)
-        
+
         executor : the executor that caused the build to fail (might
                    be None if the build failures is not due to the
                    executor failing)
-        
+
         action : the action that caused the build to fail (might be
                  None if the build failures is not due to the an
                  action failure)
@@ -88,11 +88,11 @@ class BuildError(Exception):
                   is not due to the an action failure)
         """
 
-    def __init__(self, 
+    def __init__(self,
                  node=None, errstr="Unknown error", status=2, exitstatus=2,
                  filename=None, executor=None, action=None, command=None,
                  exc_info=(None, None, None)):
-        
+
         self.errstr = errstr
         self.status = status
         self.exitstatus = exitstatus
@@ -104,7 +104,7 @@ class BuildError(Exception):
         self.action = action
         self.command = command
 
-        Exception.__init__(self, node, errstr, status, exitstatus, filename, 
+        Exception.__init__(self, node, errstr, status, exitstatus, filename,
                            executor, action, command, exc_info)
 
     def __str__(self):
@@ -171,7 +171,7 @@ def convert_to_BuildError(status, exc_info=None):
         # target file will appear).
         try: filename = status.filename
         except AttributeError: filename = None
-        buildError = BuildError( 
+        buildError = BuildError(
             errstr=status.strerror,
             status=status.errno,
             exitstatus=2,
@@ -193,7 +193,7 @@ def convert_to_BuildError(status, exc_info=None):
             errstr="Error %s" % status,
             status=status,
             exitstatus=2)
-    
+
     #import sys
     #sys.stderr.write("convert_to_BuildError: status %s => (errstr %s, status %s)"%(status,buildError.errstr, buildError.status))
     return buildError

@@ -41,9 +41,9 @@ def generate(env):
     # put macports paths at front to override Apple's versions, fink path is after
     # For now let people who want Macports or Fink tools specify it!
     # env['ENV']['PATH'] = '/opt/local/bin:/opt/local/sbin:' + env['ENV']['PATH'] + ':/sw/bin'
-    
+
     # Store extra system paths in env['ENV']['PATHOSX']
-    
+
     filelist = ['/etc/paths',]
     # make sure this works on Macs with Tiger or earlier
     try:

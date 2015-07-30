@@ -41,7 +41,7 @@ import SCons.Util
 def generate(env):
     """Add Builders and construction variables for ar to an Environment."""
     SCons.Tool.createStaticLibBuilder(env)
-    
+
     if env.Detect('CC'):
         env['AR']          = 'CC'
         env['ARFLAGS']     = SCons.Util.CLVar('-xar')

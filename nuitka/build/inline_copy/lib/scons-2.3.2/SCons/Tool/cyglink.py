@@ -14,7 +14,7 @@ import SCons.Util
 import gnulink
 
 def shlib_generator(target, source, env, for_signature):
-    cmd = SCons.Util.CLVar(['$SHLINK']) 
+    cmd = SCons.Util.CLVar(['$SHLINK'])
 
     dll = env.FindIxes(target, 'SHLIBPREFIX', 'SHLIBSUFFIX')
     if dll: cmd.extend(['-o', dll])
@@ -32,7 +32,7 @@ def shlib_generator(target, source, env, for_signature):
             ])
     else:
         cmd.extend(['$SOURCES', '$_LIBDIRFLAGS', '$_LIBFLAGS'])
-    
+
     return [cmd]
 
 def shlib_emitter(target, source, env):
@@ -41,7 +41,7 @@ def shlib_emitter(target, source, env):
 
     if not dll or len(target) > 1:
         raise SCons.Errors.UserError("A shared library should have exactly one target with the suffix: %s" % env.subst("$SHLIBSUFFIX"))
-    
+
     # Remove any "lib" after the prefix
     pre = env.subst('$SHLIBPREFIX')
     if dll.name[len(pre):len(pre)+3] == 'lib':
@@ -57,13 +57,13 @@ def shlib_emitter(target, source, env):
         target_strings = env.ReplaceIxes(orig_target[0],
                                          'SHLIBPREFIX', 'SHLIBSUFFIX',
                                          'IMPLIBPREFIX', 'IMPLIBSUFFIX')
-        
+
         implib_target = env.fs.File(target_strings)
         implib_target.attributes.shared = 1
         target.append(implib_target)
 
     return (target, source)
-                         
+
 
 shlib_action = SCons.Action.Action(shlib_generator, generator=1)
 

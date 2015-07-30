@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2001 - 2014 The SCons Foundation
+# Copyright (c) 2001 - 2015 The SCons Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -21,7 +21,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-__revision__ = "src/engine/SCons/Tool/MSCommon/vs.py  2014/07/05 09:42:21 garyo"
+__revision__ = "src/engine/SCons/Tool/MSCommon/vs.py rel_2.3.5:3329:275e75118ad4 2015/06/20 11:18:26 bdbaddog"
 
 __doc__ = """Module to detect Visual Studio and/or Visual C/C++
 """
@@ -203,6 +203,28 @@ class VisualStudio(object):
 # Tool/MSCommon/vc.py, and the MSVC_VERSION documentation in Tool/msvc.xml.
 
 SupportedVSList = [
+    # Visual Studio 2015
+    VisualStudio('14.0',
+                 vc_version='14.0',
+                 sdk_version='10.0A',
+                 hkeys=[r'Microsoft\VisualStudio\14.0\Setup\VS\ProductDir'],
+                 common_tools_var='VS140COMNTOOLS',
+                 executable_path=r'Common7\IDE\devenv.com',
+                 batch_file_path=r'Common7\Tools\vsvars32.bat',
+                 supported_arch=['x86', 'amd64', "arm"],
+    ),
+
+    # Visual C++ 2015 Express Edition (for Desktop)
+    VisualStudio('14.0Exp',
+                 vc_version='14.0',
+                 sdk_version='10.0A',
+                 hkeys=[r'Microsoft\VisualStudio\14.0\Setup\VS\ProductDir'],
+                 common_tools_var='VS140COMNTOOLS',
+                 executable_path=r'Common7\IDE\WDExpress.exe',
+                 batch_file_path=r'Common7\Tools\vsvars32.bat',
+                 supported_arch=['x86', 'amd64', "arm"],
+    ),
+
     # Visual Studio 2013
     VisualStudio('12.0',
                  vc_version='12.0',

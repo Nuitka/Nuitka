@@ -49,7 +49,7 @@ def generate(env):
     env['RPATHPREFIX'] = '-Wl,-rpath='
     env['RPATHSUFFIX'] = ''
     env['_RPATH'] = '${_concat(RPATHPREFIX, RPATH, RPATHSUFFIX, __env__)}'
-    
+
 def exists(env):
     # TODO: sync with link.smart_link() to choose a linker
     linkers = { 'CXX': ['g++'], 'CC': ['gcc'] }

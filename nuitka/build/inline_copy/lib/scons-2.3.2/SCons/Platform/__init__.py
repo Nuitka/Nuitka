@@ -21,7 +21,7 @@ their own platform definition.
 
 #
 # Copyright (c) 2001 - 2014 The SCons Foundation
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -130,7 +130,7 @@ class PlatformSpec(object):
 
     def __str__(self):
         return self.name
-        
+
 class TempFileMunge(object):
     """A callable class.  You can set an Environment variable to this,
     then call it with a string argument, then it will perform temporary
@@ -226,7 +226,7 @@ class TempFileMunge(object):
             print("Using tempfile "+native_tmp+" for command line:\n"+
                   str(cmd[0]) + " " + " ".join(args))
         return [ cmd[0], prefix + native_tmp + '\n' + rm, native_tmp ]
-    
+
 def Platform(name = platform_default()):
     """Select a canned Platform specification.
     """

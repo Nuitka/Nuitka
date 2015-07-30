@@ -105,7 +105,7 @@ int main( int argc, char *argv[] )
 
     // Lie about it, believe it or not, there are "site" files, that check
     // against later imports, see below.
-    Py_NoSiteFlag = %(python_sysflag_no_site)d;
+    Py_NoSiteFlag = %(python_sysflag_no_site)s;
 
     // Set the command line parameters for run time usage.
 #ifdef _NUITKA_TRACE
@@ -136,7 +136,7 @@ int main( int argc, char *argv[] )
 
     // Revert the wrong "sys.flags" value, it's used by "site" on at least
     // Debian for Python 3.3, more uses may exist.
-#if %(python_sysflag_no_site)d == 0
+#if %(python_sysflag_no_site)s == 0
 #if PYTHON_VERSION >= 330
     PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, const_int_0 );
 #elif PYTHON_VERSION >= 320

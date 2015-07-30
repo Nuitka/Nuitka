@@ -54,8 +54,8 @@ def generate(env):
     # override the default for loadable modules, which are different
     # on OS X than dynamic shared libs.  echoing what XCode does for
     # pre/suffixes:
-    env['LDMODULEPREFIX'] = '' 
-    env['LDMODULESUFFIX'] = '' 
+    env['LDMODULEPREFIX'] = ''
+    env['LDMODULESUFFIX'] = ''
     env['LDMODULEFLAGS'] = SCons.Util.CLVar('$LINKFLAGS -bundle')
     env['LDMODULECOM'] = '$LDMODULE -o ${TARGET} $LDMODULEFLAGS $SOURCES $_LIBDIRFLAGS $_LIBFLAGS $_FRAMEWORKPATH $_FRAMEWORKS $FRAMEWORKSFLAGS'
 

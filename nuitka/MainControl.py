@@ -32,6 +32,7 @@ from nuitka.importing import Importing, Recursion
 from nuitka.plugins.PluginBase import Plugins
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import InstanceCounters, Utils
+from nuitka.PythonVersions import isUninstalledPython
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
@@ -457,6 +458,11 @@ def runScons(main_module, quiet):
 
     if Options.isStandaloneMode():
         options["standalone_mode"] = "true"
+
+    if not Options.isStandaloneMode() and \
+       not Options.shallMakeModule() and \
+       isUninstalledPython():
+        options["win_copy_dll"] = "true"
 
     if getFrozenModuleCount():
         options["frozen_modules"] = str(

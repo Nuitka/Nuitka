@@ -9,7 +9,7 @@ selection method.
 """
 
 #
-# Copyright (c) 2001 - 2014 The SCons Foundation
+# Copyright (c) 2001 - 2015 The SCons Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -31,7 +31,7 @@ selection method.
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-__revision__ = "src/engine/SCons/Tool/gcc.py  2014/07/05 09:42:21 garyo"
+__revision__ = "src/engine/SCons/Tool/gcc.py rel_2.3.5:3329:275e75118ad4 2015/06/20 11:18:26 bdbaddog"
 
 import cc
 import os

@@ -32,7 +32,7 @@ SCons interactive mode
 # of its own, which might or might not be a good thing.  Nevertheless,
 # here are some enhancements that will probably be requested some day
 # and are worth keeping in mind (assuming this takes off):
-# 
+#
 # - A command to re-read / re-load the SConscript files.  This may
 #   involve allowing people to specify command-line options (e.g. -f,
 #   -I, --no-site-dir) that affect how the SConscript files are read.

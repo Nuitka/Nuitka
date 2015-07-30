@@ -61,10 +61,10 @@ def generate(env):
     try:
         if GhostscriptAction is None:
             GhostscriptAction = SCons.Action.Action('$GSCOM', '$GSCOMSTR')
-    
+
         import pdf
         pdf.generate(env)
-    
+
         bld = env['BUILDERS']['PDF']
         bld.add_action('.ps', GhostscriptAction)
     except ImportError, e:
@@ -72,7 +72,7 @@ def generate(env):
 
     gsbuilder = SCons.Builder.Builder(action = SCons.Action.Action('$GSCOM', '$GSCOMSTR'))
     env['BUILDERS']['Gs'] = gsbuilder
-    
+
     env['GS']      = gs
     env['GSFLAGS'] = SCons.Util.CLVar('-dNOPAUSE -dBATCH -sDEVICE=pdfwrite')
     env['GSCOM']   = '$GS $GSFLAGS -sOutputFile=$TARGET $SOURCES'

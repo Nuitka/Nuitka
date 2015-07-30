@@ -42,7 +42,7 @@ import SCons.Util
 def generate(env):
     """Add Builders and construction variables for ar to an Environment."""
     SCons.Tool.createStaticLibBuilder(env)
-    
+
     if env.Detect('CC'):
         env['AR']          = 'CC'
         env['ARFLAGS']     = SCons.Util.CLVar('-ar')
@@ -51,7 +51,7 @@ def generate(env):
         env['AR']          = 'ar'
         env['ARFLAGS']     = SCons.Util.CLVar('r')
         env['ARCOM']       = '$AR $ARFLAGS $TARGET $SOURCES'
-        
+
     env['SHLINK']      = '$LINK'
     env['SHLINKFLAGS'] = SCons.Util.CLVar('$LINKFLAGS -shared')
     env['SHLINKCOM']   = '$SHLINK $SHLINKFLAGS -o $TARGET $SOURCES $_LIBDIRFLAGS $_LIBFLAGS'

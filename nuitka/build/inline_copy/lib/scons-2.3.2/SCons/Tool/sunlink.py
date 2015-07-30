@@ -59,7 +59,7 @@ for d in dirs:
 def generate(env):
     """Add Builders and construction variables for Forte to an Environment."""
     link.generate(env)
-    
+
     env['SHLINKFLAGS'] = SCons.Util.CLVar('$LINKFLAGS -G')
 
     env['RPATHPREFIX'] = '-R'

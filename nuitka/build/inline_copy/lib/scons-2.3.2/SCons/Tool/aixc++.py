@@ -59,7 +59,7 @@ def generate(env):
 
     if version:
         env['CXXVERSION'] = version
-    
+
 def exists(env):
     path, _cxx, version = get_xlc(env)
     if path and _cxx:

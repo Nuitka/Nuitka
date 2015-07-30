@@ -1,6 +1,6 @@
 """SCons.Scanner.C
 
-This module implements the depenency scanner for C/C++ code. 
+This module implements the depenency scanner for C/C++ code.
 
 """
 

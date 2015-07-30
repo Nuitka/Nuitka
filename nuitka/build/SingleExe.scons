@@ -94,6 +94,9 @@ win_target = getBoolOption("win_target", os.name == "nt")
 # Windows subsystem mode: Disable console for windows builds.
 win_disable_console = getBoolOption("win_disable_console", False)
 
+# Windows might be running a Python whose DLL we have to use.
+win_copy_dll = getBoolOption("win_copy_dll", False)
+
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
@@ -1404,3 +1407,15 @@ def signalHandler(signal, frame):
 signal.signal(signal.SIGINT, signalHandler)
 
 Default(target)
+
+# Copy the Python DLL to the target directory, so the executable can be run.
+if win_copy_dll:
+    import shutil
+
+    shutil.copy(
+        os.path.join(
+            python_prefix,
+            "python" + python_version.replace('.', "") + ".dll"
+        ),
+        os.path.dirname(result_basepath) or "."
+    )

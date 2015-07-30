@@ -149,7 +149,7 @@ def windowsLibEmitter(target, source, env):
 
 def ldmodEmitter(target, source, env):
     """Emitter for loadable modules.
-    
+
     Loadable modules are identical to shared libraries on Windows, but building
     them is subject to different parameters (LDMODULE*).
     """
@@ -210,7 +210,7 @@ def embedManifestDllCheck(target, source, env):
     if env.get('WINDOWS_EMBED_MANIFEST', 0):
         manifestSrc = target[0].abspath + '.manifest'
         if os.path.exists(manifestSrc):
-            ret = (embedManifestDllAction) ([target[0]],None,env)        
+            ret = (embedManifestDllAction) ([target[0]],None,env)
             if ret:
                 raise SCons.Errors.UserError, "Unable to embed manifest into %s" % (target[0])
             return ret

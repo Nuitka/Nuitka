@@ -47,7 +47,7 @@ _UNIQUE_INSTALLED_FILES = None
 
 class CopytreeError(EnvironmentError):
     pass
-                
+
 # This is a patched version of shutil.copytree from python 2.5.  It
 # doesn't fail if the dir exists, which regular copytree does
 # (annoyingly).  Note the XXX comment in the docstring.
@@ -157,7 +157,7 @@ def versionedLibVersion(dest, env):
     shlib_suffix = env.subst('$SHLIBSUFFIX')
     # See if the source name is a versioned shared library, get the version number
     result = False
-    
+
     version_re = re.compile("[0-9]+\\.[0-9]+\\.[0-9a-zA-Z]+")
     version_File = None
     if platform == 'posix':
@@ -172,7 +172,7 @@ def versionedLibVersion(dest, env):
         result = versioned_re.findall(libname)
         if result:
             version_File = version_re.findall(versioned_re.findall(libname)[-1])[-1]
-    
+
     if Verbose:
         print "install: version_File ", version_File
     # result is False if we did not find a versioned shared library name, so return and empty list
@@ -185,7 +185,7 @@ def versionedLibVersion(dest, env):
         version = env.subst('$SHLIBVERSION')
     except KeyError:
         version = None
-    
+
     if version != version_File:
         #raise SCons.Errors.UserError("SHLIBVERSION '%s' does not match the version # '%s' in the filename" % (version, version_File) )
         print "SHLIBVERSION '%s' does not match the version # '%s' in the filename, proceeding based on file name" % (version, version_File)
@@ -314,7 +314,7 @@ def add_versioned_targets_to_INSTALLED_FILES(target, source, env):
             _INSTALLED_FILES.append(fulllinkname)
             if Verbose:
                 print "installed list ", _INSTALLED_FILES
-        
+
     _UNIQUE_INSTALLED_FILES = None
     return (target, source)
 
