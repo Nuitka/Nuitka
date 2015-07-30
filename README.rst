@@ -47,7 +47,7 @@ Requirements
 
   * The MinGW [#]_ or MinGW64 [#]_ compiler on Windows
 
-  * Visual Studio 2013 or higher on Windows [#]_
+  * Visual Studio 2015 or higher on Windows [#]_
 
 - Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4 (yes, but read below)
 
@@ -67,15 +67,18 @@ Requirements
   .. admonition:: Binary filename suffix ".exe" even on Linux
 
      The created binaries have an ".exe" suffix, that you are free to remove
-     and no, that doesn't make them executable on Windows. They can be normal
-     Linux binaries.
+     and yes, they are still Linux binaries. The suffix is just to be sure
+     that the original script name and the binary name do not collide.
 
-  .. admonition:: It has to be CPython, maybe WinPython
+  .. admonition:: It has to be CPython, maybe WinPython or AnaConda
 
      You need the standard Python implementation, called "CPython", to execute
-     Nuitka, because it is closely tied to using it. On Windows, the so called
-     "WinPython" distribution is also supported, but only for binaries, to make
-     modules.
+     Nuitka, because it is closely tied to using it.
+
+     On Windows, the so called "WinPython" and "AnaConda" distributions but will
+     cause issues for acceleration mode. Standalone and creating extension
+     modules or packages will also work. For acceleration mode, you need to
+     copy the "PythonXX.DLL" alongside of it.
 
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
 
