@@ -3248,8 +3248,7 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
         module_name    = module_name,
         code_name      = module.getCodeName(),
         filename       = module.getFilename(),
-        global_context = global_context,
-        is_empty       = module.getBody() is None
+        global_context = global_context
     )
 
     context.setExceptionEscape("module_exception_exit")

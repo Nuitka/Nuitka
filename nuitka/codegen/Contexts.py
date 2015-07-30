@@ -512,8 +512,7 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     # Plenty of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
-    def __init__(self, module, module_name, code_name, filename, is_empty,
-                global_context):
+    def __init__(self, module, module_name, code_name, filename, global_context):
         PythonContextBase.__init__(self)
 
         TempMixin.__init__(self)
@@ -524,7 +523,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
         self.name = module_name
         self.code_name = code_name
         self.filename = filename
-        self.is_empty = is_empty
 
         self.global_context = global_context
 
@@ -567,8 +565,10 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     def getFilename(self):
         return self.filename
 
-    def isEmptyModule(self):
-        return self.is_empty
+    def mayRaiseException(self):
+        body = self.module.getBody()
+
+        return body is not None and body.mayRaiseException(BaseException)
 
     getModuleName = getName
 

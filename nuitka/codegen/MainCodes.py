@@ -36,9 +36,7 @@ from .templates.CodeTemplatesMain import template_main_program
 def generateMainCode(main_module, codes, context):
     python_flags = Options.getPythonFlags()
 
-    if context.isEmptyModule():
-        code_identifier = "NULL"
-    else:
+    if context.mayRaiseException():
         code_identifier = context.getCodeObjectHandle(
             filename      = main_module.getRunTimeFilename(),
             var_names     = (),
@@ -54,6 +52,8 @@ def generateMainCode(main_module, codes, context):
             future_flags  = main_module.getSourceReference().getFutureSpec().\
                               asFlags()
         )
+    else:
+        code_identifier = "NULL"
 
     main_code        = template_main_program % {
         "sys_executable"       : getModuleConstantCode(
