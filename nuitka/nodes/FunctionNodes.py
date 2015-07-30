@@ -289,8 +289,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
             *self.parameters.getVariables()
         )
 
-        self.references = 0
-
         self.constraint_collection = None
 
         # Hack: This allows some APIs to work although this is not yet
@@ -360,15 +358,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
     def getParameters(self):
         return self.parameters
-
-    def addReference(self):
-        self.references += 1
-
-    def removeReference(self):
-        self.references -= 1
-
-    def getReferenceCount(self):
-        return self.references
 
     def getLocalVariableNames(self):
         return Variables.getNames(self.getLocalVariables())
@@ -797,7 +786,6 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         self.function_body = function_body
 
-        self.function_body.addReference()
 
     def getDetails(self):
         return {
