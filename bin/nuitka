@@ -28,7 +28,6 @@ contain other modules.
 
 # Import as little as possible initially, because we might be re-executing
 # soon.
-import logging
 import os
 import sys
 import warnings
@@ -65,9 +64,16 @@ else:
     )
 # LIBDIR trick end (marker for removal on platforms that don't need it)
 
+if "NUITKA_PYTHONPATH" in os.environ:
+    # Restore the PYTHONPATH gained from the site module, that we chose not
+    # to have imported. pylint: disable=W0123
+    sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
+    del os.environ["NUITKA_PYTHONPATH"]
+
 from nuitka import Options       # isort:skip
 from nuitka.utils import Utils   # isort:skip pylint:disable=E0611
 
+import logging # isort:skip
 logging.basicConfig(format = 'Nuitka:%(levelname)s:%(message)s')
 
 # We don't care, and these are triggered by run time calculations of "range" and
@@ -162,12 +168,6 @@ if current_version not in Options.getSupportedPythonVersions():
             "The version '%s' is not currently supported. Expect problems.",
             current_version
         )
-
-if "NUITKA_PYTHONPATH" in os.environ:
-    # Restore the PYTHONPATH gained from the site module, that we chose not
-    # to have imported. pylint: disable=W0123
-    sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
-    del os.environ["NUITKA_PYTHONPATH"]
 
 if "NUITKA_NAMESPACES" in os.environ:
     # Restore the detected name space packages, that were force loaded in
