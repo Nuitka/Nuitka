@@ -18,12 +18,10 @@
 #
 
 """
-
 This is the main program of Nuitka, it checks the options and then translates
-one or more modules to a C++ source code using Python C/API in a build
-directory compiles it to either an executable or an extension module that can
-contain other modules.
-
+one or more modules to a C-ish source code using Python C/API in a "*.build"
+directory and then compiles that to either an executable or an extension module
+or package, that can contain all used modules too.
 """
 
 # Import as little as possible initially, because we might be re-executing
@@ -33,10 +31,10 @@ import sys
 import warnings
 
 # LIBDIR trick start (marker for removal on platforms that don't need it)
-libdir = '@LIBDIR@'
+libdir = "@LIBDIR@"
 
 # Two cases:
-if libdir != '@' 'LIBDIR' '@':
+if libdir != '@' "LIBDIR" '@':
     # Changed by our "distutils" hook, then use the given path.
 
     if not os.path.isabs(libdir):
@@ -74,7 +72,7 @@ from nuitka import Options       # isort:skip
 from nuitka.utils import Utils   # isort:skip pylint:disable=E0611
 
 import logging # isort:skip
-logging.basicConfig(format = 'Nuitka:%(levelname)s:%(message)s')
+logging.basicConfig(format = "Nuitka:%(levelname)s:%(message)s")
 
 # We don't care, and these are triggered by run time calculations of "range" and
 # others, while on python2.7 they are disabled by default.
@@ -97,7 +95,7 @@ if intended_version is None:
 if current_version != intended_version:
     if Utils.getOS() == "Windows":
         python_binary = r"C:\Python%s\python.exe" % \
-          intended_version.replace( ".", "" )
+          intended_version.replace('.', "")
     else:
         python_binary = "/usr/bin/python" + intended_version
 
@@ -115,7 +113,7 @@ if sys.flags.no_site == 0:
 # caching it, and comparing generated source code. While the created binary
 # actually may still use it, during compilation we don't want to. So lets
 # disable it.
-if os.environ.get("PYTHONHASHSEED", "-1") != "0":
+if os.environ.get("PYTHONHASHSEED", "-1") != '0':
     needs_reexec = True
 
 # In case we need to re-execute.
@@ -152,9 +150,9 @@ if needs_reexec:
 
     os.environ["NUITKA_SITE_FLAG"] = str(sys.flags.no_site) \
                                        if "no_site" not in Options.getPythonFlags() \
-                                     else "1"
+                                     else '1'
 
-    os.environ["PYTHONHASHSEED"] = "0"
+    os.environ["PYTHONHASHSEED"] = '0'
 
     Utils.callExec(args)
 
@@ -171,7 +169,7 @@ if current_version not in Options.getSupportedPythonVersions():
 
 if "NUITKA_NAMESPACES" in os.environ:
     # Restore the detected name space packages, that were force loaded in
-    # site.py, and will need a free pass later on. pylint: disable=W0123,E0611
+    # site.py, and will need a free pass later on. pylint: disable=E0611,W0123
 
     from nuitka.importing.PreloadedPackages import setPreloadedPackagePaths
 

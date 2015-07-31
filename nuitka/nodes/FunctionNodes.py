@@ -700,7 +700,6 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         self.function_body = function_body
 
-
     def getName(self):
         return self.function_body.getName()
 
