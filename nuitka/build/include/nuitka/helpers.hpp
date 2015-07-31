@@ -572,6 +572,9 @@ extern PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObjec
 // For built-in bytearray() functionality.
 extern PyObject *BUILTIN_BYTEARRAY( PyObject *value );
 
+// For built-in hash() functionality.
+extern PyObject *BUILTIN_HASH( PyObject *value );
+
 extern PyObject *const_str_plain___builtins__;
 //
 extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals );

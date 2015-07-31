@@ -34,6 +34,10 @@ from nuitka.Constants import (
 from nuitka.Options import isDebug
 
 from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
+from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpression,
+    wrapExpressionWithSideEffects
+)
 
 
 class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
@@ -100,9 +104,11 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         # Cannot compute any further, this is already the best.
         return self, None, None
 
-    def computeExpressionCall(self, call_node, constraint_collection):
-        from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression, wrapExpressionWithSideEffects
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              constraint_collection):
 
+        # The arguments don't matter. All constant values cannot be called, and
+        # we just need to make and error out of that.
         new_node = wrapExpressionWithSideEffects(
             new_node     = makeRaiseExceptionReplacementExpression(
                 expression      = self,
@@ -112,6 +118,8 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
             old_node     = call_node,
             side_effects = call_node.extractPreCallSideEffects()
         )
+
+        constraint_collection.onExceptionRaiseExit(TypeError)
 
         return new_node, "new_raise", "Predicted call of constant value to exception raise."
 
@@ -235,10 +243,6 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         # Constants have no side effects
         return ()
 
-    def mayRaiseException(self, exception_type):
-        # Constants won't raise any kind of exception.
-        return False
-
     def getIntegerValue(self):
         if self.isNumberConstant():
             return int(self.constant)
@@ -296,5 +300,9 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
                 "new_constant", """\
 Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
             )
+
+        if not isIterableConstant(self.constant):
+            # Any exception may be raised.
+            constraint_collection.onExceptionRaiseExit(TypeError)
 
         return iter_node, None, None

@@ -28,7 +28,7 @@ from logging import debug
 
 from nuitka import Tracing, VariableRegistry
 from nuitka.__past__ import iterItems  # Python3 compatibility.
-from nuitka.tree.Extractions import getVariablesWritten
+from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.utils import Utils
 
 from .VariableTraces import (
@@ -157,6 +157,7 @@ class CollectionStartpointMixin:
         self.break_collections = None
         self.continue_collections = None
         self.return_collections = None
+        self.exception_collections = None
 
     def getLoopBreakCollections(self):
         return self.break_collections
@@ -198,8 +199,25 @@ class CollectionStartpointMixin:
                 )
             )
 
+    def onExceptionRaiseExit(self, raisable_exceptions, collection = None):
+        # TODO: We might want to track per exception, pylint: disable=W0613
+
+        if collection is None:
+            collection = self
+
+        if self.exception_collections is not None:
+            self.exception_collections.append(
+                ConstraintCollectionBranch(
+                    parent = collection,
+                    name   = "exception"
+                )
+            )
+
     def getFunctionReturnCollections(self):
         return self.return_collections
+
+    def getExceptionRaiseCollections(self):
+        return self.exception_collections
 
     def hasVariableTrace(self, variable, version):
         return (variable, version) in self.variable_traces
@@ -310,7 +328,7 @@ class CollectionStartpointMixin:
 
     @contextlib.contextmanager
     def makeAbortStackContext(self, catch_breaks, catch_continues,
-                              catch_returns):
+                              catch_returns, catch_exceptions):
         if catch_breaks:
             old_break_collections = self.break_collections
             self.break_collections = []
@@ -320,6 +338,9 @@ class CollectionStartpointMixin:
         if catch_returns:
             old_return_collections = self.return_collections
             self.return_collections = []
+        if catch_exceptions:
+            old_exception_collections = self.exception_collections
+            self.exception_collections = []
 
         yield
 
@@ -329,7 +350,8 @@ class CollectionStartpointMixin:
             self.continue_collections = old_continue_collections
         if catch_returns:
             self.return_collections = old_return_collections
-
+        if catch_exceptions:
+            self.exception_collections = old_exception_collections
 
 class ConstraintCollectionBase(CollectionTracingMixin):
     def __init__(self, name, parent):
@@ -437,16 +459,13 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         return variable_trace
 
 
-    def onVariableDel(self, del_node):
+    def onVariableDel(self, variable_ref):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
-        variable_ref = del_node.getTargetVariableRef()
         variable = variable_ref.getVariable()
+        version = variable_ref.getVariableVersion()
 
         old_trace = self.getVariableCurrentTrace(variable)
-        old_trace.addPotentialUsage()
-
-        version = variable_ref.getVariableVersion()
 
         variable_trace = VariableTraceUninit(
             variable = variable,
@@ -463,8 +482,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
-
-        return old_trace
 
 
     def onLocalsUsage(self):
@@ -495,7 +512,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
     def onExpression(self, expression, allow_none = False):
         if expression is None and allow_none:
-            return
+            return None
 
         assert expression.isExpression(), expression
         assert expression.parent, expression
@@ -629,19 +646,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         self.variable_actives.update(collection_replace.variable_actives)
         collection_replace.variable_actives = None
 
-    def degradePartiallyFromTriedCode(self, statement_sequence):
-        variable_writes = getVariablesWritten(
-            statement_sequence
-        )
-
-        # Mark all variables as unknown that are written in the statement
-        # sequence, so it destroys the assumptions for except block.
-        for variable in variable_writes:
-            self.markActiveVariableAsUnknown(
-                variable = variable
-            )
-
-
     def onLoopBreak(self, collection = None):
         if collection is None:
             collection = self
@@ -660,6 +664,12 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         return self.parent.onFunctionReturn(collection)
 
+    def onExceptionRaiseExit(self, raisable_exceptions, collection = None):
+        if collection is None:
+            collection = self
+
+        return self.parent.onExceptionRaiseExit(raisable_exceptions, collection)
+
     def getLoopBreakCollections(self):
         return self.parent.getLoopBreakCollections()
 
@@ -669,12 +679,29 @@ class ConstraintCollectionBase(CollectionTracingMixin):
     def getFunctionReturnCollections(self):
         return self.parent.getFunctionReturnCollections()
 
+    def getExceptionRaiseCollections(self):
+        return self.parent.getExceptionRaiseCollections()
+
     def makeAbortStackContext(self, catch_breaks, catch_continues,
-                              catch_returns):
+                              catch_returns, catch_exceptions):
         return self.parent.makeAbortStackContext(
-                                           catch_breaks, catch_continues,
-                              catch_returns
+            catch_breaks     = catch_breaks,
+            catch_continues  = catch_continues,
+            catch_returns    = catch_returns,
+            catch_exceptions = catch_exceptions
         )
+
+    def getCompileTimeComputationResult(self, node, computation, description):
+        new_node, change_tags, message = getComputationResult(
+            node        = node,
+            computation = computation,
+            description = description
+        )
+
+        if change_tags == "new_raise":
+            self.onExceptionRaiseExit(BaseException)
+
+        return new_node, change_tags, message
 
 
 class ConstraintCollectionBranch(ConstraintCollectionBase):

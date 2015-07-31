@@ -22,6 +22,7 @@ does not matter at all.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
+from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
 def checkSideEffects(value):
@@ -66,6 +67,9 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
 
     getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
+    def isExpressionSideEffects(self):
+        return True
+
     def computeExpression(self, constraint_collection):
         side_effects = self.getSideEffects()
         new_side_effects = []
@@ -97,6 +101,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
         for child in self.getVisitableNodes():
             if child.willRaiseException(exception_type):
                 return True
+
         return False
 
     def getTruthValue(self):
@@ -104,7 +109,6 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
 
     def computeExpressionDrop(self, statement, constraint_collection):
         # Side effects can  become statements.
-        from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
         expressions = self.getSideEffects() + (self.getExpression(),)
 

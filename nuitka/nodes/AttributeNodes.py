@@ -15,24 +15,164 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Attribute node
+""" Attribute nodes
 
 Knowing attributes of an object is very important, esp. when it comes to 'self'
 and objects and classes.
 
-There will be a method "computeExpressionAttribute" to aid predicting them.
+There will be a methods "computeExpression*Attribute" to aid predicting them,
+with many variants for setting, deleting, and accessing. Also there is some
+complication in the form of special lookups, that won't go through the normal
+path, but just check slots.
+
+Due to ``getattr`` and ``setattr`` built-ins, there is also a different in the
+computations for objects and for compile time known strings. This reflects what
+CPython also does with "tp_getattr" and "tp_getattro".
+
+These nodes are therefore mostly delegating the work to expressions they
+work on, and let them decide and do the heavy lifting of optimization
+and annotation is happening in the nodes that implement these compute slots.
 """
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
-from .NodeBases import ExpressionChildrenHavingBase
-from .NodeMakingHelpers import (
-    getComputationResult,
-    wrapExpressionWithNodeSideEffects
-)
+from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+
+class StatementAssignmentAttribute(StatementChildrenHavingBase):
+    """ Assignment to an attribute.
+
+        Typically from code like: source.attribute_name = expression
+
+        Both source and expression may be complex expressions, the source
+        is evaluated first. Assigning to an attribute has its on slot on
+        the source, which gets to decide if it knows it will work or not,
+        and what value it will be.
+    """
+
+    kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
+
+    named_children = (
+        "source",
+        "expression"
+    )
+
+    def __init__(self, expression, attribute_name, source, source_ref):
+        StatementChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "expression" : expression,
+                "source"     : source,
+            },
+            source_ref = source_ref
+        )
+
+        self.attribute_name = attribute_name
+
+    def getDetails(self):
+        return {
+            "attribute_name" : self.attribute_name
+        }
+
+    def getDetail(self):
+        return "to attribute %s" % self.attribute_name
+
+    def getAttributeName(self):
+        return self.attribute_name
+
+    def setAttributeName(self, attribute_name):
+        self.attribute_name = attribute_name
+
+    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
+    getAssignSource = StatementChildrenHavingBase.childGetter("source")
+
+    def computeStatement(self, constraint_collection):
+        lookup_source = self.getLookupSource()
+        source = self.getAssignSource()
+
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            constraint_collection = constraint_collection,
+            expressions           = (lookup_source, source),
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return lookup_source.computeExpressionSetAttribute(
+            set_node              = self,
+            attribute_name        = self.attribute_name,
+            value_node            = source,
+            constraint_collection = constraint_collection
+        )
+
+
+class StatementDelAttribute(StatementChildrenHavingBase):
+    """ Deletion of an attribute.
+
+        Typically from code like: del source.attribute_name
+
+        The source may be complex expression. Deleting an attribute has its on
+        slot on the source, which gets to decide if it knows it will work or
+        not, and what value it will be.
+    """
+    kind = "STATEMENT_DEL_ATTRIBUTE"
+
+    named_children = (
+        "expression",
+    )
+
+    def __init__(self, expression, attribute_name, source_ref):
+        StatementChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "expression" : expression
+            },
+            source_ref = source_ref
+        )
+
+        self.attribute_name = attribute_name
+
+    def getDetails(self):
+        return {
+            "attribute_name" : self.attribute_name
+        }
+
+    def getDetail(self):
+        return "to attribute %s" % self.attribute_name
+
+    def getAttributeName(self):
+        return self.attribute_name
+
+    def setAttributeName(self, attribute_name):
+        self.attribute_name = attribute_name
+
+    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
+
+    def computeStatement(self, constraint_collection):
+        lookup_source = self.getLookupSource()
+
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            constraint_collection = constraint_collection,
+            expressions           = (lookup_source,)
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return lookup_source.computeExpressionDelAttribute(
+            set_node              = self,
+            attribute_name        = self.attribute_name,
+            constraint_collection = constraint_collection
+        )
 
 
 class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
+    """ Looking up an attribute of an object.
+
+        Typically code like: source.attribute_name
+    """
+
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
     named_children = (
@@ -72,37 +212,52 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
     )
 
     def computeExpression(self, constraint_collection):
-        lookup_source = self.getLookupSource()
-
-        if lookup_source.willRaiseException(BaseException):
-            return lookup_source, "new_raise", "Attribute lookup source raises exception."
-
-        return lookup_source.computeExpressionAttribute(
+        return self.getLookupSource().computeExpressionAttribute(
             lookup_node           = self,
             attribute_name        = self.getAttributeName(),
             constraint_collection = constraint_collection
         )
 
+    def mayRaiseException(self, exception_type):
+        return self.getLookupSource().mayRaiseExceptionAttributeLookup(
+            exception_type = exception_type,
+            attribute_name = self.getAttributeName()
+        )
+
     def isKnownToBeIterable(self, count):
-        # TODO: Could be known.
+        # TODO: Could be known. We would need for computeExpressionAttribute to
+        # either return a new node, or a decision maker.
         return None
 
 
-class ExpressionSpecialAttributeLookup(ExpressionAttributeLookup):
-    kind = "EXPRESSION_SPECIAL_ATTRIBUTE_LOOKUP"
+class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
+    """ Special lookup up an attribute of an object.
 
-    # TODO: Special lookups should be treated somehow different.
+        Typically from code like this: with source: pass
+
+        These directly go to slots, and are performed for with statements
+        of Python2.7 or higher.
+    """
+
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"
+
     def computeExpression(self, constraint_collection):
-        lookup_source = self.getLookupSource()
-
-        if lookup_source.willRaiseException(BaseException):
-            return lookup_source, "new_raise", "Special attribute lookup source raises exception."
-
-        # TODO: Special lookups may reuse "computeExpressionAttribute"
-        return self, None, None
+        return self.getLookupSource().computeExpressionAttributeSpecial(
+            lookup_node           = self,
+            attribute_name        = self.getAttributeName(),
+            constraint_collection = constraint_collection
+        )
 
 
 class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
+    """ Built-in "getattr".
+
+        Typical code like this: getattr(source, attribute, default)
+
+        The default is optional, but computed before the lookup is done.
+    """
+
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
     named_children = ("source", "attribute", "default")
@@ -124,50 +279,52 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, constraint_collection):
-        attribute = self.getAttribute()
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
-        attribute_name = attribute.getStringValue()
+        default = self.getDefault()
 
-        if attribute_name is not None:
-            source = self.getLookupSource()
-            # If source has side effects, they must be evaluated, before the
-            # lookup, meaning, a temporary variable should be assigned. For
-            # now, we give up in this case. TODO: Replace source with a
-            # temporary variable assignment as a side effect.
+        if default is None or not default.mayHaveSideEffects():
+            attribute = self.getAttribute()
 
-            side_effects = source.extractSideEffects()
+            attribute_name = attribute.getStringValue()
 
-            if not side_effects:
-                result = ExpressionAttributeLookup(
-                    source         = source,
-                    attribute_name = attribute_name,
-                    source_ref     = self.source_ref
-                )
+            if attribute_name is not None:
+                source = self.getLookupSource()
+                if source.isKnownToHaveAttribute(attribute_name):
+                    # If source has side effects, they must be evaluated, before
+                    # the lookup, meaning, a temporary variable should be assigned.
+                    # For now, we give up in this case.
 
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node = result,
-                    old_node = attribute
-                )
+                    side_effects = source.extractSideEffects()
 
-                default = self.getDefault()
+                    if not side_effects:
+                        result = ExpressionAttributeLookup(
+                            source         = source,
+                            attribute_name = attribute_name,
+                            source_ref     = self.source_ref
+                        )
 
-                if default is not None:
-                    result = wrapExpressionWithNodeSideEffects(
-                        new_node = result,
-                        old_node = default
-                    )
+                        result = wrapExpressionWithNodeSideEffects(
+                            new_node = result,
+                            old_node = attribute
+                        )
 
-                return (
-                    result,
-                    "new_expression",
-                    """Replaced call to built-in 'getattr' with constant \
+                        return (
+                            result,
+                            "new_expression",
+                            """Replaced call to built-in 'getattr' with constant \
 attribute '%s' to mere attribute lookup""" % attribute_name
-                )
+                        )
 
         return self, None, None
 
 
 class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
+    """ Built-in "setattr".
+
+        Typical code like this: setattr(source, attribute, value)
+    """
+
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
     named_children = ("source", "attribute", "value")
@@ -189,6 +346,8 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, constraint_collection):
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         # Note: Might be possible to predict or downgrade to mere attribute set.
         return self, None, None
 
@@ -224,12 +383,9 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
 
             if attribute_name is not None:
 
-                # If source has side effects, they must be evaluated, before the
-                # lookup, meaning, a temporary variable should be assigned. For
-                # now, we give up in this case. TODO: Replace source with a
-                # temporary variable assignment as a side effect.
-
-                result, tags, change_desc = getComputationResult(
+                # If source or attribute have side effects, they must be
+                # evaluated, before the lookup.
+                result, tags, change_desc = constraint_collection.getCompileTimeComputationResult(
                     node        = self,
                     computation = lambda : hasattr(
                         source.getCompileTimeConstant(),
@@ -248,5 +404,7 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
                 )
 
                 return result, tags, change_desc
+
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

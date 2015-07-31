@@ -20,7 +20,8 @@
 One for each type of call. """
 
 from nuitka.nodes.AssignNodes import (
-    StatementAssignmentSubscript,
+    ExpressionTargetTempVariableRef,
+    ExpressionTargetVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -63,14 +64,15 @@ from nuitka.nodes.OperatorNodes import (
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.SubscriptNodes import (
+    ExpressionSubscriptLookup,
+    StatementAssignmentSubscript
+)
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinType1
 )
 from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTargetVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )

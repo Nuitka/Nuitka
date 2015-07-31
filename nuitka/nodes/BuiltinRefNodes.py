@@ -57,6 +57,9 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     def isKnownToBeHashable(self):
         return True
 
+    def mayRaiseException(self, exception_type):
+        return False
+
     def mayHaveSideEffects(self):
         return False
 
@@ -106,8 +109,13 @@ Built-in constant '%s' resolved.""" % self.builtin_name
 
         return self, None, None
 
-    def computeExpressionCall(self, call_node, constraint_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              constraint_collection):
         from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         new_node, tags, message = computeBuiltinCall(
             call_node = call_node,
@@ -115,7 +123,7 @@ Built-in constant '%s' resolved.""" % self.builtin_name
         )
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
-            # Just inform the collection that all escaped.
+            # Just inform the collection that all has escaped.
             constraint_collection.onLocalsUsage()
 
         return new_node, tags, message
@@ -199,16 +207,15 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         # Not much that can be done here.
         return self, None, None
 
-    def computeExpressionCall(self, call_node, constraint_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              constraint_collection):
         exception_name = self.getExceptionName()
 
         # TODO: Keyword only arguments of it, are not properly handled yet by
         # the built-in call code.
         if exception_name == "ImportError" and python_version >= 330:
-            kw = call_node.getCallKw()
-
-            if kw is not None and \
-               (not kw.isExpressionConstantRef() or kw.getConstant() != {}):
+            if call_kw is not None and \
+               (not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}):
                 return call_node, None, None
 
         def createBuiltinMakeException(args, source_ref):

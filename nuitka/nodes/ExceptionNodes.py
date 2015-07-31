@@ -89,6 +89,9 @@ class StatementRaiseException(StatementChildrenHavingBase):
         )
         exception_type = self.getExceptionType()
 
+        # TODO: Limit by type.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         if exception_type is not None and \
            exception_type.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
@@ -206,7 +209,6 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         else:
             return False
 
-
     getExceptionType = ExpressionChildrenHavingBase.childGetter(
         "exception_type"
     )
@@ -260,6 +262,13 @@ class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
 
     def computeExpression(self, constraint_collection):
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        for arg in self.getArgs():
+            if arg.mayRaiseException(exception_type):
+                return True
+
+        return False
 
 
 class ExpressionCaughtExceptionTypeRef(NodeBase, ExpressionMixin):

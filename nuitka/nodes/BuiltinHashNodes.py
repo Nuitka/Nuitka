@@ -15,42 +15,45 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Node the calls to the 'open' builtin.
+""" Node the calls to the 'hash' builtin.
 
-This is a rather two sided beast, as it may be read or write. And we would like to be able
-to track it, so we can include files into the executable, or write more efficiently.
+This is a specific thing, which must be calculated at run time, but we can
+predict things about its type, and the fact that it won't raise an exception
+for some types, so it is still useful. Also calls to it can be accelerated
+slightly.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
 
 
-class ExpressionBuiltinOpen(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_BUILTIN_OPEN"
+class ExpressionBuiltinHash(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_BUILTIN_HASH"
 
     named_children = (
-        "filename",
-        "mode",
-        "buffering"
+        "value",
     )
 
-    def __init__(self, filename, mode, buffering, source_ref):
+    def __init__(self, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "filename"  : filename,
-                "mode"      : mode,
-                "buffering" : buffering
+                "value" : value,
             },
             source_ref = source_ref
         )
 
-    getFilename = ExpressionChildrenHavingBase.childGetter("filename")
-    getMode = ExpressionChildrenHavingBase.childGetter("mode")
-    getBuffering = ExpressionChildrenHavingBase.childGetter("buffering")
+    getValue = ExpressionChildrenHavingBase.childGetter(
+        "value"
+    )
 
     def computeExpression(self, constraint_collection):
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        value = self.getValue()
 
-        # Note: Quite impossible to predict without further assumptions, but we could look
-        # at the arguments at least.
+        # TODO: Have a computation slot for hashing.
+        if not value.isKnownToBeHashable():
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return not self.getValue().isKnownToBeHashable()

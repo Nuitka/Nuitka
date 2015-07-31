@@ -24,11 +24,17 @@ These classes provide the generic base classes available for nodes.
 
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
+from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 from nuitka.VariableRegistry import addVariableUsage
+
+from .NodeMakingHelpers import (
+    getComputationResult,
+    wrapExpressionWithSideEffects
+)
 
 
 class NodeCheckMetaClass(type):
@@ -217,6 +223,14 @@ class NodeBase(NodeMetaClassBase):
         # TODO: Not checking tuples yet
         return None
 
+    def getChildNameNice(self):
+        child_name = self.getChildName()
+
+        if hasattr(self.parent, "nice_children"):
+            return self.parent.nice_children[self.parent.named_children.index(child_name)]
+        else:
+            return child_name
+
     def getParentFunction(self):
         """ Return the parent that is a function.
 
@@ -382,6 +396,13 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionBuiltin(self):
         return self.kind.startswith("EXPRESSION_BUILTIN_")
 
+    def isExpressionSideEffects(self):
+        # Virtual method, pylint: disable=R0201
+
+        # We need to provide this, as these node kinds are only imported if
+        # necessary, but we test against them.
+        return False
+
     def isStatementReraiseException(self):
         # Virtual method, pylint: disable=R0201
         return False
@@ -458,6 +479,42 @@ class NodeBase(NodeMetaClassBase):
 
         return True
 
+    def mayRaiseExceptionIter(self, exception_type):
+        """ Unless we are told otherwise, everything may raise being iterated. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
+    def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
+        """ Unless we are told otherwise, everything may raise for attribute access. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
+    def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
+        """ Unless we are told otherwise, everything may raise for attribute access. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
+    def mayRaiseExceptionAttributeLookupObject(self, exception_type, attribute):
+        """ Unless we are told otherwise, everything may raise for attribute access. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
+    def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
+        """ Unless we are told otherwise, everything may raise for attribute check. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
+    def mayRaiseExceptionAttributeCheckObject(self, exception_type, attribute):
+        """ Unless we are told otherwise, everything may raise for attribute check. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
     def mayReturn(self):
         return "_RETURN" in self.kind
 
@@ -501,6 +558,16 @@ class NodeBase(NodeMetaClassBase):
 
     def getIntegerValue(self):
         """ Node as integer value, if possible."""
+        # Virtual method, pylint: disable=R0201
+        return None
+
+    def getIntValue(self):
+        """ Value that "int" or "PyNumber_Int" (sp) would give, if known.
+
+            Otherwise it is "None" to indicate unknown. Users must not
+            forget to take side effects into account, when replacing a
+            node with its string value.
+        """
         # Virtual method, pylint: disable=R0201
         return None
 
@@ -1024,7 +1091,7 @@ class ExpressionMixin:
         return None
 
     def getStringValue(self):
-        """ Node as integer value, if possible."""
+        """ Node as string value, if possible."""
         # Virtual method, pylint: disable=R0201
         return None
 
@@ -1047,6 +1114,18 @@ class ExpressionMixin:
 
         return None
 
+    def getTypeValue(self):
+        """ Type of the node.
+
+        """
+
+        from .TypeNodes import ExpressionBuiltinType1
+
+        return ExpressionBuiltinType1(
+            value      = self.makeClone(),
+            source_ref = self.getSourceReference()
+        )
+
     def isKnownToBeHashable(self):
         """ Is the value hashable, i.e. suitable for dictionary/set keying."""
 
@@ -1065,24 +1144,57 @@ class ExpressionMixin:
             then the node "computeExpression". For a few cases this needs to
             be overloaded, e.g. conditional expressions.
         """
-
         # First apply the sub-expressions, as they are evaluated before.
         sub_expressions = self.getVisitableNodes()
 
-        for sub_expression in sub_expressions:
+        for count, sub_expression in enumerate(sub_expressions):
             assert sub_expression.isExpression(), (self, sub_expression)
 
-            constraint_collection.onExpression(
+            expression = constraint_collection.onExpression(
                 expression = sub_expression
             )
+
+            if expression.willRaiseException(BaseException):
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects = sub_expressions[:count],
+                    old_node     = sub_expression,
+                    new_node     = expression
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    "For '%s' the expression '%s' will raise." % (
+                        self.getChildNameNice(),
+                        expression.getChildNameNice()
+                    )
+                )
 
         # Then ask ourselves to work on it.
         return self.computeExpression(
             constraint_collection = constraint_collection
         )
 
+    def isKnownToHaveAttribute(self, attribute_name):
+        # Virtual method, pylint: disable=R0201,W0613
+        return None
+
     def computeExpressionAttribute(self, lookup_node, attribute_name,
-                                    constraint_collection):
+                                   constraint_collection):
+        # By default, an attribute lookup may change everything about the lookup
+        # source.
+        constraint_collection.removeKnowledge(self)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        if not self.isKnownToHaveAttribute(attribute_name):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return lookup_node, None, None
+
+    def computeExpressionAttributeSpecial(self, lookup_node, attribute_name,
+                                          constraint_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=W0613
         constraint_collection.removeKnowledge(lookup_node)
@@ -1090,37 +1202,158 @@ class ExpressionMixin:
         # Any code could be run, note that.
         constraint_collection.onControlFlowEscape(self)
 
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         return lookup_node, None, None
+
+    def computeExpressionSetAttribute(self, set_node, attribute_name,
+                                      value_node, constraint_collection):
+
+        # By default, an attribute lookup may change everything about the lookup
+        # source. Virtual method, pylint: disable=W0613
+        constraint_collection.removeKnowledge(self)
+        constraint_collection.removeKnowledge(value_node)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        # Better mechanics?
+        return set_node, None, None
+
+    def computeExpressionDelAttribute(self, set_node, attribute_name,
+                                      constraint_collection):
+
+        # By default, an attribute lookup may change everything about the lookup
+        # source. Virtual method, pylint: disable=W0613
+        constraint_collection.removeKnowledge(self)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        # Better mechanics?
+        return set_node, None, None
+
+
 
     def computeExpressionSubscript(self, lookup_node, subscript,
                                    constraint_collection):
         # By default, an subscript may change everything about the lookup
         # source.
-        constraint_collection.removeKnowledge(lookup_node)
+        constraint_collection.removeKnowledge(self)
         constraint_collection.removeKnowledge(subscript)
 
         # Any code could be run, note that.
         constraint_collection.onControlFlowEscape(self)
 
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         return lookup_node, None, None
+
+    def computeExpressionSetSubscript(self, set_node, subscript, value_node,
+                                      constraint_collection):
+        # By default, an subscript may change everything about the lookup
+        # source.
+        constraint_collection.removeKnowledge(self)
+        constraint_collection.removeKnowledge(subscript)
+        constraint_collection.removeKnowledge(value_node)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return set_node, None, None
+
+    def computeExpressionDelSubscript(self, set_node, subscript,
+                                      constraint_collection):
+        # By default, an subscript may change everything about the lookup
+        # source.
+        constraint_collection.removeKnowledge(self)
+        constraint_collection.removeKnowledge(subscript)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return set_node, None, None
 
     def computeExpressionSlice(self, lookup_node, lower, upper,
                                constraint_collection):
         # By default, a slicing may change everything about the lookup source.
-        # Virtual method, pylint: disable=R0201,W0613
-        constraint_collection.removeKnowledge(lookup_node)
+        constraint_collection.removeKnowledge(self)
+        constraint_collection.removeKnowledge(lower)
+        constraint_collection.removeKnowledge(upper)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
 
-    def computeExpressionCall(self, call_node, constraint_collection):
+    def computeExpressionSetSlice(self, set_node, lower, upper, value_node,
+                                      constraint_collection):
+        # By default, an subscript may change everything about the lookup
+        # source.
+        constraint_collection.removeKnowledge(self)
+        constraint_collection.removeKnowledge(lower)
+        constraint_collection.removeKnowledge(upper)
+        constraint_collection.removeKnowledge(value_node)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return set_node, None, None
+
+    def computeExpressionDelSlice(self, set_node, lower, upper,
+                                  constraint_collection):
+        # By default, an subscript may change everything about the lookup
+        # source.
+        constraint_collection.removeKnowledge(self)
+        constraint_collection.removeKnowledge(lower)
+        constraint_collection.removeKnowledge(upper)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return set_node, None, None
+
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              constraint_collection):
+        # The called and the arguments escape for good.
         self.onContentEscapes(constraint_collection)
+        if call_args is not None:
+            call_args.onContentEscapes(constraint_collection)
+        if call_kw is not None:
+            call_kw.onContentEscapes(constraint_collection)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         return call_node, None, None
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
         self.onContentEscapes(constraint_collection)
 
-        assert iter_node.getValue() is self
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         return iter_node, None, None
 
@@ -1132,6 +1365,9 @@ class ExpressionMixin:
 
         # Any code could be run, note that.
         constraint_collection.onControlFlowEscape(not_node)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         return not_node, None, None
 
@@ -1149,7 +1385,7 @@ class ExpressionMixin:
 class CompileTimeConstantExpressionMixin(ExpressionMixin):
     # TODO: Do this for all computations, do this in the base class of all
     # nodes.
-    computed_attribute = False
+    computed_attribute = None
 
     def __init__(self):
         pass
@@ -1175,34 +1411,63 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
         # Virtual method, pylint: disable=R0201
         return False
 
+    def mayRaiseException(self, exception_type):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+    def mayRaiseExceptionBool(self, exception_type):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+    def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
+        # Virtual method, pylint: disable=W0613
+
+        # We remember it from our computation.
+
+        return not self.computed_attribute
+
+    def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
+        # Virtual method, pylint: disable=W0613
+
+        # We remember it from our computation.
+
+        return not self.computed_attribute
+
+    def mayRaiseExceptionAttributeCheck(self, exception_type):
+        # Virtual method, pylint: disable=R0201,W0613
+
+        # Checking attributes of compile time constants never raises.
+        return False
+
     def mayBeNone(self):
         return self.getCompileTimeConstant() is None
 
     def computeExpressionOperationNot(self, not_node, constraint_collection):
-        from .NodeMakingHelpers import getComputationResult
-
-        return getComputationResult(
+        return constraint_collection.getCompileTimeComputationResult(
             node        = not_node,
             computation = lambda : not self.getCompileTimeConstant(),
             description = """\
 Compile time constant negation truth value pre-computed."""
         )
 
+    def isKnownToHaveAttribute(self, attribute_name):
+        if self.computed_attribute is None:
+            self.computed_attribute = hasattr(self.getCompileTimeConstant(), attribute_name)
+
+        return self.computed_attribute
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, constraint_collection):
-        if self.computed_attribute:
-            return lookup_node, None, None
-
         value = self.getCompileTimeConstant()
 
-        from .NodeMakingHelpers import getComputationResult, isCompileTimeConstantValue
+        if self.computed_attribute is None:
+            self.computed_attribute = hasattr(value, attribute_name)
 
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
-        if not hasattr(value, attribute_name) or \
+        if not self.computed_attribute or \
            isCompileTimeConstantValue(getattr(value, attribute_name)):
 
-            return getComputationResult(
+            return constraint_collection.getCompileTimeComputationResult(
                 node        = lookup_node,
                 computation = lambda : getattr(value, attribute_name),
                 description = "Attribute lookup to '%s' pre-computed." % (
@@ -1210,27 +1475,24 @@ Compile time constant negation truth value pre-computed."""
                 )
             )
 
-        self.computed_attribute = True
-
         return lookup_node, None, None
 
     def computeExpressionSubscript(self, lookup_node, subscript, constraint_collection):
-        from .NodeMakingHelpers import getComputationResult
-
         if subscript.isCompileTimeConstant():
-            return getComputationResult(
+            return constraint_collection.getCompileTimeComputationResult(
                 node        = lookup_node,
-                computation = lambda : self.getCompileTimeConstant()[ subscript.getCompileTimeConstant() ],
+                computation = lambda : self.getCompileTimeConstant()[
+                    subscript.getCompileTimeConstant()
+                ],
                 description = "Subscript of constant with constant value."
             )
 
         # TODO: Look-up of subscript to index may happen.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
 
     def computeExpressionSlice(self, lookup_node, lower, upper, constraint_collection):
-        from .NodeMakingHelpers import getComputationResult
-
         # TODO: Could be happy with predictable index values and not require
         # constants.
         if lower is not None:
@@ -1279,19 +1541,21 @@ Slicing of constant with constant upper index only."""
 class ExpressionSpecBasedComputationMixin(ExpressionMixin):
     builtin_spec = None
 
-    def computeBuiltinSpec(self, given_values):
+    def computeBuiltinSpec(self, constraint_collection, given_values):
         assert self.builtin_spec is not None, self
 
         for value in given_values:
             if value is not None and not value.isCompileTimeConstant():
+                constraint_collection.onExceptionRaiseExit(BaseException)
+
                 return self, None, None
 
         if not self.builtin_spec.isCompileTimeComputable(given_values):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
             return self, None, None
 
-        from .NodeMakingHelpers import getComputationResult
-
-        return getComputationResult(
+        return constraint_collection.getCompileTimeComputationResult(
             node        = self,
             computation = lambda : self.builtin_spec.simulateCall(given_values),
             description = "Built-in call to '%s' pre-computed." % (
@@ -1322,6 +1586,38 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
             values = values
         )
 
+    def computeStatementSubExpressions(self, constraint_collection, expressions):
+        """ Compute a statement.
+
+            Default behavior is to just visit the child expressions first, and
+            then the node "computeStatement". For a few cases this needs to
+            be overloaded.
+        """
+        for count, expression in enumerate(expressions):
+            assert expression.isExpression(), (self, expression)
+
+            expression = constraint_collection.onExpression(
+                expression = expression
+            )
+
+            if expression.willRaiseException(BaseException):
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects = expressions[:count],
+                    old_node     = expression,
+                    new_node     = expression
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    "For '%s' the expression '%s' will raise." % (
+                        self.getChildNameNice(),
+                        expression.getChildNameNice()
+                    )
+                )
+
+        return self, None, None
+
 
 class ExpressionBuiltinNoArgBase(NodeBase, ExpressionMixin):
     def __init__(self, builtin_function, source_ref):
@@ -1333,14 +1629,12 @@ class ExpressionBuiltinNoArgBase(NodeBase, ExpressionMixin):
         self.builtin_function = builtin_function
 
     def computeExpression(self, constraint_collection):
-        from .NodeMakingHelpers import getComputationResult
-
         # The lambda is there for make sure that no argument parsing will reach
         # the built-in function at all, pylint: disable=W0108
-        return getComputationResult(
+        return constraint_collection.getCompileTimeComputationResult(
             node        = self,
             computation = lambda : self.builtin_function(),
-            description = "No arg %s built-in" % self.builtin_function.__name__
+            description = "No argument form of '%s' built-in" % self.builtin_function.__name__
         )
 
 
@@ -1366,19 +1660,15 @@ class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
     def computeExpression(self, constraint_collection):
         value = self.getValue()
 
-        assert self.builtin_spec is not None, self
-
         if value is None:
             return self.computeBuiltinSpec(
-                given_values = ()
+                constraint_collection = constraint_collection,
+                given_values          = ()
             )
         else:
-            if value.willRaiseException(BaseException):
-                return value, "new_raise", """\
-Built-in call raises exception while building argument."""
-
             return self.computeBuiltinSpec(
-                given_values = (value,)
+                constraint_collection = constraint_collection,
+                given_values          = (value,)
             )
 
 

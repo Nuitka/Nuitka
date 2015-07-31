@@ -22,8 +22,8 @@ from the inlined function.
 """
 
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.NodeMakingHelpers import makeVariableTargetRefNode
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
-from nuitka.nodes.VariableRefNodes import ExpressionTargetTempVariableRef
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.Helpers import makeStatementsSequence
 
@@ -77,7 +77,7 @@ def convertFunctionCallToOutline(provider, function_ref, values):
     for argument_name, value in zip(argument_names, values):
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
+                variable_ref = makeVariableTargetRefNode(
                     variable   = translation[argument_name],
                     source_ref = source_ref
                 ),

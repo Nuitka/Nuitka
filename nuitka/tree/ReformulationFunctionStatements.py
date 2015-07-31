@@ -23,6 +23,7 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
+    ExpressionTargetVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -37,7 +38,6 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
 

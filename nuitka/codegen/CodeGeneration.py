@@ -32,11 +32,11 @@ from nuitka.utils import Utils
 from . import Contexts, Emission, Helpers
 from .AttributeCodes import (
     generateAttributeLookupCode,
+    generateAttributeLookupSpecialCode,
     getAttributeAssignmentClassSlotCode,
     getAttributeAssignmentCode,
     getAttributeAssignmentDictSlotCode,
-    getAttributeDelCode,
-    getSpecialAttributeLookupCode
+    getAttributeDelCode
 )
 from .BuiltinCodes import (
     getBuiltinAnonymousRefCode,
@@ -63,11 +63,7 @@ from .DictCodes import (
     getDictOperationRemoveCode,
     getDictOperationSetCode
 )
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getMustNotGetHereCode,
-    getReleaseCode
-)
+from .ErrorCodes import getMustNotGetHereCode, getReleaseCode
 from .EvalCodes import (
     getBuiltinCompileCode,
     getBuiltinEvalCode,
@@ -499,12 +495,13 @@ def generateComparisonExpressionCode(to_name, comparison_expression, emit,
     )
 
     getComparisonExpressionCode(
-        to_name    = to_name,
-        comparator = comparison_expression.getComparator(),
-        left_name  = left_name,
-        right_name = right_name,
-        emit       = emit,
-        context    = context
+        to_name     = to_name,
+        comparator  = comparison_expression.getComparator(),
+        left_name   = left_name,
+        right_name  = right_name,
+        needs_check = comparison_expression.mayRaiseExceptionBool(BaseException),
+        emit        = emit,
+        context     = context
     )
 
 
@@ -760,6 +757,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("next_arg", expression.getIterator()),
                 ("next_default", expression.getDefault()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -885,6 +883,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("str_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -910,6 +909,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                         expression.getValue()
                     ),
                 ),
+                may_raise  = expression.mayRaiseException(BaseException),
                 source_ref = expression.getCompatibleSourceReference(),
                 emit       = emit,
                 context    = context
@@ -923,6 +923,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                     ("unicode_encoding", encoding),
                     ("unicode_errors", errors),
                 ),
+                may_raise  = expression.mayRaiseException(BaseException),
                 source_ref = expression.getCompatibleSourceReference(),
                 none_null  = True,
                 emit       = emit,
@@ -936,6 +937,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("iter_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -948,6 +950,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("iter_callable", expression.getCallable()),
                 ("iter_sentinel", expression.getSentinel()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -959,6 +962,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("type_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -971,27 +975,10 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("isinstance_inst", expression.getInstance()),
                 ("isinstance_cls", expression.getCls()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
-        )
-    elif expression.isExpressionSpecialAttributeLookup():
-        source_name = context.allocateTempName("attr_source")
-
-        makeExpressionCode(
-            to_name    = source_name,
-            expression = expression.getLookupSource()
-        )
-
-        getSpecialAttributeLookupCode(
-            to_name     = to_name,
-            source_name = source_name,
-            attr_name   = getConstantCode(
-                context  = context,
-                constant = expression.getAttributeName()
-            ),
-            emit        = emit,
-            context     = context
         )
     elif expression.isExpressionBuiltinHasattr():
         generateCAPIObjectCode0(
@@ -1001,6 +988,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("hasattr_value", expression.getLookupSource()),
                 ("hasattr_attr", expression.getAttribute()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1014,6 +1002,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("getattr_attr", expression.getAttribute()),
                 ("getattr_default", expression.getDefault()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             none_null  = True,
             emit       = emit,
@@ -1028,6 +1017,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("setattr_attr", expression.getAttribute()),
                 ("setattr_value", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context,
@@ -1087,6 +1077,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 arg_desc   = (
                     ("int_arg", value),
                 ),
+                may_raise  = expression.mayRaiseException(BaseException),
                 source_ref = expression.getCompatibleSourceReference(),
                 emit       = emit,
                 context    = context,
@@ -1126,6 +1117,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 arg_desc   = (
                     ("long_arg", value),
                 ),
+                may_raise  = expression.mayRaiseException(BaseException),
                 source_ref = expression.getCompatibleSourceReference(),
                 emit       = emit,
                 context    = context
@@ -1201,17 +1193,12 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         needs_ref1 = context.needsCleanup(left_name)
 
         getConditionCheckTrueCode(
-            to_name    = truth_name,
-            value_name = left_name,
-            emit       = emit
+            to_name     = truth_name,
+            value_name  = left_name,
+            needs_check = left_value.mayRaiseExceptionBool(BaseException),
+            emit        = emit,
+            context     = context
         )
-
-        if left_value.mayRaiseExceptionBool(BaseException):
-            getErrorExitBoolCode(
-                condition = "%s == -1" % truth_name,
-                emit      = emit,
-                context   = context
-            )
 
         if expression.isExpressionConditionalOR():
             context.setTrueBranchTarget(true_target)
@@ -1445,6 +1432,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("dir_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1456,6 +1444,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("vars_arg", expression.getSource()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1469,6 +1458,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("open_mode", expression.getMode()),
                 ("open_buffering", expression.getBuffering()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             none_null  = True,
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
@@ -1481,6 +1471,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("range_arg", expression.getLow()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1493,6 +1484,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("range2_low", expression.getLow()),
                 ("range2_high", expression.getHigh()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1506,6 +1498,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("range3_high", expression.getHigh()),
                 ("range3_step", expression.getStep()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1519,6 +1512,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("xrange_high", expression.getHigh()),
                 ("xrange_step", expression.getStep()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context,
@@ -1531,6 +1525,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("float_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1543,6 +1538,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
                 ("real_arg", expression.getReal()),
                 ("imag_arg", expression.getImag())
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             none_null  = True,
             emit       = emit,
@@ -1555,6 +1551,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("bool_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1566,6 +1563,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("chr_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1577,6 +1575,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("ord_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1588,6 +1587,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("bin_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1599,6 +1599,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("oct_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1610,6 +1611,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("hex_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1621,6 +1623,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("len_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1632,6 +1635,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("tuple_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1643,6 +1647,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("list_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1699,6 +1704,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("set_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -1736,6 +1742,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             arg_desc   = (
                 ("bytearray_arg", expression.getValue()),
             ),
+            may_raise  = expression.mayRaiseException(BaseException),
             source_ref = expression.getCompatibleSourceReference(),
             emit       = emit,
             context    = context
@@ -2699,7 +2706,7 @@ def generateAssignmentVariableCode(statement, emit, context):
     getVariableAssignmentCode(
         tmp_name      = tmp_name,
         variable      = variable_ref.getVariable(),
-        needs_release = statement.needsReleaseValue(),
+        needs_release = statement.needsReleasePreviousValue(),
         in_place      = statement.inplace_suspect,
         emit          = emit,
         context       = context
@@ -3369,6 +3376,21 @@ def generateBuiltinIdCode(to_name, expression, emit, context):
         arg_desc   = (
             ("id_arg", expression.getValue()),
         ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+# TODO: Find a proper home for this code
+def generateBuiltinHashCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_HASH",
+        arg_desc   = (
+            ("hash_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
         source_ref = expression.getCompatibleSourceReference(),
         emit       = emit,
         context    = context
@@ -3378,7 +3400,9 @@ def generateBuiltinIdCode(to_name, expression, emit, context):
 Helpers.setExpressionDispatchDict(
     {
         "ATTRIBUTE_LOOKUP"          : generateAttributeLookupCode,
+        "ATTRIBUTE_LOOKUP_SPECIAL"  : generateAttributeLookupSpecialCode,
         "BUILTIN_SLICE"             : generateBuiltinSliceCode,
+        "BUILTIN_HASH"              : generateBuiltinHashCode,
         "BUILTIN_ID"                : generateBuiltinIdCode,
         "CALL_EMPTY"                : generateCallCode,
         "CALL_KEYWORDS_ONLY"        : generateCallCode,

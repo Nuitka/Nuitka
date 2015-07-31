@@ -23,17 +23,17 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    StatementAssignmentAttribute,
-    StatementAssignmentSlice,
-    StatementAssignmentSubscript,
+    ExpressionTargetTempVariableRef,
+    ExpressionTargetVariableRef,
     StatementAssignmentVariable,
-    StatementDelAttribute,
-    StatementDelSlice,
-    StatementDelSubscript,
     StatementDelVariable,
     StatementReleaseVariable
 )
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeLookup,
+    StatementAssignmentAttribute,
+    StatementDelAttribute
+)
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     ExpressionSpecialUnpack,
@@ -45,11 +45,18 @@ from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryInplace
-from nuitka.nodes.SliceNodes import ExpressionSliceLookup, ExpressionSliceObject
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.SliceNodes import (
+    ExpressionSliceLookup,
+    ExpressionSliceObject,
+    StatementAssignmentSlice,
+    StatementDelSlice
+)
+from nuitka.nodes.SubscriptNodes import (
+    ExpressionSubscriptLookup,
+    StatementAssignmentSubscript,
+    StatementDelSubscript
+)
 from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTargetVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )

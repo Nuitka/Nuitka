@@ -115,9 +115,10 @@ class StatementTry(StatementChildrenHavingBase):
         )
 
         abort_context = constraint_collection.makeAbortStackContext(
-            catch_breaks    = break_handler is not None,
-            catch_continues = continue_handler is not None,
-            catch_returns   = return_handler is not None
+            catch_breaks     = break_handler is not None,
+            catch_continues  = continue_handler is not None,
+            catch_returns    = return_handler is not None,
+            catch_exceptions = True,
         )
 
         with abort_context:
@@ -139,6 +140,7 @@ class StatementTry(StatementChildrenHavingBase):
             break_collections = constraint_collection.getLoopBreakCollections()
             continue_collections = constraint_collection.getLoopContinueCollections()
             return_collections = constraint_collection.getFunctionReturnCollections()
+            exception_collections = constraint_collection.getExceptionRaiseCollections()
 
         tried_may_raise = tried.mayRaiseException(BaseException)
         # Exception handling is useless if no exception is to be raised.
@@ -156,7 +158,14 @@ class StatementTry(StatementChildrenHavingBase):
                 name   = "except handler"
             )
 
-            collection_exception_handling.degradePartiallyFromTriedCode(tried)
+            if not exception_collections:
+                for statement in tried.getStatements():
+                    if statement.mayRaiseException(BaseException):
+                        assert False, statement.asXmlText()
+
+                assert False
+
+            collection_exception_handling.mergeMultipleBranches(exception_collections)
 
             if except_handler is not None:
                 result = except_handler.computeStatementsSequence(
@@ -322,8 +331,33 @@ class StatementTry(StatementChildrenHavingBase):
                 source_ref = self.getSourceReference()
             )
 
+            explain = "Reduced scope of tried block."
+
+            if pre_statements:
+                explain += " Leading statements at %s." % (
+                    ','.join(
+                        x.getSourceReference().getAsString() + '/' + str(x)
+                        for x in
+                        pre_statements
+                    )
+                )
+
+            if post_statements:
+                explain += " Trailing statements at %s." % (
+                    ','.join(
+                        x.getSourceReference().getAsString() + '/' + str(x)
+                        for x in
+                        post_statements
+                    )
+                )
+
+
             # TODO: We probably don't want to say this for re-formulation ones.
-            return result, "new_statements", "Reduced scope of tried block."
+            return (
+                result,
+                "new_statements",
+                explain
+            )
 
         return self, None, None
 

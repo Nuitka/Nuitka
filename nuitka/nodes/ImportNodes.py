@@ -224,8 +224,14 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             for found_module in self.found_modules:
                 addUsedModule(found_module)
 
-        # TODO: May return a module reference of some sort in the future with
-        # embedded modules.
+
+        # When a module is recursed to and included, we know it won't raise,
+        # right? But even if you import, that successful import may still raise
+        # and we don't know how to check yet.
+        constraint_collection.onExceptionRaiseExit(
+            BaseException
+        )
+
         return self, None, None
 
 
@@ -314,6 +320,9 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     getLevel = ExpressionChildrenHavingBase.childGetter("level")
 
     def computeExpression(self, constraint_collection):
+        # Importing may raise an exception obviously.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         module_name = self.getImportName()
         fromlist = self.getFromList()
         level = self.getLevel()

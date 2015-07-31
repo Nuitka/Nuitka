@@ -23,7 +23,6 @@ from nuitka import PythonOperators
 
 from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
-    getComputationResult,
     makeComparisonNode,
     makeConstantReplacementNode,
     wrapExpressionWithSideEffects
@@ -85,7 +84,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
             left_value = left.getCompileTimeConstant()
             right_value = right.getCompileTimeConstant()
 
-            return getComputationResult(
+            return constraint_collection.getCompileTimeComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
                     left_value,
@@ -100,6 +99,8 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
 
         # Any code could be run, note that.
         constraint_collection.onControlFlowEscape(self)
+
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 

@@ -25,6 +25,7 @@ from nuitka.utils import Utils
 
 from . import Tracing
 
+
 def indent(elem, level = 0, more_sibs = False):
     i = '\n'
     if level:

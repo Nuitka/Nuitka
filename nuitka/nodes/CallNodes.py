@@ -26,7 +26,6 @@ nodes.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
-from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
 
 class ExpressionCall(ExpressionChildrenHavingBase):
@@ -61,37 +60,10 @@ class ExpressionCall(ExpressionChildrenHavingBase):
     def computeExpression(self, constraint_collection):
         called = self.getCalled()
 
-        if called.willRaiseException(BaseException):
-            return called, "new_raise", "Called expression raises exception"
-
-        args = self.getCallArgs()
-
-        if args.willRaiseException(BaseException):
-            result = wrapExpressionWithSideEffects(
-                side_effects = (called,),
-                old_node     = self,
-                new_node     = args
-            )
-
-            return result, "new_raise", "Call arguments raise exception"
-
-        kw = self.getCallKw()
-
-        if kw.willRaiseException(BaseException):
-            result = wrapExpressionWithSideEffects(
-                side_effects = (called, args),
-                old_node     = self,
-                new_node     = kw
-            )
-
-            return result, "new_raise", "Call keyword arguments raise exception"
-
-        # Any code could be run, note that. TODO: Move this down into the
-        # specific handlers.
-        constraint_collection.onControlFlowEscape(self)
-
         return called.computeExpressionCall(
             call_node             = self,
+            call_args             = self.getCallArgs(),
+            call_kw               = self.getCallKw(),
             constraint_collection = constraint_collection
         )
 
@@ -126,38 +98,20 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
     getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
 
+    def computeExpression(self, constraint_collection):
+        return self.getCalled().computeExpressionCall(
+            call_node             = self,
+            call_args             = self.getCallArgs(),
+            call_kw               = None,
+            constraint_collection = constraint_collection
+        )
+
     @staticmethod
     def getCallKw():
         return None
 
     def isExpressionCall(self):
         return True
-
-    def computeExpression(self, constraint_collection):
-        called = self.getCalled()
-
-        if called.willRaiseException(BaseException):
-            return called, "new_raise", "Called expression raises exception"
-
-        args = self.getCallArgs()
-
-        if args.willRaiseException(BaseException):
-            result = wrapExpressionWithSideEffects(
-                side_effects = (called,),
-                old_node     = self,
-                new_node     = args
-            )
-
-            return result, "new_raise", "Call arguments raise exception"
-
-        # Any code could be run, note that. TODO: Move this down into the
-        # specific handlers.
-        constraint_collection.onControlFlowEscape(self)
-
-        return called.computeExpressionCall(
-            call_node             = self,
-            constraint_collection = constraint_collection
-        )
 
     def extractPreCallSideEffects(self):
         args = self.getCallArgs()
@@ -189,38 +143,22 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
     getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
 
+    def computeExpression(self, constraint_collection):
+        called = self.getCalled()
+
+        return called.computeExpressionCall(
+            call_node             = self,
+            call_args             = None,
+            call_kw               = self.getCallKw(),
+            constraint_collection = constraint_collection
+        )
+
     @staticmethod
     def getCallArgs():
         return None
 
     def isExpressionCall(self):
         return True
-
-    def computeExpression(self, constraint_collection):
-        called = self.getCalled()
-
-        if called.willRaiseException(BaseException):
-            return called, "new_raise", "Called expression raises exception"
-
-        kw = self.getCallKw()
-
-        if kw.willRaiseException(BaseException):
-            result = wrapExpressionWithSideEffects(
-                side_effects = (called,),
-                old_node     = self,
-                new_node     = kw
-            )
-
-            return result, "new_raise", "Call keyword arguments raise exception"
-
-        # Any code could be run, note that. TODO: Move this down into the
-        # specific handlers.
-        constraint_collection.onControlFlowEscape(self)
-
-        return called.computeExpressionCall(
-            call_node             = self,
-            constraint_collection = constraint_collection
-        )
 
     def extractPreCallSideEffects(self):
         kw = self.getCallKw()
@@ -248,6 +186,17 @@ class ExpressionCallEmpty(ExpressionChildrenHavingBase):
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
 
+    def computeExpression(self, constraint_collection):
+        called = self.getCalled()
+
+        return called.computeExpressionCall(
+            call_node             = self,
+            call_args             = None,
+            call_kw               = None,
+            constraint_collection = constraint_collection
+        )
+
+
     @staticmethod
     def getCallKw():
         return None
@@ -258,21 +207,6 @@ class ExpressionCallEmpty(ExpressionChildrenHavingBase):
 
     def isExpressionCall(self):
         return True
-
-    def computeExpression(self, constraint_collection):
-        called = self.getCalled()
-
-        if called.willRaiseException(BaseException):
-            return called, "new_raise", "Called expression raises exception"
-
-        # Any code could be run, note that. TODO: Move this down into the
-        # specific handlers.
-        constraint_collection.onControlFlowEscape(self)
-
-        return called.computeExpressionCall(
-            call_node             = self,
-            constraint_collection = constraint_collection
-        )
 
     @staticmethod
     def extractPreCallSideEffects():

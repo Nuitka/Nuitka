@@ -32,9 +32,7 @@ from .NodeBases import (
 )
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
-    makeStatementOnlyNodesFromExpressions,
-    wrapExpressionWithNodeSideEffects,
-    wrapExpressionWithSideEffects
+    makeStatementOnlyNodesFromExpressions
 )
 
 
@@ -68,22 +66,21 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
     getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, constraint_collection):
-        sub_expressions = self.getVisitableNodes()
+        key = self.getKey()
 
-        if sub_expressions[0].willRaiseException(BaseException):
-            child_name = sub_expressions[0].getChildName()
+        hashable = key.isKnownToBeHashable()
 
-            return sub_expressions[0], "new_raise", "Dictionary %s raises exception" % child_name
-
-        if sub_expressions[1].willRaiseException(BaseException):
-            child_name = sub_expressions[1].getChildName()
-
-            result = wrapExpressionWithNodeSideEffects(
-                new_node = sub_expressions[1],
-                old_node = sub_expressions[0]
+        # If not known to be hashable, that can raise an exception.
+        if not hashable:
+            constraint_collection.onExceptionRaiseExit(
+                TypeError
             )
 
-            return result, "new_raise", "Dictionary %s raises exception" % child_name
+        if hashable is False:
+            # TODO: If it's not hashable, we should turn it into a raise, it's
+            # just difficult to predict the exception value precisely, as it
+            # could be e.g. (2, []), and should then complain about the list.
+            pass
 
         return self, None, None
 
@@ -123,18 +120,6 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
 
     def computeExpression(self, constraint_collection):
         pairs = self.getPairs()
-
-        for count, pair in enumerate(pairs):
-            if pair.willRaiseException(BaseException):
-                # Later elements have no side effects after the element that
-                # raised the exception.
-                result = wrapExpressionWithSideEffects(
-                    side_effects = pairs[:count],
-                    new_node     = pair,
-                    old_node     = self
-                )
-
-                return result, "new_raise", "Dict creation raises exception"
 
         for pair in pairs:
             key = pair.getKey()

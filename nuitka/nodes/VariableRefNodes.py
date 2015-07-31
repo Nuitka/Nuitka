@@ -102,13 +102,22 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         replacement = self.variable_trace.getReplacementNode(self)
 
         if replacement is not None:
-            return (
-                replacement,
+            constraint_collection.signalChange(
                 "new_expression",
+                self.source_ref,
                 "Value propagated for '%s' from '%s'." % (
                     self.variable.getName(),
                     replacement.getSourceReference().getAsString()
                 )
+            )
+
+            # Need to compute the replacement still.
+            return replacement.computeExpression(constraint_collection)
+
+        if not self.variable_trace.mustHaveValue():
+            # TODO: This could be way more specific surely.
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
             )
 
         self.global_trace = VariableRegistry.getGlobalVariableTrace(variable)
@@ -178,7 +187,13 @@ Replaced read-only module attribute '__package__' with constant value."""
 
         return self, None, None
 
-    def computeExpressionCall(self, call_node, constraint_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              constraint_collection):
+
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        constraint_collection.onControlFlowEscape(self)
+
         if self.global_trace is None and \
            self.variable_name in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
            self.variable.isModuleVariable():
@@ -272,75 +287,3 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
     # Python3 only, it updates temporary variables that are closure variables.
     def setVariable(self, variable):
         self.variable = variable
-
-
-class ExpressionTargetVariableRef(ExpressionVariableRef):
-    kind = "EXPRESSION_TARGET_VARIABLE_REF"
-
-    # TODO: Remove default and correct argument order later.
-    def __init__(self, variable_name, source_ref, variable = None):
-        ExpressionVariableRef.__init__(self, variable_name, source_ref)
-
-        self.variable_version = None
-
-        # TODO: Remove setVariable, once not needed anymore and in-line to
-        # here.
-        if variable is not None:
-            self.setVariable(variable)
-            assert variable.getName() == variable_name
-
-    def getDetailsForDisplay(self):
-        if self.variable is None:
-            return {
-                "name" : self.variable_name
-            }
-        else:
-            return {
-                "name"     : self.variable_name,
-                "variable" : self.variable,
-                "version"  : self.variable_version
-            }
-
-
-    def computeExpression(self, constraint_collection):
-        assert False
-
-    @staticmethod
-    def isTargetVariableRef():
-        return True
-
-    def getVariableVersion(self):
-        assert self.variable_version is not None, self
-
-        return self.variable_version
-
-    def setVariable(self, variable):
-        ExpressionVariableRef.setVariable(self, variable)
-
-        self.variable_version = variable.allocateTargetNumber()
-        assert self.variable_version is not None
-
-
-class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
-    kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
-
-    def __init__(self, variable, source_ref):
-        ExpressionTempVariableRef.__init__(self, variable, source_ref)
-
-        self.variable_version = variable.allocateTargetNumber()
-
-    def computeExpression(self, constraint_collection):
-        assert False, self.parent
-
-    @staticmethod
-    def isTargetVariableRef():
-        return True
-
-    def getVariableVersion(self):
-        return self.variable_version
-
-    # Python3 only, it updates temporary variables that are closure variables.
-    def setVariable(self, variable):
-        ExpressionTempVariableRef.setVariable(self, variable)
-
-        self.variable_version = self.variable.allocateTargetNumber()

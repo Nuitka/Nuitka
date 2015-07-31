@@ -380,6 +380,22 @@ PyObject *BUILTIN_HEX( PyObject *value )
 #endif
 }
 
+PyObject *BUILTIN_HASH( PyObject *value )
+{
+    Py_hash_t hash = PyObject_Hash( value );
+
+    if (unlikely( hash == -1 ))
+    {
+        return NULL;
+    }
+
+#if PYTHON_VERSION < 300
+    return PyInt_FromLong( hash );
+#else
+    return PyLong_FromSsize_t( hash );
+#endif
+}
+
 PyObject *BUILTIN_BYTEARRAY( PyObject *value )
 {
     PyObject *result = PyByteArray_FromObject( value );

@@ -447,7 +447,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         else:
             return "copy"
 
-    def computeExpressionCall(self, call_node, constraint_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              constraint_collection):
         # TODO: Until we have something to re-order the arguments, we need to
         # skip this. For the immediate need, we avoid this complexity, as a
         # re-ordering will be needed.
@@ -602,17 +603,20 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
         return False
 
-    def computeExpressionCall(self, call_node, constraint_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              constraint_collection):
+
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         # TODO: Until we have something to re-order the keyword arguments, we
         # need to skip this. For the immediate need, we avoid this complexity,
         # as a re-ordering will be needed.
-        call_kw = call_node.getCallKw()
-
-        # TODO: empty constant can happen too
-        if call_kw is not None:
+        if call_kw is not None and \
+           (not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}):
             return call_node, None, None
 
-        call_args = call_node.getCallArgs()
+        if call_kw is not None:
+            return call_node, None, None
 
         if call_args is None:
             args_tuple = ()
@@ -823,25 +827,13 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     def computeExpression(self, constraint_collection):
         function = self.getFunction()
 
-        if function.willRaiseException(BaseException):
-            # TODO: Seriously, how could it be. We need to get defaults and
-            # annotations out of the picture, then this cannot happen.
-            return function, "new_raise", "Called function is a raise."
-
         values = self.getArgumentValues()
-
-        for count, value in enumerate(values):
-            if value.willRaiseException(BaseException):
-                result = wrapExpressionWithSideEffects(
-                    side_effects = [function] + list(values[:count]),
-                    new_node     = value,
-                    old_node     = self
-                )
-
-                return result, "new_raise", "Called function arguments raise."
 
         # TODO: This needs some design.
         cost = function.getCallCost(values)
+
+        if function.getFunctionRef().getFunctionBody().mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
 
         if cost is not None and cost < 50:
             result = function.createOutlineFromCall(
@@ -849,7 +841,7 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
                 values   = values
             )
 
-            return result, "new_statements", "Function call inlined."
+            return result, "new_statements", "Function call in-lined."
 
         return self, None, None
 

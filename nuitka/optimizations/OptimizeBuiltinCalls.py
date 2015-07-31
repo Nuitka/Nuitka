@@ -25,6 +25,8 @@ from logging import warning
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.nodes.AssignNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementDelVariable
 )
@@ -46,6 +48,7 @@ from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinId,
     ExpressionBuiltinOct
 )
+from nuitka.nodes.BuiltinHashNodes import ExpressionBuiltinHash
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     ExpressionBuiltinIter2,
@@ -113,11 +116,7 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinSuper,
     ExpressionBuiltinType1
 )
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
-    ExpressionVariableRef
-)
+from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import isDebug, shallMakeModule
 from nuitka.tree.Helpers import (
     makeStatementsSequence,
@@ -170,6 +169,7 @@ def dir_extractor(node):
         empty_special_class = buildDirEmptyCase
     )
 
+
 def vars_extractor(node):
     def selectVarsEmptyClass(source_ref):
         if node.getParentVariableProvider().isPythonModule():
@@ -188,12 +188,14 @@ def vars_extractor(node):
         empty_special_class = selectVarsEmptyClass
     )
 
+
 def import_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinImport,
         builtin_spec  = BuiltinOptimization.builtin_import_spec
     )
+
 
 def type_extractor(node):
     args = node.getCallArgs()
@@ -998,6 +1000,13 @@ def slice_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_slice_spec
     )
 
+def hash_extractor(node):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = ExpressionBuiltinHash,
+        builtin_spec  = BuiltinOptimization.builtin_hash_spec
+    )
+
 
 _dispatch_dict = {
     "compile"    : compile_extractor,
@@ -1035,7 +1044,8 @@ _dispatch_dict = {
     "isinstance" : isinstance_extractor,
     # TODO: Disabled for now, not handling all cases.
     # "bytearray"  : bytearray_extractor,
-    "slice"      : slice_extractor
+    "slice"      : slice_extractor,
+    "hash"       : hash_extractor
 }
 
 if python_version < 300:

@@ -54,3 +54,6 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
         # Note: Quite impossible to predict the pointer value or anything, but
         # we know the result will be a long.
         return self, None, None
+
+    def getIntValue(self):
+        return self

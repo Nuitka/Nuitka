@@ -277,6 +277,8 @@ builtin_bytearray_spec = BuiltinParameterSpecNoKeywords("bytearray", ("iterable_
 # Beware: One argument defines stop, not start.
 builtin_slice_spec = BuiltinParameterSpecNoKeywords("slice", ("start", "stop", "step"), 2)
 
+builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), 0)
+
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def __init__(self, *args):
         BuiltinParameterSpecNoKeywords.__init__(self, *args)

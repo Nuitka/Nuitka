@@ -24,12 +24,14 @@ source code comments with developer manual sections.
 
 from nuitka import Options
 from nuitka.nodes.AssignNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
-    ExpressionSpecialAttributeLookup
+    ExpressionAttributeLookupSpecial
 )
 from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
@@ -44,10 +46,6 @@ from nuitka.nodes.ExceptionNodes import (
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
-)
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
 )
 from nuitka.tree.Helpers import makeReraiseExceptionStatement
 from nuitka.utils import Utils
@@ -123,7 +121,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
     if Utils.python_version < 270:
         attribute_lookup_class = ExpressionAttributeLookup
     else:
-        attribute_lookup_class = ExpressionSpecialAttributeLookup
+        attribute_lookup_class = ExpressionAttributeLookupSpecial
 
     statements = [
         # First assign the with context to a temporary variable.

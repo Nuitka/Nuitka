@@ -28,8 +28,8 @@ from .ErrorCodes import (
 )
 
 
-def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, ref_count, source_ref,
-                                 emit, context, none_null = False):
+def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, may_raise, ref_count,
+                                 source_ref, emit, context, none_null = False):
     arg_names = []
 
     # TODO: This will move to Helpers module, but not yet done.
@@ -56,18 +56,20 @@ def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, ref_count, source_ref,
         to_name   = to_name,
         capi      = capi,
         arg_names = arg_names,
+        may_raise = may_raise,
         ref_count = ref_count,
         emit      = emit,
         context   = context
     )
 
 
-def generateCAPIObjectCode(to_name, capi, arg_desc, source_ref, emit, context,
-                           none_null = False):
+def generateCAPIObjectCode(to_name, capi, arg_desc, may_raise, source_ref, emit,
+                           context, none_null = False):
     generateCAPIObjectCodeCommon(
         to_name    = to_name,
         capi       = capi,
         arg_desc   = arg_desc,
+        may_raise  = may_raise,
         ref_count  = 1,
         source_ref = source_ref,
         emit       = emit,
@@ -76,12 +78,13 @@ def generateCAPIObjectCode(to_name, capi, arg_desc, source_ref, emit, context,
     )
 
 
-def generateCAPIObjectCode0(to_name, capi, arg_desc, source_ref, emit, context,
-                            none_null = False):
+def generateCAPIObjectCode0(to_name, capi, arg_desc, may_raise, source_ref,
+                            emit, context, none_null = False):
     generateCAPIObjectCodeCommon(
         to_name    = to_name,
         capi       = capi,
         arg_desc   = arg_desc,
+        may_raise  = may_raise,
         ref_count  = 0,
         source_ref = source_ref,
         emit       = emit,
@@ -90,7 +93,8 @@ def generateCAPIObjectCode0(to_name, capi, arg_desc, source_ref, emit, context,
     )
 
 
-def getCAPIObjectCode(to_name, capi, arg_names, ref_count, emit, context):
+def getCAPIObjectCode(to_name, capi, arg_names, may_raise, ref_count, emit,
+                      context):
     emit(
         "%s = %s( %s );" % (
             to_name,
@@ -111,9 +115,10 @@ def getCAPIObjectCode(to_name, capi, arg_names, ref_count, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
+        check_name  = to_name,
+        needs_check = may_raise,
+        emit        = emit,
+        context     = context
     )
 
     if ref_count:

@@ -175,6 +175,11 @@ class StatementExec(StatementChildrenHavingBase):
         )
         source_code = self.getSourceCode()
 
+        if source_code.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
+
         if source_code.willRaiseException(BaseException):
             result = source_code
 
@@ -190,6 +195,11 @@ Exec statement raises implicitly when determining source code argument."""
             allow_none = True
         )
         globals_arg = self.getGlobals()
+
+        if globals_arg is not None and globals_arg.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
 
         if globals_arg is not None and \
            globals_arg.willRaiseException(BaseException):
@@ -213,6 +223,11 @@ Exec statement raises implicitly when determining globals argument."""
         )
         locals_arg = self.getLocals()
 
+        if locals_arg is not None and locals_arg.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
+
         if locals_arg is not None and \
            locals_arg.willRaiseException(BaseException):
             result = makeStatementOnlyNodesFromExpressions(
@@ -230,10 +245,15 @@ Exec statement raises implicitly when determining globals argument."""
 Exec statement raises implicitly when determining locals argument."""
             )
 
+        constraint_collection.onExceptionRaiseExit(
+            BaseException
+        )
+
         str_value = self.getSourceCode().getStrValue()
 
         if False and str_value is not None:
-            # TODO: Don't forget to consider side effects of source code.
+            # TODO: Don't forget to consider side effects of source code,
+            # locals_arg, and globals_arg.
 
             # TODO: This needs to be re-done.
             exec_body = None
@@ -313,5 +333,7 @@ class ExpressionBuiltinCompile(ExpressionChildrenHavingBase):
     getOptimize = ExpressionChildrenHavingBase.childGetter("optimize")
 
     def computeExpression(self, constraint_collection):
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         # TODO: Attempt for constant values to do it.
         return self, None, None

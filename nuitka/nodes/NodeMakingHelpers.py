@@ -32,18 +32,10 @@ from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.Options import isDebug, shallWarnImplicitRaises
 
-from .ConstantRefNodes import ExpressionConstantRef
-from .SideEffectNodes import ExpressionSideEffects
-from .StatementNodes import StatementExpressionOnly, StatementsSequence
-from .VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTargetVariableRef,
-    ExpressionTempVariableRef,
-    ExpressionVariableRef
-)
-
 
 def makeConstantReplacementNode(constant, node):
+    from .ConstantRefNodes import ExpressionConstantRef
+
     return ExpressionConstantRef(
         constant   = constant,
         source_ref = node.getSourceReference()
@@ -80,6 +72,7 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
 
     return result
 
+
 def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
     assert isinstance(exception, Exception)
 
@@ -95,17 +88,6 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
         exception_type  = exception.__class__.__name__,
         exception_value = value
     )
-
-
-# TODO: How is this helping to make nodes.
-def isCompileTimeConstantValue(value):
-    # This needs to match code in makeCompileTimeConstantReplacementNode
-    if isConstant(value):
-        return True
-    elif type(value) is type:
-        return True
-    else:
-        return False
 
 
 def makeCompileTimeConstantReplacementNode(value, node):
@@ -165,6 +147,8 @@ def getComputationResult(node, computation, description):
 
 
 def makeStatementExpressionOnlyReplacementNode(expression, node):
+    from .StatementNodes import StatementExpressionOnly
+
     return StatementExpressionOnly(
         expression = expression,
         source_ref = node.getSourceReference()
@@ -191,6 +175,8 @@ def mergeStatements(statements, allow_none = False):
 
 
 def makeStatementsSequenceReplacementNode(statements, node):
+    from .StatementNodes import StatementsSequence
+
     return StatementsSequence(
         statements = mergeStatements(statements),
         source_ref = node.getSourceReference()
@@ -206,6 +192,8 @@ def convertNoneConstantToNone(node):
 
 def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
     assert new_node.isExpression()
+
+    from .SideEffectNodes import ExpressionSideEffects
 
     if side_effects:
         new_node = ExpressionSideEffects(
@@ -229,6 +217,8 @@ def wrapStatementWithSideEffects(new_node, old_node, allow_none = False):
     side_effects = old_node.extractSideEffects()
 
     if side_effects:
+        from .StatementNodes import StatementExpressionOnly
+
         side_effects = tuple(
             StatementExpressionOnly(
                 expression = side_effect,
@@ -251,6 +241,8 @@ def wrapStatementWithSideEffects(new_node, old_node, allow_none = False):
     return new_node
 
 def makeStatementOnlyNodesFromExpressions(expressions):
+    from .StatementNodes import StatementExpressionOnly, StatementsSequence
+
     statements = tuple(
         StatementExpressionOnly(
             expression = expression,
@@ -306,11 +298,15 @@ def makeComparisonNode(left, right, comparator, source_ref):
 
 def makeVariableRefNode(variable, source_ref):
     if variable.isTempVariable():
+        from .VariableRefNodes import ExpressionTempVariableRef
+
         return ExpressionTempVariableRef(
             variable   = variable,
             source_ref = source_ref
         )
     else:
+        from .VariableRefNodes import ExpressionVariableRef
+
         return ExpressionVariableRef(
             variable_name = variable.getName(),
             variable      = variable,
@@ -320,11 +316,15 @@ def makeVariableRefNode(variable, source_ref):
 
 def makeVariableTargetRefNode(variable, source_ref):
     if variable.isTempVariable():
+        from .AssignNodes import ExpressionTargetTempVariableRef
+
         return ExpressionTargetTempVariableRef(
             variable   = variable,
             source_ref = source_ref
         )
     else:
+        from .AssignNodes import ExpressionTargetVariableRef
+
         return ExpressionTargetVariableRef(
             variable_name = variable.getName(),
             variable      = variable,

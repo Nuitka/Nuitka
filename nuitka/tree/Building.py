@@ -57,7 +57,10 @@ from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    ExpressionTargetVariableRef,
+    StatementAssignmentVariable
+)
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
@@ -83,10 +86,7 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetVariableRef,
-    ExpressionVariableRef
-)
+from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
 

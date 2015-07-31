@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Node the calls to the 'dict' builtin.
+""" Node for the calls to the 'dict' built-in.
 
 """
 
@@ -27,6 +27,7 @@ from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 from nuitka.utils.Utils import python_version
 
+from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
@@ -106,9 +107,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             else:
                 pos_args = None
 
-            from .NodeMakingHelpers import getComputationResult
-
-            return getComputationResult(
+            return constraint_collection.getCompileTimeComputationResult(
                 node        = self,
                 computation = lambda : builtin_dict_spec.simulateCall(
                     (pos_args, self.getNamedArgumentPairs())
@@ -121,6 +120,9 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 lazy_order = False,
                 source_ref = self.source_ref
             )
+
+            # This cannot raise anymore than its arguments, as the keys will
+            # be known as hashable, due to being Python parameters before.
 
             return (
                 new_node,
@@ -136,9 +138,16 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
 
             # Maintain potential side effects from the positional arguments.
             new_node = wrapExpressionWithNodeSideEffects(
-                old_node = pos_arg,
+                old_node = ExpressionBuiltinIter1(
+                    value      = pos_arg,
+                    source_ref = self.source_ref
+                ),
                 new_node = new_node
             )
+
+            # Just in case, the iteration may do that.
+            if pos_arg.mayRaiseExceptionIter(BaseException):
+                constraint_collection.onExceptionRaiseExit(BaseException)
 
             return (
                 new_node,
@@ -146,6 +155,8 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 "Replace 'dict' built-in call dictionary creation from arguments."
             )
         else:
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
             return self, None, None
 
     def mayRaiseException(self, exception_type):

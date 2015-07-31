@@ -349,7 +349,7 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
 
     assert len(keys) == len(values)
     for key, value in zip(keys, values):
-        if not key.isExpressionConstantRef():
+        if not key.isExpressionConstantRef() or not key.isKnownToBeHashable():
             constant = False
             break
 

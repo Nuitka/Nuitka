@@ -32,7 +32,7 @@ from .LabelCodes import getBranchingCode
 
 
 def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
-                                emit, context):
+                                needs_check, emit, context):
     if comparator in OperatorCodes.normal_comparison_codes:
         helper = OperatorCodes.normal_comparison_codes[ comparator ]
         assert helper.startswith("SEQUENCE_CONTAINS")
@@ -46,12 +46,6 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
             )
         )
 
-        getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
-        )
-
         getReleaseCode(
             release_name = left_name,
             emit         = emit,
@@ -61,6 +55,13 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
             release_name = right_name,
             emit         = emit,
             context      = context
+        )
+
+        getErrorExitCode(
+            check_name  = to_name,
+            needs_check = needs_check,
+            emit        = emit,
+            context     = context
         )
     elif comparator in OperatorCodes.rich_comparison_codes:
         helper = "RICH_COMPARE_%s" % (
@@ -86,9 +87,10 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
         )
 
         getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
+            check_name  = to_name,
+            needs_check = needs_check,
+            emit        = emit,
+            context     = context
         )
 
         context.addCleanupTempName(to_name)
@@ -135,9 +137,10 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
         )
 
         getErrorExitBoolCode(
-            condition = "%s == -1" % operator_res_name,
-            emit      = emit,
-            context   = context
+            condition   = "%s == -1" % operator_res_name,
+            needs_check = needs_check,
+            emit        = emit,
+            context     = context
         )
 
         emit(
@@ -150,8 +153,8 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
         assert False, comparator
 
 
-def getComparisonExpressionBoolCode(comparator, left_name, right_name, emit,
-                                    context):
+def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_check,
+                                    emit, context):
     if comparator in OperatorCodes.normal_comparison_codes:
         operator_res_name = context.allocateTempName("cmp_" + comparator, "int")
 
@@ -164,9 +167,10 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, emit,
         )
 
         getErrorExitBoolCode(
-            condition = "%s == -1" % operator_res_name,
-            emit      = emit,
-            context   = context
+            condition   = "%s == -1" % operator_res_name,
+            emit        = emit,
+            needs_check = needs_check,
+            context     = context
         )
 
         condition = "%s == %d" % (
@@ -190,9 +194,10 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, emit,
         )
 
         getErrorExitBoolCode(
-            condition = "%s == -1" % operator_res_name,
-            emit      = emit,
-            context   = context
+            condition   = "%s == -1" % operator_res_name,
+            needs_check = needs_check,
+            emit        = emit,
+            context     = context
         )
 
         condition = "%s == 1" % (
@@ -234,9 +239,10 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, emit,
         )
 
         getErrorExitBoolCode(
-            condition = "%s == -1" % operator_res_name,
-            emit      = emit,
-            context   = context
+            condition   = "%s == -1" % operator_res_name,
+            needs_check = needs_check,
+            emit        = emit,
+            context     = context
         )
 
         condition = "%s == 1" % (

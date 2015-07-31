@@ -17,26 +17,43 @@
 #
 """ Assignment related nodes.
 
-All kinds of assignment targets as well as the assignment statement and
-expression are located here. These are the core of value control flow.
+The most simple assignment statement ``a = b`` is what we have here. All others
+are either re-formulated using temporary variables, e.g. ``a, b = c`` or are
+attribute, slice, subscript assignments.
 
-Note: Currently there is also assignment to keeper nodes in KeeperNodes,
-that should be unified at some point.
+The deletion is a separate node unlike in CPython where assigning to ``NULL`` is
+internally what deletion is. But deleting is something entirely different to us
+during code generation, which is why we keep them separate.
+
+Tracing assignments in SSA form is the core of optimization for which we use
+the traces.
 
 """
 
 from nuitka import Options, VariableRegistry
-from nuitka.utils import Utils
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
-    makeStatementOnlyNodesFromExpressions,
     makeStatementsSequenceReplacementNode
 )
+from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
 
 
 class StatementAssignmentVariable(StatementChildrenHavingBase):
+    """ Assignment to a variable from an expression.
+
+        All assignment forms that are not to attributes, slices, subscripts
+        use this.
+
+        The source might be a complex expression. The target can be any kind
+        of variable, temporary, local, global, etc.
+
+        Assigning a variable is something we trace in a new version, this is
+        hidden behind target variable reference, which has this version once
+        it can be determined.
+    """
+
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
     named_children = (
@@ -95,16 +112,15 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         # This is very complex stuff, pylint: disable=R0912
 
         # TODO: Way too ugly to have global trace kinds just here, and needs to
-        # be abstracted somehow. But for now we let it live here: pylint: disable=R0911,R0915
+        # be abstracted somehow. But for now we let it live here: pylint: disable=R0915
 
-        # Assignment source may re-compute here:
+        # Let assignment source may re-compute first.
         constraint_collection.onExpression(self.getAssignSource())
         source = self.getAssignSource()
 
-        # No assignment will occur, if the assignment source raises, so strip it
-        # away.
+        # No assignment will occur, if the assignment source raises, so give up
+        # on this, and return it as the only side effect.
         if source.willRaiseException(BaseException):
-
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
                 node       = self
@@ -122,6 +138,11 @@ Assignment raises exception in assigned value, removed assignment."""
         # Assigning from and to the same variable, can be optimized away
         # immediately, there is no point in doing it. Exceptions are of course
         # module variables that collide with built-in names.
+
+        # TODO: The variable type checks ought to become unnecessary, as they
+        # are to be a feature of the trace. Assigning from known assigned is
+        # supposed to be possible to eliminate. If we get that wrong, we are
+        # doing it wrong.
         if not variable.isModuleVariable() and \
              source.isExpressionVariableRef() and \
              source.getVariable() == variable:
@@ -136,7 +157,7 @@ Assignment raises exception in assigned value, removed assignment."""
                 )
 
                 return result, "new_statements", """\
-Reduced assignment of variable from itself to access of it."""
+Reduced assignment of variable from itself to mere access of it."""
             else:
                 return None, "new_statements", """\
 Removed assignment of variable from itself which is known to be defined."""
@@ -167,8 +188,12 @@ Removed assignment of variable from itself which is known to be defined."""
             self.setAssignSource(source.getExpression())
             source = self.getAssignSource()
 
-            return result, "new_statements", """\
-Side effects of assignments promoted to statements."""
+            constraint_collection.signalChange(
+                tags       = "new_statements",
+                message    = """\
+Side effects of assignments promoted to statements.""",
+                source_ref = self.getSourceReference()
+            )
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
@@ -282,7 +307,7 @@ Side effects of assignments promoted to statements."""
 
         return self, None, None
 
-    def needsReleaseValue(self):
+    def needsReleasePreviousValue(self):
         previous = self.variable_trace.getPrevious()
 
         if previous.mustNotHaveValue():
@@ -293,255 +318,21 @@ Side effects of assignments promoted to statements."""
             return None
 
 
-class StatementAssignmentAttribute(StatementChildrenHavingBase):
-    kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
-
-    named_children = (
-        "source",
-        "expression"
-    )
-
-    def __init__(self, expression, attribute_name, source, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "expression" : expression,
-                "source"     : source,
-            },
-            source_ref = source_ref
-        )
-
-        self.attribute_name = attribute_name
-
-    def getDetails(self):
-        return {
-            "attribute_name" : self.attribute_name
-        }
-
-    def getDetail(self):
-        return "to attribute %s" % self.attribute_name
-
-    def getAttributeName(self):
-        return self.attribute_name
-
-    def setAttributeName(self, attribute_name):
-        self.attribute_name = attribute_name
-
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
-    getAssignSource = StatementChildrenHavingBase.childGetter("source")
-
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getAssignSource())
-        source = self.getAssignSource()
-
-        # No assignment will occur, if the assignment source raises, so strip it
-        # away.
-        if source.willRaiseException(BaseException):
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = source,
-                node       = self
-            )
-
-            return result, "new_raise", """\
-Attribute assignment raises exception in assigned value, removed assignment."""
-
-        constraint_collection.onExpression(self.getLookupSource())
-        lookup_source = self.getLookupSource()
-
-        if lookup_source.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    source,
-                    lookup_source
-                )
-            )
-
-            return result, "new_raise", """\
-Attribute assignment raises exception in source, removed assignment."""
-
-        # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
-
-        return self, None, None
-
-
-class StatementAssignmentSubscript(StatementChildrenHavingBase):
-    kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
-
-    named_children = (
-        "source",
-        "expression",
-        "subscript"
-    )
-
-    def __init__(self, expression, subscript, source, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "source"     : source,
-                "expression" : expression,
-                "subscript"  : subscript
-            },
-            source_ref = source_ref
-        )
-
-    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
-    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
-    getAssignSource = StatementChildrenHavingBase.childGetter("source")
-
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(
-            expression = self.getAssignSource()
-        )
-        source = self.getAssignSource()
-
-        # No assignment will occur, if the assignment source raises, so strip it
-        # away.
-        if source.willRaiseException(BaseException):
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = source,
-                node       = self
-            )
-
-            return result, "new_raise", """\
-Subscript assignment raises exception in assigned value, removed assignment."""
-
-        constraint_collection.onExpression(self.getSubscribed())
-        subscribed = self.getSubscribed()
-
-        if subscribed.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    source,
-                    subscribed
-                )
-            )
-
-            return result, "new_raise", """\
-Subscript assignment raises exception in subscribed, removed assignment."""
-
-        constraint_collection.onExpression(
-            self.getSubscript()
-        )
-        subscript = self.getSubscript()
-
-        if subscript.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    source,
-                    subscribed,
-                    subscript
-                )
-            )
-
-            return result, "new_raise", """
-Subscript assignment raises exception in subscript value, removed \
-assignment."""
-
-        # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
-
-        return self, None, None
-
-
-class StatementAssignmentSlice(StatementChildrenHavingBase):
-    kind = "STATEMENT_ASSIGNMENT_SLICE"
-
-    named_children = (
-        "source",
-        "expression",
-        "lower",
-        "upper"
-    )
-
-    def __init__(self, expression, lower, upper, source, source_ref):
-        assert Utils.python_version < 300
-
-        StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "source"     : source,
-                "expression" : expression,
-                "lower"      : lower,
-                "upper"      : upper
-            },
-            source_ref = source_ref
-        )
-
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
-    getLower = StatementChildrenHavingBase.childGetter("lower")
-    getUpper = StatementChildrenHavingBase.childGetter("upper")
-    getAssignSource = StatementChildrenHavingBase.childGetter("source")
-
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getAssignSource())
-        source = self.getAssignSource()
-
-        # No assignment will occur, if the assignment source raises, so strip it
-        # away.
-        if source.willRaiseException(BaseException):
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = source,
-                node       = self
-            )
-
-            return result, "new_raise", """\
-Slice assignment raises exception in assigned value, removed assignment."""
-
-        constraint_collection.onExpression(self.getLookupSource())
-        lookup_source = self.getLookupSource()
-
-        if lookup_source.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    source,
-                    lookup_source
-                )
-            )
-
-            return result, "new_raise", """\
-Slice assignment raises exception in sliced value, removed assignment."""
-
-        constraint_collection.onExpression(self.getLower(), allow_none = True)
-        lower = self.getLower()
-
-        if lower is not None and lower.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    source,
-                    lookup_source,
-                    lower
-                )
-            )
-
-            return result, "new_raise", """\
-Slice assignment raises exception in lower slice boundary value, removed \
-assignment."""
-
-        constraint_collection.onExpression(self.getUpper(), allow_none = True)
-        upper = self.getUpper()
-
-        if upper is not None and upper.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    source,
-                    lookup_source,
-                    lower,
-                    upper
-                )
-            )
-
-            return result, "new_raise", """\
-Slice assignment raises exception in upper slice boundary value, removed \
-assignment."""
-
-        # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
-
-        return self, None, None
-
-
 class StatementDelVariable(StatementChildrenHavingBase):
+    """ Deleting a variable.
+
+        All del forms that are not to attributes, slices, subscripts
+        use this.
+
+        The target can be any kind of variable, temporary, local, global, etc.
+
+        Deleting a variable is something we trace in a new version, this is
+        hidden behind target variable reference, which has this version once
+        it can be determined.
+
+        Tolerance means that the value might be unset. That can happen with
+        re-formulation of ours, and Python3 exception variables.
+    """
     kind = "STATEMENT_DEL_VARIABLE"
 
     named_children = (
@@ -589,31 +380,42 @@ class StatementDelVariable(StatementChildrenHavingBase):
     )
 
     def computeStatement(self, constraint_collection):
-        self.previous_trace = constraint_collection.onVariableDel(
-            del_node = self
+        variable_ref = self.getTargetVariableRef()
+        variable = variable_ref.getVariable()
+
+        self.previous_trace = constraint_collection.getVariableCurrentTrace(variable)
+
+        # First eliminate us entirely if we can.
+        if self.tolerant and self.previous_trace.isUninitTrace():
+            return (
+                None,
+                "new_statements",
+                "Removed tolerant 'del' statement of '%s' without effect." % (
+                    variable.getName(),
+                )
+            )
+
+        # The "del" is a potential use of a value. TODO: This could be made more
+        # beautiful indication, as it's not any kind of usage.
+        self.previous_trace.addPotentialUsage()
+
+        # If not tolerant, we may exception exit now during the __del__
+        if not self.tolerant and not self.previous_trace.mustHaveValue():
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        # Record the deletion, needs to start a new version then.
+        constraint_collection.onVariableDel(
+            variable_ref = variable_ref
         )
 
-        variable = self.getTargetVariableRef().getVariable()
-
-        if self.isTolerant():
-            if self.previous_trace.isUninitTrace():
-                return (
-                    None,
-                    "new_statements",
-                    "Removed tolerant 'del' statement of '%s' without effect." % (
-                        variable.getName(),
-                    )
-                )
-
+        constraint_collection.onVariableContentEscapes(variable)
 
         # Any code could be run, note that.
         constraint_collection.onControlFlowEscape(self)
 
         # Need to fetch the potentially invalidated variable. A "del" on a
         # or shared value, may easily assign the global variable in "__del__".
-        self.variable_trace = constraint_collection.getVariableCurrentTrace(
-            variable = variable
-        )
+        self.variable_trace = constraint_collection.getVariableCurrentTrace(variable)
 
         return self, None, None
 
@@ -646,6 +448,12 @@ class StatementDelVariable(StatementChildrenHavingBase):
 
 
 class StatementReleaseVariable(NodeBase):
+    """ Releasing a variable.
+
+        Just release the value, which of course is not to be used afterwards.
+
+        Typical code: Function exit.
+    """
     kind = "STATEMENT_RELEASE_VARIABLE"
 
     def __init__(self, variable, source_ref):
@@ -700,6 +508,11 @@ class StatementReleaseVariable(NodeBase):
                 )
             )
 
+        constraint_collection.onVariableContentEscapes(self.variable)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
         # TODO: We might be able to remove ourselves based on the trace
         # we belong to.
 
@@ -715,178 +528,73 @@ class StatementReleaseVariable(NodeBase):
         return False
 
 
-class StatementDelAttribute(StatementChildrenHavingBase):
-    kind = "STATEMENT_DEL_ATTRIBUTE"
+class ExpressionTargetVariableRef(ExpressionVariableRef):
+    kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
-    named_children = (
-        "expression",
-    )
+    # TODO: Remove default and correct argument order later.
+    def __init__(self, variable_name, source_ref, variable = None):
+        ExpressionVariableRef.__init__(self, variable_name, source_ref)
 
-    def __init__(self, expression, attribute_name, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "expression" : expression
-            },
-            source_ref = source_ref
-        )
+        self.variable_version = None
 
-        self.attribute_name = attribute_name
+        # TODO: Remove setVariable, once not needed anymore and in-line to
+        # here.
+        if variable is not None:
+            self.setVariable(variable)
+            assert variable.getName() == variable_name
 
-    def getDetails(self):
-        return {
-            "attribute_name" : self.attribute_name
-        }
-
-    def getDetail(self):
-        return "to attribute %s" % self.attribute_name
-
-    def getAttributeName(self):
-        return self.attribute_name
-
-    def setAttributeName(self, attribute_name):
-        self.attribute_name = attribute_name
-
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
-
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getLookupSource())
-        lookup_source = self.getLookupSource()
-
-        if lookup_source.willRaiseException(BaseException):
-            return makeStatementExpressionOnlyReplacementNode(
-                expression = lookup_source,
-                node       = self
-            )
-
-        # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
-
-        return self, None, None
+    def getDetailsForDisplay(self):
+        if self.variable is None:
+            return {
+                "name" : self.variable_name
+            }
+        else:
+            return {
+                "name"     : self.variable_name,
+                "variable" : self.variable,
+                "version"  : self.variable_version
+            }
 
 
-class StatementDelSubscript(StatementChildrenHavingBase):
-    kind = "STATEMENT_DEL_SUBSCRIPT"
+    def computeExpression(self, constraint_collection):
+        assert False, self.parent
 
-    named_children = (
-        "expression",
-        "subscript"
-    )
+    @staticmethod
+    def isTargetVariableRef():
+        return True
 
-    def __init__(self, expression, subscript, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "expression" : expression,
-                "subscript"  : subscript
-            },
-            source_ref = source_ref
-        )
+    def getVariableVersion(self):
+        assert self.variable_version is not None, self
 
-    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
-    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
+        return self.variable_version
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getSubscribed())
-        subscribed = self.getSubscribed()
+    def setVariable(self, variable):
+        ExpressionVariableRef.setVariable(self, variable)
 
-        if subscribed.willRaiseException(BaseException):
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = subscribed,
-                node       = self
-            )
-
-            return result, "new_raise", """\
-Subscript 'del' raises exception in subscribed value, removed del."""
-
-        constraint_collection.onExpression(self.getSubscript())
-        subscript = self.getSubscript()
-
-        if subscript.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    subscribed,
-                    subscript
-                )
-            )
-
-            return result, "new_raise", """\
-Subscript 'del' raises exception in subscript value, removed del."""
-
-        # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
-
-        return self, None, None
+        self.variable_version = variable.allocateTargetNumber()
+        assert self.variable_version is not None
 
 
-class StatementDelSlice(StatementChildrenHavingBase):
-    kind = "STATEMENT_DEL_SLICE"
+class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
+    kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
 
-    named_children = (
-        "expression",
-        "lower",
-        "upper"
-    )
+    def __init__(self, variable, source_ref):
+        ExpressionTempVariableRef.__init__(self, variable, source_ref)
 
-    def __init__(self, expression, lower, upper, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "expression" : expression,
-                "lower"      : lower,
-                "upper"      : upper
-            },
-            source_ref = source_ref
-        )
+        self.variable_version = variable.allocateTargetNumber()
 
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
-    getLower = StatementChildrenHavingBase.childGetter("lower")
-    getUpper = StatementChildrenHavingBase.childGetter("upper")
+    def computeExpression(self, constraint_collection):
+        assert False, self.parent
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getLookupSource())
-        lookup_source = self.getLookupSource()
+    @staticmethod
+    def isTargetVariableRef():
+        return True
 
-        if lookup_source.willRaiseException(BaseException):
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = lookup_source,
-                node       = self
-            )
+    def getVariableVersion(self):
+        return self.variable_version
 
-            return result, "new_raise", """\
-Slice del raises exception in sliced value, removed del"""
+    # Python3 only, it updates temporary variables that are closure variables.
+    def setVariable(self, variable):
+        ExpressionTempVariableRef.setVariable(self, variable)
 
-
-        constraint_collection.onExpression(self.getLower(), allow_none = True)
-        lower = self.getLower()
-
-        if lower is not None and lower.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    lookup_source,
-                    lower
-                )
-            )
-
-            return result, "new_raise", """
-Slice del raises exception in lower slice boundary value, removed del"""
-
-        constraint_collection.onExpression(self.getUpper(), allow_none = True)
-        upper = self.getUpper()
-
-        if upper is not None and upper.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    lookup_source,
-                    lower,
-                    upper
-                )
-            )
-
-            return result, "new_raise", """
-Slice del raises exception in upper slice boundary value, removed del"""
-
-        # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
-
-        return self, None, None
+        self.variable_version = self.variable.allocateTargetNumber()
