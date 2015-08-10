@@ -117,7 +117,6 @@ blacklist = (
     "oset.py",
     "odict.py",
     "SyntaxHighlighting.py",
-    "TreeDisplay.py"
 )
 
 our_exit_code = 0
@@ -232,6 +231,16 @@ for positional_arg in positional_args:
         addFromDirectory(positional_arg)
     else:
         check_filenames.append(positional_arg)
+
+pylint_version = subprocess.check_output(
+    ["pylint", "--version"],
+    stderr = open(os.devnull, "w")
+)
+
+pylint_version = pylint_version.split(b"\n")[0].split()[-1]
+
+if pylint_version < b"1.4.4":
+    sys.exit("Error, needs PyLint 1.4.4 or higher.")
 
 for check_filename in check_filenames:
     executePyLint(check_filename)
