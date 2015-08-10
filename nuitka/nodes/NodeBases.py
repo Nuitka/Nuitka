@@ -148,7 +148,7 @@ class NodeBase(NodeMetaClassBase):
     def makeClone(self):
         try:
             # Using star dictionary arguments here for generic use.
-            return self.__class__(
+            result = self.__class__(
                 source_ref = self.source_ref,
                 **self.getDetails()
             )
@@ -157,6 +157,12 @@ class NodeBase(NodeMetaClassBase):
 
             raise
 
+        effective_source_ref = self.getCompatibleSourceReference()
+
+        if effective_source_ref is not self.source_ref:
+            result.setCompatibleSourceReference(effective_source_ref)
+
+        return result
 
     def makeCloneAt(self, source_ref):
         result = self.makeClone()
@@ -752,7 +758,7 @@ class ChildrenHavingMixin:
         try:
             # Using star dictionary arguments here for generic use,
             # pylint: disable=E1123
-            return self.__class__(
+            result = self.__class__(
                 source_ref = self.source_ref,
                 **values
             )
@@ -760,6 +766,14 @@ class ChildrenHavingMixin:
             print("Problem cloning", self.__class__)
 
             raise
+
+
+        effective_source_ref = self.getCompatibleSourceReference()
+
+        if effective_source_ref is not self.source_ref:
+            result.setCompatibleSourceReference(effective_source_ref)
+
+        return result
 
 
 class ClosureGiverNodeBase(CodeNodeBase):

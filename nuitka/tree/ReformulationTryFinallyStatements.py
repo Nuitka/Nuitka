@@ -92,7 +92,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
                 for c1, c2 in zip(a, b):
                     compare(c1, c2)
 
-                assert a.attrib == b.attrib
+                assert a.attrib == b.attrib, (a.attrib, b.attrib)
 
             compare(f1, f2)
 
