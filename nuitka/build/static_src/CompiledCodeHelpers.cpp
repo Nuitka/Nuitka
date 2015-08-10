@@ -4129,8 +4129,6 @@ void stopProfiling( void )
 
     fclose( tempfile_times );
 
-
-
     RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
 

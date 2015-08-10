@@ -35,7 +35,6 @@ import sys
 from logging import info
 
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.nodes.ModuleNodes import PythonModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils import Utils
 
@@ -112,6 +111,12 @@ class NuitkaPluginBase:
             if full_name in post_modules:
                 addUsedModule(post_modules[full_name])
 
+    # Provide fall-back for failed imports here.
+    module_aliases = {}
+
+    def considerFailedImportReferrals(self, module_name):
+        return self.module_aliases.get(module_name, None)
+
     def onModuleSourceCode(self, module_name, source_code):
         # Virtual method, pylint: disable=R0201,W0613
         return source_code
@@ -129,6 +134,7 @@ class NuitkaPluginBase:
 
 
             from nuitka.tree.Building import createModuleTree
+            from nuitka.nodes.ModuleNodes import PythonModule
 
             post_module = PythonModule(
                 name         = module.getName() + "-onLoad",
@@ -223,6 +229,12 @@ class NuitkaPopularImplicitImports(NuitkaPluginBase):
             yield "cairo"
             yield "gio"
             yield "atk"
+
+    module_aliases = {
+        "requests.packages.urllib3" : "urllib3",
+        "requests.packages.chardet" : "chardet"
+    }
+
 
     @staticmethod
     def getPyQtPluginDirs(qt_version):
@@ -378,3 +390,13 @@ class Plugins:
             source_code = plugin.onModuleSourceCode(module_name, source_code)
 
         return source_code
+
+    @staticmethod
+    def considerFailedImportReferrals(module_name):
+        for plugin in plugin_list:
+            new_module_name = plugin.considerFailedImportReferrals(module_name)
+
+            if new_module_name is not None:
+                return new_module_name
+
+        return None
