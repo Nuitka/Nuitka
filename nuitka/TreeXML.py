@@ -25,21 +25,60 @@ from nuitka.utils import Utils
 
 from . import Tracing
 
+def indent(elem, level = 0, more_sibs = False):
+    i = '\n'
+    if level:
+        i += (level-1) * "  "
+    num_kids = len(elem)
+    if num_kids:
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+            if level:
+                elem.text += "  "
+        count = 0
+        for kid in elem:
+            indent(kid, level+1, count < num_kids - 1)
+            count += 1
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+            if more_sibs:
+                elem.tail += "  "
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+            if more_sibs:
+                elem.tail += "  "
+
+    return elem
+
 try:
     import lxml.etree
+    xml_module = lxml.etree
 
-    Element = lxml.etree.Element
+    Element = xml_module.Element
+    xml_tostring = lambda tree: lxml.etree.tostring(tree, pretty_print = True)
 except ImportError:
-    lxml = None
-    Element = None
+    try:
+        import xml.etree.ElementTree
+        xml_module = xml.etree.ElementTree
 
-def toString(xml):
-    return lxml.etree.tostring(xml, pretty_print = True)
+        Element = xml.etree.ElementTree.Element
+        xml_tostring = lambda tree: xml_module.tostring(indent(tree))
 
-def dump(xml):
-    value = toString(xml).rstrip()
+    except ImportError:
+        xml_module = None
+        Element = None
+        xml_tostring = None
+
+def toString(tree):
+    result = xml_tostring(tree)
 
     if Utils.python_version >= 300:
-        value = value.decode("utf-8")
+        result = result.decode("utf-8")
+
+    return result
+
+def dump(tree):
+    value = toString(tree).rstrip()
 
     Tracing.printLine(value)
