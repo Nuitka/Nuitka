@@ -477,7 +477,7 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
     # Put the PYTHONPATH into the system "PATH", DLLs frequently live in
     # the package directories.
     env = os.environ.copy()
-    path = env.get("PATH","").split(';')
+    path = env.get("PATH","").split(os.pathsep)
 
     # Put the "Python.exe" first. At least for WinPython, they put the DLLs
     # there.
@@ -491,7 +491,7 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
                 path.append(candidate)
 
 
-    env["PATH"] = ';'.join(path)
+    env["PATH"] = os.pathsep.join(path)
 
     return env
 
