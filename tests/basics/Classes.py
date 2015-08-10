@@ -16,8 +16,7 @@
 #     limitations under the License.
 #
 class SimpleClass:
-    " The class documentation."
-
+    " The class documentation." # Leading space on purpose.
 
     # TODO: Doesn't work with Python3, because we don't yet make our own dict
     # visible.  print locals()

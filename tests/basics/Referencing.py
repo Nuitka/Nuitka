@@ -28,8 +28,8 @@ sys.path.insert(
     )
 )
 from test_common import (
-    executeReferenceChecked,
-    my_print,
+    executeReferenceChecked,  # @UnresolvedImport
+    my_print,                 # @UnresolvedImport
 )
 
 if not hasattr(sys, "gettotalrefcount"):
