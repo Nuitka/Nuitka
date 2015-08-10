@@ -244,6 +244,16 @@ Defaults to %s.""" %
 )
 
 execute_group.add_option(
+    "--debugger", "--gdb",
+    action  = "store_true",
+    dest    = "debugger",
+    default = False,
+    help    = """\
+Execute inside "gdb" to automatically get a stack trace.
+Defaults to off."""
+)
+
+execute_group.add_option(
     "--execute-with-pythonpath", "--keep-pythonpath",
     action  = "store_true",
     dest    = "keep_pythonpath",
@@ -646,6 +656,9 @@ def shallTraceExecution():
 
 def shallExecuteImmediately():
     return options.immediate_execution
+
+def shallRunInDebugger():
+    return options.debugger
 
 def shallDumpBuiltTreeXML():
     return options.dump_xml

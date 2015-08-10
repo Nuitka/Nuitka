@@ -580,6 +580,9 @@ def executeMain(binary_filename, tree, clean_path):
 
     args = (binary_filename, name)
 
+    if Options.shallRunInDebugger():
+        args = ("/usr/bin/gdb", "gdb", "-ex=run", "-ex=where", "--args", binary_filename)
+
     callExec(
         clean_path = clean_path,
         add_path   = False,
