@@ -171,6 +171,7 @@ else:
 
         nuitka_call = [
             os.environ["PYTHON"],
+            "-S",
             "-m",
             "coverage",
             "run",
@@ -189,15 +190,26 @@ if remove_output:
 if original_file:
     extra_options.append("--file-reference-choice=original")
 
-if binary_python_path:
-    if os.name == "nt":
-        python_path_sep = ";"
-    else:
-        python_path_sep = ":"
+if coverage_mode:
+    # Coverage modules hates Nuitka to re-execute, and so we must avoid
+    # that.
+    python_path = subprocess.check_output(
+        [
+            os.environ["PYTHON"],
+            "-c"
+            "import sys, os; print(os.pathsep.join(sys.path))"
+        ]
+    )
 
+    if sys.version_info >= (3,):
+        python_path = python_path.decode("utf8")
+
+    os.environ["PYTHONPATH"] = python_path.strip()
+
+if binary_python_path:
     python_path = os.environ.get("PYTHONPATH", "")
-    os.environ["PYTHONPATH"] = python_path_sep.join(
-        python_path.split(python_path_sep) + \
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        python_path.split(os.pathsep) + \
         [os.path.dirname(os.path.abspath(filename))]
     )
 
