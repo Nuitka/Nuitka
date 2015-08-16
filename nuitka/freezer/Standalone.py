@@ -530,9 +530,11 @@ SxS
     )
 
     inside = False
+    first = False
     for line in open(binary_filename + ".depends"):
         if "| Module Dependency Tree |" in line:
             inside = True
+            first = True
             continue
 
         if not inside:
@@ -553,12 +555,14 @@ SxS
             continue
 
         dll_filename = line[line.find(']')+2:-1]
-        assert Utils.isFile(dll_filename), dll_filename
 
-        # The executable itself is of course exempted.
-        if Utils.normcase(dll_filename) == \
-            Utils.normcase(Utils.abspath(binary_filename)):
+        # The executable itself is of course exempted. We cannot check its path
+        # because depends.exe mistreats unicode paths.
+        if first:
+            first = False
             continue
+
+        assert Utils.isFile(dll_filename), dll_filename
 
         dll_name = Utils.basename(dll_filename).upper()
 
