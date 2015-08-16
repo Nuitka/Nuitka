@@ -156,12 +156,6 @@ def getExecutablePath(filename, initial):
     if os.name == "nt" and not filename.lower().endswith(".exe"):
         filename += ".exe"
 
-    # Search in "PATH" environment for a file named like it.
-    if os.name == "nt":
-        separator = ';'
-    else:
-        separator = ':'
-
     # Either look at the initial "PATH" as given from the outside or look at the
     # current environment.
     if initial:
@@ -170,7 +164,7 @@ def getExecutablePath(filename, initial):
         search_path = env._dict["ENV"]["PATH"]
 
     # Now check in each path element, much like the shell will.
-    path_elements = search_path.split(separator)
+    path_elements = search_path.split(os.pathsep)
 
     for path_element in path_elements:
         full = os.path.join(path_element, filename)

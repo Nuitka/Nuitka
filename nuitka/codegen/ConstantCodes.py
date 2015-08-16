@@ -372,7 +372,7 @@ def __addConstantInitCode(context, emit, check, constant_type, constant_value,
                 """\
 %s = PyLong_FromLong( %sl ); // To be corrected with -1 in-place next lines.
 CHECK_OBJECT( const_int_pos_1 );
-%s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );""" % (
+%s = PyNumber_InPlaceSubtract( %s, PyLong_FromLong( 1 ) );""" % (
                     constant_identifier,
                     min_signed_long,
                     constant_identifier,
@@ -404,7 +404,7 @@ CHECK_OBJECT( const_int_pos_1 );
             emit(
                 """\
 %s = PyInt_FromLong( %sl );  // To be corrected in next line.
-%s = PyNumber_InPlaceSubtract( %s, const_int_pos_1 );""" % (
+%s = PyNumber_InPlaceSubtract( %s, PyInt_FromLong( 1 ) );""" % (
                     constant_identifier,
                     min_signed_long,
                     constant_identifier,

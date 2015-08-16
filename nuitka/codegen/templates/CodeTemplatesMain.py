@@ -120,11 +120,16 @@ int main( int argc, char *argv[] )
     restoreStandaloneEnvironment();
 #endif
 
-    // Initialize the constant values used.
+    // Initialize the built-in module tricks used.
 #ifdef _NUITKA_TRACE
     puts("main(): Calling _initBuiltinModule().");
 #endif
     _initBuiltinModule();
+#ifdef _NUITKA_TRACE
+    puts("main(): Returned from _initBuiltinModule.");
+#endif
+
+    // Initialize the constant values used.
 #ifdef _NUITKA_TRACE
     puts("main(): Calling createGlobalConstants().");
 #endif
