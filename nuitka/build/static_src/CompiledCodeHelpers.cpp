@@ -2058,6 +2058,31 @@ char *getBinaryDirectory()
     init_done = true;
     return binary_directory;
 }
+
+static PyObject *getBinaryDirectoryObject()
+{
+    static PyObject *binary_directory = NULL;
+
+    if ( binary_directory != NULL )
+    {
+        return binary_directory;
+    }
+
+#if PYTHON_VERSION >= 300
+    binary_directory = PyUnicode_FromString( getBinaryDirectory() );
+#else
+    binary_directory = PyString_FromString( getBinaryDirectory() );
+#endif
+
+    if (unlikely( binary_directory == NULL ))
+    {
+        PyErr_Print();
+        abort();
+    }
+
+    return binary_directory;
+}
+
 #else
 static char *getDllDirectory()
 {
@@ -2101,30 +2126,6 @@ static char *getDllDirectory()
 #endif
 }
 #endif
-
-static PyObject *getBinaryDirectoryObject()
-{
-    static PyObject *binary_directory = NULL;
-
-    if ( binary_directory != NULL )
-    {
-        return binary_directory;
-    }
-
-#if PYTHON_VERSION >= 300
-    binary_directory = PyUnicode_FromString( getBinaryDirectory() );
-#else
-    binary_directory = PyString_FromString( getBinaryDirectory() );
-#endif
-
-    if (unlikely( binary_directory == NULL ))
-    {
-        PyErr_Print();
-        abort();
-    }
-
-    return binary_directory;
-}
 
 void _initBuiltinModule()
 {
