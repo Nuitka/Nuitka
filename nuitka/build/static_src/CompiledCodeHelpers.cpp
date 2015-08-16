@@ -1968,6 +1968,164 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
     return PyObject_GenericSetAttr( (PyObject *)module, name, value );
 }
 
+
+#include <osdefs.h>
+
+#if defined(_WIN32)
+#include <Shlwapi.h>
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
+#include <dlfcn.h>
+#include <libgen.h>
+#else
+#include <dlfcn.h>
+#include <libgen.h>
+#endif
+
+#if defined(_WIN32) && !defined(PATH_MAX)
+#define PATH_MAX MAXPATHLEN
+#endif
+
+#if defined( __FreeBSD__ )
+#include <sys/sysctl.h>
+#endif
+
+#if defined(_NUITKA_EXE)
+
+char *getBinaryDirectory()
+{
+    static char binary_directory[ PATH_MAX + 1 ];
+    static bool init_done = false;
+
+    if ( init_done )
+    {
+        return binary_directory;
+    }
+
+#if defined(_WIN32)
+
+#if PYTHON_VERSION >= 300
+    WCHAR binary_directory2[ PATH_MAX + 1 ];
+    binary_directory2[0] = 0;
+
+    DWORD res = GetModuleFileNameW( NULL, binary_directory2, PATH_MAX + 1 );
+    assert( res != 0 );
+
+    int res2 = WideCharToMultiByte(CP_UTF8, 0, binary_directory2, -1, binary_directory, PATH_MAX+1, NULL, NULL);
+    assert( res2 != 0 );
+#else
+    DWORD res = GetModuleFileName( NULL, binary_directory, PATH_MAX + 1 );
+    assert( res != 0 );
+#endif
+    PathRemoveFileSpec( binary_directory );
+#elif defined(__APPLE__)
+    uint32_t bufsize = PATH_MAX + 1;
+    int res =_NSGetExecutablePath( binary_directory, &bufsize );
+
+    if (unlikely( res != 0 ))
+    {
+        abort();
+    }
+
+    // On MacOS, the "dirname" call creates a separate internal string, we can
+    // safely copy back.
+    strncpy(binary_directory, dirname(binary_directory), PATH_MAX + 1);
+
+#elif defined( __FreeBSD__ )
+    // Not all of FreeBSD has /proc file system, so use the appropiate
+    // "sysctl" instead.
+    int mib[4];
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_PROC;
+    mib[2] = KERN_PROC_PATHNAME;
+    mib[3] = -1;
+    size_t cb = sizeof(binary_directory);
+    sysctl(mib, 4, binary_directory, &cb, NULL, 0);
+#else
+    // The remaining platforms, mostly Linux.
+    // The "readlink" does not terminate result, so fill zeros there, then
+    // it is a proper C string right away.
+    memset( binary_directory, 0, PATH_MAX + 1 );
+    ssize_t res = readlink( "/proc/self/exe", binary_directory, PATH_MAX );
+
+    if (unlikely( res == -1 ))
+    {
+        abort();
+    }
+
+    strcpy( binary_directory, dirname( binary_directory ) );
+#endif
+    init_done = true;
+    return binary_directory;
+}
+#else
+static char *getDllDirectory()
+{
+#if defined(_WIN32)
+    static char path[ PATH_MAX ];
+    HMODULE hm = NULL;
+    path[0] = '\0';
+
+#if PYTHON_VERSION >= 300
+    WCHAR path2[ PATH_MAX + 1 ];
+    path2[0] = 0;
+
+    int res = GetModuleHandleExA(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        (LPCSTR) &getDllDirectory,
+        &hm
+    );
+    assert( res != 0 );
+
+    int res2 = WideCharToMultiByte(CP_UTF8, 0, path2, -1, path, PATH_MAX+1, NULL, NULL);
+    assert( res2 != 0 );
+#else
+    int res = GetModuleHandleExA(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        (LPCSTR) &getDllDirectory,
+        &hm
+    );
+    assert( res != 0 );
+#endif
+
+    PathRemoveFileSpec( path );
+
+    return path;
+
+#else
+    Dl_info where;
+    int res = dladdr( (void *)getDllDirectory, &where );
+    assert( res != 0 );
+
+    return dirname( (char *)where.dli_fname );
+#endif
+}
+#endif
+
+static PyObject *getBinaryDirectoryObject()
+{
+    static PyObject *binary_directory = NULL;
+
+    if ( binary_directory != NULL )
+    {
+        return binary_directory;
+    }
+
+#if PYTHON_VERSION >= 300
+    binary_directory = PyUnicode_FromString( getBinaryDirectory() );
+#else
+    binary_directory = PyString_FromString( getBinaryDirectory() );
+#endif
+
+    if (unlikely( binary_directory == NULL ))
+    {
+        PyErr_Print();
+        abort();
+    }
+
+    return binary_directory;
+}
+
 void _initBuiltinModule()
 {
 #if _NUITKA_MODULE
@@ -1989,10 +2147,10 @@ void _initBuiltinModule()
     int res = PyDict_SetItemString(
         (PyObject *)dict_builtin,
         "__nuitka_binary_dir",
-        PyUnicode_FromString(getBinaryDirectory())
+        getBinaryDirectoryObject()
     );
 
-    assert(res == 0);
+    assert( res == 0 );
 #endif
 
     // init Nuitka_BuiltinModule_Type, PyType_Ready wont copy all member from
@@ -2255,113 +2413,6 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     );
 }
 
-#include <osdefs.h>
-
-#if defined(_WIN32)
-#include <Shlwapi.h>
-#elif defined(__APPLE__)
-#include <mach-o/dyld.h>
-#include <dlfcn.h>
-#include <libgen.h>
-#else
-#include <dlfcn.h>
-#include <libgen.h>
-#endif
-
-#if defined(_WIN32) && !defined(PATH_MAX)
-#define PATH_MAX MAXPATHLEN
-#endif
-
-#if defined( __FreeBSD__ )
-#include <sys/sysctl.h>
-#endif
-
-#if defined(_NUITKA_EXE)
-
-char *getBinaryDirectory()
-{
-    static char binary_directory[ PATH_MAX + 1 ];
-    static bool init_done = false;
-
-    if ( init_done )
-    {
-        return binary_directory;
-    }
-
-#if defined(_WIN32)
-    GetModuleFileName( NULL, binary_directory, PATH_MAX + 1 );
-    PathRemoveFileSpec( binary_directory );
-#elif defined(__APPLE__)
-    uint32_t bufsize = PATH_MAX + 1;
-    int res =_NSGetExecutablePath( binary_directory, &bufsize );
-
-    if (unlikely( res != 0 ))
-    {
-        abort();
-    }
-
-    // On MacOS, the "dirname" call creates a separate internal string, we can
-    // safely copy back.
-    strncpy(binary_directory, dirname(binary_directory), PATH_MAX + 1);
-
-#elif defined( __FreeBSD__ )
-    // Not all of FreeBSD has /proc file system, so use the appropiate
-    // "sysctl" instead.
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-    size_t cb = sizeof(binary_directory);
-    sysctl(mib, 4, binary_directory, &cb, NULL, 0);
-#else
-    // The remaining platforms, mostly Linux.
-    // The "readlink" does not terminate result, so fill zeros there, then
-    // it is a proper C string right away.
-    memset( binary_directory, 0, PATH_MAX + 1 );
-    ssize_t res = readlink( "/proc/self/exe", binary_directory, PATH_MAX );
-
-    if (unlikely( res == -1 ))
-    {
-        abort();
-    }
-
-    strcpy( binary_directory, dirname( binary_directory ) );
-#endif
-    init_done = true;
-    return binary_directory;
-}
-#else
-static char *getDllDirectory()
-{
-#if defined(_WIN32)
-    static char path[ PATH_MAX ];
-    HMODULE hm = NULL;
-    path[0] = '\0';
-
-    int res = GetModuleHandleExA(
-        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-        (LPCSTR) &getDllDirectory,
-        &hm
-    );
-
-    assert( res );
-
-    PathRemoveFileSpec( path );
-
-    return path;
-
-#else
-    Dl_info where;
-    int res = dladdr( (void *)getDllDirectory, &where );
-    assert( res != 0 );
-
-    return dirname( (char *)where.dli_fname );
-#endif
-}
-#endif
-
-
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 
 #if _NUITKA_FROZEN > 0
@@ -2571,7 +2622,7 @@ PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
 
     if (unlikely( result == NULL ))
     {
-        PyErr_PrintEx(1);
+        PyErr_Print();
         abort();
     }
 

@@ -219,9 +219,8 @@ def isExecutableCommand(command):
     path = os.environ["PATH"]
 
     suffixes = (".exe",) if getOS() == "Windows" else ("",)
-    path_sep = ';' if getOS() == "Windows" else ':'
 
-    for part in path.split(path_sep):
+    for part in path.split(os.pathsep):
         if not part:
             continue
 
