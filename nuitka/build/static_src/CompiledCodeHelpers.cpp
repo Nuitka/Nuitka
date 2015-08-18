@@ -1992,7 +1992,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 
 #if defined(_NUITKA_EXE)
 
-char *getBinaryDirectory()
+char *getBinaryDirectoryUTF8Encoded()
 {
     static char binary_directory[ PATH_MAX + 1 ];
     static bool init_done = false;
@@ -2011,7 +2011,7 @@ char *getBinaryDirectory()
     DWORD res = GetModuleFileNameW( NULL, binary_directory2, PATH_MAX + 1 );
     assert( res != 0 );
 
-    int res2 = WideCharToMultiByte(CP_UTF8, 0, binary_directory2, -1, binary_directory, PATH_MAX+1, NULL, NULL);
+    int res2 = WideCharToMultiByte( CP_UTF8, 0, binary_directory2, -1, binary_directory, PATH_MAX+1, NULL, NULL );
     assert( res2 != 0 );
 #else
     DWORD res = GetModuleFileName( NULL, binary_directory, PATH_MAX + 1 );
@@ -2059,6 +2059,39 @@ char *getBinaryDirectory()
     return binary_directory;
 }
 
+char *getBinaryDirectoryHostEncoded()
+{
+#if defined(_WIN32)
+    static char binary_directory[ PATH_MAX + 1 ];
+    static bool init_done = false;
+
+    if ( init_done )
+    {
+        return binary_directory;
+    }
+
+#if PYTHON_VERSION >= 300
+    WCHAR binary_directory2[ PATH_MAX + 1 ];
+    binary_directory2[0] = 0;
+
+    DWORD res = GetModuleFileNameW( NULL, binary_directory2, PATH_MAX + 1 );
+    assert( res != 0 );
+
+    int res2 = WideCharToMultiByte( CP_ACP, 0, binary_directory2, -1, binary_directory, PATH_MAX+1, NULL, NULL );
+    assert( res2 != 0 );
+#else
+    DWORD res = GetModuleFileName( NULL, binary_directory, PATH_MAX + 1 );
+    assert( res != 0 );
+#endif
+    PathRemoveFileSpec( binary_directory );
+
+    init_done = true;
+    return binary_directory;
+#else
+    return getBinaryDirectoryUTF8Encoded();
+#endif
+}
+
 static PyObject *getBinaryDirectoryObject()
 {
     static PyObject *binary_directory = NULL;
@@ -2069,9 +2102,9 @@ static PyObject *getBinaryDirectoryObject()
     }
 
 #if PYTHON_VERSION >= 300
-    binary_directory = PyUnicode_FromString( getBinaryDirectory() );
+    binary_directory = PyUnicode_FromString( getBinaryDirectoryUTF8Encoded() );
 #else
-    binary_directory = PyString_FromString( getBinaryDirectory() );
+    binary_directory = PyString_FromString( getBinaryDirectoryUTF8Encoded() );
 #endif
 
     if (unlikely( binary_directory == NULL ))
@@ -2428,17 +2461,25 @@ void setEarlyFrozenModulesFileAttribute( void )
     Py_ssize_t ppos = 0;
     PyObject *key, *value;
 
-    char buffer[4096];
-    strcpy(buffer,getBinaryDirectory());
-    char *w = buffer + strlen(buffer);
-    *w++ = SEP;
-    strcpy(w,"not_present.py");
+    PyObject *file_value = getBinaryDirectoryObject();
 
-#if PYTHON_VERSION >= 300
-    PyObject *file_value = PyUnicode_FromString(buffer);
+    char sep[2] = { SEP, 0 };
+
+#if PYTHON_VERSION < 300
+    file_value = PyNumber_InPlaceAdd( file_value, PyString_FromString( sep ) );
 #else
-    PyObject *file_value = PyString_FromString(buffer);
+    file_value = PyNumber_InPlaceAdd( file_value, PyUnicode_FromString( sep ) );
 #endif
+
+    assert( file_value );
+
+#if PYTHON_VERSION < 300
+    file_value = PyNumber_InPlaceAdd( file_value, PyString_FromString( "not_present.py" ) );
+#else
+    file_value = PyNumber_InPlaceAdd( file_value, PyUnicode_FromString( "not_present.py" ) );
+#endif
+
+    assert( file_value );
 
     while( PyDict_Next( PyImport_GetModuleDict(), &ppos, &key, &value ) )
     {
@@ -2489,10 +2530,10 @@ void prepareStandaloneEnvironment()
 #ifdef _NUITKA_STANDALONE
     // Setup environment variables to tell CPython that we would like it to use
     // the provided binary directory as the place to look for DLLs.
-    char *binary_directory = getBinaryDirectory();
+    char *binary_directory = getBinaryDirectoryHostEncoded();
 
 #if defined( _WIN32 ) && defined( _MSC_VER )
-    SetDllDirectory( getBinaryDirectory() );
+    SetDllDirectory( binary_directory );
 #endif
 
     // get original value
@@ -2587,13 +2628,7 @@ PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
     if ( our_path_object == NULL )
     {
 #if defined( _NUITKA_EXE )
-
-#if PYTHON_VERSION >= 300
-        our_path_object = PyUnicode_FromString( getBinaryDirectory() );
-#else
-        our_path_object = PyString_FromString( getBinaryDirectory() );
-#endif
-
+        our_path_object = getBinaryDirectoryObject();
 #else
 #if PYTHON_VERSION >= 300
         our_path_object = PyUnicode_FromString( getDllDirectory() );

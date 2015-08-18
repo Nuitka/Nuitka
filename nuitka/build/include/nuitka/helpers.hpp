@@ -731,7 +731,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 extern void prepareStandaloneEnvironment();
 extern void restoreStandaloneEnvironment();
-extern char *getBinaryDirectory();
+
+// Get the binary directory, translated to UTF8 or usable as a native path,
+// e.g. ANSI on Windows.
+extern char *getBinaryDirectoryUTF8Encoded();
+extern char *getBinaryDirectoryHostEncoded();
 #endif
 
 #if _NUITKA_STANDALONE
