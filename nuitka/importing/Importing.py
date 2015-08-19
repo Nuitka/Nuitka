@@ -326,7 +326,7 @@ def _findModuleInPath2(module_name, search_path):
                     if Utils.joinpath(candidate[0], filename) == candidate[2]:
                         return candidate[2]
 
-            # Only excact case matches matter, all candidates were ignored,
+            # Only exact case matches matter, all candidates were ignored,
             # lets just fall through to raising the import error.
 
     # Nothing found.
@@ -335,6 +335,7 @@ def _findModuleInPath2(module_name, search_path):
 
 def getPackageSearchPath(package_name):
     assert main_path is not None
+
     if package_name is None:
         return [os.getcwd(), main_path] + sys.path
     elif '.' in package_name:
@@ -453,6 +454,11 @@ def _findModule2(module_name):
         module_name = module_name[ module_name.rfind('.') + 1 : ]
     else:
         package_part = None
+
+    preloaded_path = getPreloadedPackagePath(module_name)
+
+    if preloaded_path is not None:
+        return preloaded_path[0]
 
     return _findModuleInPath(
         module_name  = module_name,

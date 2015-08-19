@@ -145,13 +145,6 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 #ifdef _WIN32
     unsigned int old_mode = SetErrorMode( SEM_FAILCRITICALERRORS );
 
-    char abs_filename[ 4096 ];
-    LPTSTR unused = NULL;
-
-    // Need to use absolute filename for Win9x to work correctly, however
-    // important that is.
-    GetFullPathName( filename, sizeof( abs_filename ), abs_filename, &unused );
-
     if ( Py_VerboseFlag )
     {
         PySys_WriteStderr(
@@ -161,10 +154,11 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
         );
     }
 
-    HINSTANCE hDLL = LoadLibraryEx( abs_filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH );
+    HINSTANCE hDLL = LoadLibraryEx( filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH );
+
     if (unlikely( hDLL == NULL ))
     {
-        PyErr_Format( PyExc_ImportError, "LoadLibraryEx '%s' failed", abs_filename );
+        PyErr_Format( PyExc_ImportError, "LoadLibraryEx '%s' failed", filename );
         return NULL;
     }
 
@@ -271,7 +265,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
         return NULL;
     }
 #elif PYTHON_VERSION < 330
-    PyObject *filename_obj = PyUnicode_FromString( filename );
+    PyObject *filename_obj = PyUnicode_DecodeFSDefault( filename );
     CHECK_OBJECT( filename_obj );
 
     res = _PyImport_FixupExtensionUnicode( module, (char *)full_name, filename_obj );
@@ -285,7 +279,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 #else
     PyObject *full_name_obj = PyUnicode_FromString( full_name );
     CHECK_OBJECT( full_name_obj );
-    PyObject *filename_obj = PyUnicode_FromString( filename );
+    PyObject *filename_obj = PyUnicode_DecodeFSDefault( filename );
     CHECK_OBJECT( filename_obj );
 
     res = _PyImport_FixupExtensionObject( module, full_name_obj, filename_obj );
@@ -358,12 +352,15 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 #ifdef _NUITKA_STANDALONE
         if ( ( entry->flags & NUITKA_SHLIB_MODULE ) != 0 )
         {
+            // Append the the entry name from full path module name with dots,
+            // and translate these into directory separators.
             char filename[4096];
 
-            strcpy( filename, getBinaryDirectory() );
+            strcpy( filename, getBinaryDirectoryHostEncoded() );
+
             char *d = filename;
             d += strlen( filename );
-            assert(*d == 0);
+            assert( *d == 0 );
             *d++ = SEP;
 
             char *s = entry->name;
