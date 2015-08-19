@@ -94,6 +94,8 @@ class PythonModuleMixin:
             if Utils.python_version >= 330 and not package_filename:
                 return []
 
+            assert package_filename is not None, self.package_name
+
             imported_module, is_added = Recursion.recurseTo(
                 module_package  = package_package,
                 module_filename = package_filename,
