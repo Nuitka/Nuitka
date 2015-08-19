@@ -53,6 +53,22 @@ def simpleFunction2():
         pass
 
 def simpleFunction3():
+    try:
+
+        class A(Exception):
+            pass
+
+        class B(Exception):
+            pass
+
+        try:
+            raise A('foo')
+        except A as e1:
+            raise B(str(e1)) from e1
+    except Exception:
+        pass
+
+def simpleFunction4():
     a = 1
 
     def nonlocal_writer():
@@ -65,7 +81,7 @@ def simpleFunction3():
 
     assert a == 9, a
 
-def simpleFunction4():
+def simpleFunction5():
     x = 2
 
     def local_func(a: int, b: x*x):
@@ -74,31 +90,31 @@ def simpleFunction4():
     local_func(x, x)
 
 
-def simpleFunction5():
-        # Make sure exception state is cleaned up as soon as the except
-        # block is left. See #2507
+def simpleFunction6():
+    # Make sure exception state is cleaned up as soon as the except
+    # block is left.
 
-        class MyException(Exception):
-            def __init__(self, obj):
-                self.obj = obj
+    class MyException(Exception):
+        def __init__(self, obj):
+            self.obj = obj
 
-        class MyObj:
-            pass
+    class MyObj:
+        pass
 
-        def inner_raising_func():
-            local_ref = obj
-            raise MyException(obj)
+    def inner_raising_func():
+        local_ref = obj
+        raise MyException(obj)
 
-        # "except" block raising another exception
-        obj = MyObj()
+    # "except" block raising another exception
+    obj = MyObj()
 
+    try:
         try:
-            try:
-                inner_raising_func()
-            except:
-                raise KeyError
-        except KeyError as e:
-            pass
+            inner_raising_func()
+        except:
+            raise KeyError
+    except KeyError as e:
+        pass
 
 
 # These need stderr to be wrapped.
