@@ -16,13 +16,13 @@
 #     limitations under the License.
 #
 """
-Freezer for bytecode compiled modules. Not C++ compiled modules.
+Freezer for bytecode compiled modules. Not real C compiled modules.
 
 This is including modules as bytecode and mostly intended for modules, where
 we know compiling it useless or does not make much sense, or for standalone
 mode to access modules during CPython library init that cannot be avoided.
 
-The level of compatibility for C++ compiled stuff is so high that this is not
+The level of compatibility for C compiled stuff is so high that this is not
 needed except for technical reasons.
 """
 
@@ -30,29 +30,80 @@ needed except for technical reasons.
 from logging import info
 
 from nuitka import Options
+from nuitka.utils import Utils
 from nuitka.codegen import ConstantCodes
 from nuitka.codegen.Indentation import indented
 from nuitka.codegen.templates. \
     CodeTemplatesFreezer import template_frozen_modules
 
+from nuitka.PythonVersions import python_version
+
 frozen_modules = []
 
 def addFrozenModule(frozen_module):
-    assert not isFrozenModule(frozen_module[0]), frozen_module[0]
+    """ Add a module discovered for freezing.
+
+    """
+    assert not isFrozenModule(frozen_module[0], frozen_module[3]), frozen_module[0]
 
     frozen_modules.append(frozen_module)
+
+
+def removeFrozenModule(module_name):
+    """ Remove a module from the to freeze list.
+
+        Typically this is because it was shadowed by a compiled version.
+    """
+
+    count = None
+
+    for count, frozen_module in enumerate(frozen_modules):
+        frozen_module_name, _code_data, _is_package, _filename, _is_late = \
+          frozen_module
+
+        if frozen_module_name == module_name:
+            break
+    else:
+        count = None
+
+    if count is not None:
+        del frozen_modules[count]
+
+    return count is not None
+
 
 def getFrozenModuleCount():
     return len(frozen_modules)
 
-def isFrozenModule(module_name):
+
+def _normalizeModuleFilename(filename):
+    if python_version >= 300:
+        filename = filename.replace("__pycache__", "")
+
+        suffix = ".cpython-%d.pyc" % (python_version // 10)
+
+        if filename.endswith(suffix):
+            filename = filename[:-len(suffix)] + ".py"
+    else:
+        if filename.endswith(".pyc"):
+            filename = filename[:-3] + ".py"
+
+    if Utils.basename(filename) == "__init__.py":
+        filename = Utils.dirname(filename)
+
+    return filename
+
+
+def isFrozenModule(module_name, module_filename):
     for frozen_module in frozen_modules:
-        frozen_module_name, _code_data, _is_package, _filename, _is_late = \
+        frozen_module_name, _code_data, _is_package, filename, _is_late = \
           frozen_module
 
         if module_name == frozen_module_name:
-            return True
+            return Utils.areSamePaths(module_filename, _normalizeModuleFilename(filename))
+
     return False
+
 
 stream_data = ConstantCodes.stream_data
 

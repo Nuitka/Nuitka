@@ -117,7 +117,7 @@ def decideRecursion(module_filename, module_name, module_package,
     else:
         full_name = module_package + '.' + module_name
 
-    if isFrozenModule(full_name):
+    if isFrozenModule(full_name, module_filename):
         return False, "Module is frozen."
 
     no_case_modules = Options.getShallFollowInNoCase()

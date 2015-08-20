@@ -41,7 +41,8 @@ from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import (
     addFrozenModule,
     generateBytecodeFrozenCode,
-    getFrozenModuleCount
+    getFrozenModuleCount,
+    removeFrozenModule
 )
 from .freezer.Standalone import (
     copyUsedDLLs,
@@ -331,6 +332,12 @@ def makeSourceDirectory(main_module):
 
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
+            if removeFrozenModule(module.getFullName()):
+                warning(
+                    """\
+Compiled module shadows standard library module '%s'.""" % module.getFullName()
+                )
+
             cpp_filename = module_filenames[module]
 
             template_values, module_context = prepared_modules[cpp_filename]
