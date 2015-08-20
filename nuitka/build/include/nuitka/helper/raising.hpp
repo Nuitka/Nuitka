@@ -41,8 +41,6 @@ static void CHAIN_EXCEPTION( PyObject *exception_type, PyObject *exception_value
 
     if ( old_exc_value != NULL && old_exc_value != Py_None && old_exc_value != exception_value )
     {
-        Py_INCREF( old_exc_value );
-
         PyObject *current = old_exc_value;
         while( true )
         {
@@ -63,7 +61,9 @@ static void CHAIN_EXCEPTION( PyObject *exception_type, PyObject *exception_value
         }
 
         CHECK_OBJECT( old_exc_value );
+        Py_INCREF( old_exc_value );
         PyException_SetContext( exception_value, old_exc_value );
+
         CHECK_OBJECT( thread_state->exc_traceback );
         PyException_SetTraceback( old_exc_value, thread_state->exc_traceback );
     }
@@ -234,6 +234,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
     {
         *exception_value = *exception_type;
         *exception_type = PyExceptionInstance_Class( *exception_type );
+        Py_INCREF( *exception_type );
 
         PyException_SetCause( *exception_value, exception_cause );
 
