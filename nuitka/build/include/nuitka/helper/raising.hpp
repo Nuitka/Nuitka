@@ -18,7 +18,7 @@
 #ifndef __NUITKA_HELPER_RAISING_H__
 #define __NUITKA_HELPER_RAISING_H__
 
-#if PYTHON_VERSION <= 266
+#if PYTHON_VERSION < 266
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be classes or instances, not %s"
 #elif PYTHON_VERSION < 300
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be old-style classes or derived from BaseException, not %s"
