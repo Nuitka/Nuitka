@@ -43,4 +43,4 @@ def someFunction(rounds):
 
 
 
-someFunction( 100000 );
+someFunction(100000);

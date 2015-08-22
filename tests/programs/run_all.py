@@ -97,7 +97,7 @@ for filename in sorted(os.listdir('.')):
               os.path.abspath(filename)
           )
     elif filename == "reimport_main_dynamic":
-        if python_version < "3":
+        if python_version < '3':
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
               " --recurse-directory=%s" % (
                   os.path.abspath(filename)

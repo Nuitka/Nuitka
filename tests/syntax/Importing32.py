@@ -25,4 +25,4 @@ def starImportFailure():
     except NameError:
         print( "and it does" )
 
-print( "Star import needs to respect __all__", starImportFailure() )
+print("Star import needs to respect __all__", starImportFailure())

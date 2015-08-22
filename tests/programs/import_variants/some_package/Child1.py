@@ -20,6 +20,6 @@ print( "*** Child1: Begin" )
 
 from . import Child3 as localname
 
-print( "*** Child1: Imported Child3", localname )
+print("*** Child1: Imported Child3", localname)
 
 print( "*** Child1: End" )

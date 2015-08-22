@@ -17,6 +17,6 @@
 #
 # marker1
 def test_from_format(self):
-    if sys.version_info >= ( 3, 3 ):
+    if sys.version_info >= (3, 3):
         break
 # marker2

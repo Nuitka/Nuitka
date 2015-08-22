@@ -19,4 +19,4 @@ import pyexpat
 
 print( "Imported pyexpat, should use our one." )
 
-print( dir( pyexpat ) )
+print( dir(pyexpat) )

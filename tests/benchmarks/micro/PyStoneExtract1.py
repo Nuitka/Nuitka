@@ -40,9 +40,9 @@ def Proc4():
     Char2Glob = 'B'
 
 def benchmark(loops):
-    for i in xrange( loops ):
+    for i in xrange(loops):
         Proc4()
 
 
 if __name__ == "__main__":
-    benchmark( LOOPS )
+    benchmark(LOOPS)

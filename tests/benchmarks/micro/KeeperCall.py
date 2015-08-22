@@ -34,7 +34,7 @@ def comparer():
 
     for i in range(100000):
         # g1 == g2
-        f1( f2 ( os.path, os.unlink, os.rename ) )
+        f1(f2 (os.path, os.unlink, os.rename))
 
 if __name__ == "__main__":
     comparer()

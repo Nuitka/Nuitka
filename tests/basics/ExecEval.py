@@ -251,7 +251,7 @@ def functionWithClosureProvidedByExec():
 
     exec code in None, None
 
-    def func( ):
+    def func():
         print "Closure from exec not used", ValueError
 
     func()

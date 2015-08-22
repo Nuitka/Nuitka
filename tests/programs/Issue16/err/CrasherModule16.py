@@ -21,5 +21,5 @@ class BaseOptions(object):
     _save_attr = ()
 
 if __debug__:
-    if __name__=='__main__':
+    if __name__ == "__main__":
         o = BaseOptions()

@@ -19,4 +19,4 @@
 def f():
     from __future__ import print_function
 
-    print( locals() )
+    print(locals())

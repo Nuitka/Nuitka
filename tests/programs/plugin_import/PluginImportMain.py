@@ -18,4 +18,4 @@
 
 name = "some_module"
 
-module = getattr(__import__('some_package', fromlist=[name]), name)
+module = getattr(__import__("some_package", fromlist = [name]), name)

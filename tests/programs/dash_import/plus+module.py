@@ -16,4 +16,4 @@
 #     limitations under the License.
 #
 
-print( "Module with plus imported as", __name__ )
+print("Module with plus imported as", __name__)

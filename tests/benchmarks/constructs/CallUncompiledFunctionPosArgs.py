@@ -28,9 +28,9 @@ def calledRepeatedly():
     # This is supposed to make a call to a non-compiled function, which is
     # being optimized separately.
 # construct_begin
-    python_func("some", "random", "values", "to", "check", "call" )
-    python_func("some", "other", "values", "to", "check", "call" )
-    python_func("some", "new", "values", "to", "check", "call" )
+    python_func("some", "random", "values", "to", "check", "call")
+    python_func("some", "other", "values", "to", "check", "call")
+    python_func("some", "new", "values", "to", "check", "call")
 # construct_alternative
     pass
 # construct_end

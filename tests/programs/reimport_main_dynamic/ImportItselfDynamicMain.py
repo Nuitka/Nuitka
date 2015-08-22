@@ -18,8 +18,8 @@
 
 import sys
 
-print( "Here I am before import", __name__ )
+print("Here I am before import", __name__)
 
 c = "ImportItselfDynamicMain" 
 __import__(c)
-print( "Here I am after import", __name__ )
+print("Here I am after import", __name__)

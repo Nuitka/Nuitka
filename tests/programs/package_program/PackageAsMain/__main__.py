@@ -18,4 +18,4 @@
 
 
 import sys
-print( "Hello world!", __name__, sys.modules[ __name__ ] )
+print("Hello world!", __name__, sys.modules[ __name__ ])

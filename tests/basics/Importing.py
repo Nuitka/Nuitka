@@ -61,11 +61,11 @@ def localImportFailure():
     try:
         print(listdir)
     except UnboundLocalError:
-        print("and listdir was not imported", end=' ')
+        print("and listdir was not imported", end = ' ')
 
     print("but path was", path)
 
-print("From import that fails in the middle", end=' ')
+print("From import that fails in the middle", end = ' ')
 localImportFailure()
 
 def nonPackageImportFailure():
@@ -75,5 +75,5 @@ def nonPackageImportFailure():
     except Exception as e:
         print(type(e), repr(e))
 
-print("Package import fails in non-package:", end=' ')
+print("Package import fails in non-package:", end = ' ')
 nonPackageImportFailure()

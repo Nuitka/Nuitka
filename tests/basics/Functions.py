@@ -27,7 +27,7 @@ def closureTest1(some_arg):
 
     return enclosed
 
-print("Call closured function returning function:", closureTest1(some_arg = "ignored" )())
+print("Call closured function returning function:", closureTest1(some_arg = "ignored")())
 
 def closureTest2(some_arg):
     def enclosed(f = "default_value"):
@@ -37,7 +37,7 @@ def closureTest2(some_arg):
 
     return enclosed
 
-print("Call closured function returning function:", closureTest2(some_arg = "ignored" )())
+print("Call closured function returning function:", closureTest2(some_arg = "ignored")())
 
 
 def defaultValueTest1(no_default, some_default_constant = 1):
@@ -65,7 +65,7 @@ def contractionTest():
 
 print("Call function that returns a list contraction:", contractionTest())
 
-def defaultValueTest3a( no_default, funced_defaulted = defaultValueTest2(var_on_module_level)):
+def defaultValueTest3a(no_default, funced_defaulted = defaultValueTest2(var_on_module_level)):
     return [ i + funced_defaulted for i in range(8) ]
 
 print("Call function that has a default value coming from a function call:", defaultValueTest3a("ignored"))
@@ -84,12 +84,12 @@ def defaultValueTest3c(no_default, funced_defaulted = defaultValueTest2(var_on_m
 
 print("Call function that returns a nested list contraction with input from default parameter", defaultValueTest3c("ignored"))
 
-def defaultValueTest4( no_default, funced_defaulted = lambda x: x**2):
+def defaultValueTest4(no_default, funced_defaulted = lambda x: x**2):
     return funced_defaulted(4)
 
 print("Call function that returns value calculated by a lambda function as default parameter", defaultValueTest4("ignored"))
 
-def defaultValueTest4a( no_default, funced_defaulted = lambda x: x**2):
+def defaultValueTest4a(no_default, funced_defaulted = lambda x: x**2):
     c = 1
     d = funced_defaulted(1)
 
@@ -103,7 +103,7 @@ def defaultValueTest4a( no_default, funced_defaulted = lambda x: x**2):
 
 print("Call function that has a lambda calculated default parameter and a generator expression", defaultValueTest4a("ignored"))
 
-def defaultValueTest4b( no_default, funced_defaulted = lambda x: x**3):
+def defaultValueTest4b(no_default, funced_defaulted = lambda x: x**3):
     d = funced_defaulted(1)
 
     # Nested generators
@@ -117,12 +117,12 @@ def defaultValueTest4b( no_default, funced_defaulted = lambda x: x**3):
 
 print("Call function that has a lambda calculated default parameter and a nested generator expression", defaultValueTest4b("ignored"))
 
-def defaultValueTest5( no_default, tuple_defaulted = (1,2,3)):
+def defaultValueTest5(no_default, tuple_defaulted = (1,2,3)):
     return tuple_defaulted
 
 print("Call function with default value that is a tuple", defaultValueTest5("ignored"))
 
-def defaultValueTest6( no_default, list_defaulted = [1,2,3]):
+def defaultValueTest6(no_default, list_defaulted = [1,2,3]):
     return list_defaulted
 
 print("Call function with default value that is a list", defaultValueTest6("ignored"))

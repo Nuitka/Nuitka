@@ -27,17 +27,17 @@ if os.name == "nt":
     # pylint: disable=C0103
     class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
         _fields_ = [
-            ('cb', wintypes.DWORD),
-            ('PageFaultCount', wintypes.DWORD),
-            ('PeakWorkingSetSize', ctypes.c_size_t),
-            ('WorkingSetSize', ctypes.c_size_t),
-            ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
-            ('QuotaPagedPoolUsage', ctypes.c_size_t),
-            ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
-            ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
-            ('PagefileUsage', ctypes.c_size_t),
-            ('PeakPagefileUsage', ctypes.c_size_t),
-            ('PrivateUsage', ctypes.c_size_t),
+            ("cb", wintypes.DWORD),
+            ("PageFaultCount", wintypes.DWORD),
+            ("PeakWorkingSetSize", ctypes.c_size_t),
+            ("WorkingSetSize", ctypes.c_size_t),
+            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+            ("PagefileUsage", ctypes.c_size_t),
+            ("PeakPagefileUsage", ctypes.c_size_t),
+            ("PrivateUsage", ctypes.c_size_t),
         ]
 
     GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo

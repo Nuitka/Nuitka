@@ -33,9 +33,9 @@ app.setApplicationName("BOGUS")
 settings = QSettings()
 byte_string = b'\xde\xad\xbe\xef'
 settings.clear()
-settings.setValue('bogus_byte_string',byte_string)
+settings.setValue("bogus_byte_string",byte_string)
 settings.sync()
-return_string = settings.value('bogus_byte_string',b'\x00\x00\x00\x00')
+return_string = settings.value("bogus_byte_string",b'\x00\x00\x00\x00')
 if sys.version_info >= (3,):
     assert return_string == byte_string, (repr(return_string), "!=", byte_string)
 print("OK.")
@@ -47,7 +47,7 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QMetaObject
 
 class Communicate(QObject):
     speak = pyqtSignal(int)
-    def __init__(self,name='',parent = None):
+    def __init__(self,name = "",parent = None):
         QObject.__init__(self,parent)
         self.setObjectName(name)
 
@@ -57,11 +57,11 @@ class Speaker(QObject):
         print(stuff)
 
 speaker = Speaker()
-someone = Communicate(name='communicator',parent=speaker)
+someone = Communicate(name = "communicator",parent = speaker)
 
 QMetaObject.connectSlotsByName(speaker)
 
-print('The answer is:',end="")
+print("The answer is:",end = "")
 # emit  'speak' signal
 someone.speak.emit(42)
-print('Slot should have made output by now.')
+print("Slot should have made output by now.")

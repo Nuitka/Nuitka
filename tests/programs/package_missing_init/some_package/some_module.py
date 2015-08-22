@@ -19,4 +19,4 @@
 print( "This must be Python3.3 or higher, which no longer needs __init__.py to accept a package." )
 
 import sys
-print( "The parent path is", sys.modules[ "some_package"].__path__ )
+print("The parent path is", sys.modules[ "some_package"].__path__)

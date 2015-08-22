@@ -61,8 +61,8 @@ def benchmark(loops):
 
     PtrGlb = Record()
 
-    for i in xrange( loops ):
+    for i in xrange(loops):
         PtrGlb = Proc1(PtrGlb)
 
-if __name__ == '__main__':
-    benchmark( LOOPS )
+if __name__ == "__main__":
+    benchmark(LOOPS)

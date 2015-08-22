@@ -111,12 +111,12 @@ def compilePath(path):
         ]
 
         for filename in sorted(filenames):
-            if "(" in filename:
+            if '(' in filename:
                 continue
 
             path = os.path.join(root, filename)
 
-            if not active and start_at in ( filename, path ):
+            if not active and start_at in (filename, path):
                 active = True
 
             if not active:
@@ -140,7 +140,7 @@ def compilePath(path):
             command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
             command.append(path)
-            my_print(path, ":", end = " ")
+            my_print(path, ':', end = ' ')
             sys.stdout.flush()
 
             try:
@@ -148,11 +148,11 @@ def compilePath(path):
             except subprocess.CalledProcessError as e:
                 my_print("Falling back to full comparison due to error exit.")
                 compareWithCPython(
-                    dirname = None,
-                    filename = path,
+                    dirname     = None,
+                    filename    = path,
                     extra_flags = ["expect_failure"],
                     search_mode = search_mode,
-                    needs_2to3 = False
+                    needs_2to3  = False
                 )
             else:
                 my_print("OK")
@@ -162,8 +162,8 @@ def compilePath(path):
                 else:
                     suffix = "so"
 
-                target_filename = os.path.basename(path).replace(".py","."+suffix)
-                target_filename = target_filename.replace("(","").replace(")","")
+                target_filename = os.path.basename(path).replace(".py",'.'+suffix)
+                target_filename = target_filename.replace('(',"").replace(')',"")
 
                 os.unlink(
                     os.path.join(
