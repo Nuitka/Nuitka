@@ -1770,9 +1770,12 @@ PyObject *BUILTIN_CALLABLE( PyObject *value )
     return PyBool_FromLong( (long)PyCallable_Check( value ) );
 }
 
-// Used by InspectPatcher too.
+PyObject *original_isinstance = NULL;
+
+// Note: Installed and used by "InspectPatcher".
 int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
 {
+    CHECK_OBJECT( original_isinstance );
     CHECK_OBJECT( inst );
     CHECK_OBJECT( cls );
 
@@ -1782,6 +1785,7 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
         return true;
     }
 
+    // Our paths for the types we need to hook.
     if ( cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check( inst ) )
     {
         return true;
@@ -1802,6 +1806,7 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
         return true;
     }
 
+    // May need to be recursive for tuple arguments.
     if ( PyTuple_Check( cls ) )
     {
         for ( Py_ssize_t i = 0, size = PyTuple_GET_SIZE( cls ); i < size; i++ )
@@ -1827,7 +1832,17 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
     }
     else
     {
-        return PyObject_IsInstance( inst, cls );
+        PyObject *result = CALL_FUNCTION_WITH_ARGS2( original_isinstance, inst, cls );
+
+        if ( result == NULL )
+        {
+            return -1;
+        }
+
+        int res = PyObject_IsTrue( result );
+        Py_DECREF( result );
+
+        return res;
     }
 }
 
