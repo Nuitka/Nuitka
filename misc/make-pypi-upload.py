@@ -56,7 +56,7 @@ for i in range(60):
     # in a Buildbot, we need not be optimal.
     time.sleep(5*60)
 
-    pypi = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
+    pypi = xmlrpclib.ServerProxy("http://pypi.python.org/pypi")
     pypi_versions = pypi.package_releases("Nuitka")
 
     assert len(pypi_versions) == 1, pypi_versions

@@ -62,7 +62,7 @@ coverage_mode      = hasArg("coverage")
 original_file      = hasArg("original_file")
 
 if args:
-    sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
+    sys.exit("Error, non understood mode(s) '%s'," % ','.join(args))
 
 # In coverage mode, we don't want to execute, and to do this only in one mode,
 # we enable two step execution, which splits running the binary from the actual
@@ -80,7 +80,7 @@ assert not standalone_mode or not module_mode
 assert not recurse_all or not recurse_none
 
 if "PYTHONHASHSEED" not in os.environ:
-    os.environ["PYTHONHASHSEED"] = "0"
+    os.environ["PYTHONHASHSEED"] = '0'
 
 os.environ["PYTHONWARNINGS"] = "ignore"
 
@@ -129,9 +129,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
 
 
 if comparison_mode and not silent_mode:
-    my_print("*" * 80)
+    my_print('*' * 80)
     my_print("CPython:")
-    my_print("*" * 80)
+    my_print('*' * 80)
 
 if two_step_execution:
     filename = os.path.abspath(filename)
@@ -264,7 +264,7 @@ for extra_option in extra_options:
         break
 else:
     # The default.
-    output_dir = "."
+    output_dir = '.'
 
 if module_mode:
     nuitka_cmd2 = [
@@ -278,7 +278,7 @@ else:
     if filename.endswith(".py"):
         exe_filename = exe_filename[:-3]
 
-    exe_filename = exe_filename.replace(")", "").replace("(", "")
+    exe_filename = exe_filename.replace(')', "").replace('(', "")
     exe_filename += ".exe"
 
     nuitka_cmd2 = [
@@ -307,7 +307,7 @@ def displayOutput(stdout, stderr):
         stdout = stdout.decode("utf-8" if os.name != "nt" else "cp850")
         stderr = stderr.decode("utf-8" if os.name != "nt" else "cp850")
 
-    my_print(stdout, end=' ')
+    my_print(stdout, end = ' ')
     if stderr:
         my_print(stderr)
 
@@ -315,9 +315,9 @@ if comparison_mode and not silent_mode:
     displayOutput(stdout_cpython, stderr_cpython)
 
 if comparison_mode and not silent_mode:
-    my_print("*" * 80)
+    my_print('*' * 80)
     my_print("Nuitka:")
-    my_print("*" * 80)
+    my_print('*' * 80)
 
 if two_step_execution:
     if output_dir:
@@ -454,17 +454,17 @@ def makeDiffable(output):
         if type(line) is not str:
             line = line.decode("utf-8" if os.name != "nt" else "cp850")
 
-        if line.endswith("\r"):
+        if line.endswith('\r'):
             line = line[:-1]
 
         if line.startswith("REFCOUNTS"):
-            first_value = line[line.find("[")+1:line.find(",")]
-            last_value = line[line.rfind(" ")+1:line.rfind("]")]
+            first_value = line[line.find('[')+1:line.find(',')]
+            last_value = line[line.rfind(' ')+1:line.rfind(']')]
             line = line.\
               replace(first_value, "xxxxx").\
               replace(last_value, "xxxxx")
 
-        if line.startswith("[") and line.endswith("refs]"):
+        if line.startswith('[') and line.endswith("refs]"):
             continue
 
         if ignore_warnings and line.startswith("Nuitka:WARNING"):
@@ -577,14 +577,14 @@ def compareOutput(kind, out_cpython, out_nuitka):
         ),
         fromdate,
         todate,
-        n=3
+        n = 3
     )
 
     result = list(diff)
 
     if result:
         for line in result:
-            my_print(line, end = "\n" if not line.startswith("---") else "")
+            my_print(line, end = '\n' if not line.startswith("---") else "")
 
         return 1
     else:

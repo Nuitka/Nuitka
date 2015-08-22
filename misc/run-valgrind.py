@@ -63,7 +63,7 @@ subprocess.check_call(
     ["valgrind"] +
     valgrind_options.split() +
     [output_binary],
-    stdout = open(os.devnull, "w")
+    stdout = open(os.devnull, 'w')
 )
 
 if "number" in sys.argv:
@@ -84,7 +84,7 @@ if "number" in sys.argv:
         ["valgrind"] +
         valgrind_options.split() +
         [output_binary],
-        stdout = open(os.devnull, "w")
+        stdout = open(os.devnull, 'w')
     )
 
     max_mem = 0

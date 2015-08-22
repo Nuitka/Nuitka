@@ -60,7 +60,7 @@ from __future__ import print_function
 import sys, os, subprocess
 
 # Go its own directory, to have it easy with path knowledge.
-os.chdir(os.path.dirname(os.path.abspath( __file__ )))
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 os.chdir("..")
 
 pylint_options = """\
@@ -83,7 +83,7 @@ pylint_options = """\
 --max-public-methods=100
 --max-args=10
 --max-parents=10
---enable=useless-suppression""".split("\n")
+--enable=useless-suppression""".split('\n')
 
 
 from optparse import OptionParser
@@ -144,7 +144,7 @@ def executePyLint(filename):
 
     assert not _stderr
     if stdout:
-        stdout = stdout.replace("\r\n", "\n")
+        stdout = stdout.replace("\r\n", '\n')
 
         # Remove hard to disable error line given under Windows.
         lines = stdout.split(b"\n")
@@ -184,7 +184,7 @@ def executePyLint(filename):
     sys.stdout.flush()
 
 if "PYTHONPATH" not in os.environ:
-    os.environ["PYTHONPATH"] = "."
+    os.environ["PYTHONPATH"] = '.'
 
 # For Windows, add this to the PATH, so pip installed PyLint will be found
 # near the Python executing this script.
@@ -234,7 +234,7 @@ for positional_arg in positional_args:
 
 pylint_version = subprocess.check_output(
     ["pylint", "--version"],
-    stderr = open(os.devnull, "w")
+    stderr = open(os.devnull, 'w')
 )
 
 pylint_version = pylint_version.split(b"\n")[0].split()[-1]

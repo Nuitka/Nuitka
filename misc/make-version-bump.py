@@ -36,54 +36,54 @@ options, positional_args = parser.parse_args()
 if positional_args:
     parser.print_help()
 
-    sys.exit( "\nError, no positional argument allowed." )
+    sys.exit("\nError, no positional argument allowed.")
 
 # Go its own directory, to have it easy with path knowledge.
-os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
-os.chdir( ".." )
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+os.chdir("..")
 
-option_lines = [ line for line in open( "nuitka/Options.py" ) ]
+option_lines = [ line for line in open("nuitka/Options.py") ]
 
-version_line, = [ line for line in open( "nuitka/Options.py" ) if line.startswith( "Nuitka V" ) ]
+version_line, = [ line for line in open("nuitka/Options.py") if line.startswith("Nuitka V") ]
 
 old_version = version_line[ 8:].rstrip()
 
 if options.mode == "prerelease":
     if "pre" in old_version:
-        parts = old_version.split( "pre" )
+        parts = old_version.split("pre")
 
-        new_version = "pre".join( [ parts[0], str( int( parts[1] ) + 1 ) ] )
+        new_version = "pre".join([parts[0], str(int(parts[1]) + 1) ])
     else:
-        old_version = ".".join( old_version.split( "." )[:3] )
-        parts = old_version.split( "." )
-        parts[-1] = str( int( parts[-1] ) + 1 )
+        old_version = '.'.join(old_version.split('.')[:3])
+        parts = old_version.split('.')
+        parts[-1] = str(int(parts[-1]) + 1)
 
-        new_version = ".".join( parts ) + "pre1"
+        new_version = '.'.join(parts) + "pre1"
 elif options.mode == "release":
     if "pre" in old_version:
-        old_version = old_version[ : old_version.find( "pre" ) ]
+        old_version = old_version[ : old_version.find("pre") ]
         was_pre = True
     else:
         was_pre = False
 
-    new_version = ".".join( old_version.split( "." )[:3] )
+    new_version = '.'.join(old_version.split('.')[:3])
 
     if not was_pre:
-        parts = new_version.split( "." )
-        parts[-1] = str( int( parts[-1] ) + 1 )
+        parts = new_version.split('.')
+        parts[-1] = str(int(parts[-1]) + 1)
 
-        new_version = ".".join( parts )
+        new_version = '.'.join(parts)
 elif options.mode == "hotfix":
     assert "pre" not in old_version
 
-    parts = old_version.split( "." )
+    parts = old_version.split('.')
 
-    if len( parts ) == 3:
-        parts.append( "1" )
+    if len(parts) == 3:
+        parts.append('1')
     else:
-        parts[-1] = str( int( parts[-1] ) + 1 )
+        parts[-1] = str(int(parts[-1]) + 1)
 
-    new_version = ".".join( parts )
+    new_version = '.'.join(parts)
 
 else:
     sys.exit("Error, unknown mode '%s'." % options.mode)
@@ -91,40 +91,40 @@ else:
 # Above code should succeed set this variable
 assert new_version
 
-with open( "nuitka/Options.py", "w" ) as options_file:
+with open("nuitka/Options.py", 'w') as options_file:
     for line in option_lines:
-        if line.startswith( "Nuitka V" ):
-            line = "Nuitka V" + new_version + "\n"
+        if line.startswith("Nuitka V"):
+            line = "Nuitka V" + new_version + '\n'
 
-        options_file.write( line )
+        options_file.write(line)
 
 print old_version, "->", new_version
-debian_version = new_version.replace( "pre", "~pre" ) + "+ds-1"
+debian_version = new_version.replace("pre", "~pre") + "+ds-1"
 
 if "pre" in new_version:
     if "pre1" in new_version:
-        os.system( 'debchange -R "New upstream pre-release."' )
-        os.system( 'debchange --newversion=%s ""'  % debian_version )
+        os.system('debchange -R "New upstream pre-release."')
+        os.system('debchange --newversion=%s ""'  % debian_version)
     else:
-        os.system( 'debchange --newversion=%s ""'  % debian_version )
+        os.system('debchange --newversion=%s ""'  % debian_version)
 else:
     if "pre" in version_line:
         # Initial final release after pre-releases.
-        changelog_lines = open( "debian/changelog" ).readlines()
-        with open( "debian/changelog", "w" ) as output:
+        changelog_lines = open("debian/changelog").readlines()
+        with open("debian/changelog", 'w') as output:
             first = True
             for line in changelog_lines[1:]:
-                if line.startswith( "nuitka" ) and first:
+                if line.startswith("nuitka") and first:
                     first = False
 
                 if not first:
-                    output.write( line )
+                    output.write(line)
 
-        os.system( 'debchange -R "New upstream release."' )
-        os.system( 'debchange --newversion=%s ""'  % debian_version )
+        os.system('debchange -R "New upstream release."')
+        os.system('debchange --newversion=%s ""'  % debian_version)
     else:
         # Hotfix release after previous final or hotfix release.
-        os.system( 'debchange -R "New upstream hotfix release."' )
-        os.system( 'debchange --newversion=%s ""'  % debian_version )
+        os.system('debchange -R "New upstream hotfix release."')
+        os.system('debchange --newversion=%s ""'  % debian_version)
 
-    os.system( 'debchange -r ""' )
+    os.system('debchange -r ""')

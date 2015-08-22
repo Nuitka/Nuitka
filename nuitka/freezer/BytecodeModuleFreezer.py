@@ -30,13 +30,12 @@ needed except for technical reasons.
 from logging import info
 
 from nuitka import Options
-from nuitka.utils import Utils
 from nuitka.codegen import ConstantCodes
 from nuitka.codegen.Indentation import indented
 from nuitka.codegen.templates. \
     CodeTemplatesFreezer import template_frozen_modules
-
 from nuitka.PythonVersions import python_version
+from nuitka.utils import Utils
 
 frozen_modules = []
 
