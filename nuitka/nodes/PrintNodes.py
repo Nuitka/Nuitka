@@ -126,6 +126,15 @@ Exception raise in 'print' statement arguments converted to explicit raise."""
                 return result, "new_statements", """\
 Side effects printed item promoted to statements."""
 
+        if value.isCompileTimeConstant():
+            if not (value.isExpressionConstantRef() and \
+                    value.isUnicodeConstant()):
+                new_value = value.getStrValue()
+                assert new_value is not None, value
+
+                if value is not new_value:
+                    self.setValue(new_value)
+
         return self, None, None
 
 

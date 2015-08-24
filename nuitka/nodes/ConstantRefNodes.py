@@ -74,7 +74,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
 
     def __repr__(self):
-        return "<Node %s value %s at %s %s>" % (
+        return "<Node %s value %r at %s %s>" % (
             self.kind,
             self.constant,
             self.source_ref.getAsString(),
@@ -131,9 +131,6 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
     def isIndexConstant(self):
         return isIndexConstant(self.constant)
-
-    def isStringConstant(self):
-        return type(self.constant) is str
 
     def isIndexable(self):
         return self.constant is None or self.isNumberConstant()
@@ -262,6 +259,12 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
     def isIterableConstant(self):
         return isIterableConstant(self.constant)
+
+    def isUnicodeConstant(self):
+        return type(self.constant) is unicode
+
+    def isStringConstant(self):
+        return type(self.constant) is str
 
     def getStrValue(self):
         if type(self.constant) is str:

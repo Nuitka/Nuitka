@@ -57,6 +57,16 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     def isKnownToBeHashable(self):
         return True
 
+    def mayHaveSideEffects(self):
+        return False
+
+    def getStrValue(self):
+        return ExpressionConstantRef(
+            constant      = str(self.getCompileTimeConstant()),
+            user_provided = True,
+            source_ref    = self.getSourceReference(),
+        )
+
 
 class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_REF"

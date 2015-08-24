@@ -26,7 +26,6 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
-from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
@@ -48,18 +47,6 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 def buildPrintNode(provider, node, source_ref):
     # "print" statements, should only occur with Python2.
-
-    def wrapValue(value):
-        if value.isExpressionConstantRef():
-            str_value = value.getStrValue()
-
-            if str_value is not None:
-                return str_value
-
-        return ExpressionBuiltinStr(
-            value      = value,
-            source_ref = value.getSourceReference()
-        )
 
     if node.dest is not None:
         temp_scope = provider.allocateTempScope("print")
@@ -120,12 +107,6 @@ def buildPrintNode(provider, node, source_ref):
         nodes      = node.values,
         source_ref = source_ref
     )
-
-    values = [
-        wrapValue(value)
-        for value in
-        values
-    ]
 
     if node.dest is not None:
         print_statements = [

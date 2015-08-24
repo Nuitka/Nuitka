@@ -1006,32 +1006,12 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
     CHECK_OBJECT( file );
     CHECK_OBJECT( object );
 
-    // need to hold a reference to the file or else __getattr__ may release
-    // "file" in the mean time.
+    // need to hold a reference to the file or else "__getattr__" code may
+    // release "file" in the mean time.
     Py_INCREF( file );
 
-    bool softspace;
-
-    if ( PyString_Check( object ) )
-    {
-        char *buffer;
-        Py_ssize_t length;
-
-#ifndef __NUITKA_NO_ASSERT__
-        int status =
-#endif
-            PyString_AsStringAndSize( object, &buffer, &length );
-        assert( status != -1 );
-
-        softspace = length > 0 && ( buffer[ length - 1 ] == '\t' || buffer[ length - 1 ] == '\n' );
-    }
-    else
-    {
-        softspace = false;
-    }
-
     // Check for soft space indicator
-    if ( PyFile_SoftSpace( file, !softspace ) )
+    if ( PyFile_SoftSpace( file, 0 ) )
     {
         if (unlikely( PyFile_WriteString( " ", file ) == -1 ))
         {
@@ -1046,9 +1026,35 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         return false;
     }
 
-    if ( softspace )
+    if ( PyString_Check( object ) )
     {
-        PyFile_SoftSpace( file, !softspace );
+        char *buffer;
+        Py_ssize_t length;
+
+#ifndef __NUITKA_NO_ASSERT__
+        int status =
+#endif
+            PyString_AsStringAndSize( object, &buffer, &length );
+        assert( status != -1 );
+
+        if ( length == 0 || !isspace( Py_CHARMASK(buffer[length-1])) || buffer[ length - 1 ] == ' ' )
+        {
+            PyFile_SoftSpace( file, 1 );
+        }
+    }
+    else if ( PyUnicode_Check( object ) )
+    {
+        Py_UNICODE *buffer = PyUnicode_AS_UNICODE( object );
+        Py_ssize_t length = PyUnicode_GET_SIZE( object );
+
+        if ( length == 0 || !Py_UNICODE_ISSPACE( buffer[length-1]) || buffer[length-1] == ' ' )
+        {
+            PyFile_SoftSpace( file, 1 );
+        }
+    }
+    else
+    {
+        PyFile_SoftSpace( file, 1 );
     }
 
     CHECK_OBJECT( file );

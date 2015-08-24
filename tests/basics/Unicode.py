@@ -29,6 +29,8 @@ with
 new
 lines""")
 
+print(u"favicon.ico (32\xd732)")
+
 # TODO: Python3 has a problem here, hard to find, disabled for now.
 if False:
     encoding = "utf-16-be"
