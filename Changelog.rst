@@ -1,9 +1,13 @@
 Nuitka Release 0.5.14 (Draft)
 =============================
 
-This release has a focus on working towards eliminating the ``try``/``finally``
-as it imposes complications for SSA trace optimization, and shall be replaced
-by other means. There are also a few bug fixes.
+This release is an intermediate step towards value propagation, which is not
+considered ready for stable release yet. The major point is the elimination
+of the ``try``/``finally`` expressions, as they are problems to SSA. The
+``try``/``finally``statement change is delayed.
+
+There are also a lot of bug fixes, and enhancements to code generation, as well
+as major cleanups of code base.
 
 Bug Fixes
 ---------
@@ -36,6 +40,32 @@ Bug Fixes
 
 - Python2.7.10: Was not recognizing this as a 2.7.x variant and therefore not
   applying minor version compatibility levels properly.
+
+- Fix, when choosing to have frozen source references, code objects were not
+  use the same value as ``__file__`` did for its filename.
+
+- Fix, when re-executing itself to drop the ``site`` module, make sure we find
+  the same file again, and not according to the ``PYTHONPATH`` changes coming
+  from it.
+
+- Enhanced code generation for ``del variable`` statements, where it's clear
+  that the value must be assigned.
+
+- When pressing CTRL-C, the stack traces from both Nuitka and Scons were given,
+  we now avoid the one from Scons.
+
+- Fix, the dump from ``--xml`` no longer contains functions that have become
+  unused during analysis.
+
+New Features
+------------
+
+- Added support for Windows 10.
+
+- Followed changes for Python 3.5 beta 2. Still only usable as a Python 3.4
+  replacement, no new features.
+
+- Using a self compiled Python running from the source tree is now supported.
 
 Optimization
 ------------
@@ -73,6 +103,28 @@ Optimization
 - The SSA analysis of `del` statements now properly decided if the statement
   can raise or not, allowing for more optimization.
 
+- For list contractions, the re-formulation was enhanced using the new outline
+  construct instead of a pseudo function, leading to better analysis and code
+  generation.
+
+- Comparison chains are now re-formulated into outlines too, allowing for better
+  analysis of them.
+
+- Exceptions raised in function creations, e.g. in default values, are now
+  propagated, eliminating the function's code. This happens most often with
+  Python2/Python3 in branches. On the other hand, function creations that
+  cannot are also annotated now.
+
+- Closure variables that become unreferenced outside of the function become
+  normal variables leading to better tracing and code generation for them.
+
+Organizational
+--------------
+
+- Removed gitorious mirror of the git repository, they shut down.
+
+- Make it more clear in the documentation that Python2 is needed at compile time
+  to create Python3 executables.
 
 Cleanups
 --------
@@ -120,8 +172,15 @@ Cleanups
 
 - Added more assertions to the generated code, to aid bug finding.
 
+- The autoformat now sorts pylint markups for increased consistency.
+
+- Releases no longer have a ``tolerant`` flag, this was not needed anymore
+  as we use SSA.
+
 Tests
 -----
+
+- Added the CPython3.4 test suite.
 
 - The CPython3.2, CPython3.3, and CPython3.4 test suite now run with Python2
   giving the same errors. Previously there were a few specific errors, some
@@ -149,8 +208,13 @@ Summary
 
 This release is clearly major. It represents a huge step forward for Nuitka as
 it improves nearly every aspect of code generation and analysis. Removing the
-``try``/``finally`` nodes proved to be necessary in order to even have the
-correct SSA in their cases. Very important optimization was blocked by it.
+``try``/``finally`` expression nodes proved to be necessary in order to even
+have the correct SSA in their cases. Very important optimization was blocked by
+it.
+
+Going forward, the ``try``/``finally`` statements will be removed and dead
+variable elimination will happen, which then will give function inlining. This
+is expected to happen in one of the next releases.
 
 
 Nuitka Release 0.5.13
