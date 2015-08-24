@@ -581,10 +581,16 @@ def buildReturnNode(provider, node, source_ref):
 
 
 def buildExprOnlyNode(provider, node, source_ref):
-    return StatementExpressionOnly(
+    result = StatementExpressionOnly(
         expression = buildNode(provider, node.value, source_ref),
         source_ref = source_ref
     )
+
+    result.setCompatibleSourceReference(
+        result.getExpression().getCompatibleSourceReference()
+    )
+
+    return result
 
 
 def buildUnaryOpNode(provider, node, source_ref):

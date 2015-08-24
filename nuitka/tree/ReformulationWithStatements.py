@@ -324,7 +324,7 @@ def buildWithNode(provider, node, source_ref):
     assign_targets.reverse()
 
     # For compatibility, we need to gather a line number for the body here
-    # already, but only the full compatibilty mode will use it.
+    # already, but only the full compatibility mode will use it.
     terminal_statement = node.body[-1]
     while getKind(terminal_statement) == "With":
         terminal_statement = terminal_statement.body[-1]
