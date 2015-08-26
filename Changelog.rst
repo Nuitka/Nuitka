@@ -35,6 +35,9 @@ Bug Fixes
 - Python3.4: Fixed a crash of the binary when copying dictionaries with split
   tables received as star arguments.
 
+- Python3: Fixed reference loss, when using ``raise a from b`` where ``b`` was
+  an exception instance. Fixed in 0.5.13.8 already.
+
 - Windows: Fix, the flag ``--disable-windows-console`` was not properly handled
   for MinGW32 run time resulting in a crash.
 
@@ -46,7 +49,8 @@ Bug Fixes
 
 - Fix, when re-executing itself to drop the ``site`` module, make sure we find
   the same file again, and not according to the ``PYTHONPATH`` changes coming
-  from it.
+  from it. `Issue#223 <http://bugs.nuitka.net/issue223>`__. Fixed in 0.5.13.4
+  already.
 
 - Enhanced code generation for ``del variable`` statements, where it's clear
   that the value must be assigned.
@@ -56,6 +60,28 @@ Bug Fixes
 
 - Fix, the dump from ``--xml`` no longer contains functions that have become
   unused during analysis.
+
+- Standalone: Creating or running programs from inside unicode paths was not
+  working on Windows. `Issue#231 <http://bugs.nuitka.net/issue231>`__
+  `Issue#229 <http://bugs.nuitka.net/issue229>`__ and.
+  Fixed in 0.5.13.7 already.
+
+- Namespace package support was not yet complete, importing the parent of a
+  package was still failing. `Issue#230 <http://bugs.nuitka.net/issue231>`__.
+  Fixed in 0.5.13.7 already.
+
+- Python2.6: Compatibility for exception check messages enhanced with newest
+  minor releases.
+
+- Compatibility: The ``NameError`` in classes needs to say ``global name`` and
+  not just ``name`` too.
+
+- Python3: Fixed creation of XML representation, now done without ``lxml`` as
+  it doesn't support needed features on that version. Fixed in 0.5.13.5 already.
+
+- Python2: Fix, when creating code for the largest negative constant to still
+  fit into ``int``, that was only working in the main module. `Issue#228
+  <http://bugs.nuitka.net/issue228>`__. Fixed in 0.5.13.5 already.
 
 New Features
 ------------
@@ -67,8 +93,23 @@ New Features
 
 - Using a self compiled Python running from the source tree is now supported.
 
+- Added support for ``AnaConda`` Python distribution. As it doesn't install
+  the Python DLL, we copy it along for acceleration mode.
+
+- Added support for Visual Studio 2015. `Issue#222
+  <http://bugs.nuitka.net/issue222>`__. Fixed in 0.5.13.3 already.
+
+- Added support for self compiled Python versions running from build tree,
+  this is intended to help debug things on Windows.
+
 Optimization
 ------------
+
+- Function inlining is now present in the code, but still disabled, because it
+  needs more changes in other areas, before we can generally do it.
+
+- Trivial outlines, result of re-formulations or function inlining, are now
+  inlined, in case they just return an expression.
 
 - The re-formulation for ``or`` and ``and`` has been giving up, eliminating the
   use of a ``try``/``finally`` expression, at the cost of dedicated boolean
@@ -117,6 +158,9 @@ Optimization
 
 - Closure variables that become unreferenced outside of the function become
   normal variables leading to better tracing and code generation for them.
+
+- Function creations cannot raise except their defaults, keyword defaults or
+  annotations do.
 
 Organizational
 --------------
@@ -177,6 +221,10 @@ Cleanups
 - Releases no longer have a ``tolerant`` flag, this was not needed anymore
   as we use SSA.
 
+- Handle CTRL-C in scons code preventing per job messages that are not helpful
+  and avoid tracebacks from scons, also remove more unused tools like ``rpm``
+  from out inline copy.
+
 Tests
 -----
 
@@ -201,7 +249,8 @@ Tests
 - Made the compile library test robust against modules that raise a syntax
   error, checking that Nuitka does the same.
 
-- Refined more tests to be directly execuable with Python3.
+- Refined more tests to be directly execuable with Python3, this is an ongoing
+  effort.
 
 Summary
 -------
@@ -215,6 +264,10 @@ it.
 Going forward, the ``try``/``finally`` statements will be removed and dead
 variable elimination will happen, which then will give function inlining. This
 is expected to happen in one of the next releases.
+
+This release is a consolidation of 8 hotfix releases, and many refactorings
+needed towards the next big step, which might also break things, and for that
+reason is going to get its own release cycle.
 
 
 Nuitka Release 0.5.13
