@@ -76,11 +76,9 @@ from .Helpers import (
     makeDictCreationOrConstant,
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement,
-    popIndicatorVariable,
-    pushIndicatorVariable
+    makeStatementsSequenceFromStatement
 )
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 # TODO: Once we start to modify these, we should make sure, the copy is not
 # shared.
@@ -133,10 +131,6 @@ def _buildClassNode3(provider, node, source_ref):
         doc        = class_doc,
         source_ref = source_ref
     )
-
-    # Hack: This allows some APIs to work although this is not yet officially a
-    # child yet.
-    class_creation_function.parent = provider
 
     body = buildStatementsNode(
         provider   = class_creation_function,
@@ -410,8 +404,8 @@ def _buildClassNode3(provider, node, source_ref):
                         ),
                         source_ref = source_ref
                     ),
-                    yes_expression = ExpressionDictOperationGet(
-                        dicte      = ExpressionTempVariableRef(
+                    expression_yes = ExpressionDictOperationGet(
+                        dict_arg   = ExpressionTempVariableRef(
                             variable   = tmp_class_decl_dict,
                             source_ref = source_ref
                         ),
@@ -422,16 +416,16 @@ def _buildClassNode3(provider, node, source_ref):
                         ),
                         source_ref = source_ref
                     ),
-                    no_expression  = ExpressionConditional(
+                    expression_no  = ExpressionConditional(
                         condition      = ExpressionTempVariableRef(
                             variable   = tmp_bases,
                             source_ref = source_ref
                         ),
-                        no_expression  = ExpressionBuiltinRef(
+                        expression_no  = ExpressionBuiltinRef(
                             builtin_name = "type",
                             source_ref   = source_ref
                         ),
-                        yes_expression = ExpressionBuiltinType1(
+                        expression_yes = ExpressionBuiltinType1(
                             value      = ExpressionSubscriptLookup(
                                 subscribed = ExpressionTempVariableRef(
                                     variable   = tmp_bases,
@@ -475,7 +469,7 @@ def _buildClassNode3(provider, node, source_ref):
             no_branch  = None,
             yes_branch = makeStatementsSequenceFromStatement(
                 statement = StatementDictOperationRemove(
-                    dicte      = ExpressionTempVariableRef(
+                    dict_arg   = ExpressionTempVariableRef(
                         variable   = tmp_class_decl_dict,
                         source_ref = source_ref
                     ),
@@ -495,7 +489,7 @@ def _buildClassNode3(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       = ExpressionConditional(
-                condition      = ExpressionBuiltinHasattr( # pylint: disable=E1123,E1120
+                condition      = ExpressionBuiltinHasattr( # pylint: disable=E1120,E1123
                     object     = ExpressionTempVariableRef(
                         variable   = tmp_metaclass,
                         source_ref = source_ref
@@ -507,12 +501,12 @@ def _buildClassNode3(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                no_expression  = ExpressionConstantRef(
+                expression_no  = ExpressionConstantRef(
                     constant      = {},
                     source_ref    = source_ref,
                     user_provided = True
                 ),
-                yes_expression = ExpressionCall(
+                expression_yes = ExpressionCall(
                     called     = ExpressionAttributeLookup(
                         source         = ExpressionTempVariableRef(
                             variable   = tmp_metaclass,
@@ -566,27 +560,24 @@ def _buildClassNode3(provider, node, source_ref):
     final = (
         StatementReleaseVariable(
             variable   = tmp_bases,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_class_decl_dict,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_metaclass,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_prepared,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
 
     return makeTryFinallyStatement(
+        provider   = provider,
         tried      = statements,
         final      = final,
         source_ref = source_ref
@@ -736,8 +727,8 @@ def _buildClassNode2(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                yes_expression = ExpressionDictOperationGet(
-                    dicte      = ExpressionTempVariableRef(
+                expression_yes = ExpressionDictOperationGet(
+                    dict_arg   = ExpressionTempVariableRef(
                         variable   = tmp_class_dict,
                         source_ref = source_ref
                     ),
@@ -748,7 +739,7 @@ def _buildClassNode2(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                no_expression  = ExpressionSelectMetaclass(
+                expression_no  = ExpressionSelectMetaclass(
                     metaclass  = None,
                     bases      = ExpressionTempVariableRef(
                         variable   = tmp_bases,
@@ -839,27 +830,24 @@ def _buildClassNode2(provider, node, source_ref):
     final = (
         StatementReleaseVariable(
             variable   = tmp_class,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_bases,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_class_dict,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_metaclass,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
 
     return makeTryFinallyStatement(
+        provider   = function_body,
         tried      = statements,
         final      = final,
         source_ref = source_ref
@@ -869,21 +857,15 @@ def _buildClassNode2(provider, node, source_ref):
 def buildClassNode(provider, node, source_ref):
     assert getKind(node) == "ClassDef"
 
+    # There appears to be a inconsistency with the top level line number
+    # not being the one really the class has, if there are bases, and a
+    # decorator.
+    if node.bases:
+        source_ref = source_ref.atLineNumber(node.bases[-1].lineno)
+
     # Python2 and Python3 are similar, but fundamentally different, so handle
     # them in dedicated code.
-
-    pushIndicatorVariable(Ellipsis)
-
-    try:
-        # There appears to be a inconsistency with the top level line number
-        # not being the one really the class has, if there are bases, and a
-        # decorator.
-        if node.bases:
-            source_ref = source_ref.atLineNumber(node.bases[-1].lineno)
-
-        if Utils.python_version >= 300:
-            return _buildClassNode3(provider, node, source_ref)
-        else:
-            return _buildClassNode2(provider, node, source_ref)
-    finally:
-        popIndicatorVariable()
+    if Utils.python_version < 300:
+        return _buildClassNode2(provider, node, source_ref)
+    else:
+        return _buildClassNode3(provider, node, source_ref)

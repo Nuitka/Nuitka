@@ -20,7 +20,8 @@
 Next variants and unpacking with related checks.
 """
 
-from . import CodeTemplates
+from nuitka.PythonVersions import python_version
+
 from .ErrorCodes import (
     getErrorExitCode,
     getErrorExitReleaseCode,
@@ -28,6 +29,10 @@ from .ErrorCodes import (
 )
 from .Indentation import indented
 from .LineNumberCodes import getLineNumberUpdateCode
+from .templates.CodeTemplatesIterators import (
+    template_iterator_check,
+    template_loop_break_next
+)
 
 
 def getBuiltinNext1Code(to_name, value, emit, context):
@@ -76,7 +81,7 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
         break_indicator_code = ""
 
     emit(
-        CodeTemplates.template_loop_break_next % {
+        template_loop_break_next % {
             "to_name" : to_name,
             "break_indicator_code" : break_indicator_code,
             "break_target" : break_target,
@@ -95,14 +100,24 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
     context.addCleanupTempName(to_name)
 
 
-def getUnpackNextCode(to_name, value, count, emit, context):
-    emit(
-        "%s = UNPACK_NEXT( %s, %s );" % (
-            to_name,
-            value,
-            count - 1
+def getUnpackNextCode(to_name, value, expected, count, emit, context):
+    if python_version < 350:
+        emit(
+            "%s = UNPACK_NEXT( %s, %s );" % (
+                to_name,
+                value,
+                count - 1
+            )
         )
-    )
+    else:
+        emit(
+            "%s = UNPACK_NEXT( %s, %s, %s );" % (
+                to_name,
+                value,
+                count - 1,
+                expected
+            )
+        )
 
     getErrorExitCode(
         check_name      = to_name,
@@ -127,7 +142,7 @@ def getUnpackCheckCode(iterator_name, count, emit, context):
     release_code = getErrorExitReleaseCode(context)
 
     emit(
-        CodeTemplates.template_iterator_check % {
+        template_iterator_check % {
             "iterator_name"   : iterator_name,
             "attempt_name"    : attempt_name,
             "count"           : count,

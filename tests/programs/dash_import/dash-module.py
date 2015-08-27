@@ -16,4 +16,4 @@
 #     limitations under the License.
 #
 
-print( "Module with dash imported as", __name__ )
+print("Module with dash imported as", __name__)

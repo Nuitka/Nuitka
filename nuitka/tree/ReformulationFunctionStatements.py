@@ -37,7 +37,6 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
@@ -49,12 +48,10 @@ from .Helpers import (
     extractDocFromBody,
     getKind,
     makeDictCreationOrConstant,
-    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
-    mangleName,
-    popIndicatorVariable,
-    pushIndicatorVariable
+    mangleName
 )
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildFunctionNode(provider, node, source_ref):
@@ -67,11 +64,9 @@ def buildFunctionNode(provider, node, source_ref):
         name       = node.name,
         doc        = function_doc,
         parameters = buildParameterSpec(provider, node.name, node, source_ref),
+        is_class   = False,
         source_ref = source_ref
     )
-
-    # Hack:
-    function_body.parent = provider
 
     decorators = buildNodeList(
         provider   = provider,
@@ -89,16 +84,12 @@ def buildFunctionNode(provider, node, source_ref):
         provider, node, function_body, source_ref
     )
 
-    pushIndicatorVariable(Ellipsis)
-
     function_statements_body = buildStatementsNode(
         provider   = function_body,
         nodes      = function_statements,
         frame      = True,
         source_ref = source_ref
     )
-
-    popIndicatorVariable()
 
     if function_body.isGenerator():
         # TODO: raise generator exit?
@@ -107,10 +98,11 @@ def buildFunctionNode(provider, node, source_ref):
         function_statements_body = makeStatementsSequenceFromStatement(
             statement = StatementReturn(
                 expression = ExpressionConstantRef(
-                    constant   = None,
-                    source_ref = source_ref.atInternal()
+                    constant      = None,
+                    user_provided = True,
+                    source_ref    = source_ref
                 ),
-                source_ref = source_ref.atInternal()
+                source_ref = source_ref
             )
         )
     elif not function_statements_body.isStatementAborting():
@@ -119,10 +111,11 @@ def buildFunctionNode(provider, node, source_ref):
             (
                 StatementReturn(
                     expression = ExpressionConstantRef(
-                        constant   = None,
-                        source_ref = source_ref
+                        constant      = None,
+                        user_provided = True,
+                        source_ref    = source_ref
                     ),
-                    source_ref = source_ref.atInternal()
+                    source_ref = source_ref
                 ),
             )
         )
@@ -393,7 +386,6 @@ def addFunctionVariableReleases(function):
         releases.append(
             StatementReleaseVariable(
                 variable   = variable,
-                tolerant   = True,
                 source_ref = source_ref
             )
         )
@@ -406,14 +398,10 @@ def addFunctionVariableReleases(function):
                 statement = body
             )
 
-        body = StatementTryFinally(
+        body = makeTryFinallyStatement(
+            provider   = function,
             tried      = body,
-            final      = makeStatementsSequence(
-                statements = releases,
-                allow_none = False,
-                source_ref = source_ref
-            ),
-            public_exc = False,
+            final      = releases,
             source_ref = source_ref
         )
 
@@ -422,3 +410,5 @@ def addFunctionVariableReleases(function):
                 statement = body
             )
         )
+
+        # assert body.isStatementAborting(), body.asXmlText()

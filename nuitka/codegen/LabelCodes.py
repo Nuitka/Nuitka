@@ -22,6 +22,9 @@ exits, finally blocks, etc. this provides just the means to emit a label or
 the goto statement itself.
 """
 
+from .CppStrings import encodeString
+
+
 def getGotoCode(label, emit):
     assert label is not None
 
@@ -29,9 +32,54 @@ def getGotoCode(label, emit):
         "goto %s;" % label
     )
 
+
 def getLabelCode(label, emit):
     assert label is not None
 
     emit(
         "%s:;" % label
+    )
+
+
+def getBranchingCode(condition, emit, context):
+    true_target = context.getTrueBranchTarget()
+    false_target = context.getFalseBranchTarget()
+
+    if true_target is not None and false_target is None:
+        emit(
+            "if ( %s ) goto %s;" % (
+                condition,
+                true_target
+            )
+        )
+    elif true_target is None and false_target is not None:
+        emit(
+            "if (!( %s )) goto %s;" % (
+                condition,
+                false_target
+            )
+        )
+    else:
+        assert true_target is not None and false_target is not None
+
+        emit(
+            """\
+if ( %s )
+{
+    goto %s;
+}
+else
+{
+    goto %s;
+}""" % (
+                condition,
+                true_target,
+                false_target
+            )
+        )
+
+
+def getStatementTrace(source_desc, statement_repr):
+    return 'puts( "Execute: " %s );' % (
+        encodeString(source_desc + b" " + statement_repr),
     )

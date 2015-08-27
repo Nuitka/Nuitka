@@ -47,37 +47,51 @@ Requirements
 
   * The MinGW [#]_ or MinGW64 [#]_ compiler on Windows
 
-  * Visual Studion 2013 or higher on Windows [#]_
+  * Visual Studio 2015 or higher on Windows [#]_
 
-- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4
+- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4 (yes, but read below)
 
-  You need the standard Python implementation, called "CPython", to execute
-  Nuitka, because it is closely tied to using it. On Windows, the so called
-  "WinPython" distribution is also supported.
+  .. admonition:: Python3, yes but Python2 *compile time* dependency
 
-  .. note::
+     For Python3 you *need* a Python2, but only during the compile time
+     only, and that is for Scons (which orchestrates the C++ compilation), and
+     is not yet ported. So for Python 3.x, there is currently a requirement to
+     also have a Python 2.x installed.
+
+     Nuitka itself is fully Python3 compatible except for Scons.
+
+  .. admonition:: Moving to other machines
 
      The created binaries can be made executable independent of the Python
      installation, with ``--standalone`` option.
 
-  .. note::
+  .. admonition:: Binary filename suffix ".exe" even on Linux
 
-     To get at Python3 executable, you need a Python2 during the compile time
-     only, and that is for Scons (which orchestrates the C++ compilation), and
-     is not yet ported. So for Python 3.x, there is currently a requirement to
-     also have a Python 2.x installed.
+     The created binaries have an ".exe" suffix, that you are free to remove
+     and yes, they are still Linux binaries. The suffix is just to be sure
+     that the original script name and the binary name do not collide.
+
+  .. admonition:: It has to be CPython, maybe WinPython or AnaConda
+
+     You need the standard Python implementation, called "CPython", to execute
+     Nuitka, because it is closely tied to using it.
+
+     On Windows, the so called "WinPython" and "AnaConda" distributions but will
+     cause issues for acceleration mode. Standalone and creating extension
+     modules or packages will also work. For acceleration mode, you need to
+     copy the "PythonXX.DLL" alongside of it.
 
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
 
   Others may work as well. The portability is expected to be generally good, but
   the e.g. Scons usage may have to be adapted.
 
-- Architectures: x86, x86_64 (amd64), and arm.
+- Architectures: x86, x86_64 (amd64), and arm, likely more
 
-  Other architectures may also work, out of the box, as Nuitka is generally not
-  using any hardware specifics. These are just the ones tested and known to
-  be good. Feedback is welcome. Generally the architectures that Debian supports
-  can be considered good and tested too.
+  Other architectures are expected to also work, out of the box, as Nuitka is
+  generally not using any hardware specifics. These are just the ones tested
+  and known to be good. Feedback is welcome. Generally the architectures that
+  Debian supports can be considered good and tested too.
 
 .. [#] Support for this C++03 language standard is practically a given on any
        C++ compiler you encounter. Nuitka used to have higher requirements in
@@ -93,7 +107,7 @@ Requirements
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-       the Express edition will do.
+       (the Express editions will normally work just fine).
 
 
 Command Line

@@ -22,9 +22,14 @@ to eliminate or limit their impact as much as possible, but it's difficult
 to do.
 """
 
+from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.utils import Utils
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeMakingHelpers import (
+    convertNoneConstantToNone,
+    makeStatementOnlyNodesFromExpressions
+)
 
 
 class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
@@ -153,8 +158,6 @@ class StatementExec(StatementChildrenHavingBase):
 
     def setChild(self, name, value):
         if name in ("globals", "locals"):
-            from .NodeMakingHelpers import convertNoneConstantToNone
-
             value = convertNoneConstantToNone(value)
 
         return StatementChildrenHavingBase.setChild(self, name, value)
@@ -190,8 +193,6 @@ Exec statement raises implicitly when determining source code argument."""
 
         if globals_arg is not None and \
            globals_arg.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source_code,
@@ -214,8 +215,6 @@ Exec statement raises implicitly when determining globals argument."""
 
         if locals_arg is not None and \
            locals_arg.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
             result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source_code,
@@ -255,6 +254,7 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
         "locals",
     )
 
+    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, locals_arg, source_ref):
         StatementChildrenHavingBase.__init__(
             self,

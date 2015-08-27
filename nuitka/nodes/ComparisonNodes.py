@@ -22,6 +22,12 @@
 from nuitka import PythonOperators
 
 from .NodeBases import ExpressionChildrenHavingBase
+from .NodeMakingHelpers import (
+    getComputationResult,
+    makeComparisonNode,
+    makeConstantReplacementNode,
+    wrapExpressionWithSideEffects
+)
 
 
 class ExpressionComparison(ExpressionChildrenHavingBase):
@@ -36,7 +42,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
         assert left.isExpression()
         assert right.isExpression()
 
-        assert comparator in PythonOperators.all_comparison_functions
+        assert comparator in PythonOperators.all_comparison_functions, comparator
 
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -79,8 +85,6 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
             left_value = left.getCompileTimeConstant()
             right_value = right.getCompileTimeConstant()
 
-            from .NodeMakingHelpers import getComputationResult
-
             return getComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
@@ -102,8 +106,6 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
     def computeExpressionOperationNot(self, not_node, constraint_collection):
         if self.comparator in PythonOperators.comparison_inversions:
             left, right = self.getOperands()
-
-            from .NodeMakingHelpers import makeComparisonNode
 
             result = makeComparisonNode(
                 left       = left,
@@ -134,6 +136,12 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
 
         self.match_value = comparator == "Is"
 
+    def getDetailsForDisplay(self):
+        return ExpressionComparison.getDetails(self)
+
+    def getDetails(self):
+        return {}
+
     def isExpressionComparison(self):
         # Virtual method, pylint: disable=R0201
         return True
@@ -149,11 +157,6 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
         left, right = self.getOperands()
 
         if constraint_collection.mustAlias(left, right):
-            from .NodeMakingHelpers import (
-                makeConstantReplacementNode,
-                wrapExpressionWithSideEffects
-            )
-
             result = makeConstantReplacementNode(
                 constant = self.match_value,
                 node     = self
@@ -172,11 +175,6 @@ Determined values to alias and therefore result of %s comparison.""" % (
             )
 
         if constraint_collection.mustNotAlias(left, right):
-            from .NodeMakingHelpers import (
-                makeConstantReplacementNode,
-                wrapExpressionWithSideEffects
-            )
-
             result = makeConstantReplacementNode(
                 constant = not self.match_value,
                 node     = self
@@ -252,6 +250,9 @@ class ExpressionComparisonExceptionMatch(ExpressionComparison):
             comparator = "exception_match",
             source_ref = source_ref
         )
+
+    def getDetails(self):
+        return {}
 
     def isExpressionComparison(self):
         # Virtual method, pylint: disable=R0201

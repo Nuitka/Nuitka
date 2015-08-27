@@ -16,10 +16,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print "Hello World from Module main Code"
+print "Hello World from module main code"
 
 def printHelloWorld():
-    print "Hello World from Function main Code"
+    print "Hello World from function main code"
 
 print printHelloWorld
 
@@ -30,10 +30,10 @@ def printHelloWorld2(arg):
 
 print printHelloWorld2
 
-printHelloWorld2("Hello World from Function positional argument")
-printHelloWorld2(arg = "Hello World from Function keyword argument" )
+printHelloWorld2("Hello World from function positional argument")
+printHelloWorld2(arg = "Hello World from function keyword argument")
 
-def printHelloWorld3(arg = "Hello World from Function default argument"):
+def printHelloWorld3(arg = "Hello World from function default argument"):
     print arg
 
 print printHelloWorld3

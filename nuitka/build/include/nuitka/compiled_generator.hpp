@@ -46,6 +46,10 @@ typedef struct {
 
     PyObject *m_name;
 
+#if PYTHON_VERSION >= 350
+    PyObject *m_qualname;
+#endif
+
     Fiber m_yielder_context;
     Fiber m_caller_context;
 
@@ -87,7 +91,11 @@ typedef void (*yielder_func)( int, int );
 typedef void (*yielder_func)( Nuitka_GeneratorObject * );
 #endif
 
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *function, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given );
+#if PYTHON_VERSION < 350
+extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given );
+#else
+extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given );
+#endif
 
 static inline bool Nuitka_Generator_Check( PyObject *object )
 {
@@ -156,6 +164,11 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
     thread_state->exc_value = thread_state->frame->f_exc_value;
     thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
 
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("YIELD exit:\n");
+    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
+#endif
+
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
@@ -178,6 +191,11 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
     saved_exception_type = thread_state->exc_type;
     saved_exception_value = thread_state->exc_value;
     saved_exception_traceback = thread_state->exc_traceback;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("YIELD return:\n");
+    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
+#endif
 
     thread_state->exc_type = thread_state->frame->f_exc_type;
     thread_state->exc_value = thread_state->frame->f_exc_value;

@@ -33,7 +33,7 @@ def getOS():
     if os.name == "nt":
         return "Windows"
     elif os.name == "posix":
-        return os.uname()[0]
+        return os.uname()[0]  # @UndefinedVariable
     else:
         assert False, os.name
 
@@ -45,7 +45,7 @@ def getArchitecture():
         else:
             return "x86"
     else:
-        return os.uname()[4]
+        return os.uname()[4]  # @UndefinedVariable
 
 
 def relpath(path):
@@ -120,7 +120,7 @@ def areSamePaths(path1, path2):
 
 
 def readLink(path):
-    return os.readlink(path)
+    return os.readlink(path)  # @UndefinedVariable
 
 
 def listDir(path):
@@ -268,7 +268,7 @@ def getOwnProcessMemoryUsage():
 
         counters = PROCESS_MEMORY_COUNTERS_EX()
         rv = GetProcessMemoryInfo(
-            ctypes.windll.kernel32.GetCurrentProcess(),
+            ctypes.windll.kernel32.GetCurrentProcess(),  # @UndefinedVariable
             ctypes.byref(counters),
             ctypes.sizeof(counters)
         )
@@ -279,7 +279,7 @@ def getOwnProcessMemoryUsage():
         return counters.PrivateUsage
     else:
         # Posix only code, pylint: disable=F0401,I0021
-        import resource
+        import resource  # @UnresolvedImport
 
         # The value is from "getrusage", which has OS dependent scaling, at least
         # MacOS and Linux different

@@ -19,24 +19,24 @@
 
 import os, sys, shutil, subprocess
 
-assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
+assert os.path.isfile("setup.py") and open(".git/description").read().strip() == "Nuitka Staging"
 
-nuitka_version = subprocess.check_output( "./bin/nuitka --version", shell = True ).strip()
-branch_name = subprocess.check_output( "git name-rev --name-only HEAD".split() ).strip()
+nuitka_version = subprocess.check_output("./bin/nuitka --version", shell = True).strip()
+branch_name = subprocess.check_output("git name-rev --name-only HEAD".split()).strip()
 
-assert branch_name in ( b"master", b"develop", b"release/" + nuitka_version, b"hotfix/" + nuitka_version ), branch_name
+assert branch_name in (b"master", b"develop", b"release/" + nuitka_version, b"hotfix/" +nuitka_version), branch_name
 
-assert 0 == os.system( "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/" )
+assert 0 == os.system("rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/")
 
 for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
-    assert 0 == os.system( "rsync %s root@nuitka.net:/var/www/doc/" % filename )
+    assert 0 == os.system("rsync %s root@nuitka.net:/var/www/doc/" % filename)
 
 # Upload only stable releases to OpenSUSE Build Service:
-if branch_name.startswith( "release" ) or branch_name == "master":
+if branch_name.startswith("release") or branch_name == "master":
     pass
 elif branch_name == "develop":
-    for remote in "origin", "bitbucket", "github", "gitorious":
-        assert 0 == os.system( "git push --tags -f %s develop" % remote )
-        assert 0 == os.system( "git push %s master" % remote )
+    for remote in "origin", "bitbucket", "github":
+        assert 0 == os.system("git push --tags -f %s develop" % remote)
+        assert 0 == os.system("git push %s master" % remote)
 else:
-    sys.stdout.write( "Skipping for branch '%s'" % branch_name )
+    sys.stdout.write("Skipping for branch '%s'" % branch_name)

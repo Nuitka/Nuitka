@@ -22,4 +22,4 @@ def g():
 
     return 7
 
-print( "Yielder with return value", list(g()) )
+print("Yielder with return value", list(g()))

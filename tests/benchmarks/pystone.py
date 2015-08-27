@@ -76,14 +76,14 @@ class Record:
 TRUE = 1
 FALSE = 0
 
-def main(loops=LOOPS):
+def main(loops = LOOPS):
     benchtime, stones = pystones(loops)
     print "Pystone(%s) time for %d passes = %g" % \
           (__version__, loops, benchtime)
     print "This machine benchmarks at %g pystones/second" % stones
 
 
-def pystones(loops=LOOPS):
+def pystones(loops = LOOPS):
     return Proc0(loops)
 
 IntGlob = 0
@@ -95,7 +95,7 @@ Array2Glob = map(lambda x: x[:], [Array1Glob]*51)
 PtrGlb = None
 PtrGlbNext = None
 
-def Proc0(loops=LOOPS):
+def Proc0(loops = LOOPS):
     global IntGlob
     global BoolGlob
     global Char1Glob
@@ -271,7 +271,7 @@ def Func3(EnumParIn):
     if EnumLoc == Ident3: return TRUE
     return FALSE
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
     def error(msg):
         print >>sys.stderr, msg,

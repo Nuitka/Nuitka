@@ -35,7 +35,7 @@ from logging import warning
 
 from nuitka import Options, Tracing
 from nuitka.importing import StandardLibrary
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .FinalizeBase import FinalizationVisitorBase
 
@@ -96,87 +96,20 @@ class FinalizeMarkups(FinalizationVisitorBase):
             if provider.isExpressionFunctionBody():
                 provider.markAsLocalsDict()
 
-        if node.isStatementBreakLoop():
-            search = node
-
-            # Search up to the containing loop.
-            while not search.isStatementLoop():
-                last_search = search
-                search = search.getParent()
-
-                if search.isStatementTryFinally() and \
-                   last_search == search.getBlockTry():
-                    search.markAsNeedsBreakHandling()
-
-        if node.isStatementContinueLoop():
-            search = node
-
-            # Search up to the containing loop.
-            while not search.isStatementLoop():
-                last_search = search
-                search = search.getParent()
-
-                if search.isStatementTryFinally() and \
-                   last_search == search.getBlockTry():
-                    search.markAsNeedsContinueHandling()
-
-        if Utils.python_version >= 300:
-            if node.isExpressionYield() or node.isExpressionYieldFrom():
-                search = node.getParent()
-
-                while not search.isExpressionFunctionBody():
-                    last_search = search
-                    search = search.getParent()
-
-                    if search.isStatementTryFinally() and \
-                       last_search == search.getBlockTry() and \
-                       search.needsExceptionPublish():
-                        node.markAsExceptionPreserving()
-                        break
-
-                    if search.isStatementTryExcept() and \
-                       search.getExceptionHandling() is last_search and \
-                       search.needsExceptionPublish():
-                        node.markAsExceptionPreserving()
-                        break
-
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
             search = node
 
+            in_tried_block = False
+
             # Search up to the containing function, and check for a try/finally
             # containing the "return" statement.
-            while not search.isExpressionFunctionBody():
-                last_search = search
-                search = search.getParent()
+            search = search.getParentReturnConsumer()
 
-                if search.isStatementTryFinally():
-                    if last_search == search.getBlockTry():
-                        search.markAsNeedsReturnHandling(1)
-
-                        provider = search.getParentVariableProvider()
-                        if provider.isGenerator():
-                            provider.markAsNeedsGeneratorReturnHandling(2)
-
-                    if last_search == search.getBlockFinal():
-                        if search.needsReturnHandling():
-                            search.markAsNeedsReturnHandling(2)
-
-            if search.isGenerator():
-                search.markAsNeedsGeneratorReturnHandling(1)
-
-        if node.isStatementTryExcept():
-            if node.public_exc:
-                parent_frame = node.getParentStatementsFrame()
-                assert parent_frame, node
-
-                parent_frame.markAsFrameExceptionPreserving()
-
-        if node.isStatementTryFinally():
-            if Utils.python_version >= 300 and node.public_exc:
-                parent_frame = node.getParentStatementsFrame()
-
-                if parent_frame is not None:
-                    parent_frame.markAsFrameExceptionPreserving()
+            if search.isExpressionFunctionBody() and search.isGenerator():
+                if in_tried_block:
+                    search.markAsNeedsGeneratorReturnHandling(2)
+                else:
+                    search.markAsNeedsGeneratorReturnHandling(1)
 
         if node.isExpressionBuiltinImport() and \
            not Options.getShallFollowExtra() and \
@@ -212,9 +145,6 @@ of '--recurse-directory'.""" % (
             target_var = node.getTargetVariableRef().getVariable()
             assign_source = node.getAssignSource()
 
-            while assign_source.isExpressionTryFinally():
-                assign_source = assign_source.getExpression()
-
             if assign_source.isExpressionOperationBinary():
                 left_arg = assign_source.getLeft()
 
@@ -224,3 +154,19 @@ of '--recurse-directory'.""" % (
                     elif assign_source.getLeft().getVariable() is target_var:
                         if assign_source.isInplaceSuspect():
                             node.markAsInplaceSuspect()
+
+        if node.isStatementPublishException():
+            node.getParentStatementsFrame().markAsFrameExceptionPreserving()
+
+        if python_version >= 300:
+            if node.isExpressionYield() or node.isExpressionYieldFrom():
+                search = node.getParent()
+
+                while not search.isExpressionFunctionBody():
+                    last_search = search
+                    search = search.getParent()
+
+                    if search.isStatementTry() and \
+                       last_search == search.getBlockExceptHandler():
+                        node.markAsExceptionPreserving()
+                        break

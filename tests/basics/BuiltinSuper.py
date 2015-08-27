@@ -19,7 +19,7 @@
 from __future__ import print_function
 
 # Python2 will fallback to this variable, which Python3 will ignore.
-__class__ = "Using module level __class__ variable, would be wrong for Python3"
+__class__ = "Using module level __class__ variable, would be wrong for Python3"  # @ReservedAssignment
 
 class ClassWithUnderClassClosure:
     def g(self):
@@ -39,7 +39,7 @@ ClassWithUnderClassClosure().g()
 
 class ClassWithoutUnderClassClosure:
     def g(self):
-        __class__ = "Providing __class__ ourselves, then it must be used"
+        __class__ = "Providing __class__ ourselves, then it must be used"  # @ReservedAssignment
         print(__class__)
 
         try:
@@ -51,7 +51,7 @@ class ClassWithoutUnderClassClosure:
 ClassWithoutUnderClassClosure().g()
 
 # For Python2 only.
-__class__ = "Global __class__"
+__class__ = "Global __class__"  # @ReservedAssignment
 
 def deco(C):
     print("Decorating", repr(C))
@@ -90,7 +90,7 @@ class X:
 
     f5 = lambda x: __class__
 
-    def f6(self_by_another_name):
+    def f6(self_by_another_name):  # @NoSelf
         try:
             print("f6", super())
         except TypeError:

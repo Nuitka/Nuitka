@@ -60,5 +60,5 @@ def main():
 
     print "long lived tree of depth %d\t check: %d" % (max_depth, check_tree(long_lived_tree))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

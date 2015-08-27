@@ -17,10 +17,89 @@
 #
 """ Code generation for dicts.
 
-Right now only the creation is done here. But more should be added later on.
+Right now only the creation and a few operations on dictionaries are done here.
 """
 
+from nuitka.PythonVersions import python_version
+
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+
+
+def generateDictionaryCreationCode(to_name, pairs, emit, context):
+    emit(
+        "%s = _PyDict_NewPresized( %d );" % (
+            to_name,
+            len(pairs)
+        )
+    )
+
+    context.addCleanupTempName(to_name)
+
+    from .CodeGeneration import generateExpressionCode
+
+    def generateValueCode(dict_value_name, pair):
+        generateExpressionCode(
+            to_name    = dict_value_name,
+            expression = pair.getValue(),
+            emit       = emit,
+            context    = context
+        )
+
+    def generateKeyCode(dict_key_name, pair):
+        generateExpressionCode(
+            to_name    = dict_key_name,
+            expression = pair.getKey(),
+            emit       = emit,
+            context    = context
+        )
+
+
+    # Strange as it is, CPython evaluates the key/value pairs strictly in order,
+    # but for each pair, the value first.
+    for pair in pairs:
+        dict_key_name = context.allocateTempName("dict_key")
+        dict_value_name = context.allocateTempName("dict_value")
+
+        if python_version < 350:
+            generateValueCode(dict_value_name, pair)
+            generateKeyCode(dict_key_name, pair)
+        else:
+            generateKeyCode(dict_key_name, pair)
+            generateValueCode(dict_value_name, pair)
+
+        if pair.getKey().isKnownToBeHashable():
+            emit(
+                "PyDict_SetItem( %s, %s, %s );" % (
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
+            )
+        else:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = PyDict_SetItem( %s, %s, %s );" % (
+                    res_name,
+                    to_name,
+                    dict_key_name,
+                    dict_value_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition = "%s != 0" % res_name,
+                emit      = emit,
+                context   = context
+            )
+
+        if context.needsCleanup(dict_value_name):
+            emit("Py_DECREF( %s );" % dict_value_name)
+            context.removeCleanupTempName(dict_value_name)
+
+        if context.needsCleanup(dict_key_name):
+            emit("Py_DECREF( %s );" % dict_key_name)
+            context.removeCleanupTempName(dict_key_name)
 
 
 def getDictOperationGetCode(to_name, dict_name, key_name, emit, context):

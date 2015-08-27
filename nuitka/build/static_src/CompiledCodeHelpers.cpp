@@ -1006,32 +1006,12 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
     CHECK_OBJECT( file );
     CHECK_OBJECT( object );
 
-    // need to hold a reference to the file or else __getattr__ may release
-    // "file" in the mean time.
+    // need to hold a reference to the file or else "__getattr__" code may
+    // release "file" in the mean time.
     Py_INCREF( file );
 
-    bool softspace;
-
-    if ( PyString_Check( object ) )
-    {
-        char *buffer;
-        Py_ssize_t length;
-
-#ifndef __NUITKA_NO_ASSERT__
-        int status =
-#endif
-            PyString_AsStringAndSize( object, &buffer, &length );
-        assert( status != -1 );
-
-        softspace = length > 0 && ( buffer[ length - 1 ] == '\t' || buffer[ length - 1 ] == '\n' );
-    }
-    else
-    {
-        softspace = false;
-    }
-
     // Check for soft space indicator
-    if ( PyFile_SoftSpace( file, !softspace ) )
+    if ( PyFile_SoftSpace( file, 0 ) )
     {
         if (unlikely( PyFile_WriteString( " ", file ) == -1 ))
         {
@@ -1046,9 +1026,35 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         return false;
     }
 
-    if ( softspace )
+    if ( PyString_Check( object ) )
     {
-        PyFile_SoftSpace( file, !softspace );
+        char *buffer;
+        Py_ssize_t length;
+
+#ifndef __NUITKA_NO_ASSERT__
+        int status =
+#endif
+            PyString_AsStringAndSize( object, &buffer, &length );
+        assert( status != -1 );
+
+        if ( length == 0 || !isspace( Py_CHARMASK(buffer[length-1])) || buffer[ length - 1 ] == ' ' )
+        {
+            PyFile_SoftSpace( file, 1 );
+        }
+    }
+    else if ( PyUnicode_Check( object ) )
+    {
+        Py_UNICODE *buffer = PyUnicode_AS_UNICODE( object );
+        Py_ssize_t length = PyUnicode_GET_SIZE( object );
+
+        if ( length == 0 || !Py_UNICODE_ISSPACE( buffer[length-1]) || buffer[length-1] == ' ' )
+        {
+            PyFile_SoftSpace( file, 1 );
+        }
+    }
+    else
+    {
+        PyFile_SoftSpace( file, 1 );
     }
 
     CHECK_OBJECT( file );
@@ -1133,7 +1139,16 @@ bool PRINT_NULL( void )
 void PRINT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb )
 {
     PRINT_REPR( exception_type );
+    PRINT_STRING("|");
     PRINT_REPR( exception_value );
+#if PYTHON_VERSION >= 300
+    if ( exception_value != NULL )
+    {
+        PRINT_STRING(" <- ");
+        PRINT_REPR( PyException_GetContext( exception_value ) );
+    }
+#endif
+    PRINT_STRING("|");
     PRINT_REPR( exception_tb );
 
     PRINT_NEW_LINE();
@@ -1761,9 +1776,12 @@ PyObject *BUILTIN_CALLABLE( PyObject *value )
     return PyBool_FromLong( (long)PyCallable_Check( value ) );
 }
 
-// Used by InspectPatcher too.
+PyObject *original_isinstance = NULL;
+
+// Note: Installed and used by "InspectPatcher".
 int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
 {
+    CHECK_OBJECT( original_isinstance );
     CHECK_OBJECT( inst );
     CHECK_OBJECT( cls );
 
@@ -1773,6 +1791,7 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
         return true;
     }
 
+    // Our paths for the types we need to hook.
     if ( cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check( inst ) )
     {
         return true;
@@ -1793,6 +1812,7 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
         return true;
     }
 
+    // May need to be recursive for tuple arguments.
     if ( PyTuple_Check( cls ) )
     {
         for ( Py_ssize_t i = 0, size = PyTuple_GET_SIZE( cls ); i < size; i++ )
@@ -1818,7 +1838,17 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
     }
     else
     {
-        return PyObject_IsInstance( inst, cls );
+        PyObject *result = CALL_FUNCTION_WITH_ARGS2( original_isinstance, inst, cls );
+
+        if ( result == NULL )
+        {
+            return -1;
+        }
+
+        int res = PyObject_IsTrue( result );
+        Py_DECREF( result );
+
+        return res;
     }
 }
 
@@ -3757,18 +3787,26 @@ static Py_hash_t DEEP_HASH_INIT( PyObject *value )
 {
     Py_hash_t result = Py_hash_t( value );
 
-    result ^= DEEP_HASH( (PyObject *)Py_TYPE( value ) );
+    if ( Py_TYPE( value ) != &PyType_Type )
+    {
+        result ^= DEEP_HASH( (PyObject *)Py_TYPE( value ) );
+    }
 
     return result;
 }
 
-static void DEEP_HASH_BLOB( Py_hash_t *hash, char *s, Py_ssize_t size )
+static void DEEP_HASH_BLOB( Py_hash_t *hash, char const *s, Py_ssize_t size )
 {
     while( size > 0 )
     {
         *hash = ( 1000003 * (*hash) ) ^ Py_hash_t( *s++ );
         size--;
     }
+}
+
+static void DEEP_HASH_CSTR( Py_hash_t *hash, char const *s )
+{
+    DEEP_HASH_BLOB( hash, s, strlen( s ) );
 }
 
 // Hash function that actually verifies things done to the bit level. Can be
@@ -3779,7 +3817,10 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
     if ( PyType_Check( value ) )
     {
-        return (Py_hash_t)((PyTypeObject *)value)->tp_name;
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        DEEP_HASH_CSTR( &result, ((PyTypeObject *)value)->tp_name );
+        return result;
     }
     else if ( PyDict_Check( value ) )
     {
@@ -3855,7 +3896,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
         PyObject *exception_type, *exception_value;
         PyTracebackObject *exception_tb;
 
-        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+        FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
 
         // Use string to hash the long value, which relies on that to not
         // use the object address.
@@ -3863,7 +3904,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
         result ^= DEEP_HASH( str );
         Py_DECREF( str );
 
-        RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+        RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
 
         return result;
     }
@@ -3874,7 +3915,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
         PyObject *exception_type, *exception_value;
         PyTracebackObject *exception_tb;
 
-        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+        FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
 
 #if PYTHON_PYTHON >= 330
         Py_ssize_t size;
@@ -3896,7 +3937,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
         Py_DECREF( str );
 #endif
-        RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+        RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
 
         return result;
     }

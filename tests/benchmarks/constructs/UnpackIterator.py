@@ -18,12 +18,13 @@
 #     limitations under the License.
 #
 module_var = 1
+range_arg = 2
 
 def calledRepeatedly():
     global module_var
     c = module_var
 
-    iterator=iter(range(2))
+    iterator=iter(range(range_arg))
 
 # construct_begin
     a, b = iterator

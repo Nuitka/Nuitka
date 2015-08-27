@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.13.8
+Nuitka V0.5.14
 Copyright (C) 2015 Kay Hayen."""
 
 import logging
@@ -368,7 +368,7 @@ parser.add_option_group(outputdir_group)
 
 windows_group = OptionGroup(
     parser,
-    "Windows specific output control:"
+    "Windows specific output control"
 )
 
 

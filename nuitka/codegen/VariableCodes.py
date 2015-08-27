@@ -22,11 +22,40 @@
 from nuitka import Options, Variables
 from nuitka.utils import Utils
 
-from . import CodeTemplates
 from .ConstantCodes import getConstantCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorFormatExitBoolCode, getErrorFormatExitCode
 from .Indentation import indented
+from .templates.CodeTemplatesVariables import (
+    template_check_local,
+    template_check_shared,
+    template_del_global_unclear,
+    template_del_local_intolerant,
+    template_del_local_known,
+    template_del_local_tolerant,
+    template_del_shared_intolerant,
+    template_del_shared_known,
+    template_del_shared_tolerant,
+    template_read_local,
+    template_read_maybe_local_unclear,
+    template_read_mvar_unclear,
+    template_read_shared_known,
+    template_read_shared_unclear,
+    template_release_clear,
+    template_release_unclear,
+    template_write_local_clear_ref0,
+    template_write_local_clear_ref1,
+    template_write_local_empty_ref0,
+    template_write_local_empty_ref1,
+    template_write_local_inplace,
+    template_write_local_unclear_ref0,
+    template_write_local_unclear_ref1,
+    template_write_shared_clear_ref0,
+    template_write_shared_clear_ref1,
+    template_write_shared_inplace,
+    template_write_shared_unclear_ref0,
+    template_write_shared_unclear_ref1
+)
 
 
 def generateVariableDelCode(statement, emit, context):
@@ -95,7 +124,7 @@ def _getLocalVariableCode(context, variable):
 
     if owner is user:
         result = getVariableCodeName(
-            in_context = owner is not user,
+            in_context = False,
             variable   = variable
         )
 
@@ -125,7 +154,7 @@ def _getLocalVariableCode(context, variable):
                 variable   = variable
             )
 
-            return result, False
+            return result, variable.isSharedTechnically()
     else:
         closure_index = user.getClosureVariables().index(variable)
 
@@ -220,36 +249,36 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
             # gave a reference, and the in-place code deals with possible
             # replacement/release.
             if variable.isSharedTechnically():
-                template = CodeTemplates.template_write_shared_inplace
+                template = template_write_shared_inplace
             else:
-                template = CodeTemplates.template_write_local_inplace
+                template = template_write_local_inplace
 
         elif variable.isSharedTechnically():
             if ref_count:
                 if needs_release is False:
-                    template = CodeTemplates.template_write_shared_clear_ref0
+                    template = template_write_shared_clear_ref0
                 else:
-                    template = CodeTemplates.template_write_shared_unclear_ref0
+                    template = template_write_shared_unclear_ref0
             else:
                 if needs_release is False:
-                    template = CodeTemplates.template_write_shared_clear_ref1
+                    template = template_write_shared_clear_ref1
                 else:
-                    template = CodeTemplates.template_write_shared_unclear_ref1
+                    template = template_write_shared_unclear_ref1
         else:
             if ref_count:
                 if needs_release is False:
-                    template = CodeTemplates.template_write_local_empty_ref0
+                    template = template_write_local_empty_ref0
                 elif needs_release is True:
-                    template = CodeTemplates.template_write_local_clear_ref0
+                    template = template_write_local_clear_ref0
                 else:
-                    template = CodeTemplates.template_write_local_unclear_ref0
+                    template = template_write_local_unclear_ref0
             else:
                 if needs_release is False:
-                    template = CodeTemplates.template_write_local_empty_ref1
+                    template = template_write_local_empty_ref1
                 elif needs_release is True:
-                    template = CodeTemplates.template_write_local_clear_ref1
+                    template = template_write_local_clear_ref1
                 else:
-                    template = CodeTemplates.template_write_local_unclear_ref1
+                    template = template_write_local_unclear_ref1
 
         emit(
             template % {
@@ -263,24 +292,24 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
     elif variable.isTempVariable():
         if variable.isSharedTechnically():
             if ref_count:
-                template = CodeTemplates.template_write_shared_unclear_ref0
+                template = template_write_shared_unclear_ref0
             else:
-                template = CodeTemplates.template_write_shared_unclear_ref1
+                template = template_write_shared_unclear_ref1
         else:
             if ref_count:
                 if needs_release is False:
-                    template = CodeTemplates.template_write_local_empty_ref0
+                    template = template_write_local_empty_ref0
                 elif needs_release is True:
-                    template = CodeTemplates.template_write_local_clear_ref0
+                    template = template_write_local_clear_ref0
                 else:
-                    template = CodeTemplates.template_write_local_unclear_ref0
+                    template = template_write_local_unclear_ref0
             else:
                 if needs_release is False:
-                    template = CodeTemplates.template_write_local_empty_ref1
+                    template = template_write_local_empty_ref1
                 elif needs_release is True:
-                    template = CodeTemplates.template_write_local_clear_ref1
+                    template = template_write_local_clear_ref1
                 else:
-                    template = CodeTemplates.template_write_local_unclear_ref1
+                    template = template_write_local_unclear_ref1
 
         emit(
             template % {
@@ -302,7 +331,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
 
     if variable.isModuleVariable():
         emit(
-            CodeTemplates.template_read_mvar_unclear % {
+            template_read_mvar_unclear % {
                 "module_identifier" : context.getModuleCodeName(),
                 "tmp_name"          : to_name,
                 "var_name"          : getConstantCode(
@@ -313,7 +342,9 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
         )
 
         if needs_check:
-            if Utils.python_version < 340 and not context.isPythonModule():
+            if Utils.python_version < 340 and \
+               not context.isPythonModule() and \
+               not context.getOwner().isClassDictCreation():
                 error_message = "global name '%s' is not defined"
             else:
                 error_message = "name '%s' is not defined"
@@ -343,7 +374,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
         )
 
         emit(
-            CodeTemplates.template_read_maybe_local_unclear % {
+            template_read_maybe_local_unclear % {
                 "locals_dict" : "locals_dict",
                 "fallback"    : indented(fallback_emit.codes),
                 "tmp_name"    : to_name,
@@ -358,11 +389,11 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
     elif variable.isLocalVariable():
         if variable.isSharedTechnically():
             if not needs_check:
-                template = CodeTemplates.template_read_shared_unclear
+                template = template_read_shared_unclear
             else:
-                template = CodeTemplates.template_read_shared_known
+                template = template_read_shared_known
         else:
-            template = CodeTemplates.template_read_local
+            template = template_read_local
 
         emit(
             template % {
@@ -404,7 +435,7 @@ local variable '%s' referenced before assignment""" % (
         return
     elif variable.isTempVariable():
         if variable.isSharedTechnically():
-            template = CodeTemplates.template_read_shared_unclear
+            template = template_read_shared_unclear
 
             emit(
                 template % {
@@ -431,7 +462,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
 
             return
         else:
-            template = CodeTemplates.template_read_local
+            template = template_read_local
 
             emit(
                 template % {
@@ -470,7 +501,7 @@ def getVariableDelCode(variable, tolerant, needs_check, emit, context):
         res_name = context.getIntResName()
 
         emit(
-            CodeTemplates.template_del_global_unclear % {
+            template_del_global_unclear % {
                 "module_identifier" : context.getModuleCodeName(),
                 "res_name"          : res_name,
                 "var_name"          : getConstantCode(
@@ -497,9 +528,9 @@ def getVariableDelCode(variable, tolerant, needs_check, emit, context):
     elif variable.isLocalVariable():
         if not needs_check:
             if variable.isSharedTechnically():
-                template = CodeTemplates.template_del_shared_known
+                template = template_del_shared_known
             else:
-                template = CodeTemplates.template_del_local_known
+                template = template_del_local_known
 
             emit(
                 template % {
@@ -511,9 +542,9 @@ def getVariableDelCode(variable, tolerant, needs_check, emit, context):
             )
         elif tolerant:
             if variable.isSharedTechnically():
-                template = CodeTemplates.template_del_shared_tolerant
+                template = template_del_shared_tolerant
             else:
-                template = CodeTemplates.template_del_local_tolerant
+                template = template_del_local_tolerant
 
             emit(
                 template % {
@@ -527,9 +558,9 @@ def getVariableDelCode(variable, tolerant, needs_check, emit, context):
             res_name = context.getBoolResName()
 
             if variable.isSharedTechnically():
-                template = CodeTemplates.template_del_shared_intolerant
+                template = template_del_shared_intolerant
             else:
-                template = CodeTemplates.template_del_local_intolerant
+                template = template_del_local_intolerant
 
             emit(
                 template % {
@@ -570,9 +601,9 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
             # Temp variables use similar classes, can use same templates.
 
             if variable.isSharedTechnically():
-                template = CodeTemplates.template_del_shared_tolerant
+                template = template_del_shared_tolerant
             else:
-                template = CodeTemplates.template_del_local_tolerant
+                template = template_del_local_tolerant
 
             emit(
                 template % {
@@ -586,9 +617,9 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
             res_name = context.getBoolResName()
 
             if variable.isSharedTechnically():
-                template = CodeTemplates.template_del_shared_intolerant
+                template = template_del_shared_intolerant
             else:
-                template = CodeTemplates.template_del_local_intolerant
+                template = template_del_local_intolerant
 
             emit(
                 template % {
@@ -616,9 +647,9 @@ def getVariableReleaseCode(variable, needs_check, emit, context):
     # variable to NULL then, using a different template.
 
     if needs_check:
-        template = CodeTemplates.template_release_unclear
+        template = template_release_unclear
     else:
-        template = CodeTemplates.template_release_clear
+        template = template_release_clear
 
     emit(
         template % {
@@ -638,9 +669,9 @@ def getVariableInitializedCheckCode(variable, context):
 
     if variable.isLocalVariable() or variable.isTempVariable():
         if variable.isSharedTechnically():
-            template = CodeTemplates.template_check_shared
+            template = template_check_shared
         else:
-            template = CodeTemplates.template_check_local
+            template = template_check_local
 
         return template % {
             "identifier" : getVariableCode(

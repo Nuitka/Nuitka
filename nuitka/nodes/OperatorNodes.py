@@ -90,7 +90,6 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
-
     def computeExpression(self, constraint_collection):
         # This is using many returns based on many conditions,
         # pylint: disable=R0911,R0912
@@ -250,6 +249,9 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
             source_ref = source_ref
         )
 
+    def getDetails(self):
+        return {}
+
     def computeExpression(self, constraint_collection):
         operand = self.getOperand()
 
@@ -300,8 +302,6 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
 
     def __init__(self, operator, left, right, source_ref):
-        operator = 'I' + operator
-
         ExpressionOperationBinary.__init__(
             self,
             operator   = operator,

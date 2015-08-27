@@ -20,7 +20,6 @@
 Attribute lookup, setting.
 """
 
-from .ComparisonCodes import getBranchingCode
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
@@ -29,6 +28,7 @@ from .ErrorCodes import (
     getReleaseCodes
 )
 from .Helpers import generateChildExpressionsCode
+from .LabelCodes import getBranchingCode
 
 
 def generateAttributeLookupCode(to_name, expression, emit, context):

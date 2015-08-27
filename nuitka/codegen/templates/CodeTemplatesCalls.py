@@ -139,11 +139,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
             Py_LeaveRecursiveCall();
 #endif
 
-            // Some buggy C functions do this, and Nuitka inner workings can get
-            // upset from it.
-            if (unlikely( result != NULL )) DROP_ERROR_OCCURRED();
+            if ( result != NULL )
+            {
+            // Some buggy C functions do set an error, but do not indicate it
+            // and Nuitka inner workings can get upset/confused from it.
+                DROP_ERROR_OCCURRED();
 
-            return result;
+                return result;
+            }
+            else
+            {
+                // Other buggy C functions do this, return NULL, but with
+                // no error set, not allowed.
+                if (unlikely( !ERROR_OCCURRED() ))
+                {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "NULL result without error in PyObject_Call"
+                    );
+                }
+
+                return NULL;
+            }
 #else
             PyErr_Format(
                 PyExc_TypeError,
@@ -174,11 +191,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
             Py_LeaveRecursiveCall();
 #endif
 
-            // Some buggy C functions do this, and Nuitka inner workings can get
-            // upset from it.
-            if (unlikely( result != NULL )) DROP_ERROR_OCCURRED();
+            if ( result != NULL )
+            {
+            // Some buggy C functions do set an error, but do not indicate it
+            // and Nuitka inner workings can get upset/confused from it.
+                DROP_ERROR_OCCURRED();
 
-            return result;
+                return result;
+            }
+            else
+            {
+                // Other buggy C functions do this, return NULL, but with
+                // no error set, not allowed.
+                if (unlikely( !ERROR_OCCURRED() ))
+                {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "NULL result without error in PyObject_Call"
+                    );
+                }
+
+                return NULL;
+            }
 #else
             PyErr_Format(PyExc_TypeError,
                 "%%s() takes exactly one argument (%(args_count)d given)",
@@ -221,13 +255,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
             Py_LeaveRecursiveCall();
 #endif
 
-            // Some buggy C functions do this, and Nuitka inner workings can get
-            // upset from it.
-            if ( result != NULL ) DROP_ERROR_OCCURRED();
+            if ( result != NULL )
+            {
+            // Some buggy C functions do set an error, but do not indicate it
+            // and Nuitka inner workings can get upset/confused from it.
+                DROP_ERROR_OCCURRED();
 
-            Py_DECREF( pos_args );
+                Py_DECREF( pos_args );
+                return result;
+            }
+            else
+            {
+                // Other buggy C functions do this, return NULL, but with
+                // no error set, not allowed.
+                if (unlikely( !ERROR_OCCURRED() ))
+                {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "NULL result without error in PyObject_Call"
+                    );
+                }
 
-            return result;
+                Py_DECREF( pos_args );
+                return NULL;
+            }
         }
     }
     else if ( PyFunction_Check( called ) )
@@ -255,3 +306,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, %(args_decl)s
     return result;
 }
 """
+
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

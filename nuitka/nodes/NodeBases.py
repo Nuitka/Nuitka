@@ -26,6 +26,7 @@ from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 from nuitka.VariableRegistry import addVariableUsage
 
@@ -112,18 +113,30 @@ class NodeBase(NodeMetaClassBase):
             return "<Node %s %s>" % (self.getDescription(), detail)
 
     def getDescription(self):
-        """ Description of the node, intented for use in __repr__ and
+        """ Description of the node, intended for use in __repr__ and
             graphical display.
 
         """
         return "%s at %s" % (self.kind, self.source_ref.getAsString())
 
     def getDetails(self):
-        """ Details of the node, intended for use in __repr__ and dumps.
+        """ Details of the node, intended for re-creation.
+
+            We are not using the pickle mechanisms, but this is basically
+            part of what the constructor call needs. Real children will
+            also be added.
 
         """
         # Virtual method, pylint: disable=R0201
         return {}
+
+    def getDetailsForDisplay(self):
+        """ Details of the node, intended for use in __repr__ and dumps.
+
+            This is also used for XML.
+        """
+        return self.getDetails()
+
 
     def getDetail(self):
         """ Details of the node, intended for use in __repr__ and graphical
@@ -132,12 +145,37 @@ class NodeBase(NodeMetaClassBase):
         """
         return str(self.getDetails())[1:-1]
 
+    def makeClone(self):
+        try:
+            # Using star dictionary arguments here for generic use.
+            result = self.__class__(
+                source_ref = self.source_ref,
+                **self.getDetails()
+            )
+        except TypeError:
+            print("Problem cloning", self.__class__)
+
+            raise
+
+        effective_source_ref = self.getCompatibleSourceReference()
+
+        if effective_source_ref is not self.source_ref:
+            result.setCompatibleSourceReference(effective_source_ref)
+
+        return result
+
+    def makeCloneAt(self, source_ref):
+        result = self.makeClone()
+        result.source_ref = source_ref
+        return result
+
     def getParent(self):
         """ Parent of the node. Every node except modules have to have a parent.
 
         """
 
         if self.parent is None and not self.isPythonModule():
+            # print self.getVisitableNodesNamed()
             assert False, (self,  self.source_ref)
 
         return self.parent
@@ -171,6 +209,10 @@ class NodeBase(NodeMetaClassBase):
         for key, value in parent.child_values.items():
             if self is value:
                 return key
+
+            if type(value) is tuple:
+                if self in value:
+                    return key, value.index(self)
 
         # TODO: Not checking tuples yet
         return None
@@ -215,6 +257,15 @@ class NodeBase(NodeMetaClassBase):
 
         return parent
 
+    def getParentReturnConsumer(self):
+        parent = self.getParent()
+
+        while not parent.isParentVariableProvider() and \
+              not parent.isExpressionOutlineBody():
+            parent = parent.getParent()
+
+        return parent
+
     def getParentStatementsFrame(self):
         current = self.getParent()
 
@@ -223,6 +274,9 @@ class NodeBase(NodeMetaClassBase):
                 return current
 
             if current.isParentVariableProvider():
+                return None
+
+            if current.isExpressionOutlineBody():
                 return None
 
             current = current.getParent()
@@ -273,7 +327,7 @@ class NodeBase(NodeMetaClassBase):
         if compat_line != line:
             result.attrib["compat_line"] = str(compat_line)
 
-        for key, value in iterItems(self.getDetails()):
+        for key, value in iterItems(self.getDetailsForDisplay()):
             value = str(value)
 
             if value.startswith('<') and value.endswith('>'):
@@ -299,6 +353,11 @@ class NodeBase(NodeMetaClassBase):
                     )
 
         return result
+
+    def asXmlText(self):
+        xml = self.asXml()
+
+        return TreeXML.toString(xml)
 
     def dump(self, level = 0):
         Tracing.printIndented(level, self)
@@ -558,7 +617,7 @@ class ChildrenHavingMixin:
         if name in self.checkers:
             value = self.checkers[name](value)
 
-        # Reparent value to us.
+        # Re-parent value to us.
         if type(value) is tuple:
             for val in value:
                 val.parent = self
@@ -675,7 +734,7 @@ class ChildrenHavingMixin:
             self
         )
 
-    def makeCloneAt(self, source_ref):
+    def makeClone(self):
         values = {}
 
         for key, value in self.child_values.items():
@@ -685,16 +744,12 @@ class ChildrenHavingMixin:
                 values[key] = None
             elif type(value) is tuple:
                 values[key] = tuple(
-                    v.makeCloneAt(
-                        source_ref = v.getSourceReference()
-                    )
+                    v.makeClone()
                     for v in
                     value
                 )
             else:
-                values[ key ] = value.makeCloneAt(
-                    value.getSourceReference()
-                )
+                values[key] = value.makeClone()
 
         values.update(
             self.getDetails()
@@ -703,8 +758,8 @@ class ChildrenHavingMixin:
         try:
             # Using star dictionary arguments here for generic use,
             # pylint: disable=E1123
-            return self.__class__(
-                source_ref = source_ref,
+            result = self.__class__(
+                source_ref = self.source_ref,
                 **values
             )
         except TypeError:
@@ -713,8 +768,16 @@ class ChildrenHavingMixin:
             raise
 
 
+        effective_source_ref = self.getCompatibleSourceReference()
+
+        if effective_source_ref is not self.source_ref:
+            result.setCompatibleSourceReference(effective_source_ref)
+
+        return result
+
+
 class ClosureGiverNodeBase(CodeNodeBase):
-    """ Mixin for nodes that provide variables for closure takers. """
+    """ Mix-in for nodes that provide variables for closure takers. """
     def __init__(self, name, code_prefix, source_ref):
         CodeNodeBase.__init__(
             self,
@@ -730,6 +793,8 @@ class ClosureGiverNodeBase(CodeNodeBase):
         self.temp_variables = OrderedDict()
 
         self.temp_scopes = OrderedDict()
+
+        self.preserver_id = 0
 
     def hasProvidedVariable(self, variable_name):
         return variable_name in self.providing
@@ -816,6 +881,12 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
     def removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
+
+    def allocatePreserverId(self):
+        if python_version >= 300:
+            self.preserver_id += 1
+
+        return self.preserver_id
 
 
 class ClosureTakerMixin:
@@ -999,6 +1070,8 @@ class ExpressionMixin:
         sub_expressions = self.getVisitableNodes()
 
         for sub_expression in sub_expressions:
+            assert sub_expression.isExpression(), (self, sub_expression)
+
             constraint_collection.onExpression(
                 expression = sub_expression
             )
@@ -1040,14 +1113,14 @@ class ExpressionMixin:
         return lookup_node, None, None
 
     def computeExpressionCall(self, call_node, constraint_collection):
-        # Virtual method, pylint: disable=R0201
-        call_node.getCalled().onContentEscapes(constraint_collection)
+        self.onContentEscapes(constraint_collection)
 
         return call_node, None, None
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
-        # Virtual method, pylint: disable=R0201
-        iter_node.getValue().onContentEscapes(constraint_collection)
+        self.onContentEscapes(constraint_collection)
+
+        assert iter_node.getValue() is self
 
         return iter_node, None, None
 
@@ -1327,10 +1400,3 @@ class SideEffectsFromChildrenMixin:
             )
 
         return tuple(result)
-
-
-# TODO: Maybe this should be in a "Checkers" module
-def checkStatementsSequenceOrNone(value):
-    assert value is None or value.kind == "STATEMENTS_SEQUENCE"
-
-    return value

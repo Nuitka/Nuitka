@@ -15,6 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
+
 def localImporter1():
     import os
 
@@ -36,34 +38,34 @@ def localImporter2a():
 
     return renamed
 
-print "Direct module import", localImporter1()
-print "Direct module import using rename", localImporter1a()
+print("Direct module import", localImporter1())
+print("Direct module import using rename", localImporter1a())
 
-print "From module import", localImporter2()
-print "From module import using rename", localImporter2a()
+print("From module import", localImporter2())
+print("From module import using rename", localImporter2a())
 
 from os import *
 
-print "Star import gave us", path
+print("Star import gave us", path)
 
 import os.path as myname
 
-print "As import gave", myname
+print("As import gave", myname)
 
 def localImportFailure():
     try:
         from os import path, lala, listdir
     except Exception as e:
-        print type(e), repr(e)
+        print("gives", type(e), repr(e))
 
     try:
-        print listdir
+        print(listdir)
     except UnboundLocalError:
-        print " and listdir was not imported",
+        print("and listdir was not imported", end = ' ')
 
-    print "but path was", path
+    print("but path was", path)
 
-print "From import that fails in the middle",
+print("From import that fails in the middle", end = ' ')
 localImportFailure()
 
 def nonPackageImportFailure():
@@ -71,7 +73,7 @@ def nonPackageImportFailure():
         # Not allowed without being a package, should raise ValueError
         from . import whatever
     except Exception as e:
-        print type(e), repr(e)
+        print(type(e), repr(e))
 
-print "Package import fails in non-package:",
+print("Package import fails in non-package:", end = ' ')
 nonPackageImportFailure()

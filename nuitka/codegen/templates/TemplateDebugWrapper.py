@@ -15,28 +15,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Code templates one stop access. """
+""" Nuitka templates can have more checks that the normal '%' operation.
 
-# Wildcard imports are here to centralize the templates for access through one
-# module name, this one, they are not used here though.
-# pylint: disable=W0401,W0614
+This wraps strings with a class derived from "str" that does more checks.
+"""
 
+
+from nuitka.__past__ import iterItems
 from nuitka.Options import isDebug
 
-from .templates.CodeTemplatesCalls import *
-from .templates.CodeTemplatesConstants import *
-from .templates.CodeTemplatesExceptions import *
-from .templates.CodeTemplatesFrames import *
-from .templates.CodeTemplatesFunction import *
-from .templates.CodeTemplatesGeneratorFunction import *
-from .templates.CodeTemplatesIterators import *
-from .templates.CodeTemplatesMain import *
-from .templates.CodeTemplatesParameterParsing import *
-from .templates.CodeTemplatesVariables import *
 
-
-def enableDebug():
-    templates = dict(globals())
+def enableDebug(globals_dict):
+    templates = dict(globals_dict)
 
     class TemplateWrapper:
         """ Wrapper around templates.
@@ -64,12 +54,13 @@ def enableDebug():
                         self.name
                     )
 
-            return self.value % other
+            try:
+                return self.value % other
+            except KeyError as e:
+                raise KeyError(self.name, *e.args)
 
         def split(self, sep):
             return self.value.split(sep)
-
-    from nuitka.__past__ import iterItems
 
     for template_name, template_value in iterItems(templates):
         # Ignore internal attribute like "__name__" that the module will also
@@ -78,11 +69,11 @@ def enableDebug():
             continue
 
         if type(template_value) is str:
-            globals()[template_name] = TemplateWrapper(
+            globals_dict[template_name] = TemplateWrapper(
                 template_name,
                 template_value
             )
 
-
-if isDebug():
-    enableDebug()
+def checkDebug(globals_dict):
+    if isDebug():
+        enableDebug(globals_dict)

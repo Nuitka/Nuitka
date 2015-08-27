@@ -21,13 +21,13 @@
 """
 
 template_publish_exception_to_handler = """\
-if (exception_tb == NULL)
+if ( %(keeper_tb)s == NULL )
 {
-    exception_tb = %(tb_making)s;
+    %(keeper_tb)s = %(tb_making)s;
 }
-else if ( exception_tb->tb_frame != %(frame_identifier)s || exception_tb->tb_lineno != %(frame_identifier)s->f_lineno )
+else if ( %(keeper_lineno)s != -1 )
 {
-    exception_tb = ADD_TRACEBACK( %(frame_identifier)s, exception_tb );
+    %(keeper_tb)s = ADD_TRACEBACK( %(keeper_tb)s, %(frame_identifier)s, %(keeper_lineno)s );
 }
 """
 
@@ -74,70 +74,5 @@ if ( %(condition)s )
 }
 """
 
-
-template_final_handler_start = """\
-// Tried block ends with no exception occurred, note that.
-exception_type = NULL;
-exception_value = NULL;
-exception_tb = NULL;
-%(final_error_target)s:;
-%(keeper_type)s = exception_type;
-%(keeper_value)s = exception_value;
-%(keeper_tb)s = exception_tb;
-exception_type = NULL;
-exception_value = NULL;
-exception_tb = NULL;
-"""
-
-template_final_handler_start_python3 = """\
-// Tried block ends with no exception occurred, note that.
-exception_type = NULL;
-exception_value = NULL;
-exception_tb = NULL;
-%(final_error_target)s:;
-"""
-
-
-
-template_final_handler_reraise = """\
-// Reraise exception if any.
-if ( %(keeper_type)s != NULL )
-{
-    exception_type = %(keeper_type)s;
-    exception_value = %(keeper_value)s;
-    exception_tb = %(keeper_tb)s;
-
-    goto %(exception_exit)s;
-}
-"""
-
-template_final_handler_return_reraise = """\
-// Return value if any.
-if ( tmp_return_value != NULL )
-{
-    goto %(parent_return_target)s;
-}
-"""
-
-template_final_handler_generator_return_reraise = """\
-if ( tmp_generator_return )
-{
-    goto %(parent_return_target)s;
-}
-"""
-
-template_final_handler_continue_reraise = """\
-// Continue if entered via continue.
-if ( %(continue_name)s )
-{
-    goto %(parent_continue_target)s;
-}
-"""
-
-template_final_handler_break_reraise = """\
-// Break if entered via break.
-if (  %(break_name)s )
-{
-    goto %(parent_break_target)s;
-}
-"""
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

@@ -45,20 +45,17 @@ class TempMixin:
         # For exception handling
         self.needs_exception_variables = False
         self.exception_escape = None
-        self.exception_ok = None
         self.loop_continue = None
         self.loop_break = None
-        # Python3 frame exception stack
-        self.frame_preservation_stack = []
-
-        # For exception handlers visibility of caught exception
-        self.exception_published = True
 
         # For branches
         self.true_target = None
         self.false_target = None
 
         self.keeper_variable_count = 0
+        self.exception_keepers = (None, None, None, None)
+
+        self.preserver_variable_counts = set()
 
     def formatTempName(self, base_name, number):
         if number is None:
@@ -71,7 +68,8 @@ class TempMixin:
                 number = number
             )
 
-    def allocateTempName(self, base_name, type_name, unique):
+    def allocateTempName(self, base_name, type_name = "PyObject *",
+                         unique = False):
         if unique:
             number = None
         else:
@@ -135,37 +133,25 @@ class TempMixin:
         return self.exception_escape
 
     def setExceptionEscape(self, label):
+        result = self.exception_escape
         self.exception_escape = label
-
-    def getExceptionNotOccurred(self):
-        return self.exception_ok
-
-    def setExceptionNotOccurred(self, label):
-        self.exception_ok = label
-
-    def isExceptionPublished(self):
-        return self.exception_published
-
-    def setExceptionPublished(self, value):
-        self.exception_published = value
+        return result
 
     def getLoopBreakTarget(self):
         return self.loop_break
 
-    def setLoopBreakTarget(self, label, name = None):
-        if name is None:
-            self.loop_break = label
-        else:
-            self.loop_break = label, name
+    def setLoopBreakTarget(self, label):
+        result = self.loop_break
+        self.loop_break = label
+        return result
 
     def getLoopContinueTarget(self):
         return self.loop_continue
 
-    def setLoopContinueTarget(self, label, name = None):
-        if name is None:
-            self.loop_continue = label
-        else:
-            self.loop_continue = label, name
+    def setLoopContinueTarget(self, label):
+        result = self.loop_continue
+        self.loop_continue = label
+        return result
 
     def allocateLabel(self, label):
         result = self.labels.get(label, 0)
@@ -183,17 +169,33 @@ class TempMixin:
     def markAsNeedsExceptionVariables(self):
         self.needs_exception_variables = True
 
-    def getExceptionKeeperVariables(self):
+    def allocateExceptionKeeperVariables(self):
         self.keeper_variable_count += 1
 
         return (
             "exception_keeper_type_%d" % self.keeper_variable_count,
             "exception_keeper_value_%d" % self.keeper_variable_count,
-            "exception_keeper_tb_%d" % self.keeper_variable_count
+            "exception_keeper_tb_%d" % self.keeper_variable_count,
+            "exception_keeper_lineno_%s" % self.keeper_variable_count
         )
 
     def getKeeperVariableCount(self):
         return self.keeper_variable_count
+
+    def getExceptionKeeperVariables(self):
+        return self.exception_keepers
+
+    def setExceptionKeeperVariables(self, keeper_vars):
+        result = self.exception_keepers
+        self.exception_keepers = tuple(keeper_vars)
+        return result
+
+    def getExceptionPreserverCounts(self):
+        return self.preserver_variable_counts
+
+    def addExceptionPreserverVariables(self, count):
+        assert count != 0
+        self.preserver_variable_counts.add(count)
 
     def getTrueBranchTarget(self):
         return self.true_target
@@ -206,23 +208,6 @@ class TempMixin:
 
     def setFalseBranchTarget(self, label):
         self.false_target = label
-
-    def pushFrameExceptionPreservationDepth(self):
-        if self.frame_preservation_stack:
-            self.frame_preservation_stack.append(
-                self.getExceptionKeeperVariables()
-            )
-        else:
-            self.frame_preservation_stack.append(
-                None
-            )
-
-        return self.frame_preservation_stack[-1]
-
-    def popFrameExceptionPreservationDepth(self):
-        result = self.frame_preservation_stack[-1]
-        del self.frame_preservation_stack[-1]
-        return result
 
 
 class CodeObjectsMixin:
@@ -311,7 +296,10 @@ class PythonChildContextBase(PythonContextBase):
         return self.parent.getModuleName()
 
     def addHelperCode(self, key, code):
-        self.parent.addHelperCode(key, code)
+        return self.parent.addHelperCode(key, code)
+
+    def hasHelperCode(self, key):
+        return self.parent.hasHelperCode(key)
 
     def addDeclaration(self, key, code):
         self.parent.addDeclaration(key, code)
@@ -524,8 +512,7 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     # Plenty of attributes, because it's storing so many different things.
     # pylint: disable=R0902
 
-    def __init__(self, module, module_name, code_name, filename, is_empty,
-                global_context):
+    def __init__(self, module, module_name, code_name, filename, global_context):
         PythonContextBase.__init__(self)
 
         TempMixin.__init__(self)
@@ -536,7 +523,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
         self.name = module_name
         self.code_name = code_name
         self.filename = filename
-        self.is_empty = is_empty
 
         self.global_context = global_context
 
@@ -545,7 +531,13 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
         self.constants = set()
 
+        self.return_release_mode = False
+
         self.frame_handle = None
+
+        self.return_exit = True
+
+        self.return_name = None
 
         self.needs_module_filename_object = False
 
@@ -573,8 +565,10 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     def getFilename(self):
         return self.filename
 
-    def isEmptyModule(self):
-        return self.is_empty
+    def mayRaiseException(self):
+        body = self.module.getBody()
+
+        return body is not None and body.mayRaiseException(BaseException)
 
     getModuleName = getName
 
@@ -598,6 +592,9 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
         self.helper_codes[ key ] = code
 
+    def hasHelperCode(self, key):
+        return key in self.helper_codes
+
     def getHelperCodes(self):
         return self.helper_codes
 
@@ -609,17 +606,29 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     def getDeclarations(self):
         return self.declaration_codes
 
+    def getReturnValueName(self):
+        return self.return_name
+
+    def setReturnValueName(self, value):
+        result = self.return_name
+        self.return_name = value
+        return result
+
     def setReturnReleaseMode(self, value):
-        pass
+        result = self.return_release_mode
+        self.return_release_mode = value
+        return result
 
     def getReturnReleaseMode(self):
-        pass
+        return self.return_release_mode
 
     def getReturnTarget(self):
-        return None
+        return self.return_exit
 
     def setReturnTarget(self, label):
-        pass
+        result = self.return_exit
+        self.return_exit = label
+        return result
 
     def mayRecurse(self):
         return False
@@ -662,6 +671,7 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin,
         self.setReturnTarget("function_return_exit")
 
         self.return_release_mode = False
+        self.return_name = None
 
         self.frame_handle = None
 
@@ -692,14 +702,29 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin,
     def setFrameHandle(self, frame_handle):
         self.frame_handle = frame_handle
 
+    def getReturnValueName(self):
+        if self.return_name is None:
+            self.return_name = self.allocateTempName("return_value", unique = True)
+
+        return self.return_name
+
+    def setReturnValueName(self, value):
+        result = self.return_name
+        self.return_name = value
+        return result
+
     def getReturnTarget(self):
         return self.return_exit
 
     def setReturnTarget(self, label):
+        result = self.return_exit
         self.return_exit = label
+        return result
 
     def setReturnReleaseMode(self, value):
+        result = self.return_release_mode
         self.return_release_mode = value
+        return result
 
     def getReturnReleaseMode(self):
         return self.return_release_mode
@@ -721,7 +746,6 @@ class PythonFunctionDirectContext(PythonFunctionContext):
 
     def isForCreatedFunction(self):
         return False
-
 
 class PythonFunctionCreatedContext(PythonFunctionContext):
     def isForDirectCall(self):
@@ -769,7 +793,10 @@ class PythonStatementCContext(PythonChildContextBase):
         return self.allocateTempName("result", "bool", unique = True)
 
     def getReturnValueName(self):
-        return self.allocateTempName("return_value", unique = True)
+        return self.parent.getReturnValueName()
+
+    def setReturnValueName(self, value):
+        return self.parent.setReturnValueName(value)
 
     def getGeneratorReturnValueName(self):
         if python_version >= 330:
@@ -789,55 +816,43 @@ class PythonStatementCContext(PythonChildContextBase):
         return self.parent.getExceptionEscape()
 
     def setExceptionEscape(self, label):
-        self.parent.setExceptionEscape(label)
-
-    def getExceptionNotOccurred(self):
-        return self.parent.getExceptionNotOccurred()
-
-    def setExceptionNotOccurred(self, label):
-        self.parent.setExceptionNotOccurred(label)
-
-    def isExceptionPublished(self):
-        return self.parent.isExceptionPublished()
-
-    def setExceptionPublished(self, value):
-        self.parent.setExceptionPublished(value)
+        return self.parent.setExceptionEscape(label)
 
     def getLoopBreakTarget(self):
         return self.parent.getLoopBreakTarget()
 
-    def setLoopBreakTarget(self, label, name = None):
-        self.parent.setLoopBreakTarget(label, name)
+    def setLoopBreakTarget(self, label):
+        return self.parent.setLoopBreakTarget(label)
 
     def getLoopContinueTarget(self):
         return self.parent.getLoopContinueTarget()
 
-    def setLoopContinueTarget(self, label, name = None):
-        self.parent.setLoopContinueTarget(label, name)
+    def setLoopContinueTarget(self, label):
+        return self.parent.setLoopContinueTarget(label)
 
     def getTrueBranchTarget(self):
         return self.parent.getTrueBranchTarget()
 
     def setTrueBranchTarget(self, label):
-        self.parent.setTrueBranchTarget(label)
+        return self.parent.setTrueBranchTarget(label)
 
     def getFalseBranchTarget(self):
         return self.parent.getFalseBranchTarget()
 
     def setFalseBranchTarget(self, label):
-        self.parent.setFalseBranchTarget(label)
+        return self.parent.setFalseBranchTarget(label)
 
     def getReturnTarget(self):
         return self.parent.getReturnTarget()
 
     def setReturnTarget(self, label):
-        self.parent.setReturnTarget(label)
+        return self.parent.setReturnTarget(label)
 
     def getReturnReleaseMode(self):
         return self.parent.getReturnReleaseMode()
 
     def setReturnReleaseMode(self, value):
-        self.parent.setReturnReleaseMode(value)
+        return self.parent.setReturnReleaseMode(value)
 
     def allocateLabel(self, label):
         return self.parent.allocateLabel(label)
@@ -872,8 +887,17 @@ class PythonStatementCContext(PythonChildContextBase):
     def setFrameHandle(self, frame_handle):
         return self.parent.setFrameHandle(frame_handle)
 
+    def allocateExceptionKeeperVariables(self):
+        return self.parent.allocateExceptionKeeperVariables()
+
     def getExceptionKeeperVariables(self):
         return self.parent.getExceptionKeeperVariables()
+
+    def setExceptionKeeperVariables(self, keeper_vars):
+        return self.parent.setExceptionKeeperVariables(keeper_vars)
+
+    def addExceptionPreserverVariables(self, count):
+        self.parent.addExceptionPreserverVariables(count)
 
     def needsExceptionVariables(self):
         return self.parent.needsExceptionVariables()
@@ -886,12 +910,6 @@ class PythonStatementCContext(PythonChildContextBase):
 
     def mayRecurse(self):
         return self.parent.mayRecurse()
-
-    def pushFrameExceptionPreservationDepth(self):
-        return self.parent.pushFrameExceptionPreservationDepth()
-
-    def popFrameExceptionPreservationDepth(self):
-        return self.parent.popFrameExceptionPreservationDepth()
 
     def getCodeObjectHandle(self, **kw):
         return self.parent.getCodeObjectHandle(**kw)

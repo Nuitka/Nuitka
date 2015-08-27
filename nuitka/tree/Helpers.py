@@ -15,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 """ Helper functions for parsing the AST nodes and building the Nuitka node tree.
 
 """
@@ -24,23 +23,25 @@ import ast
 from logging import warning
 
 from nuitka import Constants, Tracing
+from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeDict,
     ExpressionMakeList,
     ExpressionMakeSet,
     ExpressionMakeTuple
 )
+from nuitka.nodes.DictionaryNodes import (
+    ExpressionKeyValuePair,
+    ExpressionMakeDict
+)
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.NodeBases import NodeBase
+from nuitka.nodes.NodeMakingHelpers import mergeStatements
+from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import (
     StatementGeneratorEntry,
-    StatementsFrame,
     StatementsSequence
-)
-from nuitka.nodes.TryFinallyNodes import (
-    ExpressionTryFinally,
-    StatementTryFinally
 )
 
 
@@ -220,23 +221,6 @@ def buildStatementsNode(provider, nodes, source_ref, frame = False):
         )
 
 
-def mergeStatements(statements, allow_none = False):
-    """ Helper function that merges nested statement sequences. """
-    merged_statements = []
-
-    for statement in statements:
-        if statement is None and allow_none:
-            pass
-        elif statement.isStatement() or statement.isStatementsFrame():
-            merged_statements.append(statement)
-        elif statement.isStatementsSequence():
-            merged_statements.extend(mergeStatements(statement.getStatements()))
-        else:
-            assert False, statement
-
-    return merged_statements
-
-
 def makeStatementsSequenceOrStatement(statements, source_ref):
     """ Make a statement sequence, but only if more than one statement
 
@@ -284,6 +268,8 @@ def makeStatementsSequenceFromStatement(statement):
 def makeStatementsSequenceFromStatements(*statements):
     assert statements
     assert None not in statements
+
+    statements = mergeStatements(statements, allow_none = False)
 
     return StatementsSequence(
         statements = statements,
@@ -419,52 +405,33 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
     return result
 
 
-def makeTryFinallyStatement(tried, final, source_ref):
-    if type(tried) in (tuple, list):
-        tried = StatementsSequence(
-            statements = tried,
-            source_ref = source_ref
-        )
-    if type(final) in (tuple, list):
-        final = StatementsSequence(
-            statements = final,
-            source_ref = source_ref
-        )
-
-    if tried is not None and not tried.isStatementsSequence():
-        tried = makeStatementsSequenceFromStatement(tried)
-    if final is not None and not final.isStatementsSequence():
-        final = makeStatementsSequenceFromStatement(final)
-
-    return StatementTryFinally(
-        tried      = tried,
-        final      = final,
-        public_exc = False,
-        source_ref = source_ref
+def getStatementsAppended(statement_sequence, statements):
+    return makeStatementsSequence(
+        statements = (statement_sequence, statements),
+        allow_none = False,
+        source_ref = statement_sequence.getSourceReference()
     )
 
 
-def makeTryFinallyExpression(expression, tried, final, source_ref):
-    if type(tried) in (tuple, list):
-        tried = StatementsSequence(
-            statements = tried,
-            source_ref = source_ref
-        )
-    if type(final) in (tuple, list):
-        final = StatementsSequence(
-            statements = final,
-            source_ref = source_ref
-        )
+def getStatementsPrepended(statement_sequence, statements):
+    return makeStatementsSequence(
+        statements = (statements, statement_sequence),
+        allow_none = False,
+        source_ref = statement_sequence.getSourceReference()
+    )
 
-    if tried is not None and not tried.isStatementsSequence():
-        tried = makeStatementsSequenceFromStatement(tried)
-    if final is not None and not final.isStatementsSequence():
-        final = makeStatementsSequenceFromStatement(final)
 
-    return ExpressionTryFinally(
-        expression = expression,
-        tried      = tried,
-        final      = final,
+def makeReraiseExceptionStatement(source_ref):
+    return StatementsSequence(
+        statements = (
+            StatementRaiseException(
+                exception_type  = None,
+                exception_value = None,
+                exception_trace = None,
+                exception_cause = None,
+                source_ref      = source_ref
+            ),
+        ),
         source_ref = source_ref
     )
 
@@ -486,6 +453,34 @@ def mangleName(variable_name, owner):
             )
 
 
+def makeConditionalStatement(condition, yes_branch, no_branch, source_ref):
+    """ Create conditional statement, with yes_branch not being empty.
+
+        May have to invert condition to achieve that.
+    """
+
+    if yes_branch is None:
+        condition = ExpressionOperationNOT(
+            operand    = condition,
+            source_ref = condition.getSourceReference()
+        )
+
+        yes_branch, no_branch = no_branch, yes_branch
+
+    if not yes_branch.isStatementsSequence():
+        yes_branch = makeStatementsSequenceFromStatement(yes_branch)
+
+    if no_branch is not None and not no_branch.isStatementsSequence():
+        no_branch = makeStatementsSequenceFromStatement(no_branch)
+
+    return StatementConditional(
+        condition  = condition,
+        yes_branch = yes_branch,
+        no_branch  = no_branch,
+        source_ref = source_ref
+    )
+
+
 build_contexts = [None]
 
 def pushBuildContext(value):
@@ -496,64 +491,3 @@ def popBuildContext():
 
 def getBuildContext():
     return build_contexts[-1]
-
-indicator_variables = [Ellipsis]
-
-def getIndicatorVariables():
-    return indicator_variables
-
-def popIndicatorVariable():
-    result = indicator_variables[-1]
-    del indicator_variables[-1]
-    return result
-
-def pushIndicatorVariable(indicator_variable):
-    indicator_variables.append(indicator_variable)
-
-
-later = []
-
-def wrapTryFinallyLater(node, final):
-    later.append(
-        (node, final)
-    )
-
-def applyLaterWrappers():
-    for node, final in later:
-        parent = node.getParent()
-
-        # Skip over nodes, that current have a difficulty with being wrapped
-        # TODO: This must not be necessary, and is a broken thing then, if one
-        # node, must have a child of specific kind.
-        while parent.isExpressionKeyValuePair():
-            parent = parent.getParent()
-
-        if parent.isExpression():
-            # Replacement wrapper node, with no expression initially, to not
-            # reparent already.
-            new_node = makeTryFinallyExpression(
-                expression = None, # see below
-                tried      = None,
-                final      = final,
-                source_ref = final.getSourceReference()
-            )
-            parent.replaceWith(new_node)
-            new_node.setExpression(parent)
-
-            assert parent.parent.isExpressionTryFinally()
-        elif parent.isStatement():
-            # Replacement wrapper node, with no "tried" block initially, to not
-            # have to re-parent already.
-            new_node = makeTryFinallyStatement(
-                tried      = None, # see below
-                final      = final,
-                source_ref = final.getSourceReference()
-            )
-            parent.replaceWith(new_node)
-            new_node.setBlockTry(
-                makeStatementsSequenceFromStatement(parent)
-            )
-        else:
-            assert False, parent
-
-    del later[:]

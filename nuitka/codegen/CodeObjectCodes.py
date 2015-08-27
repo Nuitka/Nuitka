@@ -20,6 +20,7 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
+from nuitka import Options
 from nuitka.utils import Utils
 
 from .ConstantCodes import getConstantCode
@@ -36,6 +37,10 @@ def getCodeObjectsDeclCode(context):
     return statements
 
 def getCodeObjectsInitCode(context):
+    # There is a bit of details to this, code objects have many flags to deal
+    # with, and we are making some optimizations as well as customization to
+    # what path should be put there, pylint: disable=R0912
+
     statements = []
 
     code_objects = context.getCodeObjects()
@@ -50,8 +55,13 @@ def getCodeObjectsInitCode(context):
 
         # We do not care about release of this object, as code object live
         # forever anyway.
+        if Options.getFileReferenceMode() == "frozen":
+            template = "module_filename_obj = %s;"
+        else:
+            template = "module_filename_obj = MAKE_RELATIVE_PATH( %s );"
+
         statements.append(
-            "module_filename_obj = MAKE_RELATIVE_PATH( %s );" % (
+            template % (
                 context.getConstantCode(
                     constant = module_filename
                 )

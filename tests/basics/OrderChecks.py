@@ -18,7 +18,7 @@
 from __future__ import print_function
 
 def separator():
-    print("*" * 80)
+    print('*' * 80)
 
 def dictOrderCheck():
     def key1():
@@ -64,65 +64,65 @@ def sliceOrderCheck():
     d = list(range(10))
 
     def lvalue():
-        print("lvalue", end = " ")
+        print("lvalue", end = ' ')
 
         return d
 
     def rvalue():
-        print("rvalue", end = " ")
+        print("rvalue", end = ' ')
 
         return range(2)
 
     def rvalue4():
-        print("rvalue", end = " ")
+        print("rvalue", end = ' ')
 
         return range(4)
 
     def low():
-        print("low", end = " ")
+        print("low", end = ' ')
 
         return 0
 
     def high():
-        print("high", end = " ")
+        print("high", end = ' ')
 
         return 4
 
     def step():
-        print("step", end = " ")
+        print("step", end = ' ')
 
         return 2
 
-    print("Complex slice lookup:", end = " ")
+    print("Complex slice lookup:", end = ' ')
     print(lvalue()[ low() : high() : step() ])
 
-    print("Complex slice assignment:", end = " ")
+    print("Complex slice assignment:", end = ' ')
     lvalue()[ low() : high() : step() ] = rvalue()
     print(d)
 
-    print("Complex slice del:", end = " ")
+    print("Complex slice del:", end = ' ')
     del lvalue()[ low() : high() : step() ]
     print(d)
 
-    print("Complex inplace slice operation", end = " ")
+    print("Complex inplace slice operation", end = ' ')
     # TODO: This gives an error in CPython, but not in Nuitka.
     # lvalue()[ low() : high() : step() ] += rvalue()
     print(d)
 
     d = list(range(10))
 
-    print("Simple slice lookup", end = " ")
+    print("Simple slice lookup", end = ' ')
     print(lvalue()[ low() : high() ])
 
-    print("Simple slice assignment", end = " ")
+    print("Simple slice assignment", end = ' ')
     lvalue()[ 3 + low() : 3 + high() ] = rvalue()
     print(d)
 
-    print("Simple slice del", end = " ")
+    print("Simple slice del", end = ' ')
     del lvalue()[ 3 + low() : 3 + high() ]
     print(d)
 
-    print("Simple inplace slice operation", end = " ")
+    print("Simple inplace slice operation", end = ' ')
     lvalue()[ low() : high() ] += rvalue4()
     print(d)
 
@@ -132,17 +132,17 @@ def subscriptOrderCheck():
     d={}
 
     def lvalue():
-        print("lvalue", end = " ")
+        print("lvalue", end = ' ')
 
         return d
 
     def rvalue():
-        print("rvalue", end = " ")
+        print("rvalue", end = ' ')
 
         return 2
 
     def subscript():
-        print("subscript", end = " ")
+        print("subscript", end = ' ')
 
         return 1
 
@@ -159,12 +159,12 @@ def subscriptOrderCheck():
 
 def attributeOrderCheck():
     def lvalue():
-        print("lvalue", end = " ")
+        print("lvalue", end = ' ')
 
         return lvalue
 
     def rvalue():
-        print("rvalue", end = " ")
+        print("rvalue", end = ' ')
 
         return 2
 
@@ -175,7 +175,7 @@ def attributeOrderCheck():
 
     print("Checking attribute assignment to unassigned value from unassigned:")
     try:
-        zzz.xxx = yyy
+        undefined_global_zzz.xxx = undefined_global_yyy  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught:", repr(e))
     else:
@@ -183,12 +183,12 @@ def attributeOrderCheck():
 
 def compareOrderCheck():
     def lvalue():
-        print("lvalue", end = " ")
+        print("lvalue", end = ' ')
 
         return 1
 
     def rvalue():
-        print("rvalue", end = " ")
+        print("rvalue", end = ' ')
 
         return 2
 
@@ -211,17 +211,17 @@ def compareOrderCheck():
 
 def operatorOrderCheck():
     def left():
-        print("left operand", end = " ")
+        print("left operand", end = ' ')
 
         return 1
 
     def middle():
-        print("middle operand", end = " ")
+        print("middle operand", end = ' ')
 
         return 3
 
     def right():
-        print("right operand", end = " ")
+        print("right operand", end = ' ')
 
         return 2
 
@@ -236,22 +236,22 @@ def operatorOrderCheck():
 def generatorOrderCheck():
     print("Generators:")
     def default1():
-        print("default1", end = " ")
+        print("default1", end = ' ')
 
         return 1
 
     def default2():
-        print("default2", end = " ")
+        print("default2", end = ' ')
 
         return 2
 
     def default3():
-        print("default3", end = " ")
+        print("default3", end = ' ')
 
         return 3
 
     def value(x):
-        print("value", x, end = " ")
+        print("value", x, end = ' ')
         return x
 
     def generator(a = default1(), b = default2(), c = default3()):
@@ -274,17 +274,17 @@ def classOrderCheck():
         pass
 
     def base1():
-        print("base1", end = " ")
+        print("base1", end = ' ')
 
         return B1
 
     def base2():
-        print("base2", end = " ")
+        print("base2", end = ' ')
 
         return B2
 
     def deco1(cls):
-        print("deco1", end = " ")
+        print("deco1", end = ' ')
 
         return cls
 
@@ -297,7 +297,7 @@ def classOrderCheck():
     @deco2
     @deco1
     class X(base1(), base2()):
-        print("class body", end = " ")
+        print("class body", end = ' ')
 
     print
 
@@ -305,12 +305,12 @@ def inOrderCheck():
     print("Checking order of in operator:")
 
     def container():
-        print("container", end = " ")
+        print("container", end = ' ')
 
         return [3]
 
     def searched():
-        print("searched", end = " ")
+        print("searched", end = ' ')
 
         return 3
 
@@ -344,34 +344,36 @@ def unpackOrderCheck():
     iterable = Iterable()
 
     try:
-        x, y = a, b = Iterable()
+        x, y = a, b = iterable
     except Exception as e:
         print("Caught", repr(e))
+
+    return a, b, x, y
 
 
 def superOrderCheck():
     print("Built-in super:")
     try:
-        super(zzz, xxx)
+        super(zzz, xxx)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught super 2", repr(e))
 
 def isinstanceOrderCheck():
     print("Built-in isinstance:")
     try:
-        isinstance(zzz, xxx)
+        isinstance(zzz, xxx) # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught isinstance 2", repr(e))
 
 def rangeOrderCheck():
     print("Built-in range:")
     try:
-        range(zzz, yyy, xxx)
+        range(zzz, yyy, xxx) # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught range 3", repr(e))
 
     try:
-        range(zzz, xxx)
+        range(zzz, xxx) # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught range 2", repr(e))
 
@@ -379,16 +381,16 @@ def importOrderCheck():
     print("Built-in __import__:")
 
     def name():
-        print("name", end = " ")
+        print("name", end = ' ')
 
-    def globals():
-        print("globals", end = " ")
+    def globals():  # @ReservedAssignment
+        print("globals", end = ' ')
 
-    def locals():
-        print("locals", end = " ")
+    def locals():  # @ReservedAssignment
+        print("locals", end = ' ')
 
     def fromlist():
-        print("fromlist", end = " ")
+        print("fromlist", end = ' ')
 
     def level():
         print("level")
@@ -402,74 +404,74 @@ def importOrderCheck():
 def hasattrOrderCheck():
     print("Built-in hasattr:")
     try:
-        hasattr(zzz, yyy)
+        hasattr(zzz, yyy)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught hasattr", repr(e))
 
 def getattrOrderCheck():
     print("Built-in getattr:")
     try:
-        getattr(zzz, yyy)
+        getattr(zzz, yyy)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught getattr 2", repr(e))
 
     try:
-        getattr(zzz, yyy, xxx)
+        getattr(zzz, yyy, xxx)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught getattr 3", repr(e))
 
     def default():
         print("default used")
 
-    print("Default side effects:", end = " ")
+    print("Default side effects:", end = ' ')
     print(getattr(1, "real", default()))
 
 def typeOrderCheck():
     print("Built-in type:")
     try:
-        type(zzz, yyy, xxx)
+        type(zzz, yyy, xxx)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught type 3", repr(e))
 
 def iterOrderCheck():
     print("Built-in iter:")
     try:
-        iter(zzz, xxx)
+        iter(zzz, xxx)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught iter 2", repr(e))
 
 def openOrderCheck():
     print("Built-in open:")
     try:
-        open(zzz, yyy, xxx)
+        open(zzz, yyy, xxx)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught open 3", repr(e))
 
 def unicodeOrderCheck():
     print("Built-in unicode:")
     try:
-        unicode(zzz, yyy, xxx)
+        unicode(zzz, yyy, xxx)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught unicode", repr(e))
 
 def longOrderCheck():
     print("Built-in long:")
     try:
-        long(zzz, xxx)
+        long(zzz, xxx)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught long 2", repr(e))
 
 def intOrderCheck():
     print("Built-in int:")
     try:
-        int(zzz, xxx)
+        int(zzz, xxx)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught int", repr(e))
 
 def nextOrderCheck():
     print("Built-in next:")
     try:
-        next(zzz, xxx)
+        next(zzz, xxx)  # @UndefinedVariable
     except Exception as e:
         print("Expected exception caught next 2", repr(e))
 

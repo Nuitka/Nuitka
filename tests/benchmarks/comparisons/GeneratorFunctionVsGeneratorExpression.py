@@ -38,8 +38,8 @@ start = time.time()
 
 f = getGeneratorFunction()
 
-for x in range( 1000 ):
-   r = list( f() )
+for x in range(1000):
+   r = list(f())
 
 end = time.time()
 
@@ -47,8 +47,8 @@ func_time = end - start
 
 start = time.time()
 
-for x in range( 1000 ):
-   r = list( getGeneratorExpression() )
+for x in range(1000):
+   r = list(getGeneratorExpression())
 
 end = time.time()
 

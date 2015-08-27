@@ -19,6 +19,8 @@
 
 """
 
+from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
+
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 
@@ -30,14 +32,15 @@ class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
         "value"
     )
 
-    def __init__(self, liste, value, source_ref):
-        assert liste is not None
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, list_arg, value, source_ref):
+        assert list_arg is not None
         assert value is not None
 
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "list"  : liste,
+                "list"  : list_arg,
                 "value" : value
             },
             source_ref = source_ref
@@ -52,6 +55,35 @@ class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
         return self, None, None
 
 
+class ExpressionListOperationPop(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_LIST_OPERATION_POP"
+
+    named_children = (
+        "list",
+    )
+
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, list_arg, source_ref):
+        assert list_arg is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "list"  : list_arg,
+            },
+            source_ref = source_ref
+        )
+
+    getList = ExpressionChildrenHavingBase.childGetter("list")
+
+    def computeExpression(self, constraint_collection):
+        # We might be able to tell that element, or know that it cannot exist
+        # and raise an exception instead.
+        constraint_collection.removeKnowledge(self.getList())
+
+        return self, None, None
+
+
 class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SET_OPERATION_ADD"
 
@@ -60,14 +92,15 @@ class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
         "value"
     )
 
-    def __init__(self, sete, value, source_ref):
-        assert sete is not None
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, set_arg, value, source_ref):
+        assert set_arg is not None
         assert value is not None
 
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "set"  : sete,
+                "set"  : set_arg,
                 "value" : value
             },
             source_ref = source_ref
@@ -95,15 +128,16 @@ class ExpressionDictOperationSet(ExpressionChildrenHavingBase):
         "value"
     )
 
-    def __init__(self, dicte, key, value, source_ref):
-        assert dicte is not None
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, dict_arg, key, value, source_ref):
+        assert dict_arg is not None
         assert key is not None
         assert value is not None
 
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "dict"  : dicte,
+                "dict"  : dict_arg,
                 "key"   : key,
                 "value" : value
             },
@@ -128,14 +162,15 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
         "key"
     )
 
-    def __init__(self, dicte, key, source_ref):
-        assert dicte is not None
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, dict_arg, key, source_ref):
+        assert dict_arg is not None
         assert key is not None
 
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
-                "dict"    : dicte,
+                "dict"    : dict_arg,
                 "key"     : key,
             },
             source_ref = source_ref
@@ -176,11 +211,10 @@ Dictionary remove already raises implicitly accessing dictionary."""
             return result, "new_raise", """
 Dictionary remove already raises implicitly building key."""
 
-        # TODO: Be less lossly about it.
+        # TODO: Be less lossy about it.
         constraint_collection.removeKnowledge(dicte)
 
         return self, None, None
-
 
 
 class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
@@ -191,14 +225,15 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
         "key"
     )
 
-    def __init__(self, dicte, key, source_ref):
-        assert dicte is not None
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, dict_arg, key, source_ref):
+        assert dict_arg is not None
         assert key is not None
 
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "dict" : dicte,
+                "dict" : dict_arg,
                 "key"  : key,
             },
             source_ref = source_ref

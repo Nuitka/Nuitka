@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-for filename in $(find nuitka -name \*.py -a \! -path *inline_copy*; find bin -name \*.py; echo bin/nuitka);
+for filename in $(find nuitka -name \*.py -a \! -path \*inline_copy\*; find bin -name \*.py; echo bin/nuitka nuitka/build/SingleExe.scons);
 do
     echo isort -ot -m3 $filename
 done

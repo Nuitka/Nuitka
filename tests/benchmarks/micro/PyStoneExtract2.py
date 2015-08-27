@@ -26,7 +26,7 @@ from time import clock
 LOOPS = 5000000
 __version__ = "1.1"
 
-Char1Glob = "A"
+Char1Glob = 'A'
 IntGlob = 8
 
 Ident1 = "lalala"
@@ -49,9 +49,9 @@ def Proc2(IntParIO):
     return IntParIO
 
 def benchmark(loops):
-    for i in xrange( loops ):
+    for i in xrange(loops):
         Proc2(17)
 
 if __name__ == "__main__":
-    benchmark( LOOPS )
+    benchmark(LOOPS)
     assert count == LOOPS

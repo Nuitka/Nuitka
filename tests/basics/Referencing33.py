@@ -29,7 +29,6 @@ sys.path.insert(
 )
 from test_common import (
     executeReferenceChecked,
-    checkReferenceCount,
     my_print,
 )
 

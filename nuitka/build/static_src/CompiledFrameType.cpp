@@ -573,7 +573,8 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame, PyObject *locals
     assert( Py_TYPE( old_frame ) == &Nuitka_Frame_Type );
 
     assert( old_frame->f_trace == Py_None );
-    new_frame->f_trace = INCREASE_REFCOUNT( Py_None );
+    new_frame->f_trace = Py_None;
+    Py_INCREF( Py_None );
 
     // Copy the back reference if any.
     new_frame->f_back = old_frame->f_back;

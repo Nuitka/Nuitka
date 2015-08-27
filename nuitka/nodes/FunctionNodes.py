@@ -28,9 +28,12 @@ CPython reference, and may escape.
 
 """
 
-from nuitka import Variables
+from nuitka import Options, VariableRegistry, Variables
+from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
+from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.utils import Utils
 
+from .Checkers import checkStatementsSequenceOrNone
 from .IndicatorMixins import (
     MarkGeneratorIndicator,
     MarkLocalsDictIndicator,
@@ -44,8 +47,12 @@ from .NodeBases import (
     ExpressionChildrenHavingBase,
     ExpressionMixin,
     NodeBase,
-    SideEffectsFromChildrenMixin,
-    checkStatementsSequenceOrNone
+    SideEffectsFromChildrenMixin
+)
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    makeRaiseExceptionReplacementExpressionFromInstance,
+    wrapExpressionWithSideEffects
 )
 from .ParameterSpecs import TooManyArguments, matchCall
 
@@ -66,6 +73,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     )
 
     checkers = {
+        # TODO: Is "None" really an allowed value.
         "body" : checkStatementsSequenceOrNone
     }
 
@@ -73,8 +81,10 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         qualname_setup = None
 
     def __init__(self, provider, name, doc, parameters, source_ref,
-                 is_class = False):
+                 is_class):
         # These got too many details to cover, pylint: disable=R0915
+        while provider.isExpressionOutlineBody():
+            provider = provider.getParentVariableProvider()
 
         if is_class:
             code_prefix = "class"
@@ -178,6 +188,9 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
         self.constraint_collection = None
 
+        # Hack: This allows some APIs to work although this is not yet
+        # officially a child yet. Important during building.
+        self.parent = provider
 
     def getDetails(self):
         return {
@@ -276,6 +289,28 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
         self.taken.remove(variable)
 
+    def demoteClosureVariable(self, variable):
+        assert variable.isLocalVariable()
+
+        self.taken.remove(variable)
+
+        assert variable.getOwner() is not self
+
+        new_variable = Variables.LocalVariable(
+            owner         = self,
+            variable_name = variable.getName()
+        )
+
+        self.providing[variable.getName()] = new_variable
+
+        updateVariableUsage(
+            provider     = self,
+            old_variable = variable,
+            new_variable = new_variable
+        )
+
+        VariableRegistry.addVariableUsage(new_variable, self)
+
     def removeUserVariable(self, variable):
         assert variable in self.providing.values(), (self.providing, variable)
 
@@ -284,10 +319,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         assert not variable.isParameterVariable() or \
                variable.getOwner() is not self
 
-
     def getVariableForAssignment(self, variable_name):
         # print ("ASS func", self, variable_name)
-
         if self.hasTakenVariable(variable_name):
             result = self.getTakenVariable(variable_name)
         else:
@@ -383,8 +416,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     setBody = ChildrenHavingMixin.childSetter("body")
 
     def needsCreation(self):
-        # TODO: This looks kind of arbitrary, the users should decide, if they
-        # need it.
         return self.needs_creation
 
     def markAsNeedsCreation(self):
@@ -440,22 +471,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
     def isClassClosureTaker(self):
         return self.has_super
-
-    def makeCloneAt(self, source_ref):
-        result = self.__class__(
-            provider   = self.provider,
-            name       = self.name,
-            doc        = self.name,
-            # TODO: Clone parameters too, when we start to mutate them.
-            parameters = self.parameters,
-            source_ref =  source_ref
-        )
-
-        result.setBody(
-            self.getBody().makeCloneAt(source_ref)
-        )
-
-        return result
 
     def markAsExceptionReturnValue(self):
         self.return_exception = True
@@ -518,9 +533,51 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             source_ref = source_ref
         )
 
+    def getName(self):
+        return self.getFunctionRef().getName()
+
+
     def computeExpression(self, constraint_collection):
-        # TODO: Function body may know something, creation of defaults may
-        # raise, etc.
+        defaults = self.getDefaults()
+
+        side_effects = []
+
+        for default in defaults:
+            if default.willRaiseException(BaseException):
+                result = wrapExpressionWithSideEffects(
+                    side_effects = side_effects,
+                    old_node     = self,
+                    new_node     = default
+                )
+
+                return result, "new_raise", "Default value contains raise."
+
+        kw_defaults = self.getKwDefaults()
+
+        if kw_defaults is not None:
+            if kw_defaults.willRaiseException(BaseException):
+                result = wrapExpressionWithSideEffects(
+                    side_effects = side_effects,
+                    old_node     = self,
+                    new_node     = kw_defaults
+                )
+
+                return result, "new_raise", "Keyword default values contain raise."
+
+            side_effects.append(kw_defaults)
+
+        annotations = self.getAnnotations()
+
+        if annotations is not None and annotations.willRaiseException(BaseException):
+            result = wrapExpressionWithSideEffects(
+                side_effects = side_effects,
+                old_node     = self,
+                new_node     = annotations
+            )
+
+            return result, "new_raise", "Annotation values contain raise."
+
+        # TODO: Function body may know something too.
         return self, None, None
 
     getFunctionRef = ExpressionChildrenHavingBase.childGetter("function_ref")
@@ -529,7 +586,21 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
     getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
     def mayRaiseException(self, exception_type):
-        return True
+        for default in self.getDefaults():
+            if default.mayRaiseException(exception_type):
+                return True
+
+        kw_defaults = self.getKwDefaults()
+
+        if kw_defaults is not None and kw_defaults.mayRaiseException(exception_type):
+            return True
+
+        annotations = self.getAnnotations()
+
+        if annotations is not None and annotations.mayRaiseException(exception_type):
+            return True
+
+        return False
 
     def computeExpressionCall(self, call_node, constraint_collection):
         # TODO: Until we have something to re-order the keyword arguments, we
@@ -555,12 +626,13 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
             return call_node, None, None
 
+        function_body = self.getFunctionRef().getFunctionBody()
 
         # TODO: Actually the above disables it entirely, as it is at least
         # the empty dictionary node in any case. We will need some enhanced
         # interfaces for "matchCall" to work on.
 
-        call_spec = self.getFunctionRef().getFunctionBody().getParameters()
+        call_spec = function_body.getParameters()
 
         try:
             args_dict = matchCall(
@@ -573,15 +645,11 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
                 pairs         = ()
             )
 
-            values = []
-
-            for positional_arg in args_tuple:
-                for arg_value in args_dict.values():
-                    if arg_value is positional_arg:
-                        values.append(arg_value)
-                        break
-                else:
-                    assert False
+            values = [
+                args_dict[name]
+                for name in
+                call_spec.getAllNames()
+            ]
 
             result = ExpressionFunctionCall(
                 function   = self,
@@ -598,11 +666,6 @@ function call.""" % self.getName()
             )
 
         except TooManyArguments as e:
-            from .NodeMakingHelpers import (
-                makeRaiseExceptionReplacementExpressionFromInstance,
-                wrapExpressionWithSideEffects
-            )
-
             result = wrapExpressionWithSideEffects(
                 new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
                     expression = call_node,
@@ -614,10 +677,39 @@ function call.""" % self.getName()
 
             return (
                 result,
-                "new_statements,new_raise", # TODO: More appropriate tag maybe.
+                "new_raise", # TODO: More appropriate tag maybe.
                 """Replaced call to created function body '%s' to argument \
 error""" % self.getName()
             )
+
+    def getCallCost(self, values):
+        # TODO: Ought to use values. If they are all constant, how about we
+        # assume no cost, pylint: disable=W0613
+
+        if not Options.isExperimental():
+            return None
+
+        function_body = self.getFunctionRef().getFunctionBody()
+
+        if function_body.isGenerator():
+            return None
+
+        if function_body.isClassDictCreation():
+            return None
+
+        # TODO: Lying for the demo.
+        if function_body.mayRaiseException(BaseException):
+            return 60
+
+        return 20
+
+    def createOutlineFromCall(self, provider, values):
+        return convertFunctionCallToOutline(
+            provider     = provider,
+            function_ref = self.getFunctionRef(),
+            values       = values
+        )
+
 
 
 class ExpressionFunctionRef(NodeBase, ExpressionMixin):
@@ -633,16 +725,18 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         self.function_body = function_body
 
+    def getName(self):
+        return self.function_body.getName()
+
     def getDetails(self):
+        return {
+            "function_body" : self.function_body
+        }
+
+    def getDetailsForDisplay(self):
         return {
             "function" : self.function_body.getCodeName()
         }
-
-    def makeCloneAt(self, source_ref):
-        return ExpressionFunctionRef(
-            function_body = self.function_body,
-            source_ref    = source_ref
-        )
 
     def getFunctionBody(self):
         return self.function_body
@@ -652,6 +746,9 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         owning_module = function_body.getParentModule()
 
+        # Make sure the owning module is added to the used set. This is most
+        # important for helper functions, or modules, which otherwise have
+        # become unused.
         from nuitka.ModuleRegistry import addUsedModule
         addUsedModule(owning_module)
 
@@ -697,6 +794,13 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
 
 class ExpressionFunctionCall(ExpressionChildrenHavingBase):
+    """ Shared function call.
+
+        This is for calling created function bodies with multiple users. Not
+        clear if such a thing should exist. But what this will do is to have
+        respect for the fact that there are multiple such calls.
+    """
+
     kind = "EXPRESSION_FUNCTION_CALL"
 
     named_children = (
@@ -720,21 +824,32 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         function = self.getFunction()
 
         if function.willRaiseException(BaseException):
-            return function, "new_raise", "Called function is a raise"
+            # TODO: Seriously, how could it be. We need to get defaults and
+            # annotations out of the picture, then this cannot happen.
+            return function, "new_raise", "Called function is a raise."
 
         values = self.getArgumentValues()
 
         for count, value in enumerate(values):
             if value.willRaiseException(BaseException):
-                from .NodeMakingHelpers import wrapExpressionWithSideEffects
-
                 result = wrapExpressionWithSideEffects(
                     side_effects = [function] + list(values[:count]),
                     new_node     = value,
                     old_node     = self
                 )
 
-                return result, "new_raise", "Called function arguments raise"
+                return result, "new_raise", "Called function arguments raise."
+
+        # TODO: This needs some design.
+        cost = function.getCallCost(values)
+
+        if cost is not None and cost < 50:
+            result = function.createOutlineFromCall(
+                provider = self.getParentVariableProvider(),
+                values   = values
+            )
+
+            return result, "new_statements", "Function call inlined."
 
         return self, None, None
 
@@ -753,8 +868,6 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
         self.function_body = function_body
 
     def computeExpression(self, constraint_collection):
-        from .NodeMakingHelpers import makeConstantReplacementNode
-
         result = makeConstantReplacementNode(
             node     = self,
             constant = self.function_body.getFunctionQualname()

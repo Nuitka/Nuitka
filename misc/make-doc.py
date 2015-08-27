@@ -31,9 +31,9 @@ if "logo" in sys.argv:
     assert 0 == os.system("optipng -o2 images/Nuitka-Logo-Symbol.png")
     assert 0 == os.system("optipng -o2 images/Nuitka-Logo-Horizontal.png")
 
-    if os.path.exists( "web/nikola-site" ):
-        assert 0 == os.system( "convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.ico" )
-        assert 0 == os.system( "convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.png" )
+    if os.path.exists("web/nikola-site"):
+        assert 0 == os.system("convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.ico")
+        assert 0 == os.system("convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.png")
 
         assert 0 == os.system("convert -resize 72x72 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad.png")
         assert 0 == os.system("convert -resize 144x144 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad3.png")
@@ -41,14 +41,14 @@ if "logo" in sys.argv:
         assert 0 == os.system("convert -resize 114x114 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone4.png")
 
 
-for document in ( "README.rst", "Developer_Manual.rst", "Changelog.rst" ):
+for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
     args = []
 
     if document != "Changelog.rst":
-        args.append( "-s misc/page-styles.txt" )
+        args.append("-s misc/page-styles.txt")
 
-        args.append( '--header="###Title### - ###Section###"' )
-        args.append( '--footer="###Title### - page ###Page### - ###Section###"' )
+        args.append('--header="###Title### - ###Section###"')
+        args.append('--footer="###Title### - page ###Page### - ###Section###"')
 
     assert 0 == subprocess.call(
         "%(rst2pdf)s %(args)s  %(document)s" %
@@ -58,7 +58,7 @@ for document in ( "README.rst", "Developer_Manual.rst", "Changelog.rst" ):
                     if os.name != "nt" else
                 r"C:\Python27_32\Scripts\rst2pdf.exe"
             ),
-            "args"     : " ".join( args ),
+            "args"     : ' '.join(args),
             "document" : document
         },
         shell = True
@@ -66,14 +66,14 @@ for document in ( "README.rst", "Developer_Manual.rst", "Changelog.rst" ):
 
 
 if os.name != "nt":
-    if not os.path.exists( "man" ):
-        os.mkdir( "man" )
+    if not os.path.exists("man"):
+        os.mkdir("man")
 
-    assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt ./bin/nuitka >doc/nuitka.1", shell = True )
-    assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-run >doc/nuitka-run.1", shell = True )
+    assert 0 == subprocess.call("help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt ./bin/nuitka >doc/nuitka.1", shell = True)
+    assert 0 == subprocess.call("help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-run >doc/nuitka-run.1", shell = True)
 
-    for manpage in ( "doc/nuitka.1", "doc/nuitka-run.1" ):
-        manpage_contents = open( manpage ).readlines()
+    for manpage in ("doc/nuitka.1", "doc/nuitka-run.1"):
+        manpage_contents = open(manpage).readlines()
         new_contents = []
         mark = False
 
@@ -85,9 +85,9 @@ if os.name != "nt":
                 mark = True
                 continue
 
-            if line == r"\fB\-\-g\fR++\-only" + "\n":
-                line = r"\fB\-\-g\++\-only\fR" + "\n"
+            if line == r"\fB\-\-g\fR++\-only" + '\n':
+                line = r"\fB\-\-g\++\-only\fR" + '\n'
 
             new_contents.append(line)
 
-        open(manpage, "w").writelines( new_contents)
+        open(manpage, 'w').writelines(new_contents)

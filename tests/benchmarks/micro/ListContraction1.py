@@ -20,6 +20,6 @@
 
 
 def container():
-    x = [ x*2 for x in range( 100000 ) ]
+    x = [ x*2 for x in range(100000) ]
 
 container()

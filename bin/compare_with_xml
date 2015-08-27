@@ -99,14 +99,14 @@ def compareOutput(kind, out1, out2):
         ),
         fromdate,
         todate,
-        n=3
+        n = 3
     )
 
     result = list(diff)
 
     if result:
         for line in result:
-            print(line, end = "\n" if not line.startswith( "---" ) else "")
+            print(line, end = '\n' if not line.startswith("---") else "")
         return 1
     else:
         return 0

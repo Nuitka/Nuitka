@@ -33,9 +33,10 @@ try:
     someFunction()
 except UnboundLocalError as e:
     print("Expected unbound local error occurred:", repr(e))
+
 try:
     class anotherClass():
-        b = c
+        b = undefined_global  # @UndefinedVariable
 except NameError as e:
     print("Expected name error occurred:", repr(e))
 

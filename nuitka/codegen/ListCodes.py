@@ -20,22 +20,70 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes
+)
+from .Helpers import generateChildExpressionsCode
 
 
-def getListOperationAppendCode(to_name, list_name, value_name, emit, context):
+def generateListCreationCode(to_name, elements, emit, context):
+    emit(
+        "%s = PyList_New( %d );" % (
+            to_name,
+            len(elements)
+        )
+    )
+
+    from .CodeGeneration import generateExpressionCode
+
+    context.addCleanupTempName(to_name)
+
+    element_name = context.allocateTempName("list_element")
+
+    for count, element in enumerate(elements):
+        generateExpressionCode(
+            to_name    = element_name,
+            expression = element,
+            emit       = emit,
+            context    = context
+        )
+
+        if not context.needsCleanup(element_name):
+            emit("Py_INCREF( %s );" % element_name)
+        else:
+            context.removeCleanupTempName(element_name)
+
+        emit(
+            "PyList_SET_ITEM( %s, %d, %s );" % (
+                to_name,
+                count,
+                element_name
+            )
+        )
+
+def generateListOperationAppendCode(to_name, expression, emit, context):
     res_name = context.getIntResName()
+
+    list_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
 
     emit(
         "%s = PyList_Append( %s, %s );" % (
             res_name,
-            list_name,
-            value_name
+            list_arg_name,
+            value_arg_name
         )
     )
 
     getReleaseCodes(
-        release_names = (list_name, value_name),
+        release_names = (list_arg_name, value_arg_name),
         emit          = emit,
         context       = context
     )
@@ -53,3 +101,34 @@ def getListOperationAppendCode(to_name, list_name, value_name, emit, context):
         )
     else:
         context.forgetTempName(to_name)
+
+
+def generateListOperationPopCode(to_name, expression, emit, context):
+    list_arg_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+
+    # TODO: Have a dedicated helper instead, this could be more efficient.
+    emit(
+        '%s = PyObject_CallMethod(  %s, (char *)"pop", NULL );' % (
+            to_name,
+            list_arg_name
+        )
+    )
+
+    getReleaseCode(
+        release_name = list_arg_name,
+        emit         = emit,
+        context      = context
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)

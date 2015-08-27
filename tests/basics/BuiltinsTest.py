@@ -97,16 +97,18 @@ someFunctionUsingGlobals()
 
 print("Testing dir():")
 
-print("Module dir", end=' ')
+print("Module dir", end = ' ')
 
 def someFunctionUsingDir():
     x = someFunctionUsingGlobals()
 
     print("Function dir", dir())
 
+    return x
+
 someFunctionUsingDir()
 
-print("Making a new type, with type() and 3 args:", end=' ')
+print("Making a new type, with type() and 3 args:", end = ' ')
 new_class = type("Name", (object,), {})
 print(new_class, new_class())
 
@@ -119,19 +121,19 @@ print("Corner case large negative value", range(-2**100))
 print("Corner case with large start/end values in small range", range(2**100,2**100+2))
 
 try:
-    print("Range with 0 step gives:", end = " ")
+    print("Range with 0 step gives:", end = ' ')
     print(range(3, 8, 0))
 except ValueError as e:
     print(repr(e))
 
 try:
-    print("Range with float:", end = " ")
+    print("Range with float:", end = ' ')
     print(range(1.0))
 except TypeError as e:
     print("Gives exception:", repr(e))
 
 try:
-    print("Empty range call", end=' ')
+    print("Empty range call", end = ' ')
     print(range())
 except TypeError as e:
     print("Gives exception:", e)
@@ -150,7 +152,7 @@ print("Found during optimization", dict(dict({"le": 2, "la": 1}), fu = 3), dict(
 print("Floats from constants", float("3.0"), float(x = 9.0), float())
 print("Found during optimization", float(float("3.2")), float(x = float(11.0)))
 
-print("Complex from constants", complex("3.0j"), complex(real = 9.0), complex(imag=9.0), complex(1,2), complex())
+print("Complex from constants", complex("3.0j"), complex(real = 9.0), complex(imag = 9.0), complex(1,2), complex())
 print("Found during optimization", complex(float("3.2")), complex(real = float(11.0)), complex(imag = float(11.0)))
 
 print("Strs from constants", str("3.3"), str(object = 9.1), str())
@@ -159,7 +161,7 @@ print("Found during optimization", str(float("3.3")), str(object = float(12.0)))
 print("Bools from constants", bool("3.3"), bool(x = 9.1), bool(0), bool())
 print("Found during optimization", bool(float("3.3")), bool(x = float(0.0)))
 
-print("Ints from constants", int('3'), int(x = '9' ), int('f', 16), int(x = 'e', base = 16), int("0101", base = 2), int(0), int())
+print("Ints from constants", int('3'), int(x = '9'), int('f', 16), int(x = 'e', base = 16), int("0101", base = 2), int(0), int())
 print("Found ints during optimization", int(int('3')), int(x = int(0.0)))
 
 try:
@@ -171,21 +173,21 @@ except NameError:
 
 
 try:
-    print("Int with only base", int(base = 2), end=' ')
+    print("Int with only base", int(base = 2), end = ' ')
 except Exception as e:
     print("Caused", repr(e))
 else:
     print("Worked")
 
 try:
-    print("Int with large base", int(2, 37), end=' ')
+    print("Int with large base", int(2, 37), end = ' ')
 except Exception as e:
     print("Caused", repr(e))
 else:
     print("Worked")
 
 try:
-    print("Long with only base", int(base = 2), end=' ')
+    print("Long with only base", int(base = 2), end = ' ')
 except Exception as e:
     print("Caused", repr(e))
 else:
@@ -231,7 +233,7 @@ print("Unoptimized calls of int with unicode args", int(value, base), int(value)
 
 base = 37
 try:
-    print("Int with large base", int(2, base), end=' ')
+    print("Int with large base", int(2, base), end = ' ')
 except Exception as e:
     print("Caused", repr(e))
 else:
@@ -271,8 +273,8 @@ except Exception as e:
 # TODO: This is calls, not really builtins.
 a = 2
 
-print("Can optimize the star list argness away", int(*(a,)), end=' ')
-print("Can optimize the empty star list arg away", int(*tuple()), end=' ')
+print("Can optimize the star list argness away", int(*(a,)), end = ' ')
+print("Can optimize the empty star list arg away", int(*tuple()), end = ' ')
 print("Can optimize the empty star dict arg away", int(**dict()))
 
 print("Dict building with keyword arguments", dict(), dict(a = f))
@@ -301,8 +303,8 @@ def usingIterToCheckIterable(a):
 
 usingIterToCheckIterable(1)
 
-print("Nested constant, dict inside a list, referencing a built-in compile time constant", end=' ')
-print( [dict(type = int)] )
+print("Nested constant, dict inside a list, referencing a built-in compile time constant", end = ' ')
+print([dict(type = int)])
 
 print("nan and -nan sign checks:")
 from math import copysign

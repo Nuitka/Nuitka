@@ -18,7 +18,9 @@
 #ifndef __NUITKA_HELPER_RAISING_H__
 #define __NUITKA_HELPER_RAISING_H__
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 266
+#define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be classes or instances, not %s"
+#elif PYTHON_VERSION < 300
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be old-style classes or derived from BaseException, not %s"
 #else
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must derive from BaseException"
@@ -146,7 +148,6 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
 
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( *exception_type )->tp_name );
         FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
-
         return;
     }
 }
@@ -250,8 +251,8 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
         Py_XDECREF( exception_cause );
 
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
-
         FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+
         return;
     }
 }
@@ -339,10 +340,19 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT( PyObject **exception_
 
     if ( PyExceptionClass_Check( *exception_type ) )
     {
+#if PYTHON_VERSION >= 340
+        NORMALIZE_EXCEPTION( exception_type, exception_value, exception_tb );
+        CHAIN_EXCEPTION( *exception_type, *exception_value );
+#endif
+
         return;
     }
     else if ( PyExceptionInstance_Check( *exception_type ) )
     {
+#if PYTHON_VERSION >= 340
+        CHAIN_EXCEPTION( *exception_type, *exception_value );
+#endif
+
         // The type is rather a value, so we are overriding it here.
         *exception_value = *exception_type;
         *exception_type = PyExceptionInstance_Class( *exception_type );
@@ -354,6 +364,11 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT( PyObject **exception_
     {
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
         FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+
+#if PYTHON_VERSION >= 340
+        CHAIN_EXCEPTION( *exception_type, *exception_value );
+#endif
+
         return;
     }
 }
@@ -456,7 +471,7 @@ NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( PyObject **exception_type, P
 #else
         PyErr_Format(
             PyExc_TypeError,
-            "exceptions must be old-style classes or derived from BaseException, not %s",
+            WRONG_EXCEPTION_TYPE_ERROR_MESSAGE,
             Py_TYPE( *exception_type )->tp_name
         );
         FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );

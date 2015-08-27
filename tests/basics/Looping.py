@@ -48,6 +48,7 @@ def loopingFunction(a = 1*2):
                 z = 0
 
     print c
+    print f
 
     f = 1
 
@@ -58,6 +59,7 @@ def loopingFunction(a = 1*2):
     print "m=", m
 
     x = [u for u in range(8)]
+    print x
 
     x = [(u,v) for (u,v) in zip(range(8),reversed(range(8))) ]
     print x

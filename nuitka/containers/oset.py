@@ -29,7 +29,7 @@ Python at all.
 It was originally downloaded from http://code.activestate.com/recipes/576694/
 """
 
-# pylint: disable=W0622,W0221
+# pylint: disable=W0221,W0622
 
 import collections
 
@@ -57,7 +57,7 @@ class OrderedSet(collections.MutableSet):
 
     def discard(self, key):
         if key in self.map:
-            key, prev, next = self.map.pop(key)
+            key, prev, next = self.map.pop(key)  # @ReservedAssignment
             prev[2] = next
             next[1] = prev
 

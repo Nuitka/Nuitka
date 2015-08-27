@@ -28,8 +28,8 @@ sys.path.insert(
     )
 )
 from test_common import (
-    executeReferenceChecked,
-    my_print,
+    executeReferenceChecked,  # @UnresolvedImport
+    my_print,                 # @UnresolvedImport
 )
 
 if not hasattr(sys, "gettotalrefcount"):
@@ -38,44 +38,56 @@ if not hasattr(sys, "gettotalrefcount"):
 
 x = 17
 
+# Just a function return a constant. Functions don't become any smaller. Let's
+# get that right.
 def simpleFunction1():
     return 1
 
+# Do a bit of math with a local variable, assigning to its value and then doing
+# an overwrite of that, trying that math again. This should cover local access
+# a bit.
 def simpleFunction2():
-    y = 3 * x
+    y = 3 * x  # @UnusedVariable
     y = 3
-    y = 2
 
-    return x*2
+    return x*2*y
 
+# A local function is being returned. This covers creation of local functions
+# and their release. No closure variables involved yet.
 def simpleFunction3():
     def contained():
         return x
 
     return contained
 
-def simpleFunction4():
-    y = 1
+# Again, local function being return, but this time with local variable taken
+# as a closure. We use value from defaulted argument, so it cannot be replaced.
+def simpleFunction4(a = 1):
+    y = a
 
     def contained():
         return y
 
     return contained
 
-def simpleFunction5(a = 1*2):
+# Default argument and building a list as local variables. Also return them,
+# so they are not optimized away.
+def simpleFunction5(a = 2):
     c = 1
     f = [a, a + c]
 
+    return c, f
+
 def simpleFunction6():
-    for b in range(6):
+    for _b in range(6):
         pass
 
-    for c in (1, 2, 3, 4, 5, 6):
+    for _c in (1, 2, 3, 4, 5, 6):
         pass
 
 
 def simpleFunction7(b = 1):
-    for b in range(6):
+    for _b in range(6):
         pass
 
 def simpleFunction8():
@@ -102,6 +114,8 @@ v = None
 def simpleFunction12():
     a = [(u,v) for (u,v) in zip(range(8),range(8))]
 
+    return a
+
 def cond():
     return 1
 
@@ -111,7 +125,7 @@ def simpleFunction13(a = 1*2):
 def simpleFunction14p(x):
     try:
         simpleFunction14p(1,1)
-    except TypeError as e:
+    except TypeError as _e:
         pass
 
     try:
@@ -130,7 +144,7 @@ def simpleFunction15p(x):
             try:
                 x *= 1
             finally:
-                z = 1
+                _z = 1
     except:
         pass
 
@@ -171,7 +185,7 @@ def simpleFunction20():
     try:
         a = []
         a[1]
-    except IndexError as e:
+    except IndexError as _e:
         pass
 
 
@@ -187,7 +201,7 @@ def simpleFunction21():
 
     c = result.base()
 
-    return result
+    return result, c
 
 def simpleFunction22():
     return True is False and False is not None
@@ -304,7 +318,7 @@ def simpleFunction37():
     l = [1, 2, 3]
 
     try:
-        a, b = l
+        _a, _b = l
     except ValueError:
         pass
 
@@ -330,10 +344,13 @@ def simpleFunction40():
 def simpleFunction41():
     a = b = 2
 
+    return a, b
+
 
 def simpleFunction42():
     a = b = 2 * x
 
+    return a, b
 
 def simpleFunction43():
     class D:
@@ -365,7 +382,7 @@ def simpleFunction48():
     class BlockExceptions:
         def __enter__(self):
             pass
-        def __exit__( self, exc, val, tb):
+        def __exit__(self, exc, val, tb):
             return True
 
     with BlockExceptions():
@@ -377,7 +394,9 @@ def simpleFunction49():
     c = 3
     d = 4
 
-    a = x, y = b,e = (c,d)
+    a = x, y = b, e = (c,d)
+
+    return a, y, b, e
 
 b = range(10)
 
@@ -392,14 +411,14 @@ def simpleFunction50():
     f = getF()
 
     for x in range(2):
-        r = list(f())
+        _r = list(f())
 
 def simpleFunction51():
     g = ( x for x in range(9) )
 
     try:
         g.throw(ValueError, 9)
-    except ValueError as e:
+    except ValueError as _e:
         pass
 
 def simpleFunction52():
@@ -407,7 +426,7 @@ def simpleFunction52():
 
     try:
         g.throw(ValueError(9))
-    except ValueError as e:
+    except ValueError as _e:
         pass
 
 def simpleFunction53():
@@ -415,7 +434,7 @@ def simpleFunction53():
 
     try:
         g.send(9)
-    except TypeError as e:
+    except TypeError as _e:
         pass
 
 def simpleFunction54():
@@ -424,7 +443,7 @@ def simpleFunction54():
 
     try:
         g.send(9)
-    except TypeError as e:
+    except TypeError as _e:
         pass
 
 
@@ -433,7 +452,7 @@ def simpleFunction55():
 
     try:
         g.close()
-    except ValueError as e:
+    except ValueError as _e:
         pass
 
 def simpleFunction56():
@@ -449,7 +468,7 @@ def simpleFunction57():
     x = 1
     y = 2
 
-    def f( a = x, b = y):
+    def f(a = x, b = y):
         return a, b
 
     f()
@@ -498,8 +517,10 @@ def simpleFunction63():
 
 def simpleFunction64():
     x = 2
-    y = 3
+    y = 3  # @UnusedVariable
     z = eval("x * y")
+
+    return z
 
 def simpleFunction65():
     import array
@@ -511,7 +532,10 @@ def simpleFunction65():
         'x' : 2,
         'y' : 3
     }
+
     z = eval(repr(d), d)
+
+    return z
 
 
 def simpleFunction66():
@@ -525,6 +549,8 @@ def simpleFunction67():
     q, r = divmod(length, len(pattern))
     teststring = pattern * q + pattern[:r]
 
+    return teststring
+
 def simpleFunction68():
     from random import randrange
     x = randrange(18)
@@ -537,49 +563,49 @@ def simpleFunction69():
 def simpleFunction70():
     def gen():
         try:
-            yyyy
+            undefined_yyy  # @UndefinedVariable
         except Exception:
             pass
 
         yield sys.exc_info()
 
     try:
-        xxxx
+        undefined_xxx  # @UndefinedVariable
     except Exception:
         return list(gen())
 
 def simpleFunction71():
     try:
-        undefined
+        undefined_global  # @UndefinedVariable
     except Exception:
         try:
             try:
                 raise
             finally:
-                undefined
+                undefined_global  # @UndefinedVariable
         except Exception:
             pass
 
 def simpleFunction72():
     try:
-        for i in range(10):
+        for _i in range(10):
             try:
-                undefined
+                undefined_global  # @UndefinedVariable
             finally:
                 break
     except Exception:
         pass
 
 def simpleFunction73():
-    for i in range(10):
+    for _i in range(10):
         try:
-            undefined
+            undefined_global  # @UndefinedVariable
         finally:
             return 7
 
 
 def simpleFunction74():
-    import os
+    import os  # @Reimport
 
     return os
 
@@ -650,7 +676,7 @@ def simpleFunction81():
         j
 
     j = 1
-    x = list( f() )
+    x = list(f())
 
 def simpleFunction82():
     def f():
@@ -673,20 +699,20 @@ def simpleFunction84():
     j = 3
     x += tuple([h*2 for h in range(j)])
 
-def simpleFunction84():
+def simpleFunction85():
     x = list(range(7))
     x[2] = 3
     x *= 2
 
-def simpleFunction85():
+def simpleFunction86():
     x = "something"
     x += ""
 
-def simpleFunction86():
+def simpleFunction87():
     x = 7
     x += 2000
 
-def simpleFunction87():
+def simpleFunction88():
     class C:
         def __iadd__(self, other):
             return self
@@ -694,14 +720,14 @@ def simpleFunction87():
     x = C()
     x += C()
 
-def simpleFunction88():
+def simpleFunction89():
     x = [1,2]
     x += [3,4]
 
 def anyArgs(*args, **kw):
     pass
 
-def simpleFunction89():
+def simpleFunction90():
     some_tuple = (
         simpleFunction89,
         simpleFunction89,
@@ -710,23 +736,12 @@ def simpleFunction89():
 
     anyArgs(*some_tuple)
 
-def simpleFunction90():
+def simpleFunction91():
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
     anyArgs(**some_dict)
-
-def simpleFunction91():
-    some_tuple = (
-        simpleFunction89,
-    )
-
-    some_dict = {
-        "a" : simpleFunction90,
-    }
-
-    anyArgs(*some_tuple, **some_dict)
 
 def simpleFunction92():
     some_tuple = (
@@ -734,10 +749,10 @@ def simpleFunction92():
     )
 
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
-    anyArgs(some_tuple, *some_tuple, **some_dict)
+    anyArgs(*some_tuple, **some_dict)
 
 def simpleFunction93():
     some_tuple = (
@@ -745,10 +760,10 @@ def simpleFunction93():
     )
 
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
-    anyArgs(*some_tuple, b = some_dict, **some_dict)
+    anyArgs(some_tuple, *some_tuple, **some_dict)
 
 def simpleFunction94():
     some_tuple = (
@@ -756,40 +771,53 @@ def simpleFunction94():
     )
 
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
-    anyArgs(some_tuple, *some_tuple, b = some_dict, **some_dict)
+    anyArgs(*some_tuple, b = some_dict, **some_dict)
 
 def simpleFunction95():
     some_tuple = (
         simpleFunction89,
     )
 
-    anyArgs(some_tuple, *some_tuple)
-
-def simpleFunction96():
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
-    anyArgs(b = some_dict, **some_dict)
+    anyArgs(some_tuple, *some_tuple, b = some_dict, **some_dict)
 
+def simpleFunction96():
+    some_tuple = (
+        simpleFunction89,
+    )
+
+    anyArgs(some_tuple, *some_tuple)
+
+# Complex call with dictionary and key arguments only.
 def simpleFunction97():
+    some_dict = {
+        'a' : simpleFunction90,
+        'd' : simpleFunction91
+    }
+
+    anyArgs(b = some_dict, c = 1, **some_dict)
+
+def simpleFunction98():
     some_tuple = (
         simpleFunction89,
     )
 
     anyArgs(*some_tuple, b = some_tuple)
 
-def simpleFunction98():
+def simpleFunction99():
     some_dict = {
-        "a" : simpleFunction90,
+        'a' : simpleFunction90,
     }
 
     anyArgs(some_dict, **some_dict)
 
-def simpleFunction99():
+def simpleFunction100():
     def h(f):
         def g():
             return f
@@ -801,13 +829,24 @@ def simpleFunction99():
 
     h(f)
 
-def simpleFunction100():
+def simpleFunction101():
     def orMaking(a, b):
-        x = 'axa'
+        x = "axa"
         x += a or b
 
 
-    orMaking("x", "")
+    orMaking('x', "")
+
+class SomeClassWithAttributeAccess(object):
+    READING = 1
+
+    def use(self):
+        return self.READING
+
+def simpleFunction102():
+    SomeClassWithAttributeAccess().use()
+    SomeClassWithAttributeAccess().use()
+
 
 
 # These need stderr to be wrapped.

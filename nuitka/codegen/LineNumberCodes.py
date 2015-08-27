@@ -19,7 +19,7 @@
 
 """
 
-def getLineNumberUpdateCode(context):
+def getCurrentLineNumberCode(context):
     frame_handle = context.getFrameHandle()
 
     if frame_handle is None:
@@ -28,12 +28,32 @@ def getLineNumberUpdateCode(context):
         source_ref = context.getCurrentSourceCodeReference()
 
         if source_ref.isInternal():
-            return "%s->f_lineno = %d;" % (
-                frame_handle,
-                source_ref.getLineNumber()
-            )
-        else:
             return ""
+        else:
+            return str(source_ref.getLineNumber())
+
+def getLineNumberUpdateCode(context):
+    lineno_value = getCurrentLineNumberCode(context)
+
+    if lineno_value:
+        frame_handle = context.getFrameHandle()
+
+        return "%s->f_lineno = %s;" % (
+            frame_handle,
+            lineno_value
+        )
+    else:
+        return ""
+
+def getErrorLineNumberUpdateCode(context):
+    lineno_value = getCurrentLineNumberCode(context)
+
+    if lineno_value:
+        return "exception_lineno = %s;" % (
+            lineno_value
+        )
+    else:
+        return ""
 
 
 def emitLineNumberUpdateCode(context, emit):

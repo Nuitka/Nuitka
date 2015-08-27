@@ -58,7 +58,7 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
 
     def getDetails(self):
         return {
-            "attribute" : self.getAttributeName()
+            "attribute_name" : self.getAttributeName()
         }
 
     def getDetail(self):
@@ -70,13 +70,6 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
     getLookupSource = ExpressionChildrenHavingBase.childGetter(
         "source"
     )
-
-    def makeCloneAt(self, source_ref):
-        return ExpressionAttributeLookup(
-            source         = self.getLookupSource().makeCloneAt(source_ref),
-            attribute_name = self.getAttributeName(),
-            source_ref     = source_ref
-        )
 
     def computeExpression(self, constraint_collection):
         lookup_source = self.getLookupSource()

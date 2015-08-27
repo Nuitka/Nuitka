@@ -30,8 +30,8 @@ def my_print(*args, **kwargs):
 
 
 def check_output(*popenargs, **kwargs):
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
+    if "stdout" in kwargs:
+        raise ValueError("stdout argument not allowed, it will be overridden.")
 
     process = subprocess.Popen(
         stdout = subprocess.PIPE,
@@ -50,8 +50,8 @@ def check_output(*popenargs, **kwargs):
     return output
 
 def check_result(*popenargs, **kwargs):
-    if 'stdout' in kwargs:
-        raise ValueError('stdout argument not allowed, it will be overridden.')
+    if "stdout" in kwargs:
+        raise ValueError("stdout argument not allowed, it will be overridden.")
 
     process = subprocess.Popen(
         stdout = subprocess.PIPE,
@@ -98,7 +98,7 @@ def setup(needs_io_encoding = False, silent = False):
             """\
 import sys, os;\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
-print(("x86_64" if "AMD64" in sys.version else "x86") if os.name=="nt" else os.uname()[4]);\
+print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
 """,
         ),
         stderr = subprocess.STDOUT
@@ -108,7 +108,7 @@ print(("x86_64" if "AMD64" in sys.version else "x86") if os.name=="nt" else os.u
     python_version = version_output.split(b"\n")[0].strip()
     python_arch = version_output.split(b"\n")[1].strip()
 
-    if sys.version.startswith("3"):
+    if sys.version.startswith('3'):
         python_arch = python_arch.decode()
         python_version = python_version.decode()
 
@@ -143,7 +143,7 @@ def getTempDir():
                 os.path.dirname(
                     os.path.abspath(sys.modules[ "__main__" ].__file__)
                 )
-            ) + "-",
+            ) + '-',
             dir    = tempfile.gettempdir() if
                          not os.path.exists("/var/tmp") else
                     "/var/tmp"
@@ -168,7 +168,7 @@ def convertUsing2to3(path):
         path
     ]
 
-    with open(os.devnull, "w") as stderr:
+    with open(os.devnull, 'w') as stderr:
         if check_result(command, stderr = stderr):
             return path, False
 
@@ -198,7 +198,7 @@ def convertUsing2to3(path):
         new_path
     ]
 
-    with open(os.devnull, "w") as devnull:
+    with open(os.devnull, 'w') as devnull:
         check_output(
             command,
             stderr = devnull
@@ -219,7 +219,7 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("27.py") and python_version.startswith("2.6"):
         return False
 
-    if filename.endswith("_2.py") and python_version.startswith("3"):
+    if filename.endswith("_2.py") and python_version.startswith('3'):
         return False
 
     # Skip tests that require Python 3.2 at least.
@@ -256,7 +256,8 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
         "silent"
     ]
 
-    command += extra_flags
+    if extra_flags is not None:
+        command += extra_flags
 
     command += search_mode.getExtraFlags(dirname, filename)
 
@@ -344,7 +345,7 @@ def getDependsExePath():
     return depends_exe
 
 
-def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
+def getRuntimeTraceOfLoadedFiles(path,trace_error = True):
     """ Returns the files loaded when executing a binary. """
 
     result = []
@@ -416,7 +417,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
                 re.findall(b'"(.*?)(?:\\\\0)?"', line)
             )
 
-        if sys.version.startswith("3"):
+        if sys.version.startswith('3'):
             result = [s.decode("utf-8") for s in result]
     elif os.name == "nt":
         subprocess.call(
@@ -445,14 +446,14 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error=True):
             if "| Module List |" in line:
                 break
 
-            if "]" not in line:
+            if ']' not in line:
                 continue
 
             # Skip missing DLLs, apparently not needed anyway.
-            if "?" in line[:line.find("]")]:
+            if '?' in line[:line.find(']')]:
                 continue
 
-            dll_filename = line[line.find("]")+2:-1]
+            dll_filename = line[line.find(']')+2:-1]
             assert os.path.isfile(dll_filename), dll_filename
 
             # The executable itself is of course exempted.
@@ -478,7 +479,7 @@ def hasModule(module_name):
             "-c"
             "import %s" % module_name
         ),
-        stdout = open(os.devnull,"w"),
+        stdout = open(os.devnull,'w'),
         stderr = subprocess.STDOUT
     )
 
@@ -557,10 +558,10 @@ def checkReferenceCount(checked_function, max_rounds = 10):
 
             for key in m1.keys():
                 if key not in m2:
-                    print("*" * 80)
+                    print('*' * 80)
                     print(key)
                 elif m1[key] != m2[key]:
-                    print("*" * 80)
+                    print('*' * 80)
                     print(key)
                 else:
                     pass
@@ -575,9 +576,9 @@ def checkReferenceCount(checked_function, max_rounds = 10):
 
 
 def createSearchMode():
-    search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
-    start_at = sys.argv[2] if len( sys.argv ) > 2 else None
-    coverage_mode = len( sys.argv ) > 1 and sys.argv[1] == "coverage"
+    search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
+    start_at = sys.argv[2] if len(sys.argv) > 2 else None
+    coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
 
     class SearchModeBase:
         def __init__(self):
@@ -632,10 +633,10 @@ def createSearchMode():
 
         return SearchModeCoverage()
     elif search_mode and start_at:
-        start_at = start_at.replace("/", os.path.sep)
+        start_at = start_at.replace('/', os.path.sep)
 
         class SearchModeByPattern(SearchModeBase):
-            def __init__( self ):
+            def __init__(self):
                 SearchModeBase.__init__(self)
 
                 self.active = False
@@ -731,3 +732,26 @@ def withPythonPathChange(python_path):
             del os.environ["PYTHONPATH"]
         else:
             os.environ["PYTHONPATH"] = old_path
+
+@contextmanager
+def withExtendedExtraOptions(*args):
+    assert args
+    old_value = os.environ.get("NUITKA_EXTRA_OPTIONS", None)
+
+    value = old_value
+
+    for arg in args:
+        if value is None:
+            value = arg
+        else:
+            value += ' ' + arg
+
+    os.environ[ "NUITKA_EXTRA_OPTIONS" ] = value
+
+    yield
+
+    if old_value is None:
+        del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
+    else:
+        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = old_value
+

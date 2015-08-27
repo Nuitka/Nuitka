@@ -37,22 +37,22 @@ def b():
 
 from collections import OrderedDict
 
+def displayable(dictionary):
+    return sorted(dictionary.items())
+
 def m():
     class M(type):
-        # @classmethod
         def __new__(cls, class_name, bases, attrs, **over):
-            print("Metaclass M.__new__ cls", cls, "name", class_name, "bases", bases, "dict", attrs, "extra class defs", over)
+            print("Metaclass M.__new__ cls", cls, "name", class_name, "bases", bases, "dict", displayable(attrs), "extra class defs", displayable(over))
 
             return type.__new__(cls, class_name, bases, attrs)
 
         def __init__(self, name, bases, attrs, **over):
-            print("Metaclass M.__init__", name, bases, attrs, over)
+            print("Metaclass M.__init__", name, bases, displayable(attrs), displayable(over))
             super().__init__(name, bases, attrs)
 
-        # TODO: Removing this
-        # @classmethod
-        def __prepare__(name, bases, **over):
-            print("Metaclass M.__prepare__", name, bases, over)
+        def __prepare__(metacls, bases, **over):  # @NoSelf
+            print("Metaclass M.__prepare__", metacls, bases, displayable(over))
             return OrderedDict()
 
     print("Called", m)

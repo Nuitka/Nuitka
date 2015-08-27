@@ -226,7 +226,7 @@ def executePASS1():
     )
 
 
-def compileAndCompareWith( nuitka ):
+def compileAndCompareWith(nuitka):
     base_dir = os.path.join("..", "..")
 
     for package in PACKAGE_LIST:

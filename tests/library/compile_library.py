@@ -19,11 +19,29 @@
 #     limitations under the License.
 #
 
-from __future__ import print_function
-
 import os, sys, tempfile, subprocess
 
-search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
+# Find common code relative in file system. Not using packages for test stuff.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            ".."
+        )
+    )
+)
+
+from test_common import (
+    my_print,            # @UnresolvedImport
+    setup,               # @UnresolvedImport
+    compareWithCPython,  # @UnresolvedImport
+    createSearchMode     # @UnresolvedImport
+)
+
+python_version = setup(needs_io_encoding = True)
+
+search_mode = createSearchMode()
 
 start_at = sys.argv[2] if len(sys.argv) > 2 else None
 
@@ -34,7 +52,7 @@ else:
 
 os_path = os.path.normcase(os.path.dirname(os.__file__))
 
-print("Using standard library path", os_path)
+my_print("Using standard library path", os_path)
 
 try:
     import numpy
@@ -47,7 +65,7 @@ try:
         )
     )
 
-    print("Using extra library path", extra_path)
+    my_print("Using extra library path", extra_path)
 except ImportError:
     extra_path = os_path
 
@@ -62,7 +80,7 @@ try:
         )
     )
 
-    print("Using extra2 library path", extra_path2)
+    my_print("Using extra2 library path", extra_path2)
 except ImportError:
     extra_path2 = os_path
 
@@ -93,12 +111,12 @@ def compilePath(path):
         ]
 
         for filename in sorted(filenames):
-            if "(" in filename:
+            if '(' in filename:
                 continue
 
             path = os.path.join(root, filename)
 
-            if not active and start_at in ( filename, path ):
+            if not active and start_at in (filename, path):
                 active = True
 
             if not active:
@@ -107,7 +125,6 @@ def compilePath(path):
             command = [
                 sys.executable,
                 os.path.join(
-                    os.path.dirname( __file__ ),
                     "..",
                     "..",
                     "bin",
@@ -123,26 +140,36 @@ def compilePath(path):
             command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
             command.append(path)
-            print(path, ":", end = " ")
+            my_print(path, ':', end = ' ')
             sys.stdout.flush()
 
-            subprocess.check_call(command)
-
-            print("OK")
-
-            if os.name == "nt":
-                suffix = "pyd"
-            else:
-                suffix = "so"
-
-            target_filename = os.path.basename(path).replace(".py","."+suffix)
-            target_filename = target_filename.replace("(","").replace(")","")
-
-            os.unlink(
-                os.path.join(
-                    stage_dir, target_filename
+            try:
+                subprocess.check_call(command)
+            except subprocess.CalledProcessError as e:
+                my_print("Falling back to full comparison due to error exit.")
+                compareWithCPython(
+                    dirname     = None,
+                    filename    = path,
+                    extra_flags = ["expect_failure"],
+                    search_mode = search_mode,
+                    needs_2to3  = False
                 )
-            )
+            else:
+                my_print("OK")
+
+                if os.name == "nt":
+                    suffix = "pyd"
+                else:
+                    suffix = "so"
+
+                target_filename = os.path.basename(path).replace(".py",'.'+suffix)
+                target_filename = target_filename.replace('(',"").replace(')',"")
+
+                os.unlink(
+                    os.path.join(
+                        stage_dir, target_filename
+                    )
+                )
 
 compilePath(os_path)
 

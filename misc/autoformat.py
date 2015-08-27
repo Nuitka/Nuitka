@@ -19,15 +19,15 @@
 
 from __future__ import print_function
 
-import sys, os, shutil
+import sys, os, shutil, re
 
 from redbaron import RedBaron  # @UnresolvedImport
 
 print("Consider", sys.argv[1], end = ": ")
 
-old_code = open(sys.argv[1], "r").read()
+old_code = open(sys.argv[1], 'r').read()
 
-red = RedBaron(old_code.rstrip()+"\n")
+red = RedBaron(old_code.rstrip()+'\n')
 
 def updateCall(call_node):
     max_len = 0
@@ -43,7 +43,7 @@ def updateCall(call_node):
         if key is not None:
             max_len = max(max_len, len(key))
 
-    if "\n" not in call_node.second_formatting.dumps():
+    if '\n' not in call_node.second_formatting.dumps():
         del call_node.second_formatting[:]
         del call_node.third_formatting[:]
 
@@ -55,25 +55,25 @@ def updateCall(call_node):
 
         if key is not None:
             if not argument.second_formatting:
-                argument.second_formatting = " "
+                argument.second_formatting = ' '
 
-            if "\n" in str(call_node.second_formatting):
+            if '\n' in str(call_node.second_formatting):
                 if len(argument.first_formatting) > 0:
                     spacing = argument.first_formatting[0].value
                 else:
                     spacing = ""
 
                 if len(key)+len(spacing) != max_len + 1:
-                    argument.first_formatting = " " * (max_len - len(key) + 1)
+                    argument.first_formatting = ' ' * (max_len - len(key) + 1)
             else:
-                argument.first_formatting = " "
+                argument.first_formatting = ' '
         else:
-            if "\n" not in str(call_node.second_formatting):
+            if '\n' not in str(call_node.second_formatting):
                 if argument.value.type in ("string", "binary_string", "raw_string"):
                     argument.value.second_formatting = ""
 
 def updateTuple(tuple_node):
-    if "\n" not in str(tuple_node.dumps()):
+    if '\n' not in str(tuple_node.dumps()):
         tuple_node.second_formatting = ""
         tuple_node.third_formatting = ""
 
@@ -104,7 +104,7 @@ def updateString(string_node):
     real_value = value[len(quote):-len(quote)]
     assert quote + real_value + quote == value
 
-    if "\n" not in real_value:
+    if '\n' not in real_value:
         # Single characters, should be quoted with "'"
         if len(eval(value)) == 1:
             if real_value != "'":
@@ -115,7 +115,7 @@ def updateString(string_node):
 
 def updateDefNode(def_node):
     # This is between "def" and function name.
-    def_node.first_formatting = " "
+    def_node.first_formatting = ' '
 
     # This is after the opening/closing brace, we don't want it there.
     def_node.third_formatting = ""
@@ -124,9 +124,17 @@ def updateDefNode(def_node):
     # This is to insert/remove spaces or new lines, depending on line length
     # so far, but is not functional at all.
     for argument_node in def_node.arguments:
-        argument_node.first_formatting = " "
-        argument_node.second_formatting = " "
+        argument_node.first_formatting = ' '
+        argument_node.second_formatting = ' '
 
+def updateCommentNode(comment_node):
+
+    if "pylint:" in str(comment_node.value):
+        def replacer(part):
+            return part.group(1) + ','.join(sorted(part.group(2).split(',')))
+
+        new_value = re.sub(r"(pylint\: disable=)(.*)", replacer, str(comment_node.value), flags = re.M)
+        comment_node.value = new_value
 
 for node in red.find_all("CallNode"):
     try:
@@ -168,13 +176,22 @@ for node in red.find_all("DefNode"):
         node.help(deep = True, with_formatting = True)
         raise
 
+for node in red.find_all("CommentNode"):
+    try:
+        updateCommentNode(node)
+    except Exception:
+        print("Problem with", node)
+        node.help(deep = True, with_formatting = True)
+        raise
+
+
 new_code = red.dumps()
 
 if new_code != old_code:
 
     new_name = sys.argv[1] + ".new"
 
-    with open(new_name, "w") as source_code:
+    with open(new_name, 'w') as source_code:
         source_code.write(red.dumps())
 
     # There is no way to safely replace a file on Windows, but lets try on Linux

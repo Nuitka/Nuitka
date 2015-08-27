@@ -25,7 +25,7 @@ that should be unified at some point.
 
 """
 
-from nuitka import VariableRegistry
+from nuitka import Options, VariableRegistry
 from nuitka.utils import Utils
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
@@ -92,6 +92,11 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         return self.getAssignSource().mayRaiseException(exception_type)
 
     def computeStatement(self, constraint_collection):
+        # This is very complex stuff, pylint: disable=R0912
+
+        # TODO: Way too ugly to have global trace kinds just here, and needs to
+        # be abstracted somehow. But for now we let it live here: pylint: disable=R0911,R0915
+
         # Assignment source may re-compute here:
         constraint_collection.onExpression(self.getAssignSource())
         source = self.getAssignSource()
@@ -162,10 +167,8 @@ Removed assignment of variable from itself which is known to be defined."""
             self.setAssignSource(source.getExpression())
             source = self.getAssignSource()
 
-            result = result, "new_statements", """\
+            return result, "new_statements", """\
 Side effects of assignments promoted to statements."""
-        else:
-            result = self, None, None
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
@@ -175,19 +178,109 @@ Side effects of assignments promoted to statements."""
 
         global_trace = VariableRegistry.getGlobalVariableTrace(variable)
 
-        if global_trace is not None:
-            if variable.isTempVariable():
-                if source.isCompileTimeConstant() and not source.isMutable():
-                    self.variable_trace.setReplacementNode(source)
-            elif variable.isLocalVariable():
-                if source.isCompileTimeConstant() and not source.isMutable():
-                    provider = self.getParentVariableProvider()
+        if global_trace is not None and Options.isExperimental():
+            last_trace = global_trace.getMatchingAssignTrace(self)
 
-                    if provider.isPythonModule() or \
-                       (not provider.isUnoptimized() and not provider.isClassDictCreation()):
-                        self.variable_trace.setReplacementNode(source)
+            if last_trace is not None:
+                if variable.isLocalVariable() or variable.isTempVariable():
+                    if source.isCompileTimeConstant():
 
-        return result
+                        # Can safely forward propagate only non-mutable constants.
+                        if not source.isMutable():
+                            provider = self.getParentVariableProvider()
+
+                            if variable.isTempVariable() or \
+                               (not provider.isUnoptimized() and \
+                                not provider.isClassDictCreation()):
+
+                                if last_trace.hasDefiniteUsages():
+                                    self.variable_trace.setReplacementNode(
+                                        lambda usage : source.makeClone()
+                                    )
+                                    propagated = True
+                                else:
+                                    propagated = False
+
+                                if not last_trace.hasPotentialUsages() and not last_trace.hasNameUsages():
+                                    # This limitation may fall later.
+                                    if not variable.isSharedLogically():
+
+                                        if not last_trace.getPrevious().isUninitTrace():
+                                            # TODO: We could well decide, if that's even necessary.
+                                            result = StatementDelVariable(
+                                                variable_ref = self.getTargetVariableRef(),
+                                                tolerant     = True,
+                                                source_ref   = self.getSourceReference()
+                                            )
+                                        else:
+                                            result = None
+
+                                        return (
+                                            result,
+                                            "new_statements",
+                                            "Dropped %s assignment statement to '%s'." % (
+                                               "propagated" if propagated else "dead",
+                                               self.getTargetVariableRef().getVariableName()
+                                            )
+                                        )
+                        else:
+                            # Something might be possible still.
+
+                            pass
+                    elif Options.isExperimental() and \
+                        source.isExpressionFunctionCreation() and \
+                        not source.getFunctionRef().getFunctionBody().isGenerator() and \
+                        not source.getFunctionRef().getFunctionBody().isClassDictCreation() and \
+                        not source.getDefaults() and  \
+                        not source.getKwDefaults() and \
+                        not source.getAnnotations():
+                        # TODO: These are very mutable, right?
+
+                        provider = self.getParentVariableProvider()
+
+                        if variable.isTempVariable() or \
+                           (not provider.isUnoptimized() and \
+                            not provider.isClassDictCreation()):
+
+                            # This limitation may fall later.
+                            if not variable.isSharedLogically():
+
+                                if last_trace.getDefiniteUsages() <= 1 and \
+                                   not last_trace.hasPotentialUsages() and \
+                                   not last_trace.hasNameUsages():
+
+                                    if last_trace.getDefiniteUsages() == 1:
+                                        self.variable_trace.setReplacementNode(
+                                            lambda usage : source.makeClone()
+                                        )
+                                        propagated = True
+                                    else:
+                                        propagated = False
+
+                                    if not last_trace.getPrevious().isUninitTrace():
+                                        # TODO: We could well decide, if that's even necessary.
+                                        result = StatementDelVariable(
+                                            variable_ref = self.getTargetVariableRef(),
+                                            tolerant     = True,
+                                            source_ref   = self.getSourceReference()
+                                        )
+                                    else:
+                                        result = None
+
+                                    return (
+                                        result,
+                                        "new_statements",
+                                        "Dropped %s assignment statement to '%s'." % (
+                                           "propagated" if propagated else "dead",
+                                           self.getTargetVariableRef().getVariableName()
+                                        )
+                                    )
+
+                    else:
+                        # More cases thinkable.
+                        pass
+
+        return self, None, None
 
     def needsReleaseValue(self):
         previous = self.variable_trace.getPrevious()
@@ -222,7 +315,7 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
 
     def getDetails(self):
         return {
-            "attribute" : self.attribute_name
+            "attribute_name" : self.attribute_name
         }
 
     def getDetail(self):
@@ -469,6 +562,8 @@ class StatementDelVariable(StatementChildrenHavingBase):
         )
 
         self.variable_trace = None
+        self.previous_trace = None
+
         self.tolerant = tolerant
 
     def getDetail(self):
@@ -494,16 +589,20 @@ class StatementDelVariable(StatementChildrenHavingBase):
     )
 
     def computeStatement(self, constraint_collection):
-        variable_trace = constraint_collection.onVariableDel(
+        self.previous_trace = constraint_collection.onVariableDel(
             del_node = self
         )
 
+        variable = self.getTargetVariableRef().getVariable()
+
         if self.isTolerant():
-            if variable_trace.isUninitTrace():
+            if self.previous_trace.isUninitTrace():
                 return (
                     None,
                     "new_statements",
-                    "Removed tolerant 'del' statement without effect."
+                    "Removed tolerant 'del' statement of '%s' without effect." % (
+                        variable.getName(),
+                    )
                 )
 
 
@@ -513,7 +612,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
         # Need to fetch the potentially invalidated variable. A "del" on a
         # or shared value, may easily assign the global variable in "__del__".
         self.variable_trace = constraint_collection.getVariableCurrentTrace(
-            variable = self.getTargetVariableRef().getVariable()
+            variable = variable
         )
 
         return self, None, None
@@ -525,21 +624,23 @@ class StatementDelVariable(StatementChildrenHavingBase):
         if self.tolerant:
             return False
         else:
-            variable = self.getTargetVariableRef().getVariable()
+            if self.variable_trace is not None:
 
-            # TODO: This condition must become unnecessary, but enhancing
-            # SSA to notice potential escapes.
-            if not variable.isSharedTechnically():
+                variable = self.getTargetVariableRef().getVariable()
+                # TODO: This condition must become unnecessary, but enhancing
+                # SSA to notice potential escapes.
+                if not variable.isSharedTechnically():
 
-                # Temporary variables deletions won't raise, just because we don't
-                # create them that way. We can avoid going through SSA in these
-                # cases.
-                if variable.isTempVariable():
-                    return False
+                    # Temporary variables deletions won't raise, just because we don't
+                    # create them that way. We can avoid going through SSA in these
+                    # cases.
+                    if variable.isTempVariable():
+                        return False
 
-                # If SSA knows, that's fine.
-                if self.variable_trace.mustHaveValue():
-                    return False
+                    # If SSA knows, that's fine.
+                    if self.previous_trace is not None and \
+                       self.previous_trace.mustHaveValue():
+                        return False
 
             return True
 
@@ -547,14 +648,13 @@ class StatementDelVariable(StatementChildrenHavingBase):
 class StatementReleaseVariable(NodeBase):
     kind = "STATEMENT_RELEASE_VARIABLE"
 
-    def __init__(self, variable, tolerant, source_ref):
+    def __init__(self, variable, source_ref):
+        assert variable is not None, source_ref
+
         NodeBase.__init__(
             self,
             source_ref = source_ref
         )
-
-        # TODO: Unsure if that makes sense, we only have those it seems.
-        self.tolerant = tolerant
 
         self.variable = variable
 
@@ -568,16 +668,37 @@ class StatementReleaseVariable(NodeBase):
             "variable" : self.variable
         }
 
+    def getDetailsForDisplay(self):
+        if self.variable.getOwner() is not self.getParentVariableProvider():
+            return {
+                "variable" : self.variable.getName(),
+                "owner"    : self.variable.getOwner().getCodeName()
+            }
+        else:
+            return {
+                "variable" : self.variable.getName(),
+            }
+
+
     def getVariable(self):
         return self.variable
 
+    def setVariable(self, variable):
+        self.variable = variable
+
     def computeStatement(self, constraint_collection):
         self.variable_trace = constraint_collection.onVariableRelease(
-            release_node = self
+            variable = self.variable
         )
 
         if self.variable_trace.isUninitTrace():
-            return None, "new_statements", None
+            return (
+                None,
+                "new_statements",
+                "Uninitialized variable '%s' is not released." % (
+                    self.variable.getName()
+                )
+            )
 
         # TODO: We might be able to remove ourselves based on the trace
         # we belong to.
@@ -585,9 +706,12 @@ class StatementReleaseVariable(NodeBase):
         return self, None, None
 
     def mayHaveSideEffects(self):
+        # May execute __del__ code, it would be sweet to be able to predict
+        # that another reference will still be active for a value though.
         return True
 
     def mayRaiseException(self, exception_type):
+        # By default, __del__ is not allowed to raise an exception.
         return False
 
 
@@ -611,7 +735,7 @@ class StatementDelAttribute(StatementChildrenHavingBase):
 
     def getDetails(self):
         return {
-            "attribute" : self.attribute_name
+            "attribute_name" : self.attribute_name
         }
 
     def getDetail(self):

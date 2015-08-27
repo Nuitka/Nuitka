@@ -36,21 +36,27 @@ from nuitka.utils import InstanceCounters
 
 
 class VariableTraceBase:
+    # We are going to have many instance attributes, pylint: disable=R0902
+
     @InstanceCounters.counted_init
     def __init__(self, variable, version, previous):
         self.variable = variable
         self.version = version
 
-        # List of references.
-        self.usages = []
+        # Definite usage indicator.
+        self.usage_count = 0
 
-        # List of releases of the node.
-        self.releases = []
+        # Potential usages indicator that an assignment value may be used.
+        self.has_potential_usages = False
 
-        # If not None, this indicates the last usage, where the value was not
-        # yet escaped. If it is 0, it escaped immediately. Escaping is a one
-        # time action.
-        self.escaped_at = None
+        # If False, this indicates the trace has no explicit releases.
+        self.has_releases = False
+
+        # If False, this indicates, the variable name needs to be assigned.
+        self.has_name_usages = False
+
+        # If False, this indicates that the value is not yet escaped.
+        self.is_escaped = False
 
         # Previous trace this is replacing.
         self.previous = previous
@@ -63,26 +69,39 @@ class VariableTraceBase:
     def getVersion(self):
         return self.version
 
-    def addUsage(self, ref_node):
-        self.usages.append(ref_node)
+    def addUsage(self):
+        self.usage_count += 1
 
-    def addRelease(self, release_node):
-        self.releases.append(release_node)
+    def addPotentialUsage(self):
+        self.has_potential_usages = True
+
+    def addRelease(self):
+        self.has_releases = True
+
+    def addNameUsage(self):
+        self.usage_count += 1
+        self.has_name_usages = True
 
     def onValueEscape(self):
-        self.escaped_at = len(self.usages)
+        self.is_escaped = True
 
     def isEscaped(self):
-        return self.escaped_at is not None
+        return self.is_escaped
+
+    def hasDefiniteUsages(self):
+        return self.usage_count > 0
 
     def getDefiniteUsages(self):
-        return self.usages
+        return self.usage_count
+
+    def hasPotentialUsages(self):
+        return self.has_potential_usages
+
+    def hasNameUsages(self):
+        return self.has_name_usages
 
     def getPrevious(self):
         return self.previous
-
-    def getReleases(self):
-        return self.releases
 
     @staticmethod
     def isAssignTrace():
@@ -123,7 +142,7 @@ class VariableTraceBase:
         return self.isUninitTrace()
 
     def getReplacementNode(self, usage):
-        # Virtual method, pylint: disable=W0613,R0201
+        # Virtual method, pylint: disable=R0201,W0613
 
         return None
 
@@ -155,14 +174,14 @@ class VariableTraceUninit(VariableTraceBase):
         )
         debug("  Starts out uninitialized")
 
-        for count, usage in enumerate(self.usages):
-            if count == self.escaped_at:
-                debug("  Escaped value")
+        if self.usage_count:
+            debug("  -> has %s usages" % self.usage_count)
 
-            debug("  Used at %s", usage)
+        if self.is_escaped:
+            debug("  -> value escapes")
 
-        for release in self.releases:
-            debug("   Release by %s", release)
+        if self.has_releases:
+            debug("   -> has released")
 
 
 class VariableTraceInit(VariableTraceBase):
@@ -188,14 +207,14 @@ class VariableTraceInit(VariableTraceBase):
         )
         debug("  Starts initialized")
 
-        for count, usage in enumerate(self.usages):
-            if count == self.escaped_at:
-                debug("  Escaped value")
+        if self.usage_count:
+            debug("  -> has %s usages" % self.usage_count)
 
-            debug("  Used at %s", usage)
+        if self.is_escaped:
+            debug("  -> value escapes")
 
-        for release in self.releases:
-            debug("   Release by %s", release)
+        if self.has_releases:
+            debug("   -> has released")
 
     @staticmethod
     def isInitTrace():
@@ -225,18 +244,39 @@ class VariableTraceUnknown(VariableTraceBase):
         )
         debug("  Starts unknown")
 
-        for count, usage in enumerate(self.usages):
-            if count == self.escaped_at:
-                debug("  Escaped value")
+        if self.usage_count:
+            debug("  -> has %s usages" % self.usage_count)
 
-            debug("  Used at %s", usage)
+        if self.is_escaped:
+            debug("  -> value escapes")
 
-        for release in self.releases:
-            debug("   Release by %s", release)
+        if self.has_releases:
+            debug("   -> has released")
 
     @staticmethod
     def isUnknownTrace():
         return True
+
+    def addUsage(self):
+        self.usage_count += 1
+
+        if self.previous is not None:
+            self.previous.addPotentialUsage()
+
+    def addNameUsage(self):
+        self.addUsage()
+
+        if self.previous is not None:
+            self.previous.addNameUsage()
+
+    def addPotentialUsage(self):
+        old = self.has_potential_usages
+
+        if not old:
+            self.has_potential_usages = True
+
+            if self.previous is not None:
+                self.previous.addPotentialUsage()
 
 
 class VariableTraceAssign(VariableTraceBase):
@@ -265,14 +305,14 @@ class VariableTraceAssign(VariableTraceBase):
             self.version)
         debug("  Starts assigned")
 
-        for count, usage in enumerate(self.usages):
-            if count == self.escaped_at:
-                debug("  Escaped value")
+        if self.usage_count:
+            debug("  -> has %s usages" % self.usage_count)
 
-            debug("  Used at %s", usage)
+        if self.is_escaped:
+            debug("  -> value escapes")
 
-        for release in self.releases:
-            debug("   Release by %s", release)
+        if self.has_releases:
+            debug("   -> has released")
 
     @staticmethod
     def isAssignTrace():
@@ -287,28 +327,34 @@ class VariableTraceAssign(VariableTraceBase):
     def getReplacementNode(self, usage):
 
         if self.replace_it is not None:
-            return self.replace_it.makeCloneAt(
-                self.assign_node.getSourceReference()
-            )
+            return self.replace_it(usage)
         else:
             return None
 
 
 class VariableTraceMerge(VariableTraceBase):
-    """ Merge of two traces.
+    """ Merge of two or more traces.
 
-        Happens at the end of two conditional blocks. This is "phi" in
-        SSA theory.
+        Happens at the end of conditional blocks. This is "phi" in
+        SSA theory. Also used for merging multiple "return", "break" or
+        "continue" exits.
     """
-    def __init__(self, variable, version, trace_yes, trace_no):
-        assert trace_no is not trace_yes, (variable, version, trace_no)
-
+    def __init__(self, variable, version, traces):
         VariableTraceBase.__init__(
             self,
             variable = variable,
             version  = version,
-            previous = (trace_yes, trace_no)
+            previous = tuple(traces)
         )
+
+    def __repr__(self):
+        return """\
+<VariableTraceMerge {variable} {version} of {previous}>""".format(
+            variable = self.variable,
+            version  = self.version,
+            previous = tuple(previous.getVersion() for previous in self.previous)
+        )
+
 
     @staticmethod
     def isMergeTrace():
@@ -320,10 +366,10 @@ class VariableTraceMerge(VariableTraceBase):
             self.variable,
             self.version
         )
+
         debug(
-            "  Merge of %s <-> %s",
-            self.previous[0],
-            self.previous[1]
+            "  Merge of %s",
+            " <-> ".join(self.previous),
         )
 
     def mustHaveValue(self):
@@ -349,3 +395,84 @@ class VariableTraceMerge(VariableTraceBase):
                 return False
 
         return True
+
+    def addUsage(self):
+        self.usage_count += 1
+
+        for previous in self.previous:
+            previous.addPotentialUsage()
+
+    def addNameUsage(self):
+        self.usage_count += 1
+
+        for previous in self.previous:
+            previous.addPotentialUsage()
+            previous.addNameUsage()
+
+    def addPotentialUsage(self):
+        old = self.has_potential_usages
+
+        if not old:
+            self.has_potential_usages = True
+
+            for previous in self.previous:
+                previous.addPotentialUsage()
+
+
+class VariableTraceLoopMerge(VariableTraceBase):
+    """ Merge of loop wrap around with loop start value.
+
+        Happens at the start of loop blocks. This is for loop closed SSA, to
+        make it clear, that the entered value, cannot be trusted inside the
+        loop.
+
+        They will start out with just one previous, and later be updated with
+        all of the variable versions at loop continue times.
+        .
+    """
+    def __init__(self, variable, version, previous):
+        VariableTraceBase.__init__(
+            self,
+            variable = variable,
+            version  = version,
+            previous = previous
+        )
+
+        self.loop_finished = False
+
+        previous.addPotentialUsage()
+
+    def hasDefiniteUsages(self):
+        if not self.loop_finished:
+            return True
+
+        return self.usage_count > 0
+
+    def hasPotentialUsages(self):
+        if not self.loop_finished:
+            return True
+
+        return self.has_potential_usages
+
+    def hasNameUsages(self):
+        if not self.loop_finished:
+            return True
+
+        return self.has_name_usages
+
+    def getPrevious(self):
+        assert self.loop_finished
+
+        return self.previous
+
+    @staticmethod
+    def isMergeTrace():
+        return True
+
+    def addLoopContinueTraces(self, continue_traces):
+        self.previous.addPotentialUsage()
+
+        for continue_trace in continue_traces:
+            continue_trace.addPotentialUsage()
+
+        self.previous = (self.previous,) + tuple(continue_traces)

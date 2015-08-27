@@ -62,7 +62,7 @@ coverage_mode      = hasArg("coverage")
 original_file      = hasArg("original_file")
 
 if args:
-    sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
+    sys.exit("Error, non understood mode(s) '%s'," % ','.join(args))
 
 # In coverage mode, we don't want to execute, and to do this only in one mode,
 # we enable two step execution, which splits running the binary from the actual
@@ -80,7 +80,7 @@ assert not standalone_mode or not module_mode
 assert not recurse_all or not recurse_none
 
 if "PYTHONHASHSEED" not in os.environ:
-    os.environ["PYTHONHASHSEED"] = "0"
+    os.environ["PYTHONHASHSEED"] = '0'
 
 os.environ["PYTHONWARNINGS"] = "ignore"
 
@@ -89,7 +89,7 @@ if "PYTHON" not in os.environ:
 
 extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
-if "--python-debug" in extra_options:
+if "--python-debug" in extra_options or "--python-dbg" in extra_options:
     python_debug = True
 
 if python_debug:
@@ -129,9 +129,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
 
 
 if comparison_mode and not silent_mode:
-    my_print("*" * 80)
+    my_print('*' * 80)
     my_print("CPython:")
-    my_print("*" * 80)
+    my_print('*' * 80)
 
 if two_step_execution:
     filename = os.path.abspath(filename)
@@ -171,6 +171,7 @@ else:
 
         nuitka_call = [
             os.environ["PYTHON"],
+            "-S",
             "-m",
             "coverage",
             "run",
@@ -189,15 +190,26 @@ if remove_output:
 if original_file:
     extra_options.append("--file-reference-choice=original")
 
-if binary_python_path:
-    if os.name == "nt":
-        python_path_sep = ";"
-    else:
-        python_path_sep = ":"
+if coverage_mode:
+    # Coverage modules hates Nuitka to re-execute, and so we must avoid
+    # that.
+    python_path = subprocess.check_output(
+        [
+            os.environ["PYTHON"],
+            "-c"
+            "import sys, os; print(os.pathsep.join(sys.path))"
+        ]
+    )
 
+    if sys.version_info >= (3,):
+        python_path = python_path.decode("utf8")
+
+    os.environ["PYTHONPATH"] = python_path.strip()
+
+if binary_python_path:
     python_path = os.environ.get("PYTHONPATH", "")
-    os.environ["PYTHONPATH"] = python_path_sep.join(
-        python_path.split(python_path_sep) + \
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        python_path.split(os.pathsep) + \
         [os.path.dirname(os.path.abspath(filename))]
     )
 
@@ -252,7 +264,7 @@ for extra_option in extra_options:
         break
 else:
     # The default.
-    output_dir = "."
+    output_dir = '.'
 
 if module_mode:
     nuitka_cmd2 = [
@@ -266,7 +278,7 @@ else:
     if filename.endswith(".py"):
         exe_filename = exe_filename[:-3]
 
-    exe_filename = exe_filename.replace(")", "").replace("(", "")
+    exe_filename = exe_filename.replace(')', "").replace('(', "")
     exe_filename += ".exe"
 
     nuitka_cmd2 = [
@@ -295,7 +307,7 @@ def displayOutput(stdout, stderr):
         stdout = stdout.decode("utf-8" if os.name != "nt" else "cp850")
         stderr = stderr.decode("utf-8" if os.name != "nt" else "cp850")
 
-    my_print(stdout, end=' ')
+    my_print(stdout, end = ' ')
     if stderr:
         my_print(stderr)
 
@@ -303,9 +315,9 @@ if comparison_mode and not silent_mode:
     displayOutput(stdout_cpython, stderr_cpython)
 
 if comparison_mode and not silent_mode:
-    my_print("*" * 80)
+    my_print('*' * 80)
     my_print("Nuitka:")
-    my_print("*" * 80)
+    my_print('*' * 80)
 
 if two_step_execution:
     if output_dir:
@@ -411,8 +423,12 @@ non_ascii_error_rt           = re.compile(
     r"(SyntaxError: Non-ASCII character.*? on line) \d+"
 )
 python_win_lib_re            = re.compile(
-    r"[a-zA-Z]:\\\\?[Pp]ython(.*\\\\?)[Ll]ib"
+    r"[a-zA-Z]:\\\\?[Pp]ython(.*?\\\\?)[Ll]ib"
 )
+local_port_re = re.compile(
+    r"(127\.0\.0\.1):\d{2,5}"
+)
+
 
 traceback_re                 = re.compile(
     r'(F|f)ile "(.*?)", line (\d+)'
@@ -438,17 +454,17 @@ def makeDiffable(output):
         if type(line) is not str:
             line = line.decode("utf-8" if os.name != "nt" else "cp850")
 
-        if line.endswith("\r"):
+        if line.endswith('\r'):
             line = line[:-1]
 
         if line.startswith("REFCOUNTS"):
-            first_value = line[line.find("[")+1:line.find(",")]
-            last_value = line[line.rfind(" ")+1:line.rfind("]")]
+            first_value = line[line.find('[')+1:line.find(',')]
+            last_value = line[line.rfind(' ')+1:line.rfind(']')]
             line = line.\
               replace(first_value, "xxxxx").\
               replace(last_value, "xxxxx")
 
-        if line.startswith("[") and line.endswith("refs]"):
+        if line.startswith('[') and line.endswith("refs]"):
             continue
 
         if ignore_warnings and line.startswith("Nuitka:WARNING"):
@@ -514,6 +530,9 @@ def makeDiffable(output):
         # CPython
         line = python_win_lib_re.sub(r"C:\Python\1Lib", line)
 
+        # Port numbers can be random, lets ignore them
+        line = local_port_re.sub(r"\1:xxxxx", line)
+
         # This is a bug with clang potentially, can't find out why it says that.
         if line == "/usr/bin/ld: warning: .init_array section has zero size":
             continue
@@ -542,8 +561,8 @@ def makeDiffable(output):
 
 
 def compareOutput(kind, out_cpython, out_nuitka):
-    fromdate = None
-    todate = None
+    fromdate = ""
+    todate = ""
 
     diff = difflib.unified_diff(
         makeDiffable(out_cpython),
@@ -558,14 +577,14 @@ def compareOutput(kind, out_cpython, out_nuitka):
         ),
         fromdate,
         todate,
-        n=3
+        n = 3
     )
 
     result = list(diff)
 
     if result:
         for line in result:
-            my_print(line, end = "\n" if not line.startswith("---") else "")
+            my_print(line, end = '\n' if not line.startswith("---") else "")
 
         return 1
     else:

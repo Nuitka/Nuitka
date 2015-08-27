@@ -34,9 +34,9 @@ sys.path.insert(
 from test_common import (
     my_print,
     setup,
-    convertUsing2to3,
     createSearchMode,
     compareWithCPython,
+    withExtendedExtraOptions,
     getTempDir
 )
 
@@ -44,7 +44,7 @@ python_version = setup()
 
 search_mode = createSearchMode()
 
-for filename in sorted(os.listdir(".")):
+for filename in sorted(os.listdir('.')):
     if not os.path.isdir(filename) or filename.endswith(".build"):
         continue
 
@@ -71,7 +71,7 @@ for filename in sorted(os.listdir(".")):
             if not os.path.isdir(os.path.join(filename,filename_main)):
                 continue
 
-            if filename_main not in ("..", "."):
+            if filename_main not in ("..", '.'):
                 break
         else:
             sys.exit(
@@ -79,20 +79,21 @@ for filename in sorted(os.listdir(".")):
 Error, no package in dir '%s' found, incomplete test case.""" % filename
             )
 
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = \
-          "--recurse-to=%s" % os.path.basename(filename_main)
+        extensions = [
+            "--recurse-to=%s" % os.path.basename(filename_main)
+        ]
 
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] += \
-          " --output-dir=%s" % getTempDir()
+        if not "--output-dir" in os.environ.get("NUITKA_EXTRA_OPTIONS", ""):
+            extensions.append("--output-dir=%s" % getTempDir())
 
-
-        compareWithCPython(
-            dirname     = filename,
-            filename    = filename_main,
-            extra_flags = extra_flags,
-            search_mode = search_mode,
-            needs_2to3  = False
-        )
+        with withExtendedExtraOptions(*extensions):
+            compareWithCPython(
+                dirname     = filename,
+                filename    = filename_main,
+                extra_flags = extra_flags,
+                search_mode = search_mode,
+                needs_2to3  = False
+            )
     else:
         my_print("Skipping", filename)
 

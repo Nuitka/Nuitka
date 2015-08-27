@@ -22,7 +22,7 @@ import sys
 x = 0
 
 # This is used to trace the exact interaction with the context manager to
-# uncover and decide orddering and correctness of calls.
+# uncover and decide ordering and correctness of calls.
 class MyContextManager(object):
     def __getattribute__(self, attribute_name):
         print("Asking context manager attribute", attribute_name)
@@ -67,7 +67,6 @@ with MyContextManager() as l[0]:
     print("Complex assignment target works", l[0])
 
 try:
-    import sys
     with MyContextManager():
         sys.exit(9)
 except BaseException as e:
@@ -78,7 +77,6 @@ if sys.version_info >= (3,):
 
 print("Use context manager and fail to assign to attribute:")
 try:
-    import sys
     with MyContextManager() as l.wontwork:
         sys.exit(9)
 except BaseException as e:

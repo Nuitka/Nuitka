@@ -268,7 +268,7 @@ except TypeError, e:
 
 print "Call function with only defaulted value given as keyword argument:"
 
-def functionwithTwoArgsOneDefaulted(a, b=5):
+def functionwithTwoArgsOneDefaulted(a, b = 5):
     pass
 
 try:

@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Normal function (no yield) related templates.
+""" Normal function (no generator, not yielding) related templates.
 
 """
 
@@ -27,7 +27,7 @@ template_function_direct_declaration = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s );
 """
 
-make_function_with_context_template = """
+template_make_function_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     // Copy the parameter default values and closure values over.
@@ -56,7 +56,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 }
 """
 
-make_function_without_context_template = """
+template_make_function_without_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     PyObject *result = Nuitka_Function_New(
@@ -99,9 +99,6 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 """
 
 template_function_exception_exit = """\
-    // Return statement must have exited already.
-    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
-
 function_exception_exit:
 %(function_cleanup)s\
     assert( exception_type );
@@ -110,19 +107,12 @@ function_exception_exit:
     return NULL;
 """
 
-template_function_noexception_exit = """\
-    // Return statement must have exited already.
-    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
-
-    return NULL;
-"""
-
 template_function_return_exit = """\
-    function_return_exit:
-%(function_cleanup)s\
-    CHECK_OBJECT( tmp_return_value );
-    assert( had_error || !ERROR_OCCURRED() );
-    return tmp_return_value;
+function_return_exit:
+%(function_cleanup)s
+CHECK_OBJECT( tmp_return_value );
+assert( had_error || !ERROR_OCCURRED() );
+return tmp_return_value;
 """
 
 function_direct_body_template = """\
@@ -143,8 +133,10 @@ function_direct_body_template = """\
 }
 """
 
-
 function_dict_setup = """\
 // Locals dictionary setup.
 PyObject *locals_dict = PyDict_New();
 """
+
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

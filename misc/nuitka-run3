@@ -18,20 +18,20 @@
 #
 import sys, os, subprocess
 if __name__ == "__main__":
-    for ver in ( "3.3", "3.2" ):
+    for ver in ("3.3", "3.2"):
         path = "/usr/bin/python" + ver
-        nuitka_cmd = "nuitka-run" if os.path.basename( sys.argv[0] ).lower().startswith( "nuitka-run" ) else "nuitka"
-        if os.path.exists( path ):
-            cmd = [ nuitka_cmd, "--python-version=%s" % ver ]
+        nuitka_cmd = "nuitka-run" if os.path.basename(sys.argv[0]).lower().startswith("nuitka-run") else "nuitka"
+        if os.path.exists(path):
+            cmd = [nuitka_cmd, "--python-version=%s" % ver]
             cmd += sys.argv[1:]
             subprocess.Popen(
                 cmd,
-                stdout=sys.stdout,
-                stderr=sys.stderr,
-                stdin=sys.stdin,
-                shell=0
+                stdout = sys.stdout,
+                stderr = sys.stderr,
+                stdin  = sys.stdin,
+                shell  = 0
             ).wait()
-            os._exit( 0 )
-    sys.stderr.write( "error: python 3 not available\n" )
+            os._exit(0)
+    sys.stderr.write("error: python 3 not available\n")
     sys.stderr.flush()
     os._exit(1)

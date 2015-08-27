@@ -17,7 +17,7 @@
 #
 
 from foo import bar, not_overloaded
-print( bar, not_overloaded )
+print(bar, not_overloaded)
 
 from foo import bar2, not_overloaded
 print( bar2 )

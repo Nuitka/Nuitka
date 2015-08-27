@@ -29,4 +29,3 @@ except ImportError:
    print("Cannot import wrongly cased package.")
 else:
    print("OK, imported wrongly cased package.")
-

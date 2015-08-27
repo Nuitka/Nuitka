@@ -49,15 +49,14 @@ print('*' * 20)
 
 print("Raising an exception, then catch it to re-raise it:")
 
-def raiseExceptionAndReraise():
+def raiseExceptionAndReraise(arg):
     try:
-        x = 0
-        y = x / x
+        return arg / arg
     except:
         raise
 
 try:
-    raiseExceptionAndReraise()
+    raiseExceptionAndReraise(0)
 except:
     print("Catched reraised", sys.exc_info())
 
@@ -67,7 +66,7 @@ print('*' * 20)
 print("Access an undefined global variable in a function:")
 
 def raiseNonGlobalError():
-    return undefined_value
+    return undefined_value  # @UndefinedVariable
 
 try:
     raiseNonGlobalError()
@@ -339,10 +338,15 @@ print('*' * 20)
 
 print("Testing exception that escapes __del__ and therefore cannot be raised")
 
+def devide(a,b):
+    return a / b
+
+
 def unraisableExceptionInDel():
     class C:
         def __del__(self):
-            c = 1 / 0
+            c = devide(1,0)
+            print(c)
 
     def f():
         C()
@@ -356,6 +360,7 @@ print("Testing exception changes between generator switches:")
 
 def yieldExceptionInteraction():
     def yield_raise():
+        print("Yield finds at generator entry", sys.exc_info()[0])
         try:
             raise KeyError("caught")
         except KeyError:
@@ -387,18 +392,21 @@ def yieldExceptionInteraction2():
         yield sys.exc_info()[0]
 
     try:
-        z
+        undefined_global  # @UndefinedVariable
     except Exception:
         print("Checking from outside of generator with", sys.exc_info()[0])
         g = yield_raise()
         v = next(g)
-        print("Initial yield from catch in generator", v)
-        print("Checking from outside the generation ", sys.exc_info()[0])
-        print("Second yield from the catch reentered", next(g))
-        print("Checking from outside the generation again ", sys.exc_info()[0])
-        print("After leaving the catch generator yielded", next(g))
+        print("Initial yield from catch in generator:", v)
+        print("Checking from outside the generator:", sys.exc_info()[0])
+        print("Second yield from the catch reentered:", next(g))
+        print("Checking from outside the generation again:", sys.exc_info()[0])
+        print("After leaving the catch generator yielded:", next(g))
+
+    print("After exiting the trying branch:", sys.exc_info()[0])
 
 yieldExceptionInteraction2()
+print("After function exit, no exception", sys.exc_info())
 print('*' * 20)
 
 print("Check what happens if a function attempts to clear the exception in a handler")
@@ -442,7 +450,7 @@ def raiseValueWithValue():
 
 print("Check exception given when value is raised with value", raiseValueWithValue())
 
-# Make sure the repr of exceptions is fine
+# Make sure the "repr" of exceptions is fine
 
 a = IOError
 print("IOError is represented correctly:", repr(a))
@@ -465,17 +473,21 @@ def raiseWithFinallyNotCorruptingLineNumber():
 raiseWithFinallyNotCorruptingLineNumber()
 
 def wideCatchMustPublishException():
+    print("At entry, no exception", sys.exc_info())
+
     try:
-        raisy(3)
+        undefined_global  # @UndefinedVariable
     except:
+        print("Inside handler:", sys.exc_info())
+
         pass
 
-    print("Exited with", sys.exc_info())
+    print("Outside handler:", sys.exc_info())
 
 print("Check that a unqualified catch properly preserves exception")
 wideCatchMustPublishException()
 
-print("Check if a nested exception handler does overwrite reraised")
+print("Check if a nested exception handler does overwrite re-raised")
 def checkReraiseAfterNestedTryExcept():
     def reraise():
         try:
@@ -556,6 +568,8 @@ def checkNoRaiseExceptionDictBuilding(arg):
          type : arg
     }
 
+    return a, b, c, d, e, f, g, h
+
 checkNoRaiseExceptionDictBuilding(1)
 
 def checkRaiseExceptionDictBuildingRange(arg):
@@ -568,6 +582,8 @@ def checkRaiseExceptionDictBuildingRange(arg):
     else:
         print("No exception, OK for Python2")
 
+        return i
+
 print("Check if range raises:")
 checkRaiseExceptionDictBuildingRange(2)
 
@@ -578,6 +594,8 @@ def checkRaiseExceptionDictBuildingTuple(arg):
         }
     except Exception as e:
         print("Raised", repr(e))
+    else:
+        return i
 
 print("Check if mutable tuple raises:")
 checkRaiseExceptionDictBuildingTuple(3)
@@ -589,6 +607,8 @@ def checkRaiseExceptionDictBuildingList(arg):
         }
     except Exception as e:
         print("Raised", repr(e))
+    else:
+        return i
 
 print("Check if list raises:")
 checkRaiseExceptionDictBuildingList(4)

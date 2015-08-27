@@ -56,7 +56,6 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
-from nuitka.nodes.ModuleNodes import PythonInternalModule
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationNOT
@@ -77,45 +76,34 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils.Utils import python_version
-from nuitka.VariableRegistry import addVariableUsage
 
 from .Helpers import (
-    makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement
+    makeConditionalStatement,
+    makeStatementsSequenceFromStatement
 )
+from .InternalModule import getInternalModule, once_decorator
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 source_ref = fromFilename("internal").atInternal()
 
+def orderArgs(*args):
+    if python_version >= 350:
+        def weight(arg):
+            result = args.index(arg)
 
-# Cache result.
-def once_decorator(func):
-    func.cached_value = None
+            if arg == "kw":
+                result += 1.5
+            elif arg == "star_arg_list":
+                result -= 1.5
 
-    def replacement():
-        if func.cached_value is None:
-            func.cached_value = func()
+            return result
 
-        for variable in func.cached_value.getVariables():
-            addVariableUsage(variable, func.cached_value)
+        return tuple(
+            sorted(args, key = weight)
+        )
 
-        return func.cached_value
-
-    return replacement
-
-
-internal_module = None
-
-def getInternalModule():
-    # Using global here, as this is really a about the internal module as a
-    # singleton, pylint: disable=W0603
-    global internal_module
-
-    if internal_module is None:
-        internal_module = PythonInternalModule()
-
-    return internal_module
-
+    return args
 
 @once_decorator
 def getCallableNameDescBody():
@@ -188,117 +176,107 @@ def getCallableNameDescBody():
         )
     )
 
-    no_branch = makeStatementsSequenceFromStatement(
-        statement = StatementReturn(
-            expression = ExpressionOperationBinary(
-                operator   = "Add",
-                right      = ExpressionConstantRef(
-                    constant      = " object",
-                    source_ref    = source_ref,
-                    user_provided = True
-                ),
-                left       = makeNameAttributeLookup(
-                    ExpressionBuiltinType1(
-                        value      = ExpressionVariableRef(
-                            variable_name = "called",
-                            variable      = called_variable,
-                            source_ref    = source_ref
-                        ),
-                        source_ref = source_ref
-                    )
-                ),
-                source_ref = source_ref
+    no_branch = StatementReturn(
+        expression = ExpressionOperationBinary(
+            operator   = "Add",
+            right      = ExpressionConstantRef(
+                constant      = " object",
+                source_ref    = source_ref,
+                user_provided = True
             ),
-            source_ref = source_ref
-        ),
-    )
-
-    if python_version < 300:
-        instance_case = makeStatementsSequenceFromStatement(
-            statement = StatementReturn(
-                expression = ExpressionOperationBinary(
-                    operator   = "Add",
-                    right      = ExpressionConstantRef(
-                        constant      = " instance",
-                        source_ref    = source_ref,
-                        user_provided = True
-                    ),
-                    left       = makeNameAttributeLookup(
-                        makeNameAttributeLookup(
-                            ExpressionVariableRef(
-                                variable_name = "called",
-                                variable      = called_variable,
-                                source_ref    = source_ref
-                            ),
-                            attribute_name = "__class__",
-                        )
-                    ),
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            )
-        )
-
-        no_branch = makeStatementsSequenceFromStatement(
-            statement = StatementConditional(
-                condition  = ExpressionBuiltinIsinstance(
-                    instance   = ExpressionVariableRef(
+            left       = makeNameAttributeLookup(
+                ExpressionBuiltinType1(
+                    value      = ExpressionVariableRef(
                         variable_name = "called",
                         variable      = called_variable,
                         source_ref    = source_ref
                     ),
-                    classes    = ExpressionBuiltinAnonymousRef(
-                        builtin_name = "instance",
-                        source_ref   = source_ref
-                    ),
                     source_ref = source_ref
-                ),
-                yes_branch = instance_case,
-                no_branch  = no_branch,
-                source_ref = source_ref
-            )
-        )
+                )
+            ),
+            source_ref = source_ref
+        ),
+        source_ref = source_ref
+    )
 
-        class_case = makeStatementsSequenceFromStatement(
-            statement = StatementReturn(
-                expression = ExpressionOperationBinary(
-                    operator   = "Add",
-                    right      = ExpressionConstantRef(
-                        constant      = " constructor",
-                        source_ref    = source_ref,
-                        user_provided = True
-                    ),
-                    left       = makeNameAttributeLookup(
+    if python_version < 300:
+        instance_case = StatementReturn(
+            expression = ExpressionOperationBinary(
+                operator   = "Add",
+                right      = ExpressionConstantRef(
+                    constant      = " instance",
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                left       = makeNameAttributeLookup(
+                    makeNameAttributeLookup(
                         ExpressionVariableRef(
                             variable_name = "called",
                             variable      = called_variable,
                             source_ref    = source_ref
                         ),
-                    ),
-                    source_ref = source_ref
+                        attribute_name = "__class__",
+                    )
                 ),
                 source_ref = source_ref
-            )
+            ),
+            source_ref = source_ref
         )
 
-        no_branch = makeStatementsSequenceFromStatement(
-            statement = StatementConditional(
-                condition  = ExpressionBuiltinIsinstance(
-                    instance   = ExpressionVariableRef(
+        no_branch = makeConditionalStatement(
+            condition  = ExpressionBuiltinIsinstance(
+                instance   = ExpressionVariableRef(
+                    variable_name = "called",
+                    variable      = called_variable,
+                    source_ref    = source_ref
+                ),
+                classes    = ExpressionBuiltinAnonymousRef(
+                    builtin_name = "instance",
+                    source_ref   = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = instance_case,
+            no_branch  = no_branch,
+            source_ref = source_ref
+        )
+
+        class_case = StatementReturn(
+            expression = ExpressionOperationBinary(
+                operator   = "Add",
+                right      = ExpressionConstantRef(
+                    constant      = " constructor",
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                left       = makeNameAttributeLookup(
+                    ExpressionVariableRef(
                         variable_name = "called",
                         variable      = called_variable,
                         source_ref    = source_ref
                     ),
-                    classes    = ExpressionBuiltinAnonymousRef(
-                        builtin_name = "classobj",
-                        source_ref   = source_ref
-                    ),
-                    source_ref = source_ref
                 ),
-                yes_branch = class_case,
-                no_branch  = no_branch,
                 source_ref = source_ref
-            )
+            ),
+            source_ref = source_ref
+        )
+
+        no_branch = makeConditionalStatement(
+            condition  = ExpressionBuiltinIsinstance(
+                instance   = ExpressionVariableRef(
+                    variable_name = "called",
+                    variable      = called_variable,
+                    source_ref    = source_ref
+                ),
+                classes    = ExpressionBuiltinAnonymousRef(
+                    builtin_name = "classobj",
+                    source_ref   = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = class_case,
+            no_branch  = no_branch,
+            source_ref = source_ref
         )
 
     if python_version < 300:
@@ -310,37 +288,32 @@ def getCallableNameDescBody():
             "function", "builtin_function_or_method"
         )
 
-    statements = (
-        StatementConditional(
-            condition  = ExpressionBuiltinIsinstance(
-                instance   = ExpressionVariableRef(
-                    variable_name = "called",
-                    variable      = called_variable,
-                    source_ref    = source_ref
-                ),
-                classes    = ExpressionMakeTuple(
-                    elements   = tuple(
-                        ExpressionBuiltinAnonymousRef(
-                            builtin_name = builtin_name,
-                            source_ref   = source_ref
-                        )
-                        for builtin_name in
-                        normal_cases
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            statement = makeConditionalStatement(
+                condition  = ExpressionBuiltinIsinstance(
+                    instance   = ExpressionVariableRef(
+                        variable_name = "called",
+                        variable      = called_variable,
+                        source_ref    = source_ref
+                    ),
+                    classes    = ExpressionMakeTuple(
+                        elements   = tuple(
+                            ExpressionBuiltinAnonymousRef(
+                                builtin_name = builtin_name,
+                                source_ref   = source_ref
+                            )
+                            for builtin_name in
+                            normal_cases
+                        ),
+                        source_ref = source_ref
                     ),
                     source_ref = source_ref
                 ),
+                yes_branch = functions_case,
+                no_branch  = no_branch,
                 source_ref = source_ref
-            ),
-            yes_branch = functions_case,
-            no_branch  = no_branch,
-            source_ref = source_ref
-        ),
-    )
-
-    result.setBody(
-        StatementsSequence(
-            statements = statements,
-            source_ref = source_ref
+            )
         )
     )
 
@@ -381,7 +354,7 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
                             ),
                             ExpressionAttributeLookup(
                                 source         = ExpressionBuiltinType1(
-                                    value      = star_list_variable_ref.makeCloneAt(source_ref),
+                                    value      = star_list_variable_ref.makeClone(),
                                     source_ref = source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -405,10 +378,10 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
         statement = raise_statement
     )
 
-    return StatementConditional(
+    return makeConditionalStatement(
         condition  = ExpressionOperationNOT(
             operand    = ExpressionBuiltinIsinstance(
-                instance   = star_list_variable_ref.makeCloneAt(source_ref),
+                instance   = star_list_variable_ref.makeClone(),
                 classes    = ExpressionBuiltinRef(
                     builtin_name = "tuple",
                     source_ref   = source_ref
@@ -417,25 +390,21 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        yes_branch = makeStatementsSequenceFromStatement(
-            statement = makeTryExceptSingleHandlerNode(
-                tried          =  makeStatementsSequenceFromStatement(
-                    statement = StatementAssignmentVariable(
-                        variable_ref = star_list_target_variable_ref.makeCloneAt(source_ref),
-                        source       = ExpressionBuiltinTuple(
-                            value      = star_list_variable_ref.makeCloneAt(
-                                source_ref
-                            ),
-                            source_ref = source_ref
-                        ),
-                        source_ref   = source_ref
-                    )
-                ),
-                exception_name = "TypeError",
-                handler_body   = handler_body,
-                public_exc     = False,
-                source_ref     = source_ref
+        yes_branch = makeTryExceptSingleHandlerNode(
+            provider       = handler_body,
+            tried          =  makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentVariable(
+                    variable_ref = star_list_target_variable_ref.makeClone(),
+                    source       = ExpressionBuiltinTuple(
+                        value      = star_list_variable_ref.makeClone(),
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
+                )
             ),
+            exception_name = "TypeError",
+            handler_body   = handler_body,
+            source_ref     = source_ref
         ),
         no_branch  = None,
         source_ref = source_ref
@@ -477,7 +446,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                             ),
                             ExpressionAttributeLookup(
                                 source         = ExpressionBuiltinType1(
-                                    value      = star_dict_variable_ref.makeCloneAt(source_ref),
+                                    value      = star_dict_variable_ref.makeClone(),
                                     source_ref = source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -506,6 +475,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
 
     statements = (
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -528,7 +498,6 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                     source_ref = source_ref
                 )
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentSubscript(
@@ -541,7 +510,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
-                subscribed = star_dict_variable_ref.makeCloneAt(source_ref),
+                subscribed = star_dict_variable_ref.makeClone(),
                 subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = source_ref
@@ -574,6 +543,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             source_ref   = source_ref
         ),
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -582,9 +552,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                     ),
                     source       = ExpressionCallEmpty(
                         called     = ExpressionAttributeLookup(
-                            source         = star_dict_variable_ref.makeCloneAt(
-                                source_ref
-                            ),
+                            source         = star_dict_variable_ref.makeClone(),
                             attribute_name = "keys",
                             source_ref     = source_ref
                         ),
@@ -597,7 +565,6 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             handler_body   = makeStatementsSequenceFromStatement(
                 statement = raise_statement
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentVariable(
@@ -631,9 +598,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = star_dict_target_variable_ref.makeCloneAt(
-                source_ref = source_ref
-            ),
+            variable_ref = star_dict_target_variable_ref.makeClone(),
             source       = ExpressionTempVariableRef(
                 variable   = tmp_dict_variable,
                 source_ref = source_ref
@@ -650,9 +615,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     tried = StatementConditional(
         condition  = ExpressionOperationNOT(
             operand    = ExpressionBuiltinIsinstance(
-                instance   = star_dict_variable_ref.makeCloneAt(
-                    source_ref = source_ref
-                ),
+                instance   = star_dict_variable_ref.makeClone(),
                 classes    = ExpressionBuiltinRef(
                     builtin_name = "dict",
                     source_ref   = source_ref
@@ -669,27 +632,24 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     final = (
         StatementReleaseVariable(
             variable   = tmp_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_iter_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_keys_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_key_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
 
     return makeTryFinallyStatement(
+        provider   = result,
         tried      = tried,
         final      = final,
         source_ref = source_ref
@@ -728,15 +688,13 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                     source_ref   = source_ref
                                 ),
                                 values     = (
-                                    called_variable_ref.makeCloneAt(
-                                        source_ref
-                                    ),
+                                    called_variable_ref.makeClone(),
                                 ),
                                 source_ref = source_ref
                             ),
                             ExpressionAttributeLookup(
                                 source         = ExpressionBuiltinType1(
-                                    value      = star_dict_variable_ref.makeCloneAt(source_ref),
+                                    value      = star_dict_variable_ref.makeClone(),
                                     source_ref = source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -766,22 +724,18 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     final = [
         StatementReleaseVariable(
             variable   = tmp_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = tmp_iter_variable,
-            tolerant   = True,
             source_ref = source_ref,
         ),
         StatementReleaseVariable(
             variable   = tmp_keys_variable,
-            tolerant   = True,
             source_ref = source_ref,
         ),
         StatementReleaseVariable(
             variable   = tmp_key_variable,
-            tolerant   = True,
             source_ref = source_ref,
         )
     ]
@@ -813,9 +767,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                     source_ref   = source_ref
                                 ),
                                 values     = (
-                                    called_variable_ref.makeCloneAt(
-                                        source_ref
-                                    ),
+                                    called_variable_ref.makeClone(),
                                 ),
                                 source_ref = source_ref
                             ),
@@ -839,6 +791,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -861,7 +814,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     source_ref = source_ref
                 )
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementConditional(
@@ -871,7 +823,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     variable   = tmp_key_variable,
                     source_ref = source_ref
                 ),
-                right      = kw_variable_ref.makeCloneAt(source_ref),
+                right      = kw_variable_ref.makeClone(),
                 source_ref = source_ref
             ),
             yes_branch = makeStatementsSequenceFromStatement(
@@ -881,13 +833,13 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentSubscript(
-            expression = kw_variable_ref.makeCloneAt(source_ref),
+            expression = kw_variable_ref.makeClone(),
             subscript  = ExpressionTempVariableRef(
                 variable   = tmp_key_variable,
                 source_ref = source_ref
             ),
             source     = ExpressionSubscriptLookup(
-                subscribed = star_dict_variable_ref.makeCloneAt(source_ref),
+                subscribed = star_dict_variable_ref.makeClone(),
                 subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = source_ref
@@ -920,6 +872,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source_ref   = source_ref
         ),
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -928,9 +881,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     ),
                     source       = ExpressionCallEmpty(
                         called     = ExpressionAttributeLookup(
-                            source         = star_dict_variable_ref.makeCloneAt(
-                                source_ref
-                            ),
+                            source         = star_dict_variable_ref.makeClone(),
                             attribute_name = "keys",
                             source_ref     = source_ref
                         ),
@@ -943,7 +894,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             handler_body   = makeStatementsSequenceFromStatement(
                 statement = raise_statement
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentVariable(
@@ -992,17 +942,14 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     final += [
         StatementReleaseVariable(
             variable   = tmp_iter_variable,
-            tolerant   = True,
             source_ref = source_ref,
         ),
         StatementReleaseVariable(
             variable   = tmp_item_variable,
-            tolerant   = True,
             source_ref = source_ref,
         ),
         StatementReleaseVariable(
             variable   = tmp_key_variable,
-            tolerant   = True,
             source_ref = source_ref,
         )
     ]
@@ -1035,9 +982,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                     source_ref   = source_ref
                                 ),
                                 values     = (
-                                    called_variable_ref.makeCloneAt(
-                                        source_ref
-                                    ),
+                                    called_variable_ref.makeClone(),
                                 ),
                                 source_ref = source_ref
                             ),
@@ -1061,6 +1006,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         makeTryExceptSingleHandlerNode(
+            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -1081,7 +1027,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             handler_body   = makeStatementsSequenceFromStatement(
                 statement = StatementBreakLoop(source_ref)
             ),
-            public_exc     = False,
             source_ref     = source_ref
         ),
         StatementAssignmentVariable(
@@ -1110,7 +1055,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     variable   = tmp_key_variable,
                     source_ref = source_ref
                 ),
-                right      = kw_variable_ref.makeCloneAt(source_ref),
+                right      = kw_variable_ref.makeClone(),
                 source_ref = source_ref
             ),
             yes_branch = makeStatementsSequenceFromStatement(
@@ -1120,7 +1065,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentSubscript(
-            expression = kw_variable_ref.makeCloneAt(source_ref),
+            expression = kw_variable_ref.makeClone(),
             subscript  = ExpressionTempVariableRef(
                 variable   = tmp_key_variable,
                 source_ref = source_ref
@@ -1148,9 +1093,9 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         StatementAssignmentVariable(
-            variable_ref = kw_target_variable_ref.makeCloneAt(source_ref),
+            variable_ref = kw_target_variable_ref.makeClone(),
             source       = ExpressionBuiltinDict(
-                pos_arg    = kw_variable_ref.makeCloneAt(source_ref),
+                pos_arg    = kw_variable_ref.makeClone(),
                 pairs      = (),
                 source_ref = source_ref
             ),
@@ -1164,9 +1109,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source       = ExpressionBuiltinIter1(
                 value      = ExpressionCallEmpty(
                     called     = ExpressionAttributeLookup(
-                        source         = star_dict_variable_ref.makeCloneAt(
-                            source_ref
-                        ),
+                        source         = star_dict_variable_ref.makeClone(),
                         attribute_name = "iteritems"
                                            if python_version < 300 else
                                          "items",
@@ -1191,7 +1134,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         StatementConditional(
-            condition  = star_dict_variable_ref.makeCloneAt(source_ref),
+            condition  = star_dict_variable_ref.makeClone(),
             yes_branch = dict_case,
             no_branch  = None,
             source_ref = source_ref
@@ -1206,7 +1149,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     tried = StatementConditional(
         condition  = ExpressionOperationNOT(
             operand    = ExpressionBuiltinIsinstance(
-                instance   = star_dict_variable_ref.makeCloneAt(source_ref),
+                instance   = star_dict_variable_ref.makeClone(),
                 classes    = ExpressionBuiltinRef(
                     builtin_name = "dict",
                     source_ref   = source_ref
@@ -1221,6 +1164,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     )
 
     return makeTryFinallyStatement(
+        provider   = result,
         tried      = tried,
         final      = final,
         source_ref = source_ref
@@ -1310,12 +1254,10 @@ def getFunctionCallHelperStarList():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1323,6 +1265,7 @@ def getFunctionCallHelperStarList():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1360,7 +1303,7 @@ def getFunctionCallHelperKeywordsStarList():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "kw", "star_arg_list"),
+            normal_args   = orderArgs("called", "kw", "star_arg_list"),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
@@ -1426,17 +1369,14 @@ def getFunctionCallHelperKeywordsStarList():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1444,6 +1384,7 @@ def getFunctionCallHelperKeywordsStarList():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1551,17 +1492,14 @@ def getFunctionCallHelperPosStarList():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1569,6 +1507,7 @@ def getFunctionCallHelperPosStarList():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1605,7 +1544,7 @@ def getFunctionCallHelperPosKeywordsStarList():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "args", "kw", "star_arg_list"),
+            normal_args   = orderArgs("called", "args", "kw", "star_arg_list"),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
@@ -1685,22 +1624,18 @@ def getFunctionCallHelperPosKeywordsStarList():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1708,6 +1643,7 @@ def getFunctionCallHelperPosKeywordsStarList():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1815,12 +1751,10 @@ def getFunctionCallHelperStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1828,6 +1762,7 @@ def getFunctionCallHelperStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -1945,17 +1880,14 @@ def getFunctionCallHelperPosStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -1963,6 +1895,7 @@ def getFunctionCallHelperPosStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2105,17 +2038,14 @@ def getFunctionCallHelperKeywordsStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2123,6 +2053,7 @@ def getFunctionCallHelperKeywordsStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2275,22 +2206,18 @@ def getFunctionCallHelperPosKeywordsStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2298,6 +2225,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2403,17 +2331,14 @@ def getFunctionCallHelperStarListStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2421,6 +2346,7 @@ def getFunctionCallHelperStarListStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2541,22 +2467,18 @@ def getFunctionCallHelperPosStarListStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2564,6 +2486,7 @@ def getFunctionCallHelperPosStarListStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2585,7 +2508,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = (
+            normal_args   = orderArgs(
                 "called", "kw", "star_arg_list", "star_arg_dict"
             ),
             list_star_arg = None,
@@ -2680,22 +2603,18 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2703,6 +2622,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref
@@ -2724,7 +2644,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = (
+            normal_args   = orderArgs(
                 "called", "args", "kw", "star_arg_list", "star_arg_dict"
             ),
             list_star_arg = None,
@@ -2832,27 +2752,22 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
     final = (
         StatementReleaseVariable(
             variable   = called_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = args_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = kw_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_list_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = star_arg_dict_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
     )
@@ -2860,6 +2775,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
+                provider   = result,
                 tried      = statements,
                 final      = final,
                 source_ref = source_ref

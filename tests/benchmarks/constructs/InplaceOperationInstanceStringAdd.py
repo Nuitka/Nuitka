@@ -24,10 +24,10 @@ module_value2 = 3
 class C:
     def __init__(self):
 
-        self.s = "2" * 100000
+        self.s = '2' * 100000
 
     def increment(self):
-        additiv = "*" * 1000
+        additiv = '*' * 1000
 
 # construct_begin
         self.s += additiv

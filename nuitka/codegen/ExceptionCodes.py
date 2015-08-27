@@ -21,6 +21,9 @@
 
 from nuitka.utils import Utils
 
+from .templates. \
+    CodeTemplatesExceptions import template_publish_exception_to_handler
+
 
 def getExceptionIdentifier(exception_type):
     assert "PyExc" not in exception_type, exception_type
@@ -43,17 +46,20 @@ def getExceptionRefCode(to_name, exception_type, emit, context):
     assert context
 
 
-def getTracebackMakingIdentifier(context):
+def getTracebackMakingIdentifier(context, lineno_name):
     frame_handle = context.getFrameHandle()
     assert frame_handle is not None
 
-    return "MAKE_TRACEBACK( %s )" % (
-        frame_handle
+    return "MAKE_TRACEBACK( %s, %s )" % (
+        frame_handle,
+        lineno_name
     )
 
 
 def getExceptionCaughtTypeCode(to_name, emit, context):
-    if context.isExceptionPublished():
+    keeper_variables = context.getExceptionKeeperVariables()
+
+    if keeper_variables[0] is None:
         emit(
             "%s = PyThreadState_GET()->exc_type;" % (
                 to_name,
@@ -61,14 +67,17 @@ def getExceptionCaughtTypeCode(to_name, emit, context):
         )
     else:
         emit(
-            "%s = exception_type;" % (
+            "%s = %s;" % (
                 to_name,
+                keeper_variables[0]
             )
         )
 
 
 def getExceptionCaughtValueCode(to_name, emit, context):
-    if context.isExceptionPublished():
+    keeper_variables = context.getExceptionKeeperVariables()
+
+    if keeper_variables[1] is None:
         emit(
             "%s = PyThreadState_GET()->exc_value;" % (
                 to_name,
@@ -77,20 +86,25 @@ def getExceptionCaughtValueCode(to_name, emit, context):
     else:
         if Utils.python_version >= 270:
             emit(
-                "%s = exception_value;" % (
+                "%s = %s;" % (
                     to_name,
+                    keeper_variables[1]
                 )
             )
         else:
             emit(
-                "%s = exception_value ? exception_value : Py_None;" % (
+                "%s = %s ? %s : Py_None;" % (
                     to_name,
+                    keeper_variables[1],
+                    keeper_variables[1]
                 )
             )
 
 
 def getExceptionCaughtTracebackCode(to_name, emit, context):
-    if context.isExceptionPublished():
+    keeper_variables = context.getExceptionKeeperVariables()
+
+    if keeper_variables[2] is None:
         emit(
             "%s = PyThreadState_GET()->exc_traceback;" % (
                 to_name,
@@ -99,27 +113,81 @@ def getExceptionCaughtTracebackCode(to_name, emit, context):
     else:
         emit(
             """\
-if ( exception_tb != NULL )
+if ( %(keeper_tb)s != NULL )
 {
-    %s = (PyObject *)exception_tb;
-    Py_INCREF( exception_tb );
+    %(to_name)s = (PyObject *)%(keeper_tb)s;
+    Py_INCREF( %(to_name)s );
 }
 else
 {
-    %s = (PyObject *)%s;
+    %(to_name)s = (PyObject *)%(tb_making)s;
 }
-""" % (
-                to_name,
-                to_name,
-                getTracebackMakingIdentifier(context)
-            )
+""" % {
+                "to_name"   : to_name,
+                "keeper_tb" : keeper_variables[2],
+                "tb_making" : getTracebackMakingIdentifier(
+                                 context     = context,
+                                 lineno_name = keeper_variables[3]
+                              )
+            }
         )
 
         context.addCleanupTempName(to_name)
 
 
 def getExceptionUnpublishedReleaseCode(emit, context):
-    if not context.isExceptionPublished():
-        emit("Py_DECREF( exception_type );")
-        emit("Py_XDECREF( exception_value );")
-        emit("Py_XDECREF( exception_tb );")
+    keeper_variables = context.getExceptionKeeperVariables()
+
+    if keeper_variables[0] is not None:
+        emit("Py_DECREF( %s );" % keeper_variables[0])
+        emit("Py_XDECREF( %s );"  % keeper_variables[1])
+        emit("Py_XDECREF( %s );"  % keeper_variables[2])
+
+
+def generateExceptionPublishCode(statement, emit, context):
+    # This statement has no attributes really, pylint: disable=W0613
+
+    # TODO: Should this be necessary, something else would have required
+    # them already, or it's wrong.
+    context.markAsNeedsExceptionVariables()
+
+    # Current variables cannot be used anymore now.
+    keeper_type, keeper_value, keeper_tb, keeper_lineno = context.setExceptionKeeperVariables(
+        (None, None, None, None)
+    )
+
+    emit(
+        template_publish_exception_to_handler % {
+            "tb_making"        : getTracebackMakingIdentifier(
+                context     = context,
+                lineno_name = keeper_lineno
+            ),
+            "keeper_tb"        : keeper_tb,
+            "keeper_lineno"    : keeper_lineno,
+            "frame_identifier" : context.getFrameHandle()
+        }
+    )
+
+    emit(
+        "NORMALIZE_EXCEPTION( &%s, &%s, &%s );" % (
+            keeper_type,
+            keeper_value,
+            keeper_tb
+        )
+    )
+
+    if Utils.python_version >= 300:
+        emit(
+            "PyException_SetTraceback( %s, (PyObject *)%s );" % (
+                keeper_value,
+                keeper_tb
+            )
+        )
+
+    emit(
+        "PUBLISH_EXCEPTION( &%s, &%s, &%s );" % (
+            keeper_type,
+            keeper_value,
+            keeper_tb
+        )
+    )

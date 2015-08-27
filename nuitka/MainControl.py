@@ -30,18 +30,19 @@ from logging import info, warning
 
 from nuitka.importing import Importing, Recursion
 from nuitka.plugins.PluginBase import Plugins
+from nuitka.PythonVersions import isUninstalledPython
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import InstanceCounters, Utils
-from nuitka.PythonVersions import isUninstalledPython
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
-from .codegen import CodeGeneration, ConstantCodes
+from .codegen import CodeGeneration, ConstantCodes, MainCodes
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import (
     addFrozenModule,
     generateBytecodeFrozenCode,
-    getFrozenModuleCount
+    getFrozenModuleCount,
+    removeFrozenModule
 )
 from .freezer.Standalone import (
     copyUsedDLLs,
@@ -267,7 +268,7 @@ standalone_entry_points = []
 
 def makeSourceDirectory(main_module):
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0914,R0912
+    # no sense, pylint: disable=R0912,R0914
 
     assert main_module.isPythonModule()
 
@@ -331,6 +332,12 @@ def makeSourceDirectory(main_module):
 
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
+            if removeFrozenModule(module.getFullName()):
+                warning(
+                    """\
+Compiled module shadows standard library module '%s'.""" % module.getFullName()
+                )
+
             cpp_filename = module_filenames[module]
 
             template_values, module_context = prepared_modules[cpp_filename]
@@ -342,7 +349,7 @@ def makeSourceDirectory(main_module):
 
             # The main of an executable module gets a bit different code.
             if module is main_module and not Options.shallMakeModule():
-                source_code = CodeGeneration.generateMainCode(
+                source_code = MainCodes.generateMainCode(
                     main_module = main_module,
                     context     = module_context,
                     codes       = source_code

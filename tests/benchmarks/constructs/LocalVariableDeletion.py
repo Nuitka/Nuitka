@@ -32,11 +32,17 @@ def calledRepeatedly():
 
     module_value2 = local_value
 
+    if module_value2 is None:
 # construct_begin
-    del local_value
+        del local_value
 # construct_end
 
+        another_local_value = module_value3
+
     module_value2 = module_value1
+
+    local_value = module_value3
+    return local_value
 
 for x in xrange(50000):
     calledRepeatedly()

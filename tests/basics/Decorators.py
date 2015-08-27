@@ -15,11 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
+from __future__ import print_function
 
 def decorator1(f):
-    print "Executing decorator 1"
+    print("Executing decorator 1")
 
     def deco_f():
         return f() + 2
@@ -27,7 +26,7 @@ def decorator1(f):
     return deco_f
 
 def decorator2(f):
-    print "Executing decorator 2"
+    print("Executing decorator 2")
 
     def deco_f():
         return f() * 2
@@ -40,14 +39,14 @@ def decorator2(f):
 def function1():
     return 3
 
-print function1()
+print(function1())
 
 def deco_returner1():
-    print "Executing decorator returner D1"
+    print("Executing decorator returner D1")
     return decorator1
 
 def deco_returner2():
-    print "Executing decorator returner D2"
+    print("Executing decorator returner D2")
     return decorator2
 
 @deco_returner1()
@@ -55,7 +54,7 @@ def deco_returner2():
 def function2():
     return 3
 
-print function2()
+print(function2())
 
 # Same as function2, but without decorator syntax.
 def function3():
@@ -63,4 +62,4 @@ def function3():
 
 function3 = deco_returner1()(deco_returner2()(function3))
 
-print function3()
+print(function3())

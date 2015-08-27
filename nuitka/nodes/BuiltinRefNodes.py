@@ -35,6 +35,7 @@ from nuitka.optimizations import BuiltinOptimization
 from nuitka.utils.Utils import python_version
 
 from .ConstantRefNodes import ExpressionConstantRef
+from .ExceptionNodes import ExpressionBuiltinMakeException
 from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
 
 
@@ -44,9 +45,6 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
         CompileTimeConstantExpressionMixin.__init__(self)
 
         self.builtin_name = builtin_name
-
-    def makeCloneAt(self, source_ref):
-        return self.__class__(self.builtin_name, source_ref)
 
     def getDetails(self):
         return {
@@ -58,6 +56,16 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
 
     def isKnownToBeHashable(self):
         return True
+
+    def mayHaveSideEffects(self):
+        return False
+
+    def getStrValue(self):
+        return ExpressionConstantRef(
+            constant      = str(self.getCompileTimeConstant()),
+            user_provided = True,
+            source_ref    = self.getSourceReference(),
+        )
 
 
 class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
@@ -94,7 +102,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
             )
 
             return new_node, "new_constant", """\
-Built-in constant %s resolved""" % self.builtin_name
+Built-in constant '%s' resolved.""" % self.builtin_name
 
         return self, None, None
 
@@ -105,6 +113,10 @@ Built-in constant %s resolved""" % self.builtin_name
             call_node = call_node,
             called    = self
         )
+
+        if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
+            # Just inform the collection that all escaped.
+            constraint_collection.onLocalsUsage()
 
         return new_node, tags, message
 
@@ -134,7 +146,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
 
     def __init__(self, builtin_name, source_ref):
-        assert builtin_name in builtin_anon_names
+        assert builtin_name in builtin_anon_names, builtin_name
 
         ExpressionBuiltinRefBase.__init__(
             self,
@@ -200,8 +212,6 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
                 return call_node, None, None
 
         def createBuiltinMakeException(args, source_ref):
-            from .ExceptionNodes import ExpressionBuiltinMakeException
-
             return ExpressionBuiltinMakeException(
                 exception_name = exception_name,
                 args           = args,

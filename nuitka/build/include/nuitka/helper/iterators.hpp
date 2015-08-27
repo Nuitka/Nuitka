@@ -242,8 +242,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
     return result;
 }
 
-
+#if PYTHON_VERSION < 350
 NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
+#else
+NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far, int expected )
+#endif
 {
     CHECK_OBJECT( iterator );
     assert( HAS_ITERNEXT( iterator ) );
@@ -258,6 +261,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT( PyObject *iterator, int seq_s
         if (unlikely( !ERROR_OCCURRED() || EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) ))
 #endif
         {
+#if PYTHON_VERSION < 350
             if ( seq_size_so_far == 1 )
             {
                 PyErr_Format( PyExc_ValueError, "need more than 1 value to unpack" );
@@ -266,6 +270,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT( PyObject *iterator, int seq_s
             {
                 PyErr_Format( PyExc_ValueError, "need more than %d values to unpack", seq_size_so_far );
             }
+#else
+            PyErr_Format( PyExc_ValueError, "not enough values to unpack (expected %d, got %d)", expected, seq_size_so_far );
+#endif
         }
 
         return NULL;

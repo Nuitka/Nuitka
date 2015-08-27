@@ -21,34 +21,34 @@ import subprocess, re, os, sys, tempfile
 
 _handle, tempfile1 = tempfile.mkstemp()
 
-temp_out = open( tempfile1, "wb" )
+temp_out = open(tempfile1, "wb")
 
-for line in subprocess.check_output( [ "sfood", "nuitka" ] ).split( "\n" ):
+for line in subprocess.check_output(["sfood", "nuitka"]).split('\n'):
     if line:
-        values = list( eval( line ) )
+        values = list(eval(line))
 
-        if values[0][1] in ( "nuitka/oset.py", "nuitka/odict.py" ):
+        if values[0][1] in ("nuitka/oset.py", "nuitka/odict.py"):
             continue
 
-        if values[1][1] in ( "nuitka/oset.py", "nuitka/odict.py", "os.py", "re.py", "math", "signal", "sys" ):
+        if values[1][1] in ("nuitka/oset.py", "nuitka/odict.py", "os.py", "re.py", "math", "signal", "sys"):
             continue
 
-        if os.path.isdir( values[0][1] ):
+        if os.path.isdir(values[0][1]):
             continue
 
         print >>temp_out, line
 
 temp_out.close()
 
-dot_graph = subprocess.check_output( [ "sfood-graph" ], stdin = open( tempfile1 ) )
-os.unlink( tempfile1 )
+dot_graph = subprocess.check_output(["sfood-graph"], stdin = open(tempfile1))
+os.unlink(tempfile1)
 
-temp_out = open( tempfile1, "wb" )
-temp_out.write( dot_graph )
+temp_out = open(tempfile1, "wb")
+temp_out.write(dot_graph)
 temp_out.close()
 
-dot_graph = subprocess.call( [ "dot", "-Tsvg" ], stdin = open( tempfile1 ), stdout = open( "nuitka-dependencies.svg", "wb" ) )
+dot_graph = subprocess.call(["dot", "-Tsvg"], stdin = open(tempfile1), stdout = open("nuitka-dependencies.svg", "wb"))
 
-os.unlink( tempfile1 )
+os.unlink(tempfile1)
 
-subprocess.check_call( [ "inkscape", "nuitka-dependencies.svg" ] )
+subprocess.check_call(["inkscape", "nuitka-dependencies.svg"])

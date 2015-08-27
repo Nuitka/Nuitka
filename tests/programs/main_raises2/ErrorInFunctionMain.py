@@ -25,7 +25,7 @@ def generator_function():
 
     x = ( lambda : ErrorRaising.raiseException() for z in range(3) )
 
-    next( x )()
+    next(x)()
 
 
 def normal_function():

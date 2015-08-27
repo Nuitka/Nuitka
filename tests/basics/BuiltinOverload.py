@@ -22,7 +22,7 @@ try:
 except ImportError:
     from builtins import len as _len
 
-def len(x):
+def len(x):  # @ReservedAssignment
     print("Private built-in called with argument", repr(x))
 
     return _len(x)

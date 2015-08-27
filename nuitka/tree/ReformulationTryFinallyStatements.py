@@ -22,36 +22,183 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable
-)
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
+from nuitka.nodes.ReturnNodes import ExpressionReturnedValueRef, StatementReturn
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
     StatementPublishException,
-    StatementReraiseFrameException,
+    StatementRestoreFrameException,
     StatementsSequence
 )
-from nuitka.nodes.TryFinallyNodes import StatementTryFinally
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
-)
+from nuitka.nodes.TryNodes import StatementTry
+from nuitka.Options import isDebug
 from nuitka.utils import Utils
 
 from .Helpers import (
     buildStatementsNode,
-    getIndicatorVariables,
-    makeTryFinallyStatement,
+    getStatementsAppended,
+    getStatementsPrepended,
+    makeReraiseExceptionStatement,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements,
     mergeStatements,
     popBuildContext,
-    popIndicatorVariable,
-    pushBuildContext,
-    pushIndicatorVariable
+    pushBuildContext
 )
+
+
+def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = False):
+    # Complex handling, due to the many variants, pylint: disable=R0912,R0914
+
+    if type(tried) in (tuple, list):
+        tried = makeStatementsSequenceFromStatements(
+            *tried
+        )
+    if type(final) in (tuple, list):
+        final = StatementsSequence(
+            statements = mergeStatements(final, False),
+            source_ref = source_ref
+        )
+
+    if tried is not None and not tried.isStatementsSequence():
+        tried = makeStatementsSequenceFromStatement(tried)
+    if final is not None and not final.isStatementsSequence():
+        final = makeStatementsSequenceFromStatement(final)
+
+    if tried is None:
+        return final
+
+    if final is None:
+        return tried
+
+    if provider is not None:
+        tried.parent = provider
+        final.parent = provider
+
+    assert tried is not None, source_ref
+    assert final is not None, source_ref
+
+    if isDebug():
+        final2 = final.makeClone()
+        final2.parent = provider
+
+        import nuitka.TreeXML
+        if nuitka.TreeXML.Element is not None:
+            f1 = final.asXml()
+            f2 = final2.asXml()
+
+            def compare(a, b):
+                for c1, c2 in zip(a, b):
+                    compare(c1, c2)
+
+                assert a.attrib == b.attrib, (a.attrib, b.attrib)
+
+            compare(f1, f2)
+
+    if tried.mayRaiseException(BaseException):
+        except_handler = final.makeClone()
+
+        except_handler = getStatementsAppended(
+            statement_sequence = except_handler,
+            statements         = makeReraiseExceptionStatement(
+                source_ref = source_ref
+            )
+        )
+
+        if public_exc:
+            preserver_id = provider.allocatePreserverId()
+
+            except_handler = getStatementsPrepended(
+                statement_sequence = except_handler,
+                statements         = (
+                    StatementPreserveFrameException(
+                        preserver_id = preserver_id,
+                        source_ref   = source_ref.atInternal()
+                    ),
+                    StatementPublishException(
+                        source_ref = source_ref
+                    )
+                )
+            )
+
+            except_handler = makeTryFinallyStatement(
+                provider   = provider,
+                tried      = except_handler,
+                final      = StatementRestoreFrameException(
+                    preserver_id = preserver_id,
+                    source_ref   = source_ref.atInternal()
+                ),
+                public_exc = False,
+                source_ref = source_ref,
+            )
+
+            except_handler = makeStatementsSequenceFromStatement(
+                statement = except_handler
+            )
+
+        except_handler.parent = provider
+    else:
+        except_handler = None
+
+    if tried.mayBreak():
+        break_handler = getStatementsAppended(
+            statement_sequence = final.makeClone(),
+            statements         = StatementBreakLoop(
+                source_ref = source_ref
+            )
+        )
+
+        break_handler.parent = provider
+    else:
+        break_handler = None
+
+    if tried.mayContinue():
+        continue_handler = getStatementsAppended(
+            statement_sequence = final.makeClone(),
+            statements         = StatementContinueLoop(
+                source_ref = source_ref
+            )
+        )
+
+        continue_handler.parent = provider
+    else:
+        continue_handler = None
+
+    if tried.mayReturn():
+        return_handler = getStatementsAppended(
+            statement_sequence = final.makeClone(),
+            statements         = StatementReturn(
+                expression = ExpressionReturnedValueRef(
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
+
+    else:
+        return_handler = None
+
+    result = StatementTry(
+        tried            = tried,
+        except_handler   = except_handler,
+        break_handler    = break_handler,
+        continue_handler = continue_handler,
+        return_handler   = return_handler,
+        source_ref       = source_ref
+    )
+
+    if result.isStatementAborting():
+        return result
+    else:
+        return makeStatementsSequence(
+            statements = (
+                result,
+                final
+            ),
+            allow_none = False,
+            source_ref = source_ref
+        )
 
 
 def buildTryFinallyNode(provider, build_tried, node, source_ref):
@@ -66,50 +213,14 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         )
         popBuildContext()
 
-        return StatementTryFinally(
+        return makeTryFinallyStatement(
+            provider   = provider,
             tried      = build_tried(),
             final      = final,
-            public_exc = Utils.python_version >= 300, # TODO: Use below code
             source_ref = source_ref
         )
     else:
-        temp_scope = provider.allocateTempScope("try_finally")
-
-        tmp_indicator_var = provider.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = "unhandled_indicator"
-        )
-
-        # This makes sure, we set the indicator variables for "break",
-        # "continue" and "return" exits as well to true, so we can
-        # know if an exception occurred or not.
-        pushIndicatorVariable(tmp_indicator_var)
-
-        statements = (
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_indicator_var,
-                    source_ref = source_ref.atInternal()
-                ),
-                source       = ExpressionConstantRef(
-                    constant   = False,
-                    source_ref = source_ref
-                ),
-                source_ref   = source_ref.atInternal()
-            ),
-            build_tried(),
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_indicator_var,
-                    source_ref = source_ref.atInternal()
-                ),
-                source       = ExpressionConstantRef(
-                    constant   = True,
-                    source_ref = source_ref.atLineNumber(99)
-                ),
-                source_ref   = source_ref.atInternal()
-            )
-        )
+        tried = build_tried()
 
         # Prevent "continue" statements in the final blocks, these have to
         # become "SyntaxError".
@@ -121,128 +232,10 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         )
         popBuildContext()
 
-        popIndicatorVariable()
-
-        tried = StatementsSequence(
-            statements = mergeStatements(statements, allow_none = True),
-            source_ref = source_ref
-        )
-
-        prelude = StatementConditional(
-            condition  = ExpressionComparisonIs(
-                left       = ExpressionTempVariableRef(
-                    variable   = tmp_indicator_var,
-                    source_ref = source_ref.atInternal()
-                ),
-                right      = ExpressionConstantRef(
-                    constant   = False,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            ),
-            yes_branch = StatementsSequence(
-                statements = (
-                    StatementPreserveFrameException(
-                        source_ref = source_ref.atInternal()
-                    ),
-                    StatementPublishException(
-                        source_ref = source_ref.atInternal()
-                    )
-                ),
-                source_ref = source_ref.atInternal()
-            ),
-            no_branch  = None,
-            source_ref = source_ref.atInternal()
-        )
-
-        postlude = (
-            StatementConditional(
-                condition  = ExpressionComparisonIs(
-                    left       = ExpressionTempVariableRef(
-                        variable   = tmp_indicator_var,
-                        source_ref = source_ref.atInternal()
-                    ),
-                    right      = ExpressionConstantRef(
-                        constant   = False,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
-                yes_branch = StatementsSequence(
-                    statements = (
-                        StatementReleaseVariable(
-                            variable   = tmp_indicator_var,
-                            tolerant   = False,
-                            source_ref = source_ref.atInternal()
-                        ),
-                        StatementReraiseFrameException(
-                            source_ref = source_ref.atInternal()
-                        ),
-                    ),
-                    source_ref = source_ref.atInternal()
-                ),
-                no_branch  = StatementsSequence(
-                    statements = (
-                        StatementReleaseVariable(
-                            variable   = tmp_indicator_var,
-                            tolerant   = False,
-                            source_ref = source_ref.atInternal()
-                        ),
-                    ),
-                    source_ref = source_ref.atInternal()
-                ),
-                source_ref = source_ref.atInternal()
-            ),
-        )
-
-        final = StatementsSequence(
-            statements = mergeStatements(
-                (
-                    prelude,
-                    makeTryFinallyStatement(
-                        tried      = final,
-                        final      = postlude,
-                        source_ref = source_ref.atInternal()
-                    ),
-                )
-            ),
-            source_ref = source_ref.atInternal()
-        )
-
-        return StatementTryFinally(
+        return makeTryFinallyStatement(
+            provider   = provider,
             tried      = tried,
             final      = final,
             public_exc = True,
             source_ref = source_ref
         )
-
-
-def makeTryFinallyIndicatorStatements(is_loop_exit, source_ref):
-    statements = []
-
-    indicator_variables = getIndicatorVariables()
-
-
-    indicator_value = True
-
-    for indicator_variable in reversed(indicator_variables):
-        if indicator_variable is Ellipsis:
-            break
-        elif indicator_variable is not None:
-            statements.append(
-                StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = indicator_variable,
-                        source_ref = source_ref.atInternal()
-                    ),
-                    source       = ExpressionConstantRef(
-                        constant   = indicator_value,
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref.atInternal().atLineNumber(55)
-                )
-            )
-        elif is_loop_exit:
-            indicator_value = False
-
-    return statements

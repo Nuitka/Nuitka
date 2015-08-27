@@ -30,7 +30,7 @@ def tryScope1(x):
             print("Finally is executed")
 
             try:
-                z = one()
+                _z = one()
             finally:
                 print("Deep Nested finally is executed")
     except:
@@ -92,7 +92,7 @@ def tryScope5():
     print("Exception info is initially", sys.exc_info())
     try:
         try:
-            undefined += 1
+            undefined_global += 1  # @UndefinedVariable
         finally:
             print("Exception info in 'finally' clause is", sys.exc_info())
     except:

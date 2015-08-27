@@ -18,7 +18,7 @@
 
 import sys, os
 
-os.chdir(os.path.dirname(__file__) or ".")
+os.chdir(os.path.dirname(__file__) or '.')
 
 scripts = ["bin/nuitka", "bin/nuitka-run"]
 
@@ -33,10 +33,10 @@ def detectVersion():
         line
         for line in
         open("nuitka/Options.py")
-        if line.startswith( "Nuitka V")
+        if line.startswith("Nuitka V")
     ]
 
-    return version_line.split("V")[1].strip()
+    return version_line.split('V')[1].strip()
 
 version = detectVersion()
 
@@ -47,11 +47,11 @@ if os.name == "nt" and "bdist_msi" in sys.argv:
     # Prereleases are always smaller, official releases get the "1".
     middle = 1 if "pre" not in version else 0
     version = version.replace("pre", "")
-    parts = version.split(".")
+    parts = version.split('.')
     major, first, last = parts[:3]
     hotfix = parts[3] if len(parts) > 3 else 0
 
-    version = ".".join(
+    version = '.'.join(
         "%s" % value
         for value in
         (
@@ -74,7 +74,7 @@ def find_packages():
             continue
 
         result.append(
-            root.replace(os.path.sep,".")
+            root.replace(os.path.sep,'.')
         )
 
     return result
@@ -177,7 +177,7 @@ if sys.version_info >= (3,):
             if "inline_copy" not in py_file
         ]
 
-        real_byte_compile( py_files, *args, **kw)
+        real_byte_compile(py_files, *args, **kw)
 
     util.byte_compile = byte_compile
 
@@ -185,16 +185,16 @@ if sys.version_info >= (3,):
 from distutils.core import setup
 
 setup(
-    name     = project_name,
-    license  = "Apache License, Version 2.0",
-    version  = version,
-    packages = find_packages(),
-    scripts  = scripts,
-    cmdclass = cmdclass,
+    name         = project_name,
+    license      = "Apache License, Version 2.0",
+    version      = version,
+    packages     = find_packages(),
+    scripts      = scripts,
+    cmdclass     = cmdclass,
 
     package_data = {
         # Include extra files
-        "" : ['*.txt', '*.rst', '*.cpp', '*.hpp', '*.ui'],
+        "" : ["*.txt", "*.rst", "*.cpp", "*.hpp", "*.ui"],
         "nuitka.build" : [
             "SingleExe.scons",
             "static_src/*.cpp",

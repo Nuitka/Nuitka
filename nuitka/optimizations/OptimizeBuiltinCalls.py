@@ -96,12 +96,18 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinLocals
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpression,
+    makeRaiseExceptionReplacementExpressionFromInstance,
+    wrapExpressionWithSideEffects
+)
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationNOT,
     ExpressionOperationUnary
 )
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.TryFinallyNodes import ExpressionTryFinally
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinSuper,
@@ -113,7 +119,13 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.Options import isDebug, shallMakeModule
+from nuitka.tree.Helpers import (
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement
+)
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
+from nuitka.tree. \
+    ReformulationTryFinallyStatements import makeTryFinallyStatement
 from nuitka.utils.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage
 
@@ -211,9 +223,9 @@ def iter_extractor(node):
             )
         else:
             return ExpressionBuiltinIter2(
-                callable   = callable_arg,
-                sentinel   = sentinel,
-                source_ref = source_ref
+                callable_arg = callable_arg,
+                sentinel     = sentinel,
+                source_ref   = source_ref
             )
 
     return BuiltinOptimization.extractBuiltinArgs(
@@ -252,10 +264,6 @@ def dict_extractor(node):
     def wrapExpressionBuiltinDictCreation(positional_args, dict_star_arg,
                                           source_ref):
         if len(positional_args) > 1:
-            from nuitka.nodes.NodeMakingHelpers import (
-                makeRaiseExceptionReplacementExpressionFromInstance,
-                wrapExpressionWithSideEffects
-            )
 
             result = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression = node,
@@ -505,44 +513,65 @@ if python_version < 300:
         @calledWithBuiltinArgumentNamesDecorator
         def wrapExpressionBuiltinExecfileCreation(filename, globals_arg,
                                                   locals_arg, source_ref):
-            provider = node.getParentVariableProvider()
-
-            temp_scope = provider.allocateTempScope("execfile")
+            outline_body = ExpressionOutlineBody(
+                provider   = node.getParentVariableProvider(),
+                name       = "execfile_call",
+                body       = None, # later
+                source_ref = source_ref
+            )
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-                provider     = provider,
+                provider     = node.getParentVariableProvider(),
                 globals_node = globals_arg,
                 locals_node  = locals_arg,
-                temp_scope   = temp_scope,
+                temp_scope   = outline_body.getOutlineTempScope(),
                 source_ref   = source_ref
             )
 
-            return ExpressionTryFinally(
-                tried      = tried,
-                final      = final,
-                expression = ExpressionBuiltinExecfile(
-                    source_code = ExpressionCallEmpty(
-                        called     = ExpressionAttributeLookup(
-                            source         = ExpressionBuiltinOpen(
-                                filename   = filename,
-                                mode       = ExpressionConstantRef(
-                                    constant   = "rU",
-                                    source_ref = source_ref
+            tried = makeStatementsSequence(
+                statements = (
+                    tried,
+                    StatementReturn(
+                        expression = ExpressionBuiltinExecfile(
+                            source_code = ExpressionCallEmpty(
+                                called     = ExpressionAttributeLookup(
+                                    source         = ExpressionBuiltinOpen(
+                                        filename   = filename,
+                                        mode       = ExpressionConstantRef(
+                                            constant   = "rU",
+                                            source_ref = source_ref
+                                        ),
+                                        buffering  = None,
+                                        source_ref = source_ref
+                                    ),
+                                    attribute_name = "read",
+                                    source_ref     = source_ref
                                 ),
-                                buffering  = None,
                                 source_ref = source_ref
                             ),
-                            attribute_name = "read",
-                            source_ref     = source_ref
+                            globals_arg = globals_ref,
+                            locals_arg  = locals_ref,
+                            source_ref  = source_ref
                         ),
                         source_ref = source_ref
-                    ),
-                    globals_arg = globals_ref,
-                    locals_arg  = locals_ref,
-                    source_ref  = source_ref
+                    )
                 ),
+                allow_none = False,
                 source_ref = source_ref
             )
+
+            outline_body.setBody(
+                makeStatementsSequenceFromStatement(
+                    statement = makeTryFinallyStatement(
+                        provider   = outline_body,
+                        tried      = tried,
+                        final      = final,
+                        source_ref = source_ref
+                    )
+                )
+            )
+
+            return outline_body
 
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
@@ -555,13 +584,18 @@ def eval_extractor(node):
     def wrapEvalBuiltin(source, globals_arg, locals_arg, source_ref):
         provider = node.getParentVariableProvider()
 
-        temp_scope = provider.allocateTempScope("eval")
+        outline_body = ExpressionOutlineBody(
+            provider   = node.getParentVariableProvider(),
+            name       = "eval_call",
+            body       = None, # later
+            source_ref = source_ref
+        )
 
         globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
             provider     = provider,
             globals_node = globals_arg,
             locals_node  = locals_arg,
-            temp_scope   = temp_scope,
+            temp_scope   = outline_body.getOutlineTempScope(),
             source_ref   = source_ref
         )
 
@@ -573,8 +607,8 @@ def eval_extractor(node):
                locals_ref.getSourceReference() == \
                locals_arg.getSourceReference()
 
-        source_variable = provider.allocateTempVariable(
-            temp_scope = temp_scope,
+        source_variable = outline_body.allocateTempVariable(
+            temp_scope = None,
             name       = "source"
         )
 
@@ -612,11 +646,11 @@ def eval_extractor(node):
                     ),
                     source_ref = source_ref
                 ),
-                yes_expression = ExpressionConstantRef(
+                expression_yes = ExpressionConstantRef(
                     constant   = (b" \t",),
                     source_ref = source_ref
                 ),
-                no_expression  = strip_choice,
+                expression_no  = strip_choice,
                 source_ref     = source_ref
             )
 
@@ -675,27 +709,41 @@ def eval_extractor(node):
                 ),
                 no_branch  = None,
                 source_ref = source_ref
+            ),
+            StatementReturn(
+                expression = ExpressionBuiltinEval(
+                    source_code = ExpressionTempVariableRef(
+                        variable   = source_variable,
+                        source_ref = source_ref
+                    ),
+                    globals_arg = globals_ref,
+                    locals_arg  = locals_ref,
+                    source_ref  = source_ref
+                ),
+                source_ref = source_ref
             )
         )
 
-        tried.setStatements(
-            tried.getStatements() + statements
-        )
-
-        return ExpressionTryFinally(
-            tried      = tried,
-            expression = ExpressionBuiltinEval(
-                source_code = ExpressionTempVariableRef(
-                    variable   = source_variable,
-                    source_ref = source_ref
-                ),
-                globals_arg = globals_ref,
-                locals_arg  = locals_ref,
-                source_ref  = source_ref
-            ),
-            final      = final,
+        tried = makeStatementsSequence(
+            statements = (
+                tried,
+            ) + statements,
+            allow_none = False,
             source_ref = source_ref
         )
+
+        outline_body.setBody(
+            makeStatementsSequenceFromStatement(
+                statement = makeTryFinallyStatement(
+                    provider   = outline_body,
+                    tried      = tried,
+                    final      = final,
+                    source_ref = source_ref
+                )
+            )
+        )
+
+        return outline_body
 
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
@@ -712,6 +760,13 @@ if python_version >= 300:
                                               source_ref):
             provider = node.getParentVariableProvider()
 
+            outline_body = ExpressionOutlineBody(
+                provider   = provider,
+                name       = "exec_call",
+                body       = None, # later
+                source_ref = source_ref
+            )
+
             # TODO: Can't really be true, can it?
             if provider.isExpressionFunctionBody():
                 provider.markAsExecContaining()
@@ -719,27 +774,46 @@ if python_version >= 300:
                 if provider.isClassDictCreation():
                     provider.markAsUnqualifiedExecContaining(source_ref)
 
-            temp_scope = provider.allocateTempScope("exec")
-
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
                 provider     = provider,
                 globals_node = globals_arg,
                 locals_node  = locals_arg,
-                temp_scope   = temp_scope,
+                temp_scope   = outline_body.getOutlineTempScope(),
                 source_ref   = source_ref
             )
 
-            return ExpressionTryFinally(
-                tried      = tried,
-                final      = final,
-                expression = ExpressionBuiltinExec(
-                    source_code = source,
-                    globals_arg = globals_ref,
-                    locals_arg  = locals_ref,
-                    source_ref  = source_ref
+            tried = makeStatementsSequence(
+                statements = (
+                    tried,
+                    StatementReturn(
+                        expression = ExpressionBuiltinExec(
+                            source_code = source,
+                            globals_arg = globals_ref,
+                            locals_arg  = locals_ref,
+                            source_ref  = source_ref
+                        ),
+                        source_ref = source_ref
+                    ),
                 ),
+                allow_none = False,
                 source_ref = source_ref
             )
+
+            # Hack: Allow some APIs to work already
+            tried.parent = outline_body
+
+            outline_body.setBody(
+                makeStatementsSequenceFromStatement(
+                    statement = makeTryFinallyStatement(
+                        provider   = provider,
+                        tried      = tried,
+                        final      = final,
+                        source_ref = source_ref
+                    )
+                )
+            )
+
+            return outline_body
 
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
@@ -813,9 +887,6 @@ def super_extractor(node):
                     source_ref = source_ref
                 )
                 addVariableUsage(type_arg.getVariable(), provider)
-
-            from nuitka.nodes.NodeMakingHelpers import \
-                makeRaiseExceptionReplacementExpression
 
             if type_arg is None:
                 return makeRaiseExceptionReplacementExpression(
@@ -1048,12 +1119,10 @@ Replaced call to built-in '%s' with unary operation '%s'.""" % (
 Replaced call to built-in '%s' with call.""" % (
                 inspect_node.kind,
             )
-        elif inspect_node.isExpressionTryFinally():
+        elif inspect_node.isExpressionOutlineBody():
             tags = "new_expression"
             message = """\
-Replaced call to built-in '%s' with try/finally guarded call.""" % (
-                inspect_node.getExpression().kind,
-            )
+Replaced call to built-in '%s' with outlined call.""" % builtin_name
         else:
 
             assert False, (builtin_name, "->", inspect_node)
@@ -1062,9 +1131,6 @@ Replaced call to built-in '%s' with try/finally guarded call.""" % (
         # original built-in or the optimized above one. That should be done,
         # once we can eliminate the condition for most cases.
         if False and isDebug() and not shallMakeModule() and builtin_name:
-            from nuitka.nodes.NodeMakingHelpers import \
-              makeRaiseExceptionReplacementExpression
-
             source_ref = called.getSourceReference()
 
             new_node = ExpressionConditional(
@@ -1079,8 +1145,8 @@ Replaced call to built-in '%s' with try/finally guarded call.""" % (
                     ),
                     source_ref = source_ref
                 ),
-                yes_expression = new_node,
-                no_expression  = makeRaiseExceptionReplacementExpression(
+                expression_yes = new_node,
+                expression_no  = makeRaiseExceptionReplacementExpression(
                     exception_type  = "RuntimeError",
                     exception_value = "Built-in '%s' cannot be replaced." % (
                         builtin_name

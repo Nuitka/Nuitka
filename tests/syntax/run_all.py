@@ -24,7 +24,7 @@ sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname( os.path.abspath( __file__ ) ),
+            os.path.dirname(os.path.abspath(__file__)),
             ".."
         )
     )
@@ -41,8 +41,8 @@ python_version = setup(needs_io_encoding = True)
 
 search_mode = createSearchMode()
 
-for filename in sorted( os.listdir( "." ) ):
-    if not filename.endswith( ".py" ):
+for filename in sorted(os.listdir('.')):
+    if not filename.endswith(".py"):
         continue
 
     if not decideFilenameVersionSkip(filename):

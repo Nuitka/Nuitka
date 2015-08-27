@@ -30,14 +30,14 @@ from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils import Utils
 
+from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import ExpressionConstantRef
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeBase,
     ExpressionMixin,
-    NodeBase,
-    checkStatementsSequenceOrNone
+    NodeBase
 )
 
 
@@ -213,7 +213,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def asXml(self):
         result = super(PythonModule, self).asXml()
 
-        for function_body in self.functions:
+        for function_body in self.active_functions:
             result.append(function_body.asXml())
 
         return result

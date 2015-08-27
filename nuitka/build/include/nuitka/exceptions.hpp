@@ -97,6 +97,21 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED( PyObject **exception_type
     tstate->curexc_traceback = NULL;
 }
 
+// Fetch the current error into object variables.
+NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED_UNTRACED( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_traceback)
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    *exception_type = tstate->curexc_type;
+    *exception_value = tstate->curexc_value;
+    *exception_traceback = (PyTracebackObject *)tstate->curexc_traceback;
+
+    tstate->curexc_type = NULL;
+    tstate->curexc_value = NULL;
+    tstate->curexc_traceback = NULL;
+}
+
+
 NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_traceback )
 {
     PyThreadState *tstate = PyThreadState_GET();
@@ -119,6 +134,24 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED( PyObject *exception_typ
     Py_XDECREF( old_exception_traceback );
 }
 
+NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED_UNTRACED( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_traceback )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *old_exception_type = tstate->curexc_type;
+    PyObject *old_exception_value = tstate->curexc_value;
+    PyObject *old_exception_traceback = tstate->curexc_traceback;
+
+    tstate->curexc_type = exception_type;
+    tstate->curexc_value = exception_value;
+    tstate->curexc_traceback = (PyObject *)exception_traceback;
+
+    Py_XDECREF( old_exception_type );
+    Py_XDECREF( old_exception_value );
+    Py_XDECREF( old_exception_traceback );
+}
+
+
 NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *INCREASE_REFCOUNT( PyTracebackObject *traceback_object )
 {
     Py_INCREF( traceback_object );
@@ -127,7 +160,7 @@ NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *INCREASE_REFCOUNT( PyTrace
 
 // Create a traceback for a given frame. TODO: Probably we ought to have a quick
 // cache for it, in case of repeated usage.
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame )
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame, int lineno )
 {
     // assertFrameObject( frame );
 
@@ -138,32 +171,19 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *fr
     Py_INCREF( frame );
 
     result->tb_lasti = 0;
-    result->tb_lineno = frame->f_lineno;
+    result->tb_lineno = lineno;
 
     Nuitka_GC_Track( result );
 
     return result;
 }
 
-// Add a frame to an existing exception traceback.
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyFrameObject *frame, PyTracebackObject *exception_tb )
+// Add a frame to an existing exception trace-back.
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyTracebackObject *exception_tb, PyFrameObject *frame, int lineno )
 {
-    if ( exception_tb->tb_frame != frame || exception_tb->tb_lineno != frame->f_lineno )
-    {
-        PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame );
-
-        traceback_new->tb_next = exception_tb;
-
-        return traceback_new;
-    }
-    else
-    {
-        return exception_tb;
-
-        // TODO: This might be a bug.
-        Py_INCREF( frame );
-    }
-
+    PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame, lineno );
+    traceback_new->tb_next = exception_tb;
+    return traceback_new;
 }
 
 #if PYTHON_VERSION < 300
@@ -411,6 +431,9 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE( PyObject *exceptio
 // and iterations.
 NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL( PyObject *exception_value, PyObject *exception_checked )
 {
+    CHECK_OBJECT( exception_value );
+    CHECK_OBJECT( exception_checked );
+
 #if PYTHON_VERSION >= 300
     if ( PyTuple_Check( exception_checked ))
     {

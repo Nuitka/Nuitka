@@ -22,7 +22,7 @@ from __future__ import print_function
 try:
     long
 except NameError:
-    long = int
+    long = int  # @ReservedAssignment
 
 
 def displayDict(d):
@@ -120,7 +120,7 @@ def f():
         print("two")
 
     a = dd(qual = one(), storage = two(), type = [], function = [])
-    print("f mutable", a)
+    print("f mutable", displayDict(a))
     a = dd(qual = 1, storage = 2, type = 3, function = 4)
     print("f immutable", displayDict(a))
 

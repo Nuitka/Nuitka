@@ -66,7 +66,7 @@ def checkChangeLog(message):
 if branch_name.startswith("release") or \
    branch_name == "master" or \
    branch_name.startswith("hotfix/"):
-    if nuitka_version.count(".") == 2:
+    if nuitka_version.count('.') == 2:
         assert checkChangeLog("New upstream release.")
     else:
         assert checkChangeLog("New upstream hotfix release.")
@@ -101,7 +101,7 @@ shutil.rmtree("deb_dist", ignore_errors = True)
 
 # Then run "py2dsc" on it.
 
-for filename in os.listdir("."):
+for filename in os.listdir('.'):
     if filename.endswith(".tar.gz"):
         new_name = filename[:-7] + "+ds.tar.gz"
 
@@ -123,7 +123,7 @@ for filename in os.listdir("."):
 
         # Fixup for py2dsc not taking our custom suffix into account, so we need
         # to rename it ourselves.
-        before_deb_name = filename[:-7].lower().replace("-", "_")
+        before_deb_name = filename[:-7].lower().replace('-', '_')
         after_deb_name = before_deb_name.replace("pre", "~pre")
 
         assert 0 == os.system(
@@ -147,7 +147,7 @@ else:
 os.chdir("deb_dist")
 
 # Assert that the unpacked directory is there and file it. Otherwise fail badly.
-for entry in os.listdir("."):
+for entry in os.listdir('.'):
     if os.path.isdir(entry) and \
        entry.startswith("nuitka") and \
        not entry.endswith(".orig"):
@@ -212,7 +212,7 @@ os.chdir("repo")
 
 os.makedirs("conf")
 
-with open("conf/distributions","w") as output:
+with open("conf/distributions",'w') as output:
     output.write("""\
 Origin: Nuitka
 Label: Nuitka

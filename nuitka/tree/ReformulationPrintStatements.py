@@ -26,13 +26,11 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
-from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ImportNodes import ExpressionImportModuleHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
-from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef
@@ -42,24 +40,13 @@ from .Helpers import (
     buildNode,
     buildNodeList,
     makeStatementsSequenceFromStatement,
-    makeTryFinallyStatement
+    makeStatementsSequenceFromStatements
 )
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildPrintNode(provider, node, source_ref):
     # "print" statements, should only occur with Python2.
-
-    def wrapValue(value):
-        if value.isExpressionConstantRef():
-            str_value = value.getStrValue()
-
-            if str_value is not None:
-                return str_value
-
-        return ExpressionBuiltinStr(
-            value      = value,
-            source_ref = value.getSourceReference()
-        )
 
     if node.dest is not None:
         temp_scope = provider.allocateTempScope("print")
@@ -121,12 +108,6 @@ def buildPrintNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    values = [
-        wrapValue(value)
-        for value in
-        values
-    ]
-
     if node.dest is not None:
         print_statements = [
             StatementPrintValue(
@@ -153,10 +134,10 @@ def buildPrintNode(provider, node, source_ref):
 
         statements.append(
             makeTryFinallyStatement(
+                provider   = provider,
                 tried      = print_statements,
                 final      = StatementReleaseVariable(
                     variable   = tmp_target_variable,
-                    tolerant   = False,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -180,7 +161,6 @@ def buildPrintNode(provider, node, source_ref):
                 )
             )
 
-    return StatementsSequence(
-        statements = statements,
-        source_ref = source_ref
+    return makeStatementsSequenceFromStatements(
+        *statements
     )

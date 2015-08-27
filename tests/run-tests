@@ -279,7 +279,7 @@ def checkExecutableCommand(command):
 
     return False
 
-def setExtraFlags( where, name, flags ):
+def setExtraFlags(where, name, flags):
     if where is not None:
         tmp_dir = tempfile.gettempdir()
 
@@ -325,7 +325,7 @@ def executeSubTest(command, hide_output = False):
     if result != 0:
         sys.exit(result)
 
-def execute_tests( where, use_python, flags ):
+def execute_tests(where, use_python, flags):
     # Many cases, pylint: disable=R0912,R0915
 
     print(
@@ -438,7 +438,7 @@ def execute_tests( where, use_python, flags ):
             else:
                 print("The CPython3.2 tests are not present, not run.")
 
-        # Running the Python 3.3 test suite only with CPython2.x.
+        # Running the Python 3.3 test suite only with CPython3.x.
         if not use_python.startswith("python2"):
             if os.path.exists("./tests/CPython33/run_all.py"):
                 if options.cpython33:
@@ -447,12 +447,12 @@ def execute_tests( where, use_python, flags ):
             else:
                 print("The CPython3.3 tests are not present, not run.")
 
-        # Running the Python 3.3 test suite only with CPython2.x.
+        # Running the Python 3.3 test suite only with CPython3.x.
         if not use_python.startswith("python2"):
             if os.path.exists("./tests/CPython34/run_all.py"):
                 if options.cpython33:
                     setExtraFlags(where, "34tests", flags)
-                    executeSubTest("./tests/CPython33/run_all.py search")
+                    executeSubTest("./tests/CPython34/run_all.py search")
             else:
                 print("The CPython3.4 tests are not present, not run.")
 

@@ -123,6 +123,7 @@ static void patchInspectModule( void )
 #endif
 
 extern int Nuitka_IsInstance( PyObject *inst, PyObject *cls );
+extern PyObject *original_isinstance;
 
 static PyObject *_builtin_isinstance_replacement( PyObject *self, PyObject *args )
 {
@@ -155,22 +156,23 @@ extern PyModuleObject *builtin_module;
 
 void patchBuiltinModule()
 {
+#if defined(_NUITKA_MODULE)
+    static bool init_done = false;
+
+    if (init_done == true) return;
+    init_done = true;
+#endif
     CHECK_OBJECT( (PyObject *)builtin_module );
 
     // Patch "inspect.isinstance" unless it is already patched.
-    PyObject *old_isinstance = PyObject_GetAttrString( (PyObject *)builtin_module, "isinstance" );
-    CHECK_OBJECT( old_isinstance );
+    original_isinstance = PyObject_GetAttrString( (PyObject *)builtin_module, "isinstance" );
+    CHECK_OBJECT( original_isinstance );
 
-    // TODO: Find safe criterion, these was a C method before
-    if ( true || PyFunction_Check( old_isinstance ))
-    {
-        PyObject *builtin_isinstance_replacement = PyCFunction_New( &_method_def_builtin_isinstance_replacement, NULL );
-        CHECK_OBJECT( builtin_isinstance_replacement );
+    // TODO: Find safe criterion, there was a C method before
+    PyObject *builtin_isinstance_replacement = PyCFunction_New( &_method_def_builtin_isinstance_replacement, NULL );
+    CHECK_OBJECT( builtin_isinstance_replacement );
 
-        PyObject_SetAttrString( (PyObject *)builtin_module, "isinstance", builtin_isinstance_replacement );
-    }
-
-    Py_DECREF( old_isinstance );
+    PyObject_SetAttrString( (PyObject *)builtin_module, "isinstance", builtin_isinstance_replacement );
 
 #if PYTHON_VERSION >= 300
     patchInspectModule();

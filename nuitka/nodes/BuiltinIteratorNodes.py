@@ -24,6 +24,7 @@ The length of things is an important optimization issue for these to be
 good.
 """
 
+from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.optimizations import BuiltinOptimization
 
 from .NodeBases import (
@@ -141,15 +142,7 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
         )
 
     def getDetails(self):
-        return {
-            "iter" : self.getValue()
-        }
-
-    def makeCloneAt(self, source_ref):
-        return self.__class__(
-            value      = self.getValue(),
-            source_ref = source_ref
-        )
+        return {}
 
     def computeExpression(self, constraint_collection):
         # TODO: Predict iteration result if possible via SSA variable trace of
@@ -160,7 +153,7 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
 class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
     kind = "EXPRESSION_SPECIAL_UNPACK"
 
-    def __init__(self, value, count, source_ref):
+    def __init__(self, value, count, expected, source_ref):
         ExpressionBuiltinNext1.__init__(
             self,
             value      = value,
@@ -168,22 +161,20 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
         )
 
         self.count = count
-
-    def makeCloneAt(self, source_ref):
-        return self.__class__(
-            value      = self.getValue(),
-            count      = self.getCount(),
-            source_ref = source_ref
-        )
+        self.expected = expected
 
     def getDetails(self):
         result = ExpressionBuiltinNext1.getDetails(self)
-        result[ "element_index" ] = self.getCount()
+        result["count"] = self.getCount()
+        result["expected"] = self.getExpected()
 
         return result
 
     def getCount(self):
         return self.count
+
+    def getExpected(self):
+        return self.expected
 
 
 class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
@@ -246,14 +237,12 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
         "sentinel",
     )
 
-    # Need to accept 'callable' keyword argument, that is just the API of iter,
-    # pylint: disable=W0622
-
-    def __init__(self, callable, sentinel, source_ref):
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, callable_arg, sentinel, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "callable" : callable,
+                "callable" : callable_arg,
                 "sentinel" : sentinel,
             },
             source_ref = source_ref

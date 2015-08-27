@@ -26,7 +26,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 """
 
 
-# pylint: disable=W0622,C0103
+# pylint: disable=C0103,W0622
 
 # Work around for CPython 3.x renaming "long" to "int".
 try:

@@ -25,6 +25,7 @@ expressed via nesting of conditional statements.
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
 from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
 
+from .Checkers import checkStatementsSequenceOrNone
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
@@ -42,13 +43,13 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         "expression_no"
     )
 
-    def __init__(self, condition, yes_expression, no_expression, source_ref):
+    def __init__(self, condition, expression_yes, expression_no, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "condition"      : condition,
-                "expression_yes" : yes_expression,
-                "expression_no"  : no_expression
+                "expression_yes" : expression_yes,
+                "expression_no"  : expression_no
             },
             source_ref = source_ref
         )
@@ -82,14 +83,8 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         # not matter at all.
         if condition.willRaiseException(BaseException):
             return condition, "new_raise", """\
-Conditional statements already raises implicitly in condition, removing \
+Conditional expression already raises implicitly in condition, removing \
 branches."""
-
-        # If the condition raises, we let that escape instead, and the
-        # branches don't matter at all.
-        if condition.willRaiseException(BaseException):
-            return condition, "new_raise", """\
-Conditional expression raises in condition."""
 
         # Decide this based on truth value of condition.
         truth_value = condition.getTruthValue()
@@ -103,6 +98,7 @@ Conditional expression raises in condition."""
         if truth_value is not False:
             branch_yes_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+                name   = "conditional expression yes branch"
             )
 
             branch_yes_collection.computeBranch(
@@ -124,6 +120,7 @@ Conditional expression raises in condition."""
         if truth_value is not True:
             branch_no_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+                name   = "conditional expression no branch"
             )
 
             branch_no_collection.computeBranch(
@@ -204,16 +201,174 @@ Conditional expression raises in condition."""
         return False
 
     def mayRaiseExceptionBool(self, exception_type):
-        if self.getCondition().mayRaiseExceptionBool():
+        if self.getCondition().mayRaiseExceptionBool(exception_type):
             return True
 
-        if self.getExpressionYes().mayRaiseExceptionBool():
+        if self.getExpressionYes().mayRaiseExceptionBool(exception_type):
             return True
 
-        if self.getExpressionNo().mayRaiseExceptionBool():
+        if self.getExpressionNo().mayRaiseExceptionBool(exception_type):
             return True
 
         return False
+
+
+class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
+    named_children = (
+        "left",
+        "right"
+    )
+
+    def __init__(self, left, right, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "left"  : left,
+                "right" : right,
+            },
+            source_ref = source_ref
+        )
+
+    getLeft = ExpressionChildrenHavingBase.childGetter(
+        "left"
+    )
+    getRight = ExpressionChildrenHavingBase.childGetter(
+        "right"
+    )
+
+    def computeExpressionRaw(self, constraint_collection):
+        # Query the truth value after the expression is evaluated, once it is
+        # evaluated in onExpression, it is known.
+        constraint_collection.onExpression(
+            expression = self.getLeft()
+        )
+        left = self.getLeft()
+
+        # No need to look any further, if the condition raises, the branches do
+        # not matter at all.
+        if left.willRaiseException(BaseException):
+            return left, "new_raise", """\
+Conditional %s statements already raises implicitly in condition, removing \
+branches.""" % self.conditional_kind
+
+        # Decide this based on truth value of condition.
+        truth_value = left.getTruthValue()
+
+        truth_value_use_left = self.conditional_kind == "or"
+        truth_value_use_right = not truth_value_use_left
+
+        right = self.getRight()
+
+        # Continue to execute for yes branch unless we know it's not going to be
+        # relevant.
+        if truth_value is not truth_value_use_left:
+            # TODO: We now know that left evaluates and we should tell the
+            # branch that.
+            branch_yes_collection = ConstraintCollectionBranch(
+                parent = constraint_collection,
+                name   = "boolean %s right branch" % self.conditional_kind
+            )
+
+            branch_yes_collection.computeBranch(
+                branch = right
+            )
+
+            # May have just gone away, so fetch it again.
+            right = self.getRight()
+
+            # If it's aborting, it doesn't contribute to merging.
+            if right.willRaiseException(BaseException):
+                branch_yes_collection = None
+        else:
+            branch_yes_collection = None
+
+
+        if branch_yes_collection:
+            # Merge into parent execution.
+            constraint_collection.mergeBranches(
+                branch_yes_collection,
+                None
+            )
+
+        if truth_value is truth_value_use_left:
+            return (
+                left,
+                "new_expression",
+                "Conditional '%s' expression predicted to left value." % self.conditional_kind
+            )
+        elif truth_value is truth_value_use_right:
+            return (
+                wrapExpressionWithNodeSideEffects(
+                    new_node = right,
+                    old_node = left
+                ),
+                "new_expression",
+                "Conditional '%s' expression predicted right value." % self.conditional_kind
+            )
+        else:
+            return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        left = self.getLeft()
+
+        if left.mayRaiseException(exception_type):
+            return True
+
+        if left.mayRaiseExceptionBool(exception_type):
+            return True
+
+        right = self.getRight()
+
+        if right.mayRaiseException(exception_type):
+            return True
+
+        return False
+
+    def mayRaiseExceptionBool(self, exception_type):
+        if self.getLeft().mayRaiseExceptionBool(exception_type):
+            return True
+
+        if self.getRight().mayRaiseExceptionBool(exception_type):
+            return True
+
+        return False
+
+    def mayHaveSideEffectsBool(self):
+        if self.getLeft().mayHaveSideEffectsBool():
+            return True
+
+        if self.getRight().mayHaveSideEffectsBool():
+            return True
+
+        return False
+
+
+class ExpressionConditionalOR(ExpressionConditionalBoolBase):
+    kind = "EXPRESSION_CONDITIONAL_OR"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionConditionalBoolBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+        self.conditional_kind = "or"
+
+
+class ExpressionConditionalAND(ExpressionConditionalBoolBase):
+    kind = "EXPRESSION_CONDITIONAL_AND"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionConditionalBoolBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+        self.conditional_kind = "and"
 
 
 class StatementConditional(StatementChildrenHavingBase):
@@ -224,6 +379,11 @@ class StatementConditional(StatementChildrenHavingBase):
         "yes_branch",
         "no_branch"
     )
+
+    checkers = {
+        "yes_branch" : checkStatementsSequenceOrNone,
+        "no_branch" : checkStatementsSequenceOrNone,
+    }
 
     def __init__(self, condition, yes_branch, no_branch, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -348,6 +508,7 @@ branches."""
         if yes_branch is not None and truth_value is not False:
             branch_yes_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+                name   = "conditional yes branch",
             )
 
             branch_yes_collection.computeBranch(
@@ -374,6 +535,7 @@ branches."""
         if no_branch is not None and truth_value is not True:
             branch_no_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
+                name   = "conditional no branch"
             )
 
             branch_no_collection.computeBranch(

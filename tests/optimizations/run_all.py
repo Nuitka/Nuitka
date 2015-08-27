@@ -19,7 +19,7 @@
 #     limitations under the License.
 #
 
-import os, sys
+import os, sys, subprocess
 
 # The test runner needs "lxml" itself.
 try:
@@ -166,9 +166,26 @@ for filename in sorted(os.listdir('.')):
             if "PYTHONHASHSEED" not in os.environ:
                 os.environ["PYTHONHASHSEED"] = '0'
 
+            # Coverage modules hates Nuitka to re-execute, and so we must avoid
+            # that.
+            python_path = subprocess.check_output(
+                [
+                    os.environ["PYTHON"],
+                    "-c"
+                    "import sys, os; print(os.pathsep.join(sys.path))"
+                ]
+            )
+
+            if sys.version_info >= (3,):
+                python_path = python_path.decode("utf8")
+
+            os.environ["PYTHONPATH"] = python_path.strip()
+
+
             command.insert(2, "--must-not-re-execute")
 
             command = command[0:1] + [
+                "-S",
                 "-m",
                 "coverage",
                 "run",

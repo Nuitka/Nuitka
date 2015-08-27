@@ -24,13 +24,22 @@ of frames for different uses.
 
 from nuitka.utils.Utils import python_version
 
-from . import CodeTemplates, Emission
+from . import Emission
 from .ExceptionCodes import getTracebackMakingIdentifier
 from .GlobalsLocalsCodes import getLoadLocalsCode
 from .Indentation import indented
-from .LabelCodes import getGotoCode
-from .LineNumberCodes import getSetLineNumberCodeRaw
 from .ModuleCodes import getModuleAccessCode
+from .templates.CodeTemplatesFrames import (
+    template_frame_guard_cache_decl,
+    template_frame_guard_frame_decl,
+    template_frame_guard_full_block,
+    template_frame_guard_full_exception_handler,
+    template_frame_guard_full_return_handler,
+    template_frame_guard_generator,
+    template_frame_guard_generator_exception_handler,
+    template_frame_guard_generator_return_handler,
+    template_frame_guard_once
+)
 
 
 def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
@@ -40,17 +49,17 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
     context.addFrameDeclaration(
-        CodeTemplates.template_frame_guard_cache_decl % {
+        template_frame_guard_cache_decl % {
             "frame_identifier" : frame_identifier,
         }
     )
     context.addFrameDeclaration(
-        CodeTemplates.template_frame_guard_frame_decl % {
+        template_frame_guard_frame_decl % {
             "frame_identifier" : frame_identifier,
         }
     )
 
-    result = CodeTemplates.template_frame_guard_full_block % {
+    result = template_frame_guard_full_block % {
         "frame_identifier"  : frame_identifier,
         "code_identifier"   : code_identifier,
         "codes"             : indented(codes, 0),
@@ -60,7 +69,7 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
     }
 
     if frame_return_exit is not None:
-        result += CodeTemplates.template_frame_guard_full_return_handler % {
+        result += template_frame_guard_full_return_handler % {
             "frame_identifier"  : frame_identifier,
             "return_exit"       : parent_return_exit,
             "frame_return_exit" : frame_return_exit,
@@ -69,19 +78,23 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
 
 
     if frame_exception_exit is not None:
-        locals_code = getFrameLocalsUpdateCode(
+        frame_locals_name, locals_code = getFrameLocalsUpdateCode(
             provider = provider,
             context  = context
         )
 
-        result += CodeTemplates.template_frame_guard_full_exception_handler % {
+        result += template_frame_guard_full_exception_handler % {
             "frame_identifier"      : frame_identifier,
+            "frame_locals_name"     : frame_locals_name,
             "store_frame_locals"    : indented(
                 locals_code,
-                0,
+                2,
                 vert_block = True
             ),
-            "tb_making"             : getTracebackMakingIdentifier(context),
+            "tb_making"             : getTracebackMakingIdentifier(
+                                          context     = context,
+                                          lineno_name = "exception_lineno"
+                                      ),
             "parent_exception_exit" : parent_exception_exit,
             "frame_exception_exit"  : frame_exception_exit,
             "needs_preserve"        : 1 if needs_preserve else 0,
@@ -100,7 +113,7 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
     assert parent_return_exit is None and frame_return_exit is None
 
     if not provider.isPythonModule():
-        locals_code = getFrameLocalsUpdateCode(
+        _frame_locals_name, locals_code = getFrameLocalsUpdateCode(
             provider = provider,
             context  = context
         )
@@ -109,17 +122,20 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
         assert False, locals_code
 
     context.addFrameDeclaration(
-        CodeTemplates.template_frame_guard_frame_decl % {
+        template_frame_guard_frame_decl % {
             "frame_identifier" : frame_identifier,
         }
     )
 
-    return CodeTemplates.template_frame_guard_once % {
+    return template_frame_guard_once % {
         "frame_identifier"      : frame_identifier,
         "code_identifier"       : code_identifier,
         "codes"                 : indented(codes, 0),
         "module_identifier"     : getModuleAccessCode(context = context),
-        "tb_making"             : getTracebackMakingIdentifier(context),
+        "tb_making"             : getTracebackMakingIdentifier(
+                                     context     = context,
+                                     lineno_name = "exception_lineno"
+                                  ),
         "parent_exception_exit" : parent_exception_exit,
         "frame_exception_exit"  : frame_exception_exit,
         "no_exception_exit"     : context.allocateLabel(
@@ -138,20 +154,20 @@ def getFrameGuardLightCode(frame_identifier, code_identifier, codes,
     assert frame_exception_exit is not None
 
     context.addFrameDeclaration(
-        CodeTemplates.template_frame_guard_cache_decl % {
+        template_frame_guard_cache_decl % {
             "frame_identifier" : frame_identifier,
         }
     )
 
     context.addFrameDeclaration(
-        CodeTemplates.template_frame_guard_frame_decl % {
+        template_frame_guard_frame_decl % {
             "frame_identifier" : frame_identifier,
         }
     )
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
-    result = CodeTemplates.template_frame_guard_generator % {
+    result = template_frame_guard_generator % {
         "frame_identifier"      : frame_identifier,
         "code_identifier"       : code_identifier,
         "codes"                 : indented(codes, 0),
@@ -160,25 +176,31 @@ def getFrameGuardLightCode(frame_identifier, code_identifier, codes,
     }
 
     if frame_return_exit is not None:
-        result += CodeTemplates.template_frame_guard_generator_return_handler %\
-           {
+        result += template_frame_guard_generator_return_handler % {
             "frame_identifier"  : frame_identifier,
             "return_exit"       : parent_return_exit,
             "frame_return_exit" : frame_return_exit,
         }
 
-    locals_code = getFrameLocalsUpdateCode(
+    frame_locals_name, locals_code = getFrameLocalsUpdateCode(
         provider = provider,
         context  = context
     )
 
-
     # TODO: Don't create locals for StopIteration or GeneratorExit, that is just
     # wasteful.
-    result += CodeTemplates.template_frame_guard_generator_exception_handler % {
+    result += template_frame_guard_generator_exception_handler % {
         "frame_identifier"      : frame_identifier,
-        "store_frame_locals"    : indented(locals_code, vert_block = True),
-        "tb_making"             : getTracebackMakingIdentifier(context),
+        "frame_locals_name"     : frame_locals_name,
+        "store_frame_locals"    : indented(
+            locals_code,
+            2,
+            vert_block = True
+        ),
+        "tb_making"             : getTracebackMakingIdentifier(
+                                      context     = context,
+                                      lineno_name = "exception_lineno"
+                                  ),
         "frame_exception_exit"  : frame_exception_exit,
         "parent_exception_exit" : parent_exception_exit,
         "no_exception_exit"     : no_exception_exit,
@@ -207,19 +229,13 @@ def getFrameLocalsUpdateCode(provider, context):
         context  = context
     )
 
-    locals_codes.emit(
-        CodeTemplates.template_frame_locals_update % {
-            "locals_identifier" : frame_locals_name
-        }
-    )
-
     if context.needsCleanup(frame_locals_name):
         context.removeCleanupTempName(frame_locals_name)
 
-    return locals_codes.codes
+    return frame_locals_name, locals_codes.codes
 
 
-def getFramePreserveExceptionCode(emit, context):
+def getFramePreserveExceptionCode(statement, emit, context):
     emit("// Preserve existing published exception.")
 
     if python_version < 300:
@@ -229,34 +245,32 @@ def getFramePreserveExceptionCode(emit, context):
             }
         )
     else:
-        exception_target = context.pushFrameExceptionPreservationDepth()
+        preserver_id = statement.getPreserverId()
 
-        if exception_target is None:
+        if preserver_id == 0 and python_version < 300:
             emit(
                 "PRESERVE_FRAME_EXCEPTION( %(frame_identifier)s );" % {
                     "frame_identifier" : context.getFrameHandle()
                 }
             )
         else:
-            keeper_type, keeper_value, keeper_tb = exception_target
+            context.addExceptionPreserverVariables(preserver_id)
 
             emit(
                 """\
-%(keeper_type)s = PyThreadState_GET()->exc_type;
-Py_XINCREF( %(keeper_type)s );
-%(keeper_value)s = PyThreadState_GET()->exc_value;
-Py_XINCREF( %(keeper_value)s );
-%(keeper_tb)s = (PyTracebackObject *)PyThreadState_GET()->exc_traceback;
-Py_XINCREF( %(keeper_tb)s );
+exception_preserved_type_%(preserver_id)d = PyThreadState_GET()->exc_type;
+Py_XINCREF( exception_preserved_type_%(preserver_id)d );
+exception_preserved_value_%(preserver_id)d = PyThreadState_GET()->exc_value;
+Py_XINCREF( exception_preserved_value_%(preserver_id)d );
+exception_preserved_tb_%(preserver_id)d = (PyTracebackObject *)PyThreadState_GET()->exc_traceback;
+Py_XINCREF( exception_preserved_tb_%(preserver_id)d );
 """ % {
-                    "keeper_type"  : keeper_type,
-                    "keeper_value" : keeper_value,
-                    "keeper_tb"    : keeper_tb
+                    "preserver_id"  : preserver_id,
                 }
             )
 
 
-def getFrameRestoreExceptionCode(emit, context):
+def getFrameRestoreExceptionCode(statement, emit, context):
     emit("// Restore previous exception.")
 
     if python_version < 300:
@@ -266,40 +280,20 @@ def getFrameRestoreExceptionCode(emit, context):
             }
         )
     else:
-        exception_target = context.popFrameExceptionPreservationDepth()
+        preserver_id = statement.getPreserverId()
 
-        if exception_target is None:
+        if preserver_id == 0  and python_version < 300:
             emit(
                 "RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );" % {
                     "frame_identifier" : context.getFrameHandle()
                 }
             )
         else:
-            keeper_type, keeper_value, keeper_tb = exception_target
+            # pylint: disable=C0301
 
             emit(
                 """\
-SET_CURRENT_EXCEPTION( %(keeper_type)s, %(keeper_value)s, %(keeper_tb)s);""" % {
-                    "keeper_type"  : keeper_type,
-                    "keeper_value" : keeper_value,
-                    "keeper_tb"    : keeper_tb
+SET_CURRENT_EXCEPTION( exception_preserved_type_%(preserver_id)d, exception_preserved_value_%(preserver_id)d, exception_preserved_tb_%(preserver_id)d );""" % {
+                    "preserver_id" : preserver_id,
                 }
             )
-
-
-def getFrameReraiseExceptionCode(emit, context):
-    assert python_version >= 300
-
-    emit(
-        """\
-exception_type = PyThreadState_GET()->exc_type;
-Py_INCREF( exception_type );
-exception_value = PyThreadState_GET()->exc_value;
-Py_INCREF( exception_value );
-exception_tb = (PyTracebackObject *)PyThreadState_GET()->exc_traceback;
-Py_INCREF( exception_tb );
-""" )
-    getSetLineNumberCodeRaw("exception_tb->tb_lineno", emit, context)
-    getFrameRestoreExceptionCode(emit, context)
-
-    getGotoCode(context.getExceptionEscape(), emit)

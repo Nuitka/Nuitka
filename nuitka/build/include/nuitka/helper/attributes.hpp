@@ -21,6 +21,12 @@
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
 {
+    CHECK_OBJECT( klass );
+    CHECK_OBJECT( attr_name );
+
+    assert( PyClass_Check( klass ));
+    assert( PyString_Check( attr_name ) );
+
     PyObject *result = GET_STRING_DICT_VALUE( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name );
 
     if ( result == NULL )
@@ -31,7 +37,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *kl
         {
             result = FIND_ATTRIBUTE_IN_CLASS( (PyClassObject *)PyTuple_GetItem( klass->cl_bases, i ), attr_name );
 
-            if ( result )
+            if ( result != NULL )
             {
                 break;
             }
@@ -567,27 +573,5 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
     PyErr_SetObject( PyExc_AttributeError, attr_name );
     return NULL;
 }
-
-// Necessary to abstract the with statement lookup difference between
-// pre-Python2.7 and others. Since Python 2.7 the code does no full attribute
-// lookup anymore, but instead treats enter and exit as specials.
-NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source )
-{
-#if PYTHON_VERSION < 270
-    return LOOKUP_ATTRIBUTE( source, const_str_plain___enter__ );
-#else
-    return LOOKUP_SPECIAL( source, const_str_plain___enter__ );
-#endif
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source )
-{
-#if PYTHON_VERSION < 270
-    return LOOKUP_ATTRIBUTE( source, const_str_plain___exit__ );
-#else
-    return LOOKUP_SPECIAL( source, const_str_plain___exit__ );
-#endif
-}
-
 
 #endif

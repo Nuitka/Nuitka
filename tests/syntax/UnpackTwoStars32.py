@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
@@ -16,34 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-# All of these should be identical with correct software behaviour.
-
-print "Output with newline."
-print "Output", "with", "newline."
-print "Output trailing spaces ", "with ", "newline."
-print "Output ",
-print "with ",
-print "newline."
-print "Output\twith tab"
-print "Output\t",
-print "with tab"
-
-# These ones gave errors with previos literal bugs:
-print "changed 2"
-print "foo%sbar%sfred%sbob?????"
-
-a = "partial print"
-# b doesn't exist
-
-try:
-    print a, b
-except Exception, e:
-    print "then occurred", repr(e)
-
-print "No newline at the end",
-
-x = 1
-print """
-New line is no soft space, is it
-""", x
+foo, *bar, baz, *a, b = name.split('/')

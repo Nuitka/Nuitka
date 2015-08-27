@@ -63,7 +63,7 @@ def otherFunction():
 
     print("Assignments from iterable", a ,b ,c)
 
-    print("Assignments from too small iterable",end = " ")
+    print("Assignments from too small iterable",end = ' ')
 
     try:
         f, g = 1,
@@ -80,7 +80,7 @@ def otherFunction():
         except UnboundLocalError:
             print("Variable g is untouched")
 
-    print("Assignments from too large iterable", end = " ")
+    print("Assignments from too large iterable", end = ' ')
 
     try:
         d, j = 1, 2, 3
@@ -149,19 +149,21 @@ def interuptedUnpack():
     a = 1
     b = 2
 
-    print("Assignment from a too short tuple to multiple targets", end = "")
+    print("Assignment from a too short tuple to multiple targets:", end = ' ')
 
     try:
         s = a,
 
         c, d = s
     except ValueError as e:
-        print("gives ValueError", repr(e), end = "")
+        print("gives ValueError", repr(e))
 
         try:
             print(c)
         except UnboundLocalError as e:
-            print("and then nothing is assigned", repr(e))
+            print("and then nothing is assigned:", repr(e))
+    else:
+        del d
 
     del a, b
 
@@ -178,7 +180,7 @@ def multiTargetInterrupt():
 
     print("Multiple, overlapping targets", end = "")
 
-    d = c, d = a, b
+    d = c, d = a, b  # @UnusedVariable
     print(d, c, end = "")
 
     del c

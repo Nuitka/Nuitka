@@ -23,8 +23,8 @@ def f():
     for i in range(5):
         print a
 
-        a.append( i )
+        a.append(i)
 
-    return len( a )
+    return len(a)
 
 print f()

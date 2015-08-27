@@ -32,7 +32,10 @@ import marshal
 from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import iterItems
 from nuitka.codegen.ConstantCodes import needsPickleInit
-from nuitka.importing.StandardLibrary import getStandardLibraryPaths
+from nuitka.importing.StandardLibrary import (
+    getStandardLibraryPaths,
+    isStandardLibraryPath
+)
 from nuitka.nodes.ModuleNodes import PythonShlibModule
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
@@ -49,7 +52,7 @@ def loadCodeObjectData(precompiled_filename):
 module_names = set()
 
 def _detectedPrecompiledFile(filename, module_name, result, is_late):
-    if filename.endswith(b".pyc"):
+    if filename.endswith(".pyc"):
         if Utils.isFile(filename[:-1]):
             return _detectedSourceFile(
                 filename    = filename[:-1],
@@ -57,9 +60,6 @@ def _detectedPrecompiledFile(filename, module_name, result, is_late):
                 result      = result,
                 is_late     = is_late
             )
-
-    if Utils.python_version >= 300:
-        filename = filename.decode("utf-8")
 
     if module_name in module_names:
         return
@@ -99,9 +99,6 @@ def _detectedSourceFile(filename, module_name, result, is_late):
 
     source_code = readSourceCodeFromFilename(module_name, filename)
 
-    if Utils.python_version >= 300:
-        filename = filename.decode("utf-8")
-
     if module_name == "site":
         if source_code.startswith("def ") or source_code.startswith("class "):
             source_code = '\n' + source_code
@@ -135,9 +132,6 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
 
 
 def _detectedShlibFile(filename, module_name):
-    if Utils.python_version >= 300:
-        filename = filename.decode("utf-8")
-
     # That is not a shared library, but looks like one.
     if module_name == "__main__":
         return
@@ -168,7 +162,7 @@ def _detectedShlibFile(filename, module_name):
 
 def _detectImports(command, is_late):
     # This is pretty complicated stuff, with variants to deal with.
-    # pylint: disable=R0912,R0914
+    # pylint: disable=R0912,R0914,R0915
 
     # Print statements for stuff to show, the modules loaded.
     if Utils.python_version >= 300:
@@ -239,6 +233,12 @@ def _detectImports(command, is_late):
                 # This is a ".pyc" file that was imported, even before we have a
                 # chance to do anything, we need to preserve it.
                 filename = parts[1][len(b"precompiled from "):]
+                if Utils.python_version >= 300:
+                    filename = filename.decode("utf-8")
+
+                # Do not leave standard library when freezing.
+                if not isStandardLibraryPath(filename):
+                    continue
 
                 _detectedPrecompiledFile(
                     filename    = filename,
@@ -248,15 +248,21 @@ def _detectImports(command, is_late):
                 )
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
+                if Utils.python_version >= 300:
+                    filename = filename.decode("utf-8")
 
-                if filename.endswith(b".py"):
+                # Do not leave standard library when freezing.
+                if not isStandardLibraryPath(filename):
+                    continue
+
+                if filename.endswith(".py"):
                     _detectedSourceFile(
                         filename    = filename,
                         module_name = module_name,
                         result      = result,
                         is_late     = is_late
                     )
-                elif not filename.endswith(b"<frozen>"):
+                elif not filename.endswith("<frozen>"):
                     _detectedShlibFile(
                         filename    = filename,
                         module_name = module_name
@@ -265,6 +271,12 @@ def _detectImports(command, is_late):
                 # Shared library in early load, happens on RPM based systems and
                 # or self compiled Python installations.
                 filename = parts[1][len(b"dynamically loaded from "):]
+                if Utils.python_version >= 300:
+                    filename = filename.decode("utf-8")
+
+                # Do not leave standard library when freezing.
+                if not isStandardLibraryPath(filename):
+                    continue
 
                 _detectedShlibFile(
                     filename    = filename,
@@ -614,12 +626,11 @@ SxS
             "IPHLPAPI.DLL", "MPR.DLL", "CREDUI.DLL", "NETPLWIZ.DLL",
             "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL",
             "APPREPAPI.DLL", "BCP47LANGS.DLL", "BCRYPTPRIMITIVES.DLL",
-            "CERTCA.DLL", "CHARTV.DLL", "COMBASE.DLL", "DCOMP.DLL",
-            "DPAPI.DLL", "DSPARSE.DLL", "FECLIENT.DLL", "FIREWALLAPI.DLL",
-            "FLTLIB.DLL", "MRMCORER.DLL", "MSVCRT.DLL",
-            "NINPUT.DLL", "NTASN1.DLL", "PCACLI.DLL", "RTWORKQ.DLL",
-            "SECHOST.DLL", "SETTINGSYNCPOLICY.DLL", "SHCORE.DLL",
-            "TBS.DLL", "TWINAPI.DLL", "TWINAPI.APPCORE.DLL", "VIRTDISK.DLL",
+            "CERTCA.DLL", "CHARTV.DLL", "COMBASE.DLL", "COML2.DLL",
+            "DCOMP.DLL", "DPAPI.DLL", "DSPARSE.DLL", "FECLIENT.DLL",
+            "FIREWALLAPI.DLL", "FLTLIB.DLL", "MRMCORER.DLL", "NTASN1.DLL",
+            "SECHOST.DLL", "SETTINGSYNCPOLICY.DLL", "SHCORE.DLL", "TBS.DLL",
+            "TWINAPI.APPCORE.DLL", "TWINAPI.DLL", "VIRTDISK.DLL",
             "WEBSOCKET.DLL", "WEVTAPI.DLL", "WINMMBASE.DLL", "WMICLNT.DLL"):
             continue
 

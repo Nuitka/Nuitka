@@ -83,7 +83,7 @@ def lambdaWithcontraction(x):
 
 lambdaWithcontraction(3)
 
-print("Contraction that gets a 'del' on the iterator variable:", end = "")
+print("Contraction that gets a 'del' on the iterator variable:", end = ' ')
 
 def allowedDelOnIteratorVariable(z):
     x = 2

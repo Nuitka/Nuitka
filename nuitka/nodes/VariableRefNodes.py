@@ -56,15 +56,17 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
         self.variable_trace = None
 
+        self.global_trace = None
+
     def getDetails(self):
         if self.variable is None:
             return {
-                "name" : self.variable_name
+                "variable_name" : self.variable_name
             }
         else:
             return {
-                "name"     : self.variable_name,
-                "variable" : self.variable
+                "variable_name" : self.variable_name,
+                "variable"      : self.variable
             }
 
     def getDetail(self):
@@ -72,16 +74,6 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
             return self.variable_name
         else:
             return repr(self.variable)
-
-    def makeCloneAt(self, source_ref):
-        result = self.__class__(
-            variable_name = self.variable_name,
-            source_ref    = source_ref
-        )
-
-        result.variable = self.variable
-
-        return result
 
     @staticmethod
     def isTargetVariableRef():
@@ -95,7 +87,6 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
     def setVariable(self, variable):
         assert isinstance(variable, Variables.Variable), repr(variable)
-        assert self.variable is None
 
         self.variable = variable
 
@@ -111,15 +102,21 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         replacement = self.variable_trace.getReplacementNode(self)
 
         if replacement is not None:
-            return replacement, "new_expression", "Value propagated for '%s'." % self.variable.getName()
+            return (
+                replacement,
+                "new_expression",
+                "Value propagated for '%s' from '%s'." % (
+                    self.variable.getName(),
+                    replacement.getSourceReference().getAsString()
+                )
+            )
 
-        global_trace = VariableRegistry.getGlobalVariableTrace(variable)
-
+        self.global_trace = VariableRegistry.getGlobalVariableTrace(variable)
 
         # TODO: Maybe local variables are factored into this strangely.
-        if global_trace is None and variable.isModuleVariable():
+        if self.global_trace is None and variable.isModuleVariable():
             constraint_collection.assumeUnclearLocals()
-        elif (variable.isModuleVariable() and not global_trace.hasDefiniteWrites() ) or \
+        elif (variable.isModuleVariable() and not self.global_trace.hasDefiniteWrites() ) or \
              variable.isMaybeLocalVariable():
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -168,6 +165,8 @@ Replaced read-only module attribute '__name__' with constant value."""
                 change_desc = """\
 Replaced read-only module attribute '__package__' with constant value."""
             else:
+                self.variable_trace.addUsage()
+
                 # Probably should give a warning once about it.
                 new_node = self
                 change_tags = None
@@ -175,7 +174,18 @@ Replaced read-only module attribute '__package__' with constant value."""
 
             return new_node, change_tags, change_desc
 
+        self.variable_trace.addUsage()
+
         return self, None, None
+
+    def computeExpressionCall(self, call_node, constraint_collection):
+        if self.global_trace is None and \
+           self.variable_name in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
+           self.variable.isModuleVariable():
+            # Just inform the collection that all escaped.
+            constraint_collection.onLocalsUsage()
+
+        return call_node, None, None
 
     def onContentEscapes(self, constraint_collection):
         constraint_collection.onVariableContentEscapes(self.variable)
@@ -196,24 +206,25 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__(self, variable, source_ref):
+        assert variable.isTempVariable()
+
         NodeBase.__init__(self, source_ref = source_ref)
 
         self.variable = variable
         self.variable_trace = None
 
-    def getDetails(self):
+    def getDetailsForDisplay(self):
         return {
             "name" : self.variable.getName()
         }
 
+    def getDetails(self):
+        return {
+            "variable" : self.variable
+        }
+
     def getDetail(self):
         return self.variable.getName()
-
-    def makeCloneAt(self, source_ref):
-        return self.__class__(
-            variable   = self.variable,
-            source_ref = source_ref
-        )
 
     def getVariableName(self):
         return self.variable.getName()
@@ -235,6 +246,7 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         if replacement is not None:
             return replacement, "new_expression", "Value propagated for temp '%s'." % self.variable.getName()
 
+        self.variable_trace.addUsage()
         # Nothing to do here.
         return self, None, None
 
@@ -277,7 +289,7 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
             self.setVariable(variable)
             assert variable.getName() == variable_name
 
-    def getDetails(self):
+    def getDetailsForDisplay(self):
         if self.variable is None:
             return {
                 "name" : self.variable_name
@@ -289,14 +301,6 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
                 "version"  : self.variable_version
             }
 
-    def makeCloneAt(self, source_ref):
-        result = self.__class__(
-            variable_name = self.variable_name,
-            source_ref    = source_ref,
-            variable      = self.variable
-        )
-
-        return result
 
     def computeExpression(self, constraint_collection):
         assert False

@@ -37,6 +37,7 @@ from nuitka.nodes.ContainerOperationNodes import (
     ExpressionListOperationAppend,
     ExpressionSetOperationAdd
 )
+from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCall,
@@ -44,18 +45,21 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.NodeMakingHelpers import (
+    makeVariableRefNode,
+    makeVariableTargetRefNode
+)
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementGeneratorEntry,
-    StatementsFrame,
     StatementsSequence
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
-    ExpressionVariableRef
+    ExpressionTempVariableRef
 )
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.utils import Utils
@@ -65,109 +69,23 @@ from .Helpers import (
     buildNodeList,
     getKind,
     makeStatementsSequenceFromStatement,
-    makeTryFinallyExpression,
-    makeTryFinallyStatement,
-    mergeStatements,
-    wrapTryFinallyLater
+    mergeStatements
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationBooleanExpressions import buildAndNode
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildListContractionNode(provider, node, source_ref):
     # List contractions are dealt with by general code.
 
-    if Utils.python_version < 300:
-        temp_scope = provider.allocateTempScope("listcontr")
-
-        outer_iter_var = provider.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = "listcontr_iter"
-        )
-
-        outer_iter_ref = ExpressionTempVariableRef(
-            variable   = outer_iter_var,
-            source_ref = source_ref
-        )
-
-        container_tmp   = provider.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = "listcontr_result"
-        )
-
-        statements, release_statements = _buildContractionBodyNode(
-            provider        = provider,
-            node            = node,
-            emit_class      = ExpressionListOperationAppend,
-            start_value     = ExpressionConstantRef(
-                constant   = [],
-                source_ref = source_ref
-            ),
-            outer_iter_ref  = outer_iter_ref,
-            container_tmp   = container_tmp,
-            temp_scope      = temp_scope,
-            assign_provider = True,
-            source_ref      = source_ref,
-            function_body   = provider
-        )
-
-        statements.insert(
-            0,
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = outer_iter_var,
-                    source_ref = source_ref
-                ),
-                source       = ExpressionBuiltinIter1(
-                    value      = buildNode(
-                        provider   = provider,
-                        node       = node.generators[0].iter,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
-                source_ref   = source_ref
-            )
-        )
-
-        result = makeTryFinallyExpression(
-            expression = ExpressionTempVariableRef(
-                variable   = container_tmp,
-                source_ref = source_ref
-            ),
-            tried      = statements,
-            final      = release_statements,
-            source_ref = source_ref
-        )
-
-        final = StatementsSequence(
-            statements = (
-                StatementReleaseVariable(
-                    variable   = container_tmp,
-                    tolerant   = True,
-                    source_ref = source_ref
-                ),
-                StatementReleaseVariable(
-                    variable   = outer_iter_var,
-                    tolerant   = True,
-                    source_ref = source_ref
-                ),
-            ),
-            source_ref = source_ref
-        )
-
-        wrapTryFinallyLater(
-            node  = result,
-            final = final
-        )
-
-        return result
-
     return _buildContractionNode(
         provider        = provider,
         node            = node,
-        name            = "<listcontraction>",
+        name            = "list_contraction"
+                            if Utils.python_version < 300 else
+                          "<listcontraction>",
         emit_class      = ExpressionListOperationAppend,
         start_value     = ExpressionConstantRef(
             constant   = [],
@@ -231,13 +149,44 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
 
 def _buildContractionBodyNode(provider, node, emit_class, start_value,
-                              container_tmp, outer_iter_ref, temp_scope,
+                              container_tmp, iter_tmp, temp_scope,
                               assign_provider, source_ref, function_body):
+
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
     # expressions sharing this code, pylint: disable=R0912,R0914
-    if start_value is not None:
+    tmp_variables = []
+
+    if assign_provider:
+        tmp_variables.append(iter_tmp)
+
+    if container_tmp is not None:
+        tmp_variables.append(container_tmp)
+
+    # First assign the iterator if we are an outline.
+    if assign_provider:
         statements = [
+            StatementAssignmentVariable(
+                variable_ref = makeVariableTargetRefNode(
+                    variable   = iter_tmp,
+                    source_ref = source_ref
+                ),
+                source       = ExpressionBuiltinIter1(
+                    value      = buildNode(
+                        provider   = provider,
+                        node       = node.generators[0].iter,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            )
+        ]
+    else:
+        statements = []
+
+    if start_value is not None:
+        statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
                     variable   = container_tmp,
@@ -246,15 +195,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 source       = start_value,
                 source_ref   = source_ref.atInternal()
             )
-        ]
+        )
 
-        if assign_provider:
-            tmp_variables = []
-        else:
-            tmp_variables = [container_tmp]
-    else:
-        statements = []
-        tmp_variables = []
 
     if hasattr(node, "elt"):
         if start_value is not None:
@@ -286,8 +228,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
     else:
         assert emit_class is ExpressionDictOperationSet
 
-        current_body = emit_class(
-            ExpressionTempVariableRef(
+        current_body = ExpressionDictOperationSet(
+            dict_arg   = ExpressionTempVariableRef(
                 variable   = container_tmp,
                 source_ref = source_ref
             ),
@@ -322,7 +264,10 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         # inside the function.
 
         if qual is node.generators[0]:
-            iterator_ref = outer_iter_ref.makeCloneAt(source_ref)
+            iterator_ref = makeVariableRefNode(
+                variable   = iter_tmp,
+                source_ref = source_ref
+            )
 
             tmp_iter_variable = None
 
@@ -363,6 +308,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
+                provider       = function_body,
                 tried          = makeStatementsSequenceFromStatement(
                     statement = StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
@@ -382,7 +328,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                         source_ref = source_ref.atInternal()
                     )
                 ),
-                public_exc     = False,
                 source_ref     = source_ref
             ),
             buildAssignmentStatements(
@@ -403,22 +348,10 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             source_ref = source_ref
         )
 
-        if len(conditions) == 1:
-            loop_statements.append(
-                StatementConditional(
-                    condition  = conditions[0],
-                    yes_branch = makeStatementsSequenceFromStatement(
-                        statement = current_body
-                    ),
-                    no_branch  = None,
-                    source_ref = source_ref
-                )
-            )
-        elif len(conditions) > 1:
+        if len(conditions) >= 1:
             loop_statements.append(
                 StatementConditional(
                     condition  = buildAndNode(
-                        provider   = function_body,
                         values     = conditions,
                         source_ref = source_ref
                     ),
@@ -446,13 +379,12 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             nested_statements.append(
                 StatementReleaseVariable(
                     variable   = tmp_iter_variable,
-                    tolerant   = False,
                     source_ref = source_ref
                 )
             )
 
         current_body = StatementsSequence(
-            statements = nested_statements,
+            statements = mergeStatements(nested_statements, False),
             source_ref = source_ref
         )
 
@@ -470,7 +402,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
     release_statements = [
         StatementReleaseVariable(
             variable   = tmp_variable,
-            tolerant   = True,
             source_ref = source_ref
         )
         for tmp_variable in
@@ -488,25 +419,39 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
     # Note: The assign_provider is only to cover Python2 list contractions,
     # assigning one of the loop variables to the outside scope.
+    if assign_provider:
+        function_body = ExpressionOutlineBody(
+            provider   = provider,
+            name       = name,
+            body       = None, # later
+            source_ref = source_ref
+        )
 
-    assert provider.isParentVariableProvider(), provider
+        iter_tmp = function_body.allocateTempVariable(
+            temp_scope = None,
+            name       = ".0"
+        )
+    else:
+        function_body = ExpressionFunctionBody(
+            provider   = provider,
+            name       = name,
+            doc        = None,
+            parameters = ParameterSpec(
+                name          = "contraction",
+                normal_args   = (".0",),
+                list_star_arg = None,
+                dict_star_arg = None,
+                default_count = 0,
+                kw_only_args  = ()
+            ),
+            is_class   = False,
+            source_ref = source_ref
+        )
 
-    iterator_var_name = ".0"
-
-    function_body = ExpressionFunctionBody(
-        provider   = provider,
-        name       = name,
-        doc        = None,
-        parameters = ParameterSpec(
-            name          = "contraction",
-            normal_args   = (iterator_var_name,),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
-        ),
-        source_ref = source_ref
-    )
+        iter_tmp = function_body.getVariableForAssignment(
+            variable_name = ".0"
+        )
+        assert iter_tmp.isParameterVariable()
 
     if start_value is not None:
         container_tmp = function_body.allocateTempVariable(
@@ -516,18 +461,13 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     else:
         container_tmp = None
 
-    outer_iter_ref = ExpressionVariableRef(
-        variable_name = iterator_var_name,
-        source_ref    = source_ref
-    )
-
-    statements, del_statements = _buildContractionBodyNode(
+    statements, release_statements = _buildContractionBodyNode(
         function_body   = function_body,
         assign_provider = assign_provider,
         provider        = provider,
         node            = node,
         emit_class      = emit_class,
-        outer_iter_ref  = outer_iter_ref,
+        iter_tmp        = iter_tmp,
         temp_scope      = None,
         start_value     = start_value,
         container_tmp   = container_tmp,
@@ -547,8 +487,9 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
     statements = (
         makeTryFinallyStatement(
+            provider   = function_body,
             tried      = statements,
-            final      = del_statements,
+            final      = release_statements,
             source_ref = source_ref.atInternal()
         ),
     )
@@ -556,7 +497,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     function_body.setBody(
         makeStatementsSequenceFromStatement(
             statement = StatementsFrame(
-                statements    = statements,
+                statements    = mergeStatements(statements, False),
                 guard_mode    = "pass_through"
                                   if emit_class is not ExpressionYield else
                                 "generator",
@@ -571,26 +512,29 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         )
     )
 
-    return ExpressionFunctionCall(
-        function   = ExpressionFunctionCreation(
-            function_ref = ExpressionFunctionRef(
-                function_body = function_body,
-                source_ref    = source_ref
+    if not assign_provider:
+        return ExpressionFunctionCall(
+            function   = ExpressionFunctionCreation(
+                function_ref = ExpressionFunctionRef(
+                    function_body = function_body,
+                    source_ref    = source_ref
+                ),
+                defaults     = (),
+                kw_defaults  = None,
+                annotations  = None,
+                source_ref   = source_ref
             ),
-            defaults     = (),
-            kw_defaults  = None,
-            annotations  = None,
-            source_ref   = source_ref
-        ),
-        values     = (
-            ExpressionBuiltinIter1(
-                value      = buildNode(
-                    provider   = provider,
-                    node       = node.generators[0].iter,
+            values     = (
+                ExpressionBuiltinIter1(
+                    value      = buildNode(
+                        provider   = provider,
+                        node       = node.generators[0].iter,
+                        source_ref = source_ref
+                    ),
                     source_ref = source_ref
                 ),
-                source_ref = source_ref
             ),
-        ),
-        source_ref = source_ref
-    )
+            source_ref = source_ref
+        )
+    else:
+        return function_body

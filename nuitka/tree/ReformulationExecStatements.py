@@ -44,7 +44,6 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
     ExpressionBuiltinLocals
 )
-from nuitka.nodes.TryFinallyNodes import StatementTryFinally
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
@@ -58,6 +57,7 @@ from .Helpers import (
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements
 )
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
@@ -106,12 +106,10 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
     post_statements += [
         StatementReleaseVariable(
             variable   = globals_keeper_variable,
-            tolerant   = False,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = locals_keeper_variable,
-            tolerant   = False,
             source_ref = source_ref
         )
     ]
@@ -129,11 +127,11 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             ),
             source_ref = source_ref
         ),
-        no_expression  = ExpressionTempVariableRef(
+        expression_no  = ExpressionTempVariableRef(
             variable   = globals_keeper_variable,
             source_ref = source_ref
         ),
-        yes_expression = ExpressionBuiltinLocals(
+        expression_yes = ExpressionBuiltinLocals(
             source_ref = source_ref
         ),
         source_ref     = source_ref
@@ -317,7 +315,7 @@ exec: arg 1 must be a string, file, or code object""",
         name       = "plain"
     )
 
-    tried = makeStatementsSequenceFromStatements(
+    tried = (
         # First evaluate the source code expressions.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
@@ -489,84 +487,76 @@ exec: arg 1 must be a string, file, or code object""",
             no_branch  = None,
             source_ref = source_ref
         ),
-        StatementTryFinally(
-            tried      = makeStatementsSequenceFromStatement(
-                statement = StatementExec(
-                    source_code = ExpressionTempVariableRef(
-                        variable   = source_variable,
-                        source_ref = source_ref
-                    ),
-                    globals_arg = ExpressionTempVariableRef(
-                        variable   = globals_keeper_variable,
-                        source_ref = source_ref
-                    ),
-                    locals_arg  = ExpressionTempVariableRef(
-                        variable   = locals_keeper_variable,
-                        source_ref = source_ref
-                    ),
-                    source_ref  = source_ref
-                )
-            ),
-            final      = makeStatementsSequenceFromStatements(
-                StatementConditional(
-                    condition  = ExpressionComparisonIs(
-                        left       = ExpressionTempVariableRef(
-                            variable   = plain_indicator_variable,
-                            source_ref = source_ref
-                        ),
-                        right      = ExpressionConstantRef(
-                            constant   = True,
-                            source_ref = source_ref
-                        ),
-                        source_ref = source_ref
-                    ),
-                    yes_branch = makeStatementsSequenceFromStatement(
-                        statement = StatementLocalsDictSync(
-                            locals_arg = ExpressionTempVariableRef(
-                                variable   = locals_keeper_variable,
-                                source_ref = source_ref,
-                            ),
-                            source_ref = source_ref.atInternal()
-                        )
-                    ),
-                    no_branch  = None,
+        makeTryFinallyStatement(
+            provider   = provider,
+            tried      = StatementExec(
+                source_code = ExpressionTempVariableRef(
+                    variable   = source_variable,
                     source_ref = source_ref
                 ),
+                globals_arg = ExpressionTempVariableRef(
+                    variable   = globals_keeper_variable,
+                    source_ref = source_ref
+                ),
+                locals_arg  = ExpressionTempVariableRef(
+                    variable   = locals_keeper_variable,
+                    source_ref = source_ref
+                ),
+                source_ref  = source_ref
             ),
-            public_exc = False,
+            final      = StatementConditional(
+                condition  = ExpressionComparisonIs(
+                    left       = ExpressionTempVariableRef(
+                        variable   = plain_indicator_variable,
+                        source_ref = source_ref
+                    ),
+                    right      = ExpressionConstantRef(
+                        constant   = True,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_branch = makeStatementsSequenceFromStatement(
+                    statement = StatementLocalsDictSync(
+                        locals_arg = ExpressionTempVariableRef(
+                            variable   = locals_keeper_variable,
+                            source_ref = source_ref,
+                        ),
+                        source_ref = source_ref.atInternal()
+                    )
+                ),
+                no_branch  = None,
+                source_ref = source_ref
+            ),
             source_ref = source_ref
         )
     )
 
-    final = makeStatementsSequenceFromStatements(
+    final = (
         StatementReleaseVariable(
             variable   = source_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = globals_keeper_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = locals_keeper_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
         StatementReleaseVariable(
             variable   = plain_indicator_variable,
-            tolerant   = True,
             source_ref = source_ref
         ),
     )
 
-    return StatementTryFinally(
+    return makeTryFinallyStatement(
+        provider   = provider,
         tried      = tried,
         final      = final,
-        public_exc = False,
         source_ref = source_ref
     )
 
 # This is here, to make sure it can register, pylint: disable=W0611
-import nuitka.optimizations.OptimizeBuiltinCalls # isort:skip
+import nuitka.optimizations.OptimizeBuiltinCalls # isort:skip @UnusedImport

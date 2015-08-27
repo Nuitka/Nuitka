@@ -59,7 +59,7 @@ if (unlikely( args_given + kw_size > 0 ))
 }
 """
 
-parse_argument_template_check_counts_without_list_star_arg = r"""
+template_parse_argument_check_counts_without_list_star_arg = r"""
 // Check if too many arguments were given in case of non star args
 if (unlikely( args_given > %(top_level_parameter_count)d ))
 {
@@ -75,13 +75,13 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
 
 """
 
-parse_argument_usable_count = r"""
+template_parse_argument_usable_count = r"""
 // Copy normal parameter values given as part of the argument list to the
 // respective variables:
 
 """
 
-argparse_template_plain_argument = """\
+template_argparse_plain_argument = """\
 if (likely( %(parameter_position)d < args_given ))
 {
      if (unlikely( _python_par_%(parameter_name)s != NULL ))
@@ -117,7 +117,7 @@ else if ( _python_par_%(parameter_name)s == NULL )
 }
 """
 
-template_arguments_check = """
+template_parse_arguments_check = """
 #if PYTHON_VERSION >= 330
 if (unlikely( %(parameter_test)s ))
 {
@@ -131,7 +131,7 @@ if (unlikely( %(parameter_test)s ))
 
 # TODO: Is there a missing INCREF in the first branch part. Other parts do
 # have it, so this might be a reference loss here when taking from "args[]".
-argparse_template_nested_argument = """\
+template_argparse_nested_argument = """\
 if (likely( %(parameter_position)d < args_given ))
 {
     _python_par_%(parameter_name)s = args[ %(parameter_position)d ];
@@ -156,7 +156,7 @@ else if ( _python_par_%(parameter_name)s == NULL )
 }
 """
 
-parse_argument_template_copy_list_star_args = """
+template_parse_argument_copy_list_star_args = """
 // Copy left-over argument values to the star list parameter given.
 if ( args_given > %(top_level_parameter_count)d )
 {
@@ -176,7 +176,7 @@ else
 }
 """
 
-parse_argument_template_dict_star_copy = """
+template_parse_argument_dict_star_copy = """
 if ( kw == NULL )
 {
     _python_par_%(dict_star_parameter_name)s = PyDict_New();
@@ -297,7 +297,7 @@ else
 }
 """
 
-parse_argument_template_check_dict_parameter_with_star_dict = """
+template_parse_argument_check_dict_parameter_with_star_dict = """
 // Check if argument %(parameter_name)s was given as keyword argument
 if ( kw_size > 0 )
 {
@@ -317,23 +317,7 @@ if ( kw_size > 0 )
 }
 """
 
-parse_argument_template_check_dict_parameter_without_star_dict = """
-// Check if argument %(parameter_name)s was given as keyword argument
-if ( kw_size > 0 )
-{
-    PyObject *kw_arg_value = PyDict_GetItem( kw, %(parameter_name_object)s );
-
-    if ( kw_arg_value != NULL )
-    {
-        assert( _python_par_%(parameter_name)s == NULL );
-
-        _python_par_%(parameter_name)s = kw_arg_value;
-        Py_INCREF( kw_arg_value );
-    }
-}
-"""
-
-argparse_template_assign_from_dict_parameters = """\
+template_argparse_assign_from_dict_parameters = """\
 if ( kw_size > 0 )
 {
     Py_ssize_t ppos = 0;
@@ -384,7 +368,7 @@ if ( kw_size > 0 )
 }
 """
 
-argparse_template_assign_from_dict_parameter_quick_path = """\
+template_argparse_assign_from_dict_parameter_quick_path = """\
 if ( found == false && %(parameter_name_object)s == key )
 {
 %(parameter_assign_from_kw)s
@@ -393,7 +377,7 @@ if ( found == false && %(parameter_name_object)s == key )
 }
 """
 
-argparse_template_assign_from_dict_parameter_quick_path_kw_only = """\
+template_argparse_assign_from_dict_parameter_quick_path_kw_only = """\
 if ( found == false && %(parameter_name_object)s == key )
 {
 %(parameter_assign_from_kw)s
@@ -403,7 +387,7 @@ if ( found == false && %(parameter_name_object)s == key )
 }
 """
 
-argparse_template_assign_from_dict_parameter_slow_path = """\
+template_argparse_assign_from_dict_parameter_slow_path = """\
 if ( found == false && RICH_COMPARE_BOOL_EQ( %(parameter_name_object)s, key ) == 1 )
 {
 %(parameter_assign_from_kw)s
@@ -412,7 +396,7 @@ if ( found == false && RICH_COMPARE_BOOL_EQ( %(parameter_name_object)s, key ) ==
 }
 """
 
-argparse_template_assign_from_dict_parameter_slow_path_kw_only = """\
+template_argparse_assign_from_dict_parameter_slow_path_kw_only = """\
 if ( found == false && RICH_COMPARE_BOOL_EQ( %(parameter_name_object)s, key ) == 1 )
 {
 %(parameter_assign_from_kw)s
@@ -423,12 +407,12 @@ if ( found == false && RICH_COMPARE_BOOL_EQ( %(parameter_name_object)s, key ) ==
 """
 
 
-argparse_template_assign_from_dict_finding = """\
+template_argparse_assign_from_dict_finding = """\
 assert( _python_par_%(parameter_name)s == NULL );
 _python_par_%(parameter_name)s = value;
 """
 
-parse_argument_template_nested_argument_unpack = """\
+template_parse_argument_nested_argument_unpack = """\
 // Unpack from _python_par_%(parameter_name)s
 {
     PyObject *_python_iter_%(parameter_name)s = PyObject_GetIter( %(unpack_source_identifier)s );
@@ -447,7 +431,7 @@ parse_argument_template_nested_argument_unpack = """\
     Py_DECREF( _python_iter_%(parameter_name)s );
 }"""
 
-parse_argument_template_nested_argument_assign = """
+template_parse_argument_nested_argument_assign = """
     // Unpack to _python_par_%(parameter_name)s
     _python_par_%(parameter_name)s = UNPACK_NEXT( _python_iter_%(iter_name)s, %(unpack_count)d );
 
@@ -458,7 +442,7 @@ parse_argument_template_nested_argument_assign = """
     }
 """
 
-template_kwonly_argument_default = """\
+template_parse_kwonly_argument_default = """\
 if ( _python_par_%(parameter_name)s == NULL )
 {
     _python_par_%(parameter_name)s = PyDict_GetItem( self->m_kwdefaults, %(parameter_name_object)s );
@@ -477,7 +461,7 @@ if ( _python_par_%(parameter_name)s == NULL )
 
 }"""
 
-template_kwonly_arguments_check = """
+template_parse_kwonly_arguments_check = """
 #if PYTHON_VERSION >= 330
 if (unlikely( %(parameter_test)s ))
 {
@@ -489,7 +473,7 @@ if (unlikely( %(parameter_test)s ))
 #endif
 """
 
-template_dparser = """
+template_parameter_dparser_entry_point = """
 static PyObject *dparse_%(function_identifier)s( Nuitka_FunctionObject *self, PyObject **args, int size )
 {
     if ( size == %(arg_count)d )
@@ -505,3 +489,6 @@ static PyObject *dparse_%(function_identifier)s( Nuitka_FunctionObject *self, Py
 }
 
 """
+
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

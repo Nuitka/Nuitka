@@ -74,23 +74,22 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
 
     def __repr__(self):
-        return "<Node %s value %s at %s %s>" % (
+        return "<Node %s value %r at %s %s>" % (
             self.kind,
             self.constant,
             self.source_ref.getAsString(),
             self.user_provided
         )
 
-    def makeCloneAt(self, source_ref):
-        return ExpressionConstantRef(
-            constant      = self.constant,
-            source_ref    = source_ref,
-            user_provided = self.user_provided
-        )
-
     def getDetails(self):
         return {
-            "value"         : repr(self.constant),
+            "constant"      : self.constant,
+            "user_provided" : self.user_provided
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "constant"      : repr(self.constant),
             "user_provided" : self.user_provided
         }
 
@@ -132,9 +131,6 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
     def isIndexConstant(self):
         return isIndexConstant(self.constant)
-
-    def isStringConstant(self):
-        return type(self.constant) is str
 
     def isIndexable(self):
         return self.constant is None or self.isNumberConstant()
@@ -263,6 +259,12 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
     def isIterableConstant(self):
         return isIterableConstant(self.constant)
+
+    def isUnicodeConstant(self):
+        return type(self.constant) is unicode
+
+    def isStringConstant(self):
+        return type(self.constant) is str
 
     def getStrValue(self):
         if type(self.constant) is str:

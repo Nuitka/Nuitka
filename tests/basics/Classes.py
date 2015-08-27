@@ -16,8 +16,7 @@
 #     limitations under the License.
 #
 class SimpleClass:
-    " The class documentation."
-
+    " The class documentation." # Leading space on purpose.
 
     # TODO: Doesn't work with Python3, because we don't yet make our own dict
     # visible.  print locals()
@@ -99,16 +98,20 @@ print "Strange class with __new__ and __del__ overloads", strangeClassBehaviour(
 class ClosureLocalizer:
     function = function
 
-    def deco(f):
+    # Using what looks like a method as a decorator.
+    def deco(f):  # @NoSelf
+        f.decorated = True
+
         return f
 
     @deco
-    def x():
+    def x(self):
         pass
 
 print "Class with a name from module level renamed to local", ClosureLocalizer.function
+print "Class method decorated", ClosureLocalizer().x.decorated
 
-print "Class with decorator"
+print "Class with decorator and meta class:"
 
 def classdecorator(cls):
     print "cls decorator", cls.addedin

@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-def f( cond ):
+def f(cond):
     y = 3
 
     if cond:
@@ -25,4 +25,4 @@ def f( cond ):
 
     return x < y
 
-print f( 0 ), f( 1 )
+print f(0), f(1)

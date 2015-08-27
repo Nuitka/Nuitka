@@ -28,21 +28,34 @@ And releasing of values, as this is what the error case commonly does.
 
 """
 
-from nuitka.utils import Utils
+from nuitka import Options
+from nuitka.PythonVersions import python_version
 
-from . import CodeTemplates
 from .ExceptionCodes import getExceptionIdentifier
-from .Indentation import indented
-from .LineNumberCodes import getLineNumberUpdateCode
+from .Indentation import getCommentCode, indented
+from .LineNumberCodes import getErrorLineNumberUpdateCode
+from .templates.CodeTemplatesExceptions import (
+    template_error_catch_exception,
+    template_error_catch_quick_exception,
+    template_error_format_string_exception
+)
 
 
 def getErrorExitReleaseCode(context):
-    return '\n'.join(
+    temp_release = '\n'.join(
         "Py_DECREF( %s );" % tmp_name
         for tmp_name in
         context.getCleanupTempnames()
     )
 
+    keeper_variables = context.getExceptionKeeperVariables()
+
+    if keeper_variables[0] is not None:
+        temp_release += "\nPy_DECREF( %s );" % keeper_variables[0]
+        temp_release += "\nPy_XDECREF( %s );"  % keeper_variables[1]
+        temp_release += "\nPy_XDECREF( %s );"  % keeper_variables[2]
+
+    return temp_release
 
 
 def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
@@ -53,7 +66,7 @@ def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
     if quick_exception:
         emit(
             indented(
-                CodeTemplates.template_error_catch_quick_exception % {
+                template_error_catch_quick_exception % {
                     "condition"        : condition,
                     "exception_exit"   : context.getExceptionEscape(),
                     "quick_exception"  : getExceptionIdentifier(quick_exception),
@@ -61,7 +74,7 @@ def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
                         getErrorExitReleaseCode(context)
                     ),
                     "line_number_code" : indented(
-                        getLineNumberUpdateCode(context)
+                        getErrorLineNumberUpdateCode(context)
                     )
                 },
                 0
@@ -70,14 +83,14 @@ def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
     else:
         emit(
             indented(
-                CodeTemplates.template_error_catch_exception % {
+                template_error_catch_exception % {
                     "condition"        : condition,
                     "exception_exit"   : context.getExceptionEscape(),
                     "release_temps"    : indented(
                         getErrorExitReleaseCode(context)
                     ),
                     "line_number_code" : indented(
-                        getLineNumberUpdateCode(context)
+                        getErrorLineNumberUpdateCode(context)
                     )
                 },
                 0
@@ -114,13 +127,26 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
         assert False, args
 
 
-    if Utils.python_version >= 300 and context.isExceptionPublished():
-        set_exception += [
-            "ADD_EXCEPTION_CONTEXT( &exception_type, &exception_value );",
-        ]
+    if python_version >= 300:
+        keeper_vars = context.getExceptionKeeperVariables()
+
+        if keeper_vars[0] is not None:
+            set_exception.append(
+                "ADD_EXCEPTION_CONTEXT( &%s, &%s );" % (
+                    keeper_vars[0],
+                    keeper_vars[1]
+                )
+            )
+        else:
+            set_exception.append(
+                "NORMALIZE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
+            )
+            set_exception.append(
+                "CHAIN_EXCEPTION( exception_type, exception_value );"
+            )
 
     emit(
-        CodeTemplates.template_error_format_string_exception % {
+        template_error_format_string_exception % {
             "condition"        : condition,
             "exception_exit"   : context.getExceptionEscape(),
             "set_exception"    : indented(set_exception),
@@ -128,9 +154,71 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
                 getErrorExitReleaseCode(context)
             ),
             "line_number_code" : indented(
-                getLineNumberUpdateCode(context)
+                getErrorLineNumberUpdateCode(context)
             )
         }
+    )
+
+def getErrorVariableDeclarations():
+    return (
+        "PyObject *exception_type = NULL, *exception_value = NULL;",
+        "PyTracebackObject *exception_tb = NULL;",
+        "NUITKA_MAY_BE_UNUSED int exception_lineno = -1;"
+    )
+
+def getExceptionKeeperVariableNames(keeper_index):
+    # For finally handlers of Python3, which have conditions on assign and
+    # use.
+    debug = Options.isDebug() and python_version >= 300
+
+    if debug:
+        keeper_obj_init = " = NULL"
+    else:
+        keeper_obj_init = ""
+
+    return (
+        "PyObject *exception_keeper_type_%d%s;" % (
+            keeper_index,
+            keeper_obj_init
+        ),
+        "PyObject *exception_keeper_value_%d%s;" % (
+            keeper_index,
+            keeper_obj_init
+        ),
+        "PyTracebackObject *exception_keeper_tb_%d%s;" % (
+            keeper_index,
+            keeper_obj_init
+        ),
+        "NUITKA_MAY_BE_UNUSED int exception_keeper_lineno_%d%s;" % (
+            keeper_index,
+            "= -1" if debug else ""
+        )
+    )
+
+
+def getExceptionPreserverVariableNames(preserver_id):
+    # For finally handlers of Python3, which have conditions on assign and
+    # use.
+    debug = Options.isDebug() and python_version >= 300
+
+    if debug:
+        preserver_obj_init = " = NULL"
+    else:
+        preserver_obj_init = ""
+
+    return (
+        "PyObject *exception_preserved_type_%d%s;" % (
+            preserver_id,
+            preserver_obj_init
+        ),
+        "PyObject *exception_preserved_value_%d%s;" % (
+            preserver_id,
+            preserver_obj_init
+        ),
+        "PyTracebackObject *exception_preserved_tb_%d%s;" % (
+            preserver_id,
+            preserver_obj_init
+        ),
     )
 
 
@@ -159,3 +247,24 @@ def getReleaseCodes(release_names, emit, context):
             emit         = emit,
             context      = context
         )
+
+
+def getMustNotGetHereCode(reason, context, emit):
+    getCommentCode(reason, emit)
+
+    provider = context.getOwner()
+
+    emit(
+        "NUITKA_CANNOT_GET_HERE( %(function_identifier)s );" % {
+            "function_identifier" :  provider.getCodeName()
+        }
+    )
+
+    if provider.isExpressionFunctionBody() and not provider.isGenerator():
+        emit("return NULL;")
+    elif provider.isPythonModule():
+        emit("PyErr_SetObject( PyExc_RuntimeError, Py_None );")
+        emit("return MOD_RETURN_VALUE( NULL );")
+    else:
+        emit("PyErr_SetObject( PyExc_RuntimeError, Py_None );")
+        emit("return;")
