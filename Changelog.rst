@@ -1,3 +1,8 @@
+Nuitka Release 0.5.15 (Draft)
+=============================
+
+Release not done yet.
+
 Nuitka Release 0.5.14
 =====================
 
@@ -83,6 +88,9 @@ Bug Fixes
   fit into ``int``, that was only working in the main module. `Issue#228
   <http://bugs.nuitka.net/issue228>`__. Fixed in 0.5.13.5 already.
 
+- Compatibility: The ``print`` statement raised an assertion on unicode objects
+  that could not be encoded with ascii codec.
+
 New Features
 ------------
 
@@ -161,6 +169,9 @@ Optimization
 
 - Function creations cannot raise except their defaults, keyword defaults or
   annotations do.
+
+- Built-in references can now be converted to strings at compile time, e.g.
+  when printed.
 
 Organizational
 --------------
