@@ -3,6 +3,18 @@ Nuitka Release 0.5.15 (Draft)
 
 Release not done yet.
 
+Bug Fixes
+---------
+
+- Standalone: Added implicit import for ``reportlab`` package
+  configuration dynamic import.
+
+Summary
+-------
+
+The release is not done yet.
+
+
 Nuitka Release 0.5.14
 =====================
 
