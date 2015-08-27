@@ -1,10 +1,10 @@
-Nuitka Release 0.5.14 (Draft)
-=============================
+Nuitka Release 0.5.14
+=====================
 
 This release is an intermediate step towards value propagation, which is not
 considered ready for stable release yet. The major point is the elimination
 of the ``try``/``finally`` expressions, as they are problems to SSA. The
-``try``/``finally``statement change is delayed.
+``try``/``finally`` statement change is delayed.
 
 There are also a lot of bug fixes, and enhancements to code generation, as well
 as major cleanups of code base.
