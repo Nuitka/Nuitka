@@ -235,6 +235,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # Mercurial test
         "statprof", "email.Generator", "email.Utils",
+
+        # setuptools does a lot of speculative stuff
+        "wincertstore", "setuptools_svn",
     )
 
 
