@@ -352,7 +352,10 @@ def makeSourceDirectory(main_module):
             if removeFrozenModule(module.getFullName()):
                 warning(
                     """\
-Compiled module shadows standard library module '%s'.""" % module.getFullName()
+Compiled module shadows standard library module '%s' (imported from '%s').""" % (
+                        module.getFullName(),
+                        module.getCompileTimeFilename()
+                    )
                 )
 
             cpp_filename = module_filenames[module]
