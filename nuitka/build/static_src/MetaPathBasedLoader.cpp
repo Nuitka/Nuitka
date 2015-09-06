@@ -299,9 +299,11 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 #endif
 
 
-static struct Nuitka_MetaPathBasedLoaderEntry *find_entry( char const *name )
+static struct Nuitka_MetaPathBasedLoaderEntry *findEntry( char const *name )
 {
     struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
+
+    assert( current );
 
     while ( current->name != NULL )
     {
@@ -314,6 +316,123 @@ static struct Nuitka_MetaPathBasedLoaderEntry *find_entry( char const *name )
     }
 
     return NULL;
+}
+
+static void loadTriggeredModule( char const *name, char const *trigger_name )
+{
+    char trigger_module_name[2048];
+
+    strcpy( trigger_module_name, name );
+    strcat( trigger_module_name, trigger_name);
+
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( trigger_module_name );
+
+    if ( entry != NULL )
+    {
+        if ( Py_VerboseFlag )
+        {
+            PySys_WriteStderr( "Loading %s\n", trigger_module_name );
+        }
+
+        entry->python_initfunc();
+
+        if (unlikely( ERROR_OCCURRED() ))
+        {
+            PyErr_Print();
+            abort();
+        }
+    }
+}
+
+static PyObject *loadModule( PyObject *module_name, Nuitka_MetaPathBasedLoaderEntry *entry )
+{
+#ifdef _NUITKA_STANDALONE
+    if ( ( entry->flags & NUITKA_SHLIB_MODULE ) != 0 )
+    {
+        // Append the the entry name from full path module name with dots,
+        // and translate these into directory separators.
+        char filename[4096];
+
+        strcpy( filename, getBinaryDirectoryHostEncoded() );
+
+        char *d = filename;
+        d += strlen( filename );
+        assert( *d == 0 );
+        *d++ = SEP;
+
+        char *s = entry->name;
+
+        while( *s )
+        {
+            if ( *s == '.' )
+            {
+                *d++ = SEP;
+                s++;
+            }
+            else
+            {
+                *d++ = *s++;
+            }
+        }
+        *d = 0;
+
+#ifdef _WIN32
+        strcat( filename, ".pyd" );
+#else
+        strcat( filename, ".so" );
+#endif
+
+        callIntoShlibModule(
+            entry->name,
+            filename
+        );
+    }
+    else
+#endif
+    {
+        assert( ( entry->flags & NUITKA_SHLIB_MODULE ) == 0 );
+        entry->python_initfunc();
+    }
+
+    if (unlikely( ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    if ( Py_VerboseFlag )
+    {
+        PySys_WriteStderr( "Loaded %s\n", entry->name );
+    }
+
+    return LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
+}
+
+// Note: This may become an entry point for hard coded imports of compiled
+// stuff.
+PyObject *IMPORT_COMPILED_MODULE( PyObject *module_name, char const *name )
+{
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
+
+    if ( entry != NULL )
+    {
+        // Execute the "preLoad" code produced for the module potentially. This is
+        // from plugins typically, that want to modify things for the the module
+        // before loading, to e.g. set a plugin path, or do some monkey patching in
+        // order to make things compatible.
+        loadTriggeredModule(entry->name, "-preLoad");
+
+        PyObject *result = loadModule( module_name, entry );
+
+        // Execute the "postLoad" code produced for the module potentially. This is
+        // from plugins typically, that want to modify the module immediately
+        // after loading, to e.g. set a plugin path, or do some monkey patching in
+        // order to make things compatible.
+        loadTriggeredModule(entry->name, "-postLoad");
+
+        return result;
+    }
+
+    return INCREASE_REFCOUNT( Py_None );
 }
 
 static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, PyObject *kwds )
@@ -338,98 +457,14 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
     assert( module_name );
     assert( Nuitka_String_Check( module_name ) );
 
-    char *name = Nuitka_String_AsString( module_name );
+    char *const name = Nuitka_String_AsString( module_name );
 
-    struct Nuitka_MetaPathBasedLoaderEntry *entry = find_entry( name );
-
-    if ( entry != NULL )
+    if ( Py_VerboseFlag )
     {
-        if ( Py_VerboseFlag )
-        {
-            PySys_WriteStderr( "Loading %s\n", name );
-        }
-
-#ifdef _NUITKA_STANDALONE
-        if ( ( entry->flags & NUITKA_SHLIB_MODULE ) != 0 )
-        {
-            // Append the the entry name from full path module name with dots,
-            // and translate these into directory separators.
-            char filename[4096];
-
-            strcpy( filename, getBinaryDirectoryHostEncoded() );
-
-            char *d = filename;
-            d += strlen( filename );
-            assert( *d == 0 );
-            *d++ = SEP;
-
-            char *s = entry->name;
-
-            while( *s )
-            {
-                if ( *s == '.' )
-                {
-                    *d++ = SEP;
-                    s++;
-                }
-                else
-                {
-                    *d++ = *s++;
-                }
-            }
-            *d = 0;
-
-#ifdef _WIN32
-            strcat( filename, ".pyd" );
-#else
-            strcat( filename, ".so" );
-#endif
-
-            callIntoShlibModule(
-                entry->name,
-                filename
-            );
-        }
-        else
-#endif
-        {
-            assert( ( entry->flags & NUITKA_SHLIB_MODULE ) == 0 );
-            entry->python_initfunc();
-        }
-
-        if (unlikely( ERROR_OCCURRED() ))
-        {
-            return NULL;
-        }
-
-        if ( Py_VerboseFlag )
-        {
-            PySys_WriteStderr( "Loaded %s\n", name );
-        }
-
-#ifdef _NUITKA_STANDALONE
-        // Execute any "onLoad" code produced for
-        char onLoadModuleName[4096];
-        strcpy( onLoadModuleName, name );
-        strcat( onLoadModuleName, "-onLoad");
-
-        struct Nuitka_MetaPathBasedLoaderEntry *onload_entry = find_entry( onLoadModuleName );
-
-        if ( onload_entry != NULL )
-        {
-            if ( Py_VerboseFlag )
-            {
-                PySys_WriteStderr( "Loading %s\n", onLoadModuleName );
-            }
-
-            onload_entry->python_initfunc();
-        }
-#endif
-
-        return LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
+        PySys_WriteStderr( "Loading %s\n", name );
     }
 
-    return INCREASE_REFCOUNT( Py_None );
+    return IMPORT_COMPILED_MODULE( module_name, name );
 }
 
 static PyObject *_path_unfreezer_is_package( PyObject *self, PyObject *args, PyObject *kwds )
@@ -454,7 +489,7 @@ static PyObject *_path_unfreezer_is_package( PyObject *self, PyObject *args, PyO
 
     char *name = Nuitka_String_AsString( module_name );
 
-    struct Nuitka_MetaPathBasedLoaderEntry *entry = find_entry( name );
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
 
     if ( entry )
     {
@@ -525,7 +560,7 @@ static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyOb
 
     char *name = Nuitka_String_AsString( module_name );
 
-    struct Nuitka_MetaPathBasedLoaderEntry *entry = find_entry( name );
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
     if ( entry == NULL ) return INCREASE_REFCOUNT( Py_None );
 
     PyObject *importlib = PyImport_ImportModule( "importlib._bootstrap" );

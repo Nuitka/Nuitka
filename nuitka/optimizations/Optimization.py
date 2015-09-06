@@ -115,6 +115,8 @@ def optimizePythonModule(module):
             )
         )
 
+    Plugins.considerImplicitImports(module, signal_change = signalChange)
+
     return touched or module.hasUnclearLocals()
 
 

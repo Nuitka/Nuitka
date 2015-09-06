@@ -129,11 +129,11 @@ from .ListCodes import (
     generateListOperationAppendCode,
     generateListOperationPopCode
 )
+from .LoaderCodes import getMetapathLoaderBodyCode
 from .LoopCodes import generateLoopCode, getLoopBreakCode, getLoopContinueCode
 from .ModuleCodes import (
     generateModuleFileAttributeCode,
     getModuleCode,
-    getModuleMetapathLoaderEntryCode,
     getModuleValues
 )
 from .OperationCodes import (
@@ -3237,9 +3237,9 @@ def generateStatementSequenceCode(statement_sequence, emit, context,
       statement_context.getCleanupTempnames()
 
 
-def prepareModuleCode(global_context, module, module_name, other_modules):
+def prepareModuleCode(global_context, module, module_name):
     # As this not only creates all modules, but also functions, it deals
-    # with too many details, pylint: disable=R0914
+    # also with its functions.
 
     assert module.isPythonModule(), module
 
@@ -3312,36 +3312,16 @@ def prepareModuleCode(global_context, module, module_name, other_modules):
     function_body_codes = "\n\n".join(function_body_codes)
     function_decl_codes = "\n\n".join(function_decl_codes)
 
-    metapath_loader_inittab = []
-    metapath_module_decls = []
-
-    for other_module in other_modules:
-        metapath_loader_inittab.append(
-            getModuleMetapathLoaderEntryCode(
-                module_name       = other_module.getFullName(),
-                module_identifier = other_module.getCodeName(),
-                is_shlib          = other_module.isPythonShlibModule(),
-                is_package        = other_module.isPythonPackage()
-            )
-        )
-
-        if not other_module.isPythonShlibModule():
-            metapath_module_decls.append(
-                "MOD_INIT_DECL( %s );" % other_module.getCodeName()
-            )
-
     template_values = getModuleValues(
-        module_name             = module_name,
-        module_identifier       = module.getCodeName(),
-        codes                   = codes.codes,
-        metapath_loader_inittab = metapath_loader_inittab,
-        metapath_module_decls   = metapath_module_decls,
-        function_decl_codes     = function_decl_codes,
-        function_body_codes     = function_body_codes,
-        temp_variables          = module.getTempVariables(),
-        is_main_module          = module.isMainModule(),
-        is_internal_module      = module.isInternalModule(),
-        context                 = context
+        module_name         = module_name,
+        module_identifier   = module.getCodeName(),
+        codes               = codes.codes,
+        function_decl_codes = function_decl_codes,
+        function_body_codes = function_body_codes,
+        temp_variables      = module.getTempVariables(),
+        is_main_module      = module.isMainModule(),
+        is_internal_module  = module.isInternalModule(),
+        context             = context
     )
 
     if Utils.python_version >= 330:
@@ -3356,12 +3336,14 @@ def generateModuleCode(module_context, template_values):
     )
 
 
-def generateHelpersCode():
-    header_code = getCallsDecls()
+def generateHelpersCode(other_modules):
+    calls_decl_code = getCallsDecls()
 
-    body_code = getCallsCode()
+    loader_code = getMetapathLoaderBodyCode(other_modules)
 
-    return header_code, body_code
+    calls_body_code = getCallsCode()
+
+    return calls_decl_code, calls_body_code + loader_code
 
 
 def makeGlobalContext():

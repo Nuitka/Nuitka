@@ -40,9 +40,9 @@ from .codegen import CodeGeneration, ConstantCodes, MainCodes
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import (
     addFrozenModule,
-    isFrozenModule,
     generateBytecodeFrozenCode,
     getFrozenModuleCount,
+    isFrozenModule,
     removeFrozenModule
 )
 from .freezer.Standalone import (
@@ -314,14 +314,6 @@ def makeSourceDirectory(main_module):
     prepared_modules = {}
 
     used_modules = list(other_modules)
-    for module in sorted(modules, key = lambda x : x.getFullName()):
-        if module.isPythonModule():
-            cpp_filename = module_filenames[module]
-            # We might have chosen to include it as bytecode, and only compiled
-            # it for fun, and to find its imports. In this case, now we just
-            # drop it.
-            if isFrozenModule(module.getFullName(), module.getCompileTimeFilename()):
-                used_modules.remove(module)
 
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
@@ -331,15 +323,11 @@ def makeSourceDirectory(main_module):
                 global_context = global_context,
                 module         = module,
                 module_name    = module.getFullName(),
-                other_modules  = used_modules
-                                   if module is main_module else
-                                 ()
             )
 
             # Main code constants need to be allocated already too.
             if module is main_module and not Options.shallMakeModule():
                 prepared_modules[cpp_filename][1].getConstantCode(0)
-
 
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
@@ -347,6 +335,7 @@ def makeSourceDirectory(main_module):
             # it for fun, and to find its imports. In this case, now we just
             # drop it.
             if isFrozenModule(module.getFullName(), module.getCompileTimeFilename()):
+                used_modules.remove(module)
                 continue
 
             if removeFrozenModule(module.getFullName()):
@@ -417,7 +406,7 @@ Compiled module shadows standard library module '%s' (imported from '%s').""" % 
         )
     )
 
-    helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode()
+    helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode(used_modules)
 
     writeSourceCode(
         filename    = Utils.joinpath(source_dir, "__helpers.hpp"),

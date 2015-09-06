@@ -1120,7 +1120,10 @@ else:
         output.write("\n};\n");
 
 env.Append(
-    CPPDEFINES = ["_NUITKA_FROZEN=%d" % frozen_modules]
+    CPPDEFINES = [
+        "_NUITKA_FROZEN=%d" % frozen_modules,
+        "_NUITKA_MODULE_COUNT=%d" % module_count
+    ]
 )
 
 # Tell compiler to create a shared library or program.

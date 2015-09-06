@@ -625,6 +625,46 @@ windows_group.add_option(
 
 parser.add_option_group(windows_group)
 
+plugin_group = OptionGroup(
+    parser,
+    "Tracing features"
+)
+
+plugin_group.add_option(
+    "--plugin-disable",
+    action  = "append",
+    dest    = "plugins_disabled",
+    default = [],
+    help    = """\
+Disabled plugins. Must be plug-in names. Use --plugin-list to query the
+full list and exit. Default empty."""
+)
+
+plugin_group.add_option(
+    "--plugin-enable",
+    action  = "append",
+    dest    = "plugins_enabled",
+    default = [],
+    help    = """\
+Enabled plugins. Must be plug-in names. Use --plugin-list to query the
+full list and exit. Default empty."""
+)
+
+plugin_group.add_option(
+    "--plugin-no-detection",
+    action  = "store_true",
+    dest    = "detect_missing_plugins",
+    default = False,
+    help    = """\
+Plugins can detect if they might be used, and the you can disable the warning
+via --plugin-disable=plugin-that-warned, or you can use this option to disable
+the mechanism entirely, which also speeds up compilation slightly of course as
+this detection code is run in vain once you are certain of which plug-ins to
+use. Defaults to off."""
+)
+
+
+parser.add_option_group(plugin_group)
 
 # First, isolate the first non-option arguments.
 if is_nuitka_run:
@@ -873,5 +913,18 @@ def getPythonFlags():
 
     return result
 
-def freezeAllStdlib():
+def shallFreezeAllStdlib():
     return options.freeze_stdlib
+
+def getPluginsEnabled():
+    return options.plugins_enabled
+
+def getPluginsDisabled():
+    return options.plugins_disabled
+
+def shallDetectMissingPlugins():
+    return options.detect_missing_plugins
+
+def getPluginOptions(plugin_name):
+    # TODO: This should come from command line, pylint: disable=W0613
+    return {}

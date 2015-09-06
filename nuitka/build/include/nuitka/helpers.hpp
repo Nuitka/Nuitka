@@ -618,10 +618,15 @@ extern PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size );
 #endif
 extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
 
+// Performance enhancements to Python types.
 extern void enhancePythonTypes( void );
 
-// Parse the command line parameters and provide it to sys module.
-extern void setCommandLineParameters( int argc, char *argv[], bool initial );
+// Setup meta path based loader if any.
+extern void setupMetaPathBasedLoader( void );
+
+// Parse the command line parameters and provide it to sys module. It may
+// maniputate them, therefore argc is passed as a pointer.
+extern bool setCommandLineParameters( int *argc, char *argv[], bool initial );
 
 // Replace builtin functions with ones that accept compiled types too.
 extern void patchBuiltinModule( void );

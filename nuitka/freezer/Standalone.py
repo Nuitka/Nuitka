@@ -376,7 +376,7 @@ def scanStandardLibraryPath(stdlib_dir):
 
 
 def detectEarlyImports():
-    if Options.freezeAllStdlib():
+    if Options.shallFreezeAllStdlib():
         stdlib_modules = set()
 
         # Scan the standard library paths (multiple in case of virtualenv.

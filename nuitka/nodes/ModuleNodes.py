@@ -25,7 +25,11 @@ import re
 
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
-from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
+from nuitka.importing.Importing import (
+    findModule,
+    getModuleNameAndKindFromFilename
+)
+from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils import Utils
@@ -80,6 +84,7 @@ class PythonModuleMixin:
 
         if self.package_name is not None and self.package is None:
             package_package, package_filename, _finding = findModule(
+                importing      = self,
                 source_ref     = self.getSourceReference(),
                 module_name    = self.package_name,
                 parent_package = None,
@@ -96,8 +101,6 @@ class PythonModuleMixin:
 
             _package_name, package_kind = getModuleNameAndKindFromFilename(package_filename)
             # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
-
-            from nuitka.importing.Recursion import decideRecursion, recurseTo
 
             decision, _reason = decideRecursion(
                 module_filename = package_filename,

@@ -116,7 +116,8 @@ def getModuleNameAndKindFromFilename(module_filename):
 
     return module_name, module_kind
 
-def warnAbout(module_name, parent_package, level, source_ref):
+
+def warnAbout(importing, module_name, parent_package, level, source_ref):
     # This probably should not be dealt with here.
     if module_name == "":
         return
@@ -126,6 +127,14 @@ def warnAbout(module_name, parent_package, level, source_ref):
 
         if key not in warned_about:
             warned_about.add(key)
+
+            if parent_package is None:
+                full_name = module_name
+            else:
+                full_name = module_name
+
+            if Plugins.suppressUnknownImportWarning(importing, full_name, source_ref):
+                return
 
             if level == 0:
                 level_desc = "as absolute import"
@@ -162,7 +171,7 @@ def normalizePackageName(module_name):
     return module_name
 
 
-def findModule(source_ref, module_name, parent_package, level, warn):
+def findModule(importing, source_ref, module_name, parent_package, level, warn):
     """ Find a module with given package name as parent.
 
         The package name can be None of course. Level is the same
@@ -264,10 +273,11 @@ def findModule(source_ref, module_name, parent_package, level, warn):
 
     if warn:
         warnAbout(
-            module_name,
-            parent_package,
-            level,
-            source_ref
+            importing = importing,
+            module_name = module_name,
+            parent_package = parent_package,
+            level = level,
+            source_ref = source_ref
         )
 
     return None, None, "not-found"

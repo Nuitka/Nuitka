@@ -29,7 +29,10 @@ compile time constant.
 
 from logging import warning
 
-from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
+from nuitka.importing.Importing import (
+    findModule,
+    getModuleNameAndKindFromFilename
+)
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.utils import Utils
@@ -164,6 +167,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             parent_package = self.getParentModule().getPackage()
 
         module_package, module_filename, _finding = findModule(
+            importing      = parent_module,
             source_ref     = self.source_ref,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
@@ -190,6 +194,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             continue
 
                         module_package, module_filename, _finding = findModule(
+                            importing      = parent_module,
                             source_ref     = self.source_ref,
                             module_name    = import_item,
                             parent_package = imported_module.getFullName(),

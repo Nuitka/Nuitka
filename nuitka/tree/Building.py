@@ -1089,7 +1089,7 @@ def buildModuleTree(filename, package, is_top, is_main):
         createModuleTree(
             module      = module,
             source_ref  = source_ref,
-            source_code = readSourceCodeFromFilename(module, source_filename),
+            source_code = readSourceCodeFromFilename(module.getFullName(), source_filename),
             is_main     = is_main
         )
 

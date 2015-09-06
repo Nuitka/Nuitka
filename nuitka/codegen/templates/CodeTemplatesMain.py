@@ -92,9 +92,13 @@ int main( int argc, char *argv[] )
     // does.
     Py_NoSiteFlag = 1;
 
-    // Initialize the embedded CPython interpreter.
-    setCommandLineParameters( argc, argv, true );
+    // Initial command line handling only.
+#ifdef _NUITKA_TRACE
+    puts("main(): Calling setCommandLineParameters.");
+#endif
+    bool is_multiprocess_forking = setCommandLineParameters( &argc, argv, true );
 
+    // Initialize the embedded CPython interpreter.
 #ifdef _NUITKA_TRACE
     puts("main(): Calling Py_Initialize.");
 #endif
@@ -111,7 +115,7 @@ int main( int argc, char *argv[] )
 #ifdef _NUITKA_TRACE
     puts("main(): Calling setCommandLineParameters.");
 #endif
-    setCommandLineParameters( argc, argv, false );
+    setCommandLineParameters( &argc, argv, false );
 
 #ifdef _NUITKA_STANDALONE
 #ifdef _NUITKA_TRACE
@@ -214,12 +218,37 @@ int main( int argc, char *argv[] )
     }
 #endif
 
+    // Enable meta path based loader.
+    setupMetaPathBasedLoader();
+
 #if _NUITKA_PROFILE
     startProfiling();
 #endif
 
-    // Execute the "__main__" module init function.
-    MOD_INIT_NAME( __main__ )();
+    // Execute the main module. In case of multiprocessing making a fork on
+    // Windows, we should execute something else instead.
+#if _NUITKA_MODULE_COUNT > 1
+    if (unlikely( is_multiprocess_forking ))
+    {
+#ifdef _NUITKA_TRACE
+        puts("main(): Calling __parents_main__.");
+#endif
+        IMPORT_COMPILED_MODULE(
+            PyUnicode_FromString("__parents_main__"),
+            "__parents_main__"
+        );
+    }
+    else
+#endif
+    {
+        assert( !is_multiprocess_forking );
+
+#ifdef _NUITKA_TRACE
+        puts("main(): Calling __main__.");
+#endif
+        // Execute the "__main__" module init function.
+        MOD_INIT_NAME( __main__ )();
+    }
 
 #if _NUITKA_PROFILE
     stopProfiling();
@@ -248,3 +277,6 @@ int main( int argc, char *argv[] )
     NUITKA_CANNOT_GET_HERE( main );
 }
 """
+
+from . import TemplateDebugWrapper # isort:skip
+TemplateDebugWrapper.checkDebug(globals())

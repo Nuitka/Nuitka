@@ -1642,8 +1642,23 @@ extern "C" wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t siz
 static wchar_t **argv_copy = NULL;
 #endif
 
-void setCommandLineParameters( int argc, char *argv[], bool initial )
+bool setCommandLineParameters( int *argc, char *argv[], bool initial )
 {
+    bool is_multiprocessing_fork = false;
+
+    // We need to skip what multiprocessing has told Python otherwise.
+    for ( int i = 1; i < *argc; i++ )
+    {
+        if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i+1 < *argc))
+        {
+            memmove( &argv[ 1 ], &argv[ i ], sizeof(char *) * 2 );
+            *argc -= i-1;
+
+            is_multiprocessing_fork = true;
+            break;
+        }
+    }
+
 #if PYTHON_VERSION < 300
     if ( initial )
     {
@@ -1651,13 +1666,13 @@ void setCommandLineParameters( int argc, char *argv[], bool initial )
     }
     else
     {
-        PySys_SetArgv( argc, argv );
+        PySys_SetArgv( *argc, argv );
     }
 #else
     if ( initial )
     {
         // Originally taken from CPython3: There seems to be no sane way to use
-        argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
+        argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*) * (*argc));
 
 #ifdef __FreeBSD__
         // 754 requires that FP exceptions run in "no stop" mode by default, and
@@ -1673,17 +1688,14 @@ void setCommandLineParameters( int argc, char *argv[], bool initial )
         char *oldloc = strdup( setlocale( LC_ALL, NULL ) );
         setlocale( LC_ALL, "" );
 
-        for ( int i = 0; i < argc; i++ )
+        for ( int i = 0; i < *argc; i++ )
         {
 #ifdef __APPLE__
             argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
-#else
-#if PYTHON_VERSION < 350
+#elif PYTHON_VERSION < 350
             argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
 #else
             argv_copy[i] = Py_DecodeLocale( argv[ i ], NULL );
-#endif
-
 #endif
             assert ( argv_copy[ i ] );
         }
@@ -1692,16 +1704,17 @@ void setCommandLineParameters( int argc, char *argv[], bool initial )
         free( oldloc );
     }
 
-
     if ( initial )
     {
         Py_SetProgramName( argv_copy[0] );
     }
     else
     {
-        PySys_SetArgv( argc, argv_copy );
+        PySys_SetArgv( *argc, argv_copy );
     }
 #endif
+
+    return is_multiprocessing_fork;
 }
 
 typedef struct {
