@@ -25,7 +25,7 @@ import re
 
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
-from nuitka.importing import Importing
+from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils import Utils
@@ -74,14 +74,12 @@ class PythonModuleMixin:
 
     def attemptRecursion(self):
         # Make sure the package is recursed to.
-        from nuitka.importing import Recursion
 
         # Return the list of newly added modules.
         result = []
 
         if self.package_name is not None and self.package is None:
-            package_package, package_filename, _finding = \
-              Importing.findModule(
+            package_package, package_filename, _finding = findModule(
                 source_ref     = self.getSourceReference(),
                 module_name    = self.package_name,
                 parent_package = None,
@@ -96,18 +94,31 @@ class PythonModuleMixin:
 
             assert package_filename is not None, self.package_name
 
-            imported_module, is_added = Recursion.recurseTo(
-                module_package  = package_package,
+            _package_name, package_kind = getModuleNameAndKindFromFilename(package_filename)
+            # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
+
+            from nuitka.importing.Recursion import decideRecursion, recurseTo
+
+            decision, _reason = decideRecursion(
                 module_filename = package_filename,
-                module_relpath  = Utils.relpath(package_filename),
-                module_kind     = "py",
-                reason          = "Containing package of recursed module.",
+                module_name     = self.package_name,
+                module_package  = package_package,
+                module_kind     = package_kind
             )
 
-            self.package = imported_module
+            if decision is not None:
+                imported_module, is_added = recurseTo(
+                    module_package  = package_package,
+                    module_filename = package_filename,
+                    module_relpath  = Utils.relpath(package_filename),
+                    module_kind     = "py",
+                    reason          = "Containing package of recursed module '%s'." % self.getFullName(),
+                )
 
-            if is_added:
-                result.append(imported_module)
+                self.package = imported_module
+
+                if is_added:
+                    result.append(imported_module)
 
         if self.package:
             from nuitka.ModuleRegistry import addUsedModule

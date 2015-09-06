@@ -235,6 +235,12 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # Mercurial test
         "statprof", "email.Generator", "email.Utils",
+
+        # setuptools does a lot of speculative stuff
+        "wincertstore", "setuptools_svn",
+
+        # reportlab does use this if present only and warns about itself.
+        "pyfribidi2", "macfs",
     )
 
 

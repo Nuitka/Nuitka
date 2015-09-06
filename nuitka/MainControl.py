@@ -40,6 +40,7 @@ from .codegen import CodeGeneration, ConstantCodes, MainCodes
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import (
     addFrozenModule,
+    isFrozenModule,
     generateBytecodeFrozenCode,
     getFrozenModuleCount,
     removeFrozenModule
@@ -312,6 +313,16 @@ def makeSourceDirectory(main_module):
     # end only.
     prepared_modules = {}
 
+    used_modules = list(other_modules)
+    for module in sorted(modules, key = lambda x : x.getFullName()):
+        if module.isPythonModule():
+            cpp_filename = module_filenames[module]
+            # We might have chosen to include it as bytecode, and only compiled
+            # it for fun, and to find its imports. In this case, now we just
+            # drop it.
+            if isFrozenModule(module.getFullName(), module.getCompileTimeFilename()):
+                used_modules.remove(module)
+
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
             cpp_filename = module_filenames[module]
@@ -320,7 +331,7 @@ def makeSourceDirectory(main_module):
                 global_context = global_context,
                 module         = module,
                 module_name    = module.getFullName(),
-                other_modules  = other_modules
+                other_modules  = used_modules
                                    if module is main_module else
                                  ()
             )
@@ -332,10 +343,19 @@ def makeSourceDirectory(main_module):
 
     for module in sorted(modules, key = lambda x : x.getFullName()):
         if module.isPythonModule():
+            # We might have chosen to include it as bytecode, and only compiled
+            # it for fun, and to find its imports. In this case, now we just
+            # drop it.
+            if isFrozenModule(module.getFullName(), module.getCompileTimeFilename()):
+                continue
+
             if removeFrozenModule(module.getFullName()):
                 warning(
                     """\
-Compiled module shadows standard library module '%s'.""" % module.getFullName()
+Compiled module shadows standard library module '%s' (imported from '%s').""" % (
+                        module.getFullName(),
+                        module.getCompileTimeFilename()
+                    )
                 )
 
             cpp_filename = module_filenames[module]

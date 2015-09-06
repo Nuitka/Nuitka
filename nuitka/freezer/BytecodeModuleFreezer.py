@@ -53,9 +53,6 @@ def removeFrozenModule(module_name):
 
         Typically this is because it was shadowed by a compiled version.
     """
-
-    count = None
-
     for count, frozen_module in enumerate(frozen_modules):
         frozen_module_name, _code_data, _is_package, _filename, _is_late = \
           frozen_module
@@ -99,7 +96,10 @@ def isFrozenModule(module_name, module_filename):
           frozen_module
 
         if module_name == frozen_module_name:
-            return Utils.areSamePaths(module_filename, _normalizeModuleFilename(filename))
+            return Utils.areSamePaths(
+                _normalizeModuleFilename(module_filename),
+                _normalizeModuleFilename(filename)
+            )
 
     return False
 
