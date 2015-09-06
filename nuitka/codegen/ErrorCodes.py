@@ -58,8 +58,13 @@ def getErrorExitReleaseCode(context):
     return temp_release
 
 
-def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
+def getErrorExitBoolCode(condition, emit, context,
+                         needs_check = True, quick_exception = None):
     assert not condition.endswith(';')
+
+    if not needs_check:
+        getAssertionCode("!(%s)" % condition, emit)
+        return
 
     context.markAsNeedsExceptionVariables()
 
@@ -98,13 +103,16 @@ def getErrorExitBoolCode(condition, emit, context, quick_exception = None):
         )
 
 
-def getErrorExitCode(check_name, emit, context, quick_exception = None):
-    getErrorExitBoolCode(
-        condition       = "%s == NULL" % check_name,
-        quick_exception = quick_exception,
-        emit            = emit,
-        context         = context
-    )
+def getErrorExitCode(check_name, emit, context, quick_exception = None, needs_check = True):
+    if needs_check:
+        getErrorExitBoolCode(
+            condition       = "%s == NULL" % check_name,
+            quick_exception = quick_exception,
+            emit            = emit,
+            context         = context
+        )
+    else:
+        getAssertionCode("%s != NULL" % check_name, emit)
 
 
 def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
@@ -268,3 +276,7 @@ def getMustNotGetHereCode(reason, context, emit):
     else:
         emit("PyErr_SetObject( PyExc_RuntimeError, Py_None );")
         emit("return;")
+
+
+def getAssertionCode(check, emit):
+    emit("assert( %s );" % check)

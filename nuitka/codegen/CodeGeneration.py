@@ -499,12 +499,13 @@ def generateComparisonExpressionCode(to_name, comparison_expression, emit,
     )
 
     getComparisonExpressionCode(
-        to_name    = to_name,
-        comparator = comparison_expression.getComparator(),
-        left_name  = left_name,
-        right_name = right_name,
-        emit       = emit,
-        context    = context
+        to_name     = to_name,
+        comparator  = comparison_expression.getComparator(),
+        left_name   = left_name,
+        right_name  = right_name,
+        needs_check = comparison_expression.mayRaiseExceptionBool(BaseException),
+        emit        = emit,
+        context     = context
     )
 
 
@@ -1201,17 +1202,12 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         needs_ref1 = context.needsCleanup(left_name)
 
         getConditionCheckTrueCode(
-            to_name    = truth_name,
-            value_name = left_name,
-            emit       = emit
+            to_name     = truth_name,
+            value_name  = left_name,
+            needs_check = left_value.mayRaiseExceptionBool(BaseException),
+            emit        = emit,
+            context     = context
         )
-
-        if left_value.mayRaiseExceptionBool(BaseException):
-            getErrorExitBoolCode(
-                condition = "%s == -1" % truth_name,
-                emit      = emit,
-                context   = context
-            )
 
         if expression.isExpressionConditionalOR():
             context.setTrueBranchTarget(true_target)
