@@ -29,7 +29,7 @@ compile time constant.
 
 from logging import warning
 
-from nuitka.importing.Importing import findModule
+from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.utils import Utils
@@ -102,21 +102,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
 
         module_filename = Utils.normpath(module_filename)
 
-        if Utils.isDir(module_filename):
-            module_name = Utils.basename(module_filename)
-            module_kind = "py"
-        elif module_filename.endswith(".py"):
-            module_name = Utils.basename(module_filename)[:-3]
-            module_kind = "py"
-        elif module_filename.endswith(".so"):
-            module_kind = "shlib"
-            module_name = Utils.basename(module_filename)[:-3]
-        elif module_filename.endswith(".pyd"):
-            module_kind = "shlib"
-            module_name = Utils.basename(module_filename)[:-4]
-        else:
-            module_kind = None
-            module_name = None
+        module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
 
         if module_kind is not None:
             decision, reason = decideRecursion(

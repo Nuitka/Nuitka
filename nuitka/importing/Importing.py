@@ -85,6 +85,35 @@ def getPackageNameFromFullName(full_name):
     else:
         return None
 
+def getExtensionModuleSuffixes():
+    for suffix, _mode, kind in imp.get_suffixes():
+        if kind == imp.C_EXTENSION:
+            yield suffix
+
+
+def getModuleNameAndKindFromFilename(module_filename):
+    if Utils.isDir(module_filename):
+        module_name = Utils.basename(module_filename)
+        module_kind = "py"
+    elif module_filename.endswith(".py"):
+        module_name = Utils.basename(module_filename)[:-3]
+        module_kind = "py"
+    else:
+        for suffix, _mode, kind in imp.get_suffixes():
+            if kind != imp.C_EXTENSION:
+                continue
+
+            if module_filename.endswith(suffix):
+                module_name = Utils.basename(module_filename)[:-len(suffix)]
+                module_kind = "shlib"
+
+                break
+        else:
+            module_kind = None
+            module_name = None
+
+    return module_name, module_kind
+
 def warnAbout(module_name, parent_package, level, source_ref):
     # This probably should not be dealt with here.
     if module_name == "":
@@ -189,7 +218,7 @@ def findModule(source_ref, module_name, parent_package, level, warn):
 
             if _debug_module_finding:
                 print(
-                    "findModule: Relative imported module '%s' as '%s' in filename '%s'    ':" % (
+                    "findModule: Relative imported module '%s' as '%s' in filename '%s':" % (
                         module_name,
                         full_name,
                         module_filename
