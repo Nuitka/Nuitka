@@ -112,6 +112,14 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
     )
 
     if Options.isFullCompat():
+        if body:
+            deepest = body
+
+            while deepest.getVisitableNodes():
+                deepest = deepest.getVisitableNodes()[-1]
+
+            body_lineno = deepest.getCompatibleSourceReference().getLineNumber()
+
         with_exit_source_ref = source_ref.atLineNumber(body_lineno)
     else:
         with_exit_source_ref = source_ref
