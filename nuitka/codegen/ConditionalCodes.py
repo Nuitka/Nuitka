@@ -69,11 +69,12 @@ def generateConditionCode(condition, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
         getComparisonExpressionBoolCode(
-            comparator = condition.getComparator(),
-            left_name  = left_name,
-            right_name = right_name,
-            emit       = emit,
-            context    = context
+            comparator  = condition.getComparator(),
+            left_name   = left_name,
+            right_name  = right_name,
+            needs_check = condition.mayRaiseExceptionBool(BaseException),
+            emit        = emit,
+            context     = context
         )
         context.setCurrentSourceCodeReference(old_source_ref)
     elif condition.isExpressionOperationNOT():
@@ -203,18 +204,14 @@ def generateConditionCode(condition, emit, context):
             context    = context
         )
 
-        getConditionCheckTrueCode(
-            to_name    = truth_name,
-            value_name = condition_name,
-            emit       = emit
-        )
-
         old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
 
-        getErrorExitBoolCode(
-            condition = "%s == -1" % truth_name,
-            emit      = emit,
-            context   = context
+        getConditionCheckTrueCode(
+            to_name     = truth_name,
+            value_name  = condition_name,
+            needs_check = condition.mayRaiseExceptionBool(BaseException),
+            emit        = emit,
+            context     = context
         )
 
         context.setCurrentSourceCodeReference(old_source_ref)
@@ -232,10 +229,17 @@ def generateConditionCode(condition, emit, context):
         )
 
 
-def getConditionCheckTrueCode(to_name, value_name, emit):
+def getConditionCheckTrueCode(to_name, value_name, needs_check, emit, context):
     emit(
         "%s = CHECK_IF_TRUE( %s );" % (
             to_name,
             value_name
         )
+    )
+
+    getErrorExitBoolCode(
+        condition   = "%s == -1" % to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
     )
