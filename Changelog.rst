@@ -6,8 +6,41 @@ Release not done yet.
 Bug Fixes
 ---------
 
-- Standalone: Added implicit import for ``reportlab`` package
-  configuration dynamic import.
+- Standalone: Added implicit import for ``reportlab`` package configuration
+  dynamic import. Fixed in 0.5.14.1 already.
+
+- Standalone: Fix, compilation of the ``ctypes`` module could happen for some
+  import patterns, and then prevented the distribution to contain all necessary
+  libraries. Now it is made certain to not include compiled and frozen form both.
+  `Issue#241 <http://bugs.nuitka.net/issue241>`__. Fixed in 0.5.14.1 already.
+
+- Fix, compilation for conditional statements where the boolean check on the
+  condition cannot raise, could fail compilation. `Issue#240
+  <http://bugs.nuitka.net/issue240>`__. Fixed in 0.5.14.2 already.
+
+New Features
+------------
+
+- Added experimental plug-in framework, and use it for the packaging of
+  Qt plugins in standalone mode. The API is not yet stable nor polished.
+
+
+Optimization
+------------
+
+- The ``try``/``finally`` construct is now represented by duplicating the
+  final block into all kinds of handlers (``break``, ``continue``, ``return``,
+  or ``except``) and optimized separately. This allows for SSA to trace values
+  more correctly.
+
+- The ``hash`` built-in now has dedicated node and code generation too. This is
+  mostly intended to represent the side effects of dictionary look-up, but
+  gives more compact and faster code too.
+
+- Code generation for many constructs now takes into account if a specific
+  operation can raise or not. If e.g. an attribute look-up is known to not
+  raise, then that is now decided by the node the looked is done to, and then
+  more often can determine this, or even directly the value.
 
 Summary
 -------
