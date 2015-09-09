@@ -94,8 +94,8 @@ def diffRecursive(dir1, dir2):
             todate = time.ctime(os.stat(path2).st_mtime)
 
             diff = difflib.unified_diff(
-                a            = open(path1, "rb").readlines(),
-                b            = open(path2, "rb").readlines(),
+                a            = open(path1, "r").readlines(),
+                b            = open(path2, "r").readlines(),
                 fromfile     = path1,
                 tofile       = path2,
                 fromfiledate = fromdate,
@@ -362,6 +362,7 @@ def executePASS5():
         path,
         "--output-dir=%s" % tmp_dir,
         "--recurse-all",
+        "--recurse-not-to=PyQt4",
         "--recurse-dir=%s" % path,
         "--module",
         path
