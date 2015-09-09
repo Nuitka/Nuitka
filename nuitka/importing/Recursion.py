@@ -75,6 +75,13 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
                         )
 
                     return None, False
+                except Building.CodeTooComplexCode:
+                    warning(
+                        """\
+Cannot recurse to import module '%s' (%s) because code is too complex.""",
+                        module_relpath,
+                        module_filename,
+                    )
 
             ImportCache.addImportedModule(
                 module_relpath,

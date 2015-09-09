@@ -1015,17 +1015,38 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     return result, source_ref, source_filename
 
 
+class CodeTooComplexCode(Exception):
+    """ The code of the module is too complex.
+
+        It cannot be compiled, with recursive code, and therefore the bytecode
+        should be used instead.
+
+        Example of this is "idnadata".
+    """
+
+    pass
+
+
 def createModuleTree(module, source_ref, source_code, is_main):
     if Options.isShowProgress():
         memory_watch = Utils.MemoryWatch()
 
-    module_body = buildParseTree(
-        provider    = module,
-        source_code = source_code,
-        source_ref  = source_ref,
-        is_module   = True,
-        is_main     = is_main
-    )
+    try:
+        module_body = buildParseTree(
+            provider    = module,
+            source_code = source_code,
+            source_ref  = source_ref,
+            is_module   = True,
+            is_main     = is_main
+        )
+    except RuntimeError as e:
+        if "maximum recursion depth" in e.message:
+            raise CodeTooComplexCode(
+                module.getFullName(),
+                module.getCompileTimeFilename()
+            )
+
+        raise
 
     if module_body.isStatementsFrame():
         module_body = makeStatementsSequenceFromStatement(
