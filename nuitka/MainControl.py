@@ -268,25 +268,42 @@ def pickSourceFilenames(source_dir, modules):
 standalone_entry_points = []
 
 def makeSourceDirectory(main_module):
+    """ Get the full list of modules imported, create code for all of them.
+
+    """
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0912,R0914
+    # no sense, pylint: disable=R0912
 
     assert main_module.isPythonModule()
 
     # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
 
-    # Get the full list of modules imported, create code for all of them.
-    modules = ModuleRegistry.getDoneModules()
-    assert main_module in modules
+    assert main_module in ModuleRegistry.getDoneModules()
 
-    # Sometimes we need to talk about all modules except main module.
-    other_modules = ModuleRegistry.getDoneUserModules()
+    # We might have chosen to include it as bytecode, and only compiled it for
+    # fun, and to find its imports. In this case, now we just can drop it. Or
+    # a module may shadow a frozen module, but be a different one, then we can
+    # drop the frozen one.
+    for module in ModuleRegistry.getDoneUserModules():
+        if module.isPythonModule():
+            if isFrozenModule(module.getFullName(), module.getCompileTimeFilename()):
+                ModuleRegistry.removeDoneModule(module)
+                continue
+
+            if removeFrozenModule(module.getFullName()):
+                warning(
+                    """\
+Compiled module shadows standard library module '%s' (imported from '%s').""" % (
+                        module.getFullName(),
+                        module.getCompileTimeFilename()
+                    )
+                )
 
     # Lets check if the recurse-to modules are actually present, and warn the
-    # user if one was not found.
+    # user if one of those was not found.
     for any_case_module in Options.getShallFollowModules():
-        for module in other_modules:
+        for module in ModuleRegistry.getDoneUserModules():
             if module.getFullName() == any_case_module:
                 break
         else:
@@ -296,7 +313,7 @@ def makeSourceDirectory(main_module):
             )
 
     # Prepare code generation, i.e. execute finalization for it.
-    for module in sorted(modules, key = lambda x : x.getFullName()):
+    for module in ModuleRegistry.getDoneModules():
         if module.isPythonModule():
             Finalization.prepareCodeGeneration(module)
 
@@ -305,7 +322,7 @@ def makeSourceDirectory(main_module):
 
     module_filenames = pickSourceFilenames(
         source_dir = source_dir,
-        modules    = modules
+        modules    = ModuleRegistry.getDoneModules()
     )
 
     # First pass, generate code and use constants doing so, but prepare the
@@ -313,9 +330,7 @@ def makeSourceDirectory(main_module):
     # end only.
     prepared_modules = {}
 
-    used_modules = list(other_modules)
-
-    for module in sorted(modules, key = lambda x : x.getFullName()):
+    for module in ModuleRegistry.getDoneModules():
         if module.isPythonModule():
             cpp_filename = module_filenames[module]
 
@@ -329,24 +344,9 @@ def makeSourceDirectory(main_module):
             if module is main_module and not Options.shallMakeModule():
                 prepared_modules[cpp_filename][1].getConstantCode(0)
 
-    for module in sorted(modules, key = lambda x : x.getFullName()):
+    # Second pass, generate the actual module code into the files.
+    for module in ModuleRegistry.getDoneModules():
         if module.isPythonModule():
-            # We might have chosen to include it as bytecode, and only compiled
-            # it for fun, and to find its imports. In this case, now we just
-            # drop it.
-            if isFrozenModule(module.getFullName(), module.getCompileTimeFilename()):
-                used_modules.remove(module)
-                continue
-
-            if removeFrozenModule(module.getFullName()):
-                warning(
-                    """\
-Compiled module shadows standard library module '%s' (imported from '%s').""" % (
-                        module.getFullName(),
-                        module.getCompileTimeFilename()
-                    )
-                )
-
             cpp_filename = module_filenames[module]
 
             template_values, module_context = prepared_modules[cpp_filename]
@@ -406,7 +406,9 @@ Compiled module shadows standard library module '%s' (imported from '%s').""" % 
         )
     )
 
-    helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode(used_modules)
+    helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode(
+        ModuleRegistry.getDoneUserModules()
+    )
 
     writeSourceCode(
         filename    = Utils.joinpath(source_dir, "__helpers.hpp"),
