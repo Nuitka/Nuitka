@@ -479,9 +479,8 @@ def runScons(main_module, quiet):
 
     if not Options.isStandaloneMode() and \
        not Options.shallMakeModule() and \
-       Utils.getOS() == "Windows" and \
        isUninstalledPython():
-        options["win_copy_dll"] = "true"
+        options["uninstalled_python"] = "true"
 
     if getFrozenModuleCount():
         options["frozen_modules"] = str(
