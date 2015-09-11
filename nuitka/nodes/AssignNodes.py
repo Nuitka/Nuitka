@@ -203,7 +203,7 @@ Side effects of assignments promoted to statements.""",
 
         global_trace = VariableRegistry.getGlobalVariableTrace(variable)
 
-        if global_trace is not None and Options.isExperimental():
+        if global_trace is not None: # and Options.isExperimental():
             last_trace = global_trace.getMatchingAssignTrace(self)
 
             if last_trace is not None:
