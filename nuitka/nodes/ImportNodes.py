@@ -54,6 +54,8 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
     _warned_about = set()
 
     def __init__(self, module_name, import_list, level, source_ref):
+        assert type(module_name) is str, type(module_name)
+
         NodeBase.__init__(
             self,
             source_ref = source_ref
@@ -325,9 +327,6 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     getLevel = ExpressionChildrenHavingBase.childGetter("level")
 
     def computeExpression(self, constraint_collection):
-        # Importing may raise an exception obviously.
-        constraint_collection.onExceptionRaiseExit(BaseException)
-
         module_name = self.getImportName()
         fromlist = self.getFromList()
         level = self.getLevel()
@@ -339,18 +338,39 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         if module_name.isExpressionConstantRef() and \
            fromlist.isExpressionConstantRef() and \
            level.isExpressionConstantRef():
-            new_node = ExpressionImportModule(
-                module_name = module_name.getConstant(),
-                import_list = fromlist.getConstant(),
-                level       = level.getConstant(),
-                source_ref  = self.getSourceReference()
-            )
 
-            return (
-                new_node,
-                "new_import",
-                "Replaced __import__ call with module import expression."
-            )
+            if module_name.isStringConstant():
+                new_node = ExpressionImportModule(
+                    module_name = module_name.getConstant(),
+                    import_list = fromlist.getConstant(),
+                    level       = level.getConstant(),
+                    source_ref  = self.getSourceReference()
+                )
+
+                # Importing may raise an exception obviously.
+                constraint_collection.onExceptionRaiseExit(BaseException)
+
+
+                return (
+                    new_node,
+                    "new_import",
+                    "Replaced __import__ call with module import expression."
+                )
+            else:
+                # Non-strings is going to raise an error.
+                new_node, change_tags, message = constraint_collection.getCompileTimeComputationResult(
+                    node        = self,
+                    computation = lambda : __import__(module_name.getConstant()),
+                    description = "Replaced __import__ call with non-string module name argument."
+                )
+
+                # Must fail, must not go on when it doesn't.
+                assert change_tags == "new_raise"
+
+                return new_node, change_tags, message
+
+        # Importing may raise an exception obviously.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.

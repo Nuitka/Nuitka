@@ -77,3 +77,16 @@ def nonPackageImportFailure():
 
 print("Package import fails in non-package:", end = ' ')
 nonPackageImportFailure()
+
+def importBuiltinTupleFailure():
+    try:
+        value = "something",
+        # Not allowed to not be constant string, optimization might be fooled
+        # though.
+        __import__(value)
+    except Exception as e:
+        print(type(e), repr(e))
+
+print("The __import__ built-in optimization can handle tuples:", end = ' ')
+
+importBuiltinTupleFailure()
