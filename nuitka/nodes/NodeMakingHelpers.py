@@ -52,7 +52,7 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
 
     if shallWarnImplicitRaises():
         warning(
-            "%s: Will always raise exception %s(%s)",
+            "%s: Will always raise exception '%s(%s)'",
             expression.getSourceReference().getAsString(),
             exception_type,
             exception_value
