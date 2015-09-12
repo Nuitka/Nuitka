@@ -73,21 +73,22 @@ def _getPython2ExePathWindows():
         import winreg  # lint:ok
 
     for search in ("2.7", "2.6"):
-        for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:
-            try:
-                key = winreg.OpenKey(
-                    winreg.HKEY_LOCAL_MACHINE,
-                    r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
-                    0,
-                    winreg.KEY_READ | arch_key
-                )
+        for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+            for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:
+                try:
+                    key = winreg.OpenKey(
+                        hkey_branch,
+                        r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
+                        0,
+                        winreg.KEY_READ | arch_key
+                    )
 
-                return Utils.joinpath(
-                    winreg.QueryValue(key, ""),
-                    "python.exe"
-                )
-            except WindowsError:  # @UndefinedVariable
-                pass
+                    return Utils.joinpath(
+                        winreg.QueryValue(key, ""),
+                        "python.exe"
+                    )
+                except WindowsError:  # @UndefinedVariable
+                    pass
 
 
 def getPython2ExePath():
