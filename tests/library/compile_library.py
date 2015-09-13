@@ -114,6 +114,10 @@ def compilePath(path):
             if '(' in filename:
                 continue
 
+            # Avoid too complex code for main program.
+            if filename == "idnadata.py":
+                continue
+
             path = os.path.join(root, filename)
 
             if not active and start_at in (filename, path):
