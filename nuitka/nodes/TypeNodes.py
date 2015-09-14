@@ -105,6 +105,8 @@ class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
     getObject = ExpressionChildrenHavingBase.childGetter("object")
 
     def computeExpression(self, constraint_collection):
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
 
