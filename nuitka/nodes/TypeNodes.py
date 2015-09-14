@@ -26,6 +26,7 @@ will then know it's limited after the fact.
 
 from nuitka.Builtins import builtin_names
 
+from .BuiltinRefNodes import ExpressionBuiltinAnonymousRef, ExpressionBuiltinRef
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
@@ -43,10 +44,6 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
             type_name = value.__class__.__name__
 
-            from .BuiltinRefNodes import (
-                ExpressionBuiltinAnonymousRef,
-                ExpressionBuiltinRef
-            )
 
             if type_name in builtin_names:
                 new_node = ExpressionBuiltinRef(
@@ -80,6 +77,12 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
         return result, "new_statements", """\
 Removed type taking for unused result."""
+
+    def mayRaiseException(self, exception_type):
+        return self.getValue().mayRaiseException(exception_type)
+
+    def mayHaveSideEffects(self):
+        return self.getValue().mayHaveSideEffects()
 
 
 class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
