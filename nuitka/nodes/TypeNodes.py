@@ -18,7 +18,7 @@
 """ The type1 node.
 
 This one just determines types. It's great for optimization. We may be able to
-predict its value, but knowing it. In that case, we have a builtin name
+predict its value, but knowing it. In that case, we have a built-in name
 reference for that type to convert to, or when checking the result of it, we
 will then know it's limited after the fact.
 
@@ -30,7 +30,6 @@ from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
-from .NodeMakingHelpers import getComputationResult
 
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
@@ -141,15 +140,19 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
         # TODO: Should be possible to query run time type instead, but we don't
         # have that method yet. Later this will be essential.
         if not instance.isCompileTimeConstant():
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
             return self, None, None
 
         cls = self.getCls()
 
         if not cls.isCompileTimeConstant():
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
             return self, None, None
 
         # So if both are compile time constant, we are able to compute it.
-        return getComputationResult(
+        return constraint_collection.getCompileTimeComputationResult(
             node        = self,
             computation = lambda : isinstance(
                 instance.getCompileTimeConstant(),
