@@ -18,6 +18,23 @@ Bug Fixes
   condition cannot raise, could fail compilation. `Issue#240
   <http://bugs.nuitka.net/issue240>`__. Fixed in 0.5.14.2 already.
 
+- Fix, the ``__import__`` built-in was making static optimization assuming
+  compile time constants to be strings, which in the error case they are not,
+  which was crashing the compiler.  `Issue#240
+  <http://bugs.nuitka.net/issue245>`__.
+
+  .. code-block:: python
+
+      __import__(("some.module",)) # tuples don't work
+
+  This error became only apparent, because now in some cases, Nuitka forward
+  propagates values.
+
+- Windows: Fix, when installing Python2 only for the user, the detection of it
+  via registry failed as it was only searching system key. This was `a github
+  pull request <https://github.com/kayhayen/Nuitka/pull/8>`__. Fixed in
+  0.5.14.3 already.
+
 New Features
 ------------
 
