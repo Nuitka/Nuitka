@@ -149,7 +149,7 @@ def compilePath(path):
 
             try:
                 subprocess.check_call(command)
-            except subprocess.CalledProcessError as e:
+            except subprocess.CalledProcessError:
                 my_print("Falling back to full comparison due to error exit.")
                 compareWithCPython(
                     dirname     = None,

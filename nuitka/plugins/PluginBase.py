@@ -29,10 +29,10 @@ it being used.
 """
 
 # This is heavily WIP.
+import re
 import shutil
 import subprocess
 import sys
-import re
 from logging import info, warning
 
 from nuitka import Options
