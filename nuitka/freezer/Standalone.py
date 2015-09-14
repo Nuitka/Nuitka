@@ -388,7 +388,7 @@ def detectEarlyImports():
                       "for imp in imports:\n" \
                       "    try:\n" \
                       "        __import__(imp)\n" \
-                      "    except ImportError:\n" \
+                      "    except (ImportError, SyntaxError):\n" \
                       "        pass\n"
     else:
         # TODO: Should recursively include all of encodings module.
