@@ -361,11 +361,11 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
     def onModuleSourceCode(self, module_name, source_code):
         self.line_annotations[module_name] = {}
 
-        for count, line in enumerate(source_code.split("\n")):
+        for count, line in enumerate(source_code.split('\n')):
             match = re.search(r"#.*pylint:\s*disable=\s*([\w,]+)", line)
 
             if match:
-                comment_only = line[:line.find("#")-1].strip() == ""
+                comment_only = line[:line.find('#')-1].strip() == ""
 
                 if comment_only:
                     # TODO: Parse block wide annotations too.
@@ -374,7 +374,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
                     self.line_annotations[module_name][count+1] = set(
                         match.strip()
                         for match in
-                        match.group(1).split(",")
+                        match.group(1).split(',')
                     )
 
         # Do nothing to it.

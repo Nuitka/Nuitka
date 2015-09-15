@@ -273,11 +273,11 @@ def findModule(importing, source_ref, module_name, parent_package, level, warn):
 
     if warn:
         warnAbout(
-            importing = importing,
-            module_name = module_name,
+            importing      = importing,
+            module_name    = module_name,
             parent_package = parent_package,
-            level = level,
-            source_ref = source_ref
+            level          = level,
+            source_ref     = source_ref
         )
 
     return None, None, "not-found"
