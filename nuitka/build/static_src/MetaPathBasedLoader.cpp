@@ -51,6 +51,25 @@ static char *_kwlist[] = {
     NULL
 };
 
+static bool hasFrozenModule( char const *name )
+{
+    for ( struct _frozen const *p = PyImport_FrozenModules; ; p++ )
+    {
+        if ( p->name == NULL )
+        {
+            return false;
+        }
+
+        if ( strcmp( p->name, name ) == 0 )
+        {
+            break;
+        }
+    }
+
+    return true;
+}
+
+
 static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, PyObject *kwds )
 {
     PyObject *module_name;
@@ -85,12 +104,22 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
         {
             if ( Py_VerboseFlag )
             {
-                PySys_WriteStderr( "import %s # claimed responsibility\n", name );
+                PySys_WriteStderr( "import %s # claimed responsibility (compiled)\n", name );
             }
             return INCREASE_REFCOUNT( metapath_based_loader );
         }
 
         current++;
+    }
+
+    if ( hasFrozenModule( name ) )
+    {
+        if ( Py_VerboseFlag )
+        {
+            PySys_WriteStderr( "import %s # claimed responsibility (frozen)\n", name );
+        }
+
+        return INCREASE_REFCOUNT( metapath_based_loader );
     }
 
     if ( Py_VerboseFlag )
@@ -412,22 +441,51 @@ static PyObject *loadModule( PyObject *module_name, Nuitka_MetaPathBasedLoaderEn
 PyObject *IMPORT_COMPILED_MODULE( PyObject *module_name, char const *name )
 {
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
+    bool frozen_import = entry == NULL && hasFrozenModule( name );
+
+    if ( entry != NULL || frozen_import )
+    {
+        // Execute the "preLoad" code produced for the module potentially. This
+        // is from plug-ins typically, that want to modify things for the the
+        // module before loading, to e.g. set a plug-in path, or do some monkey
+        // patching in order to make things compatible.
+        loadTriggeredModule( name, "-preLoad" );
+    }
+
+    PyObject *result = NULL;
 
     if ( entry != NULL )
     {
-        // Execute the "preLoad" code produced for the module potentially. This is
-        // from plugins typically, that want to modify things for the the module
-        // before loading, to e.g. set a plugin path, or do some monkey patching in
-        // order to make things compatible.
-        loadTriggeredModule(entry->name, "-preLoad");
+        result = loadModule( module_name, entry );
 
-        PyObject *result = loadModule( module_name, entry );
+        if ( result == NULL )
+        {
+            return NULL;
+        }
+    }
 
-        // Execute the "postLoad" code produced for the module potentially. This is
-        // from plugins typically, that want to modify the module immediately
-        // after loading, to e.g. set a plugin path, or do some monkey patching in
-        // order to make things compatible.
-        loadTriggeredModule(entry->name, "-postLoad");
+    if ( frozen_import )
+    {
+        int res = PyImport_ImportFrozenModule( (char *)name );
+
+        if (unlikely( res == -1 ))
+        {
+            return NULL;
+        }
+
+        if ( res == 1 )
+        {
+            result = LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
+        }
+    }
+
+    if ( result != NULL )
+    {
+        // Execute the "postLoad" code produced for the module potentially. This
+        // is from plug-ins typically, that want to modify the module immediately
+        // after loading, to e.g. set a plug-in path, or do some monkey patching
+        // in order to make things compatible.
+        loadTriggeredModule( name, "-postLoad" );
 
         return result;
     }
@@ -561,7 +619,11 @@ static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyOb
     char *name = Nuitka_String_AsString( module_name );
 
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
-    if ( entry == NULL ) return INCREASE_REFCOUNT( Py_None );
+
+    if ( entry == NULL )
+    {
+        return INCREASE_REFCOUNT( Py_None );
+    }
 
     PyObject *importlib = PyImport_ImportModule( "importlib._bootstrap" );
 

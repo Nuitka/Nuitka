@@ -1040,7 +1040,7 @@ def createModuleTree(module, source_ref, source_code, is_main):
             is_main     = is_main
         )
     except RuntimeError as e:
-        if "maximum recursion depth" in e.message:
+        if "maximum recursion depth" in e.args[0]:
             raise CodeTooComplexCode(
                 module.getFullName(),
                 module.getCompileTimeFilename()

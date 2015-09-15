@@ -116,6 +116,10 @@ def buildNode(provider, node, source_ref, allow_none = False):
         return result
     except SyntaxError:
         raise
+    except RuntimeError:
+        # Very likely the stack overflow, which we will turn into too complex
+        # code exception, don't warn about it with a code dump then.
+        raise
     except:
         warning("Problem at '%s' with %s." % (source_ref, ast.dump(node)))
         raise

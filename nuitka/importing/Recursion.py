@@ -21,8 +21,13 @@
 
 from logging import debug, warning
 
+import marshal
 from nuitka import ModuleRegistry, Options
-from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
+from nuitka.freezer.BytecodeModuleFreezer import (
+    FrozenModuleDescription,
+    addFrozenModule,
+    isFrozenModule
+)
 from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.plugins.PluginBase import Plugins
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
@@ -77,12 +82,35 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
 
                     return None, False
                 except Building.CodeTooComplexCode:
-                    warning(
-                        """\
+                    if module_filename not in Importing.warned_about:
+                        Importing.warned_about.add(module_filename)
+
+                        warning(
+                            """\
 Cannot recurse to import module '%s' (%s) because code is too complex.""",
-                        module_relpath,
-                        module_filename,
-                    )
+                            module_relpath,
+                            module_filename,
+                        )
+
+
+                        if Options.isStandaloneMode():
+                            addFrozenModule(
+                                FrozenModuleDescription(
+                                    module_name = module.getFullName(),
+                                    bytecode    = marshal.dumps(
+                                        compile(
+                                            readSourceCodeFromFilename(module.getFullName(), module_filename),
+                                            module_filename,
+                                            "exec"
+                                        )
+                                    ),
+                                    is_package  = module.isPythonPackage(),
+                                    filename    = module_filename,
+                                    is_late     = True
+                                )
+                            )
+
+                    return None, False
 
             ImportCache.addImportedModule(
                 module_relpath,
