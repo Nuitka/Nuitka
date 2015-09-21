@@ -277,7 +277,7 @@ def optimize():
     if Options.shouldCreateGraph():
 
         try:
-            from graphviz import Digraph
+            from graphviz import Digraph # pylint: disable=F0401,I0021
             graph = Digraph('G')
         except ImportError:
             warning("Cannot import graphviz module, no graphing capability.")

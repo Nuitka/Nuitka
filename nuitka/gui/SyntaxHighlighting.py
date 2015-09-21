@@ -20,8 +20,8 @@
 Inspired/copied from by http://diotavelli.net/PyQtWiki/Python%20syntax%20highlighting
 """
 
-from PyQt4.QtCore import QRegExp
-from PyQt4.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
+from PyQt4.QtCore import QRegExp # pylint: disable=F0401,I0021
+from PyQt4.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat # pylint: disable=F0401,I0021
 
 
 def createTextFormat(color, style = ""):
