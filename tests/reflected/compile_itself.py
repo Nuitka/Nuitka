@@ -67,6 +67,13 @@ PACKAGE_LIST = (
     "nuitka/utils",
 )
 
+def readSource(filename):
+    if python_version < "3":
+        return open(filename, "rb").read()
+    else:
+        return open(filename, "rb").read().decode("latin1")
+
+
 def diffRecursive(dir1, dir2):
     done = set()
 
@@ -96,8 +103,8 @@ def diffRecursive(dir1, dir2):
             todate = time.ctime(os.stat(path2).st_mtime)
 
             diff = difflib.unified_diff(
-                a            = open(path1, "r").readlines(),
-                b            = open(path2, "r").readlines(),
+                a            = readSource(path1).splitlines(),
+                b            = readSource(path2).splitlines(),
                 fromfile     = path1,
                 tofile       = path2,
                 fromfiledate = fromdate,
