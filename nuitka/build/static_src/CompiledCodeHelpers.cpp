@@ -1651,9 +1651,6 @@ bool setCommandLineParameters( int *argc, char *argv[], bool initial )
     {
         if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i+1 < *argc))
         {
-            memmove( &argv[ 1 ], &argv[ i ], sizeof(char *) * 2 );
-            *argc -= i-1;
-
             is_multiprocessing_fork = true;
             break;
         }

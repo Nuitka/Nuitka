@@ -233,10 +233,16 @@ int main( int argc, char *argv[] )
 #ifdef _NUITKA_TRACE
         puts("main(): Calling __parents_main__.");
 #endif
-        IMPORT_COMPILED_MODULE(
+        PyObject *result = IMPORT_COMPILED_MODULE(
             PyUnicode_FromString("__parents_main__"),
             "__parents_main__"
         );
+
+        if ( result == NULL )
+        {
+            PyErr_PrintEx( 0 );
+            Py_Exit( 1 );
+        }
     }
     else
 #endif

@@ -627,26 +627,26 @@ parser.add_option_group(windows_group)
 
 plugin_group = OptionGroup(
     parser,
-    "Tracing features"
+    "Plugin control"
 )
 
 plugin_group.add_option(
-    "--plugin-disable",
-    action  = "append",
-    dest    = "plugins_disabled",
-    default = [],
-    help    = """\
-Disabled plugins. Must be plug-in names. Use --plugin-list to query the
-full list and exit. Default empty."""
-)
-
-plugin_group.add_option(
-    "--plugin-enable",
+    "--plugin-enable", "--enable-plugin",
     action  = "append",
     dest    = "plugins_enabled",
     default = [],
     help    = """\
 Enabled plugins. Must be plug-in names. Use --plugin-list to query the
+full list and exit. Default empty."""
+)
+
+plugin_group.add_option(
+    "--plugin-disable", "--disable-plugin",
+    action  = "append",
+    dest    = "plugins_disabled",
+    default = [],
+    help    = """\
+Disabled plugins. Must be plug-in names. Use --plugin-list to query the
 full list and exit. Default empty."""
 )
 
@@ -662,7 +662,6 @@ the mechanism entirely, which also speeds up compilation slightly of course as
 this detection code is run in vain once you are certain of which plug-ins to
 use. Defaults to off."""
 )
-
 
 parser.add_option_group(plugin_group)
 

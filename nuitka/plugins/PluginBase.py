@@ -401,76 +401,6 @@ class NuitkaPluginDetectorPylintEclipseAnnotations(NuitkaPluginBase):
 
 
 
-class NuitkaPluginMultiprocessingWorkaorunds(NuitkaPluginBase):
-    """ This is to make multiprocess work with Nuitka and use compiled code.
-
-        When running in accelerated mode, it's not good to fork a new Python
-        instance to run other code, as that won't be accelerated. And when
-        run in standalone mode, there may not even be a Python, but it's the
-        same principle.
-
-        So by default, this module is on and works around the behaviour of the
-        "multiprocess.forking" expectations.
-    """
-    plugin_name = "multiprocessing"
-
-    def __init__(self):
-        self.multiprocessing_added = False
-
-
-    @staticmethod
-    def createPreModuleLoadCode(module):
-        full_name = module.getFullName()
-
-        if full_name == "multiprocessing.forking":
-            code = """\
-import sys
-sys.frozen = 1
-sys.executable = sys.argv[0]
-"""
-            return code, """\
-Monkey patching "multiprocess" load environment."""
-
-
-        return None, None
-
-    def onModuleEncounter(self, module_filename, module_name, module_package,
-                          module_kind):
-        if module_name == "multiprocessing" and \
-           module_package is None \
-           and not self.multiprocessing_added:
-            self.multiprocessing_added = True
-
-            from nuitka.ModuleRegistry import getRootModules, addRootModule
-            from nuitka.tree.Building import PythonModule, readSourceCodeFromFilename, createModuleTree
-
-            for root_module in getRootModules():
-                if root_module.isMainModule():
-                    # First, build the module node and then read again from the
-                    # source code.
-
-                    slave_main_module = PythonModule(
-                        name         = "__parents_main__",
-                        package_name = None,
-                        source_ref   = root_module.getSourceReference()
-                    )
-
-                    createModuleTree(
-                        module      = slave_main_module,
-                        source_ref  = root_module.getSourceReference(),
-                        # source_code = 'from multiprocessing.forking import main; main()',
-                        source_code = readSourceCodeFromFilename(slave_main_module, root_module.getFilename()),
-                        is_main     = False
-                    )
-
-                    # This is an alternative entry point of course.
-                    addRootModule(slave_main_module)
-
-                    break
-            else:
-                assert False
-
-
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
     """ This is for plugins of PySide/PyQt4/PyQt5.
@@ -612,6 +542,10 @@ active_plugin_list = [
     NuitkaPluginPopularImplicitImports(),
 ]
 
+# The standard plug-ins have their list hard-coded here. User plug-ins will
+# be scanned later, TODO.
+from .standard.MultiprocessingPlugin import NuitkaPluginMultiprocessingWorkaorunds # isort:skip
+
 # List of optional plug-in classes. Until we have the meta class to do it, just
 # add your class here. The second one is a detector, which is supposed to give
 # a missing plug-in message, should it find the condition to make it useful.
@@ -683,6 +617,9 @@ class Plugins:
 
     @staticmethod
     def onModuleSourceCode(module_name, source_code):
+        assert type(module_name) is str
+        assert type(source_code) is str
+
         for plugin in active_plugin_list:
             source_code = plugin.onModuleSourceCode(module_name, source_code)
 

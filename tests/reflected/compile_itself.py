@@ -61,6 +61,8 @@ PACKAGE_LIST = (
     "nuitka/optimizations",
     "nuitka/finalizations",
     "nuitka/plugins",
+    "nuitka/plugins/standard",
+    "nuitka/plugins/user",
     "nuitka/containers",
     "nuitka/utils",
 )
@@ -163,6 +165,7 @@ def executePASS1():
                     nuitka_main_path,
                     "--module",
                     "--recurse-none",
+                    "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
                     path
                 ]
@@ -257,6 +260,7 @@ def compileAndCompareWith(nuitka):
                     nuitka,
                     "--module",
                     "--recurse-none",
+                    "--plugin-enable=pylint-warnings",
                     "--output-dir=%s"% tmp_dir,
                     path
                 ]
@@ -360,9 +364,11 @@ def executePASS5():
         os.environ["PYTHON"],
         nuitka_main_path,
         path,
+        "--plugin-enable=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--recurse-all",
         "--recurse-not-to=PyQt4",
+        "--recurse-not-to=nuitka.build.inline_copy",
         "--recurse-dir=%s" % path,
         "--module",
         path
