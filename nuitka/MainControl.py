@@ -560,19 +560,8 @@ def callExec(args, clean_path, add_path):
     Utils.callExec(args)
 
 
-def executeMain(binary_filename, tree, clean_path):
-    main_filename = tree.getFilename()
-
-    if Options.isStandaloneMode():
-        name = binary_filename
-    elif main_filename.endswith(".py"):
-        name = main_filename[:-3]
-    else:
-        name = main_filename
-
-    name = Utils.abspath(name)
-
-    args = (binary_filename, name)
+def executeMain(binary_filename, clean_path):
+    args = (binary_filename, binary_filename)
 
     if Options.shallRunInDebugger():
         args = ("/usr/bin/gdb", "gdb", "-ex=run", "-ex=where", "--args", binary_filename)
@@ -788,6 +777,5 @@ def main():
             else:
                 executeMain(
                     binary_filename = getResultFullpath(main_module),
-                    tree            = main_module,
                     clean_path      = Options.shallClearPythonPathEnvironment()
                 )
