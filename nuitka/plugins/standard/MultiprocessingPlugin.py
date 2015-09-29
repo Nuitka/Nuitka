@@ -91,7 +91,7 @@ Monkey patching "multiprocess" load environment."""
                     # For the call stack, this may look bad or different to what
                     # CPython does. Using the "__import__" built-in to not spoil
                     # or use the module namespace.
-                    source_code += """\
+                    source_code += """
 __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
 __import__("multiprocessing.forking").forking.main()"""
 
