@@ -355,6 +355,18 @@ NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL( PyObject **operand1, P
 
 #endif
 
+static bool FLOAT_ADD_INCREMENTAL( PyObject **operand1, PyObject *operand2 )
+{
+    assert( PyFloat_CheckExact( *operand1 ) );
+    assert( PyFloat_CheckExact( operand2 ) );
+
+    PyFPE_START_PROTECT("add", return false);
+    PyFloat_AS_DOUBLE( *operand1 ) += PyFloat_AS_DOUBLE( operand2 );
+    PyFPE_END_PROTECT( *operand1 );
+
+    return true;
+}
+
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
@@ -374,7 +386,8 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operan
         i = a + b;
 
         // Detect overflow, in which case, a "long" object would have to be
-        // created, which we won't handle here.
+        // created, which we won't handle here. TODO: Add an else for that
+        // case.
         if (likely(!( (i^a) < 0 && (i^b) < 0 ) ))
         {
             PyObject *result = PyInt_FromLong( i );
@@ -398,6 +411,12 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operan
         {
             return STRING_ADD_INCREMENTAL( operand1, operand2 );
         }
+        else if ( PyFloat_CheckExact( *operand1 ) &&
+                  PyFloat_CheckExact( operand2 ) )
+        {
+            return FLOAT_ADD_INCREMENTAL( operand1, operand2 );
+
+        }
     }
 
     // Strings are to be treated differently.
@@ -416,6 +435,11 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operan
              PyUnicode_CheckExact( operand2 ) )
         {
             return UNICODE_ADD_INCREMENTAL( operand1, operand2 );
+        }
+        else if ( PyFloat_CheckExact( *operand1 ) &&
+                  PyFloat_CheckExact( operand2 ) )
+        {
+            return FLOAT_ADD_INCREMENTAL( operand1, operand2 );
         }
     }
 
