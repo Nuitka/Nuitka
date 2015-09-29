@@ -18,10 +18,10 @@
 #     limitations under the License.
 #
 
-print not bool
-print not {}
-print not 7
+print(not bool)
+print(not {})
+print(not 7)
 # TODO: Needs some SSA now.
-# print bool or len
-# print False or dict
-print type(Ellipsis)
+# print(bool or len)
+# print(False or dict)
+print(type(Ellipsis))
