@@ -652,9 +652,9 @@ full list and exit. Default empty."""
 
 plugin_group.add_option(
     "--plugin-no-detection",
-    action  = "store_true",
+    action  = "store_false",
     dest    = "detect_missing_plugins",
-    default = False,
+    default = True,
     help    = """\
 Plugins can detect if they might be used, and the you can disable the warning
 via --plugin-disable=plugin-that-warned, or you can use this option to disable

@@ -29,9 +29,6 @@ it being used.
 """
 
 # This is heavily WIP.
-import re
-import shutil
-import subprocess
 import sys
 from logging import info, warning
 
@@ -352,181 +349,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         return False
 
 
-class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
-    plugin_name = "pylint-warnings"
-
-    def __init__(self):
-        self.line_annotations = {}
-
-    def onModuleSourceCode(self, module_name, source_code):
-        self.line_annotations[module_name] = {}
-
-        for count, line in enumerate(source_code.split('\n')):
-            match = re.search(r"#.*pylint:\s*disable=\s*([\w,]+)", line)
-
-            if match:
-                comment_only = line[:line.find('#')-1].strip() == ""
-
-                if comment_only:
-                    # TODO: Parse block wide annotations too.
-                    pass
-                else:
-                    self.line_annotations[module_name][count+1] = set(
-                        match.strip()
-                        for match in
-                        match.group(1).split(',')
-                    )
-
-        # Do nothing to it.
-        return source_code
-
-    def suppressUnknownImportWarning(self, importing, module_name, source_ref):
-        annotations = self.line_annotations[importing.getFullName()].get(source_ref.getLineNumber(), ())
-
-        if "F0401" in annotations:
-            return True
-
-        return False
-
-
-class NuitkaPluginDetectorPylintEclipseAnnotations(NuitkaPluginBase):
-    plugin_name = "pylint-warnings"
-
-    def onModuleSourceCode(self, module_name, source_code):
-        if re.search(r"#\s*pylint:\s*disable=\s*(\w+)", source_code):
-            self.warnUnusedPlugin("Understand PyLint/PyDev annotations for warnings.")
-
-        # Do nothing to it.
-        return source_code
-
-
-
-
-class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
-    """ This is for plugins of PySide/PyQt4/PyQt5.
-
-        When loads an image, it may use a plug-in, which in turn used DLLs,
-        which for standalone mode, can cause issues of not having it.
-    """
-
-    plugin_name = "qt-plugins"
-
-    @staticmethod
-    def getPyQtPluginDirs(qt_version):
-        command = """\
-from __future__ import print_function
-
-import PyQt%(qt_version)d.QtCore
-for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
-    print(v)
-import os
-guess_path = os.path.join(os.path.dirname(PyQt%(qt_version)d.__file__), "plugins")
-if os.path.exists(guess_path):
-    print("GUESS:", guess_path)
-""" % {
-           "qt_version" : qt_version
-        }
-        output = subprocess.check_output([sys.executable, "-c", command])
-
-        # May not be good for everybody, but we cannot have bytes in paths, or
-        # else working with them breaks down.
-        if Utils.python_version >= 300:
-            output = output.decode("utf-8")
-
-        result = []
-
-        for line in output.replace('\r', "").split('\n'):
-            if not line:
-                continue
-
-            # Take the guessed path only if necessary.
-            if line.startswith("GUESS: "):
-                if result:
-                    continue
-
-                line = line[len("GUESS: "):]
-
-            result.append(Utils.normpath(line))
-
-        return result
-
-    def considerExtraDlls(self, dist_dir, module):
-        full_name = module.getFullName()
-
-        if full_name in ("PyQt4", "PyQt5"):
-            qt_version = int(full_name[-1])
-
-            plugin_dir, = self.getPyQtPluginDirs(qt_version)
-
-            target_plugin_dir = Utils.joinpath(
-                dist_dir,
-                full_name,
-                "qt-plugins"
-            )
-
-            shutil.copytree(
-                plugin_dir,
-                target_plugin_dir
-            )
-
-            info("Copying all Qt plug-ins to '%s'." % target_plugin_dir)
-
-            return [
-                (filename, full_name)
-                for filename in
-                Utils.getFileList(target_plugin_dir)
-            ]
-
-        return ()
-
-    @staticmethod
-    def createPostModuleLoadCode(module):
-        """ Create code to load after a module was successfully imported.
-
-            For Qt we need to set the library path to the distribution folder
-            we are running from. The code is immediately run after the code
-            and therefore makes sure it's updated properly.
-        """
-
-        full_name = module.getFullName()
-
-        if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
-            qt_version = int(full_name.split('.')[0][-1])
-
-            code = """\
-from PyQt%(qt_version)d.QtCore import QCoreApplication
-import os
-
-QCoreApplication.setLibraryPaths(
-    [
-        os.path.join(
-           os.path.dirname(__file__),
-           "qt-plugins"
-        )
-    ]
-)
-""" % {
-                "qt_version" : qt_version
-            }
-
-            return code, """\
-Setting Qt library path to distribution folder. Need to avoid
-loading target system Qt plug-ins, which may be from another
-Qt version."""
-
-        return None, None
-
-
-class NuitkaPluginDetectorPyQtPySidePlugins(NuitkaPluginBase):
-    plugin_name = "qt-plugins"
-
-    def onModuleDiscovered(self, module):
-        if module.getFullName() in ("PyQt4.QtCore", "PyQt5.QtCore", "PySide"):
-            if Options.isStandaloneMode():
-                self.warnUnusedPlugin("Inclusion of Qt plugins.")
-
-
-
 class UserPluginBase(NuitkaPluginBase):
     """ For user plug-ins.
 
@@ -542,16 +364,28 @@ active_plugin_list = [
     NuitkaPluginPopularImplicitImports(),
 ]
 
+from .standard.ConsiderPyLintAnnotationsPlugin import (  # isort:skip
+    NuitkaPluginDetectorPylintEclipseAnnotations,
+    NuitkaPluginPylintEclipseAnnotations
+)
+from .standard.MultiprocessingPlugin import (  # isort:skip
+    NuitkaPluginDetectorMultiprocessingWorkaorunds,
+    NuitkaPluginMultiprocessingWorkaorunds
+)
+from .standard.PySidePyQtPlugin import (  # isort:skip
+    NuitkaPluginDetectorPyQtPySidePlugins,
+    NuitkaPluginPyQtPySidePlugins
+)
+
 # The standard plug-ins have their list hard-coded here. User plug-ins will
 # be scanned later, TODO.
-from .standard.MultiprocessingPlugin import NuitkaPluginMultiprocessingWorkaorunds # isort:skip
 
 # List of optional plug-in classes. Until we have the meta class to do it, just
 # add your class here. The second one is a detector, which is supposed to give
 # a missing plug-in message, should it find the condition to make it useful.
 optional_plugin_classes = (
+    (NuitkaPluginMultiprocessingWorkaorunds, NuitkaPluginDetectorMultiprocessingWorkaorunds),
     (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
-    (NuitkaPluginMultiprocessingWorkaorunds, None),
     (NuitkaPluginPylintEclipseAnnotations, NuitkaPluginDetectorPylintEclipseAnnotations),
 )
 
@@ -577,11 +411,12 @@ for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.i
             )
         )
     elif plugin_name not in Options.getPluginsDisabled():
-        if plugin_detector is not None and Options.shallDetectMissingPlugins():
+        if plugin_detector is not None \
+           and Options.shallDetectMissingPlugins() and \
+           plugin_detector.isRelevant():
             active_plugin_list.append(
                 plugin_detector()
             )
-
 
 class Plugins:
     @staticmethod

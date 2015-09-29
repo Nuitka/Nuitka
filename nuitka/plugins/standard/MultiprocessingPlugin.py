@@ -24,7 +24,10 @@ point to a "Python.exe" and won't use compiled code by default.
 The issue applies to accelerated and standalone mode alike.
 """
 
+from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils import Utils
+
 
 class NuitkaPluginMultiprocessingWorkaorunds(NuitkaPluginBase):
     """ This is to make multiprocess work with Nuitka and use compiled code.
@@ -105,3 +108,18 @@ __import__("multiprocessing.forking").forking.main()"""
                     break
             else:
                 assert False
+
+
+class NuitkaPluginDetectorMultiprocessingWorkaorunds(NuitkaPluginBase):
+    plugin_name = "multiprocessing"
+
+    @staticmethod
+    def isRelevant():
+        return Utils.getOS() == "Windows" and not Options.shallMakeModule()
+
+    def onModuleSourceCode(self, module_name, source_code):
+        if module_name == "__main__":
+            if "multiprocessing" in source_code and "freeze_support" in source_code:
+                self.warnUnusedPlugin("Multiprocessing workarounds for compiled code on Windows.")
+
+        return source_code
