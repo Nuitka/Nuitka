@@ -27,7 +27,7 @@ from __future__ import print_function
 import os, sys, tempfile, subprocess
 
 if "nocheck" in os.environ.get("DEB_BUILD_OPTIONS", "").split():
-    print("Skiped all tests as per DEB_BUILD_OPTIONS environment.")
+    print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
     sys.exit(0)
 
 from optparse import OptionParser
@@ -514,26 +514,12 @@ if checkExecutableCommand("python3.4"):
 else:
     print("Cannot execute tests with Python 3.4, disabled or not installed.")
 
-def checkWithCppCheck():
-    sys.stdout.flush()
+if options.coverage:
+    def copyToGlobalCoverageData(source, target):
+        coverage_dir = os.environ.get("COVERAGE_DIR", None)
 
-    result = subprocess.call(
-        command = [
-            "cppcheck",
-            "-q",
-            "--error-exitcode=1",
-            "--enable=all",
-            "--check-config", "nuitka/build/",
-            "-I", "nuitka/build/include/",
-            "-I", "/usr/include/python2.7"
-        ]
-    )
-
-    if result != 0:
-        sys.exit(result)
-
-if checkExecutableCommand("cppcheck"):
-    checkWithCppCheck()
+        if coverage_dir is None:
+            return
 
 if options.coverage:
     if os.name == "nt":
