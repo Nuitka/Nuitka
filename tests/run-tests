@@ -521,30 +521,42 @@ if options.coverage:
         if coverage_dir is None:
             return
 
-if options.coverage:
-    if os.name == "nt":
         assert 0 == subprocess.call(
             (
-                "C:\\MinGW\\msys\\1.0\\bin\\scp.exe",
-                ".coverage",
+                "C:\\MinGW\\msys\\1.0\\bin\\scp.exe"
+                   if os.name == "nt" else
+                "scp",
+                source,
                 os.path.join(
-                    os.environ["COVERAGE_DIR"],
-                    ".coverage.win"
+                    coverage_dir,
+                    target
                 )
             )
         )
+
+    if os.name == "nt":
+        suffix = "win"
     else:
         import platform
+        suffix = platform.uname()[0] + '.' + platform.uname()[4]
 
-        assert 0 == subprocess.call(
-            (
-                "scp",
-                ".coverage",
-                os.path.join(
-                    os.environ["COVERAGE_DIR"],
-                    ".coverage." + platform.uname()[0] + '.' + platform.uname()[4]
-                )
-            )
+    with open("data.coverage", "w") as data_file:
+        source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
+        data_file.write("NUITKA_SOURCE_DIR='%s'\n" % source_dir)
+
+        nuitka_id = subprocess.check_output(
+            "cd '%s'; git rev-parse HEAD" % source_dir,
+            shell = True
         )
+        nuitka_id = nuitka_id.strip()
+
+        if sys.version_info > (3,):
+            nuitka_id = nuitka_id.decode()
+
+        data_file.write("NUITKA_COMMIT='%s'\n" % nuitka_id)
+
+    copyToGlobalCoverageData("data.coverage", "data.coverage." + suffix)
+    copyToGlobalCoverageData(".coverage", ".coverage." + suffix)
 
 print("OK.")
