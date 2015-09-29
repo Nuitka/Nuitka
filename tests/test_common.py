@@ -160,7 +160,7 @@ def getTempDir():
     return tmp_dir
 
 
-def convertUsing2to3(path):
+def convertUsing2to3(path, force = False):
     command = [
         os.environ["PYTHON"],
         "-m",
@@ -168,9 +168,10 @@ def convertUsing2to3(path):
         path
     ]
 
-    with open(os.devnull, 'w') as stderr:
-        if check_result(command, stderr = stderr):
-            return path, False
+    if not force and "xrange" not in open(path).read():
+        with open(os.devnull, 'w') as stderr:
+            if check_result(command, stderr = stderr):
+                return path, False
 
     filename = os.path.basename(path)
 
