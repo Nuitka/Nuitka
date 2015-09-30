@@ -21,6 +21,8 @@ These are mostly used to look up the Python C/API from operations or a wrapper u
 
 """
 
+from nuitka.PythonVersions import python_version
+
 binary_operator_codes = {
 # Those commented out in this section have fully specialized variants already.
 
@@ -57,9 +59,10 @@ binary_operator_codes = {
     "IBitXor"   : "PyNumber_InPlaceXor",
 }
 
-inplace_operator_codes = {
-    "IAdd" : "BINARY_OPERATION_ADD_INPLACE"
-}
+# Python 3.5 only operator
+if python_version >= 350:
+    binary_operator_codes["MatMult"] = "PyNumber_MatrixMultiply"
+    binary_operator_codes["IMatMult"] = "PyNumber_InPlaceMatrixMultiply"
 
 unary_operator_codes = {
     "UAdd"   : ("PyNumber_Positive", 1),
