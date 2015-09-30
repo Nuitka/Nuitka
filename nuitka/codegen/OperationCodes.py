@@ -88,6 +88,8 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
         helper = "BINARY_OPERATION_ADD"
     elif operator == "IAdd" and in_place:
         helper = "BINARY_OPERATION_ADD_INPLACE"
+    elif operator == "IMult" and in_place:
+        helper = "BINARY_OPERATION_MUL_INPLACE"
     elif operator == "Sub":
         helper = "BINARY_OPERATION_SUB"
     elif operator == "Div":

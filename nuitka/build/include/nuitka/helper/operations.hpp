@@ -367,6 +367,18 @@ static bool FLOAT_ADD_INCREMENTAL( PyObject **operand1, PyObject *operand2 )
     return true;
 }
 
+static bool FLOAT_MUL_INCREMENTAL( PyObject **operand1, PyObject *operand2 )
+{
+    assert( PyFloat_CheckExact( *operand1 ) );
+    assert( PyFloat_CheckExact( operand2 ) );
+
+    PyFPE_START_PROTECT("mul", return false);
+    PyFloat_AS_DOUBLE( *operand1 ) *= PyFloat_AS_DOUBLE( operand2 );
+    PyFPE_END_PROTECT( *operand1 );
+
+    return true;
+}
+
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
@@ -461,6 +473,39 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operan
 #endif
 
     PyObject *result = PyNumber_InPlaceAdd( *operand1, operand2 );
+
+    if (unlikely( result == NULL ))
+    {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF( *operand1 );
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_MUL_INPLACE( PyObject **operand1, PyObject *operand2 )
+{
+    assert( operand1 );
+    CHECK_OBJECT( *operand1 );
+    CHECK_OBJECT( operand2 );
+
+    if ( Py_REFCNT( *operand1 ) == 1 )
+    {
+        if ( PyFloat_CheckExact( *operand1 ) &&
+             PyFloat_CheckExact( operand2 ) )
+        {
+            return FLOAT_MUL_INCREMENTAL( operand1, operand2 );
+
+        }
+    }
+
+    PyObject *result = PyNumber_InPlaceMultiply( *operand1, operand2 );
 
     if (unlikely( result == NULL ))
     {
