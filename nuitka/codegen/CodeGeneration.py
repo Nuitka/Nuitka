@@ -25,6 +25,7 @@ As such this is the place that knows how to take a condition and two code
 branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
+
 from nuitka import Constants, Options, Tracing
 from nuitka.__past__ import iterItems
 from nuitka.utils import Utils
@@ -93,7 +94,8 @@ from .FunctionCodes import (
     getFunctionDirectDecl,
     getFunctionMakerCode,
     getFunctionMakerDecl,
-    getGeneratorFunctionCode
+    getGeneratorFunctionCode,
+    generateCoroutineCreationCode
 )
 from .GlobalsLocalsCodes import (
     getLoadGlobalsCode,
@@ -3404,5 +3406,6 @@ Helpers.setExpressionDispatchDict(
         "VARIABLE_REF"              : generateVariableReferenceCode,
         "YIELD"                     : generateYieldCode,
         "YIELD_FROM"                : generateYieldFromCode,
+        "COROUTINE_CREATION"        : generateCoroutineCreationCode
     }
 )

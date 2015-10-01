@@ -34,7 +34,9 @@ from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef
+    ExpressionFunctionRef,
+    ExpressionCoroutineCreation,
+    ExpressionCoroutineBody
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -52,6 +54,35 @@ from .Helpers import (
     mangleName
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+
+def _insertFinalReturnStatement(function_statements_body, source_ref):
+    if function_statements_body is None:
+        function_statements_body = makeStatementsSequenceFromStatement(
+            statement = StatementReturn(
+                expression = ExpressionConstantRef(
+                    constant      = None,
+                    user_provided = True,
+                    source_ref    = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
+    elif not function_statements_body.isStatementAborting():
+        function_statements_body.setStatements(
+            function_statements_body.getStatements() +
+            (
+                StatementReturn(
+                    expression = ExpressionConstantRef(
+                        constant      = None,
+                        user_provided = True,
+                        source_ref    = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+            )
+        )
+
+    return function_statements_body
 
 
 def buildFunctionNode(provider, node, source_ref):
@@ -81,7 +112,10 @@ def buildFunctionNode(provider, node, source_ref):
     )
 
     kw_defaults = buildParameterKwDefaults(
-        provider, node, function_body, source_ref
+        provider      = provider,
+        node          = node,
+        function_body = function_body,
+        source_ref    = source_ref
     )
 
     function_statements_body = buildStatementsNode(
@@ -94,30 +128,10 @@ def buildFunctionNode(provider, node, source_ref):
     if function_body.isGenerator():
         # TODO: raise generator exit?
         pass
-    elif function_statements_body is None:
-        function_statements_body = makeStatementsSequenceFromStatement(
-            statement = StatementReturn(
-                expression = ExpressionConstantRef(
-                    constant      = None,
-                    user_provided = True,
-                    source_ref    = source_ref
-                ),
-                source_ref = source_ref
-            )
-        )
-    elif not function_statements_body.isStatementAborting():
-        function_statements_body.setStatements(
-            function_statements_body.getStatements() +
-            (
-                StatementReturn(
-                    expression = ExpressionConstantRef(
-                        constant      = None,
-                        user_provided = True,
-                        source_ref    = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
-            )
+    else:
+        function_statements_body = _insertFinalReturnStatement(
+            function_statements_body = function_statements_body,
+            source_ref               = source_ref
         )
 
     if function_statements_body.isStatementsFrame():
@@ -133,8 +147,8 @@ def buildFunctionNode(provider, node, source_ref):
 
     function_creation = ExpressionFunctionCreation(
         function_ref = ExpressionFunctionRef(
-            function_body,
-            source_ref = source_ref
+            function_body = function_body,
+            source_ref    = source_ref
         ),
         defaults     = defaults,
         kw_defaults  = kw_defaults,
@@ -142,12 +156,14 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref   = source_ref
     )
 
-    # Add the staticmethod decorator to __new__ methods if not provided.
+    # Add the "staticmethod" decorator to __new__ methods if not provided.
 
-    # CPython made these optional, but applies them to every class __new__. We
-    # add them early, so our optimization will see it.
-    if node.name == "__new__" and not decorators and \
-         provider.isExpressionFunctionBody() and provider.isClassDictCreation():
+    # CPython made these optional, but secretly applies them when it does
+    # "class __new__".  We add them earlier, so our optimization will see it.
+    if node.name == "__new__" and \
+       not decorators and \
+       provider.isExpressionFunctionBody() and \
+       provider.isClassDictCreation():
 
         decorators = (
             ExpressionBuiltinRef(
@@ -155,6 +171,122 @@ def buildFunctionNode(provider, node, source_ref):
                 source_ref   = source_ref
             ),
         )
+
+    decorated_function = function_creation
+    for decorator in decorators:
+        decorated_function = ExpressionCallNoKeywords(
+            called     = decorator,
+            args       = ExpressionMakeTuple(
+                elements   = (decorated_function,),
+                source_ref = source_ref
+            ),
+            source_ref = decorator.getSourceReference()
+        )
+
+    result = StatementAssignmentVariable(
+        variable_ref = ExpressionTargetVariableRef(
+            variable_name = mangleName(node.name, provider),
+            source_ref    = source_ref
+        ),
+        source       = decorated_function,
+        source_ref   = source_ref
+    )
+
+    if Utils.python_version >= 340:
+        function_body.qualname_setup = result.getTargetVariableRef()
+
+    return result
+
+
+def buildAsyncFunctionNode(provider, node, source_ref):
+    # We are creating a function here that creates coroutine objects, with
+    # many details each, pylint: disable=R0914
+    assert getKind(node) == "AsyncFunctionDef"
+
+    function_statements, function_doc = extractDocFromBody(node)
+
+    creator_function_body = ExpressionFunctionBody(
+        provider   = provider,
+        name       = node.name,
+        doc        = function_doc,
+        parameters = buildParameterSpec(provider, node.name, node, source_ref),
+        is_class   = False,
+        source_ref = source_ref
+    )
+
+    function_body = ExpressionCoroutineBody(
+        provider   = creator_function_body,
+        name       = node.name,
+        source_ref = source_ref
+    )
+
+    decorators = buildNodeList(
+        provider   = provider,
+        nodes      = reversed(node.decorator_list),
+        source_ref = source_ref
+    )
+
+    defaults = buildNodeList(
+        provider   = provider,
+        nodes      = node.args.defaults,
+        source_ref = source_ref
+    )
+
+    function_statements_body = buildStatementsNode(
+        provider   = function_body,
+        nodes      = function_statements,
+        frame      = True,
+        source_ref = source_ref
+    )
+
+    # Not allowed.
+    assert not function_body.isGenerator()
+
+    function_statements_body = _insertFinalReturnStatement(
+        function_statements_body = function_statements_body,
+        source_ref               = source_ref
+    )
+
+    if function_statements_body.isStatementsFrame():
+        function_statements_body = makeStatementsSequenceFromStatement(
+            statement = function_statements_body
+        )
+
+    function_body.setBody(
+        function_statements_body
+    )
+
+    annotations = buildParameterAnnotations(provider, node, source_ref)
+
+    kw_defaults = buildParameterKwDefaults(
+        provider      = provider,
+        node          = node,
+        function_body = creator_function_body,
+        source_ref    = source_ref
+    )
+
+    creator_function_body.setBody(
+        makeStatementsSequenceFromStatement(
+            statement = StatementReturn(
+                expression = ExpressionCoroutineCreation(
+                    coroutine_body = function_body,
+                    source_ref     = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
+    )
+
+    function_creation = ExpressionFunctionCreation(
+        function_ref = ExpressionFunctionRef(
+            function_body = creator_function_body,
+            source_ref    = source_ref
+        ),
+        defaults     = defaults,
+        kw_defaults  = kw_defaults,
+        annotations  = annotations,
+        source_ref   = source_ref
+    )
 
     decorated_function = function_creation
     for decorator in decorators:
@@ -177,8 +309,7 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref   = source_ref
     )
 
-    if Utils.python_version >= 340:
-        function_body.qualname_setup = result.getTargetVariableRef()
+    function_body.qualname_setup = result.getTargetVariableRef()
 
     return result
 
@@ -315,7 +446,7 @@ def buildParameterAnnotations(provider, node, source_ref):
 def buildParameterSpec(provider, name, node, source_ref):
     kind = getKind(node)
 
-    assert kind in ("FunctionDef", "Lambda"), "unsupported for kind " + kind
+    assert kind in ("FunctionDef", "Lambda", "AsyncFunctionDef"), "unsupported for kind " + kind
 
     def extractArg(arg):
         if arg is None:
