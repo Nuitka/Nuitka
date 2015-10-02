@@ -170,7 +170,7 @@ def _getAnonBuiltins():
             def __init__(self):
                 pass
 
-            def method(self):
+            def method(self): # pragma: no cover
                 pass
 
         anon_names["classobj"] = type(Temp)

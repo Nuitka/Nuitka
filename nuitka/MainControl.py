@@ -112,7 +112,7 @@ def dumpTreeXML(tree):
     TreeXML.dump(xml_root)
 
 
-def displayTree(tree):
+def displayTree(tree): # pragma: no cover
     # Import only locally so the Qt4 dependency doesn't normally come into play
     # when it's not strictly needed.
     from .gui import TreeDisplay
