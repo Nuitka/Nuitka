@@ -166,20 +166,15 @@ def _getAnonBuiltins():
     }
 
     if python_version < 300:
-        class Temp:
-            def __init__(self):
-                pass
+        from types import ClassType, InstanceType, MethodType
 
-            def method(self): # pragma: no cover
-                pass
-
-        anon_names["classobj"] = type(Temp)
+        anon_names["classobj"] = ClassType
         anon_codes["classobj"] = "&PyClass_Type"
 
-        anon_names["instance"] = type(Temp())
+        anon_names["instance"] = InstanceType
         anon_codes["instance"] = "&PyInstance_Type"
 
-        anon_names["instancemethod"] = type(Temp().method)
+        anon_names["instancemethod"] = MethodType
         anon_codes["instancemethod"] = "&PyMethod_Type"
 
     return anon_names, anon_codes
