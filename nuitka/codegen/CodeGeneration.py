@@ -86,6 +86,7 @@ from .FrameCodes import (
     getFrameRestoreExceptionCode
 )
 from .FunctionCodes import (
+    generateCoroutineCreationCode,
     generateGeneratorEntryCode,
     getDirectFunctionCallCode,
     getExportScopeCode,
@@ -94,8 +95,7 @@ from .FunctionCodes import (
     getFunctionDirectDecl,
     getFunctionMakerCode,
     getFunctionMakerDecl,
-    getGeneratorFunctionCode,
-    generateCoroutineCreationCode
+    getGeneratorFunctionCode
 )
 from .GlobalsLocalsCodes import (
     getLoadGlobalsCode,

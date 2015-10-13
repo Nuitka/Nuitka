@@ -32,11 +32,11 @@ from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.FunctionNodes import (
+    ExpressionCoroutineBody,
+    ExpressionCoroutineCreation,
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef,
-    ExpressionCoroutineCreation,
-    ExpressionCoroutineBody
+    ExpressionFunctionRef
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -54,6 +54,7 @@ from .Helpers import (
     mangleName
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+
 
 def _insertFinalReturnStatement(function_statements_body, source_ref):
     if function_statements_body is None:
