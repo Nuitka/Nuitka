@@ -144,7 +144,7 @@ def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
 
 
 def getLoadLocalsCode(to_name, provider, mode, emit, context):
-    if provider.isPythonModule():
+    if provider.isCompiledPythonModule():
         # TODO: Should not happen in the normal case, make this assertable.
         getLoadGlobalsCode(to_name, emit, context)
     elif not context.hasLocalsDict():
@@ -227,7 +227,7 @@ locals_dict = %s;""" % (
 
 
 def getStoreLocalsCode(locals_name, provider, emit, context):
-    assert not provider.isPythonModule()
+    assert not provider.isCompiledPythonModule()
 
     for variable in provider.getVariables():
         if not variable.isModuleVariable() and \

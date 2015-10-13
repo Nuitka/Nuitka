@@ -271,7 +271,7 @@ class PythonContextBase:
 
         self.source_ref = None
 
-    def isPythonModule(self):
+    def isCompiledPythonModule(self):
         return False
 
     def allocateTempNumber(self, tmp_scope):
@@ -547,7 +547,7 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     def getOwner(self):
         return self.module
 
-    def isPythonModule(self):
+    def isCompiledPythonModule(self):
         return True
 
     def hasLocalsDict(self):
@@ -782,8 +782,8 @@ class PythonStatementCContext(PythonChildContextBase):
     def getOwner(self):
         return self.parent.getOwner()
 
-    def isPythonModule(self):
-        return self.parent.isPythonModule()
+    def isCompiledPythonModule(self):
+        return self.parent.isCompiledPythonModule()
 
     def getFunction(self):
         return self.parent.getFunction()

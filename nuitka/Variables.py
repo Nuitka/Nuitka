@@ -198,7 +198,7 @@ class NestedParameterVariable(ParameterVariable):
 class ModuleVariable(Variable):
     def __init__(self, module, variable_name):
         assert type(variable_name) is str, repr(variable_name)
-        assert module.isPythonModule()
+        assert module.isCompiledPythonModule()
 
         Variable.__init__(
             self,

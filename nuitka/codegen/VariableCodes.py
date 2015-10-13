@@ -347,7 +347,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
 
         if needs_check:
             if Utils.python_version < 340 and \
-               not context.isPythonModule() and \
+               not context.isCompiledPythonModule() and \
                not context.getOwner().isClassDictCreation():
                 error_message = "global name '%s' is not defined"
             else:
@@ -522,7 +522,7 @@ def getVariableDelCode(variable, tolerant, needs_check, emit, context):
                 exception = "PyExc_NameError",
                 args      = (
                     "%sname '%s' is not defined" % (
-                        "global " if not context.isPythonModule() else "",
+                        "global " if not context.isCompiledPythonModule() else "",
                         variable.getName()
                     ),
                 ),

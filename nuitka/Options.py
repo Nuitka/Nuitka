@@ -706,7 +706,7 @@ else:
 if options.is_standalone:
     options.executable = True
     options.recurse_all = True
-    options.recurse_stdlib = True
+    options.freeze_stdlib = True
 
 def shallTraceExecution():
     return options.trace_execution

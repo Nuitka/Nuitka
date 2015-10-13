@@ -21,8 +21,8 @@
 
 from nuitka.utils import Utils
 
-from .Contexts import PythonFunctionCoroutineContext
 from .ConstantCodes import getConstantCode
+from .Contexts import PythonFunctionCoroutineContext
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitCode,
@@ -40,6 +40,10 @@ from .ParameterParsing import (
     getQuickEntryPointIdentifier
 )
 from .PythonAPICodes import getReferenceExportCode
+from .templates.CodeTemplatesCoroutines import (
+    template_make_coroutine_with_context_template,
+    template_make_coroutine_without_context_template
+)
 from .templates.CodeTemplatesFrames import template_generator_initial_throw
 from .templates.CodeTemplatesFunction import (
     function_dict_setup,
@@ -65,10 +69,6 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_genfunc_yielder_template,
     template_make_genfunc_with_context_template,
     template_make_genfunc_without_context_template
-)
-from .templates.CodeTemplatesCoroutines import (
-    template_make_coroutine_without_context_template,
-    template_make_coroutine_with_context_template,
 )
 from .VariableCodes import (
     getLocalVariableInitCode,

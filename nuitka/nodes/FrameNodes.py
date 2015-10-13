@@ -156,12 +156,12 @@ class StatementsFrame(StatementsSequence):
             arg_count     = self.getArgumentCount(),
             kw_only_count = self.getKwOnlyParameterCount(),
             line_number   = 0
-                              if provider.isPythonModule() else
+                              if provider.isCompiledPythonModule() else
                             self.source_ref.getLineNumber(),
             code_name     = self.getCodeObjectName(),
             is_generator  = provider.isExpressionFunctionBody() and \
                             provider.isGenerator(),
-            is_optimized  = not provider.isPythonModule() and \
+            is_optimized  = not provider.isCompiledPythonModule() and \
                             not provider.isClassDictCreation() and \
                             not provider.hasLocalsDict(),
             has_starlist  = self.has_starlist,

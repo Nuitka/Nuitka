@@ -39,8 +39,8 @@ from nuitka.nodes.ImportNodes import (
     ExpressionImportName
 )
 from nuitka.nodes.ModuleNodes import (
-    ExpressionModuleFileAttributeRef,
-    PythonPackage
+    CompiledPythonPackage,
+    ExpressionModuleFileAttributeRef
 )
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils import Utils
@@ -136,7 +136,7 @@ def createNamespacePackage(package_name, module_relpath):
     source_ref = source_ref.atInternal()
 
     package_package_name = '.'.join(parts[:-1]) or None
-    package = PythonPackage(
+    package = CompiledPythonPackage(
         name         = parts[-1],
         package_name = package_package_name,
         source_ref   = source_ref,

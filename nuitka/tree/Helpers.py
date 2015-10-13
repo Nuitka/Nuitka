@@ -146,7 +146,7 @@ def buildNodeList(provider, nodes, source_ref, allow_none = False):
 
 
 def makeModuleFrame(module, statements, source_ref):
-    assert module.isPythonModule()
+    assert module.isCompiledPythonModule()
 
     if module.isMainModule():
         code_name = "<module>"

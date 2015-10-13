@@ -74,10 +74,10 @@ from nuitka.nodes.ImportNodes import (
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
 from nuitka.nodes.ModuleNodes import (
+    CompiledPythonModule,
+    CompiledPythonPackage,
     ExpressionModuleFileAttributeRef,
     PythonMainModule,
-    PythonModule,
-    PythonPackage,
     PythonShlibModule
 )
 from nuitka.nodes.OperatorNodes import (
@@ -379,7 +379,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
     # On the module level, there is nothing to do. TODO: Probably a warning
     # would be warranted.
-    if provider.isPythonModule():
+    if provider.isCompiledPythonModule():
         return None
 
     # Need to catch the error of declaring a parameter variable as global
@@ -563,7 +563,7 @@ def buildReturnNode(provider, node, source_ref):
             source_ref,
             None if Utils.python_version < 300 else (
                 node.col_offset
-                  if provider.isPythonModule() else
+                  if provider.isCompiledPythonModule() else
                 node.col_offset+4
             )
         )
@@ -816,7 +816,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
-        if provider.isPythonPackage():
+        if provider.isCompiledPythonPackage():
             # This assigns "__path__" value.
             statements.append(
                 createPathAssignment(internal_source_ref)
@@ -849,7 +849,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 ),
                 source       = ExpressionConstantRef(
                     constant      = provider.getFullName()
-                                      if provider.isPythonPackage() else
+                                      if provider.isCompiledPythonPackage() else
                                     provider.getPackage(),
                     source_ref    = internal_source_ref,
                     user_provided = True
@@ -975,7 +975,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 source_ref = source_ref
             )
         else:
-            result = PythonModule(
+            result = CompiledPythonModule(
                 name         = module_name,
                 package_name = package,
                 source_ref   = source_ref
@@ -999,7 +999,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 filename = Utils.abspath(source_filename),
             )
 
-            result = PythonPackage(
+            result = CompiledPythonPackage(
                 name         = package_name,
                 package_name = package,
                 source_ref   = source_ref

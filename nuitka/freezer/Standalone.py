@@ -36,11 +36,13 @@ from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryPath
 )
-from nuitka.nodes.ModuleNodes import PythonShlibModule
+from nuitka.nodes.ModuleNodes import (
+    PythonShlibModule,
+    makeUncompiledPythonModule
+)
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 
-from .BytecodeModuleFreezer import FrozenModuleDescription
 from .DependsExe import getDependsExePath
 
 
@@ -52,14 +54,14 @@ def loadCodeObjectData(precompiled_filename):
 
 module_names = set()
 
-def _detectedPrecompiledFile(filename, module_name, result, is_late):
+def _detectedPrecompiledFile(filename, module_name, result, user_provided):
     if filename.endswith(".pyc"):
         if Utils.isFile(filename[:-1]):
             return _detectedSourceFile(
-                filename    = filename[:-1],
-                module_name = module_name,
-                result      = result,
-                is_late     = is_late
+                filename      = filename[:-1],
+                module_name   = module_name,
+                result        = result,
+                user_provided = user_provided
             )
 
     if module_name in module_names:
@@ -72,30 +74,30 @@ def _detectedPrecompiledFile(filename, module_name, result, is_late):
     )
 
     result.append(
-        FrozenModuleDescription(
-            module_name,
-            loadCodeObjectData(
+        makeUncompiledPythonModule(
+            module_name   = module_name,
+            bytecode      = loadCodeObjectData(
                 precompiled_filename = filename
             ),
-            "__init__" in filename,
-            filename,
-            is_late
-        ),
+            is_package    = "__init__" in filename,
+            filename      = filename,
+            user_provided = user_provided
+        )
     )
 
     module_names.add(module_name)
 
 
-def _detectedSourceFile(filename, module_name, result, is_late):
+def _detectedSourceFile(filename, module_name, result, user_provided):
     if module_name in module_names:
         return
 
     if module_name == "collections.abc":
         _detectedSourceFile(
-            filename    = filename,
-            module_name = "_collections_abc",
-            result      = result,
-            is_late     = is_late
+            filename      = filename,
+            module_name   = "_collections_abc",
+            result        = result,
+            user_provided = user_provided
         )
 
     source_code = readSourceCodeFromFilename(module_name, filename)
@@ -118,14 +120,14 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
     )
 
     result.append(
-        FrozenModuleDescription(
-            module_name,
-            marshal.dumps(
+        makeUncompiledPythonModule(
+            module_name   = module_name,
+            bytecode      = marshal.dumps(
                 compile(source_code, filename, "exec")
             ),
-            Utils.basename(filename) == "__init__.py",
-            filename,
-            is_late
+            is_package    = Utils.basename(filename) == "__init__.py",
+            filename      = filename,
+            user_provided = user_provided
         )
     )
 
@@ -161,7 +163,7 @@ def _detectedShlibFile(filename, module_name):
     module_names.add(module_name)
 
 
-def _detectImports(command, is_late):
+def _detectImports(command, user_provided):
     # This is pretty complicated stuff, with variants to deal with.
     # pylint: disable=R0912,R0914,R0915
 
@@ -242,10 +244,10 @@ def _detectImports(command, is_late):
                     continue
 
                 _detectedPrecompiledFile(
-                    filename    = filename,
-                    module_name = module_name,
-                    result      = result,
-                    is_late     = is_late
+                    filename      = filename,
+                    module_name   = module_name,
+                    result        = result,
+                    user_provided = user_provided
                 )
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
@@ -258,10 +260,10 @@ def _detectImports(command, is_late):
 
                 if filename.endswith(".py"):
                     _detectedSourceFile(
-                        filename    = filename,
-                        module_name = module_name,
-                        result      = result,
-                        is_late     = is_late
+                        filename      = filename,
+                        module_name   = module_name,
+                        result        = result,
+                        user_provided = user_provided
                     )
                 elif not filename.endswith("<frozen>"):
                     _detectedShlibFile(
@@ -307,7 +309,7 @@ def detectLateImports():
 
         return result
     else:
-        return ""
+        return ()
 
 # Some modules we want to blacklist.
 ignore_modules = [
@@ -377,6 +379,20 @@ def scanStandardLibraryPath(stdlib_dir):
 
 
 def detectEarlyImports():
+    # TODO: Should recursively include all of encodings module.
+    import_code = "import encodings.utf_8;import encodings.ascii;import encodings.idna;"
+
+    if Utils.getOS() == "Windows":
+        import_code += "import encodings.mbcs;import encodings.cp437;"
+
+    # String method hex depends on it.
+    if Utils.python_version < 300:
+        import_code += "import encodings.hex_codec;"
+
+    import_code += "import locale;"
+
+    result = _detectImports(import_code, False)
+
     if Options.shallFreezeAllStdlib():
         stdlib_modules = set()
 
@@ -391,20 +407,18 @@ def detectEarlyImports():
                       "        __import__(imp)\n" \
                       "    except (ImportError, SyntaxError):\n" \
                       "        pass\n"
-    else:
-        # TODO: Should recursively include all of encodings module.
-        import_code = "import encodings.utf_8;import encodings.ascii;import encodings.idna;"
 
-        if Utils.getOS() == "Windows":
-            import_code += "import encodings.mbcs;import encodings.cp437;"
+        early_names = [
+            module.getFullName()
+            for module in result
+        ]
 
-        # String method hex depends on it.
-        if Utils.python_version < 300:
-            import_code += "import encodings.hex_codec;"
+        result += [
+            module
+            for module in _detectImports(import_code, False)
+            if module.getFullName() not in early_names
+        ]
 
-        import_code += "import locale;"
-
-    result = _detectImports(import_code, False)
     debug("Finished detecting early imports.")
 
     return result

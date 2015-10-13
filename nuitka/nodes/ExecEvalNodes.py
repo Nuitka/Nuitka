@@ -285,7 +285,7 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
         )
 
     def computeStatement(self, constraint_collection):
-        if self.getParentVariableProvider().isPythonModule():
+        if self.getParentVariableProvider().isCompiledPythonModule():
             return None, "new_statements", "Removed sync back to locals without locals."
 
         constraint_collection.removeAllKnowledge()

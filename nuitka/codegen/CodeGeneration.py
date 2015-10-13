@@ -2529,7 +2529,7 @@ def generateImportModuleCode(to_name, expression, emit, context):
         context = context
     )
 
-    if provider.isPythonModule():
+    if provider.isCompiledPythonModule():
         locals_name = globals_name
     else:
         locals_name = context.allocateTempName("import_locals")
@@ -2601,7 +2601,7 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
     if expression.getLocals() is None:
         provider = expression.getParentVariableProvider()
 
-        if provider.isPythonModule():
+        if provider.isCompiledPythonModule():
             locals_name = globals_name
         else:
             locals_name = context.allocateTempName("import_locals")
@@ -3243,7 +3243,7 @@ def prepareModuleCode(global_context, module, module_name):
     # As this not only creates all modules, but also functions, it deals
     # also with its functions.
 
-    assert module.isPythonModule(), module
+    assert module.isCompiledPythonModule(), module
 
     context = Contexts.PythonModuleContext(
         module         = module,

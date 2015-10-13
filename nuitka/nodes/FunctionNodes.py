@@ -33,7 +33,7 @@ from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.utils import Utils
 
-from .Checkers import checkStatementsSequenceOrNone, checkStatementsSequence
+from .Checkers import checkStatementsSequence, checkStatementsSequenceOrNone
 from .IndicatorMixins import (
     MarkGeneratorIndicator,
     MarkLocalsDictIndicator,
@@ -157,11 +157,11 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
         ExpressionFunctionBodyBase.__init__(
             self,
-            provider = provider,
-            name = name,
+            provider    = provider,
+            name        = name,
             code_prefix = code_prefix,
-            is_class = is_class,
-            source_ref = source_ref
+            is_class    = is_class,
+            source_ref  = source_ref
         )
 
         MarkGeneratorIndicator.__init__(self)
@@ -225,7 +225,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     def getContainingClassDictCreation(self):
         current = self
 
-        while not current.isPythonModule():
+        while not current.isCompiledPythonModule():
             if current.isClassDictCreation():
                 return current
 
@@ -255,7 +255,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         else:
             provider = self.qualname_provider
 
-        if provider.isPythonModule():
+        if provider.isCompiledPythonModule():
             return function_name
         elif provider.isClassDictCreation():
             return provider.getFunctionQualname() + '.' + function_name

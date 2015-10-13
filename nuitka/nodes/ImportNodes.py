@@ -163,7 +163,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
         parent_module = self.getParentModule()
 
-        if parent_module.isPythonPackage():
+        if parent_module.isCompiledPythonPackage():
             parent_package = parent_module.getFullName()
         else:
             parent_package = self.getParentModule().getPackage()
@@ -190,7 +190,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                 import_list = self.getImportList()
 
-                if import_list and imported_module.isPythonPackage():
+                if import_list and imported_module.isCompiledPythonPackage():
                     for import_item in import_list:
                         if import_item == '*':
                             continue

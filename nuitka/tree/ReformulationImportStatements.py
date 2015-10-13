@@ -73,7 +73,7 @@ def buildImportFromNode(provider, node, source_ref):
     if module_name == "__future__":
         # Future imports we see are all legal, and known to work.
 
-        if not provider.isPythonModule():
+        if not provider.isCompiledPythonModule():
             SyntaxErrors.raiseSyntaxError(
                 reason     = """\
 from __future__ imports must occur at the beginning of the file""",
@@ -121,7 +121,7 @@ from __future__ imports must occur at the beginning of the file""",
         assert target_names == [None]
 
         # Python3 made this a syntax error unfortunately.
-        if not provider.isPythonModule() and Utils.python_version >= 300:
+        if not provider.isCompiledPythonModule() and Utils.python_version >= 300:
             SyntaxErrors.raiseSyntaxError(
                 "import * only allowed at module level",
                 provider.getSourceReference()

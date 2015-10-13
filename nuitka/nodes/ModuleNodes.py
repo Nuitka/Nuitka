@@ -31,7 +31,7 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
-from nuitka.SourceCodeReferences import SourceCodeReference
+from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.utils import Utils
 
 from .Checkers import checkStatementsSequenceOrNone
@@ -156,7 +156,7 @@ class PythonModuleMixin:
             current = filename
 
             levels = full_name.count('.')
-            if self.isPythonPackage():
+            if self.isCompiledPythonPackage():
                 levels += 1
 
             for _i in range(levels):
@@ -166,15 +166,13 @@ class PythonModuleMixin:
             return result
 
 
-class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
-                   ClosureGiverNodeBase):
-    """ Module
+class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
+                           ClosureGiverNodeBase):
+    """ Compiled Python Module
 
-        The module is the only possible root of a tree. When there are many
-        modules they form a forest.
     """
 
-    kind = "PYTHON_MODULE"
+    kind = "COMPILED_PYTHON_MODULE"
 
     named_children = (
         "body",
@@ -197,7 +195,6 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
             name         = name,
             package_name = package_name
         )
-
 
         ChildrenHavingMixin.__init__(
             self,
@@ -225,7 +222,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
         }
 
     def asXml(self):
-        result = super(PythonModule, self).asXml()
+        result = super(CompiledPythonModule, self).asXml()
 
         for function_body in self.active_functions:
             result.append(function_body.asXml())
@@ -278,7 +275,7 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
     setBody = ChildrenHavingMixin.childSetter("body")
 
     @staticmethod
-    def isPythonModule():
+    def isCompiledPythonModule():
         return True
 
     def getParent(self):
@@ -430,6 +427,95 @@ class PythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         return False
 
+
+class CompiledPythonPackage(CompiledPythonModule):
+    kind = "COMPILED_PYTHON_PACKAGE"
+
+    def __init__(self, name, package_name, source_ref):
+        assert name
+
+        CompiledPythonModule.__init__(
+            self,
+            name         = name,
+            package_name = package_name,
+            source_ref   = source_ref
+        )
+
+    def getOutputFilename(self):
+        return Utils.dirname(self.getFilename())
+
+
+def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
+                               user_provided):
+    parts = module_name.rsplit('.', 1)
+    name = parts[-1]
+
+    package_name = parts[0] if len(parts) == 2 else None
+    source_ref = fromFilename(filename)
+
+    if is_package:
+        return UncompiledPythonPackage(
+            name          = name,
+            package_name  = package_name,
+            bytecode      = bytecode,
+            filename      = filename,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+    else:
+        return UncompiledPythonModule(
+            name          = name,
+            package_name  = package_name,
+            bytecode      = bytecode,
+            filename      = filename,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+
+class UncompiledPythonModule(PythonModuleMixin, NodeBase):
+    """ Compiled Python Module
+
+    """
+
+    kind = "UNCOMPILED_PYTHON_MODULE"
+
+    def __init__(self, name, package_name, bytecode, filename, user_provided,
+                 source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        PythonModuleMixin.__init__(
+            self,
+            name         = name,
+            package_name = package_name
+        )
+
+        self.bytecode = bytecode
+        self.filename = filename
+
+        self.user_provided = user_provided
+
+    def isUserProvided(self):
+        return self.user_provided
+
+    def getByteCode(self):
+        return self.bytecode
+
+    @staticmethod
+    def isPackage():
+        return False
+
+class UncompiledPythonPackage(UncompiledPythonModule):
+    kind = "UNCOMPILED_PYTHON_PACKAGE"
+
+    @staticmethod
+    def isPackage():
+        return True
+
+
 class SingleCreationMixin:
     created = set()
 
@@ -438,11 +524,11 @@ class SingleCreationMixin:
         self.created.add(self.__class__)
 
 
-class PythonMainModule(PythonModule, SingleCreationMixin):
+class PythonMainModule(CompiledPythonModule, SingleCreationMixin):
     kind = "PYTHON_MAIN_MODULE"
 
     def __init__(self, main_added, source_ref):
-        PythonModule.__init__(
+        CompiledPythonModule.__init__(
             self,
             name         = "__main__",
             package_name = None,
@@ -461,14 +547,14 @@ class PythonMainModule(PythonModule, SingleCreationMixin):
         if self.main_added:
             return Utils.dirname(self.getFilename())
         else:
-            return PythonModule.getOutputFilename(self)
+            return CompiledPythonModule.getOutputFilename(self)
 
 
-class PythonInternalModule(PythonModule, SingleCreationMixin):
+class PythonInternalModule(CompiledPythonModule, SingleCreationMixin):
     kind = "PYTHON_INTERNAL_MODULE"
 
     def __init__(self):
-        PythonModule.__init__(
+        CompiledPythonModule.__init__(
             self,
             name         = "__internal__",
             package_name = None,
@@ -487,23 +573,6 @@ class PythonInternalModule(PythonModule, SingleCreationMixin):
 
     def getOutputFilename(self):
         return "__internal"
-
-
-class PythonPackage(PythonModule):
-    kind = "PYTHON_PACKAGE"
-
-    def __init__(self, name, package_name, source_ref):
-        assert name
-
-        PythonModule.__init__(
-            self,
-            name         = name,
-            package_name = package_name,
-            source_ref   = source_ref
-        )
-
-    def getOutputFilename(self):
-        return Utils.dirname(self.getFilename())
 
 
 class PythonShlibModule(PythonModuleMixin, NodeBase):

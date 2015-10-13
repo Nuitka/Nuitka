@@ -81,7 +81,7 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
 
         provider = self.getParentVariableProvider()
 
-        if provider.isPythonModule():
+        if provider.isCompiledPythonModule():
             return False
 
         return self.getParentVariableProvider().isClassDictCreation()

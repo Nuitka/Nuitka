@@ -195,7 +195,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 while True:
                     current = current.getParentVariableProvider()
 
-                    if current.isPythonModule():
+                    if current.isCompiledPythonModule():
                         break
 
                     assert current.isExpressionFunctionBody()
@@ -218,7 +218,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             current = node
 
             while True:
-                if current.isPythonModule() or \
+                if current.isCompiledPythonModule() or \
                    current.isExpressionFunctionBody():
                     if node.isStatementContinueLoop():
                         message = "'continue' not properly in loop"
@@ -407,11 +407,11 @@ def completeVariableClosures(tree):
     for visitor in visitors:
         visitTree(tree, visitor)
 
-        if tree.isPythonModule():
+        if tree.isCompiledPythonModule():
             for function in tree.getFunctions():
                 visitTree(function, visitor)
 
-    if tree.isPythonModule():
+    if tree.isCompiledPythonModule():
         for function in tree.getFunctions():
             addFunctionVariableReleases(function)
     else:
