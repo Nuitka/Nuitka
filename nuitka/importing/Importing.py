@@ -41,6 +41,7 @@ from logging import warning
 
 from nuitka import Options
 from nuitka.containers import oset
+from nuitka.plugins.PluginBase import Plugins
 from nuitka.utils import Utils
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -79,6 +80,7 @@ def isPackageDir(dirname):
                isPreloadedPackagePath(dirname)
            )
 
+
 def getPackageNameFromFullName(full_name):
     if '.' in full_name:
         return full_name[:full_name.rfind('.')]
@@ -114,7 +116,8 @@ def getModuleNameAndKindFromFilename(module_filename):
 
     return module_name, module_kind
 
-def warnAbout(module_name, parent_package, level, source_ref):
+
+def warnAbout(importing, module_name, parent_package, level, source_ref):
     # This probably should not be dealt with here.
     if module_name == "":
         return
@@ -124,6 +127,14 @@ def warnAbout(module_name, parent_package, level, source_ref):
 
         if key not in warned_about:
             warned_about.add(key)
+
+            if parent_package is None:
+                full_name = module_name
+            else:
+                full_name = module_name
+
+            if Plugins.suppressUnknownImportWarning(importing, full_name, source_ref):
+                return
 
             if level == 0:
                 level_desc = "as absolute import"
@@ -160,7 +171,7 @@ def normalizePackageName(module_name):
     return module_name
 
 
-def findModule(source_ref, module_name, parent_package, level, warn):
+def findModule(importing, source_ref, module_name, parent_package, level, warn):
     """ Find a module with given package name as parent.
 
         The package name can be None of course. Level is the same
@@ -185,6 +196,8 @@ def findModule(source_ref, module_name, parent_package, level, warn):
     # that name, but it would be wasteful.
     assert module_name != '*'
 
+    tried_names = []
+
     if level > 1:
         # TODO: Should give a warning and return not found if the levels
         # exceed the package name.
@@ -203,7 +216,7 @@ def findModule(source_ref, module_name, parent_package, level, warn):
         if full_name.endswith('.'):
             full_name = full_name[:-1]
 
-        package_name = getPackageNameFromFullName(full_name)
+        tried_names.append(full_name)
 
         try:
             module_filename = _findModule(
@@ -213,9 +226,6 @@ def findModule(source_ref, module_name, parent_package, level, warn):
             # For relative import, that is OK, we will still try absolute.
             pass
         else:
-            package_name = getPackageNameFromFullName(full_name)
-            found = "relative"
-
             if _debug_module_finding:
                 print(
                     "findModule: Relative imported module '%s' as '%s' in filename '%s':" % (
@@ -225,10 +235,11 @@ def findModule(source_ref, module_name, parent_package, level, warn):
                     )
                 )
 
-            return package_name, module_filename, found
+            return getPackageNameFromFullName(full_name), module_filename, "relative"
 
     if level <= 1 and module_name != "":
         module_name = normalizePackageName(module_name)
+        tried_names.append(module_name)
 
         package_name = getPackageNameFromFullName(module_name)
 
@@ -250,8 +261,6 @@ def findModule(source_ref, module_name, parent_package, level, warn):
             # For relative import, that is OK, we will still try absolute.
             pass
         else:
-            found = "absolute"
-
             if _debug_module_finding:
                 print(
                     "findModule: Found absolute imported module '%s' in filename '%s':" % (
@@ -260,15 +269,15 @@ def findModule(source_ref, module_name, parent_package, level, warn):
                     )
                 )
 
-            return package_name, module_filename, found
-
+            return package_name, module_filename, "absolute"
 
     if warn:
         warnAbout(
-            module_name,
-            parent_package,
-            level,
-            source_ref
+            importing      = importing,
+            module_name    = module_name,
+            parent_package = parent_package,
+            level          = level,
+            source_ref     = source_ref
         )
 
     return None, None, "not-found"
@@ -477,8 +486,13 @@ def _findModule(module_name):
     try:
         module_search_cache[key] = _findModule2(module_name)
     except ImportError:
-        module_search_cache[key] = ImportError
-        raise
+        new_module_name = Plugins.considerFailedImportReferrals(module_name)
+
+        if new_module_name is None:
+            module_search_cache[key] = ImportError
+            raise
+        else:
+            module_search_cache[key] = _findModule(new_module_name)
 
     return module_search_cache[key]
 

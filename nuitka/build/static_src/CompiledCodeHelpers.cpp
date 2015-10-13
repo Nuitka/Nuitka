@@ -380,6 +380,22 @@ PyObject *BUILTIN_HEX( PyObject *value )
 #endif
 }
 
+PyObject *BUILTIN_HASH( PyObject *value )
+{
+    Py_hash_t hash = PyObject_Hash( value );
+
+    if (unlikely( hash == -1 ))
+    {
+        return NULL;
+    }
+
+#if PYTHON_VERSION < 300
+    return PyInt_FromLong( hash );
+#else
+    return PyLong_FromSsize_t( hash );
+#endif
+}
+
 PyObject *BUILTIN_BYTEARRAY( PyObject *value )
 {
     PyObject *result = PyByteArray_FromObject( value );
@@ -1626,8 +1642,20 @@ extern "C" wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t siz
 static wchar_t **argv_copy = NULL;
 #endif
 
-void setCommandLineParameters( int argc, char *argv[], bool initial )
+bool setCommandLineParameters( int *argc, char *argv[], bool initial )
 {
+    bool is_multiprocessing_fork = false;
+
+    // We need to skip what multiprocessing has told Python otherwise.
+    for ( int i = 1; i < *argc; i++ )
+    {
+        if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i+1 < *argc))
+        {
+            is_multiprocessing_fork = true;
+            break;
+        }
+    }
+
 #if PYTHON_VERSION < 300
     if ( initial )
     {
@@ -1635,13 +1663,13 @@ void setCommandLineParameters( int argc, char *argv[], bool initial )
     }
     else
     {
-        PySys_SetArgv( argc, argv );
+        PySys_SetArgv( *argc, argv );
     }
 #else
     if ( initial )
     {
         // Originally taken from CPython3: There seems to be no sane way to use
-        argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
+        argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*) * (*argc));
 
 #ifdef __FreeBSD__
         // 754 requires that FP exceptions run in "no stop" mode by default, and
@@ -1657,17 +1685,14 @@ void setCommandLineParameters( int argc, char *argv[], bool initial )
         char *oldloc = strdup( setlocale( LC_ALL, NULL ) );
         setlocale( LC_ALL, "" );
 
-        for ( int i = 0; i < argc; i++ )
+        for ( int i = 0; i < *argc; i++ )
         {
 #ifdef __APPLE__
             argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
-#else
-#if PYTHON_VERSION < 350
+#elif PYTHON_VERSION < 350
             argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
 #else
             argv_copy[i] = Py_DecodeLocale( argv[ i ], NULL );
-#endif
-
 #endif
             assert ( argv_copy[ i ] );
         }
@@ -1676,16 +1701,17 @@ void setCommandLineParameters( int argc, char *argv[], bool initial )
         free( oldloc );
     }
 
-
     if ( initial )
     {
         Py_SetProgramName( argv_copy[0] );
     }
     else
     {
-        PySys_SetArgv( argc, argv_copy );
+        PySys_SetArgv( *argc, argv_copy );
     }
 #endif
+
+    return is_multiprocessing_fork;
 }
 
 typedef struct {
@@ -4029,3 +4055,92 @@ Py_hash_t DEEP_HASH( PyObject *value )
     }
 }
 #endif
+
+#if _NUITKA_PROFILE
+
+timespec diff(timespec start, timespec end);
+
+static timespec getTimespecDiff( timespec start, timespec end )
+{
+    timespec temp;
+
+    if ( ( end.tv_nsec - start.tv_nsec ) < 0 )
+    {
+        temp.tv_sec = end.tv_sec-start.tv_sec-1;
+        temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
+    }
+    else
+    {
+        temp.tv_sec = end.tv_sec-start.tv_sec;
+        temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+    }
+
+    return temp;
+}
+
+static FILE *tempfile_profile;
+static PyObject *vmprof_module;
+
+static timespec time1, time2;
+
+void startProfiling( void )
+{
+    tempfile_profile = fopen("nuitka-performance.dat", "wb");
+
+    // Might be necessary to import "site" module to find "vmprof", lets just
+    // hope we don't suffer too much from that. If we do, what might be done
+    // is to try and just have the "PYTHONPATH" from it from out user.
+    PyImport_ImportModule( "site" );
+    vmprof_module = PyImport_ImportModule( "vmprof" );
+
+    // Abort if it's not there.
+    if ( vmprof_module == NULL )
+    {
+        PyErr_Print();
+        abort();
+    }
+
+    PyObject *result = CALL_FUNCTION_WITH_ARGS1(
+        PyObject_GetAttrString( vmprof_module, "enable"),
+         PyInt_FromLong( fileno( tempfile_profile ) )
+    );
+
+    if ( result == NULL ) {
+        PyErr_Print();
+        abort();
+    }
+
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
+}
+
+void stopProfiling( void )
+{
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
+
+    // Save the current exception, if any, we must preserve it.
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
+
+    PyObject *result = CALL_FUNCTION_NO_ARGS(
+        PyObject_GetAttrString( vmprof_module, "disable")
+    );
+
+    if ( result == NULL ) PyErr_Clear();
+
+    fclose( tempfile_profile );
+
+    FILE *tempfile_times = fopen( "nuitka-times.dat", "wb" );
+
+    timespec diff = getTimespecDiff( time1, time2 );
+
+    long delta_ns = diff.tv_sec * 1000000000 + diff.tv_nsec;
+    fprintf( tempfile_times, "%ld\n", delta_ns);
+
+    fclose( tempfile_times );
+
+    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
+}
+
+#endif
+

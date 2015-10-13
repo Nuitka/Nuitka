@@ -57,7 +57,10 @@ from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    ExpressionTargetVariableRef,
+    StatementAssignmentVariable
+)
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
@@ -83,10 +86,7 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetVariableRef,
-    ExpressionVariableRef
-)
+from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
 
@@ -124,7 +124,10 @@ from .ReformulationContractionExpressions import (
     buildSetContractionNode
 )
 from .ReformulationExecStatements import buildExecNode
-from .ReformulationFunctionStatements import buildFunctionNode
+from .ReformulationFunctionStatements import (
+    buildAsyncFunctionNode,
+    buildFunctionNode
+)
 from .ReformulationImportStatements import (
     buildImportFromNode,
     checkFutureImportsOnlyAtStart
@@ -650,50 +653,51 @@ def buildConditionalExpressionNode(provider, node, source_ref):
 
 setBuildingDispatchers(
     path_args3 = {
-        "Name"         : buildVariableReferenceNode,
-        "Assign"       : buildAssignNode,
-        "Delete"       : buildDeleteNode,
-        "Lambda"       : buildLambdaNode,
-        "GeneratorExp" : buildGeneratorExpressionNode,
-        "If"           : buildConditionNode,
-        "While"        : buildWhileLoopNode,
-        "For"          : buildForLoopNode,
-        "Compare"      : buildComparisonNode,
-        "ListComp"     : buildListContractionNode,
-        "DictComp"     : buildDictContractionNode,
-        "SetComp"      : buildSetContractionNode,
-        "Dict"         : buildDictionaryNode,
-        "Set"          : buildSequenceCreationNode,
-        "Tuple"        : buildSequenceCreationNode,
-        "List"         : buildSequenceCreationNode,
-        "Global"       : handleGlobalDeclarationNode,
-        "Nonlocal"     : handleNonlocalDeclarationNode,
-        "TryExcept"    : buildTryExceptionNode,
-        "TryFinally"   : _buildTryFinallyNode,
-        "Try"          : buildTryNode,
-        "Raise"        : buildRaiseNode,
-        "Import"       : buildImportModulesNode,
-        "ImportFrom"   : buildImportFromNode,
-        "Assert"       : buildAssertNode,
-        "Exec"         : buildExecNode,
-        "With"         : buildWithNode,
-        "FunctionDef"  : buildFunctionNode,
-        "ClassDef"     : buildClassNode,
-        "Print"        : buildPrintNode,
-        "Call"         : buildCallNode,
-        "Subscript"    : buildSubscriptNode,
-        "BoolOp"       : buildBoolOpNode,
-        "Attribute"    : buildAttributeNode,
-        "Return"       : buildReturnNode,
-        "Yield"        : buildYieldNode,
-        "YieldFrom"    : buildYieldFromNode,
-        "Expr"         : buildExprOnlyNode,
-        "UnaryOp"      : buildUnaryOpNode,
-        "BinOp"        : buildBinaryOpNode,
-        "Repr"         : buildReprNode,
-        "AugAssign"    : buildInplaceAssignNode,
-        "IfExp"        : buildConditionalExpressionNode,
-        "Break"        : buildStatementBreakLoop,
+        "Name"              : buildVariableReferenceNode,
+        "Assign"            : buildAssignNode,
+        "Delete"            : buildDeleteNode,
+        "Lambda"            : buildLambdaNode,
+        "GeneratorExp"      : buildGeneratorExpressionNode,
+        "If"                : buildConditionNode,
+        "While"             : buildWhileLoopNode,
+        "For"               : buildForLoopNode,
+        "Compare"           : buildComparisonNode,
+        "ListComp"          : buildListContractionNode,
+        "DictComp"          : buildDictContractionNode,
+        "SetComp"           : buildSetContractionNode,
+        "Dict"              : buildDictionaryNode,
+        "Set"               : buildSequenceCreationNode,
+        "Tuple"             : buildSequenceCreationNode,
+        "List"              : buildSequenceCreationNode,
+        "Global"            : handleGlobalDeclarationNode,
+        "Nonlocal"          : handleNonlocalDeclarationNode,
+        "TryExcept"         : buildTryExceptionNode,
+        "TryFinally"        : _buildTryFinallyNode,
+        "Try"               : buildTryNode,
+        "Raise"             : buildRaiseNode,
+        "Import"            : buildImportModulesNode,
+        "ImportFrom"        : buildImportFromNode,
+        "Assert"            : buildAssertNode,
+        "Exec"              : buildExecNode,
+        "With"              : buildWithNode,
+        "FunctionDef"       : buildFunctionNode,
+        "AsyncFunctionDef"  : buildAsyncFunctionNode,
+        "ClassDef"          : buildClassNode,
+        "Print"             : buildPrintNode,
+        "Call"              : buildCallNode,
+        "Subscript"         : buildSubscriptNode,
+        "BoolOp"            : buildBoolOpNode,
+        "Attribute"         : buildAttributeNode,
+        "Return"            : buildReturnNode,
+        "Yield"             : buildYieldNode,
+        "YieldFrom"         : buildYieldFromNode,
+        "Expr"              : buildExprOnlyNode,
+        "UnaryOp"           : buildUnaryOpNode,
+        "BinOp"             : buildBinaryOpNode,
+        "Repr"              : buildReprNode,
+        "AugAssign"         : buildInplaceAssignNode,
+        "IfExp"             : buildConditionalExpressionNode,
+        "Break"             : buildStatementBreakLoop,
     },
     path_args2 = {
         "NameConstant" : buildNamedConstantNode,
@@ -1015,17 +1019,38 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     return result, source_ref, source_filename
 
 
+class CodeTooComplexCode(Exception):
+    """ The code of the module is too complex.
+
+        It cannot be compiled, with recursive code, and therefore the bytecode
+        should be used instead.
+
+        Example of this is "idnadata".
+    """
+
+    pass
+
+
 def createModuleTree(module, source_ref, source_code, is_main):
     if Options.isShowProgress():
         memory_watch = Utils.MemoryWatch()
 
-    module_body = buildParseTree(
-        provider    = module,
-        source_code = source_code,
-        source_ref  = source_ref,
-        is_module   = True,
-        is_main     = is_main
-    )
+    try:
+        module_body = buildParseTree(
+            provider    = module,
+            source_code = source_code,
+            source_ref  = source_ref,
+            is_module   = True,
+            is_main     = is_main
+        )
+    except RuntimeError as e:
+        if "maximum recursion depth" in e.args[0]:
+            raise CodeTooComplexCode(
+                module.getFullName(),
+                module.getCompileTimeFilename()
+            )
+
+        raise
 
     if module_body.isStatementsFrame():
         module_body = makeStatementsSequenceFromStatement(
@@ -1068,7 +1093,7 @@ def buildModuleTree(filename, package, is_top, is_main):
         createModuleTree(
             module      = module,
             source_ref  = source_ref,
-            source_code = readSourceCodeFromFilename(module, source_filename),
+            source_code = readSourceCodeFromFilename(module.getFullName(), source_filename),
             is_main     = is_main
         )
 

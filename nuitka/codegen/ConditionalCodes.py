@@ -161,6 +161,10 @@ def generateConditionCode(condition, emit, context):
         getAttributeCheckBoolCode(
             source_name = source_name,
             attr_name   = attr_name,
+            needs_check = condition.getLookupSource().mayRaiseExceptionAttributeCheckObject(
+                exception_type = BaseException,
+                attribute      = condition.getAttribute()
+            ),
             emit        = emit,
             context     = context
         )

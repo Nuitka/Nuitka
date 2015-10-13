@@ -41,6 +41,7 @@ class ExpressionBuiltinOrd0(ExpressionBuiltinNoArgBase):
             source_ref       = source_ref
         )
 
+
 class ExpressionBuiltinOrd(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ORD"
 
@@ -56,4 +57,7 @@ class ExpressionBuiltinChr(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinOptimization.builtin_chr_spec
 
     def isKnownToBeIterable(self, count):
+        if self.mayRaiseException(BaseException):
+            return None
+
         return count is None or count == 1

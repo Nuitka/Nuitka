@@ -31,6 +31,10 @@ from .NodeBases import (
     ExpressionSpecBasedComputationMixin,
     NodeBase
 )
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    wrapExpressionWithNodeSideEffects
+)
 
 
 class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
@@ -73,8 +77,6 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
             truth_value = self.getValue().getTruthValue()
 
             if truth_value is not None:
-                from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects, makeConstantReplacementNode
-
                 result = wrapExpressionWithNodeSideEffects(
                     new_node = makeConstantReplacementNode(
                         constant = truth_value,
@@ -108,8 +110,6 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
     builtin = int
 
     def __init__(self, value, base, source_ref):
-        from .NodeMakingHelpers import makeConstantReplacementNode
-
         NodeBase.__init__(self, source_ref = source_ref)
 
         if value is None and self.base_only_value:
@@ -138,9 +138,7 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
         if value is None:
             if base is not None:
                 if not self.base_only_value:
-                    from .NodeMakingHelpers import getComputationResult
-
-                    return getComputationResult(
+                    return constraint_collection.getCompileTimeComputationResult(
                         node        = self,
                         computation = lambda : self.builtin(base = 2),
                         description = """\
@@ -154,7 +152,8 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
             given_values = (value, base)
 
         return self.computeBuiltinSpec(
-            given_values = given_values
+            constraint_collection = constraint_collection,
+            given_values          = given_values
         )
 
 
@@ -210,7 +209,8 @@ class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
         constraint_collection.onControlFlowEscape(self)
 
         return self.computeBuiltinSpec(
-            given_values = tuple(args)
+            constraint_collection = constraint_collection,
+            given_values          = tuple(args)
         )
 
 
@@ -230,8 +230,6 @@ if python_version < 300:
                 str_value = self.getValue().getStrValue()
 
                 if str_value is not None:
-                    from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-
                     new_node = wrapExpressionWithNodeSideEffects(
                         new_node = str_value,
                         old_node = self.getValue()
@@ -329,7 +327,8 @@ class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
         )
 
         return self.computeBuiltinSpec(
-            given_values = args
+            constraint_collection = constraint_collection,
+            given_values          = args
         )
 
     getStart = ChildrenHavingMixin.childGetter("start")
@@ -372,7 +371,8 @@ class ExpressionBuiltinComplex(ChildrenHavingMixin, NodeBase,
         )
 
         return self.computeBuiltinSpec(
-            given_values = args
+            constraint_collection = constraint_collection,
+            given_values          = args
         )
 
     getReal = ChildrenHavingMixin.childGetter("real")

@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.14.3
+Nuitka V0.5.15
 Copyright (C) 2015 Kay Hayen."""
 
 import logging
@@ -244,6 +244,16 @@ Defaults to %s.""" %
 )
 
 execute_group.add_option(
+    "--debugger", "--gdb",
+    action  = "store_true",
+    dest    = "debugger",
+    default = False,
+    help    = """\
+Execute inside "gdb" to automatically get a stack trace.
+Defaults to off."""
+)
+
+execute_group.add_option(
     "--execute-with-pythonpath", "--keep-pythonpath",
     action  = "store_true",
     dest    = "keep_pythonpath",
@@ -395,6 +405,24 @@ debug_group.add_option(
     help    = """\
 Keep debug info in the resulting object file for better debugger interaction.
 Defaults to off."""
+)
+
+debug_group.add_option(
+    "--profile",
+    action  = "store_true",
+    dest    = "profile",
+    default = False,
+    help    = """\
+Enable vmprof based profiling of time spent. Defaults to off."""
+)
+
+debug_group.add_option(
+    "--graph",
+    action  = "store_true",
+    dest    = "graph",
+    default = False,
+    help    = """\
+Create graph of optimization process. Defaults to off."""
 )
 
 debug_group.add_option(
@@ -597,6 +625,45 @@ windows_group.add_option(
 
 parser.add_option_group(windows_group)
 
+plugin_group = OptionGroup(
+    parser,
+    "Plugin control"
+)
+
+plugin_group.add_option(
+    "--plugin-enable", "--enable-plugin",
+    action  = "append",
+    dest    = "plugins_enabled",
+    default = [],
+    help    = """\
+Enabled plugins. Must be plug-in names. Use --plugin-list to query the
+full list and exit. Default empty."""
+)
+
+plugin_group.add_option(
+    "--plugin-disable", "--disable-plugin",
+    action  = "append",
+    dest    = "plugins_disabled",
+    default = [],
+    help    = """\
+Disabled plugins. Must be plug-in names. Use --plugin-list to query the
+full list and exit. Default empty."""
+)
+
+plugin_group.add_option(
+    "--plugin-no-detection",
+    action  = "store_false",
+    dest    = "detect_missing_plugins",
+    default = True,
+    help    = """\
+Plugins can detect if they might be used, and the you can disable the warning
+via --plugin-disable=plugin-that-warned, or you can use this option to disable
+the mechanism entirely, which also speeds up compilation slightly of course as
+this detection code is run in vain once you are certain of which plug-ins to
+use. Defaults to off."""
+)
+
+parser.add_option_group(plugin_group)
 
 # First, isolate the first non-option arguments.
 if is_nuitka_run:
@@ -646,6 +713,9 @@ def shallTraceExecution():
 
 def shallExecuteImmediately():
     return options.immediate_execution
+
+def shallRunInDebugger():
+    return options.debugger
 
 def shallDumpBuiltTreeXML():
     return options.dump_xml
@@ -745,7 +815,13 @@ def isOptimize():
     return not options.no_optimize
 
 def isUnstripped():
-    return options.unstripped
+    return options.unstripped or options.profile
+
+def isProfile():
+    return options.profile
+
+def shouldCreateGraph():
+    return options.graph
 
 def getOutputPath(path):
     if options.output_dir:
@@ -836,5 +912,18 @@ def getPythonFlags():
 
     return result
 
-def freezeAllStdlib():
+def shallFreezeAllStdlib():
     return options.freeze_stdlib
+
+def getPluginsEnabled():
+    return options.plugins_enabled
+
+def getPluginsDisabled():
+    return options.plugins_disabled
+
+def shallDetectMissingPlugins():
+    return options.detect_missing_plugins
+
+def getPluginOptions(plugin_name):
+    # TODO: This should come from command line, pylint: disable=W0613
+    return {}

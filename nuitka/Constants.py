@@ -275,3 +275,16 @@ def getConstantWeight(constant):
         return result
     else:
         return 1
+
+
+def isCompileTimeConstantValue(value):
+    """ Determine if a value will be usable at compile time.
+
+    """
+    # This needs to match code in makeCompileTimeConstantReplacementNode
+    if isConstant(value):
+        return True
+    elif type(value) is type:
+        return True
+    else:
+        return False

@@ -40,9 +40,9 @@ from .codegen import CodeGeneration, ConstantCodes, MainCodes
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import (
     addFrozenModule,
-    isFrozenModule,
     generateBytecodeFrozenCode,
     getFrozenModuleCount,
+    isFrozenModule,
     removeFrozenModule
 )
 from .freezer.Standalone import (
@@ -112,7 +112,7 @@ def dumpTreeXML(tree):
     TreeXML.dump(xml_root)
 
 
-def displayTree(tree):
+def displayTree(tree): # pragma: no cover
     # Import only locally so the Qt4 dependency doesn't normally come into play
     # when it's not strictly needed.
     from .gui import TreeDisplay
@@ -268,85 +268,27 @@ def pickSourceFilenames(source_dir, modules):
 standalone_entry_points = []
 
 def makeSourceDirectory(main_module):
+    """ Get the full list of modules imported, create code for all of them.
+
+    """
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0912,R0914
+    # no sense, pylint: disable=R0912
 
     assert main_module.isPythonModule()
 
     # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
 
-    # Get the full list of modules imported, create code for all of them.
-    modules = ModuleRegistry.getDoneModules()
-    assert main_module in modules
+    assert main_module in ModuleRegistry.getDoneModules()
 
-    # Sometimes we need to talk about all modules except main module.
-    other_modules = ModuleRegistry.getDoneUserModules()
-
-    # Lets check if the recurse-to modules are actually present, and warn the
-    # user if one was not found.
-    for any_case_module in Options.getShallFollowModules():
-        for module in other_modules:
-            if module.getFullName() == any_case_module:
-                break
-        else:
-            warning(
-                "Didn't recurse to '%s', apparently not used." % \
-                any_case_module
-            )
-
-    # Prepare code generation, i.e. execute finalization for it.
-    for module in sorted(modules, key = lambda x : x.getFullName()):
+    # We might have chosen to include it as bytecode, and only compiled it for
+    # fun, and to find its imports. In this case, now we just can drop it. Or
+    # a module may shadow a frozen module, but be a different one, then we can
+    # drop the frozen one.
+    for module in ModuleRegistry.getDoneUserModules():
         if module.isPythonModule():
-            Finalization.prepareCodeGeneration(module)
-
-    # Pick filenames.
-    source_dir = getSourceDirectoryPath(main_module)
-
-    module_filenames = pickSourceFilenames(
-        source_dir = source_dir,
-        modules    = modules
-    )
-
-    # First pass, generate code and use constants doing so, but prepare the
-    # final code generation only, because constants code will be added at the
-    # end only.
-    prepared_modules = {}
-
-    used_modules = list(other_modules)
-    for module in sorted(modules, key = lambda x : x.getFullName()):
-        if module.isPythonModule():
-            cpp_filename = module_filenames[module]
-            # We might have chosen to include it as bytecode, and only compiled
-            # it for fun, and to find its imports. In this case, now we just
-            # drop it.
             if isFrozenModule(module.getFullName(), module.getCompileTimeFilename()):
-                used_modules.remove(module)
-
-    for module in sorted(modules, key = lambda x : x.getFullName()):
-        if module.isPythonModule():
-            cpp_filename = module_filenames[module]
-
-            prepared_modules[cpp_filename] = CodeGeneration.prepareModuleCode(
-                global_context = global_context,
-                module         = module,
-                module_name    = module.getFullName(),
-                other_modules  = used_modules
-                                   if module is main_module else
-                                 ()
-            )
-
-            # Main code constants need to be allocated already too.
-            if module is main_module and not Options.shallMakeModule():
-                prepared_modules[cpp_filename][1].getConstantCode(0)
-
-
-    for module in sorted(modules, key = lambda x : x.getFullName()):
-        if module.isPythonModule():
-            # We might have chosen to include it as bytecode, and only compiled
-            # it for fun, and to find its imports. In this case, now we just
-            # drop it.
-            if isFrozenModule(module.getFullName(), module.getCompileTimeFilename()):
+                ModuleRegistry.removeDoneModule(module)
                 continue
 
             if removeFrozenModule(module.getFullName()):
@@ -358,6 +300,53 @@ Compiled module shadows standard library module '%s' (imported from '%s').""" % 
                     )
                 )
 
+    # Lets check if the recurse-to modules are actually present, and warn the
+    # user if one of those was not found.
+    for any_case_module in Options.getShallFollowModules():
+        for module in ModuleRegistry.getDoneUserModules():
+            if module.getFullName() == any_case_module:
+                break
+        else:
+            warning(
+                "Didn't recurse to '%s', apparently not used." % \
+                any_case_module
+            )
+
+    # Prepare code generation, i.e. execute finalization for it.
+    for module in ModuleRegistry.getDoneModules():
+        if module.isPythonModule():
+            Finalization.prepareCodeGeneration(module)
+
+    # Pick filenames.
+    source_dir = getSourceDirectoryPath(main_module)
+
+    module_filenames = pickSourceFilenames(
+        source_dir = source_dir,
+        modules    = ModuleRegistry.getDoneModules()
+    )
+
+    # First pass, generate code and use constants doing so, but prepare the
+    # final code generation only, because constants code will be added at the
+    # end only.
+    prepared_modules = {}
+
+    for module in ModuleRegistry.getDoneModules():
+        if module.isPythonModule():
+            cpp_filename = module_filenames[module]
+
+            prepared_modules[cpp_filename] = CodeGeneration.prepareModuleCode(
+                global_context = global_context,
+                module         = module,
+                module_name    = module.getFullName(),
+            )
+
+            # Main code constants need to be allocated already too.
+            if module is main_module and not Options.shallMakeModule():
+                prepared_modules[cpp_filename][1].getConstantCode(0)
+
+    # Second pass, generate the actual module code into the files.
+    for module in ModuleRegistry.getDoneModules():
+        if module.isPythonModule():
             cpp_filename = module_filenames[module]
 
             template_values, module_context = prepared_modules[cpp_filename]
@@ -417,7 +406,9 @@ Compiled module shadows standard library module '%s' (imported from '%s').""" % 
         )
     )
 
-    helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode()
+    helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode(
+        ModuleRegistry.getDoneUserModules()
+    )
 
     writeSourceCode(
         filename    = Utils.joinpath(source_dir, "__helpers.hpp"),
@@ -489,7 +480,7 @@ def runScons(main_module, quiet):
     if not Options.isStandaloneMode() and \
        not Options.shallMakeModule() and \
        isUninstalledPython():
-        options["win_copy_dll"] = "true"
+        options["uninstalled_python"] = "true"
 
     if getFrozenModuleCount():
         options["frozen_modules"] = str(
@@ -516,6 +507,9 @@ def runScons(main_module, quiet):
 
     if Options.getIconPath():
         options["icon_path"] = Options.getIconPath()
+
+    if Options.isProfile():
+        options["profile_mode"] = "true"
 
     return SconsInterface.runScons(options, quiet), options
 
@@ -566,19 +560,11 @@ def callExec(args, clean_path, add_path):
     Utils.callExec(args)
 
 
-def executeMain(binary_filename, tree, clean_path):
-    main_filename = tree.getFilename()
+def executeMain(binary_filename, clean_path):
+    args = (binary_filename, binary_filename)
 
-    if Options.isStandaloneMode():
-        name = binary_filename
-    elif main_filename.endswith(".py"):
-        name = main_filename[:-3]
-    else:
-        name = main_filename
-
-    name = Utils.abspath(name)
-
-    args = (binary_filename, name)
+    if Options.shallRunInDebugger():
+        args = ("/usr/bin/gdb", "gdb", "-ex=run", "-ex=where", "--args", binary_filename)
 
     callExec(
         clean_path = clean_path,
@@ -791,6 +777,5 @@ def main():
             else:
                 executeMain(
                     binary_filename = getResultFullpath(main_module),
-                    tree            = main_module,
                     clean_path      = Options.shallClearPythonPathEnvironment()
                 )

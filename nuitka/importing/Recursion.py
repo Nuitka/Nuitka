@@ -21,9 +21,15 @@
 
 from logging import debug, warning
 
+import marshal
 from nuitka import ModuleRegistry, Options
-from nuitka.freezer.BytecodeModuleFreezer import isFrozenModule
+from nuitka.freezer.BytecodeModuleFreezer import (
+    FrozenModuleDescription,
+    addFrozenModule,
+    isFrozenModule
+)
 from nuitka.importing import ImportCache, Importing, StandardLibrary
+from nuitka.plugins.PluginBase import Plugins
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 
@@ -75,6 +81,36 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
                         )
 
                     return None, False
+                except Building.CodeTooComplexCode:
+                    if module_filename not in Importing.warned_about:
+                        Importing.warned_about.add(module_filename)
+
+                        warning(
+                            """\
+Cannot recurse to import module '%s' (%s) because code is too complex.""",
+                            module_relpath,
+                            module_filename,
+                        )
+
+
+                        if Options.isStandaloneMode():
+                            addFrozenModule(
+                                FrozenModuleDescription(
+                                    module_name = module.getFullName(),
+                                    bytecode    = marshal.dumps(
+                                        compile(
+                                            readSourceCodeFromFilename(module.getFullName(), module_filename),
+                                            module_filename,
+                                            "exec"
+                                        )
+                                    ),
+                                    is_package  = module.isPythonPackage(),
+                                    filename    = module_filename,
+                                    is_late     = True
+                                )
+                            )
+
+                    return None, False
 
             ImportCache.addImportedModule(
                 module_relpath,
@@ -105,6 +141,13 @@ def decideRecursion(module_filename, module_name, module_package,
                     module_kind):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=R0911,R0912
+    Plugins.onModuleEncounter(
+        module_filename,
+        module_name,
+        module_package,
+        module_kind
+    )
+
 
     if module_kind == "shlib":
         if Options.isStandaloneMode():
@@ -198,6 +241,7 @@ def considerFilename(module_filename, module_package):
     else:
         return None
 
+
 def isSameModulePath(path1, path2):
     if Utils.basename(path1) == "__init__.py":
         path1 = Utils.dirname(path1)
@@ -205,6 +249,7 @@ def isSameModulePath(path1, path2):
         path2 = Utils.dirname(path2)
 
     return Utils.abspath(path1) == Utils.abspath(path2)
+
 
 def _checkPluginPath(plugin_filename, module_package):
     # Many branches, for the decision is very complex, pylint: disable=R0912

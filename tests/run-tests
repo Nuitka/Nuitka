@@ -27,7 +27,7 @@ from __future__ import print_function
 import os, sys, tempfile, subprocess
 
 if "nocheck" in os.environ.get("DEB_BUILD_OPTIONS", "").split():
-    print("Skiped all tests as per DEB_BUILD_OPTIONS environment.")
+    print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
     sys.exit(0)
 
 from optparse import OptionParser
@@ -514,51 +514,49 @@ if checkExecutableCommand("python3.4"):
 else:
     print("Cannot execute tests with Python 3.4, disabled or not installed.")
 
-def checkWithCppCheck():
-    sys.stdout.flush()
-
-    result = subprocess.call(
-        command = [
-            "cppcheck",
-            "-q",
-            "--error-exitcode=1",
-            "--enable=all",
-            "--check-config", "nuitka/build/",
-            "-I", "nuitka/build/include/",
-            "-I", "/usr/include/python2.7"
-        ]
-    )
-
-    if result != 0:
-        sys.exit(result)
-
-if checkExecutableCommand("cppcheck"):
-    checkWithCppCheck()
-
 if options.coverage:
-    if os.name == "nt":
+    def copyToGlobalCoverageData(source, target):
+        coverage_dir = os.environ.get("COVERAGE_DIR", None)
+
+        if coverage_dir is None:
+            return
+
         assert 0 == subprocess.call(
             (
-                "C:\\MinGW\\msys\\1.0\\bin\\scp.exe",
-                ".coverage",
+                "C:\\MinGW\\msys\\1.0\\bin\\scp.exe"
+                   if os.name == "nt" else
+                "scp",
+                source,
                 os.path.join(
-                    os.environ["COVERAGE_DIR"],
-                    ".coverage.win"
+                    coverage_dir,
+                    target
                 )
             )
         )
+
+    if os.name == "nt":
+        suffix = "win"
     else:
         import platform
+        suffix = platform.uname()[0] + '.' + platform.uname()[4]
 
-        assert 0 == subprocess.call(
-            (
-                "scp",
-                ".coverage",
-                os.path.join(
-                    os.environ["COVERAGE_DIR"],
-                    ".coverage." + platform.uname()[0] + '.' + platform.uname()[4]
-                )
-            )
+    with open("data.coverage", "w") as data_file:
+        source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
+        data_file.write("NUITKA_SOURCE_DIR='%s'\n" % source_dir)
+
+        nuitka_id = subprocess.check_output(
+            "cd '%s'; git rev-parse HEAD" % source_dir,
+            shell = True
         )
+        nuitka_id = nuitka_id.strip()
+
+        if sys.version_info > (3,):
+            nuitka_id = nuitka_id.decode()
+
+        data_file.write("NUITKA_COMMIT='%s'\n" % nuitka_id)
+
+    copyToGlobalCoverageData("data.coverage", "data.coverage." + suffix)
+    copyToGlobalCoverageData(".coverage", ".coverage." + suffix)
 
 print("OK.")

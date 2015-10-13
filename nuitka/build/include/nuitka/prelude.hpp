@@ -198,4 +198,8 @@ extern PyObject *_sentinel_value;
 
 #include "nuitka/compiled_frame.hpp"
 
+#if PYTHON_VERSION >= 350
+#include "nuitka/compiled_coroutine.hpp"
+#endif
+
 #endif

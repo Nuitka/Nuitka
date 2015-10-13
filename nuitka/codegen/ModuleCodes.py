@@ -35,9 +35,6 @@ from .ErrorCodes import (
 from .Indentation import indented
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
-    template_metapath_loader_compiled_module_entry,
-    template_metapath_loader_compiled_package_entry,
-    template_metapath_loader_shlib_module_entry,
     template_module_body_template,
     template_module_exception_exit,
     template_module_noexception_exit
@@ -49,33 +46,11 @@ def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
 
-def getModuleMetapathLoaderEntryCode(module_name, module_identifier,
-                                     is_shlib, is_package):
-    if is_shlib:
-        assert module_name != "__main__"
-        assert not is_package
-
-        return template_metapath_loader_shlib_module_entry % {
-            "module_name" : module_name
-        }
-    elif is_package:
-        return template_metapath_loader_compiled_package_entry % {
-            "module_name"       : module_name,
-            "module_identifier" : module_identifier,
-        }
-    else:
-        return template_metapath_loader_compiled_module_entry % {
-            "module_name"       : module_name,
-            "module_identifier" : module_identifier,
-        }
-
-
 def getModuleValues(context, module_name, module_identifier, codes,
-                    metapath_loader_inittab, metapath_module_decls,
                     function_decl_codes, function_body_codes, temp_variables,
                     is_main_module, is_internal_module):
     # For the module code, lots of arguments and attributes come together.
-    # pylint: disable=R0913,R0914
+    # pylint: disable=R0914
 
     # Temporary variable initializations
     local_var_inits = [
@@ -128,13 +103,6 @@ def getModuleValues(context, module_name, module_identifier, codes,
         "temps_decl"               : indented(local_var_inits),
         "module_code"              : indented(codes),
         "module_exit"              : module_exit,
-        "metapath_loader_inittab"  : indented(
-            sorted(metapath_loader_inittab)
-        ),
-        "metapath_module_decls"    : indented(
-            sorted(metapath_module_decls),
-            0
-        ),
         "module_code_objects_decl" : indented(
             getCodeObjectsDeclCode(context),
             0
@@ -142,8 +110,7 @@ def getModuleValues(context, module_name, module_identifier, codes,
         "module_code_objects_init" : indented(
             getCodeObjectsInitCode(context),
             1
-        ),
-        "use_unfreezer"           : 1 if metapath_loader_inittab else 0
+        )
     }
 
     allocateNestedConstants(context)

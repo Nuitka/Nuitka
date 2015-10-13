@@ -78,11 +78,20 @@ class StatementLoop(StatementChildrenHavingBase):
         else:
             return not loop_body.mayBreak()
 
+    def mayRaiseException(self, exception_type):
+        # Loops can only raise, if their body does, but they also issue the
+        # async exceptions, so we must make them do it all the time.
+        return True
+        # loop_body = self.getLoopBody()
+        #  return loop_body is not None and \
+        #         self.getLoopBody().mayRaiseException(exception_type)
+
     def computeLoopBody(self, constraint_collection):
         abort_context = constraint_collection.makeAbortStackContext(
-            catch_breaks    = True,
-            catch_continues = True,
-            catch_returns   = False
+            catch_breaks     = True,
+            catch_continues  = True,
+            catch_returns    = False,
+            catch_exceptions = False,
         )
 
         with abort_context:
@@ -199,6 +208,11 @@ Removed useless terminal 'continue' as last statement of loop."""
             if len(statements) == 1 and statements[-1].isStatementBreakLoop():
                 return None, "new_statements", """\
 Removed useless loop with immediate 'break' statement."""
+
+        # Also consider the threading intermission. TODO: We ought to make it
+        # explicit, so we can see it potentially disrupting and changing the
+        # global variables. It may also raise.
+        outer_constraint_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 

@@ -47,20 +47,64 @@ static PyMemberDef Nuitka_Method_members[] =
 
 static PyObject *Nuitka_Method_reduce( Nuitka_MethodObject *method )
 {
-    PyObject *result = PyTuple_New(2);
-    PyTuple_SET_ITEM( result, 0, INCREASE_REFCOUNT( (PyObject *)Py_TYPE( method ) ) );
-    PyObject *arg1 = PyTuple_New(2);
-    PyTuple_SET_ITEM( result, 1, arg1 );
+    PyErr_Format(
+        PyExc_TypeError,
+        "Can't pickle instancemethod objects"
+    );
 
-    PyTuple_SET_ITEM( arg1, 0, INCREASE_REFCOUNT( (PyObject *)method->m_function ) );
-    PyTuple_SET_ITEM( arg1, 1, INCREASE_REFCOUNT( method->m_object ) );
-
-    return result;
+    return NULL;
 }
+
+static PyObject *Nuitka_Method_reduce_ex( Nuitka_MethodObject *method, PyObject *args )
+{
+    int proto;
+
+    if ( !PyArg_ParseTuple(args, "|i:__reduce_ex__", &proto) )
+    {
+        return NULL;
+    }
+
+    PyErr_Format(
+        PyExc_TypeError,
+        "Can't pickle instancemethod objects"
+    );
+
+    return NULL;
+}
+
+static PyObject *Nuitka_Method_deepcopy( Nuitka_MethodObject *method, PyObject *memo )
+{
+    assert( Nuitka_Method_Check( (PyObject *)method ));
+
+    static PyObject *module_copy = NULL;
+    static PyObject *deepcopy_function = NULL;
+
+    if ( module_copy == NULL  )
+    {
+        module_copy = PyImport_ImportModule( "copy" );
+        CHECK_OBJECT( module_copy );
+
+        deepcopy_function = PyObject_GetAttrString( module_copy, "deepcopy" );
+        CHECK_OBJECT( deepcopy_function );
+    }
+
+    PyObject *object = PyObject_CallFunctionObjArgs( deepcopy_function, method->m_object, memo, NULL );
+
+    if (unlikely( object == NULL ))
+    {
+        return NULL;
+    }
+
+    return Nuitka_Method_New( method->m_function, object, method->m_class );
+}
+
+
 
 static PyMethodDef Nuitka_Method_methods[] =
 {
-    { "__reduce__", (PyCFunction)Nuitka_Method_reduce, METH_NOARGS, NULL },
+    { "__reduce__",    (PyCFunction)Nuitka_Method_reduce,   METH_NOARGS,   NULL },
+    { "__reduce_ex__", (PyCFunction)Nuitka_Method_reduce_ex, METH_VARARGS, NULL },
+    { "__deepcopy__",  (PyCFunction) Nuitka_Method_deepcopy, METH_O,       NULL },
     { NULL }
 };
 

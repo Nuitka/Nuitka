@@ -47,7 +47,7 @@ def getSconsBinaryCall():
         Using potentially in-line copy if no system Scons is available
         or if we are on Windows.
     """
-    if Utils.isFile("/usr/bin/scons"):
+    if Utils.getOS() != "Windows" and Utils.isFile("/usr/bin/scons"):
         return ["/usr/bin/scons"]
     else:
         return [

@@ -354,3 +354,5 @@ try:
     open()
 except TypeError as e:
     print("Open without arguments gives", repr(e))
+
+print("Type of id values:", type(id(id)))

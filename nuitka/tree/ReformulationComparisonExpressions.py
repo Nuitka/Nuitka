@@ -23,6 +23,8 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -31,10 +33,6 @@ from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
-)
 
 from .Helpers import buildNode, getKind, makeStatementsSequenceFromStatement
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement

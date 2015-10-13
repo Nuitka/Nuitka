@@ -27,6 +27,7 @@ needed except for technical reasons.
 """
 
 
+from collections import namedtuple
 from logging import info
 
 from nuitka import Options
@@ -39,11 +40,16 @@ from nuitka.utils import Utils
 
 frozen_modules = []
 
+FrozenModuleDescription = namedtuple(
+    "FrozenModuleDescription",
+    ("module_name", "bytecode", "is_package", "filename", "is_late"),
+)
+
 def addFrozenModule(frozen_module):
     """ Add a module discovered for freezing.
 
     """
-    assert not isFrozenModule(frozen_module[0], frozen_module[3]), frozen_module[0]
+    assert not isFrozenModule(frozen_module.module_name, frozen_module.filename), frozen_module.module_name
 
     frozen_modules.append(frozen_module)
 
@@ -54,10 +60,7 @@ def removeFrozenModule(module_name):
         Typically this is because it was shadowed by a compiled version.
     """
     for count, frozen_module in enumerate(frozen_modules):
-        frozen_module_name, _code_data, _is_package, _filename, _is_late = \
-          frozen_module
-
-        if frozen_module_name == module_name:
+        if frozen_module.module_name == module_name:
             break
     else:
         count = None
@@ -92,13 +95,10 @@ def _normalizeModuleFilename(filename):
 
 def isFrozenModule(module_name, module_filename):
     for frozen_module in frozen_modules:
-        frozen_module_name, _code_data, _is_package, filename, _is_late = \
-          frozen_module
-
-        if module_name == frozen_module_name:
+        if module_name == frozen_module.module_name:
             return Utils.areSamePaths(
                 _normalizeModuleFilename(module_filename),
-                _normalizeModuleFilename(filename)
+                _normalizeModuleFilename(frozen_module.filename)
             )
 
     return False

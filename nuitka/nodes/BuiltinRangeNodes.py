@@ -29,6 +29,7 @@ from nuitka.optimizations import BuiltinOptimization
 from nuitka.utils.Utils import python_version
 
 from .NodeBases import ExpressionBuiltinNoArgBase, ExpressionChildrenHavingBase
+from .NodeMakingHelpers import makeConstantReplacementNode
 
 
 class ExpressionBuiltinRange0(ExpressionBuiltinNoArgBase):
@@ -83,15 +84,15 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
 
         return False
 
-    def computeBuiltinSpec(self, given_values):
+    def computeBuiltinSpec(self, constraint_collection, given_values):
         assert self.builtin_spec is not None, self
 
         if not self.builtin_spec.isCompileTimeComputable(given_values):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
             return self, None, None
 
-        from .NodeMakingHelpers import getComputationResult
-
-        return getComputationResult(
+        return constraint_collection.getCompileTimeComputationResult(
             node        = self,
             computation = lambda : self.builtin_spec.simulateCall(
                 given_values
@@ -123,6 +124,8 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
                 "new_expression",
                 "Replaced 'range' with 'xrange' built-in call."
             )
+
+        # No exception will be raised on ranges.
 
         return iter_node, None, None
 
@@ -170,7 +173,8 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
         low  = self.getLow()
 
         return self.computeBuiltinSpec(
-            given_values = (
+            constraint_collection = constraint_collection,
+            given_values          = (
                 low,
             )
         )
@@ -194,8 +198,6 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
 
         if element_index > length:
             return None
-
-        from .NodeMakingHelpers import makeConstantReplacementNode
 
         # TODO: Make sure to cast element_index to what CPython will give, for
         # now a downcast will do.
@@ -236,7 +238,8 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
         high = self.getHigh()
 
         return self.computeBuiltinSpec(
-            given_values = (
+            constraint_collection = constraint_collection,
+            given_values          = (
                 low,
                 high
             )
@@ -280,8 +283,6 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
         if result >= high:
             return None
         else:
-            from .NodeMakingHelpers import makeConstantReplacementNode
-
             return makeConstantReplacementNode(
                 constant = result,
                 node     = self
@@ -326,7 +327,8 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
         step = self.getStep()
 
         return self.computeBuiltinSpec(
-            given_values = (
+            constraint_collection = constraint_collection,
+            given_values          = (
                 low,
                 high,
                 step
@@ -395,8 +397,6 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
         if result >= high:
             return None
         else:
-            from .NodeMakingHelpers import makeConstantReplacementNode
-
             return makeConstantReplacementNode(
                 constant = result,
                 node     = self

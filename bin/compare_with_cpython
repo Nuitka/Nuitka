@@ -61,6 +61,20 @@ timing             = hasArg("timing")
 coverage_mode      = hasArg("coverage")
 original_file      = hasArg("original_file")
 
+plugins_enabled = []
+
+for count, arg in reversed(tuple(enumerate(args))):
+    if arg.startswith("plugin_enable:"):
+        plugins_enabled.append(arg[len("plugin_enable:"):])
+        del args[count]
+
+plugins_disabled = []
+
+for count, arg in reversed(tuple(enumerate(args))):
+    if arg.startswith("plugin_disable:"):
+        plugins_disabled.append(arg[len("plugin_disable:"):])
+        del args[count]
+
 if args:
     sys.exit("Error, non understood mode(s) '%s'," % ','.join(args))
 
@@ -225,6 +239,12 @@ if recurse_all:
 if coverage_mode:
     extra_options.append("--must-not-re-execute")
     extra_options.append("--generate-c++-only")
+
+for plugin_enabled in plugins_enabled:
+    extra_options.append("--plugin-enable=" + plugin_enabled)
+
+for plugin_disabled in plugins_disabled:
+    extra_options.append("--plugin-disable=" + plugin_disabled)
 
 # Now build the command to run Nuitka.
 if not two_step_execution:

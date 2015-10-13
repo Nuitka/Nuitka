@@ -21,6 +21,7 @@
 
 from nuitka.utils import Utils
 
+from .Contexts import PythonFunctionCoroutineContext
 from .ConstantCodes import getConstantCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
@@ -64,6 +65,10 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_genfunc_yielder_template,
     template_make_genfunc_with_context_template,
     template_make_genfunc_without_context_template
+)
+from .templates.CodeTemplatesCoroutines import (
+    template_make_coroutine_without_context_template,
+    template_make_coroutine_with_context_template,
 )
 from .VariableCodes import (
     getLocalVariableInitCode,
@@ -720,6 +725,43 @@ def getGeneratorFunctionCode(context, function_name, function_qualname,
 
     return result
 
+
+def generateCoroutineCreationCode(to_name, expression, emit, context):
+    coroutine_body = expression.getCoroutineBody()
+    closure_variables = coroutine_body.getClosureVariables()
+
+    code_identifier = coroutine_body.getCodeName()
+
+    function_codes = SourceCodeCollector()
+
+    coroutine_context = PythonFunctionCoroutineContext(
+        parent   = context,
+        function = coroutine_body
+    )
+
+    # TODO: Should come from registry instead.
+    from .CodeGeneration import generateStatementSequenceCode
+
+    generateStatementSequenceCode(
+        statement_sequence = coroutine_body.getBody(),
+        emit               = function_codes,
+        context            = coroutine_context
+    )
+
+    if closure_variables:
+        emit(
+            template_make_coroutine_with_context_template % {
+                "to_name"         : to_name,
+                "code_identifier" : code_identifier
+            }
+        )
+    else:
+        emit(
+            template_make_coroutine_without_context_template % {
+                "to_name"         : to_name,
+                "code_identifier" : code_identifier
+            }
+        )
 
 def getExportScopeCode(cross_module):
     if cross_module:

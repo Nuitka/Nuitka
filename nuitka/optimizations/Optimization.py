@@ -23,7 +23,7 @@ make others possible.
 """
 
 
-from logging import debug
+from logging import debug, warning
 
 from nuitka import ModuleRegistry, Options, VariableRegistry
 from nuitka.optimizations import TraceCollections
@@ -68,6 +68,8 @@ def signalChange(tags, source_ref, message):
 # Use this globally from there, without cyclic dependency.
 TraceCollections.signalChange = signalChange
 
+graph = None
+computation_counters = {}
 
 def optimizePythonModule(module):
     if _progress:
@@ -95,6 +97,12 @@ def optimizePythonModule(module):
         if not tag_set:
             break
 
+        if graph is not None:
+            computation_counters[module] = computation_counters.get(module, 0) + 1
+            module_graph = module.asGraph(computation_counters[module])
+
+            graph.subgraph(module_graph)
+
         touched = True
 
     if _progress:
@@ -106,6 +114,8 @@ def optimizePythonModule(module):
                 memory_watch.asStr()
             )
         )
+
+    Plugins.considerImplicitImports(module, signal_change = signalChange)
 
     return touched or module.hasUnclearLocals()
 
@@ -261,6 +271,17 @@ def optimizeVariables(module):
 def optimize():
     # This is somewhat complex with many cases, pylint: disable=R0912
 
+    # We maintain this globally to make it accessible, pylint: disable=W0603
+    global graph
+
+    if Options.shouldCreateGraph():
+
+        try:
+            from graphviz import Digraph # pylint: disable=F0401,I0021
+            graph = Digraph('G')
+        except ImportError:
+            warning("Cannot import graphviz module, no graphing capability.")
+
     while True:
         finished = True
 
@@ -313,3 +334,11 @@ after that. Memory usage {memory}:""".format(
 
         if finished:
             break
+
+
+    if graph is not None:
+        graph.engine = "dot"
+        graph.graph_attr["rankdir"] = "TB"
+        graph.render("something.dot")
+
+        printLine(graph.source)

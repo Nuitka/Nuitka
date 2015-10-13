@@ -29,7 +29,10 @@ compile time constant.
 
 from logging import warning
 
-from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
+from nuitka.importing.Importing import (
+    findModule,
+    getModuleNameAndKindFromFilename
+)
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.utils import Utils
@@ -51,6 +54,8 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
     _warned_about = set()
 
     def __init__(self, module_name, import_list, level, source_ref):
+        assert type(module_name) is str, type(module_name)
+
         NodeBase.__init__(
             self,
             source_ref = source_ref
@@ -164,6 +169,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             parent_package = self.getParentModule().getPackage()
 
         module_package, module_filename, _finding = findModule(
+            importing      = parent_module,
             source_ref     = self.source_ref,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
@@ -190,6 +196,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             continue
 
                         module_package, module_filename, _finding = findModule(
+                            importing      = parent_module,
                             source_ref     = self.source_ref,
                             module_name    = import_item,
                             parent_package = imported_module.getFullName(),
@@ -224,8 +231,14 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             for found_module in self.found_modules:
                 addUsedModule(found_module)
 
-        # TODO: May return a module reference of some sort in the future with
-        # embedded modules.
+
+        # When a module is recursed to and included, we know it won't raise,
+        # right? But even if you import, that successful import may still raise
+        # and we don't know how to check yet.
+        constraint_collection.onExceptionRaiseExit(
+            BaseException
+        )
+
         return self, None, None
 
 
@@ -325,18 +338,39 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         if module_name.isExpressionConstantRef() and \
            fromlist.isExpressionConstantRef() and \
            level.isExpressionConstantRef():
-            new_node = ExpressionImportModule(
-                module_name = module_name.getConstant(),
-                import_list = fromlist.getConstant(),
-                level       = level.getConstant(),
-                source_ref  = self.getSourceReference()
-            )
 
-            return (
-                new_node,
-                "new_import",
-                "Replaced __import__ call with module import expression."
-            )
+            if module_name.isStringConstant():
+                new_node = ExpressionImportModule(
+                    module_name = module_name.getConstant(),
+                    import_list = fromlist.getConstant(),
+                    level       = level.getConstant(),
+                    source_ref  = self.getSourceReference()
+                )
+
+                # Importing may raise an exception obviously.
+                constraint_collection.onExceptionRaiseExit(BaseException)
+
+
+                return (
+                    new_node,
+                    "new_import",
+                    "Replaced __import__ call with module import expression."
+                )
+            else:
+                # Non-strings is going to raise an error.
+                new_node, change_tags, message = constraint_collection.getCompileTimeComputationResult(
+                    node        = self,
+                    computation = lambda : __import__(module_name.getConstant()),
+                    description = "Replaced __import__ call with non-string module name argument."
+                )
+
+                # Must fail, must not go on when it doesn't.
+                assert change_tags == "new_raise"
+
+                return new_node, change_tags, message
+
+        # Importing may raise an exception obviously.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.

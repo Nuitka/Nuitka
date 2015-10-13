@@ -79,14 +79,21 @@ def remainingCount():
 
 
 def getDoneModules():
-    return list(done_modules)
+    return sorted(done_modules, key = lambda module : module.getFullName())
 
 
 def getDoneUserModules():
-    return [
-        module
-        for module in
-        done_modules
-        if not module.isInternalModule()
-        if not module.isMainModule()
-    ]
+    return sorted(
+        [
+            module
+            for module in
+            done_modules
+            if not module.isInternalModule()
+            if not module.isMainModule()
+        ],
+        key = lambda module : module.getFullName()
+    )
+
+
+def removeDoneModule(module):
+    done_modules.remove(module)

@@ -71,6 +71,11 @@ class StatementPrintValue(StatementChildrenHavingBase):
         )
         dest = self.getDestination()
 
+        if dest is not None and dest.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
+
         if dest is not None and dest.willRaiseException(BaseException):
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = dest,
@@ -84,6 +89,11 @@ Exception raise in 'print' statement destination converted to explicit raise."""
             expression = self.getValue()
         )
         value = self.getValue()
+
+        if value.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
 
         if value.willRaiseException(BaseException):
             if dest is not None:
@@ -102,6 +112,10 @@ Exception raise in 'print' statement destination converted to explicit raise."""
 
             return result, "new_raise", """\
 Exception raise in 'print' statement arguments converted to explicit raise."""
+
+        constraint_collection.onExceptionRaiseExit(
+            BaseException
+        )
 
         if dest is None:
             if value.isExpressionSideEffects():
@@ -137,6 +151,9 @@ Side effects printed item promoted to statements."""
 
         return self, None, None
 
+    def mayRaiseException(self, exception_type):
+        return True
+
 
 class StatementPrintNewline(StatementChildrenHavingBase):
     kind = "STATEMENT_PRINT_NEWLINE"
@@ -166,6 +183,11 @@ class StatementPrintNewline(StatementChildrenHavingBase):
         )
         dest = self.getDestination()
 
+        if dest is not None and dest.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
+
         if dest is not None and dest.willRaiseException(BaseException):
             result = makeStatementExpressionOnlyReplacementNode(
                 expression = dest,
@@ -175,4 +197,11 @@ class StatementPrintNewline(StatementChildrenHavingBase):
             return result, "new_raise", """\
 Exception raise in 'print' statement destination converted to explicit raise."""
 
+        constraint_collection.onExceptionRaiseExit(
+            BaseException
+        )
+
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return True

@@ -247,18 +247,18 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
         constraint_collection.onExpression(
             expression = self.getExpression()
         )
+        expression = self.getExpression()
 
-        new_statement, change_tags, change_desc = \
-          self.getExpression().computeExpressionDrop(
+        if expression.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        result, change_tags, change_desc = expression.computeExpressionDrop(
             statement             = self,
             constraint_collection = constraint_collection
         )
 
-        if new_statement is None:
-            return new_statement, change_tags, change_desc
-
-        if new_statement is not self:
-            return new_statement, change_tags, change_desc
+        if result is not self:
+            return result, change_tags, change_desc
 
         return self, None, None
 
@@ -278,6 +278,8 @@ class StatementGeneratorEntry(NodeBase):
         return True
 
     def computeStatement(self, constraint_collection):
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         # Nothing we can about it.
         return self, None, None
 

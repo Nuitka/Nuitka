@@ -17,7 +17,7 @@
 #
 """
 
-Plugins: Welcome to Nuitka! This is your way to become part of it.
+Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
 
 This is to provide the base class for all plug-ins. Some of which are part of
 proper Nuitka, and some of which are waiting to be created and submitted for
@@ -29,17 +29,18 @@ it being used.
 """
 
 # This is heavily WIP.
-import shutil
-import subprocess
 import sys
-from logging import info
+from logging import info, warning
 
+from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.nodes.ModuleNodes import PythonModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils import Utils
 
+pre_modules = {}
 post_modules = {}
+
+warned_unused_plugins = set()
 
 class NuitkaPluginBase:
     """ Nuitka base class for all plug-ins.
@@ -52,6 +53,11 @@ class NuitkaPluginBase:
         that enough to be visible by default.
 
     """
+
+    # You must provide this as a string which then can be used to enable the
+    # plug-in.
+    plugin_name = None
+
     def considerImplicitImports(self, module, signal_change):
         """ Consider module imports.
 
@@ -68,6 +74,7 @@ class NuitkaPluginBase:
             module_package = '.'.join(full_name.split('.')[:-1]) or None
 
             module_filename = self.locateModule(
+                importing      = module,
                 source_ref     = module.getSourceReference(),
                 module_name    = module_name,
                 module_package = module_package,
@@ -75,8 +82,8 @@ class NuitkaPluginBase:
 
             if module_filename is None:
                 sys.exit(
-                    "Error, implicit module '%s' expected by '%s' not found" % (
-                        module_name,
+                    "Error, implicit module '%s' expected by '%s' not found." % (
+                        full_name,
                         module.getFullName()
                     )
                 )
@@ -108,48 +115,101 @@ class NuitkaPluginBase:
                     signal_change   = signal_change
                 )
 
-            full_name = module.getFullName()
-            if full_name in post_modules:
-                addUsedModule(post_modules[full_name])
+    def getImplicitImports(self, full_name):
+        # Virtual method, pylint: disable=R0201,W0613
+        return ()
+
+    # Provide fall-back for failed imports here.
+    module_aliases = {}
+
+    def considerFailedImportReferrals(self, module_name):
+        return self.module_aliases.get(module_name, None)
 
     def onModuleSourceCode(self, module_name, source_code):
         # Virtual method, pylint: disable=R0201,W0613
         return source_code
 
-    def onModuleDiscovered(self, module):
-        post_code, reason = self.createPostModuleLoadCode(module)
+    @staticmethod
+    def _createTriggerLoadedModule(module, trigger_name, code):
+        from nuitka.tree.Building import createModuleTree
+        from nuitka.nodes.ModuleNodes import PythonModule
 
-        if post_code:
+        trigger_module = PythonModule(
+            name         = module.getName() + trigger_name,
+            package_name = module.getPackage(),
+            source_ref   = fromFilename(module.getCompileTimeFilename() + trigger_name)
+        )
+
+        createModuleTree(
+            module      = trigger_module,
+            source_ref  = module.getSourceReference(),
+            source_code = code,
+            is_main     = False
+        )
+
+        return trigger_module
+
+    @staticmethod
+    def createPreModuleLoadCode(module):
+        # Virtual method, pylint: disable=W0613
+        return None, None
+
+    @staticmethod
+    def createPostModuleLoadCode(module):
+        # Virtual method, pylint: disable=W0613
+        return None, None
+
+    def onModuleDiscovered(self, module):
+        pre_code, reason = self.createPreModuleLoadCode(module)
+
+        full_name = module.getFullName()
+
+        if pre_code:
+            if full_name is pre_modules:
+                sys.exit("Error, conflicting plug-ins for %s" % full_name)
+
             info(
-                "Injecting plug-in based post load code for module '%s':" % \
-                    module.getFullName()
+                "Injecting plug-in based pre load code for module '%s':" % \
+                    full_name
             )
             for line in reason.split('\n'):
                 info("    " + line)
 
-
-            from nuitka.tree.Building import createModuleTree
-
-            post_module = PythonModule(
-                name         = module.getName() + "-onLoad",
-                package_name = module.getPackage(),
-                source_ref   = fromFilename(module.getCompileTimeFilename() + "-onLoad")
+            pre_modules[full_name] = self._createTriggerLoadedModule(
+                module       = module,
+                trigger_name = "-preLoad",
+                code         = pre_code
             )
 
-            createModuleTree(
-                module      = post_module,
-                source_ref  = module.getSourceReference(),
-                source_code = post_code,
-                is_main     = False
+        post_code, reason = self.createPostModuleLoadCode(module)
+
+        if post_code:
+            if full_name is post_modules:
+                sys.exit("Error, conflicting plug-ins for %s" % full_name)
+
+            info(
+                "Injecting plug-in based post load code for module '%s':" % \
+                    full_name
+            )
+            for line in reason.split('\n'):
+                info("    " + line)
+
+            post_modules[full_name] = self._createTriggerLoadedModule(
+                module       = module,
+                trigger_name = "-postLoad",
+                code         = post_code
             )
 
-            post_modules[module.getFullName()] = post_module
+    def onModuleEncounter(self, module_filename, module_name, module_package,
+                          module_kind):
+        pass
 
     @staticmethod
-    def locateModule(module_name, module_package, source_ref):
+    def locateModule(importing, module_name, module_package, source_ref):
         from nuitka.importing import Importing
 
         _module_package, module_filename, _finding = Importing.findModule(
+            importing      = importing,
             source_ref     = source_ref,
             module_name    = module_name,
             parent_package = module_package,
@@ -196,11 +256,39 @@ class NuitkaPluginBase:
             )
 
 
+    def considerExtraDlls(self, dist_dir, module):
+        # Virtual method, pylint: disable=R0201,W0613
+        return []
 
-class NuitkaPopularImplicitImports(NuitkaPluginBase):
+    def suppressBuiltinImportWarning(self, module_name, source_ref):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
 
-    @staticmethod
-    def getImplicitImports(full_name):
+    def suppressUnknownImportWarning(self, importing, module_name, source_ref):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+    def warnUnusedPlugin(self, message):
+        if self.plugin_name not in warned_unused_plugins:
+            warned_unused_plugins.add(self.plugin_name)
+
+            warning(
+                "Use --plugin-enable=%s for: %s" % (
+                    self.plugin_name,
+                    message
+                )
+            )
+
+
+class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
+    """ This is for implicit imports.
+
+        When C extension modules import other modules, we cannot see this
+        and need to be told that. This encodes the knowledge we have for
+        various modules. Feel free to add to this and submit patches to
+        make it more complete.
+    """
+    def getImplicitImports(self, full_name):
         elements = full_name.split('.')
 
         if elements[0] in ("PyQt4", "PyQt5"):
@@ -209,10 +297,12 @@ class NuitkaPopularImplicitImports(NuitkaPluginBase):
 
             yield "sip"
 
-            if elements[1] == "QtGui":
+            child = elements[1] if len(elements) > 1 else None
+
+            if child == "QtGui":
                 yield elements[0] + ".QtCore"
 
-            if elements[1] == "QtWidgets":
+            if child == "QtWidgets":
                 yield elements[0] + ".QtGui"
         elif full_name == "lxml.etree":
             yield "gzip"
@@ -223,108 +313,17 @@ class NuitkaPopularImplicitImports(NuitkaPluginBase):
             yield "cairo"
             yield "gio"
             yield "atk"
+        elif full_name == "reportlab.rl_config":
+            yield "reportlab.rl_settings"
+        elif full_name == "ctypes":
+            yield "_ctypes"
+        elif full_name == "gi._gi":
+            yield "gi._error"
 
-    @staticmethod
-    def getPyQtPluginDirs(qt_version):
-        command = """\
-from __future__ import print_function
-
-import PyQt%(qt_version)d.QtCore
-for v in PyQt%(qt_version)d.QtCore.QCoreApplication.libraryPaths():
-    print(v)
-import os
-guess_path = os.path.join(os.path.dirname(PyQt%(qt_version)d.__file__), "plugins")
-if os.path.exists(guess_path):
-    print("GUESS:", guess_path)
-""" % {
-           "qt_version" : qt_version
-        }
-        output = subprocess.check_output([sys.executable, "-c", command])
-
-        # May not be good for everybody, but we cannot have bytes in paths, or
-        # else working with them breaks down.
-        if Utils.python_version >= 300:
-            output = output.decode("utf-8")
-
-        result = []
-
-        for line in output.replace('\r', "").split('\n'):
-            if not line:
-                continue
-
-            # Take the guessed path only if necessary.
-            if line.startswith("GUESS: "):
-                if result:
-                    continue
-
-                line = line[len("GUESS: "):]
-
-            result.append(Utils.normpath(line))
-
-        return result
-
-    def considerExtraDlls(self, dist_dir, module):
-        full_name = module.getFullName()
-
-        if full_name in ("PyQt4", "PyQt5"):
-            qt_version = int(full_name[-1])
-
-            plugin_dir, = self.getPyQtPluginDirs(qt_version)
-
-            target_plugin_dir = Utils.joinpath(
-                dist_dir,
-                full_name,
-                "qt-plugins"
-            )
-
-            shutil.copytree(
-                plugin_dir,
-                target_plugin_dir
-            )
-
-            info("Copying all Qt plug-ins to '%s'." % target_plugin_dir)
-
-            return [
-                (filename, full_name)
-                for filename in
-                Utils.getFileList(target_plugin_dir)
-            ]
-
-        return ()
-
-    @staticmethod
-    def createPostModuleLoadCode(module):
-        """ Create code to load after a module was successfully imported.
-
-        """
-
-        full_name = module.getFullName()
-
-        if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
-            qt_version = int(full_name.split('.')[0][-1])
-
-            code = """\
-from PyQt%(qt_version)d.QtCore import QCoreApplication
-import os
-
-QCoreApplication.setLibraryPaths(
-    [
-        os.path.join(
-           os.path.dirname(__file__),
-           "qt-plugins"
-        )
-    ]
-)
-""" % {
-                "qt_version" : qt_version
-            }
-
-            return code, """\
-Setting Qt library path to distribution folder. Need to avoid
-loading target system Qt plug-ins, which may be from another
-Qt version."""
-
-        return None, None
+    module_aliases = {
+        "requests.packages.urllib3" : "urllib3",
+        "requests.packages.chardet" : "chardet"
+    }
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "numexpr.cpuinfo":
@@ -338,28 +337,107 @@ Qt version."""
                 "type(attr) is types.MethodType",
                 "isinstance(attr, types.MethodType)"
             )
+
+
         # Do nothing by default.
         return source_code
 
+    def suppressBuiltinImportWarning(self, module_name, source_ref):
+        if module_name == "setuptools":
+            return True
+
+        return False
+
+
 class UserPluginBase(NuitkaPluginBase):
-    pass
+    """ For user plug-ins.
+
+       Check the base class methods for what you can do.
+    """
+
+    # You must provide this as a string which then can be used to enable the
+    # plug-in.
+    plugin_name = None
 
 
-plugin_list = [
-    NuitkaPopularImplicitImports(),
+active_plugin_list = [
+    NuitkaPluginPopularImplicitImports(),
 ]
+
+from .standard.ConsiderPyLintAnnotationsPlugin import (  # isort:skip
+    NuitkaPluginDetectorPylintEclipseAnnotations,
+    NuitkaPluginPylintEclipseAnnotations
+)
+from .standard.MultiprocessingPlugin import (  # isort:skip
+    NuitkaPluginDetectorMultiprocessingWorkaorunds,
+    NuitkaPluginMultiprocessingWorkaorunds
+)
+from .standard.PySidePyQtPlugin import (  # isort:skip
+    NuitkaPluginDetectorPyQtPySidePlugins,
+    NuitkaPluginPyQtPySidePlugins
+)
+
+# The standard plug-ins have their list hard-coded here. User plug-ins will
+# be scanned later, TODO.
+
+# List of optional plug-in classes. Until we have the meta class to do it, just
+# add your class here. The second one is a detector, which is supposed to give
+# a missing plug-in message, should it find the condition to make it useful.
+optional_plugin_classes = (
+    (NuitkaPluginMultiprocessingWorkaorunds, NuitkaPluginDetectorMultiprocessingWorkaorunds),
+    (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
+    (NuitkaPluginPylintEclipseAnnotations, NuitkaPluginDetectorPylintEclipseAnnotations),
+)
+
+plugin_name2plugin_classes = dict(
+    (plugin[0].plugin_name, plugin)
+    for plugin in
+    optional_plugin_classes
+)
+
+for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
+    if plugin_name not in plugin_name2plugin_classes:
+        sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
+
+    if plugin_name in Options.getPluginsEnabled() and \
+       plugin_name in Options.getPluginsDisabled():
+        sys.exit("Error, conflicting enable/disable of plug-in '%s'." % plugin_name)
+
+for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.items():
+    if plugin_name in Options.getPluginsEnabled():
+        active_plugin_list.append(
+            plugin_class(
+                **Options.getPluginOptions(plugin_name)
+            )
+        )
+    elif plugin_name not in Options.getPluginsDisabled():
+        if plugin_detector is not None \
+           and Options.shallDetectMissingPlugins() and \
+           plugin_detector.isRelevant():
+            active_plugin_list.append(
+                plugin_detector()
+            )
 
 class Plugins:
     @staticmethod
     def considerImplicitImports(module, signal_change):
-        for plugin in plugin_list:
+        for plugin in active_plugin_list:
             plugin.considerImplicitImports(module, signal_change)
+
+        # Post load code may have been created, if so indicate it's used.
+        full_name = module.getFullName()
+
+        if full_name in post_modules:
+            addUsedModule(post_modules[full_name])
+
+        if full_name in pre_modules:
+            addUsedModule(pre_modules[full_name])
 
     @staticmethod
     def considerExtraDlls(dist_dir, module):
         result = []
 
-        for plugin in plugin_list:
+        for plugin in active_plugin_list:
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
                 assert Utils.isFile(extra_dll[0])
 
@@ -369,12 +447,52 @@ class Plugins:
 
     @staticmethod
     def onModuleDiscovered(module):
-        for plugin in plugin_list:
+        for plugin in active_plugin_list:
             plugin.onModuleDiscovered(module)
 
     @staticmethod
     def onModuleSourceCode(module_name, source_code):
-        for plugin in plugin_list:
+        assert type(module_name) is str
+        assert type(source_code) is str
+
+        for plugin in active_plugin_list:
             source_code = plugin.onModuleSourceCode(module_name, source_code)
 
         return source_code
+
+    @staticmethod
+    def onModuleEncounter(module_filename, module_name, module_package,
+                          module_kind):
+        for plugin in active_plugin_list:
+            plugin.onModuleEncounter(
+                module_filename,
+                module_name,
+                module_package,
+                module_kind
+            )
+
+    @staticmethod
+    def considerFailedImportReferrals(module_name):
+        for plugin in active_plugin_list:
+            new_module_name = plugin.considerFailedImportReferrals(module_name)
+
+            if new_module_name is not None:
+                return new_module_name
+
+        return None
+
+    @staticmethod
+    def suppressBuiltinImportWarning(module_name, source_ref):
+        for plugin in active_plugin_list:
+            if plugin.suppressBuiltinImportWarning(module_name, source_ref):
+                return True
+
+        return False
+
+    @staticmethod
+    def suppressUnknownImportWarning(importing, module_name, source_ref):
+        for plugin in active_plugin_list:
+            if plugin.suppressUnknownImportWarning(importing, module_name, source_ref):
+                return True
+
+        return False

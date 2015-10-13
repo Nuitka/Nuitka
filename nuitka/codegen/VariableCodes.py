@@ -24,7 +24,11 @@ from nuitka.utils import Utils
 
 from .ConstantCodes import getConstantCode
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getErrorFormatExitBoolCode, getErrorFormatExitCode
+from .ErrorCodes import (
+    getAssertionCode,
+    getErrorFormatExitBoolCode,
+    getErrorFormatExitCode
+)
 from .Indentation import indented
 from .templates.CodeTemplatesVariables import (
     template_check_local,
@@ -631,8 +635,9 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                 }
             )
 
-            emit(
-                "assert( %s != false );" % res_name
+            getAssertionCode(
+                check = "%s != false" % res_name,
+                emit  = emit
             )
     else:
         assert False, variable

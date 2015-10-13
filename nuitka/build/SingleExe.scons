@@ -66,6 +66,9 @@ module_mode = getBoolOption("module_mode", False)
 # Debug mode: Less optimizations, debug information in the resulting binary.
 debug_mode = getBoolOption("debug_mode", False)
 
+# Profiling mode: Outputs vmprof based information from program run.
+profile_mode = getBoolOption("profile_mode", False)
+
 # Python version to target.
 python_version = ARGUMENTS["python_version"]
 
@@ -98,7 +101,7 @@ win_target = getBoolOption("win_target", os.name == "nt")
 win_disable_console = getBoolOption("win_disable_console", False)
 
 # Windows might be running a Python whose DLL we have to use.
-win_copy_dll = getBoolOption("win_copy_dll", False)
+uninstalled_python = getBoolOption("uninstalled_python", False)
 
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
@@ -683,6 +686,11 @@ if experimental_mode:
         CPPDEFINES = ["_NUITKA_EXPERIMENTAL"]
     )
 
+if profile_mode:
+    env.Append(
+        CPPDEFINES = ["_NUITKA_PROFILE"]
+    )
+
 if trace_mode:
     env.Append(
         CPPDEFINES = ["_NUITKA_TRACE"]
@@ -1112,7 +1120,10 @@ else:
         output.write("\n};\n");
 
 env.Append(
-    CPPDEFINES = ["_NUITKA_FROZEN=%d" % frozen_modules]
+    CPPDEFINES = [
+        "_NUITKA_FROZEN=%d" % frozen_modules,
+        "_NUITKA_MODULE_COUNT=%d" % module_count
+    ]
 )
 
 # Tell compiler to create a shared library or program.
@@ -1405,11 +1416,28 @@ signal.signal(signal.SIGINT, signalHandler)
 Default(target) # @UndefinedVariable
 
 # Copy the Python DLL to the target directory, so the executable can be run.
-if win_copy_dll:
-    shutil.copy(
-        os.path.join(
-            python_prefix,
-            "python" + python_version.replace('.', "") + ".dll"
-        ),
-        os.path.dirname(result_basepath) or "."
-    )
+if uninstalled_python:
+    if os.name == "nt":
+        shutil.copy(
+            os.path.join(
+                python_prefix,
+                "python" + python_version.replace('.', "") + ".dll"
+            ),
+            os.path.dirname(result_basepath) or "."
+        )
+    elif sys.platform == "darwin":
+        python_dll_filename = "libpython" + python_version + ".dylib"
+
+        result = subprocess.call(
+            (
+                "install_name_tool",
+                "--change",
+                python_dll_filename,
+                os.path.join(python_lib_path, python_dll_filename),
+                result_basepath + ".exe"
+            ),
+            stdout = subprocess.PIPE
+        )
+
+        if result != 0:
+            sys.exit("Error, call to 'install_name_tool' to fix Python library path failed.")

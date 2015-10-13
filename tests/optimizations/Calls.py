@@ -19,4 +19,4 @@
 #
 
 # TODO: This is only a placeholder, currently no calls will be optimized
-print range(4)
+print(range(4))

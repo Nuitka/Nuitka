@@ -21,7 +21,7 @@
 
 from __future__ import print_function
 
-import os, sys, subprocess, shutil, md5, commands
+import os, sys, subprocess, shutil, hashlib
 
 sys.path.insert(
     0,
@@ -91,8 +91,7 @@ from test_common import (
     my_print,
     setup,
     convertUsing2to3,
-    getTempDir,
-    decideFilenameVersionSkip,
+    getTempDir
 )
 
 python_version = setup(silent = True)
@@ -100,7 +99,8 @@ python_version = setup(silent = True)
 assert os.path.exists(test_case), (test_case, os.getcwd())
 
 my_print("PYTHON='%s'" % python_version)
-my_print("TEST_CASE_HASH='%s'" % md5.md5(open(test_case).read()).hexdigest())
+my_print("PYTHON_BINARY='%s'" % os.environ["PYTHON"])
+my_print("TEST_CASE_HASH='%s'" % hashlib.md5(open(test_case, "rb").read()).hexdigest())
 
 
 needs_2to3 = python_version.startswith('3') and \
@@ -114,7 +114,7 @@ if options.target_dir:
     )
 
 if needs_2to3:
-    test_case = convertUsing2to3(test_case)
+    test_case, needs_delete = convertUsing2to3(test_case)
 
 def runValgrind(descr, test_case, args):
     my_print(descr, file = sys.stderr, end = "... ")
@@ -194,18 +194,30 @@ case_2_file.close()
 os.environ["PYTHONHASHSEED"] = '0'
 
 if nuitka:
-    nuitka_id = commands.getoutput(
-        "cd %s; git rev-parse HEAD" % os.path.dirname(nuitka)
+    nuitka_id = subprocess.check_output(
+        "cd %s; git rev-parse HEAD" % os.path.dirname(nuitka),
+        shell = True
     )
+    nuitka_id = nuitka_id.strip()
+
+    if sys.version_info > (3,):
+        nuitka_id = nuitka_id.decode()
+
     my_print("NUITKA_COMMIT='%s'" % nuitka_id)
 
 os.chdir(getTempDir())
 
 if nuitka:
-    nuitka_call = [nuitka, "--python-flag=-S", os.path.basename(test_case) ]
+    nuitka_call = [
+        nuitka,
+        "--python-flag=-S",
+        "--python-version=" + ".".join(python_version.split(".")[:2]),
+        os.path.basename(test_case)
+    ]
     nuitka_call.extend(os.environ.get("NUITKA_EXTRA_OPTIONS", "").split())
 
     shutil.copy(test_case_1, os.path.basename(test_case))
+
     subprocess.check_call(nuitka_call)
 
     os.rename(
@@ -264,6 +276,7 @@ if nuitka:
 
     nuitka_diff = nuitka_1 - nuitka_2
 
+    my_print("NUITKA_COMMAND='%s'" % " ".join(nuitka_call), file = sys.stderr)
     my_print("NUITKA_RAW=%s" % nuitka_1)
     my_print("NUITKA_BASE=%s" % nuitka_2)
     my_print("NUITKA_CONSTRUCT=%s" % nuitka_diff)
@@ -272,12 +285,12 @@ if options.cpython:
     cpython_1 = runValgrind(
         "CPython construct",
         test_case_1,
-        ("python", "-S", test_case_1)
+        (os.environ["PYTHON"], "-S", test_case_1)
     )
     cpython_2 = runValgrind(
         "CPython baseline",
         test_case_2,
-        ("python", "-S", test_case_2)
+        (os.environ["PYTHON"], "-S", test_case_2)
     )
 
     cpython_diff = cpython_1 - cpython_2

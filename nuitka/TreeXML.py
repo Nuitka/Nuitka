@@ -25,6 +25,7 @@ from nuitka.utils import Utils
 
 from . import Tracing
 
+
 def indent(elem, level = 0, more_sibs = False):
     i = '\n'
     if level:
@@ -52,7 +53,7 @@ def indent(elem, level = 0, more_sibs = False):
     return elem
 
 try:
-    import lxml.etree
+    import lxml.etree # pylint: disable=F0401,I0021
     xml_module = lxml.etree
 
     Element = xml_module.Element

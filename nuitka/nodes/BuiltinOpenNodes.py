@@ -49,6 +49,8 @@ class ExpressionBuiltinOpen(ExpressionChildrenHavingBase):
     getBuffering = ExpressionChildrenHavingBase.childGetter("buffering")
 
     def computeExpression(self, constraint_collection):
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         # Note: Quite impossible to predict without further assumptions, but we could look
         # at the arguments at least.
         return self, None, None

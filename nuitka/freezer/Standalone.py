@@ -40,6 +40,7 @@ from nuitka.nodes.ModuleNodes import PythonShlibModule
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 
+from .BytecodeModuleFreezer import FrozenModuleDescription
 from .DependsExe import getDependsExePath
 
 
@@ -71,7 +72,7 @@ def _detectedPrecompiledFile(filename, module_name, result, is_late):
     )
 
     result.append(
-        (
+        FrozenModuleDescription(
             module_name,
             loadCodeObjectData(
                 precompiled_filename = filename
@@ -117,7 +118,7 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
     )
 
     result.append(
-        (
+        FrozenModuleDescription(
             module_name,
             marshal.dumps(
                 compile(source_code, filename, "exec")
@@ -376,7 +377,7 @@ def scanStandardLibraryPath(stdlib_dir):
 
 
 def detectEarlyImports():
-    if Options.freezeAllStdlib():
+    if Options.shallFreezeAllStdlib():
         stdlib_modules = set()
 
         # Scan the standard library paths (multiple in case of virtualenv.
@@ -388,7 +389,7 @@ def detectEarlyImports():
                       "for imp in imports:\n" \
                       "    try:\n" \
                       "        __import__(imp)\n" \
-                      "    except ImportError:\n" \
+                      "    except (ImportError, SyntaxError):\n" \
                       "        pass\n"
     else:
         # TODO: Should recursively include all of encodings module.

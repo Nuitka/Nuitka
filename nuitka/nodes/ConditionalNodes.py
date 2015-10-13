@@ -79,12 +79,24 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         )
         condition = self.getCondition()
 
+        condition_may_raise = condition.mayRaiseException(BaseException)
+
+        if condition_may_raise:
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
+
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
         if condition.willRaiseException(BaseException):
             return condition, "new_raise", """\
 Conditional expression already raises implicitly in condition, removing \
 branches."""
+
+        if not condition_may_raise and condition.mayRaiseExceptionBool(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
 
         # Decide this based on truth value of condition.
         truth_value = condition.getTruthValue()
@@ -244,12 +256,23 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
         )
         left = self.getLeft()
 
+        left_may_raise = left.mayRaiseException(BaseException)
+
+        if left_may_raise:
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
         if left.willRaiseException(BaseException):
             return left, "new_raise", """\
 Conditional %s statements already raises implicitly in condition, removing \
 branches.""" % self.conditional_kind
+
+        if not left_may_raise and left.mayRaiseExceptionBool(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
 
         # Decide this based on truth value of condition.
         truth_value = left.getTruthValue()
@@ -469,14 +492,19 @@ class StatementConditional(StatementChildrenHavingBase):
         return False
 
     def computeStatement(self, constraint_collection):
-        # This is rather complex stuff, pylint: disable=R0912
+        # This is rather complex stuff, pylint: disable=R0912,R0915
 
-        # Query the truth value after the expression is evaluated, once it is
-        # evaluated in onExpression, it is known.
         constraint_collection.onExpression(
             expression = self.getCondition()
         )
         condition = self.getCondition()
+
+        condition_may_raise = condition.mayRaiseException(BaseException)
+
+        if condition_may_raise:
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
@@ -490,22 +518,53 @@ class StatementConditional(StatementChildrenHavingBase):
 Conditional statements already raises implicitly in condition, removing \
 branches."""
 
-        # Consider to not execute branches that we know to be true, but execute
-        # the ones that may be true, potentially both.
+        if not condition_may_raise and condition.mayRaiseExceptionBool(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
+
+
+        # Query the truth value after the expression is evaluated, once it is
+        # evaluated in onExpression, it is known.
         truth_value = condition.getTruthValue()
 
         # TODO: We now know that condition evaluates to true for the yes branch
         # and to not true for no branch, the branch collection should know that.
         yes_branch = self.getBranchYes()
+        no_branch = self.getBranchNo()
 
         # Handle branches that became empty behind our back.
         if yes_branch is not None:
             if not yes_branch.getStatements():
                 yes_branch = None
+        if no_branch is not None:
+            if not no_branch.getStatements():
+                no_branch = None
+
+        # Consider to not remove branches that we know won't be taken.
+        if yes_branch is not None and truth_value is False:
+            constraint_collection.signalChange(
+                tags       = "new_statements",
+                source_ref = yes_branch.source_ref,
+                message    = "Removed conditional branch not taken due to false condition value."
+            )
+
+            self.setBranchYes(None)
+            yes_branch = None
+
+        if no_branch is not None and truth_value is True:
+            constraint_collection.signalChange(
+                tags       = "new_statements",
+                source_ref = no_branch.source_ref,
+                message    = "Removed 'else' branch not taken due to true condition value."
+            )
+
+            self.setBranchNo(None)
+            no_branch = None
 
         # Continue to execute for yes branch unless we know it's not going to be
         # relevant.
-        if yes_branch is not None and truth_value is not False:
+        if yes_branch is not None:
             branch_yes_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
                 name   = "conditional yes branch",
@@ -524,15 +583,8 @@ branches."""
         else:
             branch_yes_collection = None
 
-        no_branch = self.getBranchNo()
-
-        # Handle branches that became empty behind our back
-        if no_branch is not None:
-            if not no_branch.getStatements():
-                no_branch = None
-
         # Continue to execute for yes branch.
-        if no_branch is not None and truth_value is not True:
+        if no_branch is not None:
             branch_no_collection = ConstraintCollectionBranch(
                 parent = constraint_collection,
                 name   = "conditional no branch"
@@ -541,7 +593,6 @@ branches."""
             branch_no_collection.computeBranch(
                 branch = no_branch
             )
-
 
             # May have just gone away, so fetch it again.
             no_branch = self.getBranchNo()
@@ -558,43 +609,29 @@ branches."""
             branch_no_collection
         )
 
-        # Both branches may have become empty.
+        # Both branches may have become empty, which case, the statement needs
+        # not remain.
         if yes_branch is None and no_branch is None:
+            # Need to keep the boolean check.
             if truth_value is None:
                 condition = ExpressionBuiltinBool(
                     value      = condition,
                     source_ref = condition.getSourceReference()
                 )
 
-            # With both branches eliminated, the condition remains as a side
-            # effect.
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = condition,
-                node       = self
-            )
+            if condition.mayHaveSideEffects():
+                # With both branches eliminated, the condition remains as a side
+                # effect.
+                result = makeStatementExpressionOnlyReplacementNode(
+                    expression = condition,
+                    node       = self
+                )
 
-            return result, "new_statements", """\
+                return result, "new_statements", """\
 Both branches have no effect, reduced to evaluate condition."""
-
-        if yes_branch is None:
-            # Would be eliminated already, if there wasn't any "no" branch
-            # either.
-            assert no_branch is not None
-
-            from .OperatorNodes import ExpressionOperationNOT
-
-            new_statement = StatementConditional(
-                condition  = ExpressionOperationNOT(
-                    operand    = condition,
-                    source_ref = condition.getSourceReference()
-                ),
-                yes_branch = no_branch,
-                no_branch  = None,
-                source_ref = self.getSourceReference()
-            )
-
-            return new_statement, "new_statements", """\
-Empty 'yes' branch for condition was replaced with inverted condition check."""
+            else:
+                return None, "new_statements", """\
+Removed conditional statement without effect."""
 
         # Note: Checking the condition late, so that the surviving branch got
         # processed already. Returning without doing that, will corrupt the SSA
@@ -618,6 +655,27 @@ Empty 'yes' branch for condition was replaced with inverted condition check."""
 
             return new_statement, "new_statements", """\
 Condition for branch was predicted to be always %s.""" % choice
+
+        # If there is no "yes" branch, remove that. Maybe a bad idea though.
+        if yes_branch is None:
+            # Would be eliminated already, if there wasn't any "no" branch
+            # either.
+            assert no_branch is not None
+
+            from .OperatorNodes import ExpressionOperationNOT
+
+            new_statement = StatementConditional(
+                condition  = ExpressionOperationNOT(
+                    operand    = condition,
+                    source_ref = condition.getSourceReference()
+                ),
+                yes_branch = no_branch,
+                no_branch  = None,
+                source_ref = self.getSourceReference()
+            )
+
+            return new_statement, "new_statements", """\
+Empty 'yes' branch for conditional statement treated with inverted condition check."""
 
         return self, None, None
 

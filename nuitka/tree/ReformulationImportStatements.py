@@ -23,7 +23,10 @@ source code comments with developer manual sections.
 """
 
 from nuitka import Options
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import (
+    ExpressionTargetVariableRef,
+    StatementAssignmentVariable
+)
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
     ExpressionImportModuleHard,
@@ -31,7 +34,6 @@ from nuitka.nodes.ImportNodes import (
     StatementImportStar
 )
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
 

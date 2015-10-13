@@ -24,6 +24,8 @@ source code comments with developer manual sections.
 
 from nuitka import Options
 from nuitka.nodes.AssignNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -45,10 +47,6 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.TryNodes import StatementTry
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef
-)
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
 

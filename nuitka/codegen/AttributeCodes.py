@@ -38,41 +38,23 @@ def generateAttributeLookupCode(to_name, expression, emit, context):
         context    = context
     )
 
+    attribute_name = expression.getAttributeName()
+
     getAttributeLookupCode(
         to_name        = to_name,
         source_name    = source_name,
-        attribute_name = expression.getAttributeName(),
+        attribute_name = attribute_name,
+        needs_check    = expression.getLookupSource().mayRaiseExceptionAttributeLookup(
+            exception_type = BaseException,
+            attribute_name = attribute_name
+        ),
         emit           = emit,
         context        = context
     )
 
 
-def getSpecialAttributeLookupCode(to_name, source_name, attr_name, emit,
-                                  context):
-    emit(
-        "%s = LOOKUP_SPECIAL( %s, %s );" % (
-            to_name,
-            source_name,
-            attr_name,
-        )
-    )
-
-    getReleaseCodes(
-        release_names = (source_name, attr_name),
-        emit          = emit,
-        context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
-
-    context.addCleanupTempName(to_name)
-
-
-def getAttributeLookupCode(to_name, source_name, attribute_name, emit, context):
+def getAttributeLookupCode(to_name, source_name, attribute_name, needs_check,
+                           emit, context):
     if attribute_name == "__dict__":
         emit(
             "%s = LOOKUP_ATTRIBUTE_DICT_SLOT( %s );" % (
@@ -106,15 +88,16 @@ def getAttributeLookupCode(to_name, source_name, attribute_name, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)
 
 
-def getAttributeCheckBoolCode(source_name, attr_name, emit, context):
+def getAttributeCheckBoolCode(source_name, attr_name, needs_check, emit, context):
     res_name = context.getIntResName()
 
     emit(
@@ -132,9 +115,10 @@ def getAttributeCheckBoolCode(source_name, attr_name, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
-        emit      = emit,
-        context   = context
+        condition   = "%s == -1" % res_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
     )
 
     getBranchingCode("%s == 1" % res_name, emit, context)
@@ -241,3 +225,54 @@ def getAttributeDelCode(target_name, attribute_name, emit, context):
         emit      = emit,
         context   = context
     )
+
+
+def generateAttributeLookupSpecialCode(to_name, expression, emit, context):
+    source_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    attribute_name = expression.getAttributeName()
+
+    getAttributeLookupSpecialCode(
+        to_name     = to_name,
+        source_name = source_name,
+        attr_name   = getConstantCode(
+            context  = context,
+            constant = attribute_name
+        ),
+        needs_check = expression.getLookupSource().mayRaiseExceptionAttributeLookupSpecial(
+            exception_type = BaseException,
+            attribute_name = attribute_name
+        ),
+        emit        = emit,
+        context     = context
+    )
+
+
+def getAttributeLookupSpecialCode(to_name, source_name, attr_name, needs_check,
+                                  emit, context):
+    emit(
+        "%s = LOOKUP_SPECIAL( %s, %s );" % (
+            to_name,
+            source_name,
+            attr_name,
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (source_name, attr_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name  = to_name,
+        emit        = emit,
+        needs_check = needs_check,
+        context     = context
+    )
+
+    context.addCleanupTempName(to_name)

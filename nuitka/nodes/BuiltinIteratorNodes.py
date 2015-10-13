@@ -113,6 +113,17 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
 
         return True
 
+    def mayRaiseException(self, exception_type):
+        value = self.getValue()
+
+        if value.mayRaiseException(exception_type):
+            return True
+
+        if value.isKnownToBeIterable(None):
+            return False
+
+        return True
+
     def isKnownToBeIterableAtMin(self, count):
         assert type(count) is int
 
@@ -147,6 +158,11 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
     def computeExpression(self, constraint_collection):
         # TODO: Predict iteration result if possible via SSA variable trace of
         # the iterator state.
+
+        # Assume exception is possible. TODO: We might query the next from the
+        # source with a computeExpressionNext slot, but we delay that.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
 
@@ -209,6 +225,11 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
         constraint_collection.onExpression(self.getIterator())
         iterator = self.getIterator()
 
+        if iterator.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(
+                BaseException
+            )
+
         if iterator.willRaiseException(BaseException):
             from .NodeMakingHelpers import \
               makeStatementExpressionOnlyReplacementNode
@@ -225,6 +246,10 @@ Explicit raise already raises implicitly building exception type."""
         if iterator.isKnownToBeIterableAtMax(0):
             return None, "new_statements", """\
 Determined iteration end check to be always true."""
+
+        constraint_collection.onExceptionRaiseExit(
+            BaseException
+        )
 
         return self, None, None
 

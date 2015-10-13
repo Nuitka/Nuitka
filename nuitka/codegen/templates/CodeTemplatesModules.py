@@ -40,18 +40,6 @@ template_global_copyright = """\
 // See the License for the specific language governing permissions and
 // limitations under the License.
 """
-
-template_metapath_loader_compiled_module_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_MODULE },"""
-
-template_metapath_loader_compiled_package_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_PACKAGE },"""
-
-template_metapath_loader_shlib_module_entry = """\
-{ (char *)"%(module_name)s", NULL, NUITKA_SHLIB_MODULE },"""
-
-
-
 template_module_body_template = """
 #include "nuitka/prelude.hpp"
 
@@ -69,14 +57,21 @@ PyDictObject *moduledict_%(module_identifier)s;
 // The module constants used
 %(constant_decl_codes)s
 
-static void _initModuleConstants( void )
+static bool constants_created = false;
+
+static void createModuleConstants( void )
 {
 %(constant_init_codes)s
+
+    constants_created = true;
 }
 
 #ifndef __NUITKA_NO_ASSERT__
 void checkModuleConstants_%(module_identifier)s( void )
 {
+    // The module may not have been used at all.
+    if (constants_created == false) return;
+
 %(constant_check_codes)s
 }
 #endif
@@ -84,7 +79,7 @@ void checkModuleConstants_%(module_identifier)s( void )
 // The module code objects.
 %(module_code_objects_decl)s
 
-static void _initModuleCodeObjects(void)
+static void createModuleCodeObjects(void)
 {
 %(module_code_objects_init)s
 }
@@ -109,23 +104,6 @@ static struct PyModuleDef mdef_%(module_identifier)s =
     NULL,                /* m_clear */
     NULL,                /* m_free */
   };
-#endif
-
-#define _MODULE_UNFREEZER %(use_unfreezer)d
-
-#if _MODULE_UNFREEZER
-
-#include "nuitka/unfreezing.hpp"
-
-// Table for lookup to find "frozen" modules or DLLs, i.e. the ones included in
-// or along this binary.
-%(metapath_module_decls)s
-static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
-{
-%(metapath_loader_inittab)s
-    { NULL, NULL, 0 }
-};
-
 #endif
 
 // The exported interface to CPython. On import of the module, this function
@@ -174,12 +152,13 @@ MOD_INIT_DECL( %(module_identifier)s )
 
 #endif
 
-#if _MODULE_UNFREEZER
-    registerMetaPathBasedUnfreezer( meta_path_loader_entries );
+#if _NUITKA_MODULE
+    // Enable meta path based loader if not already done.
+    setupMetaPathBasedLoader();
 #endif
 
-    _initModuleConstants();
-    _initModuleCodeObjects();
+    createModuleConstants();
+    createModuleCodeObjects();
 
     // puts( "in init%(module_identifier)s" );
 
@@ -241,7 +220,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     }
 
 #if PYTHON_VERSION >= 330
-#if _MODULE_UNFREEZER
+#if _MODULE_LOADER
     PyDict_SetItem( module_dict, const_str_plain___loader__, metapath_based_loader );
 #else
     PyDict_SetItem( module_dict, const_str_plain___loader__, Py_None );

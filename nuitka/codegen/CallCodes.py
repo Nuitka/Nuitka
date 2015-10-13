@@ -85,6 +85,7 @@ def generateCallCode(to_name, expression, emit, context):
                     to_name     = to_name,
                     called_name = called_name,
                     arg_names   = call_arg_names,
+                    needs_check = expression.mayRaiseException(BaseException),
                     emit        = emit,
                     context     = context
                 )
@@ -92,6 +93,7 @@ def generateCallCode(to_name, expression, emit, context):
                 getCallCodeNoArgs(
                     to_name     = to_name,
                     called_name = called_name,
+                    needs_check = expression.mayRaiseException(BaseException),
                     emit        = emit,
                     context     = context
                 )
@@ -116,6 +118,7 @@ def generateCallCode(to_name, expression, emit, context):
                 to_name     = to_name,
                 called_name = called_name,
                 arg_names   = call_arg_names,
+                needs_check = expression.mayRaiseException(BaseException),
                 emit        = emit,
                 context     = context
             )
@@ -185,7 +188,7 @@ def generateCallCode(to_name, expression, emit, context):
             )
 
 
-def getCallCodeNoArgs(to_name, called_name, emit, context):
+def getCallCodeNoArgs(to_name, called_name, needs_check, emit, context):
     emitLineNumberUpdateCode(context, emit)
 
     emit(
@@ -202,9 +205,10 @@ def getCallCodeNoArgs(to_name, called_name, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
+        check_name  = to_name,
+        emit        = emit,
+        needs_check = needs_check,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -214,7 +218,8 @@ def getCallCodeNoArgs(to_name, called_name, emit, context):
 # Outside helper code relies on some quick call to be present.
 quick_calls_used = set([1, 2, 3])
 
-def getCallCodePosArgsQuick(to_name, called_name, arg_names, emit, context):
+def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
+                            emit, context):
 
     arg_size = len(arg_names)
     quick_calls_used.add(arg_size)
@@ -240,9 +245,10 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -386,6 +392,7 @@ def getMakeBuiltinExceptionCode(to_name, exception_type, arg_names, emit,
             to_name     = to_name,
             called_name = getExceptionIdentifier(exception_type),
             arg_names   = arg_names,
+            needs_check = False,
             emit        = emit,
             context     = context
         )
@@ -394,6 +401,7 @@ def getMakeBuiltinExceptionCode(to_name, exception_type, arg_names, emit,
         getCallCodeNoArgs(
             to_name     = to_name,
             called_name = getExceptionIdentifier(exception_type),
+            needs_check = False,
             emit        = emit,
             context     = context
         )

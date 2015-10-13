@@ -131,6 +131,12 @@ for filename in sorted(os.listdir('.')):
     if os.name == "nt" and "PyQt" in filename:
         continue
 
+    if "PySide" in filename or "PyQt" in filename:
+        extra_flags.append("plugin_enable:qt-plugins")
+
+    if filename == "CtypesUsing.py":
+        extra_flags.append("plugin_disable:pylint-warnings")
+
     if filename == "GtkUsing.py":
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.

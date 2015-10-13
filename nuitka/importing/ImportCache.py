@@ -36,7 +36,8 @@ imported_by_name = {}
 def addImportedModule(module_relpath, imported_module):
     if (module_relpath, "__main__") in imported_modules:
         warning("""\
-Re-importing __main__ module via its filename duplicates the module.""")
+Re-importing '__main__' module via its filename duplicates the module code. \
+You might want to use sys.modules["__main__"] instead.""")
 
     key = module_relpath, imported_module.getFullName()
 

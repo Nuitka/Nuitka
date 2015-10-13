@@ -71,6 +71,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 extern Py_hash_t DEEP_HASH( PyObject *value );
 #endif
 
+// For profiling of Nuitka compiled binaries
+#if _NUITKA_PROFILE
+extern void startProfiling( void );
+extern void stopProfiling( void );
+#endif
+
+
 #include "nuitka/helper/boolean.hpp"
 
 #include "nuitka/helper/dictionaries.hpp"
@@ -572,6 +579,9 @@ extern PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObjec
 // For built-in bytearray() functionality.
 extern PyObject *BUILTIN_BYTEARRAY( PyObject *value );
 
+// For built-in hash() functionality.
+extern PyObject *BUILTIN_HASH( PyObject *value );
+
 extern PyObject *const_str_plain___builtins__;
 //
 extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals );
@@ -608,10 +618,15 @@ extern PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size );
 #endif
 extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
 
+// Performance enhancements to Python types.
 extern void enhancePythonTypes( void );
 
-// Parse the command line parameters and provide it to sys module.
-extern void setCommandLineParameters( int argc, char *argv[], bool initial );
+// Setup meta path based loader if any.
+extern void setupMetaPathBasedLoader( void );
+
+// Parse the command line parameters and provide it to sys module. It may
+// maniputate them, therefore argc is passed as a pointer.
+extern bool setCommandLineParameters( int *argc, char *argv[], bool initial );
 
 // Replace builtin functions with ones that accept compiled types too.
 extern void patchBuiltinModule( void );

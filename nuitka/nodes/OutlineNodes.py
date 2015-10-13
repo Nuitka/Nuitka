@@ -108,9 +108,10 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         addUsedModule(owning_module)
 
         abort_context = constraint_collection.makeAbortStackContext(
-            catch_breaks    = False,
-            catch_continues = False,
-            catch_returns   = True
+            catch_breaks     = False,
+            catch_continues  = False,
+            catch_returns    = True,
+            catch_exceptions = False
         )
 
         with abort_context:

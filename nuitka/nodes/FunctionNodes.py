@@ -33,7 +33,7 @@ from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.utils import Utils
 
-from .Checkers import checkStatementsSequenceOrNone
+from .Checkers import checkStatementsSequenceOrNone, checkStatementsSequence
 from .IndicatorMixins import (
     MarkGeneratorIndicator,
     MarkLocalsDictIndicator,
@@ -57,8 +57,38 @@ from .NodeMakingHelpers import (
 from .ParameterSpecs import TooManyArguments, matchCall
 
 
-class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
-                             ClosureGiverNodeBase, ExpressionMixin,
+class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
+                                 ClosureGiverNodeBase, ExpressionMixin):
+
+    def __init__(self, provider, name, code_prefix, is_class, source_ref):
+        ClosureTakerMixin.__init__(
+            self,
+            provider      = provider,
+            early_closure = is_class
+        )
+
+        ClosureGiverNodeBase.__init__(
+            self,
+            name        = name,
+            code_prefix = code_prefix,
+            source_ref  = source_ref
+        )
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = {
+                "body" : None # delayed
+            }
+        )
+
+        # Hack: This allows some APIs to work although this is not yet
+        # officially a child yet. Important during building.
+        self.parent = provider
+
+        self.constraint_collection = None
+
+
+class ExpressionFunctionBody(ExpressionFunctionBodyBase,
                              MarkGeneratorIndicator,
                              MarkLocalsDictIndicator,
                              MarkUnoptimizedFunctionIndicator):
@@ -80,9 +110,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
     if Utils.python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, doc, parameters, source_ref,
-                 is_class):
-        # These got too many details to cover, pylint: disable=R0915
+    def __init__(self, provider, name, doc, parameters, is_class, source_ref):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
@@ -127,24 +155,13 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
 
         self.non_local_declarations = []
 
-        ClosureTakerMixin.__init__(
+        ExpressionFunctionBodyBase.__init__(
             self,
-            provider      = provider,
-            early_closure = is_class
-        )
-
-        ClosureGiverNodeBase.__init__(
-            self,
-            name        = name,
+            provider = provider,
+            name = name,
             code_prefix = code_prefix,
-            source_ref  = source_ref
-        )
-
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {
-                "body" : None # delayed
-            }
+            is_class = is_class,
+            source_ref = source_ref
         )
 
         MarkGeneratorIndicator.__init__(self)
@@ -154,6 +171,7 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         MarkUnoptimizedFunctionIndicator.__init__(self)
 
         self.is_class = is_class
+
         self.doc = doc
 
         # Indicator, if this is a function that uses "super", because if it
@@ -185,12 +203,6 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         self.registerProvidedVariables(
             *self.parameters.getVariables()
         )
-
-        self.constraint_collection = None
-
-        # Hack: This allows some APIs to work although this is not yet
-        # officially a child yet. Important during building.
-        self.parent = provider
 
     def getDetails(self):
         return {
@@ -447,7 +459,8 @@ class ExpressionFunctionBody(ClosureTakerMixin, ChildrenHavingMixin,
         else:
             return "copy"
 
-    def computeExpressionCall(self, call_node, constraint_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              constraint_collection):
         # TODO: Until we have something to re-order the arguments, we need to
         # skip this. For the immediate need, we avoid this complexity, as a
         # re-ordering will be needed.
@@ -602,17 +615,20 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
         return False
 
-    def computeExpressionCall(self, call_node, constraint_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              constraint_collection):
+
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         # TODO: Until we have something to re-order the keyword arguments, we
         # need to skip this. For the immediate need, we avoid this complexity,
         # as a re-ordering will be needed.
-        call_kw = call_node.getCallKw()
-
-        # TODO: empty constant can happen too
-        if call_kw is not None:
+        if call_kw is not None and \
+           (not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}):
             return call_node, None, None
 
-        call_args = call_node.getCallArgs()
+        if call_kw is not None:
+            return call_node, None, None
 
         if call_args is None:
             args_tuple = ()
@@ -823,25 +839,13 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     def computeExpression(self, constraint_collection):
         function = self.getFunction()
 
-        if function.willRaiseException(BaseException):
-            # TODO: Seriously, how could it be. We need to get defaults and
-            # annotations out of the picture, then this cannot happen.
-            return function, "new_raise", "Called function is a raise."
-
         values = self.getArgumentValues()
-
-        for count, value in enumerate(values):
-            if value.willRaiseException(BaseException):
-                result = wrapExpressionWithSideEffects(
-                    side_effects = [function] + list(values[:count]),
-                    new_node     = value,
-                    old_node     = self
-                )
-
-                return result, "new_raise", "Called function arguments raise."
 
         # TODO: This needs some design.
         cost = function.getCallCost(values)
+
+        if function.getFunctionRef().getFunctionBody().mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
 
         if cost is not None and cost < 50:
             result = function.createOutlineFromCall(
@@ -849,7 +853,7 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
                 values   = values
             )
 
-            return result, "new_statements", "Function call inlined."
+            return result, "new_statements", "Function call in-lined."
 
         return self, None, None
 
@@ -874,3 +878,117 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
         )
 
         return result, "new_constant", "Delayed __qualname__ resolution."
+
+
+class ExpressionCoroutineCreation(NodeBase, ExpressionMixin):
+    kind = "EXPRESSION_COROUTINE_CREATION"
+
+    def __init__(self, coroutine_body, source_ref):
+        assert coroutine_body.isExpressionFunctionBody()
+
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.coroutine_body = coroutine_body
+
+    def getName(self):
+        return self.coroutine_body.getName()
+
+    def getDetails(self):
+        return {
+            "coroutine_body" : self.coroutine_body
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "coroutine" : self.coroutine_body.getCodeName()
+        }
+
+    def getCoroutineBody(self):
+        return self.coroutine_body
+
+    def computeExpressionRaw(self, constraint_collection):
+        function_body = self.getCoroutineBody()
+
+        owning_module = function_body.getParentModule()
+
+        # Make sure the owning module is added to the used set. This is most
+        # important for helper functions, or modules, which otherwise have
+        # become unused.
+        from nuitka.ModuleRegistry import addUsedModule
+        addUsedModule(owning_module)
+
+        owning_module.addUsedFunction(function_body)
+
+        from nuitka.optimizations.TraceCollections import \
+            ConstraintCollectionFunction
+
+        # TODO: Doesn't this mean, we can do this multiple times by doing it
+        # in the reference. We should do it in the body, and there we should
+        # limit us to only doing it once per module run, e.g. being based on
+        # presence in used functions of the module already.
+        old_collection = function_body.constraint_collection
+
+        function_body.constraint_collection = ConstraintCollectionFunction(
+            parent        = constraint_collection,
+            function_body = function_body
+        )
+
+        statements_sequence = function_body.getBody()
+
+        if statements_sequence is not None and \
+           not statements_sequence.getStatements():
+            function_body.setStatements(None)
+            statements_sequence = None
+
+        if statements_sequence is not None:
+            result = statements_sequence.computeStatementsSequence(
+                constraint_collection = function_body.constraint_collection
+            )
+
+            if result is not statements_sequence:
+                function_body.setBody(result)
+
+        function_body.constraint_collection.updateFromCollection(old_collection)
+
+        # TODO: Function collection may now know something.
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+    def mayHaveSideEffects(self):
+        return False
+
+
+
+
+class ExpressionCoroutineBody(ExpressionFunctionBodyBase):
+    kind = "EXPRESSION_COROUTINE_BODY"
+
+    named_children = (
+        "body",
+    )
+
+    checkers = {
+        # TODO: Is "None" really an allowed value.
+        "body" : checkStatementsSequence
+    }
+
+    if Utils.python_version >= 340:
+        qualname_setup = None
+
+    def __init__(self, provider, name, source_ref):
+        while provider.isExpressionOutlineBody():
+            provider = provider.getParentVariableProvider()
+
+        ExpressionFunctionBodyBase.__init__(
+            self,
+            provider    = provider,
+            name        = name,
+            code_prefix = "coroutine",
+            is_class    = False,
+            source_ref  = source_ref
+        )

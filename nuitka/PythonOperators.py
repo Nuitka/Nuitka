@@ -26,6 +26,8 @@ import operator
 
 from nuitka.utils.Utils import python_version
 
+# TODO: Monkey patching this may cause issues for compile time assessments of
+# user code. This should be solved differently.
 if python_version >= 300:
     operator.div = operator.truediv
     operator.idiv = operator.itruediv
@@ -58,6 +60,11 @@ binary_operator_functions = {
     "IBitOr"    : operator.ior,
     "IBitXor"   : operator.ixor,
 }
+
+# Python 3.5 only operator
+if python_version >= 350:
+    binary_operator_functions["MatMult"] = operator.matmul  # @UndefinedVariable
+    binary_operator_functions["IMatMult"] = operator.imatmul  # @UndefinedVariable
 
 unary_operator_functions = {
     "UAdd"   : operator.pos,

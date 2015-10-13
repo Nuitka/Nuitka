@@ -75,6 +75,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
     kind = "EXPRESSION_OPERATION_BINARY"
 
     named_children = ("left", "right")
+    nice_children = tuple(child_name + " operand" for child_name in named_children)
 
     def __init__(self, operator, left, right, source_ref):
         assert left.isExpression() and right.isExpression, (left, right)
@@ -92,34 +93,16 @@ class ExpressionOperationBinary(ExpressionOperationBase):
 
     def computeExpression(self, constraint_collection):
         # This is using many returns based on many conditions,
-        # pylint: disable=R0911,R0912
+        # pylint: disable=R0912
+
+        # TODO: May go down to MemoryError for compile time constant overflow
+        # ones.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
         operator = self.getOperator()
         operands = self.getOperands()
 
         left, right = operands
-
-        if left.willRaiseException(BaseException):
-            return (
-                left,
-                "new_raise",
-                "Left argument of binary operation raises exception"
-            )
-
-        if right.willRaiseException(BaseException):
-            from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-
-            result = wrapExpressionWithNodeSideEffects(
-                new_node = right,
-                old_node = left
-            )
-
-            return (
-                result,
-                "new_raise",
-                "Right argument of binary operation raises exception"
-            )
-
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -158,9 +141,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                 if iter_length > 256:
                     return self, None, None
 
-            from .NodeMakingHelpers import getComputationResult
-
-            return getComputationResult(
+            return constraint_collection.getCompileTimeComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
                     left_value,
@@ -210,9 +191,7 @@ class ExpressionOperationUnary(ExpressionOperationBase):
         if operand.isCompileTimeConstant():
             operand_value = operand.getCompileTimeConstant()
 
-            from .NodeMakingHelpers import getComputationResult
-
-            return getComputationResult(
+            return constraint_collection.getCompileTimeComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
                     operand_value,
@@ -220,6 +199,10 @@ class ExpressionOperationUnary(ExpressionOperationBase):
                 description = "Operator '%s' with constant argument." % operator
             )
         else:
+            # TODO: May go down to MemoryError for compile time constant overflow
+            # ones.
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
             # The value of that node escapes and could change its contents.
             constraint_collection.removeKnowledge(operand)
 
@@ -253,19 +236,16 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
         return {}
 
     def computeExpression(self, constraint_collection):
-        operand = self.getOperand()
-
-        if operand.willRaiseException(BaseException):
-            return (
-                operand,
-                "new_raise",
-                "Argument of 'not' operation raises exception"
-            )
-
-        return operand.computeExpressionOperationNot(
+        return self.getOperand().computeExpressionOperationNot(
             not_node              = self,
             constraint_collection = constraint_collection
         )
+
+    def mayRaiseException(self, exception_type):
+        return self.getOperand().mayRaiseExceptionBool(exception_type)
+
+    def mayRaiseExceptionBool(self, exception_type):
+        return self.getOperand().mayRaiseExceptionBool(exception_type)
 
     def getTruthValue(self):
         result = self.getOperand().getTruthValue()
@@ -325,7 +305,6 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
             assert not left.isMutable(), self
             source_ref = self.getSourceReference()
 
-
             result = ExpressionOperationBinary(
                 left       = left,
                 right      = right,
@@ -341,12 +320,15 @@ Lowered in-place binary operation of compile time constant to binary operation."
             )
 
             return result.computeExpression(constraint_collection)
-        else:
-            # The value of these nodes escaped and could change its contents.
-            constraint_collection.removeKnowledge(left)
-            constraint_collection.removeKnowledge(right)
 
-            # Any code could be run, note that.
-            constraint_collection.onControlFlowEscape(self)
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
 
-            return self, None, None
+        # The value of these nodes escaped and could change its contents.
+        constraint_collection.removeKnowledge(left)
+        constraint_collection.removeKnowledge(right)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        return self, None, None

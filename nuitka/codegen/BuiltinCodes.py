@@ -23,7 +23,7 @@ long, etc.
 from nuitka import Builtins
 
 from .ConstantCodes import getConstantCode
-from .ErrorCodes import getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getAssertionCode, getErrorExitCode, getReleaseCodes
 
 
 def getBuiltinRefCode(to_name, builtin_name, emit, context):
@@ -37,10 +37,9 @@ def getBuiltinRefCode(to_name, builtin_name, emit, context):
         )
     )
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
+    getAssertionCode(
+        check = "%s != NULL" % to_name,
+        emit  = emit
     )
 
     # Gives no reference

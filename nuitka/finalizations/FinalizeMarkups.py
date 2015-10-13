@@ -35,6 +35,7 @@ from logging import warning
 
 from nuitka import Options, Tracing
 from nuitka.importing import StandardLibrary
+from nuitka.plugins.PluginBase import Plugins
 from nuitka.PythonVersions import python_version
 
 from .FinalizeBase import FinalizationVisitorBase
@@ -115,7 +116,8 @@ class FinalizeMarkups(FinalizationVisitorBase):
            not Options.getShallFollowExtra() and \
            not Options.getShallFollowExtraFilePatterns() and \
            not Options.shallFollowNoImports() and \
-           not isWhiteListedImport(node):
+           not isWhiteListedImport(node) and \
+           not Plugins.suppressBuiltinImportWarning(node.getParentModule(), node.getSourceReference()):
             warning("""Unresolved '__import__' call at '%s' may require use \
 of '--recurse-directory'.""" % (
                     node.getSourceReference().getAsString()
@@ -124,7 +126,7 @@ of '--recurse-directory'.""" % (
 
         if node.isExpressionFunctionCreation():
             if not node.getParent().isExpressionFunctionCall() or \
-                   node.getParent().getFunction() is not node:
+               node.getParent().getFunction() is not node:
                 node.getFunctionRef().getFunctionBody().markAsNeedsCreation()
 
         if node.isExpressionFunctionCall():

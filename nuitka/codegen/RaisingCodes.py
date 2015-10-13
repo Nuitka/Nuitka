@@ -54,7 +54,7 @@ def generateRaiseCode(statement, emit, context):
             context    = context
         )
 
-        raise_cause_name  = context.allocateTempName("raise_type")
+        raise_cause_name  = context.allocateTempName("raise_cause")
 
         generateExpressionCode(
             to_name    = raise_cause_name,
