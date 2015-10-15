@@ -109,6 +109,13 @@ for filename in sorted(os.listdir('.')):
         # For the plug-in information.
         extra_flags.append("ignore_infos")
 
+    if "Idna" in filename:
+        if not hasModule("idna.core"):
+            my_print(
+                "Skipping", filename, "idna not installed for",
+                python_version, "but test needs it."
+            )
+
     if "PyQt5" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.

@@ -17,7 +17,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
+
 import idna.core
 import sys
 
-print sys.modules["idna.idnadata"]
+print(idna.core, sys.modules["idna.idnadata"])
