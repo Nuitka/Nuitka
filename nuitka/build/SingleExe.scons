@@ -829,6 +829,23 @@ if win_from_source_mode:
     env.Append(CPPPATH = [os.path.join(python_prefix, "PC")])
 
 
+def getWindowsPythonDLLPath():
+    if uninstalled_python:
+        return os.path.join(
+            python_prefix,
+            "python" + python_version.replace('.', "") + ".dll"
+        )
+    elif target_arch == "x86_64":
+        return "%s\SysWOW64\python%s.dll" % (
+            os.environ["WINDIR"],
+            python_version.replace('.', "")
+        )
+    else:
+        return "%s\python%s.dll" % (
+            os.environ["WINDIR"],
+            python_version.replace('.', "")
+        )
+
 if win_target:
     # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
 
@@ -842,10 +859,7 @@ if win_target:
         if not os.path.exists(new_win_lib_path):
             os.makedirs(new_win_lib_path)
 
-        command = r"gendef - %s\SysWOW64\python%s.dll" % (
-                os.environ["WINDIR"],
-                python_version.replace('.', "")
-            )
+        command = "gendef - %s" % getWindowsPythonDLLPath()
 
         defs_filename = os.path.join(
             new_win_lib_path,
@@ -895,10 +909,7 @@ if win_target:
         defs_file.close()
 
         shutil.copy(
-            r"%s\SysWOW64\python%s.dll" % (
-                os.environ["WINDIR"],
-                python_version.replace('.', "")
-            ),
+            getWindowsPythonDLLPath(),
             new_win_lib_path
         )
 
@@ -1420,10 +1431,7 @@ Default(target) # @UndefinedVariable
 if uninstalled_python:
     if win_target:
         shutil.copy(
-            os.path.join(
-                python_prefix,
-                "python" + python_version.replace('.', "") + ".dll"
-            ),
+            getWindowsPythonDLLPath(),
             os.path.dirname(result_basepath) or "."
         )
     elif sys.platform == "darwin":
