@@ -22,4 +22,4 @@ from __future__ import print_function
 import idna.core
 import sys
 
-print(idna.core, sys.modules["idna.idnadata"])
+print(idna.core, "idna.idnadata" in sys.modules)

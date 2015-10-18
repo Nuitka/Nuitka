@@ -115,6 +115,11 @@ for filename in sorted(os.listdir('.')):
                 "Skipping", filename, "idna not installed for",
                 python_version, "but test needs it."
             )
+            continue
+
+        # For the warnings of Python2.
+        if python_version.startswith("2"):
+            extra_flags.append("ignore_stderr")
 
     if "PyQt5" in filename:
         # Don't test on platforms not supported by current Debian testing, and
@@ -193,7 +198,7 @@ for filename in sorted(os.listdir('.')):
 
     if filename not in ("PySideUsing.py", "PyQt4Using.py", "PyQt5Using.py",
                         "PyQt4Plugins.py", "PyQt5Plugins.py", "GtkUsing.py",
-                        "LxmlUsing.py", "Win32ComUsing.py"):
+                        "LxmlUsing.py", "Win32ComUsing.py", "IdnaUsing.py"):
         extra_flags += [
             "no_site"
         ]
