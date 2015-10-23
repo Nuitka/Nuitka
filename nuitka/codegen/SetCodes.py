@@ -22,6 +22,7 @@ added later on.
 """
 
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
+from .Helpers import generateChildExpressionsCode
 
 
 def generateSetCreationCode(to_name, elements, emit, context):
@@ -74,19 +75,65 @@ def generateSetCreationCode(to_name, elements, emit, context):
             context.removeCleanupTempName(element_name)
 
 
-def getSetOperationAddCode(to_name, set_name, value_name, emit, context):
+def generateSetOperationAddCode(to_name, expression, emit, context):
     res_name = context.getIntResName()
 
+    set_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit("assert( PySet_Check( %s ) );" % set_arg_name)
     emit(
         "%s = PySet_Add( %s, %s );" % (
             res_name,
-            set_name,
-            value_name
+            set_arg_name,
+            value_arg_name
         )
     )
 
     getReleaseCodes(
-        release_names = (set_name, value_name),
+        release_names = (set_arg_name, value_arg_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitBoolCode(
+        condition = "%s == -1" % res_name,
+        emit      = emit,
+        context   = context
+    )
+
+    # Only assign if necessary.
+    if context.isUsed(to_name):
+        emit(
+            "%s = Py_None;" % to_name
+        )
+    else:
+        context.forgetTempName(to_name)
+
+
+def generateSetOperationUpdateCode(to_name, expression, emit, context):
+    res_name = context.getIntResName()
+
+    set_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit("assert( PySet_Check( %s ) );" % set_arg_name)
+    emit(
+        "%s = _PySet_Update( %s, %s );" % (
+            res_name,
+            set_arg_name,
+            value_arg_name
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (set_arg_name, value_arg_name),
         emit          = emit,
         context       = context
     )

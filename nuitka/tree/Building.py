@@ -99,7 +99,6 @@ from .Helpers import (
     getKind,
     makeDictCreationOrConstant,
     makeModuleFrame,
-    makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
@@ -139,6 +138,7 @@ from .ReformulationNamespacePackages import (
     createPathAssignment
 )
 from .ReformulationPrintStatements import buildPrintNode
+from .ReformulationSequenceCreation import buildSequenceCreationNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
@@ -167,14 +167,6 @@ def buildNamedConstantNode(node, source_ref):
         constant   = node.value,
         source_ref = source_ref
     )
-
-def buildSequenceCreationNode(provider, node, source_ref):
-    return makeSequenceCreationOrConstant(
-        sequence_kind = getKind(node).upper(),
-        elements      = buildNodeList(provider, node.elts, source_ref),
-        source_ref    = source_ref
-    )
-
 
 def buildDictionaryNode(provider, node, source_ref):
     return makeDictCreationOrConstant(

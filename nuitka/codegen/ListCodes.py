@@ -64,6 +64,7 @@ def generateListCreationCode(to_name, elements, emit, context):
             )
         )
 
+
 def generateListOperationAppendCode(to_name, expression, emit, context):
     res_name = context.getIntResName()
 
@@ -74,6 +75,7 @@ def generateListOperationAppendCode(to_name, expression, emit, context):
     )
 
 
+    emit("assert( PyList_Check( %s ) );" % list_arg_name)
     emit(
         "%s = PyList_Append( %s, %s );" % (
             res_name,
@@ -103,6 +105,37 @@ def generateListOperationAppendCode(to_name, expression, emit, context):
         context.forgetTempName(to_name)
 
 
+def generateListOperationExtendCode(to_name, expression, emit, context):
+    list_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit("assert( PyList_Check( %s ) );" % list_arg_name)
+    emit(
+        "%s = _PyList_Extend( (PyListObject *)%s, %s );" % (
+            to_name,
+            list_arg_name,
+            value_arg_name
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (list_arg_name, value_arg_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+
 def generateListOperationPopCode(to_name, expression, emit, context):
     list_arg_name, = generateChildExpressionsCode(
         expression = expression,
@@ -110,8 +143,8 @@ def generateListOperationPopCode(to_name, expression, emit, context):
         context    = context
     )
 
-
     # TODO: Have a dedicated helper instead, this could be more efficient.
+    emit("assert( PyList_Check( %s ) );" % list_arg_name)
     emit(
         '%s = PyObject_CallMethod(  %s, (char *)"pop", NULL );' % (
             to_name,

@@ -55,6 +55,37 @@ class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
         return self, None, None
 
 
+class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_LIST_OPERATION_EXTEND"
+
+    named_children = (
+        "list",
+        "value"
+    )
+
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, list_arg, value, source_ref):
+        assert list_arg is not None
+        assert value is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "list"  : list_arg,
+                "value" : value
+            },
+            source_ref = source_ref
+        )
+
+    getList = ExpressionChildrenHavingBase.childGetter("list")
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
+
+    def computeExpression(self, constraint_collection):
+        constraint_collection.removeKnowledge(self.getList())
+
+        return self, None, None
+
+
 class ExpressionListOperationPop(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_POP"
 
@@ -86,6 +117,41 @@ class ExpressionListOperationPop(ExpressionChildrenHavingBase):
 
 class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SET_OPERATION_ADD"
+
+    named_children = (
+        "set",
+        "value"
+    )
+
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, set_arg, value, source_ref):
+        assert set_arg is not None
+        assert value is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "set"  : set_arg,
+                "value" : value
+            },
+            source_ref = source_ref
+        )
+
+    getSet = ExpressionChildrenHavingBase.childGetter(
+        "set"
+    )
+    getValue = ExpressionChildrenHavingBase.childGetter(
+        "value"
+    )
+
+    def computeExpression(self, constraint_collection):
+        constraint_collection.removeKnowledge(self.getSet())
+
+        return self, None, None
+
+
+class ExpressionSetOperationUpdate(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_SET_OPERATION_UPDATE"
 
     named_children = (
         "set",
