@@ -254,7 +254,7 @@ def makeStatementOnlyNodesFromExpressions(expressions):
     if not statements:
         return None
     elif len(statements) == 1:
-        return statements[ 0 ]
+        return statements[0]
     else:
         return StatementsSequence(
             statements = statements,

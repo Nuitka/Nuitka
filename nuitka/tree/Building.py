@@ -87,9 +87,9 @@ from nuitka.nodes.OperatorNodes import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
-from nuitka.tree import SyntaxErrors
 from nuitka.utils import Utils
 
+from . import SyntaxErrors
 from .Helpers import (
     buildNode,
     buildNodeList,

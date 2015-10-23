@@ -91,16 +91,16 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
 
                         if Options.isStandaloneMode():
                             module = makeUncompiledPythonModule(
-                                module_name = module.getFullName(),
-                                filename    = module_filename,
-                                bytecode    = marshal.dumps(
+                                module_name   = module.getFullName(),
+                                filename      = module_filename,
+                                bytecode      = marshal.dumps(
                                     compile(
                                         readSourceCodeFromFilename(module.getFullName(), module_filename),
                                         module_filename,
                                         "exec"
                                     )
                                 ),
-                                is_package  = module.isCompiledPythonPackage(),
+                                is_package    = module.isCompiledPythonPackage(),
                                 user_provided = True,
                             )
 
