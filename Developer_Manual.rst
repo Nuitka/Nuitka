@@ -300,7 +300,7 @@ The "git flow" model
 * The flow was is used for releases and occasionally subsequent hot fixes.
 
   A few feature branches were used so far. It allows for quick delivery of fixes
-  to both the stable and the development version, supported by a git plugin,
+  to both the stable and the development version, supported by a git plug-in,
   that can be installed via "apt-get install git-flow" on latest Debian Testing
   at least.
 

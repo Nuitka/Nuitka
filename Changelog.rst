@@ -11,7 +11,7 @@ This release enables SSA based optimization, the huge leap, not so much in terms
 of actual performance increase, but for now making the things possible that will
 allow it.
 
-This has been in the making litterally for years. Over and over, there was just
+This has been in the making literally for years. Over and over, there was just
 "one more thing" needed. But now it's there.
 
 The release includes much stuff, and there is a perspective on the open tasks
@@ -270,7 +270,7 @@ Bug Fixes
   <http://bugs.nuitka.net/issue228>`__. Fixed in 0.5.13.5 already.
 
 - Compatibility: The ``print`` statement raised an assertion on unicode objects
-  that could not be encoded with ascii codec.
+  that could not be encoded with ``ascii`` codec.
 
 New Features
 ------------
