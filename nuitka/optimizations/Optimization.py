@@ -23,6 +23,7 @@ make others possible.
 """
 
 
+import inspect
 from logging import debug, warning
 
 from nuitka import ModuleRegistry, Options, VariableRegistry
@@ -59,7 +60,7 @@ def signalChange(tags, source_ref, message):
             "{source_ref} : {tags} : {message}".format(
                 source_ref = source_ref.getAsString(),
                 tags       = tags,
-                message    = message
+                message    = message() if inspect.isfunction(message) else message
             )
         )
 
