@@ -2100,7 +2100,7 @@ Goals/Allowances to the task
    code.
 2. Allowance: May use ``ctypes`` module at compile time to ask things about
    ``ctypes`` and its types.
-3. Goal: Should make use of ``ctypes``, to e.g. not hard code what
+3. Goal: Should make use of ``ctypes``, to e.g. not hard code in Nuitka what
    ``ctypes.c_int()`` gives on the current platform, unless there is a specific
    benefit.
 4. Allowance: Not all ``ctypes`` usages must be supported immediately.
@@ -2136,38 +2136,14 @@ or what ``a`` was before. If the type is not mutable, we can assume the aliasing
 to be broken up, and if it is, we can assume both to be the same value still.
 
 When that value is a compile time constant, we will want to push it forward,
-because storing such a constant under a variable name has a cost and loading it
-back from the variable as well. So, you want to be able collapse such code:
-
-.. code-block:: python
-
-   a = 3
-   b = 7
-   c = a / b
-
-to:
-
-.. code-block:: python
-
-   c = 3 / 7
-
-and that obviously to:
-
-.. code-block:: python
-
-   c = 0
-
-This may be called "(Constant) Value Propagation". But we are aiming for even
-more. We want to forward propagate abstract properties of the values.
-
-.. note::
-
-   Built-in exceptions, and built-in names are also compile time constants.
+and we do that with "(Constant) Value Propagation", which is implemented
+already. We avoid too large constants, and we properly trace value assignments,
+but not yet aliases.
 
 In order to fully benefit from type knowledge, the new type system must be able
 to be fully friends with existing built-in types.  The behavior of a type
 ``long``, ``str``, etc. ought to be implemented as far as possible with the
-built-in ``long``, ``str`` as well.
+built-in ``long``, ``str`` at compiled time as well.
 
 .. note::
 
@@ -2220,10 +2196,10 @@ So it's a rather general problem, this time we know:
 
 Again, we wouldn't want to create the list. Therefore Nuitka avoids executing
 these calculation, when they result in constants larger than a threshold of
-e.g. 256. This concept has to be also applied to integers and more CPU and
-memory traps.
+e.g. 256 elements. This concept has to be also applied to large integers and
+more CPU and memory traps.
 
-Now lets look at a more common use case:
+Now lets look at a more complete use case:
 
 .. code-block:: python
 
@@ -2238,7 +2214,7 @@ are not used at all, but only the length of the expression matters.
 And even if ``x`` were used, only the ability to predict the value from a
 function would be interesting, so we would use that computation function instead
 of having an iteration source. Being able to predict from a function could mean
-to have Python code to do it, as well as C++ code to do it. Then code for the
+to have Python code to do it, as well as C code to do it. Then code for the
 loop can be generated without any CPython library usage at all.
 
 .. note::
@@ -2290,8 +2266,8 @@ module ``__import__`` expression is examined, it should say:
 
    - ``ctypes`` is a module
    - ``ctypes`` is from standard library (if it is, may not be true)
-   - ``ctypes`` has a ``ModuleFriend`` that knows things about it attributes,
-     that should be asked.
+   - ``ctypes`` then has code behind it, called ``ModuleFriend`` that knows
+     things about it attributes, that should be asked.
 
 The later is the generic interface, and the optimization should connect the two,
 of course via package and module full names. It will need a
@@ -2301,7 +2277,7 @@ be more like a plug-in, loaded only if necessary, i.e. the user code actually
 uses ``ctypes``.
 
 Coming back to the original expression, it also contains an assignment
-expression, because it re-formuated to be more like this:
+expression, because it re-formulated to be more like this:
 
 .. code-block:: python
 
@@ -2313,7 +2289,7 @@ variable, and therefore have only one version of that variable.
 
 For module variables, when the execution leaves the module to unknown code, or
 unclear code, it might change the variable. Therefore, likely we will often only
-assume that it could still be ctypes, but also something else.
+assume that it could still be ``ctypes``, but also something else.
 
 Depending on how well we control module variable assignment, we can decide this
 more of less quickly. With "compiled modules" types, the expectation is that
@@ -2327,7 +2303,7 @@ Then when we come to uses of it:
    ctypes.c_int()
 
 At this point, using SSA, we are more of less sure, that ``ctypes`` is at that
-point the module, and that we know what it's ``c_int`` attribute is, at comile
+point the module, and that we know what it's ``c_int`` attribute is, at compile
 time, and what it's call result is. We will use the module friend to help with
 that. It will attach knowledge about the result of that expression during the
 SSA collection process.
