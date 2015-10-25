@@ -45,7 +45,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
         self.line_annotations = {}
 
     def onModuleSourceCode(self, module_name, source_code):
-        self.line_annotations[module_name] = {}
+        annotations = {}
 
         for count, line in enumerate(source_code.split('\n')):
             match = re.search(r"#.*pylint:\s*disable=\s*([\w,]+)", line)
@@ -57,19 +57,25 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
                     # TODO: Parse block wide annotations too.
                     pass
                 else:
-                    self.line_annotations[module_name][count+1] = set(
+                    annotations[count+1] = set(
                         match.strip()
                         for match in
                         match.group(1).split(',')
                     )
 
+        # Only remember them if there were any.
+        if annotations:
+            self.line_annotations[module_name] = annotations
+
         # Do nothing to it.
         return source_code
 
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
-        annotations = self.line_annotations[importing.getFullName()].get(source_ref.getLineNumber(), ())
+        annotations = self.line_annotations.get(importing.getFullName(), {})
 
-        if "F0401" in annotations:
+        line_annotations = annotations.get(source_ref.getLineNumber(), ())
+
+        if "F0401" in line_annotations:
             return True
 
         return False
