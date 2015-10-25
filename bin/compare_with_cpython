@@ -454,6 +454,10 @@ traceback_re                 = re.compile(
     r'(F|f)ile "(.*?)", line (\d+)'
 )
 
+tempfile_re                  = re.compile(
+    r'/tmp/tmp[a-z0-9_]*'
+)
+
 def traceback_re_callback(match):
     return r'%sile "%s", line %s' % (
         match.group(1),
@@ -541,6 +545,9 @@ def makeDiffable(output):
         line = ran_tests_re.sub(r"\1x.xxxs", line)
 
         line = traceback_re.sub(traceback_re_callback, line)
+
+        line = tempfile_re.sub(r"/tmp/tmpxxxxxxx", line)
+
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
         if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":
