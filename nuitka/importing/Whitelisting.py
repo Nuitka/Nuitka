@@ -83,6 +83,9 @@ def getModuleWhiteList():
         # test_email_codecs.py
         "email.test",
 
+        # test_enum.py
+        "enum",
+
         # test_file.py
         "_pyio",
 
@@ -115,7 +118,7 @@ def getModuleWhiteList():
         "importlib.test.__main__", "importlib",
 
         # test_inspect.py
-        "inspect_fodder3",
+        "inspect_fodder3", "test.test_import",
 
         # test_imageop.py
         "imgfile",
@@ -152,7 +155,8 @@ def getModuleWhiteList():
         "t7", "t7.sub", "t7.sub.subsub", "t8",
 
         # test_pkgutil.py
-        "foo", "zipimport",
+        "foo", "foo.bar", "foo.baz", "zipimport", "pkg", "pkg.subpkg",
+        "pkg.subpkg.c", "pkg.subpkg.d",
 
         # test_urllib.py
         "urllib.parse",
@@ -169,6 +173,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # test_runpy.py
         "test.script_helper",
+
+        # test_shelve.py
+         "test.test_dbm",
 
         # test_strftime.py
         "java",
