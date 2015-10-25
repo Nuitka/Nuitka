@@ -460,6 +460,10 @@ def _detectBinaryPathDLLsLinuxBSD(binary_filename):
         if Utils.python_version >= 300:
             filename = filename.decode("utf-8")
 
+        # Sometimes might use stuff not found.
+        if filename == "not found":
+            continue
+
         result.add(filename)
 
     return result
