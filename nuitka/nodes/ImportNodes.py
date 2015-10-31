@@ -169,8 +169,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             parent_package = self.getParentModule().getPackage()
 
         module_package, module_filename, _finding = findModule(
-            importing      = parent_module,
-            source_ref     = self.source_ref,
+            importing      = self,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
             level          = self.getLevel(),
@@ -196,8 +195,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             continue
 
                         module_package, module_filename, _finding = findModule(
-                            importing      = parent_module,
-                            source_ref     = self.source_ref,
+                            importing      = self,
                             module_name    = import_item,
                             parent_package = imported_module.getFullName(),
                             level          = -1,
