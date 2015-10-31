@@ -144,8 +144,11 @@ def getModuleWhiteList():
 
         # test_new.py
         "Spam",
-        # est_ossaudiodev.py
+        # test_ossaudiodev.py
         "ossaudiodev",
+
+        # test_pathlib.py
+        "pathlib",
 
         # test_platform.py
         "gestalt",
@@ -174,6 +177,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test_runpy.py
         "test.script_helper",
 
+        # test_selectors.py
+        "selectors",
+
         # test_shelve.py
          "test.test_dbm",
 
@@ -200,6 +206,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # test_traceback.py
         "test_bug737473",
+
+        # test_tracemalloc
+        "tracemalloc",
 
         # test_unittest.py
         "unittest.test",
