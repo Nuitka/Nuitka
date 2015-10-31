@@ -14,6 +14,7 @@ Source2:        nuitka-rpmlintrc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  python
 BuildRequires:  python-devel
+%{?fc22:BuildRequires: python3-devel}
 BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
