@@ -98,6 +98,9 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
             name = self.name + '$' + name
         )
 
+    def getContainingClassDictCreation(self):
+        return self.getParentVariableProvider().getContainingClassDictCreation()
+
     def computeExpressionRaw(self, constraint_collection):
         owning_module = self.getParentModule()
 
