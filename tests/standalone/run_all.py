@@ -355,6 +355,14 @@ for filename in sorted(os.listdir('.')):
         if loaded_filename in ("/sys/fs/selinux", "/selinux"):
             continue
 
+        # The access to .pth files has no effect.
+        if loaded_filename.endswith(".pth"):
+            continue
+
+        # Looking at site-package dir alone is alone.
+        if loaded_filename.endswith("site-packages"):
+            continue
+
         loaded_basename = os.path.basename(loaded_filename).upper()
         # Windows baseline DLLs
         if loaded_basename in (
