@@ -180,6 +180,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test_selectors.py
         "selectors",
 
+        # test_statistics.py
+        "statistics",
+
         # test_shelve.py
          "test.test_dbm",
 
