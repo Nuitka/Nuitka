@@ -699,17 +699,21 @@ def getGeneratorFunctionCode(context, function_name, function_qualname,
     else:
         closure_decl = template_genfunc_generator_no_closure % {}
 
+    if Utils.python_version < 350 or context.isForDirectCall():
+        function_name_obj = getConstantCode(context, function_name)
+    else:
+        function_name_obj = "self->m_name"
+
     if Utils.python_version < 350:
         function_qualname_obj = "NULL"
+    elif context.isForDirectCall():
+        function_qualname_obj = getConstantCode(context, function_qualname)
     else:
-        function_qualname_obj = getConstantCode(
-            constant = function_qualname,
-            context  = context
-        )
+        function_qualname_obj = "self->m_qualname"
 
     result += template_genfunc_function_impl_template % {
         "function_name"          : function_name,
-        "function_name_obj"      : getConstantCode(context, function_name),
+        "function_name_obj"      : function_name_obj,
         "function_qualname_obj"  : function_qualname_obj,
         "function_identifier"    : function_identifier,
         "code_identifier"        : code_identifier,
