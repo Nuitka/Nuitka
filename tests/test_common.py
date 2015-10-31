@@ -349,14 +349,35 @@ def getDependsExePath():
 
     return depends_exe
 
+def isExecutableCommand(command):
+    path = os.environ["PATH"]
 
-def getRuntimeTraceOfLoadedFiles(path,trace_error = True):
+    suffixes = (".exe",) if os.name == "nt" else ("",)
+
+    for part in path.split(os.pathsep):
+        if not part:
+            continue
+
+        for suffix in suffixes:
+            if os.path.isfile(os.path.join(part, command + suffix)):
+                return True
+
+    return False
+
+
+def getRuntimeTraceOfLoadedFiles(path, trace_error = True):
     """ Returns the files loaded when executing a binary. """
 
     result = []
 
     if os.name == "posix":
         if sys.platform == "darwin":
+            if not isExecutableCommand("dtruss"):
+                sys.exit(
+                    """\
+Error, needs 'dtruss' on your system to scan used libraries."""
+                )
+
             args = (
                 "sudo",
                 "dtruss",
@@ -366,6 +387,12 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error = True):
                 path
             )
         else:
+            if not isExecutableCommand("strace"):
+                sys.exit(
+                    """\
+Error, needs 'strace' on your system to scan used libraries."""
+                )
+
             args = (
                 "strace",
                 "-e", "file",
@@ -379,7 +406,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error = True):
             stderr = subprocess.PIPE
         )
 
-        stdout_strace, stderr_strace = process.communicate()
+        _stdout_strace, stderr_strace = process.communicate()
 
         open(path+".strace","wb").write(stderr_strace)
 
