@@ -1073,11 +1073,6 @@ def buildModuleTree(filename, package, is_top, is_main):
         is_shlib = False
     )
 
-    addImportedModule(
-        module_relpath  = Utils.relpath(filename),
-        imported_module = module
-    )
-
     # If there is source code associated (not the case for namespace packages of
     # Python3.3 or higher, then read it.
     if source_filename is not None:
@@ -1087,6 +1082,12 @@ def buildModuleTree(filename, package, is_top, is_main):
             source_ref  = source_ref,
             source_code = readSourceCodeFromFilename(module.getFullName(), source_filename),
             is_main     = is_main
+        )
+
+    if not module.isMainModule():
+        addImportedModule(
+            module_relpath  = Utils.relpath(filename),
+            imported_module = module
         )
 
     return module

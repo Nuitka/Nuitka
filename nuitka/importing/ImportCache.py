@@ -22,10 +22,8 @@ maintaining a cache of module trees built.
 
 It can happen that modules become unused, and then dropped from active modules,
 and then later active again, via another import, and in this case, we should
-not start anew.
+not start anew, but reuse what we already found out about it.
 """
-
-from logging import warning
 
 from nuitka.plugins.PluginBase import Plugins
 from nuitka.utils import Utils
@@ -34,43 +32,39 @@ imported_modules = {}
 imported_by_name = {}
 
 def addImportedModule(module_relpath, imported_module):
-    if (module_relpath, "__main__") in imported_modules:
-        warning("""\
-Re-importing '__main__' module via its filename duplicates the module code. \
-You might want to use sys.modules["__main__"] instead.""")
-
     key = module_relpath, imported_module.getFullName()
 
     if key in imported_modules:
-        assert imported_module is imported_modules[ key ], key
+        assert imported_module is imported_modules[key], key
     else:
         Plugins.onModuleDiscovered(imported_module)
 
-    imported_modules[ key ] = imported_module
-    imported_by_name[ imported_module.getFullName() ] = imported_module
+    imported_modules[key] = imported_module
+    imported_by_name[imported_module.getFullName()] = imported_module
+
+    # We don't expect that to happen.
+    assert not imported_module.isMainModule()
+
 
 def isImportedModuleByPath(module_relpath):
-    module_name = Utils.basename(module_relpath)
+    for key in imported_modules:
+        if key[0] == module_relpath:
+            return True
 
-    if module_name.endswith(".py"):
-        module_name = module_name[:-3]
+    return False
 
-    key = module_relpath, module_name
-
-    return key in imported_modules
 
 def isImportedModuleByName(full_name):
     return full_name in imported_by_name
 
+
 def getImportedModuleByName(full_name):
-    return imported_by_name[ full_name ]
+    return imported_by_name[full_name]
+
 
 def getImportedModuleByPath(module_relpath):
-    module_name = Utils.basename(module_relpath)
+    for key in imported_modules:
+        if key[0] == module_relpath:
+            return imported_modules[key]
 
-    if module_name.endswith(".py"):
-        module_name = module_name[:-3]
-
-    key = module_relpath, module_name
-
-    return imported_modules[ key ]
+    raise KeyError(module_relpath)

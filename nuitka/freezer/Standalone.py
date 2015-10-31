@@ -139,6 +139,10 @@ def _detectedShlibFile(filename, module_name):
     if module_name == "__main__":
         return
 
+    from nuitka import ModuleRegistry
+    if ModuleRegistry.hasRootModule(module_name):
+        return
+
     parts = module_name.split('.')
     if len(parts) == 1:
         package_name = None
@@ -157,7 +161,6 @@ def _detectedShlibFile(filename, module_name):
         source_ref   = source_ref
     )
 
-    from nuitka import ModuleRegistry
     ModuleRegistry.addRootModule(shlib_module)
 
     module_names.add(module_name)

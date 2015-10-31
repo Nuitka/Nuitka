@@ -212,10 +212,7 @@ def decideRecursion(module_filename, module_name, module_package, module_kind):
     )
 
 
-def considerFilename(module_filename, module_package):
-    assert module_package is None or \
-           ( type(module_package) is str and module_package != "" )
-
+def considerFilename(module_filename):
     module_filename = Utils.normpath(module_filename)
 
     if Utils.isDir(module_filename):
@@ -253,7 +250,6 @@ def _checkPluginPath(plugin_filename, module_package):
     )
 
     plugin_info = considerFilename(
-        module_package  = module_package,
         module_filename = plugin_filename
     )
 
@@ -342,7 +338,6 @@ def checkPluginPath(plugin_filename, module_package):
     )
 
     plugin_info = considerFilename(
-        module_package  = module_package,
         module_filename = plugin_filename
     )
 

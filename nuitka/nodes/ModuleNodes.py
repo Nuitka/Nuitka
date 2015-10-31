@@ -577,6 +577,8 @@ class PythonInternalModule(CompiledPythonModule, SingleCreationMixin):
 class PythonShlibModule(PythonModuleMixin, NodeBase):
     kind = "PYTHON_SHLIB_MODULE"
 
+    avoid_duplicates = set()
+
     def __init__(self, name, package_name, source_ref):
         NodeBase.__init__(
             self,
@@ -589,10 +591,16 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
             package_name = package_name
         )
 
+        # That would be a mistake we just made.
         assert Utils.basename(source_ref.getFilename()) != "<frozen>"
 
         # That is too likely a bug.
         assert name != "__main__"
+
+        # Duplicates should be avoided by us caching elsewhere before creating
+        # the object.
+        assert self.getFullName() not in self.avoid_duplicates, self.getFullName()
+        self.avoid_duplicates.add(self.getFullName())
 
     def getDetails(self):
         return {

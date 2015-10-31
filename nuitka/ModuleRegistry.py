@@ -50,6 +50,14 @@ def getRootModules():
     return root_modules
 
 
+def hasRootModule(module_name):
+    for module in root_modules:
+        if module.getFullName() == module_name:
+            return True
+
+    return False
+
+
 def addUncompiledModule(module):
     uncompiled_modules.add(module)
 

@@ -95,6 +95,7 @@ def createPathAssignment(source_ref):
         source_ref   = source_ref
     )
 
+
 def createPython3NamespacePath(package_name, module_relpath, source_ref):
     return StatementAssignmentVariable(
         variable_ref = ExpressionTargetVariableRef(
