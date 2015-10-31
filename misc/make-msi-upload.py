@@ -56,6 +56,7 @@ parts = [
         replace("-py3.2","").\
         replace("-py3.3","").\
         replace("-py3.4","").\
+        replace("-py3.5","").\
         replace("Nuitka32","Nuitka").\
         replace("Nuitka64","Nuitka"),
     "py" + sys.version[:3].replace('.',""),
