@@ -85,7 +85,7 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationUnary
 )
-from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.ReturnNodes import ExpressionAwait, StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.PythonVersions import python_version
@@ -643,6 +643,11 @@ def buildConditionalExpressionNode(provider, node, source_ref):
         source_ref     = source_ref
     )
 
+def buildAwaitNode(provider, node, source_ref):
+    return ExpressionAwait(
+        expression = buildNode(provider, node.value, source_ref),
+        source_ref     = source_ref
+    )
 
 setBuildingDispatchers(
     path_args3 = {
@@ -675,6 +680,7 @@ setBuildingDispatchers(
         "With"              : buildWithNode,
         "FunctionDef"       : buildFunctionNode,
         "AsyncFunctionDef"  : buildAsyncFunctionNode,
+        "Await"             : buildAwaitNode,
         "ClassDef"          : buildClassNode,
         "Print"             : buildPrintNode,
         "Call"              : buildCallNode,
