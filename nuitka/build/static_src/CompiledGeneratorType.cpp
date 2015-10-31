@@ -330,6 +330,7 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
 
 #if PYTHON_VERSION >= 350
     Py_DECREF( generator->m_qualname );
+    Py_DECREF( generator->m_yieldfrom );
 #endif
 
     PyObject_GC_Del( generator );
@@ -488,6 +489,11 @@ static int Nuitka_Generator_set_qualname( Nuitka_GeneratorObject *object, PyObje
     return 0;
 }
 
+static PyObject *Nuitka_Generator_get_yieldfrom( Nuitka_GeneratorObject *generator )
+{
+    return INCREASE_REFCOUNT( generator->m_yieldfrom );
+}
+
 #endif
 
 static PyObject *Nuitka_Generator_get_code( Nuitka_GeneratorObject *object )
@@ -526,6 +532,7 @@ static PyGetSetDef Nuitka_Generator_getsetlist[] =
 #else
     { (char *)"__name__", (getter)Nuitka_Generator_get_name, (setter)Nuitka_Generator_set_name, NULL },
     { (char *)"__qualname__", (getter)Nuitka_Generator_get_qualname, (setter)Nuitka_Generator_set_qualname, NULL },
+    { (char *)"gi_yieldfrom", (getter)Nuitka_Generator_get_yieldfrom, NULL, NULL },
 #endif
     { (char *)"gi_code",  (getter)Nuitka_Generator_get_code, (setter)Nuitka_Generator_set_code, NULL },
     { (char *)"gi_frame", (getter)Nuitka_Generator_get_frame, (setter)Nuitka_Generator_set_frame, NULL },
@@ -636,6 +643,9 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qua
 #if PYTHON_VERSION >= 350
     result->m_qualname = qualname;
     Py_INCREF( qualname );
+
+    result->m_yieldfrom = Py_None;
+    Py_INCREF( Py_None );
 #endif
 
     // We take ownership of those and received the reference count from the

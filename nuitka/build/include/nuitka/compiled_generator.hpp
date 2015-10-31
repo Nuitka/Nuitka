@@ -48,6 +48,7 @@ typedef struct {
 
 #if PYTHON_VERSION >= 350
     PyObject *m_qualname;
+    PyObject *m_yieldfrom;
 #endif
 
     Fiber m_yielder_context;
