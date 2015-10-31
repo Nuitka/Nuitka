@@ -86,3 +86,39 @@ def isPreloadedPackagePath(path):
                 return True
 
     return False
+
+
+def detectPthImportedPackages():
+    if not hasattr(sys.modules["site"], "getsitepackages"):
+        return ()
+
+    pth_imports = set()
+
+    for prefix in sys.modules["site"].getsitepackages():
+        if not Utils.isDir(prefix):
+            continue
+
+        for path, filename in Utils.listDir(prefix):
+            if filename.endswith(".pth"):
+                for line in open(path, "rU"):
+                    if line.startswith("import "):
+                        if ";" in line:
+                            line = line[:line.find(";")]
+
+                        for part in line[7:].split(","):
+                            pth_imports.add(part.strip())
+
+
+    return tuple(sorted(pth_imports))
+
+pth_imported_packages = ()
+
+def setPthImportedPackages(value):
+    # We need to set this from the outside, pylint: disable=W0603
+    global pth_imported_packages
+
+    pth_imported_packages = value
+
+
+def getPthImportedPackages():
+    return pth_imported_packages

@@ -57,6 +57,7 @@ from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
+from nuitka.importing.PreloadedPackages import getPthImportedPackages
 from nuitka.nodes.AssignNodes import (
     ExpressionTargetVariableRef,
     StatementAssignmentVariable
@@ -768,6 +769,19 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Add import of "site" module of main programs visibly in the node tree,
         # so recursion and optimization can pick it up, checking its effects.
         if is_main and "no_site" not in Options.getPythonFlags():
+            for path_imported_name in getPthImportedPackages():
+                statements.append(
+                    StatementExpressionOnly(
+                        expression = ExpressionImportModule(
+                            module_name = path_imported_name,
+                            import_list = (),
+                            level       = 0,
+                            source_ref  = source_ref,
+                        ),
+                        source_ref = source_ref
+                    )
+                )
+
             statements.append(
                 StatementExpressionOnly(
                     expression = ExpressionImportModule(
