@@ -32,6 +32,7 @@ import marshal
 from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import iterItems
 from nuitka.codegen.ConstantCodes import needsPickleInit
+from nuitka.importing import ImportCache
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryPath
@@ -162,6 +163,7 @@ def _detectedShlibFile(filename, module_name):
     )
 
     ModuleRegistry.addRootModule(shlib_module)
+    ImportCache.addImportedModule(shlib_module)
 
     module_names.add(module_name)
 

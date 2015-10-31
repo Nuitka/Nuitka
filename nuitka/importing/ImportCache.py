@@ -31,8 +31,11 @@ from nuitka.utils import Utils
 imported_modules = {}
 imported_by_name = {}
 
-def addImportedModule(module_relpath, imported_module):
-    key = module_relpath, imported_module.getFullName()
+def addImportedModule(imported_module):
+    key = (
+        Utils.relpath(imported_module.getFilename()),
+        imported_module.getFullName()
+    )
 
     if key in imported_modules:
         assert imported_module is imported_modules[key], key

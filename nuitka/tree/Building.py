@@ -1086,7 +1086,6 @@ def buildModuleTree(filename, package, is_top, is_main):
 
     if not module.isMainModule():
         addImportedModule(
-            module_relpath  = Utils.relpath(filename),
             imported_module = module
         )
 

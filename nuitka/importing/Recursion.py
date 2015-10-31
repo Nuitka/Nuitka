@@ -108,18 +108,10 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
 
                     return None, False
 
-            ImportCache.addImportedModule(
-                module_relpath,
-                module
-            )
+            ImportCache.addImportedModule(module)
 
             is_added = True
         else:
-            ImportCache.addImportedModule(
-                module_relpath,
-                ImportCache.getImportedModuleByName(module.getFullName())
-            )
-
             module = ImportCache.getImportedModuleByName(
                 module.getFullName()
             )
@@ -325,6 +317,7 @@ def _checkPluginPath(plugin_filename, module_package):
 
             if useful:
                 ModuleRegistry.addRootModule(module)
+                ImportCache.addImportedModule(module)
 
         else:
             warning("Failed to include module from '%s'.", plugin_info[0])
