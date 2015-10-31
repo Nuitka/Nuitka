@@ -90,7 +90,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
 
     post_statements = []
 
-    if provider.isExpressionFunctionBody() and provider.isClassDictCreation():
+    if provider.isExpressionClassBody():
         post_statements.append(
             StatementLocalsDictSync(
                 locals_arg = ExpressionTempVariableRef(

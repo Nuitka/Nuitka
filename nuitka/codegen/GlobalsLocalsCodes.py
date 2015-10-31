@@ -59,7 +59,7 @@ def _getLocalVariableList(provider):
         variables = start_part + end_part
 
         include_closure = not provider.isUnoptimized() and \
-                          not provider.isClassDictCreation()
+                          not provider.isExpressionClassBody()
     else:
         variables = provider.getVariables()
 
@@ -196,7 +196,7 @@ Py_INCREF( locals_dict );""" % (
                     dict_name = to_name,
                     variable  = local_var,
                     is_dict   = Utils.python_version < 300 or \
-                                not context.getFunction().isClassDictCreation(),
+                                not context.getFunction().isExpressionClassBody(),
                     emit      = emit,
                     context   = context
                 )

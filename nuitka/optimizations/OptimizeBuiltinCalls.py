@@ -773,7 +773,7 @@ if python_version >= 300:
             if provider.isExpressionFunctionBody():
                 provider.markAsExecContaining()
 
-                if provider.isClassDictCreation():
+                if provider.isExpressionClassBody():
                     provider.markAsUnqualifiedExecContaining(source_ref)
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(

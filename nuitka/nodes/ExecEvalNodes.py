@@ -121,8 +121,7 @@ if Utils.python_version < 300:
             # correctly by the code for exec statements.
             provider = self.getParentVariableProvider()
 
-            if provider.isExpressionFunctionBody() and \
-               provider.isClassDictCreation():
+            if provider.isExpressionClassBody():
                 result = StatementExec(
                     source_code = self.getSourceCode(),
                     globals_arg = self.getGlobals(),
@@ -131,7 +130,7 @@ if Utils.python_version < 300:
                 )
 
                 return result, "new_statements", """\
-Changed execfile to exec on class level."""
+Changed 'execfile' with unused result to 'exec' on class level."""
             else:
                 return statement, None, None
 

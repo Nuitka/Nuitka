@@ -87,6 +87,7 @@ from nuitka.nodes.OperatorNodes import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
+from nuitka.PythonVersions import python_version
 from nuitka.utils import Utils
 
 from . import SyntaxErrors
@@ -151,7 +152,7 @@ from .VariableClosure import completeVariableClosures
 def buildVariableReferenceNode(provider, node, source_ref):
     # Python3 is influenced by the mere use of a variable name. So we need to
     # remember it, esp. for cases, where it is optimized away.
-    if Utils.python_version >= 300 and \
+    if python_version >= 300 and \
        node.id == "super" and \
        provider.isExpressionFunctionBody():
         provider.markAsClassClosureTaker()
@@ -254,7 +255,7 @@ def buildRaiseNode(provider, node, source_ref):
     # Raise statements. Under Python2 they may have type, value and traceback
     # attached, for Python3, you can only give type (actually value) and cause.
 
-    if Utils.python_version < 300:
+    if python_version < 300:
         exception_type  = buildNode(provider, node.type, source_ref, allow_none = True)
         exception_value = buildNode(provider, node.inst, source_ref, allow_none = True)
         exception_trace = buildNode(provider, node.tback, source_ref, allow_none = True)
@@ -385,13 +386,13 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                     reason     = "name '%s' is %s and global" % (
                         variable_name,
                         "local"
-                          if Utils.python_version < 300 else
+                          if python_version < 300 else
                         "parameter"
                     ),
                     source_ref = (
                         source_ref
                           if not Options.isFullCompat() or \
-                             Utils.python_version >= 340 else
+                             python_version >= 340 else
                         provider.getSourceReference()
                     )
                 )
@@ -427,8 +428,8 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
         assert closure_variable.isModuleVariable()
 
-        if Utils.python_version < 340 and \
-           provider.isClassDictCreation() and \
+        if python_version < 340 and \
+           provider.isExpressionClassBody() and \
            closure_variable.getName() == "__class__":
             SyntaxErrors.raiseSyntaxError(
                 reason     = "cannot make __class__ global",
@@ -455,12 +456,12 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
                 ),
                 source_ref   = None
                                  if Options.isFullCompat() and \
-                                 Utils.python_version < 340 else
+                                 python_version < 340 else
                                source_ref,
                 display_file = not Options.isFullCompat() or \
-                               Utils.python_version >= 340,
+                               python_version >= 340,
                 display_line = not Options.isFullCompat() or \
-                               Utils.python_version >= 340
+                               python_version >= 340
             )
 
     provider.addNonlocalsDeclaration(node.names, source_ref)
@@ -508,12 +509,12 @@ def buildStatementContinueLoop(node, source_ref):
     # Python forbids this, although technically it's probably not much of
     # an issue.
     if getBuildContext() == "finally":
-        if not Options.isFullCompat() or Utils.python_version >= 300:
+        if not Options.isFullCompat() or python_version >= 300:
             col_offset = node.col_offset - 9
         else:
             col_offset = None
 
-        if Utils.python_version >= 300 and Options.isFullCompat():
+        if python_version >= 300 and Options.isFullCompat():
             source_line = ""
         else:
             source_line = None
@@ -548,12 +549,11 @@ def buildAttributeNode(provider, node, source_ref):
 
 
 def buildReturnNode(provider, node, source_ref):
-    if not provider.isExpressionFunctionBody() or \
-       provider.isClassDictCreation():
+    if provider.isExpressionClassBody() or provider.isCompiledPythonModule():
         SyntaxErrors.raiseSyntaxError(
             "'return' outside function",
             source_ref,
-            None if Utils.python_version < 300 else (
+            None if python_version < 300 else (
                 node.col_offset
                   if provider.isCompiledPythonModule() else
                 node.col_offset+4
@@ -814,7 +814,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 createPathAssignment(internal_source_ref)
             )
 
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
@@ -831,7 +831,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         )
 
 
-    if Utils.python_version >= 330:
+    if python_version >= 330:
         # For Python3.3, it's set for both packages and non-packages.
         statements.append(
             StatementAssignmentVariable(
@@ -851,7 +851,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         )
 
     needs__initializing__ = not provider.isMainModule() and \
-      (Utils.python_version >= 330 and Utils.python_version < 340)
+      (python_version >= 330 and python_version < 340)
 
     if needs__initializing__:
         # Set "__initializing__" at the beginning to True

@@ -47,7 +47,7 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementDictOperationRemove
 )
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionBody,
+    ExpressionClassBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionQualnameRef,
@@ -123,7 +123,7 @@ def _buildClassNode3(provider, node, source_ref):
         name       = "prepared"
     )
 
-    class_creation_function = ExpressionFunctionBody(
+    class_creation_function = ExpressionClassBody(
         provider   = provider,
         is_class   = True,
         parameters = make_class_parameters,
@@ -590,7 +590,7 @@ def _buildClassNode2(provider, node, source_ref):
     # This function is the Python2 special case with special re-formulation as
     # according to developer manual.
 
-    function_body = ExpressionFunctionBody(
+    function_body = ExpressionClassBody(
         provider   = provider,
         is_class   = True,
         parameters = make_class_parameters,

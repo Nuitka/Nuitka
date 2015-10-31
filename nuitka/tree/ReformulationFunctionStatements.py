@@ -163,8 +163,7 @@ def buildFunctionNode(provider, node, source_ref):
     # "class __new__".  We add them earlier, so our optimization will see it.
     if node.name == "__new__" and \
        not decorators and \
-       provider.isExpressionFunctionBody() and \
-       provider.isClassDictCreation():
+       provider.isExpressionClassBody():
 
         decorators = (
             ExpressionBuiltinRef(
@@ -239,9 +238,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         frame      = True,
         source_ref = source_ref
     )
-
-    # Not allowed.
-    assert not function_body.isGenerator()
 
     function_statements_body = _insertFinalReturnStatement(
         function_statements_body = function_statements_body,

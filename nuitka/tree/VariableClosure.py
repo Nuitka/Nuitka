@@ -86,7 +86,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     @staticmethod
     def _handleQualnameSetup(node):
         if node.qualname_setup is not None:
-            if node.isClassDictCreation():
+            if node.isExpressionClassBody():
                 class_assign, qualname_assign = node.qualname_setup
                 class_variable = class_assign.getTargetVariableRef().getVariable()
 
@@ -198,9 +198,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     if current.isCompiledPythonModule():
                         break
 
-                    assert current.isExpressionFunctionBody()
-
-                    if current.isClassDictCreation():
+                    if current.isExpressionClassBody():
                         if seen_function:
                             node.setAttributeName(
                                 "_%s%s" % (
@@ -313,8 +311,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
            variable.getOwner() is not provider:
             parent_provider = provider.getParentVariableProvider()
 
-            while parent_provider.isExpressionFunctionBody() and \
-                  parent_provider.isClassDictCreation():
+            while parent_provider.isExpressionClassBody():
                 parent_provider = parent_provider.getParentVariableProvider()
 
             if parent_provider.isExpressionFunctionBody() and \

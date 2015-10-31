@@ -348,7 +348,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
         if needs_check:
             if Utils.python_version < 340 and \
                not context.isCompiledPythonModule() and \
-               not context.getOwner().isClassDictCreation():
+               not context.getOwner().isExpressionClassBody():
                 error_message = "global name '%s' is not defined"
             else:
                 error_message = "name '%s' is not defined"

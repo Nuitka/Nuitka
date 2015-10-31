@@ -33,7 +33,7 @@ from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.utils import Utils
 
-from .Checkers import checkStatementsSequence, checkStatementsSequenceOrNone
+from .Checkers import checkStatementsSequenceOrNone
 from .IndicatorMixins import (
     MarkGeneratorIndicator,
     MarkLocalsDictIndicator,
@@ -86,6 +86,10 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         self.parent = provider
 
         self.constraint_collection = None
+
+    @staticmethod
+    def isExpressionFunctionBodyBase():
+        return True
 
 
 class ExpressionFunctionBody(ExpressionFunctionBodyBase,
@@ -219,14 +223,11 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     def getParent(self):
         assert False
 
-    def isClassDictCreation(self):
-        return self.is_class
-
     def getContainingClassDictCreation(self):
         current = self
 
         while not current.isCompiledPythonModule():
-            if current.isClassDictCreation():
+            if current.isExpressionClassBody():
                 return current
 
             current = current.getParentVariableProvider()
@@ -257,7 +258,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
         if provider.isCompiledPythonModule():
             return function_name
-        elif provider.isClassDictCreation():
+        elif provider.isExpressionClassBody():
             return provider.getFunctionQualname() + '.' + function_name
         else:
             return provider.getFunctionQualname() + ".<locals>." + function_name
@@ -371,27 +372,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     def getVariableForClosure(self, variable_name):
         # print( "getVariableForClosure", self, variable_name )
 
-        # The class bodies provide no closure, except under CPython3.x, there
-        # they provide "__class__" but nothing else.
-
-        if self.isClassDictCreation():
-            if variable_name == "__class__":
-                if Utils.python_version < 300:
-                    return self.provider.getVariableForClosure(
-                        variable_name
-                    )
-                elif Utils.python_version >= 340 and False: # TODO: Temporarily reverted
-                    result = self.getTempVariable(
-                        temp_scope = None,
-                        name       = "__class__"
-                    )
-
-                    return result
-            else:
-                return self.provider.getVariableForClosure(
-                    variable_name
-                )
-
         if self.hasProvidedVariable(variable_name):
             return self.getProvidedVariable(variable_name)
         else:
@@ -490,6 +470,56 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
     def needsExceptionReturnValue(self):
         return self.return_exception
+
+
+class ExpressionClassBody(ExpressionFunctionBody):
+    # We really want these many ancestors, as per design, we add properties via
+    # base class mix-ins a lot, leading to many instance attributes, and
+    # methods, pylint: disable=R0901
+
+    kind = "EXPRESSION_CLASS_BODY"
+
+    named_children = (
+        "body",
+    )
+
+    checkers = {
+        # TODO: Is "None" really an allowed value.
+        "body" : checkStatementsSequenceOrNone
+    }
+
+    # TODO: Everybody should check base instead.
+    @staticmethod
+    def isExpressionFunctionBody():
+        return True
+
+    def getVariableForClosure(self, variable_name):
+        # print( "getVariableForClosure", self, variable_name )
+
+        # The class bodies provide no closure, except under CPython3.x, there
+        # they provide "__class__" but nothing else.
+
+        if variable_name == "__class__":
+            if Utils.python_version < 300:
+                return self.provider.getVariableForClosure(
+                    variable_name
+                )
+            elif Utils.python_version >= 340 and False: # TODO: Temporarily reverted
+                result = self.getTempVariable(
+                    temp_scope = None,
+                    name       = "__class__"
+                )
+
+                return result
+            else:
+                return ExpressionFunctionBody.getVariableForClosure(
+                    self,
+                    variable_name = variable_name
+                )
+        else:
+            return self.provider.getVariableForClosure(
+                variable_name
+            )
 
 
 def convertNoneConstantOrEmptyDictToNone(node):
@@ -710,10 +740,11 @@ error""" % self.getName()
         if function_body.isGenerator():
             return None
 
-        if function_body.isClassDictCreation():
+        if function_body.isExpressionClassBody():
             return None
 
-        # TODO: Lying for the demo.
+        # TODO: Lying for the demo, this is too limiting, but needs frames to
+        # be allowed twice in a context.
         if function_body.mayRaiseException(BaseException):
             return 60
 
@@ -884,7 +915,7 @@ class ExpressionCoroutineCreation(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_COROUTINE_CREATION"
 
     def __init__(self, coroutine_body, source_ref):
-        assert coroutine_body.isExpressionFunctionBody()
+        assert coroutine_body.isExpressionCoroutineBody()
 
         NodeBase.__init__(
             self,
@@ -974,7 +1005,7 @@ class ExpressionCoroutineBody(ExpressionFunctionBodyBase):
 
     checkers = {
         # TODO: Is "None" really an allowed value.
-        "body" : checkStatementsSequence
+        "body" : checkStatementsSequenceOrNone
     }
 
     if Utils.python_version >= 340:
@@ -992,3 +1023,9 @@ class ExpressionCoroutineBody(ExpressionFunctionBodyBase):
             is_class    = False,
             source_ref  = source_ref
         )
+
+    getBody = ChildrenHavingMixin.childGetter("body")
+    setBody = ChildrenHavingMixin.childSetter("body")
+
+    def getFunctionName(self):
+        return self.name

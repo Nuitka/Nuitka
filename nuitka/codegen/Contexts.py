@@ -677,7 +677,7 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin,
 
     def __repr__(self):
         return "<PythonFunctionContext for %s '%s'>" % (
-            "function" if not self.function.isClassDictCreation() else "class",
+            "function" if not self.function.isExpressionClassBody() else "class",
             self.function.getName()
         )
 

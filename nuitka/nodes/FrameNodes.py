@@ -162,13 +162,13 @@ class StatementsFrame(StatementsSequence):
             is_generator  = provider.isExpressionFunctionBody() and \
                             provider.isGenerator(),
             is_optimized  = not provider.isCompiledPythonModule() and \
-                            not provider.isClassDictCreation() and \
+                            not provider.isExpressionClassBody() and \
                             not provider.hasLocalsDict(),
             has_starlist  = self.has_starlist,
             has_stardict  = self.has_stardict,
             has_closure   = provider.isExpressionFunctionBody() and \
                             provider.getClosureVariables() != () and \
-                            not provider.isClassDictCreation(),
+                            not provider.isExpressionClassBody(),
             future_flags  = provider.getSourceReference().getFutureSpec().\
                               asFlags()
         )
