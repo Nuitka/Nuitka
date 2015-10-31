@@ -33,15 +33,7 @@ def _readSourceCodeFromFilename3(source_filename):
     import tokenize
 
     try:
-        with open(source_filename, "rb") as source_file:
-            encoding = tokenize.detect_encoding(source_file.readline)[0]  # @UndefinedVariable
-
-            # Rewind to get the whole file.
-            source_file.seek(0)
-
-            source_code = source_file.read()
-
-        return source_code.decode(encoding)
+        return tokenize.open(source_filename).read()  # @UndefinedVariable
     except SyntaxError as e:
         if Options.isFullCompat():
             if PythonVersions.doShowUnknownEncodingName():
