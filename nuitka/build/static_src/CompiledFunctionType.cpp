@@ -433,7 +433,11 @@ static PyGetSetDef Nuitka_Function_getset[] =
 
 static PyObject *Nuitka_Function_reduce( Nuitka_FunctionObject *function )
 {
+#if PYTHON_VERSION < 330
     return INCREASE_REFCOUNT( function->m_name );
+#else
+    return INCREASE_REFCOUNT( function->m_qualname );
+#endif
 }
 
 static PyMethodDef Nuitka_Generator_methods[] =
