@@ -145,8 +145,8 @@ def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
 
 def getLoadLocalsCode(to_name, provider, mode, emit, context):
     if provider.isCompiledPythonModule():
-        # TODO: Should not happen in the normal case, make this assertable.
-        getLoadGlobalsCode(to_name, emit, context)
+        # Optimization will have made this "globals".
+        assert False, provider
     elif not context.hasLocalsDict():
         local_list = _getLocalVariableList(
             provider = provider,
