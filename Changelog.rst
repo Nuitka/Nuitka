@@ -1,7 +1,128 @@
 Nuitka Release 0.5.16 (Draft)
 =============================
 
-This release is not done yet.
+This is a maintenance release, largely intended to put out improved support for
+new platforms and minor corrections. It should improve the speed for standalone
+mode, and compilation in general for some use cases, but this is mostly to clean
+up open ends.
+
+Bug Fixes
+---------
+
+- Standalone: Preserve not only namespace packages created by ``.pth`` files,
+  but also make the imports done by them. This makes it more compatible with
+  uses of it in Fedora 22.
+
+- Standalone: The extension modules could be duplicated, turned this into an
+  error and cache finding them during compile time and during early import
+  resolution to avoid duplication.
+
+- Standalone: Handle "not found" from ``ldd`` output, on some systems not all
+  the libraries wanted are accessible for every library.
+
+- Python3: Using ``tokenize.open`` to read source code, instead of reading
+  manually and decoding from ``tokenize.detect_encoding``, this handles corner
+  cases more compatible.
+
+- Fix, the PyLint warnings plug-in could crash in some cases, make sure it's
+  not assuming to have seen code it's being asked about.
+
+- Python3.5: Fixed support for namespace packages, these were not yet working
+  for that version yet.
+
+- Python3.5: Fixes lack of support for unpacking in normal ``tuple``, ``list``,
+  and ``set`` creations.
+
+  .. code-block:: python
+
+      [*a] # this has become legal in 3.5 and now works too.
+
+  Now also gives compatible ``SyntaxError`` for earlier versions. Python2 was
+  good already.
+
+- Windows: Fix, the combination of AnaConda, MinGW 64 bits and acceleration was
+  not working. `Issue#254 <http://bugs.nuitka.net/issue254>`__.
+
+- Python3.5: Fix, need to reduce compiled functions to ``__qualname__`` value,
+  rather than just ``__name__`` or else pickling methods doesn't work.
+
+Optimization
+------------
+
+- Re-formulate ``exec`` and ``eval`` to default to ``globals()`` as the default
+  for the locals dictionary in modules.
+
+- The ``try`` node was making a description of nodes moved to the outside when
+  shrinking its scope, which was using a lot of time, just to not be output, now
+  these can be postponed.
+
+- Refactored how freezing of bytecode works. Uncompiled modules are now explicit
+  nodes too, and in the registry. We only have one or the other of it, avoiding
+  to compile both.
+
+Tests
+-----
+
+- When ``strace`` or ``dtruss`` are not found, given proper error message, so
+  people know what to do.
+
+- The CPython 3.4 test suite is now using common runner code, and avoids
+  ignoring all Nuitka warnings, instead more white listing was added.
+
+- Started to run 3.5 test suite, but coroutines are blocking that.
+
+- Removed more CPython tests that access the network and are generally useless
+  to testing Nuitka.
+
+- When comparing outputs, normalize typical temporary file names used on posix
+  systems.
+
+- Coverage tests have made some progress, and some changes were made due to its
+  results.
+
+- Added test to cover too complex code module of ``idna`` module.
+
+- Added Python3.5 only test for  unpacking variants.
+
+Cleanups
+--------
+
+- Prepare plug-in interface to allow suppression of import warnings to access
+  the node doing it, making the import node is accessible.
+
+- Have dedicated class function body object, which is a specialization of the
+  function body node base class. This allowed removing class specific code from
+  that class.
+
+- The use of "win_target" as a scons parameter was useless. Make more consistent
+  use of it as a flag indicator in the scons file.
+
+Organizational
+--------------
+
+- Improved support for Python3.5 missing compatibility with new language
+  features.
+
+- Updated the Developer Manual with changes that SSA is now a fact.
+
+- Added support for Python3.5 Windows MSI downloads.
+
+- Added repository for Ubuntu Wily (15.10) for download. Removed Ubuntu Utopic
+  package download, no longer supported by Ubuntu.
+
+- Added packages for Fedora 22.
+
+Summary
+-------
+
+This release doesn't bring much significant changes. The new function body
+variants are designed to make coroutines as function a-likes easier to the
+core, and to require less exception making for e.g. function in-lining code
+to consider.
+
+So this release is mostly to lower the technical debt incurred that holds it
+back from supporting making more interesting changes. Upcoming releases may
+have continue that trend for some time.
 
 
 Nuitka Release 0.5.15
