@@ -9,6 +9,31 @@ up open ends.
 Bug Fixes
 ---------
 
+- Fix, the ``len`` built-in could give false values for dictionary and set
+  creations with the same element.
+
+  .. code-block:: python
+
+     # This was falsely optimized to 2 even if "a is b and a == b" was true.
+     len({a, b})
+
+- Python: Fix, the ``gi_running`` attribute of generators is no longer an ``int``,
+  but ``bool`` instead.
+
+- Python3: Fix, the ``int`` built-in with two arguments, value and base, raised
+  ``UnicodeDecodeError`` instead of ``ValueError`` for illegal bytes given as
+  value.
+
+- Python3: Using ``tokenize.open`` to read source code, instead of reading
+  manually and decoding from ``tokenize.detect_encoding``, this handles corner
+  cases more compatible.
+
+- Fix, the PyLint warnings plug-in could crash in some cases, make sure it's
+  more robust.
+
+- Windows: Fix, the combination of AnaConda Python, MinGW 64 bits and mere
+  acceleration was not working. `Issue#254 <http://bugs.nuitka.net/issue254>`__.
+
 - Standalone: Preserve not only namespace packages created by ``.pth`` files,
   but also make the imports done by them. This makes it more compatible with
   uses of it in Fedora 22.
@@ -19,13 +44,6 @@ Bug Fixes
 
 - Standalone: Handle "not found" from ``ldd`` output, on some systems not all
   the libraries wanted are accessible for every library.
-
-- Python3: Using ``tokenize.open`` to read source code, instead of reading
-  manually and decoding from ``tokenize.detect_encoding``, this handles corner
-  cases more compatible.
-
-- Fix, the PyLint warnings plug-in could crash in some cases, make sure it's
-  not assuming to have seen code it's being asked about.
 
 - Python3.5: Fixed support for namespace packages, these were not yet working
   for that version yet.
@@ -40,11 +58,12 @@ Bug Fixes
   Now also gives compatible ``SyntaxError`` for earlier versions. Python2 was
   good already.
 
-- Windows: Fix, the combination of AnaConda, MinGW 64 bits and acceleration was
-  not working. `Issue#254 <http://bugs.nuitka.net/issue254>`__.
-
 - Python3.5: Fix, need to reduce compiled functions to ``__qualname__`` value,
   rather than just ``__name__`` or else pickling methods doesn't work.
+
+- Python3.5: Fix, added ``gi_yieldfrom`` attribute to generator objects.
+
+- Windows: Fixed harmless warnings for Visual Studio 2015 in ``--debug`` mode.
 
 Optimization
 ------------
@@ -66,10 +85,15 @@ Tests
 - When ``strace`` or ``dtruss`` are not found, given proper error message, so
   people know what to do.
 
-- The CPython 3.4 test suite is now using common runner code, and avoids
+- The doctests extracted and then generated for CPython3 test suites were not
+  printing the expressions of the doctest, leading to largely decreased test
+  coverage here.
+
+- The CPython 3.4 test suite is now also using common runner code, and avoids
   ignoring all Nuitka warnings, instead more white listing was added.
 
-- Started to run 3.5 test suite, but coroutines are blocking that.
+- Started to run 3.5 test suite almost completely, but coroutines are blocking
+  some parts of that, so these tests are currently skipped.
 
 - Removed more CPython tests that access the network and are generally useless
   to testing Nuitka.
@@ -82,7 +106,7 @@ Tests
 
 - Added test to cover too complex code module of ``idna`` module.
 
-- Added Python3.5 only test for  unpacking variants.
+- Added Python3.5 only test for unpacking variants.
 
 Cleanups
 --------
@@ -96,6 +120,9 @@ Cleanups
 
 - The use of "win_target" as a scons parameter was useless. Make more consistent
   use of it as a flag indicator in the scons file.
+
+- Compiled types were mixing uses of ``compiled_`` prefixes, something with
+  a space, sometimes with an underscore.
 
 Organizational
 --------------
