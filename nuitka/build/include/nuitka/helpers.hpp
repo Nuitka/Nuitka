@@ -279,7 +279,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
             value_str = PyBytes_AS_STRING( value );
         }
 
-        if ( strlen( value_str ) != (size_t)size || size == 0 )
+        PyObject *result = NULL;
+
+        if ( size != 0 && strlen( value_str ) == (size_t)size )
+        {
+            result = PyInt_FromString( value_str, NULL, (int)base_int );
+        }
+
+        if (unlikely( result == NULL ))
         {
             PyErr_Format(
                 PyExc_ValueError,
@@ -291,7 +298,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
             return NULL;
         }
 
-        return PyInt_FromString( value_str, NULL, (int)base_int );
+        return result;
     }
     else
     {
