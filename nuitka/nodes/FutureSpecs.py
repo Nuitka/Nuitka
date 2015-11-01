@@ -29,15 +29,17 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 # These defaults have changed with Python versions.
 _future_division_default = python_version >= 300
 _future_absolute_import_default = python_version >= 300
+_future_generator_stop_default = python_version >= 360
 
 class FutureSpec:
     @counted_init
     def __init__(self):
-        self.future_division   = _future_division_default
-        self.unicode_literals  = False
-        self.absolute_import   = _future_absolute_import_default
-        self.future_print      = False
-        self.barry_bdfl        = False
+        self.future_division  = _future_division_default
+        self.unicode_literals = False
+        self.absolute_import  = _future_absolute_import_default
+        self.future_print     = False
+        self.barry_bdfl       = False
+        self.generator_stop   = _future_generator_stop_default
 
     __del__ = counted_del()
 
@@ -70,8 +72,14 @@ class FutureSpec:
     def enableBarry(self):
         self.barry_bdfl = True
 
+    def enableGeneratorStop(self):
+        self.generator_stop = True
+
     def isAbsoluteImport(self):
         return self.absolute_import
+
+    def isGeneratorStop(self):
+        return self.generator_stop
 
     def asFlags(self):
         """ Create a list of C identifiers to represent the flag values.
@@ -95,5 +103,8 @@ class FutureSpec:
 
         if self.barry_bdfl and python_version >= 300:
             result.append("CO_FUTURE_BARRY_AS_BDFL")
+
+        if self.generator_stop and python_version >= 350:
+            result.append("CO_FUTURE_GENERATOR_STOP")
 
         return tuple(result)

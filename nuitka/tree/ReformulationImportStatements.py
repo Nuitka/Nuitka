@@ -201,6 +201,8 @@ def enableFutureFeature(object_name, future_spec, source_ref):
         future_spec.enableFuturePrint()
     elif object_name == "barry_as_FLUFL" and Utils.python_version >= 300:
         future_spec.enableBarry()
+    elif object_name == "generator_stop":
+        future_spec.enableGeneratorStop()
     elif object_name == "braces":
         SyntaxErrors.raiseSyntaxError(
             "not a chance",
