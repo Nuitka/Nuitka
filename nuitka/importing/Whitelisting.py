@@ -130,7 +130,7 @@ def getModuleWhiteList():
         "lib2to3.tests",
 
         # test_logging.py
-        "win32evtlog", "win32evtlogutil",
+        "win32evtlog", "win32evtlogutil", "pywintypes",
 
         # test_lzma.py
         "lzma",
@@ -212,6 +212,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # test_tracemalloc
         "tracemalloc",
+
+        # test_typing.py
+        "mock", "typing.io", "typing.re",
 
         # test_unittest.py
         "unittest.test",
