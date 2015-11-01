@@ -330,7 +330,6 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
 
 #if PYTHON_VERSION >= 350
     Py_DECREF( generator->m_qualname );
-    Py_DECREF( generator->m_yieldfrom );
 #endif
 
     PyObject_GC_Del( generator );
@@ -491,7 +490,16 @@ static int Nuitka_Generator_set_qualname( Nuitka_GeneratorObject *object, PyObje
 
 static PyObject *Nuitka_Generator_get_yieldfrom( Nuitka_GeneratorObject *generator )
 {
-    return INCREASE_REFCOUNT( generator->m_yieldfrom );
+    if ( generator->m_yieldfrom )
+    {
+        Py_INCREF( generator->m_yieldfrom );
+        return generator->m_yieldfrom;
+    }
+    else
+    {
+        Py_INCREF( Py_None );
+        return Py_None;
+    }
 }
 
 #endif
@@ -649,8 +657,7 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qua
     result->m_qualname = qualname;
     Py_INCREF( qualname );
 
-    result->m_yieldfrom = Py_None;
-    Py_INCREF( Py_None );
+    result->m_yieldfrom = NULL;
 #endif
 
     // We take ownership of those and received the reference count from the
@@ -896,6 +903,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
                 }
 
                 RAISE_GENERATOR_EXCEPTION( generator );
+
                 return NULL;
             }
 
@@ -915,7 +923,6 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 
                     return NULL;
                 }
-
 
                 generator->m_exception_type = NULL;
                 generator->m_exception_value = NULL;
@@ -984,8 +991,15 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
         {
             generator->m_yielded = retval;
 
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = value;
+#endif
             // Return to the calling context.
             swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = NULL;
+#endif
 
             send_value = generator->m_yielded;
 
@@ -1140,9 +1154,15 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
             thread_state->frame->f_exc_value = saved_exception_value;
             thread_state->frame->f_exc_traceback = saved_exception_traceback;
 
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = value;
+#endif
             // Return to the calling context.
             swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = NULL;
+#endif
             // When returning from yield, the exception of the frame is preserved, and
             // the one that enters should be there.
             thread_state = PyThreadState_GET();
