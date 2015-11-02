@@ -168,6 +168,36 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
             Py_XDECREF( saved_exception_value );
             Py_XDECREF( saved_exception_traceback );
 #endif
+
+#if PYTHON_VERSION >= 350
+            if ( generator->m_code_object->co_flags & CO_FUTURE_GENERATOR_STOP &&
+                 GET_ERROR_OCCURRED() == PyExc_StopIteration )
+            {
+                PyObject *saved_exception_type, *saved_exception_value;
+                PyTracebackObject *saved_exception_tb;
+
+                // TODO: Needs release, should get reference count test.
+                FETCH_ERROR_OCCURRED( &saved_exception_type, &saved_exception_value, &saved_exception_tb );
+
+                PyObject *exception_type = CALL_FUNCTION_WITH_ARGS1(
+                    PyExc_RuntimeError,
+                    PyUnicode_FromString("generator raised StopIteration")
+                );
+                PyObject *exception_value = NULL;
+                PyTracebackObject *exception_tb = NULL;
+
+                RAISE_EXCEPTION_WITH_CAUSE(
+                    &exception_type,
+                    &exception_value,
+                    &exception_tb,
+                    saved_exception_value
+                );
+                PyException_SetContext( exception_value, saved_exception_value );
+
+                RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+            }
+#endif
+
             return NULL;
         }
         else

@@ -28,7 +28,7 @@ NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED( void )
     return tstate->curexc_type != NULL;
 }
 
-// Get the error occurred.
+// Get the error type occurred.
 NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED( void )
 {
     PyThreadState *tstate = PyThreadState_GET();
