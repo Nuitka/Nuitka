@@ -150,7 +150,7 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
                 "NORMALIZE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
             )
             set_exception.append(
-                "CHAIN_EXCEPTION( exception_type, exception_value );"
+                "CHAIN_EXCEPTION( exception_value );"
             )
 
     emit(
