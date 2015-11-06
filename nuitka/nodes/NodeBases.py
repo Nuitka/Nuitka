@@ -1093,6 +1093,24 @@ class ExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return None
 
+    def getIterationMinLength(self):
+        """ Value that "len" or "PyObject_Size" would give at minimum, if known.
+
+            Otherwise it is "None" to indicate unknown.
+        """
+
+        # Virtual method, pylint: disable=R0201
+        return self.getIterationLength()
+
+    def getIterationMaxLength(self):
+        """ Value that "len" or "PyObject_Size" would give at maximum, if known.
+
+            Otherwise it is "None" to indicate unknown.
+        """
+
+        # Virtual method, pylint: disable=R0201
+        return self.getIterationLength()
+
     def getStringValue(self):
         """ Node as string value, if possible."""
         # Virtual method, pylint: disable=R0201
