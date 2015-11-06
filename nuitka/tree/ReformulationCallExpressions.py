@@ -33,10 +33,12 @@ from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     buildNode,
+    buildNodeList,
     getKind,
     makeDictCreationOrConstant,
     makeSequenceCreationOrConstant
 )
+from .ReformulationSequenceCreation import buildListUnpacking
 
 
 def buildCallNode(provider, node, source_ref):
@@ -49,13 +51,11 @@ def buildCallNode(provider, node, source_ref):
     for node_arg in node.args:
         if getKind(node_arg) == "Starred":
             assert python_version >= 350
-
-            list_star_arg = buildNode(provider, node_arg.value, source_ref)
-            continue
-
-        positional_args.append(
-            buildNode(provider, node_arg, source_ref)
-        )
+            list_star_arg = buildListUnpacking(provider, node.args, source_ref)
+            positional_args = []
+            break
+    else:
+        positional_args = buildNodeList(provider, node.args, source_ref)
 
     # Only the values of keyword pairs have a real source ref, and those only
     # really matter, so that makes sense.

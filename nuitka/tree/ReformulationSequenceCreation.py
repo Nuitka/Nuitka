@@ -21,7 +21,7 @@ Sequences might be directly translated to constants, or they might become
 nodes that build tuples, lists, or sets.
 
 For Python3.5, unpacking can happen while creating sequences, these are
-being re-formulated to internal functions.
+being re-formulated to an internal function.
 
 Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
@@ -388,10 +388,10 @@ def getSetUnpackingHelper():
     return result
 
 
-def _buildListUnpacking(provider, node, source_ref):
+def buildListUnpacking(provider, elements, source_ref):
     helper_args = []
 
-    for element in node.elts:
+    for element in elements:
 
         # TODO: We could be a lot cleverer about the tuples for non-starred
         # arguments, but lets get this to work first.
@@ -409,7 +409,7 @@ def _buildListUnpacking(provider, node, source_ref):
                 )
             )
 
-    return ExpressionFunctionCall(
+    result = ExpressionFunctionCall(
         function   = ExpressionFunctionCreation(
             function_ref = ExpressionFunctionRef(
                 function_body = getListUnpackingHelper(),
@@ -429,18 +429,22 @@ def _buildListUnpacking(provider, node, source_ref):
         source_ref = source_ref,
     )
 
+    result.setCompatibleSourceReference(helper_args[-1].getCompatibleSourceReference())
 
-def _buildTupleUnpacking(provider, node, source_ref):
+    return result
+
+
+def _buildTupleUnpacking(provider, elements, source_ref):
     return ExpressionBuiltinTuple(
-        value      = _buildListUnpacking(provider, node, source_ref),
+        value      = buildListUnpacking(provider, elements, source_ref),
         source_ref = source_ref
     )
 
 
-def _buildSetUnpacking(provider, node, source_ref):
+def _buildSetUnpacking(provider, elements, source_ref):
     helper_args = []
 
-    for element in node.elts:
+    for element in elements:
 
         # TODO: We could be a lot cleverer about the tuples for non-starred
         # arguments, but lets get this to work first.
@@ -458,7 +462,7 @@ def _buildSetUnpacking(provider, node, source_ref):
                 )
             )
 
-    return ExpressionFunctionCall(
+    result = ExpressionFunctionCall(
         function   = ExpressionFunctionCreation(
             function_ref = ExpressionFunctionRef(
                 function_body = getSetUnpackingHelper(),
@@ -478,14 +482,18 @@ def _buildSetUnpacking(provider, node, source_ref):
         source_ref = source_ref,
     )
 
+    result.setCompatibleSourceReference(helper_args[-1].getCompatibleSourceReference())
+
+    return result
+
 def _buildSequenceUnpacking(provider, node, source_ref):
     kind = getKind(node)
 
     if kind == "List":
-        return _buildListUnpacking(provider, node, source_ref)
+        return buildListUnpacking(provider, node.elts, source_ref)
     elif kind == "Tuple":
-        return _buildTupleUnpacking(provider, node, source_ref)
+        return _buildTupleUnpacking(provider, node.elts, source_ref)
     elif kind == "Set":
-        return _buildSetUnpacking(provider, node, source_ref)
+        return _buildSetUnpacking(provider, node.elts, source_ref)
     else:
         assert False, kind
