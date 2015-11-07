@@ -22,13 +22,13 @@ static PyObject *Nuitka_Generator_tp_repr( Nuitka_GeneratorObject *generator )
 {
 #if PYTHON_VERSION < 300
     return PyString_FromFormat(
-        "<compiled generator object %s at %p>",
+        "<compiled_generator object %s at %p>",
         Nuitka_String_AsString( generator->m_name ),
         generator
     );
 #else
     return PyUnicode_FromFormat(
-        "<compiled generator object %s at %p>",
+        "<compiled_generator object %s at %p>",
 #if PYTHON_VERSION < 350
         Nuitka_String_AsString( generator->m_name ),
 #else

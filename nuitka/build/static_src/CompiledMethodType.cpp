@@ -377,7 +377,7 @@ static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
         );
 #else
         return PyUnicode_FromFormat(
-            "<compiled function %s at %p>",
+            "<compiled_function %s at %p>",
             Nuitka_String_AsString( method->m_function->m_name ),
             method->m_function
         );
