@@ -32,6 +32,7 @@ from .ErrorCodes import (
     getMustNotGetHereCode
 )
 from .Indentation import indented
+from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .ParameterParsing import (
     getDirectFunctionEntryPointIdentifier,
@@ -775,10 +776,11 @@ def getExportScopeCode(cross_module):
 
 
 def generateGeneratorEntryCode(statement, emit, context):
-    # Nothing used from statement, pylint: disable=W0613
+    context.setCurrentSourceCodeReference(statement.getSourceReference())
 
     emit(
         template_generator_initial_throw % {
-            "frame_exception_exit" : context.getExceptionEscape()
+            "frame_exception_exit"  : context.getExceptionEscape(),
+            "set_error_line_number" : getErrorLineNumberUpdateCode(context)
         }
     )
