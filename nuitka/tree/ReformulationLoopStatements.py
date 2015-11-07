@@ -116,7 +116,6 @@ def buildForLoopNode(provider, node, source_ref):
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            provider       = handler_body,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(

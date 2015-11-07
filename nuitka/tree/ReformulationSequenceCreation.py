@@ -132,7 +132,6 @@ def getListUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -274,7 +273,6 @@ def getSetUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(

@@ -323,10 +323,9 @@ def getCallableNameDescBody():
 
     return result
 
-def _makeStarListArgumentToTupleStatement(called_variable_ref,
-                                          star_list_target_variable_ref,
-                                          star_list_variable_ref):
-    raise_statement = StatementRaiseException(
+
+def makeStarListArgumentErrorRaise(called_variable_ref, star_list_variable_ref):
+    return StatementRaiseException(
         exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
@@ -378,8 +377,15 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
         source_ref      = internal_source_ref
     )
 
+
+def _makeStarListArgumentToTupleStatement(called_variable_ref,
+                                          star_list_target_variable_ref,
+                                          star_list_variable_ref):
     handler_body = makeStatementsSequenceFromStatement(
-        statement = raise_statement
+        statement = makeStarListArgumentErrorRaise(
+            called_variable_ref    = called_variable_ref,
+            star_list_variable_ref = star_list_variable_ref
+        )
     )
 
     return makeConditionalStatement(
@@ -395,7 +401,6 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
             source_ref = internal_source_ref
         ),
         yes_branch = makeTryExceptSingleHandlerNode(
-            provider       = handler_body,
             tried          =  makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = star_list_target_variable_ref.makeClone(),
@@ -479,7 +484,6 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -547,7 +551,6 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             source_ref   = internal_source_ref
         ),
         makeTryExceptSingleHandlerNode(
-            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -795,7 +798,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -876,7 +878,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source_ref   = internal_source_ref
         ),
         makeTryExceptSingleHandlerNode(
-            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(
@@ -1010,7 +1011,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            provider       = result,
             tried          = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
                     variable_ref = ExpressionTargetTempVariableRef(

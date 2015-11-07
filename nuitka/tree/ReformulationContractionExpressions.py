@@ -306,7 +306,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
-                provider       = function_body,
                 tried          = makeStatementsSequenceFromStatement(
                     statement = StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(

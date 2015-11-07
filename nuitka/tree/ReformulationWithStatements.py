@@ -59,7 +59,8 @@ from .Helpers import (
     makeStatementsSequenceFromStatement
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from . \
+    ReformulationTryExceptStatements import makeTryExceptSingleHandlerNodeWithPublish
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
@@ -192,7 +193,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
     statements += [
         makeTryFinallyStatement(
             provider   = provider,
-            tried      = makeTryExceptSingleHandlerNode(
+            tried      = makeTryExceptSingleHandlerNodeWithPublish(
                 provider       = provider,
                 tried          = with_body,
                 exception_name = "BaseException",
