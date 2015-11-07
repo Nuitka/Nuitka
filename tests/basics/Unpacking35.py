@@ -25,12 +25,15 @@ def listUnpacking():
 def setUnpacking():
     return {*a,b,*c}
 
+def dictUnpacking():
+    return {"a" : 1, **d}
+
 a = range(3)
 b = 5
 c = range(8,10)
+d = {"a" : 2}
 
 print("Tuple unpacked", tupleUnpacking())
 print("List unpacked", listUnpacking())
 print("Set unpacked", setUnpacking())
-
-
+print("Dict unpacked", dictUnpacking())

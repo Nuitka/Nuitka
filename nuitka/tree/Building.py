@@ -94,12 +94,10 @@ from nuitka.utils import Utils
 from . import SyntaxErrors
 from .Helpers import (
     buildNode,
-    buildNodeList,
     buildStatementsNode,
     extractDocFromBody,
     getBuildContext,
     getKind,
-    makeDictCreationOrConstant,
     makeModuleFrame,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -124,6 +122,7 @@ from .ReformulationContractionExpressions import (
     buildListContractionNode,
     buildSetContractionNode
 )
+from .ReformulationDictionaryCreation import buildDictionaryNode
 from .ReformulationExecStatements import buildExecNode
 from .ReformulationFunctionStatements import (
     buildAsyncFunctionNode,
@@ -167,14 +166,6 @@ def buildVariableReferenceNode(provider, node, source_ref):
 def buildNamedConstantNode(node, source_ref):
     return ExpressionConstantRef(
         constant   = node.value,
-        source_ref = source_ref
-    )
-
-def buildDictionaryNode(provider, node, source_ref):
-    return makeDictCreationOrConstant(
-        keys       = buildNodeList(provider, node.keys, source_ref),
-        values     = buildNodeList(provider, node.values, source_ref),
-        lazy_order = False,
         source_ref = source_ref
     )
 

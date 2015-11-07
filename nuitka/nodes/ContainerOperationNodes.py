@@ -310,3 +310,38 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
 
     def computeExpression(self, constraint_collection):
         return self, None, None
+
+
+class ExpressionDictOperationUpdate(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_UPDATE"
+
+    named_children = (
+        "dict",
+        "value"
+    )
+
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, dict_arg, value, source_ref):
+        assert dict_arg is not None
+        assert value is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "dict"  : dict_arg,
+                "value" : value
+            },
+            source_ref = source_ref
+        )
+
+    getSet = ExpressionChildrenHavingBase.childGetter(
+        "dict"
+    )
+    getValue = ExpressionChildrenHavingBase.childGetter(
+        "value"
+    )
+
+    def computeExpression(self, constraint_collection):
+        constraint_collection.removeKnowledge(self.getSet())
+
+        return self, None, None

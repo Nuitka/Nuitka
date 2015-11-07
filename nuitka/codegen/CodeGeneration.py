@@ -59,6 +59,7 @@ from .ConditionalCodes import generateConditionCode, getConditionCheckTrueCode
 from .ConstantCodes import generateConstantReferenceCode, getConstantCode
 from .DictCodes import (
     generateDictionaryCreationCode,
+    generateDictOperationUpdateCode,
     getBuiltinDict2Code,
     getDictOperationGetCode,
     getDictOperationRemoveCode,
@@ -3380,6 +3381,7 @@ Helpers.setExpressionDispatchDict(
         "CALL_NO_KEYWORDS"          : generateCallCode,
         "CALL"                      : generateCallCode,
         "CONSTANT_REF"              : generateConstantReferenceCode,
+        "DICT_OPERATION_UPDATE"      :generateDictOperationUpdateCode,
         "LIST_OPERATION_APPEND"     : generateListOperationAppendCode,
         "LIST_OPERATION_EXTEND"     : generateListOperationExtendCode,
         "LIST_OPERATION_POP"        : generateListOperationPopCode,
