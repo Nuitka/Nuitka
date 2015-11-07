@@ -19,7 +19,7 @@
 
 from __future__ import print_function
 
-import os, sys, subprocess, tempfile, atexit, shutil, re
+import os, sys, subprocess, tempfile, atexit, shutil, re, ast, doctest
 
 # Make sure we flush after every print, the "-u" option does more than that
 # and this is easy enough.
@@ -787,3 +787,95 @@ def withExtendedExtraOptions(*args):
     else:
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = old_value
 
+
+def indentedCode(codes, count):
+    """ Indent code, used for generating test codes.
+
+    """
+    return '\n'.join( ' ' * count + line if line else "" for line in codes )
+
+def convertToPython(doctests, line_filter = None):
+    """ Convert give doctest string to static Python code.
+
+    """
+
+    code = doctest.script_from_examples(doctests)
+
+    if code.endswith('\n'):
+        code += "#\n"
+    else:
+        assert False
+
+    output = []
+    inside = False
+
+    def getPrintPrefixed(evaluated):
+        try:
+            node = ast.parse(evaluated.lstrip(), "eval")
+        except SyntaxError:
+            return evaluated
+
+        if node.body[0].__class__.__name__ == "Expr":
+            count = 0
+
+            while evaluated.startswith(' ' * count):
+                count += 1
+
+            modified = (count-1) * ' ' + "print(" + evaluated + "\n)\n"
+            return (count-1) * ' ' + ("print('Line %d'" % line_number) + ")\n" + modified
+        else:
+            return evaluated
+
+    def getTried(evaluated):
+        return """
+try:
+%(evaluated)s
+except Exception as e:
+    print("Occurred", type(e), e)
+""" % { "evaluated" : indentedCode(getPrintPrefixed(evaluated).split('\n'), 4) }
+
+    def isOpener(evaluated):
+        evaluated = evaluated.lstrip()
+
+        if evaluated == "":
+            return False
+
+        if evaluated.split()[0] in ("def", "class", "for", "while", "try:", "except", "except:", "finally:", "else:"):
+            return True
+        else:
+            return False
+
+    for line_number, line in enumerate(code.split('\n')):
+        # print "->", inside, line
+
+        if line_filter is not None and line_filter(line):
+            continue
+
+        if inside and len(line) > 0 and line[0].isalnum() and not isOpener(line):
+            output.append(getTried('\n'.join(chunk)))
+
+            chunk = []
+            inside = False
+
+        if inside and not (line.startswith('#') and line.find("SyntaxError:") != -1):
+            chunk.append(line)
+        elif line.startswith('#'):
+            if line.find("SyntaxError:") != -1:
+                # print "Syntax error detected"
+
+                if inside:
+                    # print "Dropping chunk", chunk
+
+                    chunk = []
+                    inside = False
+                else:
+                    del output[-1]
+        elif isOpener(line):
+            inside = True
+            chunk = [line]
+        elif line.strip() == "":
+            output.append(line)
+        else:
+            output.append(getTried(line))
+
+    return '\n'.join(output).rstrip() + '\n'
