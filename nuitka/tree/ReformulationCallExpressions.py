@@ -48,20 +48,26 @@ def buildCallNode(provider, node, source_ref):
 
     positional_args = []
 
-    for node_arg in node.args:
+    # For Python3.5 compatibility, the error handling with star argument last
+    # is the old one, only with
+    for node_arg in node.args[:-1]:
         if getKind(node_arg) == "Starred":
             assert python_version >= 350
             list_star_arg = buildListUnpacking(provider, node.args, source_ref)
             positional_args = []
             break
     else:
-        positional_args = buildNodeList(provider, node.args, source_ref)
+        if node.args and getKind(node.args[-1]) == "Starred":
+            list_star_arg = buildNode(provider, node.args[-1].value, source_ref)
+            positional_args = buildNodeList(provider, node.args[:-1], source_ref)
+        else:
+            positional_args = buildNodeList(provider, node.args, source_ref)
+
 
     # Only the values of keyword pairs have a real source ref, and those only
     # really matter, so that makes sense.
     keys = []
     values = []
-
 
     for keyword in node.keywords:
         if keyword.arg is None:
