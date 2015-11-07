@@ -36,7 +36,7 @@
 enum Generator_Status {
     status_Unused,  // Not used so far
     status_Running, // Running, used but didn't stop yet
-    status_Finished // Stoped, no more values to come
+    status_Finished // Stopped, no more values to come
 };
 
 // The Nuitka_GeneratorObject is the storage associated with a compiled
