@@ -131,7 +131,7 @@ class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "set"  : set_arg,
+                "set"   : set_arg,
                 "value" : value
             },
             source_ref = source_ref

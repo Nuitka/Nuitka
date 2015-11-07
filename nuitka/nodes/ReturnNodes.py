@@ -116,7 +116,7 @@ class ExpressionAwait(ExpressionChildrenHavingBase):
     def __init__(self, expression, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "expression" : expression
             },
             source_ref = source_ref

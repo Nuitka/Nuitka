@@ -268,7 +268,7 @@ def getSetUnpackingHelper():
 
     temp_scope = None
 
-    tmp_result_variable = result.allocateTempVariable(temp_scope, "list")
+    tmp_result_variable = result.allocateTempVariable(temp_scope, "set")
     tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
     tmp_item_variable = result.allocateTempVariable(temp_scope, "keys")
 

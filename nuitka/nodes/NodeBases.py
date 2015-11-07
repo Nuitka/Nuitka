@@ -1099,7 +1099,6 @@ class ExpressionMixin:
             Otherwise it is "None" to indicate unknown.
         """
 
-        # Virtual method, pylint: disable=R0201
         return self.getIterationLength()
 
     def getIterationMaxLength(self):
@@ -1108,7 +1107,6 @@ class ExpressionMixin:
             Otherwise it is "None" to indicate unknown.
         """
 
-        # Virtual method, pylint: disable=R0201
         return self.getIterationLength()
 
     def getStringValue(self):

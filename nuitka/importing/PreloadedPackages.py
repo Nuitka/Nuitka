@@ -102,10 +102,10 @@ def detectPthImportedPackages():
             if filename.endswith(".pth"):
                 for line in open(path, "rU"):
                     if line.startswith("import "):
-                        if ";" in line:
-                            line = line[:line.find(";")]
+                        if ';' in line:
+                            line = line[:line.find(';')]
 
-                        for part in line[7:].split(","):
+                        for part in line[7:].split(','):
                             pth_imports.add(part.strip())
 
 

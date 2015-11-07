@@ -646,7 +646,7 @@ def buildConditionalExpressionNode(provider, node, source_ref):
 def buildAwaitNode(provider, node, source_ref):
     return ExpressionAwait(
         expression = buildNode(provider, node.value, source_ref),
-        source_ref     = source_ref
+        source_ref = source_ref
     )
 
 setBuildingDispatchers(

@@ -194,6 +194,7 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
                 )
             )
 
+        # Order of evaluation changed in Python3.5.
         if python_version >= 350 and list_star_arg is not None:
             helper_args.append(list_star_arg)
 
@@ -207,6 +208,7 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
                 )
             )
 
+        # Order of evaluation changed in Python3.5.
         if python_version < 350 and list_star_arg is not None:
             helper_args.append(list_star_arg)
 
