@@ -552,7 +552,12 @@ static PyMethodDef Nuitka_Generator_methods[] =
 
 static PyMemberDef Nuitka_Generator_members[] =
 {
+    /* The type of "gi_running" changed in Python3. */
+#if PYTHON_VERSION < 330
     { (char *)"gi_running", T_INT, offsetof( Nuitka_GeneratorObject, m_running ), READONLY },
+#else
+    { (char *)"gi_running", T_BOOL, offsetof( Nuitka_GeneratorObject, m_running ), READONLY },
+#endif
     { NULL }
 };
 
