@@ -23,6 +23,7 @@ should attempt to make run time detections.
 
 """
 
+import os
 import re
 import sys
 
@@ -102,4 +103,6 @@ def f():
 
 
 def isUninstalledPython():
-    return "Anaconda" in sys.version or "WinPython" in sys.version
+    return "Anaconda" in sys.version or \
+           "WinPython" in sys.version or \
+           (os.name == "nt" and python_version >= 350)
