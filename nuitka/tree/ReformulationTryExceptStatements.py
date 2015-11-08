@@ -55,6 +55,7 @@ from .Helpers import (
     buildStatementsNode,
     makeReraiseExceptionStatement,
     makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     mergeStatements
 )
@@ -179,6 +180,16 @@ def _makeTryExceptSingleHandlerNode(provider, public_exc, tried, exception_name,
         ]
     else:
         handling = []
+
+    if not handler_body.isStatementsSequence():
+        handler_body = makeStatementsSequenceFromStatement(
+            statement = handler_body
+        )
+
+    if not tried.isStatementsSequence():
+        tried = makeStatementsSequenceFromStatement(
+            statement = tried
+        )
 
     handling.append(
         StatementConditional(

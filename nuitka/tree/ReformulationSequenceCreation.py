@@ -132,27 +132,23 @@ def getListUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried          = makeStatementsSequenceFromStatement(
-                statement = StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_item_variable,
+            tried          = StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_item_variable,
+                    source_ref = internal_source_ref
+                ),
+                source       = ExpressionBuiltinNext1(
+                    value      = ExpressionTempVariableRef(
+                        variable   = tmp_iter_variable,
                         source_ref = internal_source_ref
                     ),
-                    source       = ExpressionBuiltinNext1(
-                        value      = ExpressionTempVariableRef(
-                            variable   = tmp_iter_variable,
-                            source_ref = internal_source_ref
-                        ),
-                        source_ref = internal_source_ref
-                    ),
-                    source_ref   = internal_source_ref
-                )
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
             ),
             exception_name = "StopIteration",
-            handler_body   = makeStatementsSequenceFromStatement(
-                statement = StatementBreakLoop(
-                    source_ref = internal_source_ref
-                )
+            handler_body   = StatementBreakLoop(
+                source_ref = internal_source_ref
             ),
             source_ref     = internal_source_ref
         ),
@@ -273,27 +269,23 @@ def getSetUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried          = makeStatementsSequenceFromStatement(
-                statement = StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_item_variable,
+            tried          = StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_item_variable,
+                    source_ref = internal_source_ref
+                ),
+                source       = ExpressionBuiltinNext1(
+                    value      = ExpressionTempVariableRef(
+                        variable   = tmp_iter_variable,
                         source_ref = internal_source_ref
                     ),
-                    source       = ExpressionBuiltinNext1(
-                        value      = ExpressionTempVariableRef(
-                            variable   = tmp_iter_variable,
-                            source_ref = internal_source_ref
-                        ),
-                        source_ref = internal_source_ref
-                    ),
-                    source_ref   = internal_source_ref
-                )
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
             ),
             exception_name = "StopIteration",
-            handler_body   = makeStatementsSequenceFromStatement(
-                statement = StatementBreakLoop(
-                    source_ref = internal_source_ref
-                )
+            handler_body   = StatementBreakLoop(
+                source_ref = internal_source_ref
             ),
             source_ref     = internal_source_ref
         ),

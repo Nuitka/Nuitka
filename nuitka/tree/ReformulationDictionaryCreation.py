@@ -33,6 +33,7 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
+from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     ExpressionBuiltinNext1
@@ -44,6 +45,10 @@ from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
     ExpressionMakeDict
 )
+from nuitka.nodes.ExceptionNodes import (
+    ExpressionBuiltinMakeException,
+    StatementRaiseException
+)
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCall,
@@ -51,9 +56,11 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.OperatorNodes import ExpressionOperationBinary
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
+from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
@@ -121,43 +128,81 @@ def getDictUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried          = makeStatementsSequenceFromStatement(
-                statement = StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_item_variable,
+            tried          = StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_item_variable,
+                    source_ref = internal_source_ref
+                ),
+                source       = ExpressionBuiltinNext1(
+                    value      = ExpressionTempVariableRef(
+                        variable   = tmp_iter_variable,
                         source_ref = internal_source_ref
                     ),
-                    source       = ExpressionBuiltinNext1(
-                        value      = ExpressionTempVariableRef(
-                            variable   = tmp_iter_variable,
-                            source_ref = internal_source_ref
-                        ),
-                        source_ref = internal_source_ref
-                    ),
-                    source_ref   = internal_source_ref
-                )
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
             ),
             exception_name = "StopIteration",
-            handler_body   = makeStatementsSequenceFromStatement(
-                statement = StatementBreakLoop(
-                    source_ref = internal_source_ref
-                )
+            handler_body   = StatementBreakLoop(
+                source_ref = internal_source_ref
             ),
             source_ref     = internal_source_ref
         ),
-        StatementExpressionOnly(
-            expression = ExpressionDictOperationUpdate(
-                dict_arg   = ExpressionTempVariableRef(
-                    variable   = tmp_result_variable,
-                    source_ref = internal_source_ref
-                ),
-                value      = ExpressionTempVariableRef(
-                    variable   = tmp_item_variable,
+        makeTryExceptSingleHandlerNode(
+            tried          = StatementExpressionOnly(
+                expression = ExpressionDictOperationUpdate(
+                    dict_arg   = ExpressionTempVariableRef(
+                        variable   = tmp_result_variable,
+                        source_ref = internal_source_ref
+                    ),
+                    value      = ExpressionTempVariableRef(
+                        variable   = tmp_item_variable,
+                        source_ref = internal_source_ref
+                    ),
                     source_ref = internal_source_ref
                 ),
                 source_ref = internal_source_ref
             ),
-            source_ref = internal_source_ref
+            exception_name = "AttributeError",
+            handler_body   = StatementRaiseException(
+                exception_type  = ExpressionBuiltinMakeException(
+                    exception_name = "TypeError",
+                    args           = (
+                        ExpressionOperationBinary(
+                            operator   = "Mod",
+                            left       =  ExpressionConstantRef(
+                                constant      = """\
+'%s' object is not a mapping""",
+                                source_ref    = internal_source_ref,
+                                user_provided = True
+                            ),
+                            right      = ExpressionMakeTuple(
+                                elements   = (
+                                    ExpressionAttributeLookup(
+                                        source         = ExpressionBuiltinType1(
+                                            value      = ExpressionTempVariableRef(
+                                                variable   = tmp_item_variable,
+                                                source_ref = internal_source_ref
+                                            ),
+                                            source_ref = internal_source_ref
+                                        ),
+                                        attribute_name = "__name__",
+                                        source_ref     = internal_source_ref
+                                    ),
+                                ),
+                                source_ref = internal_source_ref
+                            ),
+                            source_ref = internal_source_ref
+                        ),
+                    ),
+                    source_ref     = internal_source_ref
+                ),
+                exception_value = None,
+                exception_trace = None,
+                exception_cause = None,
+                source_ref      = internal_source_ref
+            ),
+            source_ref     = internal_source_ref
         )
     )
 

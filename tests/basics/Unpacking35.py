@@ -37,3 +37,36 @@ print("Tuple unpacked", tupleUnpacking())
 print("List unpacked", listUnpacking())
 print("Set unpacked", setUnpacking())
 print("Dict unpacked", dictUnpacking())
+
+
+non_iterable = 2.0
+
+def tupleUnpackingError():
+    try:
+        return (*a,*non_iterable,*c)
+    except Exception as e:
+        return e
+
+def listUnpackingError():
+    try:
+        return [*a,*non_iterable,*c]
+    except Exception as e:
+        return e
+
+def setUnpackingError():
+    try:
+        return {*a,*non_iterable,*c}
+    except Exception as e:
+        return e
+
+def dictUnpackingError():
+    try:
+        return {"a" : 1, **non_iterable}
+    except Exception as e:
+        return e
+
+
+print("Tuple unpacked error:", tupleUnpackingError())
+print("List unpacked error:", listUnpackingError())
+print("Set unpacked error:", setUnpackingError())
+print("Dict unpacked error:", dictUnpackingError())
