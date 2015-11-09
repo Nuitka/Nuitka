@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python -u
 #     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -46,9 +46,6 @@ assert b".. contents" not in contents
 
 assert 0 == os.system("misc/make-doc.py")
 assert 0 == os.system("python setup.py sdist upload")
-
-# A delay might be necessary before making the check.
-
 
 for i in range(60):
     # Wait some time for PyPI to catch up with us. Without delay
