@@ -1,5 +1,5 @@
-Nuitka Release 0.5.16 (Draft)
-=============================
+Nuitka Release 0.5.16
+=====================
 
 This is a maintenance release, largely intended to put out improved support for
 new platforms and minor corrections. It should improve the speed for standalone
