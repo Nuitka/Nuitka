@@ -59,6 +59,7 @@ from .ConditionalCodes import generateConditionCode, getConditionCheckTrueCode
 from .ConstantCodes import generateConstantReferenceCode, getConstantCode
 from .DictCodes import (
     generateDictionaryCreationCode,
+    generateDictOperationUpdateCode,
     getBuiltinDict2Code,
     getDictOperationGetCode,
     getDictOperationRemoveCode,
@@ -86,6 +87,7 @@ from .FrameCodes import (
     getFrameRestoreExceptionCode
 )
 from .FunctionCodes import (
+    generateCoroutineCreationCode,
     generateGeneratorEntryCode,
     getDirectFunctionCallCode,
     getExportScopeCode,
@@ -94,8 +96,7 @@ from .FunctionCodes import (
     getFunctionDirectDecl,
     getFunctionMakerCode,
     getFunctionMakerDecl,
-    getGeneratorFunctionCode,
-    generateCoroutineCreationCode
+    getGeneratorFunctionCode
 )
 from .GlobalsLocalsCodes import (
     getLoadGlobalsCode,
@@ -129,6 +130,7 @@ from .LabelCodes import (
 from .ListCodes import (
     generateListCreationCode,
     generateListOperationAppendCode,
+    generateListOperationExtendCode,
     generateListOperationPopCode
 )
 from .LoaderCodes import getMetapathLoaderBodyCode
@@ -150,7 +152,11 @@ from .ReturnCodes import (
     generateReturnCode,
     generateReturnedValueRefCode
 )
-from .SetCodes import generateSetCreationCode, getSetOperationAddCode
+from .SetCodes import (
+    generateSetCreationCode,
+    generateSetOperationAddCode,
+    generateSetOperationUpdateCode
+)
 from .SliceCodes import (
     generateBuiltinSliceCode,
     getSliceAssignmentCode,
@@ -1358,24 +1364,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             emit      = emit,
             context   = context
         )
-    elif expression.isExpressionSetOperationAdd():
-        set_name, value_name = generateExpressionsCode(
-            expressions = (
-                expression.getSet(),
-                expression.getValue()
-            ),
-            names       = ("setadd_to", "setadd_value"),
-            emit        = emit,
-            context     = context
-        )
-
-        getSetOperationAddCode(
-            to_name    = to_name,
-            set_name   = set_name,
-            value_name = value_name,
-            emit       = emit,
-            context    = context
-        )
     elif expression.isExpressionDictOperationSet():
         dict_name, key_name, value_name = generateExpressionsCode(
             expressions = (
@@ -2529,7 +2517,7 @@ def generateImportModuleCode(to_name, expression, emit, context):
         context = context
     )
 
-    if provider.isPythonModule():
+    if provider.isCompiledPythonModule():
         locals_name = globals_name
     else:
         locals_name = context.allocateTempName("import_locals")
@@ -2601,7 +2589,7 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
     if expression.getLocals() is None:
         provider = expression.getParentVariableProvider()
 
-        if provider.isPythonModule():
+        if provider.isCompiledPythonModule():
             locals_name = globals_name
         else:
             locals_name = context.allocateTempName("import_locals")
@@ -3243,7 +3231,7 @@ def prepareModuleCode(global_context, module, module_name):
     # As this not only creates all modules, but also functions, it deals
     # also with its functions.
 
-    assert module.isPythonModule(), module
+    assert module.isCompiledPythonModule(), module
 
     context = Contexts.PythonModuleContext(
         module         = module,
@@ -3393,7 +3381,9 @@ Helpers.setExpressionDispatchDict(
         "CALL_NO_KEYWORDS"          : generateCallCode,
         "CALL"                      : generateCallCode,
         "CONSTANT_REF"              : generateConstantReferenceCode,
+        "DICT_OPERATION_UPDATE"      :generateDictOperationUpdateCode,
         "LIST_OPERATION_APPEND"     : generateListOperationAppendCode,
+        "LIST_OPERATION_EXTEND"     : generateListOperationExtendCode,
         "LIST_OPERATION_POP"        : generateListOperationPopCode,
         "MODULE_FILE_ATTRIBUTE_REF" : generateModuleFileAttributeCode,
         "OPERATION_BINARY"          : generateOperationBinaryCode,
@@ -3402,6 +3392,8 @@ Helpers.setExpressionDispatchDict(
         "OPERATION_NOT"             : generateOperationUnaryCode,
         "RETURNED_VALUE_REF"        : generateReturnedValueRefCode,
         "SUBSCRIPT_LOOKUP"          : generateSubscriptLookupCode,
+        "SET_OPERATION_ADD"         : generateSetOperationAddCode,
+        "SET_OPERATION_UPDATE"      : generateSetOperationUpdateCode,
         "TEMP_VARIABLE_REF"         : generateVariableReferenceCode,
         "VARIABLE_REF"              : generateVariableReferenceCode,
         "YIELD"                     : generateYieldCode,

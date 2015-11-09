@@ -195,7 +195,7 @@ def _namifyString(string):
         return "angle_" + string[1:-1]
     else:
         # Others are better digested to not cause compiler trouble
-        return "digest_" + _digest(string)
+        return "digest_" + _digest(repr(string))
 
 def _isAscii(string):
     try:
@@ -212,9 +212,4 @@ def _digest(value):
         if type(value) is bytes:
             return hashlib.md5(value).hexdigest()
         else:
-            return hashlib.md5(
-                value.encode(
-                    "utf-8",
-                    errors = "backslashreplace"
-                )
-            ).hexdigest()
+            return hashlib.md5(value.encode("utf-8")).hexdigest()

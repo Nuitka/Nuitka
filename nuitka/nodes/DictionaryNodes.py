@@ -169,14 +169,34 @@ Created dictionary found to be constant."""
         return count is None or count == len(self.getPairs())
 
     def getIterationLength(self):
+        pair_count = len(self.getPairs())
+
+        # Hashing may consume elements.
+        if pair_count >= 2:
+            return None
+        else:
+            return pair_count
+
+    def getIterationMinLength(self):
+        pair_count = len(self.getPairs())
+
+        if pair_count == 0:
+            return 0
+        else:
+            return 1
+
+    def getIterationMaxLength(self):
         return len(self.getPairs())
 
     def canPredictIterationValues(self):
         # Dictionaries are fully predictable, pylint: disable=R0201
+
+        # TODO: For some things, that may not be true, when key collisions
+        # happen for example. We will have to check that then.
         return True
 
     def getIterationValue(self, count):
-        return self.getPairs()[ count ].getKey()
+        return self.getPairs()[count].getKey()
 
     def getTruthValue(self):
         return self.getIterationLength() > 0

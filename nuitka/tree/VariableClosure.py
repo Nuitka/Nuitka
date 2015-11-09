@@ -86,7 +86,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     @staticmethod
     def _handleQualnameSetup(node):
         if node.qualname_setup is not None:
-            if node.isClassDictCreation():
+            if node.isExpressionClassBody():
                 class_assign, qualname_assign = node.qualname_setup
                 class_variable = class_assign.getTargetVariableRef().getVariable()
 
@@ -195,12 +195,10 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 while True:
                     current = current.getParentVariableProvider()
 
-                    if current.isPythonModule():
+                    if current.isCompiledPythonModule():
                         break
 
-                    assert current.isExpressionFunctionBody()
-
-                    if current.isClassDictCreation():
+                    if current.isExpressionClassBody():
                         if seen_function:
                             node.setAttributeName(
                                 "_%s%s" % (
@@ -218,7 +216,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             current = node
 
             while True:
-                if current.isPythonModule() or \
+                if current.isCompiledPythonModule() or \
                    current.isExpressionFunctionBody():
                     if node.isStatementContinueLoop():
                         message = "'continue' not properly in loop"
@@ -313,8 +311,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
            variable.getOwner() is not provider:
             parent_provider = provider.getParentVariableProvider()
 
-            while parent_provider.isExpressionFunctionBody() and \
-                  parent_provider.isClassDictCreation():
+            while parent_provider.isExpressionClassBody():
                 parent_provider = parent_provider.getParentVariableProvider()
 
             if parent_provider.isExpressionFunctionBody() and \
@@ -407,11 +404,11 @@ def completeVariableClosures(tree):
     for visitor in visitors:
         visitTree(tree, visitor)
 
-        if tree.isPythonModule():
+        if tree.isCompiledPythonModule():
             for function in tree.getFunctions():
                 visitTree(function, visitor)
 
-    if tree.isPythonModule():
+    if tree.isCompiledPythonModule():
         for function in tree.getFunctions():
             addFunctionVariableReleases(function)
     else:

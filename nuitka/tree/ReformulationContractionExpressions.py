@@ -306,25 +306,20 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
-                provider       = function_body,
-                tried          = makeStatementsSequenceFromStatement(
-                    statement = StatementAssignmentVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_value_variable,
-                            source_ref = source_ref
-                        ),
-                        source       = ExpressionBuiltinNext1(
-                            value      = iterator_ref,
-                            source_ref = source_ref
-                        ),
-                        source_ref   = source_ref
-                    )
+                tried          = StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_value_variable,
+                        source_ref = source_ref
+                    ),
+                    source       = ExpressionBuiltinNext1(
+                        value      = iterator_ref,
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
                 ),
                 exception_name = "StopIteration",
-                handler_body   = makeStatementsSequenceFromStatement(
-                    statement = StatementBreakLoop(
-                        source_ref = source_ref.atInternal()
-                    )
+                handler_body   = StatementBreakLoop(
+                    source_ref = source_ref.atInternal()
                 ),
                 source_ref     = source_ref
             ),

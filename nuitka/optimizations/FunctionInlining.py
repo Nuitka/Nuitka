@@ -15,10 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Inlining of functions.
+""" In-lining of functions.
 
 Done by assigning the argument values to variables, and producing an outline
-from the inlined function.
+from the in-lined function.
 """
 
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable

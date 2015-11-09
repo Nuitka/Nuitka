@@ -23,11 +23,6 @@ from logging import debug, warning
 
 import marshal
 from nuitka import ModuleRegistry, Options
-from nuitka.freezer.BytecodeModuleFreezer import (
-    FrozenModuleDescription,
-    addFrozenModule,
-    isFrozenModule
-)
 from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.plugins.PluginBase import Plugins
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
@@ -37,6 +32,7 @@ from nuitka.utils import Utils
 def recurseTo(module_package, module_filename, module_relpath, module_kind,
              reason):
     from nuitka.tree import Building
+    from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 
     if not ImportCache.isImportedModuleByPath(module_relpath):
         module, source_ref, source_filename = Building.decideModuleTree(
@@ -94,36 +90,28 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
 
 
                         if Options.isStandaloneMode():
-                            addFrozenModule(
-                                FrozenModuleDescription(
-                                    module_name = module.getFullName(),
-                                    bytecode    = marshal.dumps(
-                                        compile(
-                                            readSourceCodeFromFilename(module.getFullName(), module_filename),
-                                            module_filename,
-                                            "exec"
-                                        )
-                                    ),
-                                    is_package  = module.isPythonPackage(),
-                                    filename    = module_filename,
-                                    is_late     = True
-                                )
+                            module = makeUncompiledPythonModule(
+                                module_name   = module.getFullName(),
+                                filename      = module_filename,
+                                bytecode      = marshal.dumps(
+                                    compile(
+                                        readSourceCodeFromFilename(module.getFullName(), module_filename),
+                                        module_filename,
+                                        "exec"
+                                    )
+                                ),
+                                is_package    = module.isCompiledPythonPackage(),
+                                user_provided = True,
                             )
+
+                            ModuleRegistry.addUncompiledModule(module)
 
                     return None, False
 
-            ImportCache.addImportedModule(
-                module_relpath,
-                module
-            )
+            ImportCache.addImportedModule(module)
 
             is_added = True
         else:
-            ImportCache.addImportedModule(
-                module_relpath,
-                ImportCache.getImportedModuleByName(module.getFullName())
-            )
-
             module = ImportCache.getImportedModuleByName(
                 module.getFullName()
             )
@@ -137,8 +125,7 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
         return ImportCache.getImportedModuleByPath(module_relpath), False
 
 
-def decideRecursion(module_filename, module_name, module_package,
-                    module_kind):
+def decideRecursion(module_filename, module_name, module_package, module_kind):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=R0911,R0912
     Plugins.onModuleEncounter(
@@ -159,9 +146,6 @@ def decideRecursion(module_filename, module_name, module_package,
         full_name = module_name
     else:
         full_name = module_package + '.' + module_name
-
-    if isFrozenModule(full_name, module_filename):
-        return False, "Module is frozen."
 
     no_case_modules = Options.getShallFollowInNoCase()
 
@@ -220,10 +204,7 @@ def decideRecursion(module_filename, module_name, module_package,
     )
 
 
-def considerFilename(module_filename, module_package):
-    assert module_package is None or \
-           ( type(module_package) is str and module_package != "" )
-
+def considerFilename(module_filename):
     module_filename = Utils.normpath(module_filename)
 
     if Utils.isDir(module_filename):
@@ -261,7 +242,6 @@ def _checkPluginPath(plugin_filename, module_package):
     )
 
     plugin_info = considerFilename(
-        module_package  = module_package,
         module_filename = plugin_filename
     )
 
@@ -278,7 +258,7 @@ def _checkPluginPath(plugin_filename, module_package):
             if not is_added:
                 warning(
                     "Recursed to %s '%s' at '%s' twice.",
-                    "package" if module.isPythonPackage() else "module",
+                    "package" if module.isCompiledPythonPackage() else "module",
                     module.getName(),
                     plugin_info[0]
                 )
@@ -298,7 +278,7 @@ def _checkPluginPath(plugin_filename, module_package):
                 module
             )
 
-            if module.isPythonPackage():
+            if module.isCompiledPythonPackage():
                 package_filename = module.getFilename()
 
                 if Utils.isDir(package_filename):
@@ -337,6 +317,7 @@ def _checkPluginPath(plugin_filename, module_package):
 
             if useful:
                 ModuleRegistry.addRootModule(module)
+                ImportCache.addImportedModule(module)
 
         else:
             warning("Failed to include module from '%s'.", plugin_info[0])
@@ -350,7 +331,6 @@ def checkPluginPath(plugin_filename, module_package):
     )
 
     plugin_info = considerFilename(
-        module_package  = module_package,
         module_filename = plugin_filename
     )
 

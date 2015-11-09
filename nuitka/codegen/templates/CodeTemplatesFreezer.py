@@ -34,16 +34,16 @@ extern "C" const unsigned char constant_bin[];
 
 #define stream_data constant_bin
 
-// These modules should be loaded as bytecode. They must e.g. be loadable
+// These modules should be loaded as bytecode. They may e.g. have to be loadable
 // during "Py_Initialize" already, or for irrelevance, they are only included
 // in this un-optimized form. These are not compiled by Nuitka, and therefore
 // are not accelerated at all, merely bundled with the binary or module, so
-// that Python library can start out.
+// that CPython library can start out finding them.
 
 void copyFrozenModulesTo( void* destination )
 {
     _frozen frozen_modules[] = {
-        %(frozen_modules)s
+%(frozen_modules)s
         { NULL, NULL, 0 }
     };
 

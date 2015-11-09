@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.15
+Nuitka V0.5.16
 Copyright (C) 2015 Kay Hayen."""
 
 import logging
@@ -90,7 +90,8 @@ parser.add_option(
     default = True,
     help    = """\
 In standalone mode by default all modules of standard library will be frozen
-as bytecode. As a result compilation time will increase very much.
+as bytecode. This compiles them all and as a result compilation time will
+increase very much.
 """,
     )
 
@@ -706,7 +707,6 @@ else:
 if options.is_standalone:
     options.executable = True
     options.recurse_all = True
-    options.recurse_stdlib = True
 
 def shallTraceExecution():
     return options.trace_execution

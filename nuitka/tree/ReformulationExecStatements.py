@@ -58,6 +58,13 @@ from .Helpers import (
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
+def _getLocalsClassNode(provider):
+    if provider.isCompiledPythonModule():
+        return ExpressionBuiltinGlobals
+    else:
+        return ExpressionBuiltinLocals
+
+
 def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                              temp_scope, source_ref):
     """ Wrap the locals and globals arguments for "eval".
@@ -90,7 +97,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
 
     post_statements = []
 
-    if provider.isExpressionFunctionBody() and provider.isClassDictCreation():
+    if provider.isExpressionClassBody():
         post_statements.append(
             StatementLocalsDictSync(
                 locals_arg = ExpressionTempVariableRef(
@@ -129,7 +136,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             variable   = globals_keeper_variable,
             source_ref = source_ref
         ),
-        expression_yes = ExpressionBuiltinLocals(
+        expression_yes = _getLocalsClassNode(provider)(
             source_ref = source_ref
         ),
         source_ref     = source_ref
@@ -395,7 +402,7 @@ exec: arg 1 must be a string, file, or code object""",
                                 variable   = locals_keeper_variable,
                                 source_ref = source_ref
                             ),
-                            source       = ExpressionBuiltinLocals(
+                            source       = _getLocalsClassNode(provider)(
                                 source_ref = source_ref
                             ),
                             source_ref   = source_ref,

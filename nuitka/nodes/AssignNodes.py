@@ -216,7 +216,7 @@ Side effects of assignments promoted to statements.""",
 
                             if variable.isTempVariable() or \
                                (not provider.isUnoptimized() and \
-                                not provider.isClassDictCreation()):
+                                not provider.isExpressionClassBody()):
 
                                 if last_trace.hasDefiniteUsages():
                                     self.variable_trace.setReplacementNode(
@@ -255,7 +255,7 @@ Side effects of assignments promoted to statements.""",
                     elif Options.isExperimental() and \
                         source.isExpressionFunctionCreation() and \
                         not source.getFunctionRef().getFunctionBody().isGenerator() and \
-                        not source.getFunctionRef().getFunctionBody().isClassDictCreation() and \
+                        not source.getFunctionRef().getFunctionBody().isExpressionClassBody() and \
                         not source.getDefaults() and  \
                         not source.getKwDefaults() and \
                         not source.getAnnotations():
@@ -265,7 +265,7 @@ Side effects of assignments promoted to statements.""",
 
                         if variable.isTempVariable() or \
                            (not provider.isUnoptimized() and \
-                            not provider.isClassDictCreation()):
+                            not provider.isExpressionClassBody()):
 
                             # This limitation may fall later.
                             if not variable.isSharedLogically():

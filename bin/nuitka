@@ -140,13 +140,16 @@ if needs_reexec:
         )
 
         # False alarm, pylint: disable=E0611
-        from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths
+        from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths, detectPthImportedPackages
         os.environ["NUITKA_NAMESPACES"] = repr(
             detectPreLoadedPackagePaths()
         )
 
         if "site" in sys.modules:
             os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
+
+            os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
+
 
     os.environ["NUITKA_SITE_FLAG"] = str(sys.flags.no_site) \
                                        if "no_site" not in Options.getPythonFlags() \
@@ -175,6 +178,15 @@ if "NUITKA_NAMESPACES" in os.environ:
 
     setPreloadedPackagePaths(eval(os.environ["NUITKA_NAMESPACES"]))
     del os.environ["NUITKA_NAMESPACES"]
+
+if "NUITKA_PTH_IMPORTED" in os.environ:
+    # Restore the packages that the ".pth" files asked to import.
+    # pylint: disable=E0611,W0123
+
+    from nuitka.importing.PreloadedPackages import setPthImportedPackages
+
+    setPthImportedPackages(eval(os.environ["NUITKA_PTH_IMPORTED"]))
+    del os.environ["NUITKA_PTH_IMPORTED"]
 
 # Now the main program.
 from nuitka import MainControl  # isort:skip

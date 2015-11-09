@@ -109,6 +109,18 @@ for filename in sorted(os.listdir('.')):
         # For the plug-in information.
         extra_flags.append("ignore_infos")
 
+    if "Idna" in filename:
+        if not hasModule("idna.core"):
+            my_print(
+                "Skipping", filename, "idna not installed for",
+                python_version, "but test needs it."
+            )
+            continue
+
+        # For the warnings of Python2.
+        if python_version.startswith("2"):
+            extra_flags.append("ignore_stderr")
+
     if "PyQt5" in filename:
         # Don't test on platforms not supported by current Debian testing, and
         # which should be considered irrelevant by now.
@@ -186,7 +198,7 @@ for filename in sorted(os.listdir('.')):
 
     if filename not in ("PySideUsing.py", "PyQt4Using.py", "PyQt5Using.py",
                         "PyQt4Plugins.py", "PyQt5Plugins.py", "GtkUsing.py",
-                        "LxmlUsing.py", "Win32ComUsing.py"):
+                        "LxmlUsing.py", "Win32ComUsing.py", "IdnaUsing.py"):
         extra_flags += [
             "no_site"
         ]
@@ -341,6 +353,14 @@ for filename in sorted(os.listdir('.')):
 
         # Accessing SE-Linux is OK.
         if loaded_filename in ("/sys/fs/selinux", "/selinux"):
+            continue
+
+        # The access to .pth files has no effect.
+        if loaded_filename.endswith(".pth"):
+            continue
+
+        # Looking at site-package dir alone is alone.
+        if loaded_filename.endswith("site-packages"):
             continue
 
         loaded_basename = os.path.basename(loaded_filename).upper()

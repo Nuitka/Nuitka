@@ -324,6 +324,7 @@ class CustomByteArray(bytearray): pass
 
 values = [
     b'100',
+    b'',
     bytearray(b'100'),
     CustomStr("100"),
     CustomBytes(b'100'),
@@ -333,12 +334,12 @@ values = [
 for x in values:
     try:
         print("int", repr(x), int(x), int(x,2))
-    except TypeError as e:
+    except (TypeError, ValueError) as e:
         print("caught", repr(e))
 
     try:
         print("long", repr(x), long(x), long(x,2))
-    except TypeError as e:
+    except (TypeError, ValueError) as e:
         print("caught", repr(e))
     except NameError:
         print("Python3 has no long")

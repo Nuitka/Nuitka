@@ -106,9 +106,6 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     def getIterationValue(self, count):
         return self.getElements()[count]
 
-    def getIterationLength(self):
-        return len(self.getElements())
-
     @staticmethod
     def canPredictIterationValues():
         return True
@@ -152,6 +149,9 @@ class ExpressionMakeTuple(ExpressionMakeSequenceBase):
     def getSimulator(self):
         return tuple
 
+    def getIterationLength(self):
+        return len(self.getElements())
+
 
 class ExpressionMakeList(ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_LIST"
@@ -166,6 +166,9 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
 
     def getSimulator(self):
         return list
+
+    def getIterationLength(self):
+        return len(self.getElements())
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
         result = ExpressionMakeTuple(
@@ -192,6 +195,26 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
 
     def getSimulator(self):
         return set
+
+    def getIterationLength(self):
+        element_count = len(self.getElements())
+
+        # Hashing may consume elements.
+        if element_count >= 2:
+            return None
+        else:
+            return element_count
+
+    def getIterationMinLength(self):
+        element_count = len(self.getElements())
+
+        if element_count == 0:
+            return 0
+        else:
+            return 1
+
+    def getIterationMaxLength(self):
+        return len(self.getElements())
 
     def mayRaiseException(self, exception_type):
         for element in self.getElements():

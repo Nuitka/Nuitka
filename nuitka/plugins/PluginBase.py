@@ -75,7 +75,6 @@ class NuitkaPluginBase:
 
             module_filename = self.locateModule(
                 importing      = module,
-                source_ref     = module.getSourceReference(),
                 module_name    = module_name,
                 module_package = module_package,
             )
@@ -132,9 +131,9 @@ class NuitkaPluginBase:
     @staticmethod
     def _createTriggerLoadedModule(module, trigger_name, code):
         from nuitka.tree.Building import createModuleTree
-        from nuitka.nodes.ModuleNodes import PythonModule
+        from nuitka.nodes.ModuleNodes import CompiledPythonModule
 
-        trigger_module = PythonModule(
+        trigger_module = CompiledPythonModule(
             name         = module.getName() + trigger_name,
             package_name = module.getPackage(),
             source_ref   = fromFilename(module.getCompileTimeFilename() + trigger_name)
@@ -205,12 +204,11 @@ class NuitkaPluginBase:
         pass
 
     @staticmethod
-    def locateModule(importing, module_name, module_package, source_ref):
+    def locateModule(importing, module_name, module_package):
         from nuitka.importing import Importing
 
         _module_package, module_filename, _finding = Importing.findModule(
             importing      = importing,
-            source_ref     = source_ref,
             module_name    = module_name,
             parent_package = module_package,
             level          = -1,
@@ -490,9 +488,16 @@ class Plugins:
         return False
 
     @staticmethod
-    def suppressUnknownImportWarning(importing, module_name, source_ref):
+    def suppressUnknownImportWarning(importing, module_name):
+        if importing.isCompiledPythonModule():
+            importing_module = importing
+        else:
+            importing_module = importing.getParentModule()
+
+        source_ref = importing.getSourceReference()
+
         for plugin in active_plugin_list:
-            if plugin.suppressUnknownImportWarning(importing, module_name, source_ref):
+            if plugin.suppressUnknownImportWarning(importing_module, module_name, source_ref):
                 return True
 
         return False

@@ -23,6 +23,7 @@ Right now only the creation and a few operations on dictionaries are done here.
 from nuitka.PythonVersions import python_version
 
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+from .Helpers import generateChildExpressionsCode
 
 
 def generateDictionaryCreationCode(to_name, pairs, emit, context):
@@ -198,6 +199,45 @@ def getDictOperationSetCode(to_name, dict_name, key_name, value_name, emit,
 
     getErrorExitBoolCode(
         condition = "%s != 0" % res_name,
+        emit      = emit,
+        context   = context
+    )
+
+    # Only assign if necessary.
+    if context.isUsed(to_name):
+        emit(
+            "%s = Py_None;" % to_name
+        )
+    else:
+        context.forgetTempName(to_name)
+
+
+def generateDictOperationUpdateCode(to_name, expression, emit, context):
+    res_name = context.getIntResName()
+
+    dict_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit("assert( PyDict_Check( %s ) );" % dict_arg_name)
+    emit(
+        "%s = PyDict_Update( %s, %s );" % (
+            res_name,
+            dict_arg_name,
+            value_arg_name
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (dict_arg_name, value_arg_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitBoolCode(
+        condition = "%s == -1" % res_name,
         emit      = emit,
         context   = context
     )

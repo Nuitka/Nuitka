@@ -3713,20 +3713,20 @@ PyObject *DEEP_COPY( PyObject *value )
             {
                 PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
 
-                PyObject *value;
+                PyObject *value2;
 
                 if ( mp->ma_values )
                 {
-                    value = mp->ma_values[ i ];
+                    value2 = mp->ma_values[ i ];
                 }
                 else
                 {
-                    value = entry->me_value;
+                    value2 = entry->me_value;
                 }
 
-                if ( value != NULL )
+                if ( value2 != NULL )
                 {
-                    PyObject *deep_copy = DEEP_COPY( value );
+                    PyObject *deep_copy = DEEP_COPY( value2 );
 
                     PyDict_SetItem(
                         result,
@@ -3811,7 +3811,10 @@ PyObject *DEEP_COPY( PyObject *value )
 
 static Py_hash_t DEEP_HASH_INIT( PyObject *value )
 {
-    Py_hash_t result = Py_hash_t( value );
+    // To avoid warnings about reduced sizes, we put an intermediate value
+    // that is size_t.
+    size_t value2 = (size_t)value;
+    Py_hash_t result = Py_hash_t( value2 );
 
     if ( Py_TYPE( value ) != &PyType_Type )
     {

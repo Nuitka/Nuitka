@@ -24,9 +24,12 @@ own these functions to a random module.
 
 
 from nuitka.nodes.ModuleNodes import PythonInternalModule
+from nuitka.SourceCodeReferences import fromFilename
 from nuitka.VariableRegistry import addVariableUsage
 
 internal_module = None
+
+internal_source_ref = fromFilename("internal").atInternal()
 
 # Cache result.
 def once_decorator(func):

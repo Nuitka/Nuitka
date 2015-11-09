@@ -81,10 +81,11 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
 
         provider = self.getParentVariableProvider()
 
-        if provider.isPythonModule():
+        if provider.isCompiledPythonModule():
             return False
 
-        return self.getParentVariableProvider().isClassDictCreation()
+        # TODO: That's not true.
+        return self.getParentVariableProvider().isExpressionClassBody()
 
     def mayRaiseException(self, exception_type):
         return self.mayHaveSideEffects()

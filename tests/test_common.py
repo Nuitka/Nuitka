@@ -19,7 +19,7 @@
 
 from __future__ import print_function
 
-import os, sys, subprocess, tempfile, atexit, shutil, re
+import os, sys, subprocess, tempfile, atexit, shutil, re, ast, doctest
 
 # Make sure we flush after every print, the "-u" option does more than that
 # and this is easy enough.
@@ -235,6 +235,10 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("34.py") and python_version < "3.4":
         return False
 
+    # Skip tests that require Python 3.5 at least.
+    if filename.endswith("35.py") and python_version < "3.5":
+        return False
+
     return True
 
 
@@ -345,14 +349,35 @@ def getDependsExePath():
 
     return depends_exe
 
+def isExecutableCommand(command):
+    path = os.environ["PATH"]
 
-def getRuntimeTraceOfLoadedFiles(path,trace_error = True):
+    suffixes = (".exe",) if os.name == "nt" else ("",)
+
+    for part in path.split(os.pathsep):
+        if not part:
+            continue
+
+        for suffix in suffixes:
+            if os.path.isfile(os.path.join(part, command + suffix)):
+                return True
+
+    return False
+
+
+def getRuntimeTraceOfLoadedFiles(path, trace_error = True):
     """ Returns the files loaded when executing a binary. """
 
     result = []
 
     if os.name == "posix":
         if sys.platform == "darwin":
+            if not isExecutableCommand("dtruss"):
+                sys.exit(
+                    """\
+Error, needs 'dtruss' on your system to scan used libraries."""
+                )
+
             args = (
                 "sudo",
                 "dtruss",
@@ -362,6 +387,12 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error = True):
                 path
             )
         else:
+            if not isExecutableCommand("strace"):
+                sys.exit(
+                    """\
+Error, needs 'strace' on your system to scan used libraries."""
+                )
+
             args = (
                 "strace",
                 "-e", "file",
@@ -375,7 +406,7 @@ def getRuntimeTraceOfLoadedFiles(path,trace_error = True):
             stderr = subprocess.PIPE
         )
 
-        stdout_strace, stderr_strace = process.communicate()
+        _stdout_strace, stderr_strace = process.communicate()
 
         open(path+".strace","wb").write(stderr_strace)
 
@@ -756,3 +787,95 @@ def withExtendedExtraOptions(*args):
     else:
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = old_value
 
+
+def indentedCode(codes, count):
+    """ Indent code, used for generating test codes.
+
+    """
+    return '\n'.join( ' ' * count + line if line else "" for line in codes )
+
+def convertToPython(doctests, line_filter = None):
+    """ Convert give doctest string to static Python code.
+
+    """
+
+    code = doctest.script_from_examples(doctests)
+
+    if code.endswith('\n'):
+        code += "#\n"
+    else:
+        assert False
+
+    output = []
+    inside = False
+
+    def getPrintPrefixed(evaluated):
+        try:
+            node = ast.parse(evaluated.lstrip(), "eval")
+        except SyntaxError:
+            return evaluated
+
+        if node.body[0].__class__.__name__ == "Expr":
+            count = 0
+
+            while evaluated.startswith(' ' * count):
+                count += 1
+
+            modified = (count-1) * ' ' + "print(" + evaluated + "\n)\n"
+            return (count-1) * ' ' + ("print('Line %d'" % line_number) + ")\n" + modified
+        else:
+            return evaluated
+
+    def getTried(evaluated):
+        return """
+try:
+%(evaluated)s
+except Exception as e:
+    print("Occurred", type(e), e)
+""" % { "evaluated" : indentedCode(getPrintPrefixed(evaluated).split('\n'), 4) }
+
+    def isOpener(evaluated):
+        evaluated = evaluated.lstrip()
+
+        if evaluated == "":
+            return False
+
+        if evaluated.split()[0] in ("def", "class", "for", "while", "try:", "except", "except:", "finally:", "else:"):
+            return True
+        else:
+            return False
+
+    for line_number, line in enumerate(code.split('\n')):
+        # print "->", inside, line
+
+        if line_filter is not None and line_filter(line):
+            continue
+
+        if inside and len(line) > 0 and line[0].isalnum() and not isOpener(line):
+            output.append(getTried('\n'.join(chunk)))
+
+            chunk = []
+            inside = False
+
+        if inside and not (line.startswith('#') and line.find("SyntaxError:") != -1):
+            chunk.append(line)
+        elif line.startswith('#'):
+            if line.find("SyntaxError:") != -1:
+                # print "Syntax error detected"
+
+                if inside:
+                    # print "Dropping chunk", chunk
+
+                    chunk = []
+                    inside = False
+                else:
+                    del output[-1]
+        elif isOpener(line):
+            inside = True
+            chunk = [line]
+        elif line.strip() == "":
+            output.append(line)
+        else:
+            output.append(getTried(line))
+
+    return '\n'.join(output).rstrip() + '\n'

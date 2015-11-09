@@ -36,7 +36,7 @@
 enum Generator_Status {
     status_Unused,  // Not used so far
     status_Running, // Running, used but didn't stop yet
-    status_Finished // Stoped, no more values to come
+    status_Finished // Stopped, no more values to come
 };
 
 // The Nuitka_GeneratorObject is the storage associated with a compiled
@@ -48,6 +48,7 @@ typedef struct {
 
 #if PYTHON_VERSION >= 350
     PyObject *m_qualname;
+    PyObject *m_yieldfrom;
 #endif
 
     Fiber m_yielder_context;

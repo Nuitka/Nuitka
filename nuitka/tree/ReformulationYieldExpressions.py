@@ -32,7 +32,7 @@ from .Helpers import buildNode
 
 
 def _markAsGenerator(provider, node, source_ref):
-    if provider.isPythonModule():
+    if provider.isCompiledPythonModule():
         SyntaxErrors.raiseSyntaxError(
             "'yield' outside function",
             source_ref,

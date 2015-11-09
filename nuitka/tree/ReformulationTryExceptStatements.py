@@ -55,6 +55,7 @@ from .Helpers import (
     buildStatementsNode,
     makeReraiseExceptionStatement,
     makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     mergeStatements
 )
@@ -159,8 +160,8 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
 
 
 
-def makeTryExceptSingleHandlerNode(provider, tried, exception_name, handler_body,
-                                   source_ref, public_exc = False):
+def _makeTryExceptSingleHandlerNode(provider, public_exc, tried, exception_name,
+                                    handler_body, source_ref):
     # No need to create this in the first place if nothing is tried.
     if tried is None:
         return None
@@ -179,6 +180,16 @@ def makeTryExceptSingleHandlerNode(provider, tried, exception_name, handler_body
         ]
     else:
         handling = []
+
+    if not handler_body.isStatementsSequence():
+        handler_body = makeStatementsSequenceFromStatement(
+            statement = handler_body
+        )
+
+    if not tried.isStatementsSequence():
+        tried = makeStatementsSequenceFromStatement(
+            statement = tried
+        )
 
     handling.append(
         StatementConditional(
@@ -224,6 +235,29 @@ def makeTryExceptSingleHandlerNode(provider, tried, exception_name, handler_body
         continue_handler = None,
         return_handler   = None,
         source_ref       = source_ref
+    )
+
+def makeTryExceptSingleHandlerNode(tried, exception_name, handler_body,
+                                   source_ref):
+    return _makeTryExceptSingleHandlerNode(
+        provider       = None,
+        public_exc     = False,
+        tried          = tried,
+        exception_name = exception_name,
+        handler_body   = handler_body,
+        source_ref     = source_ref
+    )
+
+def makeTryExceptSingleHandlerNodeWithPublish(provider, public_exc, tried,
+                                              exception_name, handler_body,
+                                              source_ref):
+    return _makeTryExceptSingleHandlerNode(
+        provider       = provider,
+        public_exc     = public_exc,
+        tried          = tried,
+        exception_name = exception_name,
+        handler_body   = handler_body,
+        source_ref     = source_ref
     )
 
 

@@ -127,13 +127,13 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def isKnownToBeIterableAtMin(self, count):
         assert type(count) is int
 
-        iter_length = self.getValue().getIterationLength()
+        iter_length = self.getValue().getIterationMinLength()
         return iter_length is not None and iter_length < count
 
     def isKnownToBeIterableAtMax(self, count):
         assert type(count) is int
 
-        iter_length = self.getValue().getIterationLength()
+        iter_length = self.getValue().getIterationMaxLength()
 
         return iter_length is not None and count <= iter_length
 

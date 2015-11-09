@@ -133,7 +133,7 @@ from . import BuiltinOptimization
 
 def dir_extractor(node):
     def buildDirEmptyCase(source_ref):
-        if node.getParentVariableProvider().isPythonModule():
+        if node.getParentVariableProvider().isCompiledPythonModule():
             source = ExpressionBuiltinGlobals(
                 source_ref = source_ref
             )
@@ -172,7 +172,7 @@ def dir_extractor(node):
 
 def vars_extractor(node):
     def selectVarsEmptyClass(source_ref):
-        if node.getParentVariableProvider().isPythonModule():
+        if node.getParentVariableProvider().isCompiledPythonModule():
             return ExpressionBuiltinGlobals(
                 source_ref = source_ref
             )
@@ -495,7 +495,7 @@ def locals_extractor(node):
     # Note: Locals on the module level is really globals.
     provider = node.getParentVariableProvider()
 
-    if provider.isPythonModule():
+    if provider.isCompiledPythonModule():
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinGlobals,
@@ -773,7 +773,7 @@ if python_version >= 300:
             if provider.isExpressionFunctionBody():
                 provider.markAsExecContaining()
 
-                if provider.isClassDictCreation():
+                if provider.isExpressionClassBody():
                     provider.markAsUnqualifiedExecContaining(source_ref)
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(

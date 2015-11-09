@@ -50,7 +50,7 @@ static PyObject *Nuitka_Function_tp_repr( Nuitka_FunctionObject *function )
 #else
     return PyUnicode_FromFormat(
 #endif
-        "<compiled function %s at %p>",
+        "<compiled_function %s at %p>",
 #if PYTHON_VERSION < 330
         Nuitka_String_AsString( function->m_name ),
 #else
@@ -433,7 +433,11 @@ static PyGetSetDef Nuitka_Function_getset[] =
 
 static PyObject *Nuitka_Function_reduce( Nuitka_FunctionObject *function )
 {
+#if PYTHON_VERSION < 330
     return INCREASE_REFCOUNT( function->m_name );
+#else
+    return INCREASE_REFCOUNT( function->m_qualname );
+#endif
 }
 
 static PyMethodDef Nuitka_Generator_methods[] =

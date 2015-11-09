@@ -22,13 +22,13 @@ static PyObject *Nuitka_Generator_tp_repr( Nuitka_GeneratorObject *generator )
 {
 #if PYTHON_VERSION < 300
     return PyString_FromFormat(
-        "<compiled generator object %s at %p>",
+        "<compiled_generator object %s at %p>",
         Nuitka_String_AsString( generator->m_name ),
         generator
     );
 #else
     return PyUnicode_FromFormat(
-        "<compiled generator object %s at %p>",
+        "<compiled_generator object %s at %p>",
 #if PYTHON_VERSION < 350
         Nuitka_String_AsString( generator->m_name ),
 #else
@@ -168,6 +168,36 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
             Py_XDECREF( saved_exception_value );
             Py_XDECREF( saved_exception_traceback );
 #endif
+
+#if PYTHON_VERSION >= 350
+            if ( generator->m_code_object->co_flags & CO_FUTURE_GENERATOR_STOP &&
+                 GET_ERROR_OCCURRED() == PyExc_StopIteration )
+            {
+                PyObject *saved_exception_type, *saved_exception_value;
+                PyTracebackObject *saved_exception_tb;
+
+                // TODO: Needs release, should get reference count test.
+                FETCH_ERROR_OCCURRED( &saved_exception_type, &saved_exception_value, &saved_exception_tb );
+
+                PyObject *exception_type = CALL_FUNCTION_WITH_ARGS1(
+                    PyExc_RuntimeError,
+                    PyUnicode_FromString("generator raised StopIteration")
+                );
+                PyObject *exception_value = NULL;
+                PyTracebackObject *exception_tb = NULL;
+
+                RAISE_EXCEPTION_WITH_CAUSE(
+                    &exception_type,
+                    &exception_value,
+                    &exception_tb,
+                    saved_exception_value
+                );
+                PyException_SetContext( exception_value, saved_exception_value );
+
+                RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+            }
+#endif
+
             return NULL;
         }
         else
@@ -488,6 +518,20 @@ static int Nuitka_Generator_set_qualname( Nuitka_GeneratorObject *object, PyObje
     return 0;
 }
 
+static PyObject *Nuitka_Generator_get_yieldfrom( Nuitka_GeneratorObject *generator )
+{
+    if ( generator->m_yieldfrom )
+    {
+        Py_INCREF( generator->m_yieldfrom );
+        return generator->m_yieldfrom;
+    }
+    else
+    {
+        Py_INCREF( Py_None );
+        return Py_None;
+    }
+}
+
 #endif
 
 static PyObject *Nuitka_Generator_get_code( Nuitka_GeneratorObject *object )
@@ -526,6 +570,7 @@ static PyGetSetDef Nuitka_Generator_getsetlist[] =
 #else
     { (char *)"__name__", (getter)Nuitka_Generator_get_name, (setter)Nuitka_Generator_set_name, NULL },
     { (char *)"__qualname__", (getter)Nuitka_Generator_get_qualname, (setter)Nuitka_Generator_set_qualname, NULL },
+    { (char *)"gi_yieldfrom", (getter)Nuitka_Generator_get_yieldfrom, NULL, NULL },
 #endif
     { (char *)"gi_code",  (getter)Nuitka_Generator_get_code, (setter)Nuitka_Generator_set_code, NULL },
     { (char *)"gi_frame", (getter)Nuitka_Generator_get_frame, (setter)Nuitka_Generator_set_frame, NULL },
@@ -545,7 +590,12 @@ static PyMethodDef Nuitka_Generator_methods[] =
 
 static PyMemberDef Nuitka_Generator_members[] =
 {
+    /* The type of "gi_running" changed in Python3. */
+#if PYTHON_VERSION < 330
     { (char *)"gi_running", T_INT, offsetof( Nuitka_GeneratorObject, m_running ), READONLY },
+#else
+    { (char *)"gi_running", T_BOOL, offsetof( Nuitka_GeneratorObject, m_running ), READONLY },
+#endif
     { NULL }
 };
 
@@ -636,6 +686,8 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qua
 #if PYTHON_VERSION >= 350
     result->m_qualname = qualname;
     Py_INCREF( qualname );
+
+    result->m_yieldfrom = NULL;
 #endif
 
     // We take ownership of those and received the reference count from the
@@ -881,6 +933,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
                 }
 
                 RAISE_GENERATOR_EXCEPTION( generator );
+
                 return NULL;
             }
 
@@ -900,7 +953,6 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 
                     return NULL;
                 }
-
 
                 generator->m_exception_type = NULL;
                 generator->m_exception_value = NULL;
@@ -969,8 +1021,15 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
         {
             generator->m_yielded = retval;
 
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = value;
+#endif
             // Return to the calling context.
             swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = NULL;
+#endif
 
             send_value = generator->m_yielded;
 
@@ -1125,9 +1184,15 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
             thread_state->frame->f_exc_value = saved_exception_value;
             thread_state->frame->f_exc_traceback = saved_exception_traceback;
 
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = value;
+#endif
             // Return to the calling context.
             swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = NULL;
+#endif
             // When returning from yield, the exception of the frame is preserved, and
             // the one that enters should be there.
             thread_state = PyThreadState_GET();

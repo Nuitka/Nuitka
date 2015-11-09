@@ -146,7 +146,7 @@ def buildNodeList(provider, nodes, source_ref, allow_none = False):
 
 
 def makeModuleFrame(module, statements, source_ref):
-    assert module.isPythonModule()
+    assert module.isCompiledPythonModule()
 
     if module.isMainModule():
         code_name = "<module>"
@@ -200,6 +200,28 @@ def buildStatementsNode(provider, nodes, source_ref, frame = False):
                         source_ref = source_ref
                     )
                 )
+
+            return StatementsFrame(
+                statements    = statements,
+                guard_mode    = guard_mode,
+                var_names     = arg_names,
+                arg_count     = len(arg_names),
+                kw_only_count = kw_only_count,
+                code_name     = code_name,
+                has_starlist  = has_starlist,
+                has_stardict  = has_stardict,
+                source_ref    = source_ref
+            )
+        elif provider.isExpressionCoroutineBody():
+            # TODO: That might be wrong
+            parameters = provider.getParentVariableProvider().getParameters()
+
+            arg_names     = parameters.getCoArgNames()
+            kw_only_count = parameters.getKwOnlyParameterCount()
+            code_name     = provider.getFunctionName()
+            guard_mode    = "generator", # TODO: Might be more special.
+            has_starlist  = parameters.getStarListArgumentName() is not None
+            has_stardict  = parameters.getStarDictArgumentName() is not None
 
             return StatementsFrame(
                 statements    = statements,

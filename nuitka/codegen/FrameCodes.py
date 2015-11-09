@@ -112,7 +112,7 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
     # Used for modules only currently, but that ought to change.
     assert parent_return_exit is None and frame_return_exit is None
 
-    if not provider.isPythonModule():
+    if not provider.isCompiledPythonModule():
         _frame_locals_name, locals_code = getFrameLocalsUpdateCode(
             provider = provider,
             context  = context

@@ -27,7 +27,7 @@
 #endif
 
 #if PYTHON_VERSION >= 300
-static void CHAIN_EXCEPTION( PyObject *exception_type, PyObject *exception_value )
+static void CHAIN_EXCEPTION( PyObject *exception_value )
 {
     // Implicit chain of exception already existing.
     PyThreadState *thread_state = PyThreadState_GET();
@@ -110,7 +110,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
 #endif
 
 #if PYTHON_VERSION >= 300
-        CHAIN_EXCEPTION( *exception_type, *exception_value );
+        CHAIN_EXCEPTION( *exception_value );
 #endif
         return;
     }
@@ -121,7 +121,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
         Py_INCREF( *exception_type );
 
 #if PYTHON_VERSION >= 300
-        CHAIN_EXCEPTION( *exception_type, *exception_value );
+        CHAIN_EXCEPTION( *exception_value );
 
         // TODO: Ever true?
         if ( *exception_tb )
@@ -227,7 +227,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
         PyException_SetCause( *exception_value, exception_cause );
 
 #if PYTHON_VERSION >= 300
-        CHAIN_EXCEPTION( *exception_type, *exception_value );
+        CHAIN_EXCEPTION( *exception_value );
 #endif
         return;
     }
@@ -240,7 +240,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
         PyException_SetCause( *exception_value, exception_cause );
 
 #if PYTHON_VERSION >= 300
-        CHAIN_EXCEPTION( *exception_type, *exception_value );
+        CHAIN_EXCEPTION( *exception_value );
 #endif
 
         return;
@@ -342,7 +342,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT( PyObject **exception_
     {
 #if PYTHON_VERSION >= 340
         NORMALIZE_EXCEPTION( exception_type, exception_value, exception_tb );
-        CHAIN_EXCEPTION( *exception_type, *exception_value );
+        CHAIN_EXCEPTION( *exception_value );
 #endif
 
         return;
@@ -350,7 +350,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT( PyObject **exception_
     else if ( PyExceptionInstance_Check( *exception_type ) )
     {
 #if PYTHON_VERSION >= 340
-        CHAIN_EXCEPTION( *exception_type, *exception_value );
+        CHAIN_EXCEPTION( *exception_value );
 #endif
 
         // The type is rather a value, so we are overriding it here.
@@ -366,7 +366,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_IMPLICIT( PyObject **exception_
         FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 
 #if PYTHON_VERSION >= 340
-        CHAIN_EXCEPTION( *exception_type, *exception_value );
+        CHAIN_EXCEPTION( *exception_value );
 #endif
 
         return;

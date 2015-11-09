@@ -62,7 +62,7 @@ def getMetapathLoaderBodyCode(other_modules):
                 module_name       = other_module.getFullName(),
                 module_identifier = other_module.getCodeName(),
                 is_shlib          = other_module.isPythonShlibModule(),
-                is_package        = other_module.isPythonPackage()
+                is_package        = other_module.isCompiledPythonPackage()
             )
         )
 

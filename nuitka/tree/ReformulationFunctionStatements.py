@@ -32,11 +32,11 @@ from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.FunctionNodes import (
+    ExpressionCoroutineBody,
+    ExpressionCoroutineCreation,
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef,
-    ExpressionCoroutineCreation,
-    ExpressionCoroutineBody
+    ExpressionFunctionRef
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -54,6 +54,7 @@ from .Helpers import (
     mangleName
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+
 
 def _insertFinalReturnStatement(function_statements_body, source_ref):
     if function_statements_body is None:
@@ -162,8 +163,7 @@ def buildFunctionNode(provider, node, source_ref):
     # "class __new__".  We add them earlier, so our optimization will see it.
     if node.name == "__new__" and \
        not decorators and \
-       provider.isExpressionFunctionBody() and \
-       provider.isClassDictCreation():
+       provider.isExpressionClassBody():
 
         decorators = (
             ExpressionBuiltinRef(
@@ -238,9 +238,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         frame      = True,
         source_ref = source_ref
     )
-
-    # Not allowed.
-    assert not function_body.isGenerator()
 
     function_statements_body = _insertFinalReturnStatement(
         function_statements_body = function_statements_body,

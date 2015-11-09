@@ -163,14 +163,13 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
         parent_module = self.getParentModule()
 
-        if parent_module.isPythonPackage():
+        if parent_module.isCompiledPythonPackage():
             parent_package = parent_module.getFullName()
         else:
             parent_package = self.getParentModule().getPackage()
 
         module_package, module_filename, _finding = findModule(
-            importing      = parent_module,
-            source_ref     = self.source_ref,
+            importing      = self,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
             level          = self.getLevel(),
@@ -190,14 +189,13 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                 import_list = self.getImportList()
 
-                if import_list and imported_module.isPythonPackage():
+                if import_list and imported_module.isCompiledPythonPackage():
                     for import_item in import_list:
                         if import_item == '*':
                             continue
 
                         module_package, module_filename, _finding = findModule(
-                            importing      = parent_module,
-                            source_ref     = self.source_ref,
+                            importing      = self,
                             module_name    = import_item,
                             parent_package = imported_module.getFullName(),
                             level          = -1,

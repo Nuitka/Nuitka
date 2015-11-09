@@ -96,14 +96,14 @@ Monkey patching "multiprocessing" for compiled methods."""
             self.multiprocessing_added = True
 
             from nuitka.ModuleRegistry import getRootModules, addRootModule
-            from nuitka.tree.Building import PythonModule, readSourceCodeFromFilename, createModuleTree
+            from nuitka.tree.Building import CompiledPythonModule, readSourceCodeFromFilename, createModuleTree
 
             for root_module in getRootModules():
                 if root_module.isMainModule():
                     # First, build the module node and then read again from the
                     # source code.
 
-                    slave_main_module = PythonModule(
+                    slave_main_module = CompiledPythonModule(
                         name         = "__parents_main__",
                         package_name = None,
                         source_ref   = root_module.getSourceReference()

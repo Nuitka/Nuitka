@@ -21,8 +21,8 @@
 
 from nuitka.utils import Utils
 
-from .Contexts import PythonFunctionCoroutineContext
 from .ConstantCodes import getConstantCode
+from .Contexts import PythonFunctionCoroutineContext
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitCode,
@@ -32,6 +32,7 @@ from .ErrorCodes import (
     getMustNotGetHereCode
 )
 from .Indentation import indented
+from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .ParameterParsing import (
     getDirectFunctionEntryPointIdentifier,
@@ -40,6 +41,10 @@ from .ParameterParsing import (
     getQuickEntryPointIdentifier
 )
 from .PythonAPICodes import getReferenceExportCode
+from .templates.CodeTemplatesCoroutines import (
+    template_make_coroutine_with_context_template,
+    template_make_coroutine_without_context_template
+)
 from .templates.CodeTemplatesFrames import template_generator_initial_throw
 from .templates.CodeTemplatesFunction import (
     function_dict_setup,
@@ -65,10 +70,6 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_genfunc_yielder_template,
     template_make_genfunc_with_context_template,
     template_make_genfunc_without_context_template
-)
-from .templates.CodeTemplatesCoroutines import (
-    template_make_coroutine_without_context_template,
-    template_make_coroutine_with_context_template,
 )
 from .VariableCodes import (
     getLocalVariableInitCode,
@@ -699,17 +700,21 @@ def getGeneratorFunctionCode(context, function_name, function_qualname,
     else:
         closure_decl = template_genfunc_generator_no_closure % {}
 
+    if Utils.python_version < 350 or context.isForDirectCall():
+        function_name_obj = getConstantCode(context, function_name)
+    else:
+        function_name_obj = "self->m_name"
+
     if Utils.python_version < 350:
         function_qualname_obj = "NULL"
+    elif context.isForDirectCall():
+        function_qualname_obj = getConstantCode(context, function_qualname)
     else:
-        function_qualname_obj = getConstantCode(
-            constant = function_qualname,
-            context  = context
-        )
+        function_qualname_obj = "self->m_qualname"
 
     result += template_genfunc_function_impl_template % {
         "function_name"          : function_name,
-        "function_name_obj"      : getConstantCode(context, function_name),
+        "function_name_obj"      : function_name_obj,
         "function_qualname_obj"  : function_qualname_obj,
         "function_identifier"    : function_identifier,
         "code_identifier"        : code_identifier,
@@ -771,10 +776,11 @@ def getExportScopeCode(cross_module):
 
 
 def generateGeneratorEntryCode(statement, emit, context):
-    # Nothing used from statement, pylint: disable=W0613
+    context.setCurrentSourceCodeReference(statement.getSourceReference())
 
     emit(
         template_generator_initial_throw % {
-            "frame_exception_exit" : context.getExceptionEscape()
+            "frame_exception_exit"  : context.getExceptionEscape(),
+            "set_error_line_number" : getErrorLineNumberUpdateCode(context)
         }
     )

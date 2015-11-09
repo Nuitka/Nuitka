@@ -430,7 +430,8 @@ def execute_tests(where, use_python, flags):
     if "--debug" not in flags:
         # Not running the Python 3.2 test suite with CPython2.6, as that's about
         # the same as CPython2.7 and won't have any new insights.
-        if use_python != "python2.6":
+        if use_python != "python2.6" and \
+           use_python != "python2.7" or not options.coverage:
             if os.path.exists("./tests/CPython32/run_all.py"):
                 if options.cpython32:
                     setExtraFlags(where, "32tests", flags)

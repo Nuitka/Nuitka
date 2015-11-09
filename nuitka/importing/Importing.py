@@ -117,7 +117,7 @@ def getModuleNameAndKindFromFilename(module_filename):
     return module_name, module_kind
 
 
-def warnAbout(importing, module_name, parent_package, level, source_ref):
+def warnAbout(importing, module_name, parent_package, level):
     # This probably should not be dealt with here.
     if module_name == "":
         return
@@ -133,7 +133,7 @@ def warnAbout(importing, module_name, parent_package, level, source_ref):
             else:
                 full_name = module_name
 
-            if Plugins.suppressUnknownImportWarning(importing, full_name, source_ref):
+            if Plugins.suppressUnknownImportWarning(importing, full_name):
                 return
 
             if level == 0:
@@ -148,7 +148,7 @@ def warnAbout(importing, module_name, parent_package, level, source_ref):
             if parent_package is not None:
                 warning(
                     "%s: Cannot find '%s' in package '%s' %s.",
-                    source_ref.getAsString(),
+                    importing.getSourceReference().getAsString(),
                     module_name,
                     parent_package,
                     level_desc
@@ -156,7 +156,7 @@ def warnAbout(importing, module_name, parent_package, level, source_ref):
             else:
                 warning(
                     "%s: Cannot find '%s' %s.",
-                    source_ref.getAsString(),
+                    importing.getSourceReference().getAsString(),
                     module_name,
                     level_desc
                 )
@@ -171,7 +171,7 @@ def normalizePackageName(module_name):
     return module_name
 
 
-def findModule(importing, source_ref, module_name, parent_package, level, warn):
+def findModule(importing, module_name, parent_package, level, warn):
     """ Find a module with given package name as parent.
 
         The package name can be None of course. Level is the same
@@ -277,7 +277,6 @@ def findModule(importing, source_ref, module_name, parent_package, level, warn):
             module_name    = module_name,
             parent_package = parent_package,
             level          = level,
-            source_ref     = source_ref
         )
 
     return None, None, "not-found"

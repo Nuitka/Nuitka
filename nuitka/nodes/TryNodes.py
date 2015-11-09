@@ -99,7 +99,7 @@ class StatementTry(StatementChildrenHavingBase):
     )
 
     def computeStatement(self, constraint_collection):
-        # This node has many children to handle, pylint: disable=R0912,R0914,R0915
+        # This node has many children to handle, pylint: disable=R0912,R0914
         tried = self.getBlockTry()
 
         except_handler = self.getBlockExceptHandler()
@@ -331,28 +331,31 @@ class StatementTry(StatementChildrenHavingBase):
                 source_ref = self.getSourceReference()
             )
 
-            explain = "Reduced scope of tried block."
+            def explain():
+                # TODO: We probably don't want to say this for re-formulation ones.
+                result = "Reduced scope of tried block."
 
-            if pre_statements:
-                explain += " Leading statements at %s." % (
-                    ','.join(
-                        x.getSourceReference().getAsString() + '/' + str(x)
-                        for x in
-                        pre_statements
+                if pre_statements:
+                    result += " Leading statements at %s." % (
+                        ','.join(
+                            x.getSourceReference().getAsString() + '/' + str(x)
+                            for x in
+                            pre_statements
+                        )
                     )
-                )
 
-            if post_statements:
-                explain += " Trailing statements at %s." % (
-                    ','.join(
-                        x.getSourceReference().getAsString() + '/' + str(x)
-                        for x in
-                        post_statements
+                if post_statements:
+                    result += " Trailing statements at %s." % (
+                        ','.join(
+                            x.getSourceReference().getAsString() + '/' + str(x)
+                            for x in
+                            post_statements
+                        )
                     )
-                )
+
+                return result
 
 
-            # TODO: We probably don't want to say this for re-formulation ones.
             return (
                 result,
                 "new_statements",

@@ -180,7 +180,7 @@ class NodeBase(NodeMetaClassBase):
 
         """
 
-        if self.parent is None and not self.isPythonModule():
+        if self.parent is None and not self.isCompiledPythonModule():
             # print self.getVisitableNodesNamed()
             assert False, (self,  self.source_ref)
 
@@ -198,7 +198,7 @@ class NodeBase(NodeMetaClassBase):
 
             result.append(current)
 
-            if current.isPythonModule() or current.isExpressionFunctionBody():
+            if current.isCompiledPythonModule() or current.isExpressionFunctionBody():
                 break
 
         assert None not in result, self
@@ -249,7 +249,7 @@ class NodeBase(NodeMetaClassBase):
         """
         parent = self
 
-        while not parent.isPythonModule():
+        while not parent.isCompiledPythonModule():
             if hasattr(parent, "provider"):
                 # After we checked, we can use it, will be much faster route
                 # to take.
@@ -383,7 +383,7 @@ class NodeBase(NodeMetaClassBase):
         Tracing.printSeparator(level)
 
     @staticmethod
-    def isPythonModule():
+    def isCompiledPythonModule():
         # For overload by module nodes
         return False
 
@@ -576,7 +576,10 @@ class CodeNodeBase(NodeBase):
     def __init__(self, name, code_prefix, source_ref):
         assert name is not None
 
-        NodeBase.__init__(self, source_ref = source_ref)
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         self.name = name
         self.code_prefix = code_prefix
@@ -1089,6 +1092,22 @@ class ExpressionMixin:
 
         # Virtual method, pylint: disable=R0201
         return None
+
+    def getIterationMinLength(self):
+        """ Value that "len" or "PyObject_Size" would give at minimum, if known.
+
+            Otherwise it is "None" to indicate unknown.
+        """
+
+        return self.getIterationLength()
+
+    def getIterationMaxLength(self):
+        """ Value that "len" or "PyObject_Size" would give at maximum, if known.
+
+            Otherwise it is "None" to indicate unknown.
+        """
+
+        return self.getIterationLength()
 
     def getStringValue(self):
         """ Node as string value, if possible."""

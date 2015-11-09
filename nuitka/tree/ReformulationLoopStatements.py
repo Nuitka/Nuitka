@@ -43,7 +43,6 @@ from .Helpers import (
     buildNode,
     buildStatementsNode,
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     mergeStatements,
     popBuildContext,
@@ -116,22 +115,19 @@ def buildForLoopNode(provider, node, source_ref):
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            provider       = handler_body,
-            tried          = makeStatementsSequenceFromStatement(
-                statement = StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_value_variable,
+            tried          = StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = tmp_value_variable,
+                    source_ref = source_ref
+                ),
+                source       = ExpressionBuiltinNext1(
+                    value      = ExpressionTempVariableRef(
+                        variable   = tmp_iter_variable,
                         source_ref = source_ref
                     ),
-                    source       = ExpressionBuiltinNext1(
-                        value      = ExpressionTempVariableRef(
-                            variable   = tmp_iter_variable,
-                            source_ref = source_ref
-                        ),
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref
-                )
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref
             ),
             exception_name = "StopIteration",
             handler_body   = handler_body,

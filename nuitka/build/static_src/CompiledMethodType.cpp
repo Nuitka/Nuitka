@@ -102,9 +102,9 @@ static PyObject *Nuitka_Method_deepcopy( Nuitka_MethodObject *method, PyObject *
 
 static PyMethodDef Nuitka_Method_methods[] =
 {
-    { "__reduce__",    (PyCFunction)Nuitka_Method_reduce,   METH_NOARGS,   NULL },
+    { "__reduce__",    (PyCFunction)Nuitka_Method_reduce,    METH_NOARGS,  NULL },
     { "__reduce_ex__", (PyCFunction)Nuitka_Method_reduce_ex, METH_VARARGS, NULL },
-    { "__deepcopy__",  (PyCFunction) Nuitka_Method_deepcopy, METH_O,       NULL },
+    { "__deepcopy__",  (PyCFunction)Nuitka_Method_deepcopy,  METH_O,       NULL },
     { NULL }
 };
 
@@ -377,7 +377,7 @@ static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
         );
 #else
         return PyUnicode_FromFormat(
-            "<compiled function %s at %p>",
+            "<compiled_function %s at %p>",
             Nuitka_String_AsString( method->m_function->m_name ),
             method->m_function
         );

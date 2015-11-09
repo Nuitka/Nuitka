@@ -188,6 +188,7 @@ if ( generator->m_exception_type )
 
     if (exception_tb == NULL)
     {
+        %(set_error_line_number)s
         goto %(frame_exception_exit)s;
     }
     else

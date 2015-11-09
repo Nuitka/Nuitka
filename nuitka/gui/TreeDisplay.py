@@ -50,7 +50,7 @@ class NodeTreeModelItem:
                 self.node.getVisitableNodes()
             ]
 
-        if self.node.isPythonModule():
+        if self.node.isCompiledPythonModule():
             self.children.extend(
                 NodeTreeModelItem(child, self)
                 for child in

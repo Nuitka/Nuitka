@@ -94,8 +94,9 @@ trace_mode = getBoolOption("trace_mode", False)
 # support, the compiled result would not run correctly.
 lto_mode = getBoolOption("lto_mode", False)
 
-# Windows target mode: Compile for Windows.
-win_target = getBoolOption("win_target", os.name == "nt")
+# Windows target mode: Compile for Windows. Used to be an option, but we
+# no longer cross compile this way.
+win_target = os.name == "nt"
 
 # Windows subsystem mode: Disable console for windows builds.
 win_disable_console = getBoolOption("win_disable_console", False)
@@ -159,7 +160,7 @@ def getExecutablePath(filename, initial):
         filename = env[filename[1:]]
 
     # Append ".exe" suffix  on Windows if not already present.
-    if os.name == "nt" and not filename.lower().endswith(".exe"):
+    if win_target and not filename.lower().endswith(".exe"):
         filename += ".exe"
 
     # Either look at the initial "PATH" as given from the outside or look at the
@@ -186,7 +187,7 @@ def createEnvironment(compiler_tools):
 
     # If we are on Windows, and MinGW is not enforced, lets see if we can
     # find "cl.exe", and if we do, disable automatic scan.
-    if os.name == "nt" and \
+    if win_target and \
        not mingw_mode and \
        (getExecutablePath("cl", initial = True) is not None or \
         getExecutablePath("gcc", initial = True) is not None):
@@ -229,7 +230,7 @@ env = createEnvironment(
 # On Windows, in case MSVC was not found and not previously forced, retry with
 # it and use that instead then as a fallback. Using both tools in one call
 # seems to not work in terms of fallback when both exist.
-if os.name == "nt" and \
+if win_target and \
    compiler_tools == ["default"] and \
    getExecutablePath(env["CXX"], initial = False) is None:
     env = createEnvironment(
@@ -419,7 +420,7 @@ if "g++" in (env["CXX"] or "") and "clang" not in (env["CXX"] or ""):
 
 # Detect compiler to be used from supported ones, if there is no usable g++
 # link.
-if os.name != "nt" and env["CXX"] is None:
+if not win_target and env["CXX"] is None:
     # Try out the Debian names, as no "gcc" default compiler package needs to
     # be installed.
 
@@ -447,7 +448,7 @@ version (>= 4.4).""" % (orig_cxx, orig_cxx_version))
 
 if env["CXX"] is None or \
    getExecutablePath(env["CXX"], initial = False) is None:
-    if os.name == "nt":
+    if win_target:
         sys.exit("""\
 Error, cannot locate suitable C++ compiler. You have the following options:
 
@@ -486,12 +487,12 @@ if show_scons_mode:
     print "Scons compiler: Using",
     print getExecutablePath(env["CXX"], initial = False),
 
-    if os.name == "nt" and msvc_mode:
+    if win_target and msvc_mode:
         print "(MSVC %s)" % getMsvcVersionString()
 
     print
 
-if os.name == "nt":
+if win_target:
     setupSpawn(env)
 
 env["BUILD_DIR"] = source_dir
@@ -764,7 +765,7 @@ if gcc_mode and "linux" in sys.platform:
 # about building, and finding the headers to compile against that Python, we
 # do not care about any site packages, and so on.
 
-if os.name != "nt" and os.path.islink(os.path.join(python_prefix, ".Python")):
+if not win_target and os.path.islink(os.path.join(python_prefix, ".Python")):
     # Some virtualenv, at least on MacOS, have such handy links.
     python_prefix = os.path.normpath(
         os.path.join(
@@ -772,7 +773,7 @@ if os.name != "nt" and os.path.islink(os.path.join(python_prefix, ".Python")):
             ".."
         )
     )
-elif os.name != "nt" and python_version >= "3.3" and \
+elif not win_target and python_version >= "3.3" and \
      os.path.exists(os.path.join(python_prefix, "bin/activate")):
     # For "venv" of Python3.3, it seems necessary to find include files
     # and libraries on the outside.
@@ -794,7 +795,7 @@ elif os.path.exists(os.path.join(python_prefix, "Lib/orig-prefix.txt")):
     # Trailing spaces in the python prefix, please not.
     assert python_prefix == python_prefix.strip()
 
-if os.name == "nt":
+if win_target:
     # On Windows, the installation layout is relatively fixed.
     python_header_path = os.path.join(python_prefix, "include")
 else:
@@ -828,6 +829,23 @@ if win_from_source_mode:
     env.Append(CPPPATH = [os.path.join(python_prefix, "PC")])
 
 
+def getWindowsPythonDLLPath():
+    if uninstalled_python:
+        return os.path.join(
+            python_prefix,
+            "python" + python_version.replace('.', "") + ".dll"
+        )
+    elif target_arch == "x86_64":
+        return "%s\SysWOW64\python%s.dll" % (
+            os.environ["WINDIR"],
+            python_version.replace('.', "")
+        )
+    else:
+        return "%s\python%s.dll" % (
+            os.environ["WINDIR"],
+            python_version.replace('.', "")
+        )
+
 if win_target:
     # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
 
@@ -836,15 +854,12 @@ if win_target:
     else:
         win_lib_path = os.path.join(python_prefix, "libs")
 
-    if os.name == "nt" and target_arch == "x86_64" and gcc_mode:
+    if win_target and target_arch == "x86_64" and gcc_mode:
         new_win_lib_path = os.path.join(source_dir, "libs")
         if not os.path.exists(new_win_lib_path):
             os.makedirs(new_win_lib_path)
 
-        command = r"gendef - %s\SysWOW64\python%s.dll" % (
-                os.environ["WINDIR"],
-                python_version.replace('.', "")
-            )
+        command = "gendef - %s" % getWindowsPythonDLLPath()
 
         defs_filename = os.path.join(
             new_win_lib_path,
@@ -894,10 +909,7 @@ if win_target:
         defs_file.close()
 
         shutil.copy(
-            r"%s\SysWOW64\python%s.dll" % (
-                os.environ["WINDIR"],
-                python_version.replace('.', "")
-            ),
+            getWindowsPythonDLLPath(),
             new_win_lib_path
         )
 
@@ -1051,7 +1063,7 @@ if optimize_mode:
         )
 
 # MinGW for 64 bits needs this due to CPython bugs.
-if os.name == "nt" and target_arch == "x86_64" and gcc_mode:
+if win_target and target_arch == "x86_64" and gcc_mode:
     env.Append(CPPDEFINES = ["MS_WIN64"])
 
 # Set load libpython from binary directory default
@@ -1417,12 +1429,9 @@ Default(target) # @UndefinedVariable
 
 # Copy the Python DLL to the target directory, so the executable can be run.
 if uninstalled_python:
-    if os.name == "nt":
+    if win_target:
         shutil.copy(
-            os.path.join(
-                python_prefix,
-                "python" + python_version.replace('.', "") + ".dll"
-            ),
+            getWindowsPythonDLLPath(),
             os.path.dirname(result_basepath) or "."
         )
     elif sys.platform == "darwin":

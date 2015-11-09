@@ -38,13 +38,7 @@ from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
 from .codegen import CodeGeneration, ConstantCodes, MainCodes
 from .finalizations import Finalization
-from .freezer.BytecodeModuleFreezer import (
-    addFrozenModule,
-    generateBytecodeFrozenCode,
-    getFrozenModuleCount,
-    isFrozenModule,
-    removeFrozenModule
-)
+from .freezer.BytecodeModuleFreezer import generateBytecodeFrozenCode
 from .freezer.Standalone import (
     copyUsedDLLs,
     detectEarlyImports,
@@ -125,7 +119,7 @@ def getTreeFilenameWithSuffix(tree, suffix):
 
 
 def getSourceDirectoryPath(main_module):
-    assert main_module.isPythonModule()
+    assert main_module.isCompiledPythonModule()
 
     return Options.getOutputPath(
         path = Utils.basename(
@@ -143,7 +137,7 @@ def getStandaloneDirectoryPath(main_module):
 
 
 def getResultBasepath(main_module):
-    assert main_module.isPythonModule()
+    assert main_module.isCompiledPythonModule()
 
     if Options.isStandaloneMode():
         return Utils.joinpath(
@@ -272,9 +266,9 @@ def makeSourceDirectory(main_module):
 
     """
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0912
+    # no sense, pylint: disable=R0912,R0914
 
-    assert main_module.isPythonModule()
+    assert main_module.isCompiledPythonModule()
 
     # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
@@ -285,20 +279,24 @@ def makeSourceDirectory(main_module):
     # fun, and to find its imports. In this case, now we just can drop it. Or
     # a module may shadow a frozen module, but be a different one, then we can
     # drop the frozen one.
+    # TODO: This really should be done when the compiled module comes into
+    # existence.
     for module in ModuleRegistry.getDoneUserModules():
-        if module.isPythonModule():
-            if isFrozenModule(module.getFullName(), module.getCompileTimeFilename()):
-                ModuleRegistry.removeDoneModule(module)
-                continue
+        if module.isCompiledPythonModule():
+            uncompiled_module = ModuleRegistry.getUncompiledModule(
+                module_name     = module.getFullName(),
+                module_filename = module.getCompileTimeFilename()
+            )
 
-            if removeFrozenModule(module.getFullName()):
-                warning(
-                    """\
-Compiled module shadows standard library module '%s' (imported from '%s').""" % (
-                        module.getFullName(),
-                        module.getCompileTimeFilename()
-                    )
-                )
+            if uncompiled_module is not None:
+                # We now need to decide which one to keep, compiled or uncompiled
+                # module. Some uncompiled modules may have been asked by the user
+                # or technically required. By default, frozen code if it exists
+                # is preferred, as it will be from standalone mode adding it.
+                if uncompiled_module.isUserProvided():
+                    ModuleRegistry.removeDoneModule(module)
+                else:
+                    ModuleRegistry.removeUncompiledModule(uncompiled_module)
 
     # Lets check if the recurse-to modules are actually present, and warn the
     # user if one of those was not found.
@@ -314,7 +312,7 @@ Compiled module shadows standard library module '%s' (imported from '%s').""" % 
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in ModuleRegistry.getDoneModules():
-        if module.isPythonModule():
+        if module.isCompiledPythonModule():
             Finalization.prepareCodeGeneration(module)
 
     # Pick filenames.
@@ -331,7 +329,7 @@ Compiled module shadows standard library module '%s' (imported from '%s').""" % 
     prepared_modules = {}
 
     for module in ModuleRegistry.getDoneModules():
-        if module.isPythonModule():
+        if module.isCompiledPythonModule():
             cpp_filename = module_filenames[module]
 
             prepared_modules[cpp_filename] = CodeGeneration.prepareModuleCode(
@@ -346,7 +344,7 @@ Compiled module shadows standard library module '%s' (imported from '%s').""" % 
 
     # Second pass, generate the actual module code into the files.
     for module in ModuleRegistry.getDoneModules():
-        if module.isPythonModule():
+        if module.isCompiledPythonModule():
             cpp_filename = module_filenames[module]
 
             template_values, module_context = prepared_modules[cpp_filename]
@@ -482,9 +480,9 @@ def runScons(main_module, quiet):
        isUninstalledPython():
         options["uninstalled_python"] = "true"
 
-    if getFrozenModuleCount():
+    if ModuleRegistry.getUncompiledModules():
         options["frozen_modules"] = str(
-            getFrozenModuleCount()
+            len(ModuleRegistry.getUncompiledModules())
         )
 
     if Options.isShowScons():
@@ -600,11 +598,12 @@ def compileTree(main_module):
         )
 
         if Options.isStandaloneMode():
-            for late_import in detectLateImports():
-                addFrozenModule(late_import)
+            for module in detectLateImports():
+                ModuleRegistry.addUncompiledModule(module)
 
-        if getFrozenModuleCount():
-            frozen_code = generateBytecodeFrozenCode()
+        frozen_code = generateBytecodeFrozenCode()
+
+        if frozen_code is not None:
 
             writeSourceCode(
                 filename    = Utils.joinpath(
@@ -676,12 +675,12 @@ def main():
     # Detect to be frozen modules if any, so we can consider to not recurse
     # to them.
     if Options.isStandaloneMode():
-        for early_import in detectEarlyImports():
-            addFrozenModule(early_import)
+        for module in detectEarlyImports():
+            ModuleRegistry.addUncompiledModule(module)
 
-            if early_import[0] == "site":
+            if module.getName() == "site":
                 origin_prefix_filename = Utils.joinpath(
-                    Utils.dirname(early_import[3]),
+                    Utils.dirname(module.getCompileTimeFilename()),
                     "orig-prefix.txt"
                 )
 

@@ -59,7 +59,7 @@ def _getLocalVariableList(provider):
         variables = start_part + end_part
 
         include_closure = not provider.isUnoptimized() and \
-                          not provider.isClassDictCreation()
+                          not provider.isExpressionClassBody()
     else:
         variables = provider.getVariables()
 
@@ -144,9 +144,9 @@ def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
 
 
 def getLoadLocalsCode(to_name, provider, mode, emit, context):
-    if provider.isPythonModule():
-        # TODO: Should not happen in the normal case, make this assertable.
-        getLoadGlobalsCode(to_name, emit, context)
+    if provider.isCompiledPythonModule():
+        # Optimization will have made this "globals".
+        assert False, provider
     elif not context.hasLocalsDict():
         local_list = _getLocalVariableList(
             provider = provider,
@@ -196,7 +196,7 @@ Py_INCREF( locals_dict );""" % (
                     dict_name = to_name,
                     variable  = local_var,
                     is_dict   = Utils.python_version < 300 or \
-                                not context.getFunction().isClassDictCreation(),
+                                not context.getFunction().isExpressionClassBody(),
                     emit      = emit,
                     context   = context
                 )
@@ -227,7 +227,7 @@ locals_dict = %s;""" % (
 
 
 def getStoreLocalsCode(locals_name, provider, emit, context):
-    assert not provider.isPythonModule()
+    assert not provider.isCompiledPythonModule()
 
     for variable in provider.getVariables():
         if not variable.isModuleVariable() and \

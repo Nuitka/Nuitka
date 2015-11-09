@@ -150,7 +150,7 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
                 "NORMALIZE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
             )
             set_exception.append(
-                "CHAIN_EXCEPTION( exception_type, exception_value );"
+                "CHAIN_EXCEPTION( exception_value );"
             )
 
     emit(
@@ -270,7 +270,7 @@ def getMustNotGetHereCode(reason, context, emit):
 
     if provider.isExpressionFunctionBody() and not provider.isGenerator():
         emit("return NULL;")
-    elif provider.isPythonModule():
+    elif provider.isCompiledPythonModule():
         emit("PyErr_SetObject( PyExc_RuntimeError, Py_None );")
         emit("return MOD_RETURN_VALUE( NULL );")
     else:
