@@ -40,6 +40,7 @@ def getModuleWhiteList():
         "syslog", "_datetime", "_elementtree", "_pickle", "_posixsubprocess",
         "_thread", "atexit", "pyexpat", "_imp", "_sha1", "faulthandler",
         "_osx_support", "sysconfig", "copyreg", "ipaddress", "reprlib",
+        "win32event", "win32file",
 
         # Python-Qt4 does these if missing python3 parts:
         "PyQt4.uic.port_v3.string_io", "PyQt4.uic.port_v3.load_plugin",
@@ -49,8 +50,14 @@ def getModuleWhiteList():
         # CPython3 does these:
         "builtins", "UserDict", "os.path", "StringIO",
 
+        # "test_array",
+        "_testcapi",
+
         # test_applesingle.py
         "applesingle",
+
+        # test_buffer.py
+        "_testbuffer",
 
         # test_bsddb.py
         "bsddb.test",
