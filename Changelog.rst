@@ -92,8 +92,9 @@ Tests
 - The CPython 3.4 test suite is now also using common runner code, and avoids
   ignoring all Nuitka warnings, instead more white listing was added.
 
-- Started to run 3.5 test suite almost completely, but coroutines are blocking
-  some parts of that, so these tests are currently skipped.
+- Started to run CPython 3.5 test suite almost completely, but coroutines are
+  blocking some parts of that, so these tests that use this feature are
+  currently skipped.
 
 - Removed more CPython tests that access the network and are generally useless
   to testing Nuitka.
@@ -137,19 +138,24 @@ Organizational
 - Added repository for Ubuntu Wily (15.10) for download. Removed Ubuntu Utopic
   package download, no longer supported by Ubuntu.
 
-- Added packages for Fedora 22.
+- Added repository with RPM packages for Fedora 22.
 
 Summary
 -------
 
-This release doesn't bring much significant changes. The new function body
-variants are designed to make coroutines as function a-likes easier to the
-core, and to require less exception making for e.g. function in-lining code
-to consider.
-
 So this release is mostly to lower the technical debt incurred that holds it
 back from supporting making more interesting changes. Upcoming releases may
 have continue that trend for some time.
+
+This release is mostly about catching up with Python3.5, to make sure we did
+not miss anything important. The new function body variants will make it easier
+to implement coroutines, and help with optimization and compatibility problems
+that remain for Python3 classes.
+
+Ultimately it will be nice to require a lot less checks for when function inline
+is going to be acceptable. Also code generation will need a continued push to
+use the new structure in preparation for making type specific code generation
+a reality.
 
 
 Nuitka Release 0.5.15
