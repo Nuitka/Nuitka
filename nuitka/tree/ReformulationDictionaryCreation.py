@@ -279,19 +279,35 @@ def getDictUnpackingHelper():
     return result
 
 
-def buildDictionaryUnpacking(provider, node, source_ref):
-    helper_args = []
+def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
+    result = []
 
-    for key, value in zip(node.keys, node.values):
-
+    for key, value in zip(keys, values):
         # TODO: We could be a lot cleverer about the dictionaries for non-starred
         # arguments, but lets get this to work first.
         if key is None:
-            helper_args.append(
+            result.append(
                 buildNode(provider, value, source_ref),
             )
+        elif type(key) is str:
+            result.append(
+                ExpressionMakeDict(
+                    pairs      = (
+                        ExpressionKeyValuePair(
+                            key        = ExpressionConstantRef(
+                                            constant   = key,
+                                            source_ref = source_ref
+                            ),
+                            value      = buildNode(provider, value, source_ref),
+                            source_ref = source_ref
+                        ),
+                    ),
+                    source_ref = source_ref,
+                    lazy_order = False,
+                )
+            )
         else:
-            helper_args.append(
+            result.append(
                 ExpressionMakeDict(
                     pairs      = (
                         ExpressionKeyValuePair(
@@ -304,6 +320,12 @@ def buildDictionaryUnpacking(provider, node, source_ref):
                     lazy_order = False,
                 )
             )
+
+    return result
+
+
+def buildDictionaryUnpacking(provider, node, source_ref):
+    helper_args = buildDictionaryUnpackingArgs(provider, node.keys, node.values, source_ref)
 
     result = ExpressionFunctionCall(
         function   = ExpressionFunctionCreation(
