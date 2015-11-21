@@ -3,6 +3,42 @@ Nuitka Release 0.5.17 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Python3: Support for virtualenv on Windows was using non-portable code and
+  therefore failing. `Issue#266 <http://bugs.nuitka.net/issue266>`__.
+
+Organizational
+--------------
+
+- Added support for Python3.5 except coroutines.
+
+- Updated the key for the Debian/Ubuntu repositories to remain valid for 2 more
+  years.
+
+Cleanups
+--------
+
+- The outline nodes allowed to provide a body when creating them, although
+  creating that body required using the outline node already to create temporary
+  variables. Removed that argument.
+
+Tests
+-----
+
+- Added the CPython3.5 test suite.
+
+Summary
+-------
+
+This release continues to address technical debt. Adding support for Python3.5
+was the major driving force, while at the same time removing obstacles to the
+changes that were needed for coroutine support.
+
+With Python3.5 sorted out, it will be time to focus on general optimization
+again.
+
 
 Nuitka Release 0.5.16
 =====================
@@ -139,7 +175,7 @@ Organizational
 
 - Updated the Developer Manual with changes that SSA is now a fact.
 
-- Added support for Python3.5 Windows MSI downloads.
+- Added Python3.5 Windows MSI downloads.
 
 - Added repository for Ubuntu Wily (15.10) for download. Removed Ubuntu Utopic
   package download, no longer supported by Ubuntu.
