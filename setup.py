@@ -44,7 +44,7 @@ version = detectVersion()
 # way around it, so we map our number to it, in some way.
 if os.name == "nt" and "bdist_msi" in sys.argv:
 
-    # Prereleases are always smaller, official releases get the "1".
+    # Pre-releases are always smaller, official releases get the "1".
     middle = 1 if "pre" not in version else 0
     version = version.replace("pre", "")
     parts = version.split('.')
@@ -132,7 +132,7 @@ class NuitkaInstallScripts(install_scripts):
             data = data.replace(b"@LIBDIR@", libdir.encode("unicode_escape"))
 
             if patch_bats and outfile.endswith(".bat"):
-                data = data.replace("..\\","")
+                data = data.replace(b"..\\",b"")
 
             fp = open(outfile, "wb")
             fp.write(data)
