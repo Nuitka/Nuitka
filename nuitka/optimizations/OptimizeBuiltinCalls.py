@@ -518,7 +518,6 @@ if python_version < 300:
             outline_body = ExpressionOutlineBody(
                 provider   = node.getParentVariableProvider(),
                 name       = "execfile_call",
-                body       = None, # later
                 source_ref = source_ref
             )
 
@@ -589,7 +588,6 @@ def eval_extractor(node):
         outline_body = ExpressionOutlineBody(
             provider   = node.getParentVariableProvider(),
             name       = "eval_call",
-            body       = None, # later
             source_ref = source_ref
         )
 
@@ -765,7 +763,6 @@ if python_version >= 300:
             outline_body = ExpressionOutlineBody(
                 provider   = provider,
                 name       = "exec_call",
-                body       = None, # later
                 source_ref = source_ref
             )
 

@@ -416,7 +416,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         function_body = ExpressionOutlineBody(
             provider   = provider,
             name       = name,
-            body       = None, # later
             source_ref = source_ref
         )
 

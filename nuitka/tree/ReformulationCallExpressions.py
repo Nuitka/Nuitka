@@ -106,7 +106,6 @@ def buildCallNode(provider, node, source_ref):
             outline_body = ExpressionOutlineBody(
                 provider   = provider,
                 name       = "dict_unpacking_call",
-                body       = None,
                 source_ref = source_ref
             )
 

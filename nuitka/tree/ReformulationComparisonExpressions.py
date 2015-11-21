@@ -81,7 +81,6 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     outline_body = ExpressionOutlineBody(
         provider   = provider,
         name       = "comparison_chain",
-        body       = None, # later
         source_ref = source_ref
     )
 
