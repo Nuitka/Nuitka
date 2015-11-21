@@ -160,6 +160,12 @@ int main( int argc, char *argv[] )
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
     PyType_Ready( &Nuitka_Frame_Type );
+#if PYTHON_VERSION >= 350
+    PyType_Ready( &Nuitka_Coroutine_Type );
+    PyType_Ready( &Nuitka_CoroutineWrapper_Type );
+#endif
+
+
 #if PYTHON_VERSION < 300
     _initSlotCompare();
 #endif

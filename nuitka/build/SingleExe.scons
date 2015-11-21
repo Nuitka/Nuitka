@@ -1174,8 +1174,10 @@ def discoverSourceFiles():
         return os.path.join(static_src, sub_path.replace('/', os.path.sep))
 
     result.append(getStatic("CompiledFunctionType.cpp"))
-    result.append(getStatic("CompiledGeneratorType.cpp"))
     result.append(getStatic("CompiledMethodType.cpp"))
+    result.append(getStatic("CompiledGeneratorType.cpp"))
+    if python_version >= "3.5":
+        result.append(getStatic("CompiledCoroutineType.cpp"))
     result.append(getStatic("CompiledFrameType.cpp"))
     result.append(getStatic("CompiledCodeHelpers.cpp"))
     result.append(getStatic("InspectPatcher.cpp"))
