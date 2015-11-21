@@ -527,22 +527,22 @@ extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObj
 #endif
 
 
-// For quicker builtin open() functionality.
+// For quicker built-in open() functionality.
 extern PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering );
 
-// For quicker builtin chr() functionality.
+// For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR( PyObject *value );
 
-// For quicker builtin ord() functionality.
+// For quicker built-in ord() functionality.
 extern PyObject *BUILTIN_ORD( PyObject *value );
 
-// For quicker builtin bin() functionality.
+// For quicker built-in bin() functionality.
 extern PyObject *BUILTIN_BIN( PyObject *value );
 
-// For quicker builtin oct() functionality.
+// For quicker built-in oct() functionality.
 extern PyObject *BUILTIN_OCT( PyObject *value );
 
-// For quicker builtin hex() functionality.
+// For quicker built-in hex() functionality.
 extern PyObject *BUILTIN_HEX( PyObject *value );
 
 // For quicker callable() functionality.
@@ -558,17 +558,17 @@ extern PyObject *BUILTIN_TYPE1( PyObject *arg );
 // type).
 extern PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict );
 
-// For built-in builtin range() functionality.
+// For built-in built-in range() functionality.
 extern PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step );
 extern PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high );
 extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 
 extern PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step );
 
-// For built-in builtin len() functionality.
+// For built-in built-in len() functionality.
 extern PyObject *BUILTIN_LEN( PyObject *boundary );
 
-// For built-in builtin super() functionality.
+// For built-in built-in super() functionality.
 extern PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object );
 
 // For built-in isinstance() functionality.
@@ -632,10 +632,10 @@ extern void enhancePythonTypes( void );
 extern void setupMetaPathBasedLoader( void );
 
 // Parse the command line parameters and provide it to sys module. It may
-// maniputate them, therefore argc is passed as a pointer.
+// manipulate them, therefore argc is passed as a pointer.
 extern bool setCommandLineParameters( int *argc, char *argv[], bool initial );
 
-// Replace builtin functions with ones that accept compiled types too.
+// Replace built-in functions with ones that accept compiled types too.
 extern void patchBuiltinModule( void );
 
 // Replace type comparison with one that accepts compiled types too, will work

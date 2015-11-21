@@ -315,6 +315,8 @@ static PyObject *Nuitka_Frame_clear( PyFrameObject *frame )
     {
         Py_INCREF( frame );
 
+        assert( Nuitka_Generator_Check( frame->f_gen ) );
+
         Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)frame->f_gen;
         frame->f_gen = NULL;
 

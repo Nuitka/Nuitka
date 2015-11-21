@@ -106,7 +106,7 @@ def buildNode(provider, node, source_ref, allow_none = False):
         elif kind == "Pass":
             result = None
         else:
-            assert False, kind
+            assert False, ast.dump(node)
 
         if result is None and allow_none:
             return None

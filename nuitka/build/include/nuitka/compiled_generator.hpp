@@ -28,8 +28,6 @@
 // normal generator function objects do or even better.
 
 
-// *** Nuitka_Generator type begin
-
 #include "fibers.hpp"
 
 // Status of the generator object.
