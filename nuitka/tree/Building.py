@@ -49,11 +49,9 @@ catching and passing in exceptions raised.
 
 """
 
-
-import ast
 import sys
 
-from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing
+from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
@@ -104,6 +102,7 @@ from .Helpers import (
     makeStatementsSequenceOrStatement,
     mangleName,
     mergeStatements,
+    parseSourceCodeToAst,
     setBuildingDispatchers
 )
 from .ReformulationAssertStatements import buildAssertNode
@@ -703,52 +702,15 @@ setBuildingDispatchers(
 )
 
 
-def _makeSyntaxErrorCompatible(e):
-    # Encoding problems for Python happen here, for Python3, this was
-    # already done when we read the source code.
-    if Options.isFullCompat() and \
-       (e.args[0].startswith("unknown encoding:") or \
-        e.args[0].startswith("encoding problem:")):
-        if PythonVersions.doShowUnknownEncodingName():
-            complaint = e.args[0].split(':',2)[1]
-        else:
-            complaint = " with BOM"
-
-        e.args = (
-            "encoding problem:%s" % complaint,
-            (e.args[1][0], 1, None, None)
-        )
-
-        if hasattr(e, "msg"):
-            e.msg = e.args[0]
-
-
-
 def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # There are a bunch of branches here, mostly to deal with version
-    # differences for module default variables. pylint: disable=R0912
+    # differences for module default variables.
 
-    # Workaround: ast.parse cannot cope with some situations where a file is not
-    # terminated by a new line.
-    if not source_code.endswith('\n'):
-        source_code = source_code + '\n'
-
-    try:
-        body = ast.parse(source_code, source_ref.getFilename())
-    except SyntaxError as e:
-        _makeSyntaxErrorCompatible(e)
-
-        raise e
-
-    assert getKind(body) == "Module"
-
-    line_offset = source_ref.getLineNumber() - 1
-
-    if line_offset > 0:
-        for created_node in ast.walk(body):
-            if hasattr(created_node, "lineno"):
-                created_node.lineno += line_offset
-
+    body = parseSourceCodeToAst(
+        source_code = source_code,
+        filename    = source_ref.getFilename(),
+        line_offset = source_ref.getLineNumber() - 1
+    )
     body, doc = extractDocFromBody(body)
 
     result = buildStatementsNode(

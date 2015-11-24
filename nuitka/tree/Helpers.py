@@ -22,7 +22,7 @@
 import ast
 from logging import warning
 
-from nuitka import Constants, Tracing
+from nuitka import Constants, Options, Tracing
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import (
@@ -43,6 +43,7 @@ from nuitka.nodes.StatementNodes import (
     StatementGeneratorEntry,
     StatementsSequence
 )
+from nuitka.PythonVersions import doShowUnknownEncodingName, python_version
 
 
 def dump(node):
@@ -59,6 +60,47 @@ def extractDocFromBody(node):
         return node.body[1:], node.body[0].value.s
     else:
         return node.body, None
+
+
+def _makeSyntaxErrorCompatible(e):
+    # Encoding problems for Python happen here, for Python3, this was
+    # already done when we read the source code.
+    if Options.isFullCompat() and \
+       (e.args[0].startswith("unknown encoding:") or \
+        e.args[0].startswith("encoding problem:")):
+        if doShowUnknownEncodingName():
+            complaint = e.args[0].split(':',2)[1]
+        else:
+            complaint = " with BOM"
+
+        e.args = (
+            "encoding problem:%s" % complaint,
+            (e.args[1][0], 1, None, None)
+        )
+
+        if hasattr(e, "msg"):
+            e.msg = e.args[0]
+
+
+def parseSourceCodeToAst(source_code, filename, line_offset):
+    # Workaround: ast.parse cannot cope with some situations where a file is not
+    # terminated by a new line.
+    if not source_code.endswith('\n'):
+        source_code = source_code + '\n'
+
+    try:
+        body = ast.parse(source_code, filename)
+    except SyntaxError as e:
+        _makeSyntaxErrorCompatible(e)
+
+        raise e
+
+    assert getKind(body) == "Module"
+
+    if line_offset > 0:
+        ast.increment_lineno(body, line_offset)
+
+    return body
 
 
 build_nodes_args3 = None
