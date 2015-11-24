@@ -103,6 +103,113 @@ def parseSourceCodeToAst(source_code, filename, line_offset):
     return body
 
 
+def detectFunctionBodyKind(nodes):
+    # This is a complex mess, following the scope means a lot of checks need
+    # to be done. pylint: disable=R0912,R0915
+
+    indications = set()
+    # print "Enter"
+
+    def _check(node):
+
+        # print "consider", node.__class__
+
+        node_class = node.__class__
+
+        if node_class is ast.Yield:
+            indications.add("Generator")
+        elif python_version >= 330 and node_class is ast.YieldFrom:  # @UndefinedVariable
+            indications.add("Generator")
+        elif python_version >= 350 and node_class in (ast.Await, ast.AsyncWith):  # @UndefinedVariable
+            indications.add("Coroutine")
+
+        if node_class is ast.ClassDef:
+            for name, field in ast.iter_fields(node):
+                if name in ("name", "body"):
+                    pass
+                elif name in ("bases", "decorator_list", "keywords"):
+                    for child in field:
+                        _check(child)
+                elif name == "starargs":
+                    if field is not None:
+                        _check(field)
+                elif name == "kwargs":
+                    if field is not None:
+                        _check(field)
+                else:
+                    assert False, (name, field, ast.dump(node))
+        elif node_class in (ast.FunctionDef, ast.Lambda) or \
+             (python_version >= 350 and node_class is ast.AsyncFunctionDef):  # @UndefinedVariable
+            for name, field in ast.iter_fields(node):
+                if name in ("name", "body"):
+                    pass
+                elif name in ("bases", "decorator_list"):
+                    for child in field:
+                        _check(child)
+                elif name == "args":
+                    for child in field.defaults:
+                        _check(child)
+
+                    if python_version >= 300:
+                        for child in node.args.kw_defaults:
+                            if child is not None:
+                                _check(child)
+
+                        for child in node.args.args:
+                            if child.annotation is not None:
+                                _check(child.annotation)
+
+                elif name == "returns":
+                    if field is not None:
+                        _check(field)
+                else:
+                    assert False, (name, field, ast.dump(node))
+        elif node_class is ast.GeneratorExp:
+            for name, field in ast.iter_fields(node):
+                if name in ("name", "body", "comparators", "elt"):
+                    pass
+                elif name == "generators":
+                    _check(field[0].iter)
+                else:
+                    assert False, (name, field, ast.dump(node))
+        elif node_class is ast.ListComp and python_version >= 300:
+            for name, field in ast.iter_fields(node):
+                if name in ("name", "body", "comparators", "elt"):
+                    pass
+                elif name == "generators":
+                    _check(field[0].iter)
+                else:
+                    assert False, (name, field, ast.dump(node))
+        elif python_version >= 270 and node_class is ast.SetComp:
+            for name, field in ast.iter_fields(node):
+                if name in ("name", "body", "comparators", "elt"):
+                    pass
+                elif name == "generators":
+                    _check(field[0].iter)
+                else:
+                    assert False, (name, field, ast.dump(node))
+        elif python_version >= 270 and node_class is ast.DictComp:
+            for name, field in ast.iter_fields(node):
+                if name in ("name", "body", "comparators", "key", "value"):
+                    pass
+                elif name == "generators":
+                    _check(field[0].iter)
+                else:
+                    assert False, (name, field, ast.dump(node))
+        else:
+            for child in ast.iter_child_nodes(node):
+                _check(child)
+
+    for node in nodes:
+        _check(node)
+
+    if indications:
+        assert len(indications) == 1
+        return indications.pop()
+    else:
+        return "Function"
+
+
 build_nodes_args3 = None
 build_nodes_args2 = None
 build_nodes_args1 = None

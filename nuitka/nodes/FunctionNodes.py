@@ -85,11 +85,37 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         # officially a child yet. Important during building.
         self.parent = provider
 
+        # Python3.4: Might be overridden by global statement on the class name.
+        # TODO: Make this class only code.
+        if Utils.python_version >= 340:
+            self.qualname_provider = provider
+
         self.constraint_collection = None
 
     @staticmethod
     def isExpressionFunctionBodyBase():
         return True
+
+    def getFunctionQualname(self):
+        """ Function __qualname__ new in CPython3.3
+
+        Should contain some kind of full name descriptions for the closure to
+        recognize and will be used for outputs.
+        """
+
+        function_name = self.getFunctionName()
+
+        if Utils.python_version < 340:
+            provider = self.getParentVariableProvider()
+        else:
+            provider = self.qualname_provider
+
+        if provider.isCompiledPythonModule():
+            return function_name
+        elif provider.isExpressionClassBody():
+            return provider.getFunctionQualname() + '.' + function_name
+        else:
+            return provider.getFunctionQualname() + ".<locals>." + function_name
 
 
 class ExpressionFunctionBody(ExpressionFunctionBodyBase,
@@ -194,10 +220,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
 
-        # Python3.4: Might be overridden by global statement on the class name.
-        if Utils.python_version >= 340:
-            self.qualname_provider = provider
-
         self.parameters = parameters
         self.parameters.setOwner(self)
 
@@ -241,27 +263,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             return "<genexpr>"
         else:
             return self.name
-
-    def getFunctionQualname(self):
-        """ Function __qualname__ new in CPython3.3
-
-        Should contain some kind of full name descriptions for the closure to
-        recognize and will be used for outputs.
-        """
-
-        function_name = self.getFunctionName()
-
-        if Utils.python_version < 340:
-            provider = self.getParentVariableProvider()
-        else:
-            provider = self.qualname_provider
-
-        if provider.isCompiledPythonModule():
-            return function_name
-        elif provider.isExpressionClassBody():
-            return provider.getFunctionQualname() + '.' + function_name
-        else:
-            return provider.getFunctionQualname() + ".<locals>." + function_name
 
     def getDoc(self):
         return self.doc

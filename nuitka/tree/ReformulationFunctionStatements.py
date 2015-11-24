@@ -47,6 +47,7 @@ from .Helpers import (
     buildNode,
     buildNodeList,
     buildStatementsNode,
+    detectFunctionBodyKind,
     extractDocFromBody,
     getKind,
     makeDictCreationOrConstant,
@@ -87,9 +88,13 @@ def _insertFinalReturnStatement(function_statements_body, source_ref):
 
 
 def buildFunctionNode(provider, node, source_ref):
+    # Functions have way too many details, pylint: disable=R0914
+
     assert getKind(node) == "FunctionDef"
 
     function_statements, function_doc = extractDocFromBody(node)
+
+    function_kind = detectFunctionBodyKind(function_statements)
 
     function_body = ExpressionFunctionBody(
         provider   = provider,
@@ -128,8 +133,10 @@ def buildFunctionNode(provider, node, source_ref):
 
     if function_body.isGenerator():
         # TODO: raise generator exit?
-        pass
+        assert function_kind == "Generator", function_kind
     else:
+        assert function_kind == "Function", function_kind
+
         function_statements_body = _insertFinalReturnStatement(
             function_statements_body = function_statements_body,
             source_ref               = source_ref
