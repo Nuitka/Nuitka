@@ -71,8 +71,11 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 # TODO: Make the try/catch below unnecessary by detecting the presence
 # or return statements in generators.
 template_genfunc_yielder_template = """
-static void %(function_identifier)s_context2( Nuitka_GeneratorObject *generator )
+static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
+    CHECK_OBJECT( (PyObject *)generator );
+    assert( Nuitka_Generator_Check( (PyObject *)generator ) );
+
     // Local variable initialization
 %(function_var_inits)s
 
@@ -81,30 +84,7 @@ static void %(function_identifier)s_context2( Nuitka_GeneratorObject *generator 
 
 %(generator_exit)s
 }
-
-#ifdef _NUITKA_MAKECONTEXT_INTS
-static void %(function_identifier)s_context( int generator_address_1, int generator_address_2 )
-{
-    // Restore the pointer from ints should it be necessary, often it can be
-    // directly received.
-    int generator_addresses[2] = {
-        generator_address_1,
-        generator_address_2
-    };
-
-    Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)*(uintptr_t *)&generator_addresses[0];
-#else
-static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
-{
-#endif
-
-    CHECK_OBJECT( (PyObject *)generator );
-    assert( Nuitka_Generator_Check( (PyObject *)generator ) );
-
-    %(function_identifier)s_context2( generator );
-
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-}"""
+"""
 
 template_generator_exception_exit = """\
     RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );

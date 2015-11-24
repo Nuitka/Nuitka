@@ -81,14 +81,7 @@ typedef struct {
 
 extern PyTypeObject Nuitka_Generator_Type;
 
-// For the yielder func, we may need to follow what makecontext will support and
-// that is only a list of ints, but we will need to push a pointer through it,
-// and so it's two of them, which might be sufficient.
-#ifdef _NUITKA_MAKECONTEXT_INTS
-typedef void (*yielder_func)( int, int );
-#else
 typedef void (*yielder_func)( Nuitka_GeneratorObject * );
-#endif
 
 #if PYTHON_VERSION < 350
 extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given );

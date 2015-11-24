@@ -63,6 +63,31 @@ static void Nuitka_Generator_release_parameters( Nuitka_GeneratorObject *generat
     generator->m_parameters = NULL;
 }
 
+// For the generator object fiber entry point, we may need to follow what
+// "makecontext" will support and that is only a list of integers, but we will need
+// to push a pointer through it, and so it's two of them, which might be fully
+// sufficient.
+
+#ifdef _NUITKA_MAKECONTEXT_INTS
+static void Nuitka_Generator_entry_point( int generator_address_1, int generator_address_2 )
+{
+    // Restore the pointer from integers should it be necessary, depending on
+    // the platform. This requires pointers to be no larger that to "int" value.
+    int generator_addresses[2] = {
+        generator_address_1,
+        generator_address_2
+    };
+
+    Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)*(uintptr_t *)&generator_addresses[0];
+#else
+static void Nuitka_Generator_entry_point( Nuitka_GeneratorObject *generator )
+{
+#endif
+    ((yielder_func)generator->m_code)( generator );
+
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+}
+
 static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObject *value )
 {
     if ( generator->m_status == status_Unused && value != NULL && value != Py_None )
@@ -93,7 +118,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
         if ( generator->m_status == status_Unused )
         {
             // Prepare the generator context to run.
-            int res = prepareFiber( &generator->m_yielder_context, generator->m_code, (uintptr_t)generator );
+            int res = prepareFiber( &generator->m_yielder_context, (void *)Nuitka_Generator_entry_point, (uintptr_t)generator );
 
             if ( res != 0 )
             {
