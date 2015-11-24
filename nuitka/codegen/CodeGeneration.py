@@ -3089,7 +3089,10 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
     if guard_mode != "pass_through":
         if provider.isExpressionFunctionBody():
-            context.setFrameHandle("frame_function")
+            if provider.isGenerator():
+                context.setFrameHandle("generator->m_frame")
+            else:
+                context.setFrameHandle("frame_function")
         else:
             context.setFrameHandle("frame_module")
 
@@ -3139,7 +3142,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         # Python3 it is actually not a stub of empty code.
 
         codes = getFrameGuardLightCode(
-            frame_identifier      = context.getFrameHandle(),
             code_identifier       = statement_sequence.getCodeObjectHandle(
                 context = context
             ),
