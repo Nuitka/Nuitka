@@ -143,7 +143,7 @@ from .ReformulationSequenceCreation import buildSequenceCreationNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
-from .ReformulationWithStatements import buildWithNode
+from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
 from .SourceReading import readSourceCodeFromFilename
 from .VariableClosure import completeVariableClosures
@@ -669,6 +669,7 @@ setBuildingDispatchers(
         "Assert"            : buildAssertNode,
         "Exec"              : buildExecNode,
         "With"              : buildWithNode,
+        "AsyncWith"         : buildAsyncWithNode,
         "FunctionDef"       : buildFunctionNode,
         "AsyncFunctionDef"  : buildAsyncFunctionNode,
         "Await"             : buildAwaitNode,
