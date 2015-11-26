@@ -696,6 +696,12 @@ if not positional_args:
     sys.exit("""
 Error, need positional argument with python module or main program.""")
 
+if not options.immediate_execution and len(positional_args) > 1:
+    parser.print_help()
+
+    sys.exit("""
+Error, need only one positional argument unless --run is specified.""")
+
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 else:

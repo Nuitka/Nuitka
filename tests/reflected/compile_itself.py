@@ -370,7 +370,6 @@ def executePASS5():
     command = [
         os.environ["PYTHON"],
         nuitka_main_path,
-        path,
         "--plugin-enable=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--recurse-all",
@@ -381,6 +380,7 @@ def executePASS5():
         path
 
     ]
+
     result = subprocess.call(
         command
     )
