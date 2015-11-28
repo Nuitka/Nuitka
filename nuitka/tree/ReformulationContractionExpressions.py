@@ -44,7 +44,8 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef
+    ExpressionFunctionRef,
+    ExpressionGeneratorFunctionBody
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
 from nuitka.nodes.NodeMakingHelpers import (
@@ -213,7 +214,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         else:
             assert emit_class is ExpressionYield
 
-            function_body.markAsGenerator()
+            assert function_body.isGenerator()
 
             current_body = emit_class(
                 buildNode(
@@ -423,7 +424,28 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             temp_scope = None,
             name       = ".0"
         )
+    elif emit_class is ExpressionYield:
+        function_body = ExpressionGeneratorFunctionBody(
+            provider   = provider,
+            name       = name,
+            doc        = None,
+            parameters = ParameterSpec(
+                name          = "contraction",
+                normal_args   = (".0",),
+                list_star_arg = None,
+                dict_star_arg = None,
+                default_count = 0,
+                kw_only_args  = ()
+            ),
+            source_ref = source_ref
+        )
+
+        iter_tmp = function_body.getVariableForAssignment(
+            variable_name = ".0"
+        )
+        assert iter_tmp.isParameterVariable()
     else:
+
         function_body = ExpressionFunctionBody(
             provider   = provider,
             name       = name,

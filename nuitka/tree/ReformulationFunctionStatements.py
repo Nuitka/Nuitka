@@ -36,7 +36,8 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionCoroutineCreation,
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef
+    ExpressionFunctionRef,
+    ExpressionGeneratorFunctionBody
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -96,14 +97,25 @@ def buildFunctionNode(provider, node, source_ref):
 
     function_kind = detectFunctionBodyKind(function_statements)
 
-    function_body = ExpressionFunctionBody(
-        provider   = provider,
-        name       = node.name,
-        doc        = function_doc,
-        parameters = buildParameterSpec(provider, node.name, node, source_ref),
-        is_class   = False,
-        source_ref = source_ref
-    )
+    if function_kind == "Function":
+        function_body = ExpressionFunctionBody(
+            provider   = provider,
+            name       = node.name,
+            doc        = function_doc,
+            parameters = buildParameterSpec(provider, node.name, node, source_ref),
+            is_class   = False,
+            source_ref = source_ref
+        )
+    elif function_kind == "Generator":
+        function_body = ExpressionGeneratorFunctionBody(
+            provider   = provider,
+            name       = node.name,
+            doc        = function_doc,
+            parameters = buildParameterSpec(provider, node.name, node, source_ref),
+            source_ref = source_ref
+        )
+    else:
+        assert False, function_kind
 
     decorators = buildNodeList(
         provider   = provider,

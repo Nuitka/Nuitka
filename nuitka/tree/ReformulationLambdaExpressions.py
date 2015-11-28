@@ -33,6 +33,7 @@ from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
+    ExpressionGeneratorFunctionBody,
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
     ExpressionFunctionRef
@@ -46,6 +47,7 @@ from .Helpers import (
     buildNode,
     buildNodeList,
     getKind,
+    detectFunctionBodyKind,
     makeStatementsSequenceFromStatement,
     mergeStatements
 )
@@ -62,14 +64,27 @@ def buildLambdaNode(provider, node, source_ref):
 
     parameters = buildParameterSpec(provider, "<lambda>", node, source_ref)
 
-    function_body = ExpressionFunctionBody(
-        provider   = provider,
-        name       = "<lambda>",
-        doc        = None,
-        parameters = parameters,
-        is_class   = False,
-        source_ref = source_ref,
+    function_kind = detectFunctionBodyKind(
+        nodes = (node.body,)
     )
+
+    if function_kind == "Function":
+        function_body = ExpressionFunctionBody(
+            provider   = provider,
+            name       = "<lambda>",
+            doc        = None,
+            parameters = parameters,
+            is_class   = False,
+            source_ref = source_ref,
+        )
+    else:
+        function_body = ExpressionGeneratorFunctionBody(
+            provider   = provider,
+            name       = "<lambda>",
+            doc        = None,
+            parameters = parameters,
+            source_ref = source_ref,
+        )
 
     defaults = buildNodeList(provider, node.args.defaults, source_ref)
     kw_defaults = buildParameterKwDefaults(

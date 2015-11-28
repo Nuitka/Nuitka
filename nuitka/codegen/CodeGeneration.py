@@ -427,7 +427,6 @@ def generateFunctionBodyCode(function_body, context):
     parameters = function_body.getParameters()
 
     needs_exception_exit = function_body.mayRaiseException(BaseException)
-    needs_generator_return = function_body.needsGeneratorReturnExit()
 
     if function_body.isGenerator():
         source_ref = function_body.getSourceReference()
@@ -460,7 +459,7 @@ def generateFunctionBodyCode(function_body, context):
             function_codes         = function_codes.codes,
             function_doc           = function_body.getDoc(),
             needs_exception_exit   = needs_exception_exit,
-            needs_generator_return = needs_generator_return
+            needs_generator_return = function_body.needsGeneratorReturnExit()
         )
     else:
         function_code = getFunctionCode(

@@ -35,7 +35,6 @@ from nuitka.utils import Utils
 
 from .Checkers import checkStatementsSequenceOrNone
 from .IndicatorMixins import (
-    MarkGeneratorIndicator,
     MarkLocalsDictIndicator,
     MarkUnoptimizedFunctionIndicator
 )
@@ -119,7 +118,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
 
 class ExpressionFunctionBody(ExpressionFunctionBodyBase,
-                             MarkGeneratorIndicator,
                              MarkLocalsDictIndicator,
                              MarkUnoptimizedFunctionIndicator):
     # We really want these many ancestors, as per design, we add properties via
@@ -147,7 +145,11 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         if is_class:
             code_prefix = "class"
         else:
-            code_prefix = "function"
+            # TODO: Temporarily only
+            if self.isGenerator():
+                code_prefix = "generator"
+            else:
+                code_prefix = "function"
 
         if name == "<lambda>":
             name = "lambda"
@@ -193,8 +195,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             is_class    = is_class,
             source_ref  = source_ref
         )
-
-        MarkGeneratorIndicator.__init__(self)
 
         MarkLocalsDictIndicator.__init__(self)
 
@@ -471,6 +471,63 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
     def needsExceptionReturnValue(self):
         return self.return_exception
+
+    @staticmethod
+    def isGenerator():
+        return False
+
+
+class ExpressionGeneratorFunctionBody(ExpressionFunctionBody):
+    # We really want these many ancestors, as per design, we add properties via
+    # base class mix-ins a lot, leading to many instance attributes, and
+    # methods, pylint: disable=R0901
+
+    kind = "EXPRESSION_GENERATOR_FUNCTION_BODY"
+
+    named_children = (
+        "body",
+    )
+
+    checkers = {
+        # TODO: Is "None" really an allowed value.
+        "body" : checkStatementsSequenceOrNone
+    }
+
+    if Utils.python_version >= 340:
+        qualname_setup = None
+
+    def __init__(self, provider, name, doc, parameters, source_ref):
+        ExpressionFunctionBody.__init__(
+            self,
+            provider   = provider,
+            name       = name,
+            doc        = doc,
+            parameters = parameters,
+            is_class   = False,
+            source_ref = source_ref
+        )
+
+        self.needs_generator_return_exit = False
+
+    @staticmethod
+    def isExpressionFunctionBody():
+        return True
+
+    @staticmethod
+    def isGenerator():
+        return True
+
+    def markAsNeedsGeneratorReturnHandling(self, value):
+        self.needs_generator_return_exit = max(
+            self.needs_generator_return_exit,
+            value
+        )
+
+    def needsGeneratorReturnHandling(self):
+        return self.needs_generator_return_exit == 2
+
+    def needsGeneratorReturnExit(self):
+        return bool(self.needs_generator_return_exit)
 
 
 class ExpressionClassBody(ExpressionFunctionBody):
