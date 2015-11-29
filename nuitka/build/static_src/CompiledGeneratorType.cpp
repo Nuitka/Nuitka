@@ -39,13 +39,10 @@ static PyObject *Nuitka_Generator_tp_repr( Nuitka_GeneratorObject *generator )
 #endif
 }
 
-static long Nuitka_Generator_tp_traverse( PyObject *generator, visitproc visit, void *arg )
+static long Nuitka_Generator_tp_traverse( Nuitka_GeneratorObject *generator, visitproc visit, void *arg )
 {
-    // TODO: Identify the impact of not visiting owned objects and/or if it
-    // could be NULL instead. The "methodobject" visits its self and module. I
-    // understand this is probably so that back references of this function to
-    // its upper do not make it stay in the memory. A specific test if that
-    // works might be needed.
+    Py_VISIT( (PyObject *)generator->m_frame );
+
     return 0;
 }
 
