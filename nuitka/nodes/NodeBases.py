@@ -633,11 +633,11 @@ class CodeNodeBase(NodeBase):
 
     def getChildUID(self, node):
         if node.kind not in self.uids:
-            self.uids[ node.kind ] = 0
+            self.uids[node.kind] = 0
 
-        self.uids[ node.kind ] += 1
+        self.uids[node.kind] += 1
 
-        return self.uids[ node.kind ]
+        return self.uids[node.kind]
 
 
 class ChildrenHavingMixin:
