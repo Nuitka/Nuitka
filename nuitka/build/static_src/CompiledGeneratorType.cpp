@@ -60,6 +60,7 @@ static void Nuitka_Generator_release_parameters( Nuitka_GeneratorObject *generat
         }
     }
 
+    free( generator->m_parameters );
     generator->m_parameters = NULL;
 }
 
