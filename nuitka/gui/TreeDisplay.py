@@ -50,13 +50,12 @@ class NodeTreeModelItem:
                 self.node.getVisitableNodes()
             ]
 
-        if self.node.isCompiledPythonModule():
-            self.children.extend(
-                NodeTreeModelItem(child, self)
-                for child in
-                self.node.getFunctions()
-            )
-
+            if self.node.isCompiledPythonModule():
+                self.children.extend(
+                    NodeTreeModelItem(child, self)
+                    for child in
+                    self.node.getUsedFunctions()
+                )
 
         return self.children
 
@@ -168,9 +167,16 @@ class NodeTreeModel(QtCore.QAbstractItemModel):
         current = self.root_node
 
         while tree_path:
-            current = current.getVisitableNodes()[ tree_path[0] ]
-
+            index = tree_path[0]
             del tree_path[0]
+
+            if current.isCompiledPythonModule():
+                if index == 0:
+                    current = current.getBody()
+                else:
+                    current = tuple(current.getUsedFunctions())[index-1]
+            else:
+                current = current.getVisitableNodes()[index]
 
         return current
 
