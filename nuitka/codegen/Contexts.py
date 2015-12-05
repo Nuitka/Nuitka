@@ -221,8 +221,8 @@ class CodeObjectsMixin:
     # Sad but true, code objects have these many details that actually are fed
     # from all different sources, pylint: disable=R0913
     def getCodeObjectHandle(self, filename, code_name, line_number, var_names,
-                            arg_count, kw_only_count, is_generator,
-                            is_optimized, has_starlist, has_stardict,
+                            arg_count, kw_only_count, is_generator, is_optimized,
+                            new_locals, has_starlist, has_stardict,
                             has_closure, future_flags):
         var_names = tuple(var_names)
 
@@ -238,6 +238,7 @@ class CodeObjectsMixin:
             kw_only_count,
             is_generator,
             is_optimized,
+            new_locals,
             has_starlist,
             has_stardict,
             has_closure,
@@ -252,14 +253,14 @@ class CodeObjectsMixin:
     if python_version < 300:
         def _calcHash(self, key):
             hash_value = hashlib.md5(
-                "%s%s%d%s%d%d%s%s%s%s%s%s" % key
+                "%s%s%d%s%d%d%s%s%s%s%s%s%s" % key
             )
 
             return hash_value.hexdigest()
     else:
         def _calcHash(self, key):
             hash_value = hashlib.md5(
-                ("%s%s%d%s%d%d%s%s%s%s%s%s" % key).encode("utf-8")
+                ("%s%s%d%s%d%d%s%s%s%s%s%s%s" % key).encode("utf-8")
             )
 
             return hash_value.hexdigest()
@@ -749,6 +750,17 @@ class PythonFunctionDirectContext(PythonFunctionContext):
 
 
 class PythonFunctionCoroutineContext(PythonFunctionContext):
+    def isForDirectCall(self):
+        return False
+
+    def isForCrossModuleUsage(self):
+        return self.function.isCrossModuleUsed()
+
+    def isForCreatedFunction(self):
+        return False
+
+
+class PythonGeneratorObjectContext(PythonFunctionContext):
     def isForDirectCall(self):
         return False
 

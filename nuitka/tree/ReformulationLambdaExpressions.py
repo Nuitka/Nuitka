@@ -28,15 +28,16 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
-    ExpressionGeneratorFunctionBody,
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef
+    ExpressionFunctionRef,
+    ExpressionGeneratorFunctionBody
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
@@ -46,8 +47,8 @@ from nuitka.utils import Utils
 from .Helpers import (
     buildNode,
     buildNodeList,
-    getKind,
     detectFunctionBodyKind,
+    getKind,
     makeStatementsSequenceFromStatement,
     mergeStatements
 )
@@ -164,18 +165,21 @@ def buildLambdaNode(provider, node, source_ref):
             source_ref = source_ref
         )
 
-    body = StatementsFrame(
-        statements    = mergeStatements(
-            (body,)
-        ),
-        guard_mode    = "generator" if function_body.isGenerator() else "full",
-        var_names     = parameters.getCoArgNames(),
-        arg_count     = parameters.getArgumentCount(),
+    code_object = CodeObjectSpec(
+        arg_names     = parameters.getCoArgNames(),
         kw_only_count = parameters.getKwOnlyParameterCount(),
         has_starlist  = parameters.getStarListArgumentName() is not None,
         has_stardict  = parameters.getStarDictArgumentName() is not None,
         code_name     = "<lambda>",
-        source_ref    = body.getSourceReference()
+    )
+
+    body = StatementsFrame(
+        statements  = mergeStatements(
+            (body,)
+        ),
+        code_object = code_object,
+        guard_mode  = "generator" if function_body.isGenerator() else "full",
+        source_ref  = body.getSourceReference()
     )
 
 
@@ -192,6 +196,7 @@ def buildLambdaNode(provider, node, source_ref):
             function_body = function_body,
             source_ref    = source_ref
         ),
+        code_object  = code_object,
         defaults     = defaults,
         kw_defaults  = kw_defaults,
         annotations  = annotations,

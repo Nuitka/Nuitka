@@ -837,7 +837,6 @@ class ChildrenHavingMixin:
 
             raise
 
-
         effective_source_ref = self.getCompatibleSourceReference()
 
         if effective_source_ref is not self.source_ref:

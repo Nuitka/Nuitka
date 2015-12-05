@@ -59,6 +59,17 @@ static void Nuitka_Generator_release_parameters( Nuitka_GeneratorObject *generat
 
     free( generator->m_parameters );
     generator->m_parameters = NULL;
+
+    if ( generator->m_closure )
+    {
+        for( Py_ssize_t i = 0; i < generator->m_closure_given; i++ )
+        {
+            Py_DECREF( generator->m_closure[ i ] );
+        }
+
+        free( generator->m_closure );
+        generator->m_closure = NULL;
+    }
 }
 
 // For the generator object fiber entry point, we may need to follow what
@@ -452,16 +463,6 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
 
     Nuitka_Generator_release_parameters( generator );
 
-    if ( generator->m_parameters_given ) free( generator->m_parameters );
-    if ( generator->m_closure_given )
-    {
-        for( Py_ssize_t i = 0; i < generator->m_closure_given; i++ )
-        {
-            Py_DECREF( generator->m_closure[ i ] );
-        }
-        free( generator->m_closure );
-    }
-
     Py_XDECREF( generator->m_frame );
 
     assert( Py_REFCNT( generator ) == 1 );
@@ -689,17 +690,7 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qua
 #endif
 {
     Nuitka_GeneratorObject *result = PyObject_GC_New( Nuitka_GeneratorObject, &Nuitka_Generator_Type );
-
-    if (unlikely( result == NULL ))
-    {
-        PyErr_Format(
-            PyExc_RuntimeError,
-            "cannot create genexpr %s",
-            Nuitka_String_AsString( name )
-        );
-
-        return NULL;
-    }
+    assert( result != NULL );
 
     result->m_code = (void *)code;
 
@@ -707,8 +698,8 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qua
     Py_INCREF( name );
 
 #if PYTHON_VERSION >= 350
-    result->m_qualname = qualname;
-    Py_INCREF( qualname );
+    result->m_qualname = qualname ? qualname : name;
+    Py_INCREF( result->m_qualname );
 
     result->m_yieldfrom = NULL;
 #endif

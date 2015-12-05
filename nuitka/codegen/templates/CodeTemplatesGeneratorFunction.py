@@ -68,9 +68,11 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 }
 """
 
-# TODO: Make the try/catch below unnecessary by detecting the presence
-# or return statements in generators.
-template_genfunc_yielder_template = """
+template_genfunc_yielder_decl_template = """\
+static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator );
+"""
+
+template_genfunc_yielder_body_template = """
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
     CHECK_OBJECT( (PyObject *)generator );
@@ -85,6 +87,8 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 %(generator_exit)s
 }
 """
+
+
 
 template_generator_exception_exit = """\
     RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
@@ -179,6 +183,40 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
     return result;
 }
 """
+
+template_generator_making_without_context = """\
+%(to_name)s = Nuitka_Generator_New(
+    %(generator_identifier)s_context,
+    %(generator_name_obj)s,
+#if PYTHON_VERSION >= 350
+    %(generator_qualname_obj)s,
+#endif
+    %(code_identifier)s,
+    NULL,
+    0,
+    NULL,
+    0
+);
+"""
+
+template_generator_making_with_context = """\
+{
+%(closure_making)s
+    %(to_name)s = Nuitka_Generator_New(
+        %(generator_identifier)s_context,
+        %(generator_name_obj)s,
+#if PYTHON_VERSION >= 350
+        %(generator_qualname_obj)s,
+#endif
+        %(code_identifier)s,
+        closure,
+        %(closure_count)d,
+        NULL,
+        0
+    );
+}
+"""
+
 
 from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())

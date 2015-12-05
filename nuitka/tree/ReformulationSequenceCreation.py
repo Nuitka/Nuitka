@@ -405,6 +405,7 @@ def buildListUnpacking(provider, elements, source_ref):
                 function_body = getListUnpackingHelper(),
                 source_ref    = source_ref
             ),
+            code_object  = None,
             defaults     = (),
             kw_defaults  = None,
             annotations  = None,
@@ -458,6 +459,7 @@ def _buildSetUnpacking(provider, elements, source_ref):
                 function_body = getSetUnpackingHelper(),
                 source_ref    = source_ref
             ),
+            code_object  = None,
             defaults     = (),
             kw_defaults  = None,
             annotations  = None,

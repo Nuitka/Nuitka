@@ -23,6 +23,7 @@ import ast
 from logging import warning
 
 from nuitka import Constants, Options, Tracing
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import (
@@ -303,19 +304,20 @@ def makeModuleFrame(module, statements, source_ref):
         code_name = module.getName()
 
     return StatementsFrame(
-        statements    = statements,
-        guard_mode    = "once",
-        var_names     = (),
-        arg_count     = 0,
-        kw_only_count = 0,
-        code_name     = code_name,
-        has_starlist  = False,
-        has_stardict  = False,
-        source_ref    = source_ref
+        statements  = statements,
+        guard_mode  = "once",
+        code_object = CodeObjectSpec(
+            arg_names     = (),
+            kw_only_count = 0,
+            code_name     = code_name,
+            has_starlist  = False,
+            has_stardict  = False,
+        ),
+        source_ref  = source_ref
     )
 
 
-def buildStatementsNode(provider, nodes, source_ref, frame = False):
+def buildStatementsNode(provider, nodes, source_ref, code_object = None):
     # We are not creating empty statement sequences.
     if nodes is None:
         return None
@@ -331,16 +333,9 @@ def buildStatementsNode(provider, nodes, source_ref, frame = False):
         return None
 
     # In case of a frame is desired, build it instead.
-    if frame:
+    if code_object:
         if provider.isExpressionFunctionBody():
-            parameters = provider.getParameters()
-
-            arg_names     = parameters.getCoArgNames()
-            kw_only_count = parameters.getKwOnlyParameterCount()
-            code_name     = provider.getFunctionName()
             guard_mode    = "generator" if provider.isGenerator() else "full"
-            has_starlist  = parameters.getStarListArgumentName() is not None
-            has_stardict  = parameters.getStarDictArgumentName() is not None
 
             if provider.isGenerator():
                 statements.insert(
@@ -351,37 +346,19 @@ def buildStatementsNode(provider, nodes, source_ref, frame = False):
                 )
 
             return StatementsFrame(
-                statements    = statements,
-                guard_mode    = guard_mode,
-                var_names     = arg_names,
-                arg_count     = len(arg_names),
-                kw_only_count = kw_only_count,
-                code_name     = code_name,
-                has_starlist  = has_starlist,
-                has_stardict  = has_stardict,
-                source_ref    = source_ref
+                statements  = statements,
+                guard_mode  = guard_mode,
+                code_object = code_object,
+                source_ref  = source_ref
             )
         elif provider.isExpressionCoroutineBody():
             # TODO: That might be wrong
-            parameters = provider.getParentVariableProvider().getParameters()
-
-            arg_names     = parameters.getCoArgNames()
-            kw_only_count = parameters.getKwOnlyParameterCount()
-            code_name     = provider.getFunctionName()
-            guard_mode    = "generator", # TODO: Might be more special.
-            has_starlist  = parameters.getStarListArgumentName() is not None
-            has_stardict  = parameters.getStarDictArgumentName() is not None
 
             return StatementsFrame(
-                statements    = statements,
-                guard_mode    = guard_mode,
-                var_names     = arg_names,
-                arg_count     = len(arg_names),
-                kw_only_count = kw_only_count,
-                code_name     = code_name,
-                has_starlist  = has_starlist,
-                has_stardict  = has_stardict,
-                source_ref    = source_ref
+                statements  = statements,
+                guard_mode  = guard_mode,
+                code_object = code_object,
+                source_ref  = source_ref
             )
         else:
             return makeModuleFrame(

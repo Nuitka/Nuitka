@@ -50,50 +50,35 @@ def checkFrameStatements(value):
 
 
 class StatementsFrame(StatementsSequence):
-    # Frames got many details to store, pylint: disable=R0902
-
     kind = "STATEMENTS_FRAME"
 
     checkers = {
         "statements" : checkFrameStatements
     }
 
-    def __init__(self, statements, guard_mode, code_name, var_names, arg_count,
-                 kw_only_count, has_starlist, has_stardict, source_ref):
+    def __init__(self, statements, guard_mode, code_object, source_ref):
         StatementsSequence.__init__(
             self,
             statements = statements,
             source_ref = source_ref
         )
 
-        self.var_names = tuple(var_names)
-        self.code_name = code_name
-
-        self.kw_only_count = kw_only_count
-        self.arg_count = arg_count
-
+        # TODO: Why not have multiple classes for this.
         self.guard_mode = guard_mode
 
-        self.has_starlist = has_starlist
-        self.has_stardict = has_stardict
+        self.code_object = code_object
 
         self.needs_frame_exception_preserve = False
 
     def getDetails(self):
         result = {
-            "guard_mode" : self.guard_mode,
-            "code_name"  : self.code_name,
-            "var_names"  : self.var_names,
-            "arg_count"  : self.arg_count,
-            "kw_only_count" : self.kw_only_count,
-            "has_starlist" : self.has_starlist,
-            "has_stardict" : self.has_stardict,
+            "guard_mode"  : self.guard_mode,
+            "code_object" : self.code_object
         }
 
-        if python_version >= 300:
-            result["kw_only_count"] = self.kw_only_count
-
         result.update(StatementsSequence.getDetails(self))
+
+        result.update(self.code_object.getDetails())
 
         return result
 
@@ -109,9 +94,9 @@ class StatementsFrame(StatementsSequence):
         return self.guard_mode in preserving
 
     def getVarNames(self):
-        return self.var_names
+        return self.code_object.getVarNames()
 
-    def updateVarNames(self):
+    def updateLocalNames(self):
         """ For use during variable closure phase.
 
         """
@@ -119,26 +104,7 @@ class StatementsFrame(StatementsSequence):
 
         # TODO: Bad for in-lining of these.
         if provider.isExpressionFunctionBody():
-            var_names = provider.getParameters().getCoArgNames()
-
-            # Add names of local variables too.
-            var_names += [
-                local_variable.getName()
-                for local_variable in
-                provider.getLocalVariables()
-                if not local_variable.isParameterVariable()
-            ]
-
-            self.var_names = tuple(var_names)
-
-    def getCodeObjectName(self):
-        return self.code_name
-
-    def getKwOnlyParameterCount(self):
-        return self.kw_only_count
-
-    def getArgumentCount(self):
-        return self.arg_count
+            self.code_object.updateLocalNames(provider.getLocalVariableNames())
 
     def markAsFrameExceptionPreserving(self):
         self.needs_frame_exception_preserve = True
@@ -146,26 +112,37 @@ class StatementsFrame(StatementsSequence):
     def needsFrameExceptionPreserving(self):
         return self.needs_frame_exception_preserve
 
+    def getCodeObject(self):
+        return self.code_object
+
     def getCodeObjectHandle(self, context):
         provider = self.getParentVariableProvider()
+
+        is_optimized = not provider.isCompiledPythonModule() and \
+                       not provider.isExpressionClassBody() and \
+                       not provider.hasLocalsDict()
+
+        new_locals = not provider.isCompiledPythonModule() and \
+                     (python_version < 340 or (
+                     not provider.isExpressionClassBody() and \
+                     not provider.hasLocalsDict()))
 
         # TODO: Why do this accessing a node, do this outside.
         return context.getCodeObjectHandle(
             filename      = self.getParentModule().getRunTimeFilename(),
-            var_names     = self.getVarNames(),
-            arg_count     = self.getArgumentCount(),
-            kw_only_count = self.getKwOnlyParameterCount(),
-            line_number   = 0
+            var_names     = self.code_object.getVarNames(),
+            arg_count     = self.code_object.getArgumentCount(),
+            kw_only_count = self.code_object.getKwOnlyParameterCount(),
+            line_number   = 1
                               if provider.isCompiledPythonModule() else
                             self.source_ref.getLineNumber(),
-            code_name     = self.getCodeObjectName(),
+            code_name     = self.code_object.getCodeObjectName(),
             is_generator  = provider.isExpressionFunctionBody() and \
                             provider.isGenerator(),
-            is_optimized  = not provider.isCompiledPythonModule() and \
-                            not provider.isExpressionClassBody() and \
-                            not provider.hasLocalsDict(),
-            has_starlist  = self.has_starlist,
-            has_stardict  = self.has_stardict,
+            is_optimized  = is_optimized,
+            new_locals    = new_locals,
+            has_starlist  = self.code_object.has_starlist,
+            has_stardict  = self.code_object.has_stardict,
             has_closure   = provider.isExpressionFunctionBody() and \
                             provider.getClosureVariables() != () and \
                             not provider.isExpressionClassBody(),
@@ -247,7 +224,7 @@ class StatementsFrame(StatementsSequence):
                 constraint_collection.signalChange(
                     "new_statements",
                     self.getSourceReference(),
-                    "Removed useless frame object of '%s'." % self.getCodeObjectName()
+                    "Removed useless frame object of '%s'." % self.code_object.getCodeObjectName()
                 )
 
                 return makeStatementsSequenceReplacementNode(

@@ -168,6 +168,15 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         node.getVariable()
                     )
                 )
+        elif node.isExpressionGeneratorObjectBody():
+            # Python3.4 allows for class declarations to be made global, even
+            # after they were declared, so we need to fix this up.
+
+            # TODO: Is this even meaningful for generator objects, or is it
+            # only for their creating functions.
+            # TODO: Then this may not even have to be here at all.
+            if python_version >= 340:
+                self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
             if python_version >= 300:
                 self._handleNonLocal(node)
@@ -391,7 +400,7 @@ can not delete variable '%s' referenced in nested scope""" % (
                     display_line = not isFullCompat()
                 )
         elif node.isStatementsFrame():
-            node.updateVarNames()
+            node.updateLocalNames()
 
 
 def completeVariableClosures(tree):

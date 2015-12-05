@@ -32,6 +32,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     ExpressionBuiltinNext1
 )
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerOperationNodes import (
@@ -45,7 +46,8 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionRef,
-    ExpressionGeneratorFunctionBody
+    ExpressionGeneratorObjectBody,
+    ExpressionMakeGeneratorObject
 )
 from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
 from nuitka.nodes.NodeMakingHelpers import (
@@ -149,7 +151,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
 def _buildContractionBodyNode(provider, node, emit_class, start_value,
                               container_tmp, iter_tmp, temp_scope,
-                              assign_provider, source_ref, function_body):
+                              assign_provider, function_body, source_ref):
 
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
@@ -424,34 +426,16 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             temp_scope = None,
             name       = ".0"
         )
-    elif emit_class is ExpressionYield:
-        function_body = ExpressionGeneratorFunctionBody(
-            provider   = provider,
-            name       = name,
-            doc        = None,
-            parameters = ParameterSpec(
-                name          = "contraction",
-                normal_args   = (".0",),
-                list_star_arg = None,
-                dict_star_arg = None,
-                default_count = 0,
-                kw_only_args  = ()
-            ),
-            source_ref = source_ref
-        )
-
-        iter_tmp = function_body.getVariableForAssignment(
-            variable_name = ".0"
-        )
-        assert iter_tmp.isParameterVariable()
     else:
+        # TODO: No stinking function ought to be necessary.
+        contraction_maker_name = "contraction_" + name.strip("<>")
 
         function_body = ExpressionFunctionBody(
             provider   = provider,
-            name       = name,
+            name       = contraction_maker_name,
             doc        = None,
             parameters = ParameterSpec(
-                name          = "contraction",
+                name          = contraction_maker_name,
                 normal_args   = (".0",),
                 list_star_arg = None,
                 dict_star_arg = None,
@@ -467,8 +451,46 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         )
         assert iter_tmp.isParameterVariable()
 
+    code_object = CodeObjectSpec(
+        arg_names     = () if assign_provider else function_body.getParameters().getCoArgNames(),
+        kw_only_count = 0,
+        has_starlist  = False,
+        has_stardict  = False,
+        code_name     = name
+    )
+
+    if emit_class is ExpressionYield:
+        code_body = ExpressionGeneratorObjectBody(
+            provider   = function_body,
+            name       = "<genexpr>",
+            source_ref = source_ref
+        )
+
+        iter_tmp = code_body.getVariableForReference(
+            variable_name = ".0"
+        )
+        assert iter_tmp.isLocalVariable()
+
+        function_body.setBody(
+            makeStatementsSequenceFromStatement(
+                statement = StatementReturn(
+                    expression = ExpressionMakeGeneratorObject(
+                        generator_ref = ExpressionFunctionRef(
+                            function_body = code_body,
+                            source_ref    = source_ref
+                        ),
+                        code_object   = code_object,
+                        source_ref    = source_ref
+                    ),
+                    source_ref = source_ref
+                )
+            )
+        )
+    else:
+        code_body = function_body
+
     if start_value is not None:
-        container_tmp = function_body.allocateTempVariable(
+        container_tmp = code_body.allocateTempVariable(
             temp_scope = None,
             name       = "contraction_result"
         )
@@ -476,7 +498,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         container_tmp = None
 
     statements, release_statements = _buildContractionBodyNode(
-        function_body   = function_body,
+        function_body   = code_body,
         assign_provider = assign_provider,
         provider        = provider,
         node            = node,
@@ -508,20 +530,15 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         ),
     )
 
-    function_body.setBody(
+    code_body.setBody(
         makeStatementsSequenceFromStatement(
             statement = StatementsFrame(
-                statements    = mergeStatements(statements, False),
-                guard_mode    = "pass_through"
+                statements  = mergeStatements(statements, False),
+                guard_mode  = "pass_through"
                                   if emit_class is not ExpressionYield else
                                 "generator",
-                var_names     = (),
-                arg_count     = 0,
-                kw_only_count = 0,
-                has_starlist  = False,
-                has_stardict  = False,
-                code_name     = "contraction",
-                source_ref    = source_ref
+                code_object = code_object,
+                source_ref  = source_ref
             )
         )
     )
@@ -533,6 +550,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                     function_body = function_body,
                     source_ref    = source_ref
                 ),
+                code_object  = code_object,
                 defaults     = (),
                 kw_defaults  = None,
                 annotations  = None,

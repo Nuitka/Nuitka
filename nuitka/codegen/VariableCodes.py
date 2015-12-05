@@ -167,6 +167,7 @@ def _getLocalVariableCode(context, variable):
         else:
             return "self->m_closure[%d]" % closure_index, True
 
+
 def getVariableCode(context, variable):
     # Modules are simple.
     if variable.isModuleVariable():

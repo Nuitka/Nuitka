@@ -301,7 +301,7 @@ int main( int argc, char **argv )
     if ( ERROR_OCCURRED() )
     {
         // Cleanup code may need a frame, so put one back.
-        PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, module___main__ );
+        PyThreadState_GET()->frame = MAKE_MODULE_FRAME( %(code_identifier)s, module___main__ );
 
         PyErr_PrintEx( 0 );
         Py_Exit( 1 );

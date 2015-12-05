@@ -78,8 +78,8 @@ def isSharedTechnically(variable):
 
         while user != top_owner and \
               user.isExpressionFunctionBody() and \
-              not user.needsCreation() and \
-              not user.isGenerator():
+              not user.isGenerator() and \
+              not user.needsCreation():
             user = user.getParentVariableProvider()
 
         if user != top_owner:

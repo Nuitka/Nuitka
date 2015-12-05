@@ -29,6 +29,7 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.FunctionNodes import (
@@ -136,11 +137,20 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
+    parameters = function_body.getParameters()
+    code_object = CodeObjectSpec(
+        arg_names     = parameters.getCoArgNames(),
+        kw_only_count = parameters.getKwOnlyParameterCount(),
+        code_name     = node.name,
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None
+    )
+
     function_statements_body = buildStatementsNode(
-        provider   = function_body,
-        nodes      = function_statements,
-        frame      = True,
-        source_ref = source_ref
+        provider    = function_body,
+        nodes       = function_statements,
+        code_object = code_object,
+        source_ref  = source_ref
     )
 
     if function_body.isGenerator():
@@ -170,6 +180,7 @@ def buildFunctionNode(provider, node, source_ref):
             function_body = function_body,
             source_ref    = source_ref
         ),
+        code_object  = code_object,
         defaults     = defaults,
         kw_defaults  = kw_defaults,
         annotations  = annotations,
@@ -233,6 +244,15 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
+    parameters = creator_function_body.getParameters()
+    code_object = CodeObjectSpec(
+        arg_names     = parameters.getCoArgNames(),
+        kw_only_count = parameters.getKwOnlyParameterCount(),
+        code_name     = node.name,
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None
+    )
+
     function_body = ExpressionCoroutineBody(
         provider   = creator_function_body,
         name       = node.name,
@@ -252,10 +272,10 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     )
 
     function_statements_body = buildStatementsNode(
-        provider   = function_body,
-        nodes      = function_statements,
-        frame      = True,
-        source_ref = source_ref
+        provider    = function_body,
+        nodes       = function_statements,
+        code_object = code_object,
+        source_ref  = source_ref
     )
 
     function_statements_body = _insertFinalReturnStatement(
@@ -298,6 +318,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             function_body = creator_function_body,
             source_ref    = source_ref
         ),
+        code_object  = code_object,
         defaults     = defaults,
         kw_defaults  = kw_defaults,
         annotations  = annotations,

@@ -117,7 +117,7 @@ goto %(parent_exception_exit)s;
 # TODO: The once guard need not take a reference count in its frame class.
 template_frame_guard_once = """\
 // Frame without reuse.
-%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
+%(frame_identifier)s = MAKE_MODULE_FRAME( %(code_identifier)s, %(module_identifier)s );
 
 // Push the new frame as the currently active one, and we should be exclusively
 // owning it.

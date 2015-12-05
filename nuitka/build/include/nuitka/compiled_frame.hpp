@@ -18,8 +18,9 @@
 #ifndef __NUITKA_COMPILED_FRAME_H__
 #define __NUITKA_COMPILED_FRAME_H__
 
-// Create a frame object for the given code object and module
-extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
+// Create a frame object for the given code object, frame or module.
+extern PyFrameObject *MAKE_MODULE_FRAME( PyCodeObject *code, PyObject *module );
+extern PyFrameObject *MAKE_FUNCTION_FRAME( PyCodeObject *code, PyObject *module );
 
 // Create a code object for the given filename and function name
 #if PYTHON_VERSION < 300

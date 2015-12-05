@@ -59,7 +59,8 @@ from .ParameterSpecs import TooManyArguments, matchCall
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
                                  ClosureGiverNodeBase, ExpressionMixin):
 
-    def __init__(self, provider, name, code_prefix, is_class, source_ref):
+    def __init__(self, provider, name, code_prefix, is_class, local_locals,
+                 source_ref):
         ClosureTakerMixin.__init__(
             self,
             provider      = provider,
@@ -89,6 +90,16 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         if Utils.python_version >= 340:
             self.qualname_provider = provider
 
+        # TODO: Make this Python2 list contraction stuff only.
+        self.local_locals = local_locals
+
+        # Indicator, if this is a function that uses "super", because if it
+        # does, it would like to get the final "__class__" attached.
+        self.has_super = False
+
+        # Register ourselves immediately with the module.
+        provider.getParentModule().addFunction(self)
+
         self.constraint_collection = None
 
     @staticmethod
@@ -116,159 +127,22 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         else:
             return provider.getFunctionQualname() + ".<locals>." + function_name
 
+    def markAsClassClosureTaker(self):
+        self.has_super = True
 
-class ExpressionFunctionBody(ExpressionFunctionBodyBase,
-                             MarkLocalsDictIndicator,
-                             MarkUnoptimizedFunctionIndicator):
-    # We really want these many ancestors, as per design, we add properties via
-    # base class mix-ins a lot, leading to many instance attributes, and
-    # methods, pylint: disable=R0901,R0902
+    def isClassClosureTaker(self):
+        return self.has_super
 
-    kind = "EXPRESSION_FUNCTION_BODY"
-
-    named_children = (
-        "body",
-    )
-
-    checkers = {
-        # TODO: Is "None" really an allowed value.
-        "body" : checkStatementsSequenceOrNone
-    }
-
-    if Utils.python_version >= 340:
-        qualname_setup = None
-
-    def __init__(self, provider, name, doc, parameters, is_class, source_ref):
-        while provider.isExpressionOutlineBody():
-            provider = provider.getParentVariableProvider()
-
-        if is_class:
-            code_prefix = "class"
+    def getLocalsMode(self):
+        if Utils.python_version >= 300:
+            return "updated"
+        elif self.isEarlyClosure() or self.isUnoptimized():
+            return "updated"
         else:
-            # TODO: Temporarily only
-            if self.isGenerator():
-                code_prefix = "generator"
-            else:
-                code_prefix = "function"
+            return "copy"
 
-        if name == "<lambda>":
-            name = "lambda"
-            code_prefix = name
-
-            self.is_lambda = True
-        else:
-            self.is_lambda = False
-
-        if name == "<listcontraction>":
-            assert Utils.python_version >= 300
-
-            code_prefix = "listcontr"
-            name = ""
-
-            self.local_locals = Utils.python_version >= 300
-        else:
-            self.local_locals = True
-
-        if name == "<setcontraction>":
-            code_prefix = "setcontr"
-            name = ""
-
-        if name == "<dictcontraction>":
-            code_prefix = "dictcontr"
-            name = ""
-
-        if name == "<genexpr>":
-            code_prefix = "genexpr"
-            name = ""
-
-            self.is_genexpr = True
-        else:
-            self.is_genexpr = False
-
-        self.non_local_declarations = []
-
-        ExpressionFunctionBodyBase.__init__(
-            self,
-            provider    = provider,
-            name        = name,
-            code_prefix = code_prefix,
-            is_class    = is_class,
-            source_ref  = source_ref
-        )
-
-        MarkLocalsDictIndicator.__init__(self)
-
-        MarkUnoptimizedFunctionIndicator.__init__(self)
-
-        self.is_class = is_class
-
-        self.doc = doc
-
-        # Indicator, if this is a function that uses "super", because if it
-        # does, it would like to get the final "__class__" attached.
-        self.has_super = False
-
-        # Indicator if the return value exception might be required.
-        self.return_exception = False
-
-        # Indicator if the function needs to be created as a function object.
-        self.needs_creation = False
-
-        # Indicator if the function is called directly.
-        self.needs_direct = False
-
-        # Indicator if the function is used outside of where it's defined.
-        self.cross_module_use = False
-
-        self.parameters = parameters
-        self.parameters.setOwner(self)
-
-        # Register ourselves immediately with the module.
-        provider.getParentModule().addFunction(self)
-
-        self.registerProvidedVariables(
-            *self.parameters.getVariables()
-        )
-
-    def getDetails(self):
-        return {
-            "name"       : self.getFunctionName(),
-            "ref_name"   : self.getCodeName(),
-            "parameters" : self.getParameters(),
-            "provider"   : self.provider.getCodeName(),
-            "doc"        : self.doc
-        }
-
-    def getDetail(self):
-        return "named %s with %s" % (self.getFunctionName(), self.parameters)
-
-    def getParent(self):
-        assert False
-
-    def getContainingClassDictCreation(self):
-        current = self
-
-        while not current.isCompiledPythonModule():
-            if current.isExpressionClassBody():
-                return current
-
-            current = current.getParentVariableProvider()
-
-        return None
-
-    def getFunctionName(self):
-        if self.is_lambda:
-            return "<lambda>"
-        elif self.is_genexpr:
-            return "<genexpr>"
-        else:
-            return self.name
-
-    def getDoc(self):
-        return self.doc
-
-    def getParameters(self):
-        return self.parameters
+    def getVariables(self):
+        return self.providing.values()
 
     def getLocalVariableNames(self):
         return Variables.getNames(self.getLocalVariables())
@@ -289,9 +163,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             if variable.isLocalVariable() and not variable.isParameterVariable()
             if variable.getOwner() is self
         )
-
-    def getVariables(self):
-        return self.providing.values()
 
     def removeClosureVariable(self, variable):
         assert variable in self.providing.values(), (self.providing, variable)
@@ -334,7 +205,8 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
                variable.getOwner() is not self
 
     def getVariableForAssignment(self, variable_name):
-        # print ("ASS func", self, variable_name)
+        # print("ASS func", self, variable_name)
+
         if self.hasTakenVariable(variable_name):
             result = self.getTakenVariable(variable_name)
         else:
@@ -343,7 +215,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         return result
 
     def getVariableForReference(self, variable_name):
-        # print ( "REF func", self, variable_name )
+        # print( "REF func", self, variable_name )
 
         if self.hasProvidedVariable(variable_name):
             result = self.getProvidedVariable(variable_name)
@@ -397,6 +269,162 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
                 variable_name = variable_name
             )
 
+    def computeExpression(self, constraint_collection):
+        assert False
+
+        # Function body is quite irreplaceable.
+        return self, None, None
+
+
+class ExpressionFunctionBody(ExpressionFunctionBodyBase,
+                             MarkLocalsDictIndicator,
+                             MarkUnoptimizedFunctionIndicator):
+    # We really want these many ancestors, as per design, we add properties via
+    # base class mix-ins a lot, leading to many instance attributes, and
+    # methods, pylint: disable=R0901,R0902
+
+    kind = "EXPRESSION_FUNCTION_BODY"
+
+    named_children = (
+        "body",
+    )
+
+    checkers = {
+        # TODO: Is "None" really an allowed value.
+        "body" : checkStatementsSequenceOrNone
+    }
+
+    if Utils.python_version >= 340:
+        qualname_setup = None
+
+    def __init__(self, provider, name, doc, parameters, is_class, source_ref):
+        while provider.isExpressionOutlineBody():
+            provider = provider.getParentVariableProvider()
+
+        if is_class:
+            code_prefix = "class"
+        else:
+            # TODO: Temporarily only
+            if self.isGenerator():
+                code_prefix = "generator"
+            else:
+                code_prefix = "function"
+
+        if name == "<lambda>":
+            name = "lambda"
+            code_prefix = name
+
+            self.is_lambda = True
+        else:
+            self.is_lambda = False
+
+        if name == "<listcontraction>":
+            assert Utils.python_version >= 300
+
+            code_prefix = "listcontr"
+            name = ""
+
+            local_locals = Utils.python_version >= 300
+        else:
+            local_locals = True
+
+        if name == "<setcontraction>":
+            code_prefix = "setcontr"
+            name = ""
+
+        if name == "<dictcontraction>":
+            code_prefix = "dictcontr"
+            name = ""
+
+        if name == "<genexpr>":
+            assert False
+
+            code_prefix = "genexpr"
+            name = ""
+
+            self.is_genexpr = True
+        else:
+            self.is_genexpr = False
+
+        self.non_local_declarations = []
+
+        ExpressionFunctionBodyBase.__init__(
+            self,
+            provider     = provider,
+            name         = name,
+            code_prefix  = code_prefix,
+            is_class     = is_class,
+            local_locals = local_locals,
+            source_ref   = source_ref
+        )
+
+        MarkLocalsDictIndicator.__init__(self)
+
+        MarkUnoptimizedFunctionIndicator.__init__(self)
+
+        self.is_class = is_class
+
+        self.doc = doc
+
+        # Indicator if the return value exception might be required.
+        self.return_exception = False
+
+        # Indicator if the function needs to be created as a function object.
+        self.needs_creation = False
+
+        # Indicator if the function is called directly.
+        self.needs_direct = False
+
+        # Indicator if the function is used outside of where it's defined.
+        self.cross_module_use = False
+
+        self.parameters = parameters
+        self.parameters.setOwner(self)
+
+        self.registerProvidedVariables(
+            *self.parameters.getVariables()
+        )
+
+    def getDetails(self):
+        return {
+            "name"       : self.getFunctionName(),
+            "ref_name"   : self.getCodeName(),
+            "parameters" : self.getParameters(),
+            "provider"   : self.provider.getCodeName(),
+            "doc"        : self.doc
+        }
+
+    def getDetail(self):
+        return "named %s with %s" % (self.getFunctionName(), self.parameters)
+
+    def getParent(self):
+        assert False
+
+    def getContainingClassDictCreation(self):
+        current = self
+
+        while not current.isCompiledPythonModule():
+            if current.isExpressionClassBody():
+                return current
+
+            current = current.getParentVariableProvider()
+
+        return None
+
+    def getFunctionName(self):
+        if self.is_lambda:
+            return "<lambda>"
+        elif self.is_genexpr:
+            return "<genexpr>"
+        else:
+            return self.name
+
+    def getDoc(self):
+        return self.doc
+
+    def getParameters(self):
+        return self.parameters
+
     def addNonlocalsDeclaration(self, names, source_ref):
         self.non_local_declarations.append(
             (names, source_ref)
@@ -426,20 +454,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     def markAsCrossModuleUsed(self):
         self.cross_module_use = True
 
-    def computeExpression(self, constraint_collection):
-        assert False
-
-        # Function body is quite irreplaceable.
-        return self, None, None
-
-    def getLocalsMode(self):
-        if Utils.python_version >= 300:
-            return "updated"
-        elif self.isEarlyClosure() or self.isUnoptimized():
-            return "updated"
-        else:
-            return "copy"
-
     def computeExpressionCall(self, call_node, call_args, call_kw,
                               constraint_collection):
         # TODO: Until we have something to re-order the arguments, we need to
@@ -459,12 +473,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
     def mayRaiseException(self, exception_type):
         return self.getBody().mayRaiseException(exception_type)
-
-    def markAsClassClosureTaker(self):
-        self.has_super = True
-
-    def isClassClosureTaker(self):
-        return self.has_super
 
     def markAsExceptionReturnValue(self):
         self.return_exception = True
@@ -528,6 +536,123 @@ class ExpressionGeneratorFunctionBody(ExpressionFunctionBody):
 
     def needsGeneratorReturnExit(self):
         return bool(self.needs_generator_return_exit)
+
+
+class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
+
+    named_children = (
+        "generator_ref",
+    )
+
+    getGeneratorRef = ExpressionChildrenHavingBase.childGetter("generator_ref")
+
+    def __init__(self, generator_ref, code_object, source_ref):
+        assert generator_ref.getFunctionBody().isExpressionGeneratorObjectBody()
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "generator_ref" : generator_ref,
+            },
+            source_ref = source_ref
+        )
+
+        self.code_object = code_object
+
+    def getDetails(self):
+        return {
+            "code_object" : self.code_object
+        }
+
+    def getCodeObject(self):
+        return self.code_object
+
+    def computeExpression(self, constraint_collection):
+        # TODO: Generator body may know something too.
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+
+class ExpressionGeneratorObjectBody(ExpressionFunctionBodyBase,
+                                    MarkLocalsDictIndicator,
+                                    MarkUnoptimizedFunctionIndicator):
+    # We really want these many ancestors, as per design, we add properties via
+    # base class mix-ins a lot, pylint: disable=R0901
+
+    kind = "EXPRESSION_GENERATOR_OBJECT_BODY"
+
+    named_children = (
+        "body",
+    )
+
+    checkers = {
+        # TODO: Is "None" really an allowed value.
+        "body" : checkStatementsSequenceOrNone
+    }
+
+    if Utils.python_version >= 340:
+        qualname_setup = None
+
+    def __init__(self, provider, name, source_ref):
+        if name == "<genexpr>":
+            self.is_genexpr = True
+        else:
+            self.is_genexpr = False
+
+        ExpressionFunctionBodyBase.__init__(
+            self,
+            provider     = provider,
+            name         = "" if self.is_genexpr else name,
+            is_class     = False,
+            code_prefix  = "genexpr" if self.is_genexpr else "genobj",
+            local_locals = True,
+            source_ref   = source_ref
+        )
+
+        MarkLocalsDictIndicator.__init__(self)
+
+        MarkUnoptimizedFunctionIndicator.__init__(self)
+
+        self.needs_generator_return_exit = False
+
+        # TODO: Only once its not outlined yet.
+        self.qualname_provider = provider.getParentVariableProvider()
+
+    def getFunctionName(self):
+        if self.is_genexpr:
+            return "<genexpr>"
+        else:
+            return self.name
+
+    @staticmethod
+    def isExpressionFunctionBody():
+        return True
+
+    @staticmethod
+    def isGenerator():
+        return True
+
+    def markAsNeedsGeneratorReturnHandling(self, value):
+        self.needs_generator_return_exit = max(
+            self.needs_generator_return_exit,
+            value
+        )
+
+    def needsGeneratorReturnHandling(self):
+        return self.needs_generator_return_exit == 2
+
+    def needsGeneratorReturnExit(self):
+        return bool(self.needs_generator_return_exit)
+
+    getBody = ChildrenHavingMixin.childGetter("body")
+    setBody = ChildrenHavingMixin.childSetter("body")
+
+    @staticmethod
+    def needsCreation():
+        return False
 
 
 class ExpressionClassBody(ExpressionFunctionBody):
@@ -617,8 +742,8 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         "kw_defaults" : convertNoneConstantOrEmptyDictToNone,
     }
 
-    def __init__(self, function_ref, defaults, kw_defaults, annotations,
-                 source_ref):
+    def __init__(self, function_ref, code_object, defaults, kw_defaults,
+                 annotations, source_ref):
         assert kw_defaults is None or kw_defaults.isExpression()
         assert annotations is None or annotations.isExpression()
         assert function_ref.isExpressionFunctionRef()
@@ -634,9 +759,18 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             source_ref = source_ref
         )
 
+        self.code_object = code_object
+
     def getName(self):
         return self.getFunctionRef().getName()
 
+    def getCodeObject(self):
+        return self.code_object
+
+    def getDetails(self):
+        return {
+            "code_object" : self.code_object
+        }
 
     def computeExpression(self, constraint_collection):
         defaults = self.getDefaults()
@@ -945,6 +1079,20 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
             return result, "new_statements", "Function call in-lined."
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        function = self.getFunction()
+
+        if function.getFunctionRef().getFunctionBody().mayRaiseException(exception_type):
+            return True
+
+        values = self.getArgumentValues()
+
+        for value in values:
+            if value.mayRaiseException(exception_type):
+                return True
+
+        return False
 
     getFunction = ExpressionChildrenHavingBase.childGetter("function")
     getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")

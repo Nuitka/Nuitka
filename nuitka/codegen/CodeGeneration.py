@@ -86,15 +86,16 @@ from .FrameCodes import (
 )
 from .FunctionCodes import (
     generateCoroutineCreationCode,
+    generateFunctionCreationCode,
+    generateFunctionDeclCode,
     generateGeneratorEntryCode,
+    generateMakeGeneratorObjectCode,
     getDirectFunctionCallCode,
     getExportScopeCode,
     getFunctionCode,
-    getFunctionCreationCode,
     getFunctionDirectDecl,
-    getFunctionMakerCode,
-    getFunctionMakerDecl,
-    getGeneratorFunctionCode
+    getGeneratorFunctionCode,
+    getGeneratorObjectCode
 )
 from .GlobalsLocalsCodes import (
     getLoadGlobalsCode,
@@ -212,6 +213,8 @@ def generateFunctionCallCode(to_name, call_node, emit, context):
         function_identifier = function_identifier,
         arg_names           = arg_names,
         closure_variables   = function_body.getClosureVariables(),
+        needs_check         = call_node.getFunction().getFunctionRef().\
+                                getFunctionBody().mayRaiseException(BaseException),
         emit                = emit,
         context             = context
     )
@@ -260,143 +263,6 @@ def generateFunctionOutlineCode(to_name, outline_body, emit, context):
 _generated_functions = {}
 
 
-
-def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
-                                  annotations, defaults_first, emit, context):
-    # This is about creating functions, which is detail ridden stuff,
-    # pylint: disable=R0914
-
-    assert function_body.needsCreation(), function_body
-
-    parameters = function_body.getParameters()
-
-    def handleKwDefaults():
-        if kw_defaults:
-            kw_defaults_name = context.allocateTempName("kw_defaults")
-
-            assert not kw_defaults.isExpressionConstantRef() or \
-                   not kw_defaults.getConstant() == {}, kw_defaults.getConstant()
-
-            generateExpressionCode(
-                to_name    = kw_defaults_name,
-                expression = kw_defaults,
-                emit       = emit,
-                context    = context
-            )
-        else:
-            kw_defaults_name = None
-
-        return kw_defaults_name
-
-    def handleDefaults():
-        if defaults:
-            defaults_name = context.allocateTempName("defaults")
-
-            generateTupleCreationCode(
-                to_name  = defaults_name,
-                elements = defaults,
-                emit     = emit,
-                context  = context
-            )
-        else:
-            defaults_name = None
-
-        return defaults_name
-
-    if defaults_first:
-        defaults_name = handleDefaults()
-        kw_defaults_name = handleKwDefaults()
-    else:
-        kw_defaults_name = handleKwDefaults()
-        defaults_name = handleDefaults()
-
-    if annotations:
-        annotations_name = context.allocateTempName("annotations")
-
-        generateExpressionCode(
-            to_name    = annotations_name,
-            expression = annotations,
-            emit       = emit,
-            context    = context,
-        )
-    else:
-        annotations_name = None
-
-    var_names = parameters.getCoArgNames()
-
-    # Add names of local variables too.
-    var_names += [
-        local_variable.getName()
-        for local_variable in
-        function_body.getLocalVariables()
-        if not local_variable.isParameterVariable()
-    ]
-
-    code_identifier = context.getCodeObjectHandle(
-        filename      = function_body.getParentModule().getRunTimeFilename(),
-        var_names     = var_names,
-        arg_count     = parameters.getArgumentCount(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        line_number   = function_body.getSourceReference().getLineNumber(),
-        code_name     = function_body.getFunctionName(),
-        is_generator  = function_body.isGenerator(),
-        is_optimized  = not function_body.needsLocalsDict(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-        has_closure   = function_body.getClosureVariables() != (),
-        future_flags  = function_body.getSourceReference().getFutureSpec().asFlags()
-    )
-
-    function_identifier = function_body.getCodeName()
-
-    # Creation code needs to be done only once.
-    if not context.hasHelperCode(function_identifier):
-
-        maker_code = getFunctionMakerCode(
-            function_name       = function_body.getFunctionName(),
-            function_qualname   = function_body.getFunctionQualname(),
-            function_identifier = function_identifier,
-            code_identifier     = code_identifier,
-            parameters          = parameters,
-            closure_variables   = function_body.getClosureVariables(),
-            defaults_name       = defaults_name,
-            kw_defaults_name    = kw_defaults_name,
-            annotations_name    = annotations_name,
-            function_doc        = function_body.getDoc(),
-            is_generator        = function_body.isGenerator(),
-            context             = context
-        )
-
-        context.addHelperCode(function_identifier, maker_code)
-
-        function_decl = getFunctionMakerDecl(
-            function_identifier = function_body.getCodeName(),
-            defaults_name       = defaults_name,
-            kw_defaults_name    = kw_defaults_name,
-            annotations_name    = annotations_name,
-            closure_variables   = function_body.getClosureVariables()
-        )
-
-        context.addDeclaration(function_identifier, function_decl)
-
-    getFunctionCreationCode(
-        to_name             = to_name,
-        function_identifier = function_body.getCodeName(),
-        defaults_name       = defaults_name,
-        kw_defaults_name    = kw_defaults_name,
-        annotations_name    = annotations_name,
-        closure_variables   = function_body.getClosureVariables(),
-        emit                = emit,
-        context             = context
-    )
-
-    getReleaseCode(
-        release_name = annotations_name,
-        emit         = emit,
-        context      = context
-    )
-
-
 def generateFunctionBodyCode(function_body, context):
     function_identifier = function_body.getCodeName()
 
@@ -404,7 +270,13 @@ def generateFunctionBodyCode(function_body, context):
         return _generated_functions[function_identifier]
 
     # TODO: Generate both codes, and base direct/etc. decisions on context.
-    if function_body.needsCreation():
+
+    if function_body.isExpressionGeneratorObjectBody():
+        function_context = Contexts.PythonGeneratorObjectContext(
+            parent   = context,
+            function = function_body
+        )
+    elif function_body.needsCreation():
         function_context = Contexts.PythonFunctionCreatedContext(
             parent   = context,
             function = function_body
@@ -424,11 +296,11 @@ def generateFunctionBodyCode(function_body, context):
         context            = function_context
     )
 
-    parameters = function_body.getParameters()
-
     needs_exception_exit = function_body.mayRaiseException(BaseException)
 
-    if function_body.isGenerator():
+    if function_body.isExpressionGeneratorFunctionBody():
+        parameters = function_body.getParameters()
+
         source_ref = function_body.getSourceReference()
 
         code_identifier = function_context.getCodeObjectHandle(
@@ -440,6 +312,7 @@ def generateFunctionBodyCode(function_body, context):
             code_name     = function_body.getFunctionName(),
             is_generator  = True,
             is_optimized  = not function_context.hasLocalsDict(),
+            new_locals    = True,
             has_starlist  = parameters.getStarListArgumentName() is not None,
             has_stardict  = parameters.getStarDictArgumentName() is not None,
             has_closure   = function_body.getClosureVariables() != (),
@@ -461,7 +334,21 @@ def generateFunctionBodyCode(function_body, context):
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = function_body.needsGeneratorReturnExit()
         )
+    elif function_body.isExpressionGeneratorObjectBody():
+        source_ref = function_body.getSourceReference()
+
+        function_code = getGeneratorObjectCode(
+            context                = function_context,
+            function_identifier    = function_identifier,
+            user_variables         = function_body.getUserLocalVariables(),
+            temp_variables         = function_body.getTempVariables(),
+            function_codes         = function_codes.codes,
+            needs_exception_exit   = needs_exception_exit,
+            needs_generator_return = function_body.needsGeneratorReturnExit()
+        )
     else:
+        parameters = function_body.getParameters()
+
         function_code = getFunctionCode(
             context              = function_context,
             function_name        = function_body.getFunctionName(),
@@ -816,6 +703,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         generateFunctionCreationCode(
             to_name        = to_name,
             function_body  = expression.getFunctionRef().getFunctionBody(),
+            code_object    = expression.getCodeObject(),
             defaults       = expression.getDefaults(),
             kw_defaults    = expression.getKwDefaults(),
             annotations    = expression.getAnnotations(),
@@ -3130,17 +3018,13 @@ def prepareModuleCode(global_context, module, module_name):
 
         function_body_codes.append(function_code)
 
-        if function_body.needsDirectCall():
-            function_decl = getFunctionDirectDecl(
-                function_identifier = function_body.getCodeName(),
-                closure_variables   = function_body.getClosureVariables(),
-                parameter_variables = function_body.getParameters().getAllVariables(),
-                file_scope          = getExportScopeCode(
-                    cross_module = function_body.isCrossModuleUsed()
-                )
-            )
+        function_decl = generateFunctionDeclCode(
+            function_body = function_body
+        )
 
+        if function_decl is not None:
             function_decl_codes.append(function_decl)
+
 
     for function_body in module.getCrossUsedFunctions():
         assert function_body.isCrossModuleUsed()
@@ -3249,6 +3133,7 @@ Helpers.setExpressionDispatchDict(
         "LIST_OPERATION_EXTEND"     : generateListOperationExtendCode,
         "LIST_OPERATION_POP"        : generateListOperationPopCode,
         "MODULE_FILE_ATTRIBUTE_REF" : generateModuleFileAttributeCode,
+        "MAKE_GENERATOR_OBJECT"     : generateMakeGeneratorObjectCode,
         "OPERATION_BINARY"          : generateOperationBinaryCode,
         "OPERATION_BINARY_INPLACE"  : generateOperationBinaryCode,
         "OPERATION_UNARY"           : generateOperationUnaryCode,

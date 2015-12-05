@@ -333,6 +333,7 @@ def buildDictionaryUnpacking(provider, node, source_ref):
                 function_body = getDictUnpackingHelper(),
                 source_ref    = source_ref
             ),
+            code_object  = None,
             defaults     = (),
             kw_defaults  = None,
             annotations  = None,
