@@ -41,6 +41,9 @@ def calledRepeatedly():
     except exc:
         pass
 
+    return throw, exc
+
+
 for x in xrange(50000):
     calledRepeatedly()
 

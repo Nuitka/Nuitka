@@ -18,16 +18,9 @@
 #     limitations under the License.
 #
 
-
-
 def calledRepeatedly():
     # We measure making a generator iterator step or not.
-    def generator():
-        yield 1
-        yield 2
-        yield 3
-
-    gen = generator()
+    gen = (x for x in range(3))
 
     x = next(gen)
 # construct_begin

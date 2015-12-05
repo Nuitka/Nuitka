@@ -17,24 +17,27 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-
-
 def calledRepeatedly():
     # We measure making a generator iterator step or not.
-    def generator():
-        yield 1
-        yield 2
-        yield 3
+    gen = (x for x in range(3))
 
-    gen = generator()
-
-    x = next(gen)
-# construct_begin
     next(gen)
-# construct_end
 
-    return x
+    # Take attribute lookup out of it, and built-in lookup too.
+    throw = gen.throw
+    exc = GeneratorExit
+
+    try:
+# construct_begin
+        throw(exc)
+# construct_alternative
+        pass
+# construct_end
+    except exc:
+        pass
+
+    return throw, exc
+
 
 for x in xrange(50000):
     calledRepeatedly()
