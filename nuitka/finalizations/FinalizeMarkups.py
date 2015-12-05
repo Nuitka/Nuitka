@@ -68,7 +68,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
         # Find nodes with only compile time constant children, these are
         # missing some obvious optimization potentially.
-        if False:
+        if False: # For searching only, pylint: disable=W0125
             if not node.isStatementReturn() and \
                not node.isExpressionYield() and \
                not node.isStatementRaiseException() and \

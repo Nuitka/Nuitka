@@ -204,10 +204,7 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
     def willRaiseException(self, exception_type):
         # One thing is clear, it will raise. TODO: Match exception_type more
         # closely if it is predictable.
-        if exception_type is BaseException:
-            return True
-        else:
-            return False
+        return exception_type is BaseException
 
     getExceptionType = ExpressionChildrenHavingBase.childGetter(
         "exception_type"

@@ -356,8 +356,6 @@ def buildAssignmentStatements(provider, node, source, source_ref,
     if temp_provider is None:
         temp_provider = provider
 
-    # We don't allow None, as we handled that above, and so we know it must
-    # be a tuple, pylint: disable=W0633
     kind, detail = decodeAssignTarget(
         provider   = provider,
         node       = node,
@@ -612,8 +610,6 @@ def buildDeleteNode(provider, node, source_ref):
     statements = []
 
     for target in node.targets:
-        # We don't allow None, cannot happen, and so we know it must
-        # be a tuple, pylint: disable=W0633
         kind, detail = decodeAssignTarget(
             provider   = provider,
             node       = target,
@@ -1007,8 +1003,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
 
     expression = buildNode(provider, node.value, source_ref)
 
-    # We don't allow None, as we handled that above, and so we know it must
-    # be a tuple, pylint: disable=W0633
     kind, detail = decodeAssignTarget(
         provider   = provider,
         node       = node.target,

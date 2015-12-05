@@ -19,6 +19,8 @@
 
 """
 
+import glob
+import sys
 from logging import debug, warning
 
 import marshal
@@ -353,8 +355,6 @@ def checkPluginPath(plugin_filename, module_package):
 
 
 def checkPluginFilenamePattern(pattern):
-    import sys, glob
-
     debug(
         "Checking plug-in pattern '%s':",
         pattern,

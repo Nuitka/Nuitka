@@ -597,10 +597,7 @@ class ExpressionGeneratorObjectBody(ExpressionFunctionBodyBase,
         qualname_setup = None
 
     def __init__(self, provider, name, source_ref):
-        if name == "<genexpr>":
-            self.is_genexpr = True
-        else:
-            self.is_genexpr = False
+        self.is_genexpr = name == "<genexpr>"
 
         ExpressionFunctionBodyBase.__init__(
             self,

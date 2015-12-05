@@ -346,8 +346,7 @@ def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
         )
     )
 
-    # TODO: May be wrong.
-    if False:
+    if False: # TODO: May be wrong, pylint: disable=W0125
         emit(
             getErrorLineNumberUpdateCode(context)
         )

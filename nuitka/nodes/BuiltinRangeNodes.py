@@ -98,10 +98,10 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
                type(child.getConstant()) is float:
                 return True
 
-        step = self.getStep()
+        step = self.getStep() # false alarm, pylint: disable=E1128
 
         # A step of 0 will raise.
-        if step is not None and child.getIntegerValue() == 0:
+        if step is not None and step.getIntegerValue() == 0:
             return True
 
         return False
@@ -396,7 +396,7 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
 
         estimate = round(estimate)
 
-        assert not estimate < 0
+        assert estimate >= 0
 
         return int(estimate)
 

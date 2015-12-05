@@ -317,8 +317,6 @@ def buildTryExceptionNode(provider, node, source_ref):
                 source_ref = source_ref,
             )
 
-            # We didn't allow None, therefore it cannot be None, and
-            # the unpack is safe: pylint: disable=W0633
             kind, detail = target_info
 
             assert kind == "Name", kind
