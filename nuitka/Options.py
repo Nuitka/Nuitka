@@ -812,7 +812,7 @@ def shallWarnImplicitRaises():
     return options.warn_implicit_exceptions
 
 def isDebug():
-    return options.debug
+    return options.debug or options.debugger
 
 def isPythonDebug():
     return options.python_debug or sys.flags.debug
