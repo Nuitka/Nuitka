@@ -94,7 +94,6 @@ from .FunctionCodes import (
     getExportScopeCode,
     getFunctionCode,
     getFunctionDirectDecl,
-    getGeneratorFunctionCode,
     getGeneratorObjectCode
 )
 from .GlobalsLocalsCodes import (
@@ -298,45 +297,7 @@ def generateFunctionBodyCode(function_body, context):
 
     needs_exception_exit = function_body.mayRaiseException(BaseException)
 
-    if function_body.isExpressionGeneratorFunctionBody():
-        parameters = function_body.getParameters()
-
-        source_ref = function_body.getSourceReference()
-
-        code_identifier = function_context.getCodeObjectHandle(
-            filename      = function_body.getParentModule().getRunTimeFilename(),
-            var_names     = parameters.getCoArgNames(),
-            arg_count     = parameters.getArgumentCount(),
-            kw_only_count = parameters.getKwOnlyParameterCount(),
-            line_number   = source_ref.getLineNumber(),
-            code_name     = function_body.getFunctionName(),
-            is_generator  = True,
-            is_optimized  = not function_context.hasLocalsDict(),
-            new_locals    = True,
-            has_starlist  = parameters.getStarListArgumentName() is not None,
-            has_stardict  = parameters.getStarDictArgumentName() is not None,
-            has_closure   = function_body.getClosureVariables() != (),
-            future_flags  = source_ref.getFutureSpec().asFlags()
-        )
-
-        function_code = getGeneratorFunctionCode(
-            context                = function_context,
-            function_name          = function_body.getFunctionName(),
-            function_qualname      = function_body.getFunctionQualname(),
-            function_identifier    = function_identifier,
-            code_identifier        = code_identifier,
-            parameters             = parameters,
-            closure_variables      = function_body.getClosureVariables(),
-            user_variables         = function_body.getUserLocalVariables(),
-            temp_variables         = function_body.getTempVariables(),
-            function_codes         = function_codes.codes,
-            function_doc           = function_body.getDoc(),
-            needs_exception_exit   = needs_exception_exit,
-            needs_generator_return = function_body.needsGeneratorReturnExit()
-        )
-    elif function_body.isExpressionGeneratorObjectBody():
-        source_ref = function_body.getSourceReference()
-
+    if function_body.isExpressionGeneratorObjectBody():
         function_code = getGeneratorObjectCode(
             context                = function_context,
             function_identifier    = function_identifier,

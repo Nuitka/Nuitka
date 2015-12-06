@@ -83,11 +83,16 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationUnary
 )
-from nuitka.nodes.ReturnNodes import ExpressionAwait, StatementReturn
+from nuitka.nodes.ReturnNodes import (
+    ExpressionAwait,
+    StatementGeneratorReturn,
+    StatementReturn
+)
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.PythonVersions import python_version
 from nuitka.utils import Utils
+from nuitka.VariableRegistry import addVariableUsage
 
 from . import SyntaxErrors
 from .Helpers import (
@@ -151,10 +156,16 @@ from .VariableClosure import completeVariableClosures
 def buildVariableReferenceNode(provider, node, source_ref):
     # Python3 is influenced by the mere use of a variable name. So we need to
     # remember it, esp. for cases, where it is optimized away.
-    if python_version >= 300 and \
-       node.id == "super" and \
-       provider.isExpressionFunctionBody():
-        provider.markAsClassClosureTaker()
+    if node.id == "super" and provider.isExpressionFunctionBody():
+        if python_version >= 300:
+            variable = provider.getVariableForClosure("__class__")
+
+            if variable.getOwner().isExpressionFunctionBody():
+                addVariableUsage(variable, provider)
+
+        variable = provider.getVariableForClosure("self")
+        if variable.getOwner().isExpressionFunctionBody():
+            addVariableUsage(variable, provider)
 
     return ExpressionVariableRef(
         variable_name = mangleName(node.id, provider),
@@ -437,10 +448,15 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 def handleNonlocalDeclarationNode(provider, node, source_ref):
     # Need to catch the error of declaring a parameter variable as global
     # ourselves here. The AST parsing doesn't catch it, but we can do it here.
-    parameters = provider.getParameters()
+    parameter_provider = provider
+
+    while parameter_provider.isExpressionGeneratorObjectBody():
+        parameter_provider = parameter_provider.getParentVariableProvider()
+
+    parameter_names = parameter_provider.getParameters().getParameterNames()
 
     for variable_name in node.names:
-        if variable_name in parameters.getParameterNames():
+        if variable_name in parameter_names:
             SyntaxErrors.raiseSyntaxError(
                 reason       = "name '%s' is parameter and nonlocal" % (
                     variable_name
@@ -553,6 +569,13 @@ def buildReturnNode(provider, node, source_ref):
 
     expression = buildNode(provider, node.value, source_ref, allow_none = True)
 
+    if provider.isExpressionGeneratorObjectBody():
+        if expression is not None and python_version < 330:
+            SyntaxErrors.raiseSyntaxError(
+                "'return' with argument inside generator",
+                source_ref = source_ref,
+            )
+
     if expression is None:
         expression = ExpressionConstantRef(
             constant      = None,
@@ -560,10 +583,16 @@ def buildReturnNode(provider, node, source_ref):
             user_provided = True
         )
 
-    return StatementReturn(
-        expression = expression,
-        source_ref = source_ref
-    )
+    if provider.isExpressionGeneratorObjectBody():
+        return StatementGeneratorReturn(
+            expression = expression,
+            source_ref = source_ref
+        )
+    else:
+        return StatementReturn(
+            expression = expression,
+            source_ref = source_ref
+        )
 
 
 def buildExprOnlyNode(provider, node, source_ref):

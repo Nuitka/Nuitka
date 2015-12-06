@@ -70,10 +70,6 @@ typedef struct {
     PyCellObject **m_closure;
     Py_ssize_t m_closure_given;
 
-    // Parameter variable values given, if any.
-    PyObject **m_parameters;
-    Py_ssize_t m_parameters_given;
-
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
@@ -84,9 +80,9 @@ extern PyTypeObject Nuitka_Generator_Type;
 typedef void (*yielder_func)( Nuitka_GeneratorObject * );
 
 #if PYTHON_VERSION < 350
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given );
+extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
 #else
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given );
+extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
 #endif
 
 static inline bool Nuitka_Generator_Check( PyObject *object )

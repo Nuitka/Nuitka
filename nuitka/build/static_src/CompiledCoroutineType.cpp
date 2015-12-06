@@ -115,16 +115,6 @@ static int Nuitka_Coroutine_set_frame( Nuitka_CoroutineObject *coroutine, PyObje
 
 static void Nuitka_Coroutine_release_parameters( Nuitka_CoroutineObject *coroutine )
 {
-    if ( coroutine->m_parameters )
-    {
-        for( Py_ssize_t i = 0; i < coroutine->m_parameters_given; i++ )
-        {
-            Py_XDECREF( coroutine->m_parameters[i] );
-            coroutine->m_parameters[i] = NULL;
-        }
-    }
-
-    coroutine->m_parameters = NULL;
 }
 
 static PyObject *Nuitka_Coroutine_send( Nuitka_CoroutineObject *coroutine, PyObject *value )
@@ -467,7 +457,6 @@ static void Nuitka_Coroutine_tp_dealloc( Nuitka_CoroutineObject *coroutine )
 
     Nuitka_Coroutine_release_parameters( coroutine );
 
-    if ( coroutine->m_parameters_given ) free( coroutine->m_parameters );
     if ( coroutine->m_closure_given )
     {
         for( Py_ssize_t i = 0; i < coroutine->m_closure_given; i++ )

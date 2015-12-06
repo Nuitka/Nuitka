@@ -623,7 +623,7 @@ class CodeNodeBase(NodeBase):
             assert isinstance(self, CodeNodeBase)
 
             if self.name:
-                name = uid + '_' + self.name
+                name = uid + '_' + self.name.strip("<>")
             else:
                 name = uid
 

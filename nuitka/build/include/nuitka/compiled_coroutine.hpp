@@ -57,10 +57,6 @@ typedef struct {
     PyCellObject **m_closure;
     Py_ssize_t m_closure_given;
 
-    // Parameter variable values given, if any.
-    PyObject **m_parameters;
-    Py_ssize_t m_parameters_given;
-
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 

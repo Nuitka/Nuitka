@@ -216,8 +216,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         else:
             assert emit_class is ExpressionYield
 
-            assert function_body.isGenerator()
-
             current_body = emit_class(
                 buildNode(
                     provider   = function_body,
@@ -427,15 +425,14 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             name       = ".0"
         )
     else:
-        # TODO: No stinking function ought to be necessary.
-        contraction_maker_name = "contraction_" + name.strip("<>")
+        # TODO: No function ought to be necessary.
 
         function_body = ExpressionFunctionBody(
             provider   = provider,
-            name       = contraction_maker_name,
+            name       = name,
             doc        = None,
             parameters = ParameterSpec(
-                name          = contraction_maker_name,
+                name          = name,
                 normal_args   = (".0",),
                 list_star_arg = None,
                 dict_star_arg = None,
@@ -452,11 +449,12 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         assert iter_tmp.isParameterVariable()
 
     code_object = CodeObjectSpec(
+        code_name     = name,
+        code_kind     = "Generator" if emit_class is ExpressionYield else "Function",
         arg_names     = () if assign_provider else function_body.getParameters().getCoArgNames(),
         kw_only_count = 0,
         has_starlist  = False,
         has_stardict  = False,
-        code_name     = name
     )
 
     if emit_class is ExpressionYield:

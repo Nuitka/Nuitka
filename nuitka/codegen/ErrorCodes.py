@@ -268,7 +268,9 @@ def getMustNotGetHereCode(reason, context, emit):
         }
     )
 
-    if provider.isExpressionFunctionBody() and not provider.isGenerator():
+    if provider.isExpressionGeneratorObjectBody():
+        emit("return;")
+    elif provider.isExpressionFunctionBody():
         emit("return NULL;")
     elif provider.isCompiledPythonModule():
         emit("PyErr_SetObject( PyExc_RuntimeError, Py_None );")

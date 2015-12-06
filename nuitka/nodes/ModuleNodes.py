@@ -35,6 +35,7 @@ from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.utils import Utils
 
 from .Checkers import checkStatementsSequenceOrNone
+from .CodeObjectSpecs import CodeObjectSpec
 from .ConstantRefNodes import ExpressionConstantRef
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
@@ -212,6 +213,18 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         # SSA trace based information about the module.
         self.constraint_collection = None
+
+        self.code_object = CodeObjectSpec(
+            code_name     = "<module>" if self.isMainModule() else self.getName(),
+            code_kind     = "Module",
+            arg_names     = (),
+            kw_only_count = 0,
+            has_stardict  = False,
+            has_starlist  = False,
+        )
+
+    def getCodeObject(self):
+        return self.code_object
 
     def getDetails(self):
         return {

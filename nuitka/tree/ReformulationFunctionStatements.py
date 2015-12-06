@@ -38,7 +38,8 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
     ExpressionFunctionRef,
-    ExpressionGeneratorFunctionBody
+    ExpressionGeneratorObjectBody,
+    ExpressionMakeGeneratorObject
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -94,29 +95,69 @@ def buildFunctionNode(provider, node, source_ref):
 
     assert getKind(node) == "FunctionDef"
 
-    function_statements, function_doc = extractDocFromBody(node)
+    function_statement_nodes, function_doc = extractDocFromBody(node)
 
-    function_kind = detectFunctionBodyKind(function_statements)
+    function_kind = detectFunctionBodyKind(function_statement_nodes)
+
+    parameters = buildParameterSpec(provider, node.name, node, source_ref)
 
     if function_kind == "Function":
         function_body = ExpressionFunctionBody(
             provider   = provider,
             name       = node.name,
             doc        = function_doc,
-            parameters = buildParameterSpec(provider, node.name, node, source_ref),
+            parameters = parameters,
             is_class   = False,
             source_ref = source_ref
         )
+
+        code_body = function_body
     elif function_kind == "Generator":
-        function_body = ExpressionGeneratorFunctionBody(
+        function_body = ExpressionFunctionBody(
             provider   = provider,
             name       = node.name,
             doc        = function_doc,
-            parameters = buildParameterSpec(provider, node.name, node, source_ref),
+            parameters = parameters,
+            is_class   = False,
             source_ref = source_ref
         )
+
+        code_body = ExpressionGeneratorObjectBody(
+            provider   = function_body,
+            name       = node.name,
+            source_ref = source_ref
+        )
+
+        for variable in function_body.getVariables():
+            code_body.getVariableForReference(variable.getName())
     else:
         assert False, function_kind
+
+    code_object = CodeObjectSpec(
+        code_name     = node.name,
+        code_kind     = function_kind,
+        arg_names     = parameters.getCoArgNames(),
+        kw_only_count = parameters.getKwOnlyParameterCount(),
+        has_starlist  = parameters.getStarListArgumentName() is not None,
+        has_stardict  = parameters.getStarDictArgumentName() is not None
+    )
+
+    if function_kind == "Generator":
+        function_body.setBody(
+            makeStatementsSequenceFromStatement(
+                statement = StatementReturn(
+                    expression = ExpressionMakeGeneratorObject(
+                        generator_ref = ExpressionFunctionRef(
+                            function_body = code_body,
+                            source_ref    = source_ref
+                        ),
+                        code_object   = code_object,
+                        source_ref    = source_ref
+                    ),
+                    source_ref = source_ref
+                )
+            )
+        )
 
     decorators = buildNodeList(
         provider   = provider,
@@ -137,28 +178,15 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
-    parameters = function_body.getParameters()
-    code_object = CodeObjectSpec(
-        arg_names     = parameters.getCoArgNames(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        code_name     = node.name,
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None
-    )
-
     function_statements_body = buildStatementsNode(
-        provider    = function_body,
-        nodes       = function_statements,
+        provider    = code_body,
+        nodes       = function_statement_nodes,
         code_object = code_object,
         source_ref  = source_ref
     )
 
-    if function_body.isGenerator():
-        # TODO: raise generator exit?
-        assert function_kind == "Generator", function_kind
-    else:
-        assert function_kind == "Function", function_kind
-
+    if function_kind == "Function":
+        # TODO: Generators might have to raise GeneratorExit instead.
         function_statements_body = _insertFinalReturnStatement(
             function_statements_body = function_statements_body,
             source_ref               = source_ref
@@ -169,7 +197,7 @@ def buildFunctionNode(provider, node, source_ref):
             statement = function_statements_body
         )
 
-    function_body.setBody(
+    code_body.setBody(
         function_statements_body
     )
 
@@ -233,7 +261,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     # many details each, pylint: disable=R0914
     assert getKind(node) == "AsyncFunctionDef"
 
-    function_statements, function_doc = extractDocFromBody(node)
+    function_statement_nodes, function_doc = extractDocFromBody(node)
 
     creator_function_body = ExpressionFunctionBody(
         provider   = provider,
@@ -246,9 +274,10 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     parameters = creator_function_body.getParameters()
     code_object = CodeObjectSpec(
+        code_name     = node.name,
+        code_kind     = "Coroutine",
         arg_names     = parameters.getCoArgNames(),
         kw_only_count = parameters.getKwOnlyParameterCount(),
-        code_name     = node.name,
         has_starlist  = parameters.getStarListArgumentName() is not None,
         has_stardict  = parameters.getStarDictArgumentName() is not None
     )
@@ -273,7 +302,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_statements_body = buildStatementsNode(
         provider    = function_body,
-        nodes       = function_statements,
+        nodes       = function_statement_nodes,
         code_object = code_object,
         source_ref  = source_ref
     )
@@ -544,11 +573,6 @@ def addFunctionVariableReleases(function):
     for variable in function.getLocalVariables():
         # Shared variables are freed by function object attachment.
         if variable.getOwner() is not function:
-            continue
-
-        # Generators have it attached at creation and release it automatically
-        # when deleted.
-        if function.isGenerator() and variable.isParameterVariable():
             continue
 
         releases.append(

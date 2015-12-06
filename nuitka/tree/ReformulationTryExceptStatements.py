@@ -75,9 +75,6 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
     # the tried block executed up to the end. And then we make the else block be
     # a conditional statement checking that.
 
-    if tried is None:
-        return no_raise
-
     tmp_handler_indicator_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
         name       = "unhandled_indicator"
@@ -478,6 +475,9 @@ def buildTryExceptionNode(provider, node, source_ref):
             source_ref       = source_ref
         )
     else:
+        if tried is None:
+            return no_raise
+
         return makeTryExceptNoRaise(
             provider   = provider,
             temp_scope = provider.allocateTempScope("try_except"),

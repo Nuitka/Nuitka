@@ -78,6 +78,11 @@ class StatementsFrame(StatementsSequence):
 
         result.update(StatementsSequence.getDetails(self))
 
+        return result
+
+    def getDetailsForDisplay(self):
+        result = self.getDetails()
+
         result.update(self.code_object.getDetails())
 
         return result
@@ -129,24 +134,17 @@ class StatementsFrame(StatementsSequence):
 
         # TODO: Why do this accessing a node, do this outside.
         return context.getCodeObjectHandle(
-            filename      = self.getParentModule().getRunTimeFilename(),
-            var_names     = self.code_object.getVarNames(),
-            arg_count     = self.code_object.getArgumentCount(),
-            kw_only_count = self.code_object.getKwOnlyParameterCount(),
-            line_number   = 1
+            code_object  = self.code_object,
+            filename     = self.getParentModule().getRunTimeFilename(),
+            line_number  = 1
                               if provider.isCompiledPythonModule() else
                             self.source_ref.getLineNumber(),
-            code_name     = self.code_object.getCodeObjectName(),
-            is_generator  = provider.isExpressionFunctionBody() and \
-                            provider.isGenerator(),
-            is_optimized  = is_optimized,
-            new_locals    = new_locals,
-            has_starlist  = self.code_object.has_starlist,
-            has_stardict  = self.code_object.has_stardict,
-            has_closure   = provider.isExpressionFunctionBody() and \
+            is_optimized = is_optimized,
+            new_locals   = new_locals,
+            has_closure  = provider.isExpressionFunctionBody() and \
                             provider.getClosureVariables() != () and \
                             not provider.isExpressionClassBody(),
-            future_flags  = provider.getSourceReference().getFutureSpec().\
+            future_flags = provider.getSourceReference().getFutureSpec().\
                               asFlags()
         )
 

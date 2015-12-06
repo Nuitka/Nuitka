@@ -862,14 +862,15 @@ def super_extractor(node):
 
                 # Ought to be already closure taken.
                 type_arg.setVariable(
-                    provider.getVariableForClosure(
+                    provider.getVariableForReference(
                         variable_name = "__class__"
                     )
                 )
 
                 # If we already have this as a local variable, then use that
                 # instead.
-                if type_arg.getVariable().getOwner() is provider:
+                if type_arg.getVariable().getOwner() is provider or \
+                   not type_arg.getVariable().getOwner().isExpressionFunctionBody():
                     type_arg = None
                 else:
                     addVariableUsage(type_arg.getVariable(), provider)
@@ -897,8 +898,13 @@ def super_extractor(node):
                 )
 
             if object_arg is None:
-                if provider.getParameters().getArgumentCount() > 0:
-                    par1_name = provider.getParameters().getArgumentNames()[0]
+                if provider.isExpressionGeneratorObjectBody():
+                    parameter_provider = provider.getParentVariableProvider()
+                else:
+                    parameter_provider = provider
+
+                if parameter_provider.getParameters().getArgumentCount() > 0:
+                    par1_name = parameter_provider.getParameters().getArgumentNames()[0]
                     # TODO: Nested first argument would kill us here, need a
                     # test for that.
 

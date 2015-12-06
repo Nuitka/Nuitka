@@ -39,7 +39,7 @@ def _markAsGenerator(provider, node, source_ref):
             None if Utils.python_version < 300 else node.col_offset
         )
 
-    assert provider.isGenerator(), provider
+    assert provider.isExpressionGeneratorObjectBody(), provider
 
 
 def buildYieldNode(provider, node, source_ref):

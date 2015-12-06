@@ -41,25 +41,14 @@ static PyObject *Nuitka_Generator_tp_repr( Nuitka_GeneratorObject *generator )
 
 static long Nuitka_Generator_tp_traverse( Nuitka_GeneratorObject *generator, visitproc visit, void *arg )
 {
-    Py_VISIT( (PyObject *)generator->m_frame );
+    // Not needed.
+    // Py_VISIT( (PyObject *)generator->m_frame );
 
     return 0;
 }
 
 static void Nuitka_Generator_release_parameters( Nuitka_GeneratorObject *generator )
 {
-    if ( generator->m_parameters )
-    {
-        for( Py_ssize_t i = 0; i < generator->m_parameters_given; i++ )
-        {
-            Py_XDECREF( generator->m_parameters[i] );
-            generator->m_parameters[i] = NULL;
-        }
-    }
-
-    free( generator->m_parameters );
-    generator->m_parameters = NULL;
-
     if ( generator->m_closure )
     {
         for( Py_ssize_t i = 0; i < generator->m_closure_given; i++ )
@@ -684,9 +673,9 @@ PyTypeObject Nuitka_Generator_Type =
 };
 
 #if PYTHON_VERSION < 350
-PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given )
+PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
 #else
-PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given )
+PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
 #endif
 {
     Nuitka_GeneratorObject *result = PyObject_GC_New( Nuitka_GeneratorObject, &Nuitka_Generator_Type );
@@ -694,12 +683,15 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qua
 
     result->m_code = (void *)code;
 
+    CHECK_OBJECT( name );
     result->m_name = name;
     Py_INCREF( name );
 
 #if PYTHON_VERSION >= 350
-    result->m_qualname = qualname ? qualname : name;
-    Py_INCREF( result->m_qualname );
+    CHECK_OBJECT( qualname );
+
+    result->m_qualname = qualname;
+    Py_INCREF( qualname );
 
     result->m_yieldfrom = NULL;
 #endif
@@ -708,11 +700,6 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qua
     // caller.
     result->m_closure = closure;
     result->m_closure_given = closure_given;
-
-    // We take ownership of those and received the reference count from the
-    // caller.
-    result->m_parameters = parameters;
-    result->m_parameters_given = parameters_given;
 
     result->m_weakrefs = NULL;
 

@@ -26,9 +26,14 @@ from nuitka.PythonVersions import python_version
 
 
 class CodeObjectSpec:
-    def __init__(self, code_name, arg_names, kw_only_count, has_starlist,
+    def __init__(self, code_name, code_kind, arg_names, kw_only_count, has_starlist,
                  has_stardict):
+        assert type(has_starlist) is bool
+        assert type(has_stardict) is bool
+
         self.code_name = code_name
+        self.code_kind = code_kind
+
         self.arg_names = tuple(arg_names)
 
         for arg_name in arg_names:
@@ -41,21 +46,28 @@ class CodeObjectSpec:
 
         self.local_names = ()
 
+    def __repr__(self):
+        return """\
+<CodeObjectSpec %(code_kind)s '%(code_name)s' with %(arg_names)r args, %(local_names)s locals>""" % self.getDetails()
+
     def getDetails(self):
         result = {
-            "code_name"  : self.code_name,
-            "arg_names"  : self.arg_names,
-            "local_names" : self.local_names,
-            "arg_count"  : self.arg_count,
+            "code_name"     : self.code_name,
+            "code_kind"     : self.code_kind,
+            "arg_names"     : self.arg_names,
+            "local_names"   : self.local_names,
             "kw_only_count" : self.kw_only_count,
-            "has_starlist" : self.has_starlist,
-            "has_stardict" : self.has_stardict,
+            "has_starlist"  : self.has_starlist,
+            "has_stardict"  : self.has_stardict,
          }
 
         if python_version >= 300:
             result["kw_only_count"] = self.kw_only_count
 
         return result
+
+    def isGenerator(self):
+        return self.code_kind == "Generator"
 
     def updateLocalNames(self, local_names):
         """ Add detected local variables after closure has been decided.
@@ -82,3 +94,9 @@ class CodeObjectSpec:
 
     def getCodeObjectName(self):
         return self.code_name
+
+    def hasStarListArg(self):
+        return self.has_starlist
+
+    def hasStarDictArg(self):
+        return self.has_stardict

@@ -44,7 +44,7 @@ from .templates.CodeTemplatesFrames import (
 def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames, which got a
     # lot of variants and details, therefore lots of branches.
-    # pylint: disable=R0912,R0915
+    # pylint: disable=R0912
 
     context = Contexts.PythonStatementCContext(context)
 
@@ -57,11 +57,10 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     old_frame_handle = context.getFrameHandle()
 
     if guard_mode != "pass_through":
-        if provider.isExpressionFunctionBody():
-            if provider.isGenerator():
-                context.setFrameHandle("generator->m_frame")
-            else:
-                context.setFrameHandle("frame_function")
+        if provider.isExpressionGeneratorObjectBody():
+            context.setFrameHandle("generator->m_frame")
+        elif provider.isExpressionFunctionBody():
+            context.setFrameHandle("frame_function")
         else:
             context.setFrameHandle("frame_module")
 
@@ -105,8 +104,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         frame_return_exit = None
 
     if guard_mode == "generator":
-        assert provider.isExpressionFunctionBody() and \
-               provider.isGenerator()
+        assert provider.isExpressionGeneratorObjectBody()
 
         # TODO: This case should care about "needs_preserve", as for
         # Python3 it is actually not a stub of empty code.

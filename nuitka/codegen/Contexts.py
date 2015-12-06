@@ -218,29 +218,22 @@ class CodeObjectsMixin:
     def getCodeObjects(self):
         return sorted(iterItems(self.code_objects))
 
-    # Sad but true, code objects have these many details that actually are fed
-    # from all different sources, pylint: disable=R0913
-    def getCodeObjectHandle(self, filename, code_name, line_number, var_names,
-                            arg_count, kw_only_count, is_generator, is_optimized,
-                            new_locals, has_starlist, has_stardict,
-                            has_closure, future_flags):
-        var_names = tuple(var_names)
-
-        assert type(has_starlist) is bool
-        assert type(has_stardict) is bool
+    def getCodeObjectHandle(self, code_object, filename, line_number,
+                            is_optimized, new_locals, has_closure,
+                            future_flags):
 
         key = (
             filename,
-            code_name,
+            code_object.getCodeObjectName(),
             line_number,
-            var_names,
-            arg_count,
-            kw_only_count,
-            is_generator,
+            code_object.getVarNames(),
+            code_object.getArgumentCount(),
+            code_object.getKwOnlyParameterCount(),
+            code_object.isGenerator(),
             is_optimized,
             new_locals,
-            has_starlist,
-            has_stardict,
+            code_object.hasStarListArg(),
+            code_object.hasStarDictArg(),
             has_closure,
             future_flags
         )

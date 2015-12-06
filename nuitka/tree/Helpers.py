@@ -307,9 +307,10 @@ def makeModuleFrame(module, statements, source_ref):
         statements  = statements,
         guard_mode  = "once",
         code_object = CodeObjectSpec(
+            code_name     = code_name,
+            code_kind     = "Module",
             arg_names     = (),
             kw_only_count = 0,
-            code_name     = code_name,
             has_starlist  = False,
             has_stardict  = False,
         ),
@@ -334,44 +335,49 @@ def buildStatementsNode(provider, nodes, source_ref, code_object = None):
 
     # In case of a frame is desired, build it instead.
     if code_object:
-        if provider.isExpressionFunctionBody():
-            guard_mode    = "generator" if provider.isGenerator() else "full"
-
-            if provider.isGenerator():
-                statements.insert(
-                    0,
-                    StatementGeneratorEntry(
-                        source_ref = source_ref
-                    )
+        if provider.isExpressionGeneratorObjectBody():
+            # TODO: Could do this earlier and on the outside.
+            statements.insert(
+                0,
+                StatementGeneratorEntry(
+                    source_ref = source_ref
                 )
-
-            return StatementsFrame(
+            )
+            result = StatementsFrame(
                 statements  = statements,
-                guard_mode  = guard_mode,
+                guard_mode  = "generator",
+                code_object = code_object,
+                source_ref  = source_ref
+            )
+        elif provider.isExpressionFunctionBody():
+            result = StatementsFrame(
+                statements  = statements,
+                guard_mode  = "full",
                 code_object = code_object,
                 source_ref  = source_ref
             )
         elif provider.isExpressionCoroutineBody():
             # TODO: That might be wrong
 
-            return StatementsFrame(
+            result = StatementsFrame(
                 statements  = statements,
-                guard_mode  = guard_mode,
+                guard_mode  = "generator",
                 code_object = code_object,
                 source_ref  = source_ref
             )
         else:
-            return makeModuleFrame(
+            result = makeModuleFrame(
                 module     = provider,
                 statements = statements,
                 source_ref = source_ref
             )
     else:
-        return StatementsSequence(
+        result = StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
 
+    return result
 
 def makeStatementsSequenceOrStatement(statements, source_ref):
     """ Make a statement sequence, but only if more than one statement

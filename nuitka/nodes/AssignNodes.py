@@ -254,7 +254,7 @@ Side effects of assignments promoted to statements.""",
                             pass
                     elif Options.isExperimental() and \
                         source.isExpressionFunctionCreation() and \
-                        not source.getFunctionRef().getFunctionBody().isGenerator() and \
+                        not source.getFunctionRef().getFunctionBody().isExpressionGeneratorBody() and \
                         not source.getFunctionRef().getFunctionBody().isExpressionClassBody() and \
                         not source.getDefaults() and  \
                         not source.getKwDefaults() and \

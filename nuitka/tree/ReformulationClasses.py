@@ -99,7 +99,7 @@ def _buildClassNode3(provider, node, source_ref):
 
     # This function is the Python3 special case with special re-formulation as
     # according to developer manual.
-    class_statements, class_doc = extractDocFromBody(node)
+    class_statement_nodes, class_doc = extractDocFromBody(node)
 
     # We need a scope for the temporary variables, and they might be closured.
     temp_scope = provider.allocateTempScope(
@@ -133,17 +133,48 @@ def _buildClassNode3(provider, node, source_ref):
         source_ref = source_ref
     )
 
+    if Utils.python_version >= 340 and False: # TODO: Temporarily reverted:
+        tmp_class = class_creation_function.allocateTempVariable(
+            temp_scope = None,
+            name       = "__class__"
+        )
+
+        class_target_variable_ref = ExpressionTargetTempVariableRef(
+            variable   = tmp_class,
+            source_ref = source_ref
+        )
+        class_variable_ref = ExpressionTempVariableRef(
+            variable   = tmp_class,
+            source_ref = source_ref
+        )
+    else:
+        class_variable = class_creation_function.getVariableForAssignment(
+            "__class__"
+        )
+
+        class_target_variable_ref = ExpressionTargetVariableRef(
+            variable_name = "__class__",
+            variable      = class_variable,
+            source_ref    = source_ref
+        )
+        class_variable_ref = ExpressionVariableRef(
+            variable_name = "__class__",
+            variable      = class_variable,
+            source_ref    = source_ref
+        )
+
     code_object = CodeObjectSpec(
+        code_name     = node.name,
+        code_kind     = "Class",
         arg_names     = (),
         kw_only_count = 0,
-        code_name     = node.name,
         has_starlist  = False,
         has_stardict  = False
     )
 
     body = buildStatementsNode(
         provider    = class_creation_function,
-        nodes       = class_statements,
+        nodes       = class_statement_nodes,
         code_object = code_object,
         source_ref  = source_ref
     )
@@ -235,36 +266,6 @@ def _buildClassNode3(provider, node, source_ref):
 
         if Utils.python_version >= 340:
             qualname_assign = statements[-1]
-
-    if Utils.python_version >= 340 and False: # TODO: Temporarily reverted:
-        tmp_class = class_creation_function.allocateTempVariable(
-            temp_scope = None,
-            name       = "__class__"
-        )
-
-        class_target_variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_class,
-            source_ref = source_ref
-        )
-        class_variable_ref = ExpressionTempVariableRef(
-            variable   = tmp_class,
-            source_ref = source_ref
-        )
-    else:
-        class_variable = class_creation_function.getVariableForAssignment(
-            "__class__"
-        )
-
-        class_target_variable_ref = ExpressionTargetVariableRef(
-            variable_name = "__class__",
-            variable      = class_variable,
-            source_ref    = source_ref
-        )
-        class_variable_ref = ExpressionVariableRef(
-            variable_name = "__class__",
-            variable      = class_variable,
-            source_ref    = source_ref
-        )
 
     statements += [
         body,
@@ -592,10 +593,9 @@ def _buildClassNode3(provider, node, source_ref):
 
 
 def _buildClassNode2(provider, node, source_ref):
-    class_statements, class_doc = extractDocFromBody(node)
-
     # This function is the Python2 special case with special re-formulation as
     # according to developer manual, and it's very detailed, pylint: disable=R0914
+    class_statement_nodes, class_doc = extractDocFromBody(node)
 
     function_body = ExpressionClassBody(
         provider   = provider,
@@ -607,16 +607,17 @@ def _buildClassNode2(provider, node, source_ref):
     )
 
     code_object = CodeObjectSpec(
+        code_name     = node.name,
+        code_kind     = "Class",
         arg_names     = (),
         kw_only_count = 0,
-        code_name     = node.name,
         has_starlist  = False,
         has_stardict  = False
     )
 
     body = buildStatementsNode(
         provider    = function_body,
-        nodes       = class_statements,
+        nodes       = class_statement_nodes,
         code_object = code_object,
         source_ref  = source_ref
     )
