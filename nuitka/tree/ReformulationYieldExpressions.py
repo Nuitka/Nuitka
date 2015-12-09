@@ -22,6 +22,8 @@ source code comments with developer manual sections.
 
 """
 
+import ast
+
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
@@ -37,6 +39,15 @@ def _markAsGenerator(provider, node, source_ref):
             "'yield' outside function",
             source_ref,
             None if Utils.python_version < 300 else node.col_offset
+        )
+
+    if provider.isExpressionCoroutineBody():
+        SyntaxErrors.raiseSyntaxError(
+            "'%s' inside async function" % (
+                "yield" if node.__class__ is ast.Yield else "yield from",
+            ),
+            source_ref,
+            node.col_offset+3
         )
 
     assert provider.isExpressionGeneratorObjectBody(), provider
