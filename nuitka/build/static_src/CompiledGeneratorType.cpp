@@ -884,7 +884,6 @@ static void RAISE_GENERATOR_EXCEPTION( Nuitka_GeneratorObject *generator )
 }
 
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
-extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
 
 extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
 
@@ -983,7 +982,7 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
         {
             retval = PyGen_Send( (PyGenObject *)value, Py_None );
         }
-        else if ( send_value == Py_None )
+        else if ( send_value == Py_None && Py_TYPE( value )->tp_iternext != NULL )
         {
             retval = Py_TYPE( value )->tp_iternext( value );
         }
@@ -1131,7 +1130,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
         {
             retval = PyGen_Send( (PyGenObject *)value, Py_None );
         }
-        else if ( send_value == Py_None )
+        else if ( send_value == Py_None && Py_TYPE( value )->tp_iternext != NULL )
         {
             retval = Py_TYPE( value )->tp_iternext( value );
         }
